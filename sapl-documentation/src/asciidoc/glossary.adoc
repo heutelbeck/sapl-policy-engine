@@ -1,0 +1,19 @@
+SAPL Document - A definition of either a (top level) policy or a policy set available to the PDP. It may contain any number of import statements.
+
+Policy Element - A policy set or a policy.
+
+Top Level Element - A policy element which is directly known to the PDP, i.e. any policy set and policies which are not part of a policy set. For a request the PDP evaluates all top level elements and combines the results to come to a final decision.
+
+Target Expression - An expression that evaluates to `true` or `false`.
+
+Matching Policy Element - A policy set or a policy whose target expression evaluates to true given a certain request (or whose target expression is missing).
+
+Applicable Policy - 
+
+Applicable Policy Set - 
+
+Decision
+
+Combining Algorithm
+
+Attribute - A name/value pair.

@@ -51,7 +51,6 @@
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 	</properties>
 
-<!--
 	<modules>
 		<module>sapl-core</module>
 		<module>sapl-ide</module>
@@ -66,7 +65,7 @@
 		<module>sapl-spring</module>
 		<module>sapl-spring-boot-starter</module>
 	</modules>
-  -->
+
 	<dependencyManagement>
 		<dependencies>
 			<!-- Testing Scope Dependencies -->

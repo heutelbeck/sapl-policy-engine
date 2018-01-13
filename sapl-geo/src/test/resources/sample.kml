@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml>
+   <Document>
+      <name>topp:samples</name>
+      <Style id="GeoServerStylestates.1">
+         <IconStyle>
+            <scale>0.2</scale>
+            <Icon>
+               <href>http://maps.google.com/mapfiles/kml/pal3/icon61.png</href>
+            </Icon>
+         </IconStyle>
+         <PolyStyle>
+            <color>b2ff4d4d</color>
+            <outline>1</outline>
+         </PolyStyle>
+         <LineStyle>
+            <color>ff000000</color>
+            <width>1</width>
+         </LineStyle>
+         <LabelStyle>
+            <color>ffffffff</color>
+         </LabelStyle>
+      </Style>
+      <Placemark>
+         <name><![CDATA[Sample1]]></name>
+         <description><![CDATA[Sample of two different points.]]></description>
+         <styleUrl>#GeoServerStylestates.1</styleUrl>
+         <MultiGeometry>
+            <Point>
+               <coordinates>-80,40</coordinates>
+            </Point>
+            <Point>
+               <coordinates>-86,41</coordinates>
+            </Point>
+         </MultiGeometry>
+      </Placemark>      
+      <Placemark>
+         <name><![CDATA[Sample2]]></name>
+         <description><![CDATA[Sample of a polygon.]]></description>
+         <styleUrl>#GeoServerStylestates.2</styleUrl>
+         <MultiGeometry>
+            <Polygon>
+               <outerBoundaryIs>
+                  <LinearRing>
+                     <coordinates decimal="." cs="," ts=" ">-1,1 -2,2 -3,3 -4,4 -5,5 -1,1</coordinates>
+                  </LinearRing>
+               </outerBoundaryIs>
+            </Polygon>
+         </MultiGeometry>
+      </Placemark>
+   </Document>
+</kml>

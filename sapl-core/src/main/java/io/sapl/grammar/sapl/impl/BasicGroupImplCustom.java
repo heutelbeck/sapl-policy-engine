@@ -1,0 +1,76 @@
+package io.sapl.grammar.sapl.impl;
+
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Objects;
+
+import org.eclipse.emf.ecore.EObject;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.grammar.sapl.Step;
+import io.sapl.interpreter.EvaluationContext;
+
+public class BasicGroupImplCustom extends io.sapl.grammar.sapl.impl.BasicGroupImpl {
+
+	private static final int HASH_PRIME_07 = 41;
+	private static final int INIT_PRIME_02 = 5;
+
+	@Override
+	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
+			throws PolicyEvaluationException {
+		JsonNode resultBeforeSteps = getExpression().evaluate(ctx, isBody, relativeNode);
+		return evaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
+	}
+
+	@Override
+	public int hash(Map<String, String> imports) {
+		int hash = INIT_PRIME_02;
+		hash = HASH_PRIME_07 * hash + Objects.hashCode(getClass().getTypeName());
+		hash = HASH_PRIME_07 * hash + ((getExpression() == null) ? 0 : getExpression().hash(imports));
+		hash = HASH_PRIME_07 * hash + ((getFilter() == null) ? 0 : getFilter().hash(imports));
+		for (Step step : getSteps()) {
+			hash = HASH_PRIME_07 * hash + ((step == null) ? 0 : step.hash(imports));
+		}
+		hash = HASH_PRIME_07 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
+		return hash;
+	}
+
+	@Override
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
+		if (this == other) {
+			return true;
+		}
+		if (other == null || getClass() != other.getClass()) {
+			return false;
+		}
+		final BasicGroupImplCustom otherImpl = (BasicGroupImplCustom) other;
+		if ((getExpression() == null) ? (getExpression() != otherImpl.getExpression())
+				: !getExpression().isEqualTo(otherImpl.getExpression(), otherImports, imports)) {
+			return false;
+		}
+		if ((getFilter() == null) ? (getFilter() != otherImpl.getFilter())
+				: !getFilter().isEqualTo(otherImpl.getFilter(), otherImports, imports)) {
+			return false;
+		}
+		if ((getSubtemplate() == null) ? (getSubtemplate() != otherImpl.getSubtemplate())
+				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports, imports)) {
+			return false;
+		}
+		if (getSteps().size() != otherImpl.getSteps().size()) {
+			return false;
+		}
+		ListIterator<Step> left = getSteps().listIterator();
+		ListIterator<Step> right = otherImpl.getSteps().listIterator();
+		while (left.hasNext()) {
+			Step lhs = left.next();
+			Step rhs = right.next();
+			if (!lhs.isEqualTo(rhs, otherImports, imports)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+}

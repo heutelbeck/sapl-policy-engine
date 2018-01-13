@@ -1,0 +1,20 @@
+module io.sapl.grammar.GenerateSAPL
+
+import org.eclipse.xtext.xtext.generator.*
+import org.eclipse.xtext.xtext.generator.model.project.*
+ 
+Workflow { 
+	bean = org.eclipse.emf.mwe.utils.StandaloneSetup {
+        scanClassPath = true
+    }
+    
+    component = org.eclipse.emf.mwe.utils.DirectoryCleaner {
+    		directory = "../sapl-core/src/main/emf-gen"
+    }
+    
+    component = org.eclipse.emf.mwe2.ecore.EcoreGenerator {
+        // generateCustomClasses = true
+        genModel = "platform:/resource/sapl-core/src/main/model/custom/SAPL.genmodel"
+        srcPath = "platform:/resource/sapl-core/src/main/java"
+    }
+}

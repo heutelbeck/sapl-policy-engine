@@ -1,0 +1,148 @@
+body {
+	margin: 5px;
+	text-align: left;
+	font-family: verdana, arial, sans-serif;
+	font-size: 0.75em;
+	color: #333;
+	background-color: #EEE;
+}
+
+pre {
+	padding: 5px 5px 5px 5px;
+	margin: 5px 5px 5px 5px;
+	text-align: left;
+	font-family: monospace;
+	font-size: 1.2em;
+	color: #333;
+	background-color: #DDD;
+}
+
+h1 {
+	clear: both;
+	text-align: center;
+	padding: 0 0 0 0;
+	margin: 0 0 10px 0;
+	font-size: 2.0em;
+	font-weight: normal;
+	text-transform: uppercase;
+	color: #0066A1;
+}
+
+h2 {
+	clear: both;
+	padding: 0 0 0 0;
+	margin: 0 0 10px 0;
+	font-size: 1.5em;
+	font-weight: normal;
+	text-transform: uppercase;
+	color: #0066A1;
+}
+
+h3 {
+	clear: both;
+	padding: 0 0 0 0;
+	margin: 0 0 10px 0;
+	font-size: 1.0em;
+	font-weight: bold;
+	text-transform: uppercase;
+	color: #0066A1;
+}
+
+p {
+	line-height: 15px;
+	padding: 8px 0 8px 5px;
+	margin: 5px 0 5px 0;
+}
+
+a {
+	color: #0066A1;
+}
+
+a:hover {
+	color: #0066A1;
+	background-color: #DDD;
+}
+
+ul, ol {
+	padding-bottom: 0px;
+	line-height: 15px;
+}
+
+acronym {
+	border-bottom: 1px solid #BBB;
+	cursor: help;
+}
+
+#text {
+	float: left;
+}
+
+ul.links {
+	float: left;
+	padding: 0px;
+	margin: 0px;
+}
+
+ul.links li {
+	float: left;
+	list-style-type: none;
+	list-style: none;
+}
+
+ul.links li a {
+	float: left;
+	width: 370px;
+	padding-top: 5px;
+	margin: 0px;
+	cursor: pointer;
+	text-decoration: none;
+}
+
+ul.links li a:hover {
+	background: #DDD url(../images/link_top.gif) no-repeat top center;
+}
+
+ul.links li a span.title {
+	display: block;
+	margin-left: 11px;
+	text-indent: 20px;
+	background: url(../images/link_arrow.gif) no-repeat center left;
+}
+
+ul.links li a span.desc {
+	float: left;
+	width: 350px;
+	padding-right: 3px;
+	margin-left: 10px;
+	color: #666
+}
+
+ul.links li a span.bottom {
+	display: block;
+	height: 18px;
+	clear: both;
+}
+
+ul.links li a:hover span.bottom {
+	background: #EEE url(../images/link_bottom.gif) no-repeat top center;
+}
+
+.date {
+	display: block;
+	text-transform: uppercase;
+	color: #0066A1;
+}
+
+img.right {
+	float: right;
+	padding: 3px;
+}
+
+img.left {
+	float: left;
+	padding: 3px;
+}
+
+.grey {
+	color: #AAA;
+}
