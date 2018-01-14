@@ -1,6 +1,5 @@
 package io.sapl.interpreter.selection;
 
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -15,27 +14,15 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.variables.VariableContext;
 
 public class ResultNodesTest {
-	private static final String KEY = "key";
-
-	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	private static VariableContext variableCtx = new VariableContext();
-	private static FunctionContext functionCtx = null;
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
 	@Test
 	public void asJsonWithoutParent() {
 		ResultNode resultNode = new JsonNodeWithoutParent(JSON.nullNode());
 		JsonNode expectedResult = JSON.nullNode();
-		
+
 		assertEquals("asJson method JsonNodeWithoutParent should return contained JSON node", expectedResult,
 				resultNode.asJsonWithoutAnnotations());
 	}
