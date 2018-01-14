@@ -33,7 +33,7 @@ Workflow {
 					name = "sapl-web"			
 					enabled = true
 					overwriteSrc = true
-					assets = "../sapl-web/src/main/resources/static"
+					assets = "/sapl-web/src/main/resources/static"
 					
 				}
 				mavenLayout = true
