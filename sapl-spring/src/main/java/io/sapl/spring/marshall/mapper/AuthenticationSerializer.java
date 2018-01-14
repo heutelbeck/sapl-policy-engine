@@ -33,7 +33,7 @@ public class AuthenticationSerializer extends StdSerializer<Authentication> {
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         jsonGenerator.writeArrayFieldStart("authorities");
         for ( GrantedAuthority authority : authorities) {
-        	jsonGenerator.writeStringField("authority", authority.toString());
+        	jsonGenerator.writeString(authority.toString());
         }
         jsonGenerator.writeEndArray();
         jsonGenerator.writeEndObject();
