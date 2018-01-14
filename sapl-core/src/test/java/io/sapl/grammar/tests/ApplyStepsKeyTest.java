@@ -1,5 +1,6 @@
 package io.sapl.grammar.tests;
 
+
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -27,7 +28,7 @@ import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
 
-public class ApplyStepsKeyStep {
+public class ApplyStepsKeyTest {
 	private static final String KEY = "key";
 
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;

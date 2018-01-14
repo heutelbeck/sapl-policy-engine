@@ -36,7 +36,7 @@ import io.sapl.grammar.sapl.Value;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
 
-public class SAPLEvaluationOperatorsTest {
+public class EvaluateOperatorsTest {
 	private static final BigDecimal TEST_NUMBER = BigDecimal.valueOf(100.50);
 	private static final BigDecimal NUMBER_ONE = BigDecimal.valueOf(1);
 	private static final BigDecimal NUMBER_TWO = BigDecimal.valueOf(2);

@@ -23,7 +23,7 @@ import io.sapl.grammar.sapl.Value;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
 
-public class SAPLEvaluationLiteralsValuesTest {
+public class EvaluateLiteralsValuesTest {
 	private static final String TEST_STRING = "a test string";
 	private static final BigDecimal TEST_NUMBER = BigDecimal.valueOf(100.50);
 	private static final String PAIR1_KEY = "pair1 key";

@@ -22,7 +22,7 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 
-public class ApplyFilteringExtended {
+public class ApplyFilteringExtendedTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 

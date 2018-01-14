@@ -24,7 +24,7 @@ import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
 
-public class ApplyStepsAttributeFinderStep {
+public class ApplyStepsAttributeFinderTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 

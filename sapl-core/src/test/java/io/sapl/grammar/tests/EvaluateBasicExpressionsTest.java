@@ -25,7 +25,7 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 
-public class SAPLEvaluationBasicExpressionsTest {
+public class EvaluateBasicExpressionsTest {
 	private static final String EXCEPTION = "EXCEPTION";
 	private static final String PARAMETERS = "PARAMETERS";
 	private static final String LONG = "long";
