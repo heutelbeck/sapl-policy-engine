@@ -21,7 +21,7 @@
 
 	<packaging>pom</packaging>
 
-	<name>SAPL policy engine root project</name>
+	<name>SAPL Policy Engine</name>
 
 	<organization>
 		<name>Dominic Heutelbeck</name>

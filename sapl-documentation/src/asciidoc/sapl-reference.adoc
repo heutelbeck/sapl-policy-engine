@@ -137,9 +137,9 @@ SAPL provides an embedded PDP including an embedded PRP with a file system polic
 [source,XML]
 .pom.xml
 <dependency>
-	<groupId>org.openconjurer</groupId>
+	<groupId>io.sapl</groupId>
 	<artifactId>sapl-pdp-embedded</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.0-SNAPSHOT</version>
 </dependency>
 
 . In your application, create a new `EmbeddedPolicyDecisionPoint`. The argument `"file:C:/path/to/policies"` is a string specifying the directory which contains all policy sets and policies, as well as the configuration `pdp.json`.
@@ -174,10 +174,10 @@ The whole source code to make use of the `test.sapl` policy could look as follow
 +
 [source,Java,linenums]
 ----
-import org.openconjurer.authz.api.pdp.PolicyDecisionPoint;
-import org.openconjurer.authz.pdp.embedded.EmbeddedPolicyDecisionPoint;
-import org.openconjurer.authz.api.pdp.Response;
-import org.openconjurer.authz.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
+import io.sapl.api.pdp.Response;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 
 PolicyDecisionPoint pdp;
 try {

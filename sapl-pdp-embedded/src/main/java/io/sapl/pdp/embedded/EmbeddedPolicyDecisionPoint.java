@@ -45,7 +45,7 @@ import io.sapl.prp.embedded.ResourcesPolicyRetrievalPoint;
 
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
-	private static final String DEFAULT_SCAN_PACKAGE = "org.openconjurer";
+	private static final String DEFAULT_SCAN_PACKAGE = "io.sapl";
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final String ALGORITHM_NOT_ALLOWED_FOR_PDP_LEVEL_COMBINATION = "algorithm not allowed for PDP level combination.";

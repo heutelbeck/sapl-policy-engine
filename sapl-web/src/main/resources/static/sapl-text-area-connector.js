@@ -1,7 +1,7 @@
 /*
  * 
  */
-window.org_openconjurer_grammar_web_SAPLTextArea = function() {
+window.io_sapl_grammar_web_SAPLTextArea = function() {
     // Create the component
     var saplEditor = new saplweb.SAPLTextArea(this.getElement());
     // URL basis to load all dependencies from

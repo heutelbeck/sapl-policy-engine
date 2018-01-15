@@ -33,7 +33,7 @@ public class PolicyEnforcementFilter extends GenericFilterBean {
 	 * (non-Javadoc)
 	 * 
 	 * @see
-	 * org.openconjurer.mock.beans.SAPLGenericFilterBean#doFilter(javax.servlet.
+	 * io.sapl.mock.beans.SAPLGenericFilterBean#doFilter(javax.servlet.
 	 * ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)
 	 */
 	@Override
