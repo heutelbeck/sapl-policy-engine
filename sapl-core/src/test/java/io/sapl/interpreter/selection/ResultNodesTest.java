@@ -5,7 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -15,7 +17,10 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.grammar.sapl.Arguments;
+import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.sapl.Value;
 import io.sapl.grammar.tests.MockFunctionContext;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -312,4 +317,179 @@ public class ResultNodesTest {
 		resultNode.applyFunction("dummy", factory.createArguments(), false, ctx);
 	}
 
+	@Test(expected = PolicyEvaluationException.class)
+	public void functionOnWithoutParentNoEach() throws PolicyEvaluationException {
+		JsonNode target = JSON.nullNode();
+
+		ResultNode resultNode = new JsonNodeWithoutParent(target);
+
+		resultNode.applyFunction("dummy", factory.createArguments(), false, ctx);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void functionOnWithoutParentEachNoArray() throws PolicyEvaluationException {
+		JsonNode target = JSON.nullNode();
+
+		ResultNode resultNode = new JsonNodeWithoutParent(target);
+
+		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+	}
+
+	@Test
+	public void functionOnWithoutParentEach() throws PolicyEvaluationException {
+		ArrayNode target = JSON.arrayNode();
+		target.add(JSON.nullNode());
+
+		ArrayNode expectedResult = JSON.arrayNode();
+		expectedResult.add(JSON.textNode("dummy"));
+
+		ResultNode resultNode = new JsonNodeWithoutParent(target);
+
+		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+
+		assertEquals("function applied to JsonNodeWithoutParent with each should replace each node", expectedResult,
+				target);
+	}
+
+	@Test
+	public void functionOnWithParentObjectNoEach() throws PolicyEvaluationException {
+		ObjectNode target = JSON.objectNode();
+		target.set("key", JSON.nullNode());
+
+		ObjectNode expectedResult = JSON.objectNode();
+		expectedResult.set("key", JSON.textNode("dummy"));
+
+		ResultNode resultNode = new JsonNodeWithParentObject(JSON.nullNode(), target, "key");
+
+		resultNode.applyFunction("dummy", factory.createArguments(), false, ctx);
+
+		assertEquals("function applied to JsonNodeWithParentObject should replace selected node", expectedResult,
+				target);
+	}
+
+	@Test
+	public void functionOnWithParentObjectEach() throws PolicyEvaluationException {
+		ObjectNode target = JSON.objectNode();
+		ArrayNode array = JSON.arrayNode();
+		array.add(JSON.nullNode());
+		target.set("key", array);
+
+		ObjectNode expectedResult = JSON.objectNode();
+		ArrayNode expectedArray = JSON.arrayNode();
+		expectedArray.add(JSON.textNode("dummy"));
+		expectedResult.set("key", expectedArray);
+
+		ResultNode resultNode = new JsonNodeWithParentObject(array, target, "key");
+
+		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+
+		assertEquals("function applied to JsonNodeWithParentObject with each should replace each item of selected node",
+				expectedResult, target);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void functionOnWithParentObjectEachNoArray() throws PolicyEvaluationException {
+		ObjectNode target = JSON.objectNode();
+		target.set("key", JSON.nullNode());
+
+		ResultNode resultNode = new JsonNodeWithParentObject(JSON.nullNode(), target, "key");
+
+		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+	}
+
+	@Test
+	public void functionOnWithParentArrayNoEach() throws PolicyEvaluationException {
+		ArrayNode target = JSON.arrayNode();
+		target.add(JSON.nullNode());
+
+		ArrayNode expectedResult = JSON.arrayNode();
+		expectedResult.add(JSON.textNode("dummy"));
+
+		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
+
+		resultNode.applyFunction("dummy", factory.createArguments(), false, ctx);
+
+		assertEquals("function applied to JsonNodeWithParentArray should replace selected node", expectedResult,
+				target);
+	}
+
+	@Test
+	public void functionOnWithParentArrayEach() throws PolicyEvaluationException {
+		ArrayNode target = JSON.arrayNode();
+		ArrayNode array = JSON.arrayNode();
+		array.add(JSON.nullNode());
+		target.add(array);
+
+		ArrayNode expectedResult = JSON.arrayNode();
+		ArrayNode expectedArray = JSON.arrayNode();
+		expectedArray.add(JSON.textNode("dummy"));
+		expectedResult.add(expectedArray);
+
+		ResultNode resultNode = new JsonNodeWithParentArray(array, target, 0);
+
+		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+
+		assertEquals("function applied to JsonNodeWithParentArray with each should replace each item of selected node",
+				expectedResult, target);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void functionOnWithParentArrayEachNoArray() throws PolicyEvaluationException {
+		ArrayNode target = JSON.arrayNode();
+		target.add(JSON.nullNode());
+
+		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
+
+		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+	}
+
+	@Test
+	public void functionWithImport() throws PolicyEvaluationException {
+		Map<String, String> imports = new HashMap<>();
+		imports.put("short", "dummy");
+		ctx = new EvaluationContext(null, functionCtx, variableCtx, imports);
+
+		ArrayNode target = JSON.arrayNode();
+		target.add(JSON.nullNode());
+
+		ArrayNode expectedResult = JSON.arrayNode();
+		expectedResult.add(JSON.textNode("dummy"));
+
+		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
+
+		resultNode.applyFunction("short", null, false, ctx);
+
+		assertEquals("function with imports should replace selected node", expectedResult, target);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void functionWithException() throws PolicyEvaluationException {
+		ArrayNode target = JSON.arrayNode();
+		target.add(JSON.nullNode());
+
+		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
+
+		resultNode.applyFunction("EXCEPTION", factory.createArguments(), false, ctx);
+	}
+
+	@Test
+	public void functionWithArguments() throws PolicyEvaluationException {
+		ArrayNode target = JSON.arrayNode();
+		target.add(JSON.nullNode());
+
+		ArrayNode expectedResult = JSON.arrayNode();
+		expectedResult.add(JSON.textNode("dummy"));
+
+		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
+
+		Arguments arguments = factory.createArguments();
+		BasicValue argumentExpression = factory.createBasicValue();
+		Value value = factory.createTrueLiteral();
+		argumentExpression.setValue(value);
+		arguments.getArgs().add(argumentExpression);
+
+		resultNode.applyFunction("dummy", arguments, false, ctx);
+
+		assertEquals("function with arguments should replace selected node", expectedResult, target);
+	}
 }
