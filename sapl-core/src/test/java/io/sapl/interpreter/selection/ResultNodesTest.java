@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -14,9 +15,19 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.tests.MockFunctionContext;
+import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.variables.VariableContext;
 
 public class ResultNodesTest {
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static SaplFactory factory = SaplFactory.eINSTANCE;
+
+	private static VariableContext variableCtx = new VariableContext();
+	private static FunctionContext functionCtx = new MockFunctionContext();
+	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
 	@Test
 	public void asJsonWithoutParent() {
@@ -42,6 +53,21 @@ public class ResultNodesTest {
 		JsonNode expectedResult = JSON.nullNode();
 
 		assertEquals("asJson method JsonNodeWithParentArray should return contained JSON node", expectedResult,
+				resultNode.asJsonWithoutAnnotations());
+	}
+
+	@Test
+	public void asJsonArrayResultNode() {
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithoutParent(JSON.nullNode()));
+		list.add(new JsonNodeWithoutParent(JSON.booleanNode(true)));
+		ArrayResultNode resultNode = new ArrayResultNode(list);
+
+		ArrayNode expectedResult = JSON.arrayNode();
+		expectedResult.add(JSON.nullNode());
+		expectedResult.add(JSON.booleanNode(true));
+
+		assertEquals("asJson method ArrayResultNode should return array node containing the JSON nodes", expectedResult,
 				resultNode.asJsonWithoutAnnotations());
 	}
 
@@ -236,6 +262,54 @@ public class ResultNodesTest {
 
 		assertEquals("remove applied to JsonNodeWithParentArray with each should remove each element from array",
 				expectedResult, target);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void removeOnArrayResultNoEach() throws PolicyEvaluationException {
+		ArrayNode target = JSON.arrayNode();
+
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.nullNode(), target, 0));
+		ArrayResultNode resultNode = new ArrayResultNode(list);
+
+		resultNode.removeFromTree(false);
+	}
+
+	@Test
+	public void removeOnArrayResultEach() throws PolicyEvaluationException {
+		ArrayNode target = JSON.arrayNode();
+		ObjectNode object = JSON.objectNode();
+		object.set("key", JSON.nullNode());
+		ArrayNode array = JSON.arrayNode();
+		array.add(JSON.nullNode());
+		target.add(JSON.nullNode());
+		target.add(object);
+		target.add(array);
+
+		ArrayNode expectedResult = JSON.arrayNode();
+		expectedResult.add(JSON.objectNode());
+		expectedResult.add(JSON.arrayNode());
+
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.nullNode(), target, 0));
+		list.add(new JsonNodeWithParentObject(JSON.nullNode(), object, "key"));
+		list.add(new JsonNodeWithParentArray(JSON.nullNode(), array, 0));
+		ArrayResultNode resultNode = new ArrayResultNode(list);
+
+		resultNode.removeFromTree(true);
+
+		assertEquals("remove applied to ArrayResultNode with each should remove each node", expectedResult, target);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void functionOnArrayResultNoEach() throws PolicyEvaluationException {
+		ArrayNode target = JSON.arrayNode();
+
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.nullNode(), target, 0));
+		ArrayResultNode resultNode = new ArrayResultNode(list);
+
+		resultNode.applyFunction("dummy", factory.createArguments(), false, ctx);
 	}
 
 }
