@@ -43,7 +43,6 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode
 public class KMLImport {
 
-	private static final String KML_FOLDER_PATH = "src/test/resources/";
 	private static final String ATT_FEATURE = "Feature";
 	private static final String ATT_NAME = "name";
 	private static final String ATT_GEOM = "Geometry";
@@ -94,7 +93,7 @@ public class KMLImport {
 
 	private SimpleFeature getKmlFromFile() throws AttributeException {
 		try (FileInputStream inputStream = new FileInputStream(
-				new File(KML_FOLDER_PATH, FilenameUtils.getName(kmlSource)))) {
+				new File(FilenameUtils.getPath(kmlSource) + FilenameUtils.getName((kmlSource))))) {
 
 			return parse(inputStream);
 

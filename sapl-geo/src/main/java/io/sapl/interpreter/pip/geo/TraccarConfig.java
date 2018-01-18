@@ -17,5 +17,5 @@ public class TraccarConfig {
 	private String credentials; // already Base64-encrypted
 	private String username;
 	private String password;
-	private int posValidityTimespan;
+	private int posValidityTimespan = 120;
 }
