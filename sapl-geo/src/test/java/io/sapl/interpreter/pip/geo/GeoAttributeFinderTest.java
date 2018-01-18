@@ -36,22 +36,19 @@ public class GeoAttributeFinderTest {
     @Test
     public void postgisTest() throws AttributeException, FunctionException {
 	assertEquals("GeoAttributeFinder does not call the correct methods when accessing PostGIS.",
-		AF.postgis(JSON.textNode(PostGISConnection.AF_TEST), null).asText(),
-		PostGISConnection.TEST_OKAY);
+			PostGISConnection.TEST_OKAY, AF.postgis(JSON.textNode(PostGISConnection.AF_TEST), null).asText());
     }
 
     @Test
     public void traccarTest() throws AttributeException, FunctionException {
 	assertEquals("GeoAttributeFinder does not call the correct methods when accessing Traccar.",
-		AF.traccar(JSON.textNode(TraccarConnection.AF_TEST), null).asText(),
-		TraccarConnection.TEST_OKAY);
+			TraccarConnection.TEST_OKAY, AF.traccar(JSON.textNode(TraccarConnection.AF_TEST), null).asText());
     }
 
     @Test
     public void kmlTest() throws AttributeException, FunctionException {
 	assertEquals("GeoAttributeFinder does not call the correct methods when accessing KML.",
-		AF.kml(JSON.textNode(""), null).asText(),
-		KMLImport.TEST_OKAY);
+			KMLImport.TEST_OKAY, AF.kml(JSON.textNode(""), null).asText());
     }
 
 }

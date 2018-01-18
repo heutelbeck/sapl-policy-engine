@@ -81,7 +81,10 @@ public class GeoFunctionLibrary {
 	private static final String GEOMETRYBAG_DOC = "geometryBag(GEOMETRY,...): Takes any number of GEOMETRY and returns a GEOMETRYCOLLECTION containing all of them.";
 	private static final String ATLEASTONEMEMBEROF_DOC = "atLeastOneMemberOf(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns TRUE if at least one member of GEOMETRYCOLLECTION1 is contained in GEOMETRYCOLLECTION2.";
 	private static final String SUBSET_DOC = "subset(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns true, if GEOMETRYCOLLECTION1 is a subset of GEOMETRYCOLLECTION2.";
-
+	private static final String ENABLEPROJ_DOC ="enableProjection(SRCSYSTEM, DESTSYSTEM): Enables the projection from SRCSYSTEM to DESTSYSTEM (must be provided in ESPG-format).";
+	private static final String DISABLEPROJ_DOC ="disableProjection(): Disables projection of geometries.";
+	private static final String PROJECT_DOC ="project(GEOMETRY): Returns the projected geometry (or the geometry itself in case no projection is defined)";
+	
 	private static final String INPUT_NOT_GEOCOLLECTION_WITH_ONLY_ONE_GEOM = "Input must be a GeometryCollection containing only one Geometry.";
 	private static final String UNIT_NOT_CONVERTIBLE = "Given unit '%s' is not convertible to '%s'.";
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -450,4 +453,24 @@ public class GeoFunctionLibrary {
 			return JSON.booleanNode(false);
 		}
 	}
+	
+	@Function(docs = ENABLEPROJ_DOC)
+	public JsonNode enableProjection(@Text JsonNode srcSystem, @Text JsonNode destSystem) throws FunctionException {
+		projection = new GeoProjection(srcSystem.asText(), destSystem.asText());
+		return JSON.booleanNode(true);
+	}
+	
+	@Function(docs = DISABLEPROJ_DOC)
+	public JsonNode disableProjection() {
+		projection = null;
+		return JSON.booleanNode(true);
+	}
+	
+	@Function(docs = PROJECT_DOC)
+	public JsonNode project(@JsonObject JsonNode jsonGeometry) throws FunctionException {
+		SAPLGeometry geometry = new SAPLGeometry(jsonGeometry, projection);
+		geometry.setProjection(null);
+		return geometry.toJsonNode();
+	}
+	
 }
