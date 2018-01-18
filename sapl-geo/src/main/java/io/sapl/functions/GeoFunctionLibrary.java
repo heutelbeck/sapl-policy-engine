@@ -462,14 +462,14 @@ public class GeoFunctionLibrary {
 	
 	@Function(docs = DISABLEPROJ_DOC)
 	public JsonNode disableProjection() {
-		projection = null;
+		projection = GeoProjection.returnEmptyProjection();
 		return JSON.booleanNode(true);
 	}
 	
 	@Function(docs = PROJECT_DOC)
 	public JsonNode project(@JsonObject JsonNode jsonGeometry) throws FunctionException {
 		SAPLGeometry geometry = new SAPLGeometry(jsonGeometry, projection);
-		geometry.setProjection(null);
+		geometry.setProjection(GeoProjection.returnEmptyProjection());
 		return geometry.toJsonNode();
 	}
 	

@@ -494,12 +494,12 @@ class GeoFunctionLibraryTest {
 			where
 			geo.enableProjection("EPSG:4326", "EPSG:3857"); 
 			var pointOneProj = geo.project(resource.pointOne);
-			geo.disableProjection()
+			geo.disableProjection();
 			!geo.equals(resource.pointOne, pointOneProj);
 			
 		''';
 		assertEquals("geo.projection() does not work as expected",
-			getDecision(policyDefinition) , Decision.INDETERMINATE);
+			getDecision(policyDefinition) , Decision.PERMIT);
 	}
 	
 	def Decision getDecision(String policyDefinition) {

@@ -79,4 +79,8 @@ public class GeoProjection {
 			throw new FunctionException(UNABLE_TO_TRANSFORM, e);
 		}
 	}
+	
+	public static GeoProjection returnEmptyProjection() {
+		return null;
+	}
 }
