@@ -74,7 +74,7 @@ public class TraccarTest {
 	    + "\"calendarId\":0}]";
 
     private static String configJson = "{\"deviceID\": \"123456\", \"url\": \"http://lcl:00/api/\","
-	    + "\"credentials\": \"YWRtaW46YWRtaW4=\"}";
+	    + "\"credentials\": \"YWRtaW46YWRtaW4=\", \"posValidityTimespan\": 10}";
 
     private static String expectedGeoPIPResponse = "{\"identifier\":\"testname\",\"position\":{\"type\":\"Point\","
 	    + "\"coordinates\":[1,0.0]},\"altitude\":0.0,\"lastUpdate\":\"\",\"accuracy\":0.0,\"trust\":0.0,"
@@ -116,8 +116,7 @@ public class TraccarTest {
 		.thenReturn(MAPPER.readTree(devicesJson));
 
 	assertEquals("Traccar devices not correctly obtained.",
-		trConn.getTraccarDevice(DEVICE_ID).getName(),
-		"TestDevice");
+			"TestDevice", trConn.getTraccarDevice(DEVICE_ID).getName());
     }
 
     @Test
@@ -174,7 +173,7 @@ public class TraccarTest {
 	} catch (AttributeException e) {
 	    assertEquals(
 		    "Wrong error message gets thrown when zero positions are returned from server.",
-		    e.getMessage(), TraccarConnection.UNABLE_TO_READ_FROM_SERVER);
+		    TraccarConnection.UNABLE_TO_READ_FROM_SERVER, e.getMessage());
 	}
     }
 
@@ -211,8 +210,8 @@ public class TraccarTest {
     @Test
     public void httpHeaderGenerationTest() {
 	assertEquals("HTTP-Header is not correctly created.",
-		trConn.getTraccarHTTPHeader().toString(),
-		"{Authorization=Basic YWRtaW46YWRtaW4=, Accept=application/json}");
+			"{Authorization=Basic YWRtaW46YWRtaW4=, Accept=application/json}", 
+			trConn.getTraccarHTTPHeader().toString());
     }
 
     @Test
@@ -222,8 +221,8 @@ public class TraccarTest {
 	TraccarConnection conn = new TraccarConnection(
 		MAPPER.readValue(config, TraccarConfig.class));
 	assertEquals("Base64 encoding of username and password is not correct.",
-		conn.getTraccarHTTPHeader().toString(),
-		"{Authorization=Basic YWRtaW46YWRtaW4=, Accept=application/json}");
+			"{Authorization=Basic YWRtaW46YWRtaW4=, Accept=application/json}",
+			conn.getTraccarHTTPHeader().toString());
     }
 
     @Test

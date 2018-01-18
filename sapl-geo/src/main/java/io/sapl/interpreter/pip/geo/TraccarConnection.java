@@ -47,7 +47,6 @@ public class TraccarConnection {
 	private static final String TRACCAR_GEOFENCES = "geofences";
 	private static final String EMPTY_STRING = "";
 	private static final String QUESTIONMARK = "?";
-	private static final long MAX_POSITION_AGE = 10;
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	protected static final String UNABLE_TO_READ_FROM_SERVER = "Unable to make connection or retrieve data from tracking server.";
@@ -92,10 +91,9 @@ public class TraccarConnection {
 	}
 
 	public TraccarPosition getTraccarPosition(TraccarDevice device) throws AttributeException {
-		// Current position must be more current than MAX_POSITION_AGE
 		HashMap<String, String> httpGetArguments = new HashMap<>();
 		httpGetArguments.put("deviceId", String.valueOf(device.getId()));
-		httpGetArguments.put("from", Instant.now().minus(MAX_POSITION_AGE, ChronoUnit.DAYS).toString());
+		httpGetArguments.put("from", Instant.now().minus(config.getPosValidityTimespan(), ChronoUnit.MINUTES).toString());
 		httpGetArguments.put("to", Instant.now().toString());
 
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_POSITIONS, httpGetArguments)));

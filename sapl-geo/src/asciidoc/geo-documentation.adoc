@@ -183,6 +183,7 @@ public class TraccarConfig {
     private String credentials; <3>
     private String username; <4>
     private String password; <5>
+    private int posValidityTimespan; <6>
 }
 ----
 
@@ -191,6 +192,7 @@ public class TraccarConfig {
 <3> Base64-encoded string of username and password to access the Traccar server (can be replaced by giving *4* and *5* alternatively).
 <4> Username to access the Traccar server.
 <5> Password to access the Traccar server.
+<6> Timeframe in minutes, during which the last position update must have taken place to be considered as a current position.
 
 
 [[sec:geopipresponse]]
