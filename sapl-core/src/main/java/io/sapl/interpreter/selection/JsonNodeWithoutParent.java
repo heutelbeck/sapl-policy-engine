@@ -14,6 +14,7 @@ import lombok.Value;
 @ToString(callSuper = true)
 public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 
+	private static final String REFERENCE_CANNOT_BE_COMPARED = "Reference of a JsonNodeWithoutParent cannot be compared.";
 	private static final String FILTER_ROOT_ELEMENT = "The root element cannot be filtered.";
 
 	public JsonNodeWithoutParent(JsonNode node) {
@@ -55,7 +56,7 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public boolean sameReference(AbstractAnnotatedJsonNode other) {
-		return other.isNodeWithoutParent() && other.getNode() == getNode();
+	public boolean sameReference(AbstractAnnotatedJsonNode other)  throws PolicyEvaluationException {
+		throw new PolicyEvaluationException(REFERENCE_CANNOT_BE_COMPARED);
 	}
 }

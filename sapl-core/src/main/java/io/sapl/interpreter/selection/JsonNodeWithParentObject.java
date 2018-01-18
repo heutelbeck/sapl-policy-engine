@@ -56,8 +56,8 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public boolean sameReference(AbstractAnnotatedJsonNode other) {
-		return other.isNodeWithParentObject() && other.getNode() == getNode()
+	public boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException {
+		return other.isNodeWithParentObject() && other.getParent() == getParent()
 				&& getAttribute().equals(((JsonNodeWithParentObject) other).getAttribute());
 	}
 }

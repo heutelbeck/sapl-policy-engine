@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +20,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.BasicValue;
+import io.sapl.grammar.sapl.IndexStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.Value;
 import io.sapl.grammar.tests.MockFunctionContext;
@@ -317,6 +319,29 @@ public class ResultNodesTest {
 		resultNode.applyFunction("dummy", factory.createArguments(), false, ctx);
 	}
 
+	@Test
+	public void functionOnArrayResultEach() throws PolicyEvaluationException {
+		ArrayNode target = JSON.arrayNode();
+		target.add(JSON.nullNode());
+		target.add(JSON.booleanNode(true));
+		target.add(JSON.booleanNode(false));
+
+		ArrayNode expectedResult = JSON.arrayNode();
+		expectedResult.add(JSON.textNode("dummy"));
+		expectedResult.add(JSON.booleanNode(true));
+		expectedResult.add(JSON.textNode("dummy"));
+
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.nullNode(), target, 0));
+		list.add(new JsonNodeWithParentArray(JSON.booleanNode(false), target, 2));
+		ResultNode resultNode = new ArrayResultNode(list);
+
+		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+
+		assertEquals("function applied to ArrayResultNode with each should replace each selected item",
+				expectedResult, target);
+	}
+
 	@Test(expected = PolicyEvaluationException.class)
 	public void functionOnWithoutParentNoEach() throws PolicyEvaluationException {
 		JsonNode target = JSON.nullNode();
@@ -492,4 +517,98 @@ public class ResultNodesTest {
 
 		assertEquals("function with arguments should replace selected node", expectedResult, target);
 	}
+
+	@Test
+	public void applyStepArrayResult() throws PolicyEvaluationException {
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithoutParent(JSON.nullNode()));
+		ResultNode resultNode = new ArrayResultNode(list);
+
+		IndexStep step = factory.createIndexStep();
+		step.setIndex(BigDecimal.ZERO);
+
+		ResultNode expectedResult = new JsonNodeWithoutParent(JSON.nullNode());
+
+		ResultNode result = resultNode.applyStep(step, ctx, true, null);
+
+		assertEquals("applyStep on ArrayResultNode should return correct ResultNode", expectedResult, result);
+	}
+
+	@Test
+	public void applyStepAnnotatedJsonNode() throws PolicyEvaluationException {
+		ArrayNode array = JSON.arrayNode();
+		array.add(JSON.nullNode());
+		ResultNode resultNode = new JsonNodeWithoutParent(array);
+
+		IndexStep step = factory.createIndexStep();
+		step.setIndex(BigDecimal.ZERO);
+
+		ResultNode expectedResult = new JsonNodeWithParentArray(JSON.nullNode(), array, 0);
+
+		ResultNode result = resultNode.applyStep(step, ctx, true, null);
+
+		assertEquals("applyStep on AbstractAnnotatedJsonNode should return correct ResultNode", expectedResult, result);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void sameReferenceWithoutParent() throws PolicyEvaluationException {
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithoutParent(JSON.nullNode());
+		AbstractAnnotatedJsonNode other = new JsonNodeWithoutParent(JSON.nullNode());
+		resultNode.sameReference(other);
+	}
+
+	@Test
+	public void sameReferenceWithParentArrayTrue() throws PolicyEvaluationException {
+		ArrayNode array = JSON.arrayNode();
+		array.add(JSON.nullNode());
+
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), array, 0);
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentArray(JSON.nullNode(), array, 0);
+
+		assertTrue("sameReference on JsonNodeWithParentArray should return true if reference is the same",
+				resultNode.sameReference(other));
+	}
+
+	@Test
+	public void sameReferenceWithParentArrayFalse() throws PolicyEvaluationException {
+		ArrayNode array1 = JSON.arrayNode();
+		array1.add(JSON.nullNode());
+
+		ArrayNode array2 = JSON.arrayNode();
+		array2.add(JSON.nullNode());
+
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), array1, 0);
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentArray(JSON.nullNode(), array2, 0);
+
+		assertFalse("sameReference on JsonNodeWithParentArray should return false if reference is not the same",
+				resultNode.sameReference(other));
+	}
+
+	@Test
+	public void sameReferenceWithParentObjectTrue() throws PolicyEvaluationException {
+		ObjectNode object = JSON.objectNode();
+		object.set("key", JSON.nullNode());
+
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentObject(JSON.nullNode(), object, "key");
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentObject(JSON.nullNode(), object, "key");
+
+		assertTrue("sameReference on JsonNodeWithParentObject should return true if reference is the same",
+				resultNode.sameReference(other));
+	}
+
+	@Test
+	public void sameReferenceWithParentObjectFalse() throws PolicyEvaluationException {
+		ObjectNode object1 = JSON.objectNode();
+		object1.set("key", JSON.nullNode());
+
+		ObjectNode object2 = JSON.objectNode();
+		object2.set("key", JSON.nullNode());
+
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentObject(JSON.nullNode(), object1, "key");
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentObject(JSON.nullNode(), object2, "key");
+
+		assertFalse("sameReference on JsonNodeWithParentObject should return false if reference is not the same",
+				resultNode.sameReference(other));
+	}
+
 }

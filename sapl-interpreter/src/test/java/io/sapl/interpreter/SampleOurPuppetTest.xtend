@@ -26,7 +26,7 @@ import org.junit.Test
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.junit.Assert.assertThat
 
-class FilterOurPuppetUnitTest {
+class SampleOurPuppetTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();

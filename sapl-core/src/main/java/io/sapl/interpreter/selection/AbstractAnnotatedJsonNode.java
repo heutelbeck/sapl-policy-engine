@@ -123,5 +123,16 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 		return step.apply(this, ctx, isBody, relativeNode);
 	}
 
-	public abstract boolean sameReference(AbstractAnnotatedJsonNode other);
+	/**
+	 * The method checks whether two AbstractAnnotatedJsonNodes reference the same
+	 * nodes in a structure, considering the parent nodes and access information.
+	 * Cannot be applied to a JsonNodeWithoutParent.
+	 *
+	 * @param other
+	 *            the other annotated JSON node
+	 * @return true if the annotated JSON node references the same node
+	 * @throws PolicyEvaluationException
+	 *             in case the annotated JSON node is a JsonNodeWithoutParent
+	 */
+	public abstract boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException;
 }

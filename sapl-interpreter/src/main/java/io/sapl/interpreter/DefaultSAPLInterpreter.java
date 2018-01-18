@@ -413,11 +413,6 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static void evaluateValueDefinition(EvaluationContext evaluationCtx, ValueDefinition statement)
 			throws PolicyEvaluationException {
-		// if (evaluationCtx.getVariableCtx().exists(statement.getName())) {
-		// throw new
-		// PolicyEvaluationException(String.format(VARIABLE_ALREADY_DEFINED,
-		// statement.getName()));
-		// }
 		evaluationCtx.getVariableCtx().put(statement.getName(),
 				statement.getEval().evaluate(evaluationCtx, true, null));
 	}

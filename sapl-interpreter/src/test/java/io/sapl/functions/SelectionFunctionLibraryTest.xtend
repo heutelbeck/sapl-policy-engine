@@ -24,14 +24,14 @@ import static org.hamcrest.CoreMatchers.equalTo
 import static org.junit.Assert.assertThat
 
 class SelectionFunctionLibraryTest {
-	
+
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 	private static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
 	private static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
 	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(
 		new HashMap<String, JsonNode>());
-	
+
 	private static final String request = '''
 	{  
 			    "subject":{  
@@ -71,7 +71,7 @@ class SelectionFunctionLibraryTest {
 		FUNCTION_CTX.loadLibrary(new SelectionFunctionLibrary());
 		requestObject = MAPPER.readValue(request, Request)
 	}
-	
+
 	@Test
 	def void apply() throws PolicyEvaluationException {
 		val policyDefinition = '''
@@ -83,14 +83,13 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, null, null)
 
-		
 		assertThat("apply function not working as expected",
 			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse))
 	}
-	
+
 	@Test
-	def void containsSimpleFalse() throws PolicyEvaluationException {
+	def void matchSimpleFalse() throws PolicyEvaluationException {
 		val policyDefinition = '''
 			policy "test" 
 			permit where
@@ -100,14 +99,13 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.NOT_APPLICABLE, Optional.empty, null, null)
 
-		
-		assertThat("contains function not working as expected",
+		assertThat("match function not working as expected",
 			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse))
 	}
-	
+
 	@Test
-	def void containsSimpleTrue() throws PolicyEvaluationException {
+	def void matchSimpleTrue() throws PolicyEvaluationException {
 		val policyDefinition = '''
 			policy "test" 
 			permit where
@@ -117,14 +115,13 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, null, null)
 
-		
-		assertThat("contains function not working as expected",
+		assertThat("match function not working as expected",
 			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse))
 	}
-	
+
 	@Test
-	def void containsDetectPosition() throws PolicyEvaluationException {
+	def void matchDetectPosition() throws PolicyEvaluationException {
 		val policyDefinition = '''
 			policy "test" 
 			permit where
@@ -134,14 +131,13 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.NOT_APPLICABLE, Optional.empty, null, null)
 
-		
-		assertThat("contains function not working as expected",
+		assertThat("match function not working as expected",
 			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse))
 	}
-	
+
 	@Test
-	def void containsExtended1False() throws PolicyEvaluationException {
+	def void matchExtended1False() throws PolicyEvaluationException {
 		val policyDefinition = '''
 			policy "test" 
 			permit where
@@ -151,14 +147,13 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.NOT_APPLICABLE, Optional.empty, null, null)
 
-		
-		assertThat("contains function not working as expected",
+		assertThat("match function not working as expected",
 			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse))
 	}
-	
+
 	@Test
-	def void containsExtended1True() throws PolicyEvaluationException {
+	def void matchExtended1True() throws PolicyEvaluationException {
 		val policyDefinition = '''
 			policy "test" 
 			permit where
@@ -168,14 +163,13 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, null, null)
 
-		
-		assertThat("contains function not working as expected",
+		assertThat("match function not working as expected",
 			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse))
 	}
-	
+
 	@Test
-	def void containsExtended2False() throws PolicyEvaluationException {
+	def void matchExtended2False() throws PolicyEvaluationException {
 		val policyDefinition = '''
 			policy "test" 
 			permit where
@@ -185,14 +179,13 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.NOT_APPLICABLE, Optional.empty, null, null)
 
-		
-		assertThat("contains function not working as expected",
+		assertThat("match function not working as expected",
 			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse))
 	}
-	
+
 	@Test
-	def void containsExtended2True() throws PolicyEvaluationException {
+	def void matchExtended2True() throws PolicyEvaluationException {
 		val policyDefinition = '''
 			policy "test" 
 			permit where
@@ -202,12 +195,60 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, null, null)
 
-		
-		assertThat("contains function not working as expected",
+		assertThat("match function not working as expected",
 			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse))
 	}
 	
+	@Test
+	def void matchTrueNoStepsHaystack() throws PolicyEvaluationException {
+		val policyDefinition = '''
+			policy "test" 
+			permit where
+				var _selector = "@.records[-1]";
+				selection.match(resource._content, _selector, "@");
+		''';
+
+		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, null, null)
+
+		assertThat("match function not working as expected",
+			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			equalTo(expectedResponse))
+	}
+	
+	@Test
+	def void matchTrueNoStepsHaystackNeedle() throws PolicyEvaluationException {
+		val policyDefinition = '''
+			policy "test" 
+			permit where
+				var _selector = "@";
+				selection.match(resource._content, _selector, "@");
+		''';
+
+		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, null, null)
+
+		assertThat("match function not working as expected",
+			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			equalTo(expectedResponse))
+	}
+	
+	@Test
+	def void matchFalseNoStepsNeedle() throws PolicyEvaluationException {
+		val policyDefinition = '''
+			policy "test" 
+			permit where
+				var _selector = "@";
+				selection.match(resource._content, _selector, "@.records");
+		''';
+
+		val expectedResponse = new Response(Decision.NOT_APPLICABLE, Optional.empty, null, null)
+
+		assertThat("match function not working as expected",
+			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			equalTo(expectedResponse))
+	}
+	
+
 	@Test
 	def void equalsTrue() throws PolicyEvaluationException {
 		val policyDefinition = '''
@@ -217,12 +258,25 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, null, null)
 
-		
 		assertThat("equals function not working as expected",
 			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse))
 	}
-	
+
+	@Test
+	def void equalsTrueNoSteps() throws PolicyEvaluationException {
+		val policyDefinition = '''
+			policy "test" 
+			permit selection.equal(resource._content, "@","@")
+		''';
+
+		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, null, null)
+
+		assertThat("equals function not working as expected",
+			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			equalTo(expectedResponse))
+	}
+
 	@Test
 	def void equalsFalse() throws PolicyEvaluationException {
 		val policyDefinition = '''
@@ -232,12 +286,11 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.NOT_APPLICABLE, Optional.empty, null, null)
 
-		
 		assertThat("equals function not working as expected",
 			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse))
 	}
-	
+
 	@Test
 	def void equalsList() throws PolicyEvaluationException {
 		val policyDefinition = '''
@@ -247,7 +300,6 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, null, null)
 
-		
 		assertThat("equals function not working as expected",
 			INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse))

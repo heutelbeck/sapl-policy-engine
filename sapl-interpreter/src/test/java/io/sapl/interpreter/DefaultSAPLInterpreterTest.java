@@ -59,7 +59,7 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.TestPIP;
 
-public class DefaultSAPLInterpreterUnitTest {
+public class DefaultSAPLInterpreterTest {
 
     private static final String REQUEST_JSON = "{" + "\"subject\" : { "
             + "\"id\" : \"123456789012345678901212345678901234567890121234567890123456789012\","

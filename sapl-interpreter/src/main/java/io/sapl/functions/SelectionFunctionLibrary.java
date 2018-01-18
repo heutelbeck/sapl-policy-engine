@@ -96,25 +96,27 @@ public class SelectionFunctionLibrary {
 		BasicRelative haystackExpression = parseRelative(haystack.asText());
 		BasicRelative needleExpression = parseRelative(needle.asText());
 
-		ResultNode haystackResult;
-		ResultNode needleResult;
 		try {
-			haystackResult = ((BasicExpressionImplCustom) haystackExpression).resolveSteps(structure,
+			ResultNode haystackResult = ((BasicExpressionImplCustom) haystackExpression).resolveSteps(structure,
 					haystackExpression.getSteps(), null, false, structure);
-			needleResult = ((BasicExpressionImplCustom) needleExpression).resolveSteps(structure,
+			ResultNode needleResult = ((BasicExpressionImplCustom) needleExpression).resolveSteps(structure,
 					needleExpression.getSteps(), null, false, structure);
+
+			if (haystackResult.isNodeWithoutParent()) {
+				return JSON.booleanNode(true);
+			} else if (needleResult.isNodeWithoutParent()) {
+				return JSON.booleanNode(false);
+			} else if (!needleResult.isResultArray()) {
+				return JSON.booleanNode(inStructure((AbstractAnnotatedJsonNode) needleResult, haystackResult));
+			} else {
+				for (AbstractAnnotatedJsonNode node : (ArrayResultNode) needleResult) {
+					if (!inStructure(node, haystackResult))
+						return JSON.booleanNode(false);
+				}
+				return JSON.booleanNode(true);
+			}
 		} catch (PolicyEvaluationException e) {
 			throw new FunctionException(e);
-		}
-
-		if (needleResult instanceof AbstractAnnotatedJsonNode) {
-			return JSON.booleanNode(inStructure((AbstractAnnotatedJsonNode) needleResult, haystackResult));
-		} else {
-			for (AbstractAnnotatedJsonNode node : (ArrayResultNode) needleResult) {
-				if (!inStructure(node, haystackResult))
-					return JSON.booleanNode(false);
-			}
-			return JSON.booleanNode(true);
 		}
 	}
 
@@ -124,28 +126,30 @@ public class SelectionFunctionLibrary {
 		BasicRelative firstExpression = parseRelative(second.asText());
 		BasicRelative secondExpression = parseRelative(first.asText());
 
-		ResultNode firstResult;
-		ResultNode secondResult;
 		try {
-			firstResult = ((BasicExpressionImplCustom) firstExpression).resolveSteps(structure,
+			ResultNode firstResult = ((BasicExpressionImplCustom) firstExpression).resolveSteps(structure,
 					firstExpression.getSteps(), null, false, structure);
-			secondResult = ((BasicExpressionImplCustom) secondExpression).resolveSteps(structure,
+			ResultNode secondResult = ((BasicExpressionImplCustom) secondExpression).resolveSteps(structure,
 					secondExpression.getSteps(), null, false, structure);
+
+			if (firstResult.isNodeWithoutParent() && secondResult.isNodeWithoutParent()) {
+				return JSON.booleanNode(true);
+			} else if (!firstResult.isResultArray() && !secondResult.isResultArray()) {
+				return JSON.booleanNode(((AbstractAnnotatedJsonNode) firstResult)
+						.sameReference((AbstractAnnotatedJsonNode) secondResult));
+			} else if (firstResult.isResultArray() && secondResult.isResultArray()) {
+				return JSON.booleanNode(allNodesInList((ArrayResultNode) firstResult, (ArrayResultNode) secondResult)
+						&& allNodesInList((ArrayResultNode) secondResult, (ArrayResultNode) firstResult));
+			} else {
+				return JSON.booleanNode(false);
+			}
 		} catch (PolicyEvaluationException e) {
 			throw new FunctionException(e);
 		}
-
-		if (!firstResult.isResultArray() && !secondResult.isResultArray()) {
-			return JSON.booleanNode(
-					((AbstractAnnotatedJsonNode) firstResult).sameReference((AbstractAnnotatedJsonNode) secondResult));
-		} else if (firstResult.isResultArray() && secondResult.isResultArray()) {
-			return JSON.booleanNode(allNodesInList((ArrayResultNode) firstResult, (ArrayResultNode) secondResult));
-		}
-		return JSON.booleanNode(false);
 	}
 
 	private static boolean allNodesInList(Iterable<AbstractAnnotatedJsonNode> nodes,
-			Iterable<AbstractAnnotatedJsonNode> list) {
+			Iterable<AbstractAnnotatedJsonNode> list) throws PolicyEvaluationException {
 		for (AbstractAnnotatedJsonNode node : nodes) {
 			boolean found = false;
 			for (AbstractAnnotatedJsonNode listNode : list) {
@@ -160,7 +164,8 @@ public class SelectionFunctionLibrary {
 		return true;
 	}
 
-	private static boolean inStructure(AbstractAnnotatedJsonNode needleResult, ResultNode haystackResult) {
+	private static boolean inStructure(AbstractAnnotatedJsonNode needleResult, ResultNode haystackResult)
+			throws PolicyEvaluationException {
 		if (haystackResult instanceof AbstractAnnotatedJsonNode) {
 			return inNode(needleResult, (AbstractAnnotatedJsonNode) haystackResult);
 		} else {
@@ -172,7 +177,8 @@ public class SelectionFunctionLibrary {
 		}
 	}
 
-	private static boolean inNode(AbstractAnnotatedJsonNode needleResult, AbstractAnnotatedJsonNode haystackResult) {
+	private static boolean inNode(AbstractAnnotatedJsonNode needleResult, AbstractAnnotatedJsonNode haystackResult)
+			throws PolicyEvaluationException {
 		if (needleResult.sameReference(haystackResult)) {
 			return true;
 		} else if (needleResult.getParent() != null) {

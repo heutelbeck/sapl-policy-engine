@@ -30,7 +30,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.Request;
 import io.sapl.interpreter.variables.VariableContext;
 
-public class VariableContextUnitTest {
+public class VariableContextTest {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
     private static final JsonNode SUBJECT_NODE = JSON.textNode("subject");
