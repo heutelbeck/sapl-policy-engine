@@ -213,7 +213,7 @@ public class PermitUnlessDenyTest {
 		obligation.add(JSON.textNode("obligation1"));
 		obligation.add(JSON.textNode("obligation2"));
 
-		assertEquals("should collect all deny obligation", obligation,
+		assertEquals("should collect all deny obligation", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getObligation());
 	}
@@ -230,7 +230,7 @@ public class PermitUnlessDenyTest {
 		advice.add(JSON.textNode("advice1"));
 		advice.add(JSON.textNode("advice2"));
 
-		assertEquals("should collect all deny advice", advice,
+		assertEquals("should collect all deny advice", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getAdvice());
 	}
@@ -247,7 +247,7 @@ public class PermitUnlessDenyTest {
 		obligation.add(JSON.textNode("obligation1"));
 		obligation.add(JSON.textNode("obligation2"));
 
-		assertEquals("should collect all permit obligation", obligation,
+		assertEquals("should collect all permit obligation", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getObligation());
 	}
@@ -264,7 +264,7 @@ public class PermitUnlessDenyTest {
 		advice.add(JSON.textNode("advice1"));
 		advice.add(JSON.textNode("advice2"));
 
-		assertEquals("should collect all permit obligation", advice,
+		assertEquals("should collect all permit obligation", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getAdvice());
 	}

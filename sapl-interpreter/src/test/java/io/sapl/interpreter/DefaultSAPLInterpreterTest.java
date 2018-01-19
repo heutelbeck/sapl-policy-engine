@@ -52,7 +52,6 @@ import io.sapl.api.pdp.Response;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
@@ -85,8 +84,8 @@ public class DefaultSAPLInterpreterTest {
 
     private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections
             .unmodifiableMap(new HashMap<>());
-    private static final Response DENY = new Response(Decision.DENY, Optional.empty(), null,
-            null);
+	private static final Response DENY = new Response(Decision.DENY, Optional.empty(), Optional.empty(),
+			Optional.empty());
     private static final Response NOT_APPLICABLE = Response.notApplicable();
     private static final Response INDETERMINATE = Response.indeterminate();
     private static final String IPADDRESS_PATTERN = "^10\\\\.10\\\\.10\\\\.([1-9]\\\\d?|1\\\\d{2}|2[0-4]\\\\d|25[0-4])$";
@@ -104,9 +103,7 @@ public class DefaultSAPLInterpreterTest {
             FunctionException,
             AttributeException {
         requestObject = MAPPER.readValue(REQUEST_JSON, Request.class);
-        permitUnfiltered = new Response(Decision.PERMIT,
-		        Optional.empty(),
-		        null, null);
+		permitUnfiltered = new Response(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty());
         attributeCtx = new AnnotationAttributeContext();
         
         attributeCtx.loadPolicyInformationPoint(new TestPIP());

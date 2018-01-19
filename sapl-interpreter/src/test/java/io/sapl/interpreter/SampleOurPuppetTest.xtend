@@ -114,7 +114,7 @@ class SampleOurPuppetTest {
 		} catch (Exception e) {
 		}
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 
 		assertThat("anonymizing patient data for annotators not working as expected",
 			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
@@ -184,7 +184,7 @@ class SampleOurPuppetTest {
 
 		assertThat("anonymizing patient data for doctors not working as expected",
 			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
-			equalTo(new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)));
+			equalTo(new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
 	}
 
 	@Test
@@ -291,7 +291,7 @@ class SampleOurPuppetTest {
 
 		assertThat("truncating detected situations for familymembers not working as expected",
 			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
-			equalTo(new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)));
+			equalTo(new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
 	}
 
 	@Test
@@ -388,7 +388,7 @@ class SampleOurPuppetTest {
 
 		assertThat("truncating detected situations for professional caregivers not working as expected",
 			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
-			equalTo(new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)));
+			equalTo(new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
 	}
 
 	@Test
@@ -482,6 +482,6 @@ class SampleOurPuppetTest {
 
 		assertThat("truncating detected situations for puppetintroducers not working as expected",
 			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
-			equalTo(new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)));
+			equalTo(new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
 	}
 }

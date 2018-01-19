@@ -184,7 +184,7 @@ public class OnlyOneApplicableTest {
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
 
-		assertEquals("should collect deny obligation of only matching policy", obligation,
+		assertEquals("should collect deny obligation of only matching policy", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getObligation());
 	}
@@ -200,7 +200,7 @@ public class OnlyOneApplicableTest {
 		ArrayNode advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
 
-		assertEquals("should collect deny advice of only matching policy", advice,
+		assertEquals("should collect deny advice of only matching policy", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getAdvice());
 	}
@@ -216,7 +216,7 @@ public class OnlyOneApplicableTest {
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
 
-		assertEquals("should collect permit obligation of only matching policy", obligation,
+		assertEquals("should collect permit obligation of only matching policy", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getObligation());
 	}
@@ -232,7 +232,7 @@ public class OnlyOneApplicableTest {
 		ArrayNode advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
 
-		assertEquals("should collect permit advice of only matching policy", advice,
+		assertEquals("should collect permit advice of only matching policy", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getAdvice());
 	}

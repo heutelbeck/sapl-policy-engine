@@ -59,7 +59,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			SYSTEM_VARIABLES
 		), equalTo(new Response(Decision.PERMIT, Optional.of(MAPPER.readValue('''
 			"teststring"
-		''', JsonNode)), null, null)));
+		''', JsonNode)), Optional.empty(), Optional.empty())));
 	}
 
 	@Test
@@ -80,7 +80,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			"XXXXXXXXXX"
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("simple filtering not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -104,7 +104,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			[1,3,4,5]
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("simple filtering not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -156,7 +156,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("transformation with condition not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -208,7 +208,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("transformation with condition, subtemplate and simple filtering not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -262,7 +262,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("transformation with several filtering rules not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -298,7 +298,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("array slicing (last element) not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -338,7 +338,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("array slicing not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -377,7 +377,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("array slicing not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -417,7 +417,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("array selection by expression and multiple indices not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -451,7 +451,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("array with explicit each not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -489,7 +489,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("filtering through object arrays not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -519,7 +519,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			["1","2","3"]
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("recursive descent operator not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -558,7 +558,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("recursive descent operator in filter (remove) not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
@@ -598,7 +598,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), null, null)
+		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("builtin function replace() not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));

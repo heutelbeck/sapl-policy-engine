@@ -32,21 +32,21 @@ public class Response {
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<JsonNode> resource;
 
-	@JsonInclude(Include.NON_NULL)
-	ArrayNode obligation;
+	@JsonInclude(Include.NON_ABSENT)
+	Optional<ArrayNode> obligation;
 
-	@JsonInclude(Include.NON_NULL)
-	ArrayNode advice;
+	@JsonInclude(Include.NON_ABSENT)
+	Optional<ArrayNode> advice;
 
 	public static Response deny() {
-		return new Response(Decision.DENY, Optional.empty(), null, null);
+		return new Response(Decision.DENY, Optional.empty(), Optional.empty(), Optional.empty());
 	}
 
 	public static Response indeterminate() {
-		return new Response(Decision.INDETERMINATE, Optional.empty(), null, null);
+		return new Response(Decision.INDETERMINATE, Optional.empty(), Optional.empty(), Optional.empty());
 	}
 
 	public static Response notApplicable() {
-		return new Response(Decision.NOT_APPLICABLE, Optional.empty(), null, null);
+		return new Response(Decision.NOT_APPLICABLE, Optional.empty(), Optional.empty(), Optional.empty());
 	}
 }

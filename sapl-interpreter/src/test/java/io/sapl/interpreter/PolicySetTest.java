@@ -34,7 +34,6 @@ import io.sapl.api.pdp.Response;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
@@ -68,7 +67,7 @@ public class PolicySetTest {
                 "set \"tests\" deny-overrides"+
         		" policy \"testp\" permit");
         Response expectedResponse = new Response(Decision.PERMIT,
-                Optional.empty(), null, null);
+				Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals("simple policy set should evaluate to permit",
                 expectedResponse,
                 INTERPRETER.evaluate(new Request(null, null, null, null),

@@ -82,7 +82,7 @@ where // <3>
 
 === Authorization Responses
 
-The SAPL response to the authorization request is a JSON object as well. It contains the attributes `decision`, `resource`, `obligation` and `advice`. For the introductory sample request with the preceding policy a SAPL response would look as follows:
+The SAPL response to the authorization request is a JSON object as well. It contains the attribute `decision` as well as the optional attributes `resource`, `obligation` and `advice`. For the introductory sample request with the preceding policy a SAPL response would look as follows:
 
 '''
 
@@ -90,10 +90,7 @@ The SAPL response to the authorization request is a JSON object as well. It cont
 .Introduction - Sample Response
 ----
 {
-  "decision"   : "PERMIT",
-  "resource"   : null,
-  "obligation" : [],
-  "advice"     : []
+  "decision"   : "PERMIT"
 }
 ----
 
@@ -246,13 +243,13 @@ The PEP knows which resource it requested access for. Thus there usually is no n
 
 ==== Obligation
 
-The value of `obligation` contains assignments which the PEP must fulfill before granting or denying access. As there can be multiple policies applicable to the request with different obligations, the `obligation` value in the response object is an array containing a list of tasks. If the PEP is not able to fulfill these tasks access must not be granted. The array items can be any JSON value (e.g., a string or an object). Consequently the PEP must know how to identify and process the obligations contained in the policies.
+The value of `obligation` contains assignments which the PEP must fulfill before granting or denying access. As there can be multiple policies applicable to the request with different obligations, the `obligation` value in the response object is an array containing a list of tasks. If the PEP is not able to fulfill these tasks access must not be granted. The array items can be any JSON value (e.g., a string or an object). Consequently the PEP must know how to identify and process the obligations contained in the policies. An `obligation` attribute is only included in the response object if there is at least one obligation.
 
 A response could, for example, contain the obligation to create a log entry.
 
 ==== Advice
 
-The value of `advice` is an array with assignments for the PEP as well and works similar to obligations except for one difference: The fulfillment of the tasks is no requirement for granting access. I.e., in case the `decision` is `PERMIT`, the PEP should also grant access if it can not fulfill the tasks contained in `advice`.
+The value of `advice` is an array with assignments for the PEP as well and works similar to obligations except for one difference: The fulfillment of the tasks is no requirement for granting access. I.e., in case the `decision` is `PERMIT`, the PEP should also grant access if it can not fulfill the tasks contained in `advice`. An `advice` attribute is only included in the response object if there is at least one advice.
 
 In addition to the obligation to create a log entry, a policy could specify the advice to inform the system administrator via email about the access.
 

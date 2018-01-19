@@ -244,20 +244,12 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			decision = evaluateBody(entitlement, policy.getBody(), evaluationCtx);
 		}
 
-		ArrayNode obligation = null;
-		ArrayNode advice = null;
+		Optional<ArrayNode> obligation = Optional.empty();
+		Optional<ArrayNode> advice = Optional.empty();
 		if (decision == Decision.PERMIT || decision == Decision.DENY) {
 			try {
-				if (policy.getObligation() != null) {
-					obligation = JSON.arrayNode();
-					JsonNode policyObligation = policy.getObligation().evaluate(evaluationCtx, true, null);
-					obligation.add(policyObligation);
-				}
-				if (policy.getAdvice() != null) {
-					advice = JSON.arrayNode();
-					JsonNode policyAdvice = policy.getAdvice().evaluate(evaluationCtx, true, null);
-					advice.add(policyAdvice);
-				}
+				obligation = evaluateObligation(policy, evaluationCtx);
+				advice = evaluateAdvice(policy, evaluationCtx);
 			} catch (PolicyEvaluationException e) {
 				log.trace(TRANSFORMATION_OBLIGATION_ADVICE_ERROR, e);
 				return Response.indeterminate();
@@ -278,6 +270,24 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		}
 
 		return new Response(decision, Optional.empty(), obligation, advice);
+	}
+
+	private Optional<ArrayNode> evaluateObligation(Policy policy, EvaluationContext evaluationCtx) throws PolicyEvaluationException {
+		if (policy.getObligation() != null) {
+			ArrayNode obligation = JSON.arrayNode();
+			obligation.add(policy.getObligation().evaluate(evaluationCtx, true, null));
+			return Optional.of(obligation);
+		}
+		return Optional.empty();
+	}
+	
+	private Optional<ArrayNode> evaluateAdvice(Policy policy, EvaluationContext evaluationCtx) throws PolicyEvaluationException {
+		if (policy.getAdvice() != null) {
+			ArrayNode advice = JSON.arrayNode();
+			advice.add(policy.getAdvice().evaluate(evaluationCtx, true, null));
+			return Optional.of(advice);
+		}
+		return Optional.empty();
 	}
 
 	@Override

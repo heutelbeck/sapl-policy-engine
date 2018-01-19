@@ -159,7 +159,7 @@ public class FirstApplicableTest {
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
 
-		assertEquals("should collect obligation of first deny policy only", obligation,
+		assertEquals("should collect obligation of first deny policy only", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getObligation());
 	}
@@ -173,7 +173,7 @@ public class FirstApplicableTest {
 		ArrayNode advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
 
-		assertEquals("should collect advice of first deny policy only", advice,
+		assertEquals("should collect advice of first deny policy only", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getAdvice());
 	}
@@ -187,7 +187,7 @@ public class FirstApplicableTest {
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
 
-		assertEquals("should collect obligation of first permit policy only", obligation,
+		assertEquals("should collect obligation of first permit policy only", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getObligation());
 	}
@@ -201,7 +201,7 @@ public class FirstApplicableTest {
 		ArrayNode advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
 
-		assertEquals("should collect advice of first permit policy only", advice,
+		assertEquals("should collect advice of first permit policy only", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getAdvice());
 	}

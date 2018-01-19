@@ -2,6 +2,7 @@ package io.sapl.interpreter.combinators;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Optional;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -32,20 +33,20 @@ public class ObligationAdviceCollector {
 	}
 
 	public void add(Decision decision, Response response) {
-		if (response.getObligation() != null) {
-			obligationAdvice.get(Type.OBLIGATION).get(decision).addAll(response.getObligation());
+		if (response.getObligation().isPresent()) {
+			obligationAdvice.get(Type.OBLIGATION).get(decision).addAll(response.getObligation().get());
 		}
-		if (response.getAdvice() != null) {
-			obligationAdvice.get(Type.ADVICE).get(decision).addAll(response.getAdvice());
+		if (response.getAdvice().isPresent()) {
+			obligationAdvice.get(Type.ADVICE).get(decision).addAll(response.getAdvice().get());
 		}
 	}
 
-	public ArrayNode get(Type type, Decision decision) {
+	public Optional<ArrayNode> get(Type type, Decision decision) {
 		ArrayNode returnNode = obligationAdvice.get(type).get(decision);
 		if (returnNode.size() > 0) {
-			return returnNode;
+			return Optional.of(returnNode);
 		} else {
-			return null;
+			return java.util.Optional.empty();
 		}
 	}
 }

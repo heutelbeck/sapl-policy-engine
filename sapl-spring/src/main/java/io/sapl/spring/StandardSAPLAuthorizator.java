@@ -51,7 +51,7 @@ public class StandardSAPLAuthorizator {
 		LOGGER.debug("Here comes the response: {}", response);
 		if (response.getObligation() != null) {
 
-			List<Obligation> obligationsList = Obligation.fromJson(response.getObligation());
+			List<Obligation> obligationsList = Obligation.fromJson(response.getObligation().get());
 			LOGGER.debug("Start handling obligations {}", obligationsList);
 			try {
 				for (Obligation o : obligationsList) {
