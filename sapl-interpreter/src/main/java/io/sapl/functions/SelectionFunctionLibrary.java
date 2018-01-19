@@ -108,13 +108,13 @@ public class SelectionFunctionLibrary {
 				return JSON.booleanNode(false);
 			} else if (!needleResult.isResultArray()) {
 				return JSON.booleanNode(inStructure((AbstractAnnotatedJsonNode) needleResult, haystackResult));
-			} else {
-				for (AbstractAnnotatedJsonNode node : (ArrayResultNode) needleResult) {
-					if (!inStructure(node, haystackResult))
-						return JSON.booleanNode(false);
-				}
-				return JSON.booleanNode(true);
 			}
+
+			for (AbstractAnnotatedJsonNode node : (ArrayResultNode) needleResult) {
+				if (!inStructure(node, haystackResult))
+					return JSON.booleanNode(false);
+			}
+			return JSON.booleanNode(true);
 		} catch (PolicyEvaluationException e) {
 			throw new FunctionException(e);
 		}

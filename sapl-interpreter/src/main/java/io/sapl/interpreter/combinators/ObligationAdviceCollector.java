@@ -46,7 +46,7 @@ public class ObligationAdviceCollector {
 		if (returnNode.size() > 0) {
 			return Optional.of(returnNode);
 		} else {
-			return java.util.Optional.empty();
+			return Optional.empty();
 		}
 	}
 }
