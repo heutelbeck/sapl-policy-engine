@@ -94,7 +94,7 @@ public class KMLImport {
 
 	private SimpleFeature getKmlFromFile() throws AttributeException {
 		try (FileInputStream inputStream = new FileInputStream(
-				FOLDER_PATH + new File(FilenameUtils.getName((kmlSource))))) {
+				new File(FOLDER_PATH, FilenameUtils.getName((kmlSource))))) {
 
 			return parse(inputStream);
 
