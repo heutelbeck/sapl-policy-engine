@@ -75,6 +75,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	static final String FILTER_REMOVE = "remove";
 
+	static final String POLICY_EVALUATION_FAILED = "Policy evaluation failed: {}";
 	static final String PARSING_ERRORS = "Parsing errors: %s";
 	static final String CONDITION_NOT_BOOLEAN = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
 	static final String NO_TARGET_MATCH = "Target not matching.";
@@ -188,7 +189,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 				return Response.notApplicable();
 			}
 		} catch (PolicyEvaluationException e) {
-			log.trace("Policy evaluation failed: {}", e.getMessage());
+			log.trace(POLICY_EVALUATION_FAILED, e.getMessage());
 			return Response.indeterminate();
 		}
 	}
@@ -237,11 +238,9 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			return Response.indeterminate();
 		}
 
-		Decision entitlement = PERMIT.equals(policy.getEntitlement()) ? Decision.PERMIT : Decision.DENY;
-
-		Decision decision = entitlement;
+		Decision decision = PERMIT.equals(policy.getEntitlement()) ? Decision.PERMIT : Decision.DENY;
 		if (policy.getBody() != null) {
-			decision = evaluateBody(entitlement, policy.getBody(), evaluationCtx);
+			decision = evaluateBody(decision, policy.getBody(), evaluationCtx);
 		}
 
 		Optional<ArrayNode> obligation = Optional.empty();
@@ -256,38 +255,17 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			}
 		}
 
+		Optional<JsonNode> returnedResource = Optional.empty();
 		if (decision == Decision.PERMIT) {
-			Optional<JsonNode> returnedResource;
 			try {
 				returnedResource = evaluateTransformation(request.getResource(), policy, evaluationCtx);
 			} catch (PolicyEvaluationException e) {
 				log.trace(TRANSFORMATION_OBLIGATION_ADVICE_ERROR, e);
 				return Response.indeterminate();
 			}
-			if (returnedResource.isPresent()) {
-				return new Response(decision, Optional.of(returnedResource.get()), obligation, advice);
-			}
 		}
 
-		return new Response(decision, Optional.empty(), obligation, advice);
-	}
-
-	private Optional<ArrayNode> evaluateObligation(Policy policy, EvaluationContext evaluationCtx) throws PolicyEvaluationException {
-		if (policy.getObligation() != null) {
-			ArrayNode obligation = JSON.arrayNode();
-			obligation.add(policy.getObligation().evaluate(evaluationCtx, true, null));
-			return Optional.of(obligation);
-		}
-		return Optional.empty();
-	}
-	
-	private Optional<ArrayNode> evaluateAdvice(Policy policy, EvaluationContext evaluationCtx) throws PolicyEvaluationException {
-		if (policy.getAdvice() != null) {
-			ArrayNode advice = JSON.arrayNode();
-			advice.add(policy.getAdvice().evaluate(evaluationCtx, true, null));
-			return Optional.of(advice);
-		}
-		return Optional.empty();
+		return new Response(decision, returnedResource, obligation, advice);
 	}
 
 	@Override
@@ -379,17 +357,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 		return returnImports;
 	}
-
-	private static Optional<JsonNode> evaluateTransformation(JsonNode resource, Policy policy,
-			EvaluationContext evaluationCtx) throws PolicyEvaluationException {
-		Expression transformationExpression = policy.getTransformation();
-		if (transformationExpression != null) {
-			return Optional.of(transformationExpression.evaluate(evaluationCtx, true, null));
-		} else {
-			return Optional.empty();
-		}
-	}
-
+	
 	private static Decision evaluateBody(Decision response, PolicyBody body, EvaluationContext evaluationCtx) {
 		Decision result = response;
 		try {
@@ -404,7 +372,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		}
 		return result;
 	}
-
+	
 	private static boolean evaluateStatement(EvaluationContext evaluationCtx, Statement statement)
 			throws PolicyEvaluationException {
 		if (statement instanceof ValueDefinition) {
@@ -420,11 +388,39 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			}
 		}
 	}
-
+	
 	private static void evaluateValueDefinition(EvaluationContext evaluationCtx, ValueDefinition statement)
 			throws PolicyEvaluationException {
 		evaluationCtx.getVariableCtx().put(statement.getName(),
 				statement.getEval().evaluate(evaluationCtx, true, null));
+	}
+
+	private static Optional<JsonNode> evaluateTransformation(JsonNode resource, Policy policy,
+			EvaluationContext evaluationCtx) throws PolicyEvaluationException {
+		Expression transformationExpression = policy.getTransformation();
+		if (transformationExpression != null) {
+			return Optional.of(transformationExpression.evaluate(evaluationCtx, true, null));
+		} else {
+			return Optional.empty();
+		}
+	}
+	
+	private static Optional<ArrayNode> evaluateObligation(Policy policy, EvaluationContext evaluationCtx) throws PolicyEvaluationException {
+		if (policy.getObligation() != null) {
+			ArrayNode obligation = JSON.arrayNode();
+			obligation.add(policy.getObligation().evaluate(evaluationCtx, true, null));
+			return Optional.of(obligation);
+		}
+		return Optional.empty();
+	}
+	
+	private static Optional<ArrayNode> evaluateAdvice(Policy policy, EvaluationContext evaluationCtx) throws PolicyEvaluationException {
+		if (policy.getAdvice() != null) {
+			ArrayNode advice = JSON.arrayNode();
+			advice.add(policy.getAdvice().evaluate(evaluationCtx, true, null));
+			return Optional.of(advice);
+		}
+		return Optional.empty();
 	}
 
 	private Response evaluatePolicySetRules(Request request, PolicySet policySet, AttributeContext attributeCtx,
