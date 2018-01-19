@@ -329,7 +329,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static Map<String, String> fetchWildcardImports(Map<String, String> imports, String library,
 			Collection<String> libraryItems) throws PolicyEvaluationException {
-		Map<String, String> returnImports = new HashMap<>();
+		Map<String, String> returnImports = new HashMap<>(libraryItems.size());
 
 		for (String name : libraryItems) {
 			if (imports.containsKey(name)) {
@@ -344,7 +344,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static Map<String, String> fetchLibraryImports(Map<String, String> imports, String library, String alias,
 			Collection<String> libraryItems) throws PolicyEvaluationException {
-		Map<String, String> returnImports = new HashMap<>();
+		Map<String, String> returnImports = new HashMap<>(libraryItems.size());
 
 		for (String name : libraryItems) {
 			String key = String.join(".", alias, name);

@@ -21,6 +21,9 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.Value;
 
+/**
+ * Represents a JsonNode which has no parent node (array or object) in the tree on which the selection is performed. Typically the root element of the tree.
+ */
 @Value
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)

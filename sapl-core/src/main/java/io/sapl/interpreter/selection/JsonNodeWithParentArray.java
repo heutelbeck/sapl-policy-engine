@@ -22,6 +22,9 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.Value;
 
+/**
+ * Represents a JsonNode which is the item of an ArrayNode in the tree on which the selection is performed.
+ */
 @Value
 @EqualsAndHashCode(callSuper=true)
 @ToString(callSuper=true)

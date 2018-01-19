@@ -25,7 +25,6 @@ Workflow {
     }
     
     component = org.eclipse.emf.mwe2.ecore.EcoreGenerator {
-        // generateCustomClasses = true
         genModel = "platform:/resource/sapl-core/src/main/model/custom/SAPL.genmodel"
         srcPath = "platform:/resource/sapl-core/src/main/java"
     }
