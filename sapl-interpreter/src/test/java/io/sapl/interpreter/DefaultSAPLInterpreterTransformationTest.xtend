@@ -1,3 +1,15 @@
+/**
+ * Copyright © 2017 Dominic Heutelbeck (dheutelbeck@ftk.de)
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package io.sapl.interpreter
 
 import com.fasterxml.jackson.databind.JsonNode
@@ -42,7 +54,6 @@ class DefaultSAPLInterpreterTransformationTest {
 		FUNCTION_CTX.loadLibrary(new SimpleFilterFunctionLibrary(Clock.systemUTC()));
 	}
 
-
 	@Test
 	def void simpleTransformationWithComment() throws PolicyEvaluationException {
 		assertThat("simple transformation with comment not working as expected", INTERPRETER.evaluate(
@@ -53,7 +64,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					transform
 						"teststring"		// This is a dummy comment
 						/* another comment */
-					         ''',
+			''',
 			ATTRIBUTE_CTX,
 			FUNCTION_CTX,
 			SYSTEM_VARIABLES
@@ -65,9 +76,10 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void simpleFiltering() throws PolicyEvaluationException {
 		val request = MAPPER.readValue('''
-		{
-			"resource":"teststring"
-		}''', Request);
+			{
+				"resource":"teststring"
+			}
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -89,9 +101,10 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void simpleArrayCondition() throws PolicyEvaluationException {
 		val request = MAPPER.readValue('''
-		{
-			"resource":[1,2,3,4,5]
-		}''', Request);
+			{
+				"resource":[1,2,3,4,5]
+			}
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -113,24 +126,25 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void conditionTransformation() throws PolicyEvaluationException {
 		val request = MAPPER.readValue('''
-		{
-			"resource":{
-				"array":[
-					{
-						"key1":1,
-						"key2":2
-					},
-					{
-						"key1":3,
-						"key2":4
-					},
-					{
-						"key1":5,
-						"key2":6
-					}
-				]
+			{
+				"resource":{
+					"array":[
+						{
+							"key1":1,
+							"key2":2
+						},
+						{
+							"key1":3,
+							"key2":4
+						},
+						{
+							"key1":5,
+							"key2":6
+						}
+					]
+				}
 			}
-		}''', Request);
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -165,24 +179,25 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void conditionSubtemplateFiltering() {
 		val request = MAPPER.readValue('''
-		{
-			"resource":{
-				"array":[
-					{
-						"key1":1,
-						"key2":2
-					},
-					{
-						"key1":3,
-						"key2":4
-					},
-					{
-						"key1":5,
-						"key2":6
-					}
-				]
+			{
+				"resource":{
+					"array":[
+						{
+							"key1":1,
+							"key2":2
+						},
+						{
+							"key1":3,
+							"key2":4
+						},
+						{
+							"key1":5,
+							"key2":6
+						}
+					]
+				}
 			}
-		}''', Request);
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -217,24 +232,25 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void conditionFilteringRules() {
 		val request = MAPPER.readValue('''
-		{
-			"resource":{
-				"array":[
-					{
-						"key1":1,
-						"key2":"2"
-					},
-					{
-						"key1":3,
-						"key2":"4"
-					},
-					{
-						"key1":5,
-						"key2":"6"
-					}
-				]
+			{
+				"resource":{
+					"array":[
+						{
+							"key1":1,
+							"key2":"2"
+						},
+						{
+							"key1":3,
+							"key2":"4"
+						},
+						{
+							"key1":5,
+							"key2":"6"
+						}
+					]
+				}
 			}
-		}''', Request);
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -271,17 +287,18 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void arrayLast() {
 		val request = MAPPER.readValue('''
-		{
-			"resource":{
-				"array":[
-					"1",
-					"2",
-					"3",
-					"4",
-					"5"
-				]
+			{
+				"resource":{
+					"array":[
+						"1",
+						"2",
+						"3",
+						"4",
+						"5"
+					]
+				}
 			}
-		}''', Request);
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -307,17 +324,18 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void arraySlicing1() {
 		val request = MAPPER.readValue('''
-		{
-			"resource":{
-				"array":[
-					"1",
-					"2",
-					"3",
-					"4",
-					"5"
-				]
+			{
+				"resource":{
+					"array":[
+						"1",
+						"2",
+						"3",
+						"4",
+						"5"
+					]
+				}
 			}
-		}''', Request);
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -347,17 +365,18 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void arraySlicing2() {
 		val request = MAPPER.readValue('''
-		{
-			"resource":{
-				"array":[
-					"1",
-					"2",
-					"3",
-					"4",
-					"5"
-				]
+			{
+				"resource":{
+					"array":[
+						"1",
+						"2",
+						"3",
+						"4",
+						"5"
+					]
+				}
 			}
-		}''', Request);
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -386,18 +405,19 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void arrayExpressionMultipleIndices() {
 		val request = MAPPER.readValue('''
-		{
-			"resource":{
-				"array":[
-					"1",
-					"2",
-					"3",
-					"4",
-					"5"
-				],
-				"a_number":1
+			{
+				"resource":{
+					"array":[
+						"1",
+						"2",
+						"3",
+						"4",
+						"5"
+					],
+					"a_number":1
+				}
 			}
-		}''', Request);
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -426,13 +446,14 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void arrayExplicitEach() {
 		val request = MAPPER.readValue('''
-		{
-			"resource":{
-				"array":[
-					"1","2","3","4","5"
-				]
+			{
+				"resource":{
+					"array":[
+						"1","2","3","4","5"
+					]
+				}
 			}
-		}''', Request);
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -460,15 +481,16 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void arrayMultidimensional() {
 		val request = MAPPER.readValue('''
-		{
-			"resource":{
-				"array":[
-					{"value":"1"},
-					{"value":"2"},
-					{"value":"3"}
-				]
+			{
+				"resource":{
+					"array":[
+						{"value":"1"},
+						{"value":"2"},
+						{"value":"3"}
+					]
+				}
 			}
-		}''', Request);
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -498,15 +520,16 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void recursiveDescent() {
 		val request = MAPPER.readValue('''
-		{
-			"resource":{
-				"array":[
-					{"value":"1"},
-					{"value":"2"},
-					{"value":"3"}
-				]
+			{
+				"resource":{
+					"array":[
+						{"value":"1"},
+						{"value":"2"},
+						{"value":"3"}
+					]
+				}
 			}
-		}''', Request);
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -528,16 +551,17 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void recursiveDescentInFilterRemove() {
 		val request = MAPPER.readValue('''
-		{
-			"resource":{
-				"array":[
-					{"value":"1"},
-					{"value":"2"},
-					{"value":"3"}
-				],
-				"value":"4"
+			{
+				"resource":{
+					"array":[
+						{"value":"1"},
+						{"value":"2"},
+						{"value":"3"}
+					],
+					"value":"4"
+				}
 			}
-		}''', Request);
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -567,16 +591,17 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void filterReplace() {
 		val request = MAPPER.readValue('''
-		{
-			"resource":{
-				"array":[
-					{"name":"John Doe"},
-					{"name":"Jane Doe"}
-				],
-				"value":"4",
-				"name":"Tom Doe"
+			{
+				"resource":{
+					"array":[
+						{"name":"John Doe"},
+						{"name":"Jane Doe"}
+					],
+					"value":"4",
+					"name":"Tom Doe"
+				}
 			}
-		}''', Request);
+		''', Request);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -585,7 +610,7 @@ class DefaultSAPLInterpreterTransformationTest {
 				resource |- {
 					each @..name : filter.replace("***")
 				}
-				''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -599,7 +624,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		''', JsonNode);
 
 		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
-		assertThat("builtin function replace() not working as expected",
+		assertThat("function replace() applied with recursive descent selector not working as expected",
 			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
 	}

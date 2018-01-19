@@ -41,8 +41,6 @@ import io.sapl.interpreter.pip.AttributeContext;
 
 public class DefaultSAPLInterpreterPolicySetTest {
 
-//    private static final ObjectMapper MAPPER = new ObjectMapper()
-//            .enable(SerializationFeature.INDENT_OUTPUT);
     private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
     private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections
             .unmodifiableMap(new HashMap<>());
@@ -59,7 +57,6 @@ public class DefaultSAPLInterpreterPolicySetTest {
         functionCtx.loadLibrary(
                 new SimpleFilterFunctionLibrary(Clock.systemUTC()));
     }
-
 
     @Test
     public void setPermit() throws PolicyEvaluationException {

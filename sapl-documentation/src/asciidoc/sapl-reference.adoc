@@ -1030,8 +1030,8 @@ SAPL provides three *built-in filter functions*:
 .remove
 Removes a whole attribute (key and value pair) of an object or an item of an array without leaving a replacement.
 
-.filter.replace(Expression=null)
-Replaces an attribute or an element by the result of the evaluation of `Expression`. By default, the value is replaced by `null`.
+.filter.replace(replacement)
+Replaces an attribute or an element by the result of evaluating the expression `replacement`.
 
 .filter.blacken(disclose\_left=0,disclose\_right=0,replacement="X")
 Replaces each char of a attribute or item (which has to be a string) by `replacement`, leaving `show\_left` chars from the beginning and `show\_right` chars from the end unchanged. By default, no chars are visible and each char is replaced by `X`.
