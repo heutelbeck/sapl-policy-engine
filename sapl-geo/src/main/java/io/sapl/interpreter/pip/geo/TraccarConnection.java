@@ -93,7 +93,8 @@ public class TraccarConnection {
 	public TraccarPosition getTraccarPosition(TraccarDevice device) throws AttributeException {
 		HashMap<String, String> httpGetArguments = new HashMap<>();
 		httpGetArguments.put("deviceId", String.valueOf(device.getId()));
-		httpGetArguments.put("from", Instant.now().minus(config.getPosValidityTimespan(), ChronoUnit.MINUTES).toString());
+		httpGetArguments.put("from",
+				Instant.now().minus(config.getPosValidityTimespan(), ChronoUnit.MINUTES).toString());
 		httpGetArguments.put("to", Instant.now().toString());
 
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_POSITIONS, httpGetArguments)));

@@ -46,6 +46,7 @@ public class KMLImport {
 	private static final String ATT_FEATURE = "Feature";
 	private static final String ATT_NAME = "name";
 	private static final String ATT_GEOM = "Geometry";
+	private static final String FOLDER_PATH = "src/test/resources/";
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 	protected static final String UNABLE_TO_PARSE_KML = "Provided KML-file cannot be found or is not compliant. Unable to parse geometry.";
 	protected static final String NO_VALID_FILENAME = "Provided filename is not valid or nested in an Json-Object.";
@@ -93,7 +94,7 @@ public class KMLImport {
 
 	private SimpleFeature getKmlFromFile() throws AttributeException {
 		try (FileInputStream inputStream = new FileInputStream(
-				new File(FilenameUtils.getPath(kmlSource) + FilenameUtils.getName((kmlSource))))) {
+				FOLDER_PATH + new File(FilenameUtils.getName((kmlSource))))) {
 
 			return parse(inputStream);
 
