@@ -39,7 +39,7 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 
-public class PolicySetTest {
+public class DefaultSAPLInterpreterPolicySetTest {
 
 //    private static final ObjectMapper MAPPER = new ObjectMapper()
 //            .enable(SerializationFeature.INDENT_OUTPUT);
