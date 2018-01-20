@@ -2,6 +2,7 @@ package io.sapl.spring;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -21,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 // @RequiredArgsConstructor
 public class PolicyEnforcementPoint extends StandardSAPLAuthorizator {
 
+	@Autowired
 	public PolicyEnforcementPoint(PolicyDecisionPoint pdp, ObligationsHandlerService obs) {
 		super(pdp, obs);
 	}
