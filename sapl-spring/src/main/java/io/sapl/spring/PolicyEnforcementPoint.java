@@ -28,9 +28,7 @@ public class PolicyEnforcementPoint extends StandardSAPLAuthorizator {
 	}
 
 	public boolean authorize(Object subject, Object action, Object resource) {
-		// LOGGER.trace("Entering hasPermission (Object subject, Object action, Object
-		// resource)...\nsubject: {}\naction {}\nresource: {}", subject.getClass(),
-		// action.getClass(), resource.getClass());
+		LOGGER.trace("Entering hasPermission (Object subject, Object action, Object resource) \n subject: {} \n action {} \n resource: {}", subject.getClass(), action.getClass(), resource.getClass());
 		if (Authentication.class.isInstance(subject) && HttpServletRequest.class.isInstance(action)) {
 			Authentication auth = (Authentication) subject;
 			Subject authSubject = new AuthenticationSubject(auth);
