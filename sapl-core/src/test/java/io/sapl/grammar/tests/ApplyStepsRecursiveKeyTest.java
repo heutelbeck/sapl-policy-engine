@@ -36,17 +36,14 @@ public class ApplyStepsRecursiveKeyTest {
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
-	@Test
+	@Test(expected = PolicyEvaluationException.class)
 	public void applyToNull() throws PolicyEvaluationException {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
-		ResultNode expectedResult = new ArrayResultNode(new ArrayList<>());
 
 		RecursiveKeyStep step = factory.createRecursiveKeyStep();
 		step.setId(KEY);
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
 
-		assertEquals("Recursive key step applied to null node should return empty result array", expectedResult,
-				result);
+		previousResult.applyStep(step, ctx, true, null);
 	}
 
 	@Test

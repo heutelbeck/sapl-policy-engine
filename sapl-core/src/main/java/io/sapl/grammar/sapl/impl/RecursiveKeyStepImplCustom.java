@@ -31,10 +31,14 @@ public class RecursiveKeyStepImplCustom extends io.sapl.grammar.sapl.impl.Recurs
 
 	private static final int HASH_PRIME_09 = 47;
 	private static final int INIT_PRIME_01 = 3;
+	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
 
 	@Override
 	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
 			JsonNode relativeNode) throws PolicyEvaluationException {
+		if (!previousResult.getNode().isArray() && !previousResult.getNode().isObject()) {
+			throw new PolicyEvaluationException(WRONG_TYPE);
+		}
 		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		resultList.addAll(resolveRecursive(previousResult.getNode()));
 		return new ArrayResultNode(resultList);

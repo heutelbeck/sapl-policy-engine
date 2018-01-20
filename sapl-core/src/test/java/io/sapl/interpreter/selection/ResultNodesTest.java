@@ -610,5 +610,4 @@ public class ResultNodesTest {
 		assertFalse("sameReference on JsonNodeWithParentObject should return false if reference is not the same",
 				resultNode.sameReference(other));
 	}
-
 }

@@ -35,17 +35,11 @@ public class ApplyStepsRecursiveWildcardTest {
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
-	@Test
+	@Test(expected = PolicyEvaluationException.class)
 	public void applyToNullNode() throws PolicyEvaluationException {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
-
-		ResultNode expectedResult = new ArrayResultNode(new ArrayList<>());
-
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Recursive wildcard step applied to null node should return empty result array", expectedResult,
-				result);
+		previousResult.applyStep(step, ctx, true, null);
 	}
 
 	@Test
