@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import io.sapl.spring.PolicyEnforcementPoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -127,6 +128,17 @@ public class PDPAutoConfiguration {
 				StandardSAPLAuthorizator.class);
 		return new StandardSAPLAuthorizator(pdp, ohs);
 	}
+
+
+	@Bean
+	@ConditionalOnMissingBean
+	public PolicyEnforcementPoint createPolicyEnforcementPoint(PolicyDecisionPoint pdp,
+																 ObligationsHandlerService ohs) {
+		log.debug("no Bean of type PolicyEnforcementPoint defined. Will create default Bean of class {}",
+				PolicyEnforcementPoint.class);
+		return new PolicyEnforcementPoint(pdp,ohs);
+	}
+
 
 	@Bean
 	@ConditionalOnMissingBean
