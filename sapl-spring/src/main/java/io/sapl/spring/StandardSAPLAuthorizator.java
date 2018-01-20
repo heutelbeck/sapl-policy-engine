@@ -48,8 +48,9 @@ public class StandardSAPLAuthorizator {
 
 		Response response = pdp.decide(subject, action, resource);
 
+
 		LOGGER.debug("Here comes the response: {}", response);
-		if (response.getObligation() != null) {
+		if (response.getObligation().orElse(null) != null) {
 
 			List<Obligation> obligationsList = Obligation.fromJson(response.getObligation().get());
 			LOGGER.debug("Start handling obligations {}", obligationsList);
