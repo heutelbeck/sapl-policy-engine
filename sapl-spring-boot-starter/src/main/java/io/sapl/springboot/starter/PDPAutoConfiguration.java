@@ -4,7 +4,11 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import io.sapl.spring.*;
+import io.sapl.spring.PIPProvider;
+import io.sapl.spring.PolicyEnforcementFilter;
+import io.sapl.spring.PolicyEnforcementPoint;
+import io.sapl.spring.StandardSAPLAuthorizator;
+import io.sapl.spring.SAPLPermissionEvaluator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -117,22 +121,11 @@ public class PDPAutoConfiguration {
 		return new PolicyEnforcementFilter(saplAuthorizer);
 	}
 
-/*
-	@Bean
-	@ConditionalOnMissingBean
-	public StandardSAPLAuthorizator createStandardSAPLAuthorizator(PolicyDecisionPoint pdp,
-			ObligationsHandlerService ohs) {
-		log.debug("no Bean of type StandardSAPLAuthorizator defined. Will create default Bean of class {}",
-				StandardSAPLAuthorizator.class);
-		return new StandardSAPLAuthorizator(pdp, ohs);
-	}
-*/
-
 
 	@Bean
 	@ConditionalOnMissingBean
 	public PolicyEnforcementPoint createPolicyEnforcementPoint(PolicyDecisionPoint pdp,
-																 ObligationsHandlerService ohs) {
+															   ObligationsHandlerService ohs) {
 		log.debug("no Bean of type PolicyEnforcementPoint defined. Will create default Bean of class {}",
 				PolicyEnforcementPoint.class);
 		return new PolicyEnforcementPoint(pdp,ohs);
@@ -142,7 +135,7 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(PolicyEnforcementPoint pep){
-		log.debug("no Bean of type PolicyEnforcementPoint defined. Will create default Bean of class {}",
+		log.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of class {}",
 				SAPLPermissionEvaluator.class);
 		return new SAPLPermissionEvaluator(pep);
 	}
