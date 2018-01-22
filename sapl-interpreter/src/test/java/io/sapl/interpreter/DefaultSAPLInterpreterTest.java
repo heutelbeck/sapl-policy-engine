@@ -326,7 +326,7 @@ public class DefaultSAPLInterpreterTest {
         assertThat("type mismatch in boolean operation not detected",
                 INTERPRETER.evaluate(requestObject, policyDefinition,
                         attributeCtx, functionCtx, SYSTEM_VARIABLES),
-                equalTo(INDETERMINATE));
+				equalTo(permitUnfiltered));
     }
 
     @Test
@@ -335,7 +335,7 @@ public class DefaultSAPLInterpreterTest {
         assertThat("type mismatch in boolean operation not detected",
                 INTERPRETER.evaluate(requestObject, policyDefinition,
                         attributeCtx, functionCtx, SYSTEM_VARIABLES),
-                equalTo(INDETERMINATE));
+				equalTo(INDETERMINATE));
     }
 
     @Test

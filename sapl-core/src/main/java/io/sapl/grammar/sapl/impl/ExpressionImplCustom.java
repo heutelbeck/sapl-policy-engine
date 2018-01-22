@@ -19,8 +19,8 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 
 public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionImpl {
 
-	private static final String ARITHMETIC_OPERATION_TYPE_MISMATCH = "Type mismatch. Arithmetic operation expects number values, but got: '%s' and '%s'.";
-	private static final String BOOLEAN_OPERATION_TYPE_MISMATCH = "Type mismatch. Boolean opration expects boolean values, but got: '%s' and '%s'.";
+	protected static final String ARITHMETIC_OPERATION_TYPE_MISMATCH = "Type mismatch. Arithmetic operation expects number values, but got: '%s' and '%s'.";
+	protected static final String BOOLEAN_OPERATION_TYPE_MISMATCH = "Type mismatch. Boolean opration expects boolean values, but got: '%s'.";
 
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -31,10 +31,10 @@ public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionIm
 		}
 	}
 
-	protected static void assertBoolean(JsonNode left, JsonNode right) throws PolicyEvaluationException {
-		if (!left.isBoolean() || !right.isBoolean()) {
+	protected static void assertBoolean(JsonNode node) throws PolicyEvaluationException {
+		if (!node.isBoolean()) {
 			throw new PolicyEvaluationException(
-					String.format(BOOLEAN_OPERATION_TYPE_MISMATCH, left.getNodeType(), right.getNodeType()));
+					String.format(BOOLEAN_OPERATION_TYPE_MISMATCH, node.getNodeType()));
 		}
 	}
 

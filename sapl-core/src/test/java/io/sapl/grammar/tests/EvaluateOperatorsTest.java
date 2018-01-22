@@ -81,9 +81,23 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateAndWrongDatatypes1() throws PolicyEvaluationException {
+	public void evaluateAndWrongDatatypeLeft() throws PolicyEvaluationException {
 		And and = factory.createAnd();
-		and.setLeft(basicValueFrom(factory.createFalseLiteral()));
+
+		NumberLiteral num = factory.createNumberLiteral();
+		num.setNumber(TEST_NUMBER);
+		and.setLeft(basicValueFrom(num));
+
+		and.setRight(basicValueFrom(factory.createFalseLiteral()));
+
+		and.evaluate(ctx, true, null);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void evaluateAndLeftTrueWrongDatatypeRight() throws PolicyEvaluationException {
+		And and = factory.createAnd();
+
+		and.setLeft(basicValueFrom(factory.createTrueLiteral()));
 
 		NumberLiteral num = factory.createNumberLiteral();
 		num.setNumber(TEST_NUMBER);
@@ -92,16 +106,21 @@ public class EvaluateOperatorsTest {
 		and.evaluate(ctx, true, null);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateAndWrongDatatypes2() throws PolicyEvaluationException {
+	@Test
+	public void evaluateAndLeftFalseWrongDatatypeRight() throws PolicyEvaluationException {
 		And and = factory.createAnd();
-		and.setRight(basicValueFrom(factory.createFalseLiteral()));
+
+		and.setLeft(basicValueFrom(factory.createFalseLiteral()));
 
 		NumberLiteral num = factory.createNumberLiteral();
 		num.setNumber(TEST_NUMBER);
-		and.setLeft(basicValueFrom(num));
+		and.setRight(basicValueFrom(num));
 
-		and.evaluate(ctx, true, null);
+		JsonNode result = and.evaluate(ctx, true, null);
+
+		assertEquals("False And wrong datatype should evaluate to BooleanNode(false) (lazy evaluation)",
+				JSON.booleanNode(false),
+				result);
 	}
 
 	@Test
@@ -138,7 +157,20 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateOrWrongDatatypes() throws PolicyEvaluationException {
+	public void evaluateOrWrongDatatypeLeft() throws PolicyEvaluationException {
+		Or or = factory.createOr();
+
+		NumberLiteral num = factory.createNumberLiteral();
+		num.setNumber(TEST_NUMBER);
+		or.setLeft(basicValueFrom(num));
+
+		or.setRight(basicValueFrom(factory.createTrueLiteral()));
+
+		or.evaluate(ctx, true, null);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void evaluateOrWrongDatatypeRightLeftFalse() throws PolicyEvaluationException {
 		Or or = factory.createOr();
 		or.setLeft(basicValueFrom(factory.createFalseLiteral()));
 
@@ -147,6 +179,21 @@ public class EvaluateOperatorsTest {
 		or.setRight(basicValueFrom(num));
 
 		or.evaluate(ctx, true, null);
+	}
+
+	@Test
+	public void evaluateOrWrongDatatypeRightLeftTrue() throws PolicyEvaluationException {
+		Or or = factory.createOr();
+
+		or.setLeft(basicValueFrom(factory.createTrueLiteral()));
+
+		NumberLiteral num = factory.createNumberLiteral();
+		num.setNumber(TEST_NUMBER);
+		or.setRight(basicValueFrom(num));
+
+		JsonNode result = or.evaluate(ctx, true, null);
+		assertEquals("True Or wrong datatype should evaluate to BooleanNode(true) (lazy evaluation)",
+				JSON.booleanNode(true), result);
 	}
 
 	@Test

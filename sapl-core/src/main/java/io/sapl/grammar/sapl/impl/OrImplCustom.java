@@ -30,11 +30,15 @@ public class OrImplCustom extends io.sapl.grammar.sapl.impl.OrImpl {
 	@Override
 	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
 			throws PolicyEvaluationException {
-		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
-		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
-		assertBoolean(left, right);
+		JsonNode leftResult = getLeft().evaluate(ctx, isBody, relativeNode);
+		assertBoolean(leftResult);
+		if (leftResult.asBoolean()) {
+			return JSON.booleanNode(true);
+		}
 
-		return JSON.booleanNode(left.asBoolean() || right.asBoolean());
+		JsonNode rightResult = getRight().evaluate(ctx, isBody, relativeNode);
+		assertBoolean(rightResult);
+		return JSON.booleanNode(rightResult.asBoolean());
 	}
 
 	@Override

@@ -31,10 +31,14 @@ public class AndImplCustom extends io.sapl.grammar.sapl.impl.AndImpl {
 	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
 			throws PolicyEvaluationException {
 		JsonNode leftResult = getLeft().evaluate(ctx, isBody, relativeNode);
-		JsonNode rightResult = getRight().evaluate(ctx, isBody, relativeNode);
-		assertBoolean(leftResult, rightResult);
+		assertBoolean(leftResult);
+		if (!leftResult.asBoolean()) {
+			return JSON.booleanNode(false);
+		}
 
-		return JSON.booleanNode(leftResult.asBoolean() && rightResult.asBoolean());
+		JsonNode rightResult = getRight().evaluate(ctx, isBody, relativeNode);
+		assertBoolean(rightResult);
+		return JSON.booleanNode(rightResult.asBoolean());
 	}
 
 	@Override
