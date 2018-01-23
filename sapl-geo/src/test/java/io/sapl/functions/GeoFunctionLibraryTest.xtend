@@ -100,6 +100,28 @@ class GeoFunctionLibraryTest {
 					[[-1.0, 1.0], [1.0, 0.0]]
 				]
 			},
+			"collection": {
+				   "polyOne":{ 
+							"type": "Polygon",
+							"coordinates": [
+								[0.0, 0.0],
+								[20.0, 0.0],
+								[20.0, 20.0],
+								[0.0, 20.0],
+								[0.0, 0.0]
+							]
+					},
+					"polyTwo":{ 
+							"type": "Polygon",
+							"coordinates": [
+								[40.0, 5.0],
+								[60.0, 5.0],
+								[60.0, 10.0],
+								[40.0, 10.0],
+								[40.0, 5.0]
+							]
+					}
+			},
 			"polyOne":{ 
 				"type": "Polygon",
 				"coordinates": [
@@ -225,6 +247,21 @@ class GeoFunctionLibraryTest {
 			geo.within(resource.pointOne, resource.polyOne);
 		''';
 		assertEquals("geo.contains() or geo.within() does not work as expected",
+			getDecision(policyDefinition), Decision.PERMIT);
+	}
+	
+	@Test
+	def void resourceToGeometryBagTest() throws PolicyEvaluationException {
+		val policyDefinition = '''
+			policy "resourceToGeometryBag" 
+			permit
+			where
+			var bag = geo.resToGeometryBag(resource.collection.*);
+			geo.geometryIsIn(resource.polyOne, bag);
+			geo.within(resource.pointOne, bag);
+			geo.contains(bag, resource.pointOne);
+		''';
+		assertEquals("geo.resToGeometryBag() does not work as expected",
 			getDecision(policyDefinition), Decision.PERMIT);
 	}
 
