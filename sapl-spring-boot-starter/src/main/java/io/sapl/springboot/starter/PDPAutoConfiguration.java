@@ -120,6 +120,14 @@ public class PDPAutoConfiguration {
 				PolicyEnforcementFilter.class);
 		return new PolicyEnforcementFilter(saplAuthorizer);
 	}
+	
+	@Bean
+	@ConditionalOnMissingBean
+	public StandardSAPLAuthorizator createStandardSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationsHandlerService ohs){
+		log.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of class {}",
+				SAPLPermissionEvaluator.class);
+		return new StandardSAPLAuthorizator(pdp, ohs);
+	}
 
 
 	@Bean
@@ -158,7 +166,7 @@ public class PDPAutoConfiguration {
 			};
 		}
 		log.debug(
-				"Automatic registration of obligation hanlders is activated. {} beans of type ObligationHandler found, they will be reigistered at the ObligationsHandlerServive-bean",
+				"Automatic registration of obligation handlers is activated. {} beans of type ObligationHandler found, they will be reigistered at the ObligationsHandlerServive-bean",
 				obligationHandlers.size());
 		return args -> obligationHandlers.stream().forEach(ohs::register);
 
