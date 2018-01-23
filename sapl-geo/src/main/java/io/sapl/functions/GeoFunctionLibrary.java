@@ -497,7 +497,7 @@ public class GeoFunctionLibrary {
 		return geometry.toJsonNode();
 	}
 
-	@Function()
+	@Function
 	public JsonNode print(JsonNode node) {
 		log.info(node.toString());
 		return JSON.booleanNode(true);
