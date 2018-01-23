@@ -36,11 +36,13 @@ import io.sapl.api.validation.Array;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
+import lombok.extern.slf4j.Slf4j;
 
 /*
  * Format always [Lat(y), Long(x)]
  */
 
+@Slf4j
 @FunctionLibrary(name = GeoFunctionLibrary.NAME, description = GeoFunctionLibrary.DESCRIPTION)
 public class GeoFunctionLibrary {
 
@@ -493,5 +495,11 @@ public class GeoFunctionLibrary {
 		SAPLGeometry geometry = new SAPLGeometry(jsonGeometry, projection);
 		geometry.setProjection(GeoProjection.returnEmptyProjection());
 		return geometry.toJsonNode();
+	}
+
+	@Function()
+	public JsonNode print(JsonNode node) {
+		log.info(node.toString());
+		return JSON.booleanNode(true);
 	}
 }
