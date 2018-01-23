@@ -120,7 +120,7 @@ public class PDPAutoConfiguration {
 				PolicyEnforcementFilter.class);
 		return new PolicyEnforcementFilter(saplAuthorizer);
 	}
-	
+/*	
 	@Bean
 	@ConditionalOnMissingBean
 	public StandardSAPLAuthorizator createStandardSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationsHandlerService ohs){
@@ -128,7 +128,7 @@ public class PDPAutoConfiguration {
 				SAPLPermissionEvaluator.class);
 		return new StandardSAPLAuthorizator(pdp, ohs);
 	}
-
+*/
 
 	@Bean
 	@ConditionalOnMissingBean
