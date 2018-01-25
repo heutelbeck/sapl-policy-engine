@@ -45,7 +45,6 @@ public class PostGISConfig {
 	private int from;
 	private int until = -1;
 	private boolean flipCoordinates;
-	private boolean enableProjection;
 	private int projectionSRID;
 	private boolean ssl;
 	private String urlParams;
@@ -111,7 +110,7 @@ public class PostGISConfig {
 			parenthesis++;
 		}
 
-		if (isEnableProjection() && getProjectionSRID() != 0) {
+		if (getProjectionSRID() != 0) {
 			result.append(SQL_TRANSFORM).append(getGeometryColName()).append(COMMA).append(getProjectionSRID());
 			parenthesis++;
 		} else {

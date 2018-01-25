@@ -55,8 +55,7 @@ public class PostGISTest {
 			+ "\"db\": \"db_sample\", \"table\": \"geofences\", \"username\": \"uname\", \"password\": \"pw\","
 			+ "\"geometryColName\": \"geom\", \"idColName\": \"fences\", \"pkColName\": \"gid\",\"from\": 0,"
 			+ "\"flipCoordinates\": true %s}";
-	private static final String PROJECTION_CONFIG = ",\"enableProjection\": true, \"projectionSRID\": 12345,"
-			+ "\"until\": 1";
+	private static final String PROJECTION_CONFIG = ",\"projectionSRID\": 12345," + "\"until\": 1";
 	private static final String JSON_ANSWER = "{\"name\":{\"type\":\"Point\",\"coordinates\":[1,1]}}";
 	private PostGISConfig pgConfFromJson;
 	private PostGISConfig pgProjectionConfFromJson;

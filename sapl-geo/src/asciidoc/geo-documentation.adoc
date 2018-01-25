@@ -70,13 +70,13 @@ Keyhole Markup Language (KML):: The Keyhole Markup Language (KML) is a XML-based
 === Coordinate Reference Systems
 SAPL-Geo supports the projection of coordinates into different coordinate reference systems (CRS). Depending on how the geospatial data is extracted from third party systems, this might be required to facilitate comparisons and to simplify the use of the provided geospatial functions. The CRS are loaded from the https://www.epsg-registry.org/[EPSG Geodetic Parameter Dataset] and identified by their respective codes (e.g. _EPSG:4326_ for the WGS84-CRS). 
 
-Two different parameters are required to initialize a `GeoFunctionLibrary` with a projection:
+Two different parameters are required to initialize a projection:
 
-Source CRS:: The Source CRS is the system that decoded the coordinates of the external data. After all calculations are done, exported data will be converted back into this CRS. 
+Source CRS:: The Source CRS is the system that decoded the coordinates of the external data. 
 
-Destination CRS:: The Destination CRS is the system that will be used for the calculations. If a function that makes use of projections is called, all geometries that are passed as input parameters will firstly be converted into this CRS.
+Destination CRS:: The Destination CRS is the system into which the coordinates will be projected. 
 
-In <<sec:function_reference, Function reference>> all functions that make use of projections are specifically labeled. However, in the case where no CRS were defined, the `GeoFunctionLibrary` is initialized without any projections and the coordinates of the geometries are taken for the calculations exactly as they are.
+Usually you would first have to define a projection via the `getProjection`-function and thereafter convert your data with the `project`-function. Detailed information about the syntax can be found in the <<sec:function_reference, Function reference>>.
 
 
 === Embedding the module
@@ -84,14 +84,14 @@ To use the SAPL-Geo FunctionLibrary a new instance of `GeoFunctionLibrary` has t
 
 [source,java]
 ----
-GeoProjection geoProj = new GeoProjection(srcCrs, destCrs); <1>
-FUNCTION_CTX.loadLibrary(new GeoFunctionLibrary(geoProj)); <2>
-ATTRIBUTE_CTX.loadPolicyInformationPoint(new GeoAttributeFinder()); <3>
+FUNCTION_CTX.loadLibrary(new GeoFunctionLibrary()); <1>
+ATTRIBUTE_CTX.loadPolicyInformationPoint(new GeoAttributeFinder()); <2>
 ----
 
-<1> Defines a `GeoProjection` object with the respective EPSG-Code for the source and destination CRS.
-<2> Loads a new instance of `GeoFunctionLibrary` into the `FunctionContext`. In this sample the `GeoProjection`-object is passed through and therefore projections will be enabled. If that would not be favorable, an empty constructor could be used instead.
-<3> Loads the `GeoAttributeFinder` into the `AttributeContext`.
+<1> Loads a new instance of `GeoFunctionLibrary` into the `FunctionContext`.
+<2> Loads the `GeoAttributeFinder` into the `AttributeContext`.
+
+If the Policy Decision Point (PDP) is configured via the `pdp.json` one would just have to add `io.sapl.pip.geo` to the AttributeFinders and `geo` to the libraries.
      
 That way all geographical functions are registered to the SAPL interpreter and can be accessed within policies via the keyword `geo`. For an exhaustive list of all provided functions and their syntax please refer to the <<sec:function_reference, Function Reference>> or <<sec:attribute_reference, Attribute Reference>> respectively. The following sample demonstrates the use of the library within a policy description:
 
@@ -117,12 +117,12 @@ TIP: All possible fields that are returned from the `GeoAttributeFinder` are lis
 
 [[sec:attribute_reference]]
 == Attribute reference
-To make the best use from location based authorization it is usually required to connect external systems to the policy engine to retrieve certain data (such as the user location, geofences from an external library, etc.). These systems could comprise tracking system, mobile device management systems (MDM) or even geographic information systems (GIS). Unfortunately there does not yet exist one standardized interface or protocol to retrieve data from different sources, which is why the `GeoAttributeFinder` is build in a modular way. Each module makes use of standard data exchange formats wherever possible and on top provides an individual configuration for the specific system to connect to. There are already a few connection adapters predefined but it is, of course, left open to the developer to write an own adapter to integrate a particular system. Additionally, a common standardized format is defined for the responses which is described in <<sec:geopipresponse, Response object>>.
+To make the best use from location based authorization it is usually required to connect external systems to the policy engine to retrieve certain data (such as the user location, geofences from an external library, etc.). These systems could comprise tracking system, mobile device management systems (MDM) or even geographic information systems (GIS). Unfortunately there does not yet exist one standardized interface or protocol to retrieve data from different sources, which is why the `GeoAttributeFinder` is build in a modular way. Each module makes use of a standard data exchange formats wherever possible and on top provides an individual configuration for the specific system to connect to. There are already a few connection adapters predefined but it is, of course, left open to the developer to write an own adapter to integrate a particular system. Additionally, a common standardized format is defined for the responses which is described in <<sec:geopipresponse, Response object>>.
 
 === PostGIS
-http://postgis.net/[PostGIS] is a geo-spatial extension to https://www.postgresql.org[PostgreSQL] object-relational databases. It has become very popular especially within the open source applications and is widely used for storing and querying geo-spatial data. Therefore multiple servers, applications and tools use PostGIS as their database backend. SAPL-Geo is therefore able to connect to such a database as well, retrieve geometries of interest and make them accessible directly within policies. 
+http://postgis.net/[PostGIS] is a geo-spatial extension to https://www.postgresql.org[PostgreSQL] object-relational databases. It has become very popular especially within open source applications and is widely used for storing and querying geo-spatial data. Therefore multiple servers, applications and tools use PostGIS as their database backend. SAPL-Geo is therefore able to connect to such a database as well, retrieve geometries of interest and make them accessible directly from within policies. 
 
-A PostGIS database can be connected via the AttributeFinder `sapl.pip.geo.postgis` while the configuration has to be in the following format.
+A PostGIS database can be connected via the AttributeFinder `io.sapl.pip.geo.postgis` while the configuration has to be in the following format.
 
 [[postgisconfig]]
 .Structure of the configuration for the PostGIS AttributeFinder
@@ -140,8 +140,8 @@ public class PostGISConfig {
     private String geometryColName; <9>
     private int from; <10>
     private int until; <11>
-    private boolean enableProjection; <12>
-    private int projectionSRID; <13>
+    private int projectionSRID; <12>
+    private boolean flipCoordinates; <13>
     private boolean ssl; <14>
     private String urlParams; <15>
 }
@@ -158,8 +158,8 @@ public class PostGISConfig {
 <9> Name of the column that holds the geometries.
 <10> Numeric start primary key, from which the geometries shall be imported.
 <11> Numeric end primary key, until which the geometries shall be imported. If none is provided, all geometries beginning from *10* are imported.
-<12> Boolean to state whether a certain coordinate projection is to be applied the geometries while importing.
-<13> If *12* is `true`: The SRID into which the coordinates will be projected during the import.
+<12> The SRID into which the coordinates will be projected during the import. If no projection is required the field can just be left empty or assigned a `0` instead.
+<13> Boolean to decide, whether the coordinates shall be flipped before being imported into the policy. The rationale here is, that GIS-databases usually store `X` and `Y` values, whereas SAPL-Geo works with Latitude and Longitude values (see http://postgis.net/2013/08/18/tip_lon_lat/[this arcticle] for further information).
 <14> Establishes a SSL-connection to the database if set to `true`. Please note that server certificate (respectively the CA of the servers certificate) must be trusted in a TrustStore. Further options can be set in the custom `urlParams` field.
 <15> Further arguments that can be specified freely and will be passed when establishing the connection to the database. Multiple parameters must be delimited using the `&`-sign.
 
@@ -288,7 +288,10 @@ public class GeoPIPResponse {
 ** `<<issimple, isSimple(Geometry geometry)>>`
 ** `<<isclosed, isClosed(Geometry geometry)>>`
 ** `<<isvalid, isValid(Geometry geometry)>>`
+** `<<getproj, getProjection(String srcSystem, String destSystem)>>`
+** `<<project, project(Geometry geometry, Projection projection)>>`
 * <<sec:geocoll, Functions for GeometryCollections>>
+** `<<restogeombag, resToGeometryBag(Object geometry,...)>>`
 ** `<<oneandonly, oneAndOnly(GeometryCollection geoCollection)>>`
 ** `<<bagsize, bagSize(GeometryCollection geoCollection)>>`
 ** `<<geometryisin, geometryIsIn(Geometry geometry, GeometryCollection geoCollection)>>`
@@ -431,13 +434,13 @@ Returns::
 
 ---
 
-Computes a buffer area of `bufferwidth` around `geometry`. Makes use of projections if `sourceCRS` and `destCRS` are defined for the instance of `GeoFunctionLibrary`.
+Computes a buffer area of `bufferwidth` around `geometry`.
 
 Parameter::
 `geometry` - the geometries to add the buffer to
 install 
 +
-`bufferwidth` - the width of the buffer in units specified by the map projection or coordinates in case no projection is chosen
+`bufferwidth` - the width of the buffer in units specified by the map projection of the coordinates
 	
 Returns::
 a new `Geometry`-object that contains all points within a distance of `bufferwidth` of `geometry`
@@ -449,7 +452,7 @@ a new `Geometry`-object that contains all points within a distance of `bufferwid
 
 ---
 
-Computes the boundary of`geometry`. Makes use of projections if `sourceCRS` and `destCRS` are defined for the instance of `GeoFunctionLibrary`.
+Computes the boundary of`geometry`.
 
 Parameter::
 `geometry` - the geometries to return the boundary from
@@ -464,7 +467,7 @@ a new `Geometry`-object resembling the boundary of `geometry`
 
 ---
 
-Computes the convex hull (smallest convex polygon, that contains all points of the geometry) of `geometry`. Makes use of projections if `sourceCRS` and `destCRS` are defined for the instance of `GeoFunctionLibrary`.
+Computes the convex hull (smallest convex polygon, that contains all points of the geometry) of `geometry`.
 
 Parameter::
 `geometry` - the geometries to retrieve the convex hull from
@@ -479,7 +482,7 @@ a new `Geometry`-object resembling the convex hull of `geometry`
 
 ---
 
-Computes a point that is the geometric center of gravity of `geometry`. Makes use of projections if `sourceCRS` and `destCRS` are defined for the instance of `GeoFunctionLibrary`.
+Computes a point that is the geometric center of gravity of `geometry`.
 
 Parameter::
 `geometry` - the geometries to retrieve the centroid from
@@ -494,7 +497,7 @@ a new `Geometry`-object resembling the centroid of `geometry`
 
 ---
 
-Computes the closure of the set difference between two geometries. Makes use of projections if `sourceCRS` and `destCRS` are defined for the instance of `GeoFunctionLibrary`.
+Computes the closure of the set difference between two geometries. 
 
 Parameter::
 `geometry1`, `geometry2` - the geometries to retrieve the difference from
@@ -509,7 +512,7 @@ a new `Geometry`-object containing all points which lie in `geometry1` but not i
 
 ---
 
-Computes the closure of the symmetric difference between two geometries. Makes use of projections if `sourceCRS` and `destCRS` are defined for the instance of `GeoFunctionLibrary`.
+Computes the closure of the symmetric difference between two geometries.
 
 Parameter::
 `geometry1`, `geometry2` - the geometries to retrieve the symmetric difference from
@@ -539,7 +542,7 @@ a new `Geometry`-object containing the common points of both geometries
 
 ---
 
-Computes the union of two geometries. Makes use of projections if `sourceCRS` and `destCRS` are defined for the instance of `GeoFunctionLibrary`.
+Computes the union of two geometries.
 
 Parameter::
 `geometry1`, `geometry2` - the geometries to calculate the union from, can also be of type `GeometryCollection`
@@ -557,13 +560,13 @@ a new `Geometry`-object containing the union of both geometries
 
 ---
 
-Computes the area of the geometry. Makes use of projections if `sourceCRS` and `destCRS` are defined for the instance of `GeoFunctionLibrary`.
+Computes the area of the geometry.
 
 Parameter::
 `geometry` - the geometry to calculate the area of
 
 Returns::
-the area of `geometry`. The returned value is in the units (squared) of the coordinates or of the projection (if projection applied).
+the area of `geometry`. The returned value is in the units (squared) specified by the map projection of the coordinates
 ***************
 
 ***************
@@ -572,13 +575,13 @@ the area of `geometry`. The returned value is in the units (squared) of the coor
 
 ---
 
-Calculates the (shortest) geometric (planar) distance between two geometries. Makes use of projections if `sourceCRS` and `destCRS` are defined for the instance of `GeoFunctionLibrary`.
+Calculates the (shortest) geometric (planar) distance between two geometries.
 
 Parameter::
 `geometry1`, `geometry2` - the geometries to calculate the distance of
 
 Returns::
-the distance of  the geometries. The returned value is in the units of the coordinates or of the projection (if projection applied).
+the distance of  the geometries. The returned value is in the unit specified by the map projection of the coordinates
 ***************
 
 
@@ -603,12 +606,12 @@ the geodetic distance of the geometries in [m]
 
 ---
 
-Tests if two geometries are within the given geometric (planar) distance of each other. Makes use of projections if `sourceCRS` and `destCRS` are defined for the instance of `GeoFunctionLibrary`.
+Tests if two geometries are within the given geometric (planar) distance of each other.
 
 Parameter::
 `geometry1`, `geometry2` - the geometries to calculate the distance of
 +
-`distance` - the distance to test (in the unit of the coordinates or projection if used)
+`distance` - the distance to test in the unit specified by the map projection of the coordinates
 
 Returns::
 `true` if the two geometries are within `distance`
@@ -637,13 +640,13 @@ Returns::
 
 ---
 
-Computes the length of the geometry (perimeter in case of areal geometries). Makes use of projections if `sourceCRS` and `destCRS` are defined for the instance of `GeoFunctionLibrary`.
+Computes the length of the geometry (perimeter in case of areal geometries). 
 
 Parameter::
 `geometry` - the geometry to calculate the length of
 
 Returns::
-the length of `geometry`. The returned value is in the units of the coordinates or of the projection (if projection applied).
+the length of `geometry`. The returned value is in the unit specified by the map projection of the coordinates.
 ***************
 
 [[sec:special]]
@@ -693,9 +696,54 @@ Parameter::
 Returns::
 `true` if the geometry is valid as described above
 ***************
+***************
+[[getproj]]
+`*getProj(String srcSystem, String destSystem)*`
+
+---
+
+Calculates a math transformation to project from the source CRS into the destination CRS. 
+
+Parameter::
+`srcSystem` - EPSG code of the source CRS
+`destSystem` - EPSG code of the destination CRS
+
+Returns::
+a definition of a math transformation in WKT-format
+***************
+***************
+[[project]]
+`*project(Geometry geometry, Projection projection)*`
+
+---
+
+Projects the given geometry according to the projection
+
+Parameter::
+`geometry` - the geometry to project
+`projection` - WKT-coded math transformation for the projection
+
+Returns::
+the projected geometry
+***************
 
 [[sec:geocoll]]
 === Functions for GeometryCollections
+
+***************
+[[restogeombag]]
+`*resToGeometryBag(Object geometry,...)*`
+
+---
+
+Puts any number of JsonObjects that contain geometries into one GeometryCollection. Can be used e.g. to store all objects returned by `GeoPIPResponse.geofences` in one GeometryCollection
+
+Parameter::
+`geometry` - JsonObject containing geometries
+
+Returns::
+a GeometryCollection containing all geometries that were given as input parameter 
+***************
 
 ***************
 [[oneandonly]]
