@@ -315,7 +315,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 				String functionName = anImport.getFunctionName();
 				String fullyQualified = String.join(".", library, functionName);
 
-				if (imports.containsKey(anImport.getFunctionName())) {
+				if (imports.containsKey(functionName)) {
 					throw new PolicyEvaluationException(String.format(IMPORT_EXISTS, fullyQualified));
 				} else if (!functionCtx.provides(fullyQualified) && !attributeCtx.provides(fullyQualified)) {
 					throw new PolicyEvaluationException(String.format(IMPORT_NOT_FOUND, fullyQualified));

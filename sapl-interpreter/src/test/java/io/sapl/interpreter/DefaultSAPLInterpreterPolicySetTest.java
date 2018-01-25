@@ -172,6 +172,16 @@ public class DefaultSAPLInterpreterPolicySetTest {
     }
     
     @Test
+	public void importsDuplicatesByPolicySet() throws PolicyEvaluationException {
+		SAPL policySet = INTERPRETER.parse("import filter.replace import filter.replace set \"tests\" deny-overrides"
+				+ " policy \"testp1\" permit where true;");
+		assertEquals("imports for policy set must not contain duplicates",
+				Response.indeterminate(),
+				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
+						SYSTEM_VARIABLES));
+	}
+
+	@Test
     public void variablesOnSetLevel() throws PolicyEvaluationException {
         SAPL policySet = INTERPRETER.parse(
                 "set \"tests\" deny-overrides var var1 = true;"+

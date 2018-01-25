@@ -792,6 +792,13 @@ public class DefaultSAPLInterpreterTest {
     }
     
     @Test
+	public void transformationError() throws PolicyEvaluationException {
+		String policyDefinition = "policy \"test\" permit transform null + true";
+		assertEquals("error in transformation should evaluate to indeterminate", Decision.INDETERMINATE, INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+	}
+
+	@Test
     public void illegalObligation() throws PolicyEvaluationException {
         String policyDefinition = "policy \"test\" permit obligation \"a\" > 5";
         assertEquals("error in obligation evaluation should evaluate to indeterminate",
@@ -812,6 +819,13 @@ public class DefaultSAPLInterpreterTest {
     }
     
     @Test
+	public void importFinder() throws PolicyEvaluationException {
+		String policyDefinition = "import sapl.pip.test.echo policy \"test\" permit where \"echo\" == \"echo\".<echo>;";
+		assertEquals("wildcard import not working", Decision.PERMIT, INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+	}
+
+	@Test
     public void importLibrary() throws PolicyEvaluationException {
         String policyDefinition = "import simple as simple_lib policy \"test\" permit where var a = simple_lib.append(\"a\",\"b\");";
         assertEquals("library import with alias not working",
@@ -830,15 +844,41 @@ public class DefaultSAPLInterpreterTest {
                         attributeCtx, functionCtx, SYSTEM_VARIABLES)
                         .getDecision());
     }
-    
-    @Test
-    public void importConflict() throws PolicyEvaluationException {
-        String policyDefinition = "import simple.append import simple.append policy \"test\" permit where var a = append(\"a\",\"b\") |- replace(null);";
-        assertEquals("multiple imports with same simple name should cause an error",
-        		Decision.INDETERMINATE,
-                INTERPRETER.evaluate(requestObject, policyDefinition,
-                        attributeCtx, functionCtx, SYSTEM_VARIABLES)
-                        .getDecision());
-    }
-    
+
+	@Test
+	public void importNonExistingFunction() throws PolicyEvaluationException {
+		String policyDefinition = "import simple.non_existing policy \"test\" permit where true;";
+		assertEquals("importing non existing function should cause an error", Decision.INDETERMINATE, INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+	}
+
+	@Test
+	public void importDuplicateFunction() throws PolicyEvaluationException {
+		String policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
+		assertEquals("importing duplicate short name should cause an error", Decision.INDETERMINATE, INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+	}
+
+	@Test
+	public void importDuplicateFunctionMatchingPolicy() throws PolicyEvaluationException {
+		String policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
+		SAPL policy = INTERPRETER.parse(policyDefinition);
+		assertEquals("importing duplicate short name should cause an error", Decision.INDETERMINATE, INTERPRETER
+				.evaluateRules(requestObject, policy, attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+	}
+
+	@Test
+	public void importDuplicateWildcard() throws PolicyEvaluationException {
+		String policyDefinition = "import simple.append import simple.* policy \"test\" permit where true;";
+		assertEquals("importing duplicate short name should cause an error", Decision.INDETERMINATE, INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+	}
+
+	@Test
+	public void importDuplicateAlias() throws PolicyEvaluationException {
+		String policyDefinition = "import simple as test import simple as test policy \"test\" permit where true;";
+		assertEquals("importing duplicate aliased name should cause an error", Decision.INDETERMINATE, INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+	}
+
 }
