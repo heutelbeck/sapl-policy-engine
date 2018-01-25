@@ -20,8 +20,9 @@ public class PostGISConfig {
 	private static final String JDBC_SERVICE = "jdbc:postgresql://";
 	private static final String SSL_PARAM = "ssl=true";
 	private static final String SQL_QUERY = "SELECT %s, %s FROM %s WHERE %s;";
-	private static final String SQL_PROJECTGEOM = "ST_AsText(ST_FlipCoordinates(ST_Transform(%s,%s)))";
-	private static final String SQL_GEOM = "ST_AsText(ST_FlipCoordinates(%s))";
+	private static final String SQL_AS_TEXT = "ST_AsText(";
+	private static final String SQL_FLIP = "ST_FlipCoordinates(";
+	private static final String SQL_TRANSFORM = "ST_Transform(";
 	private static final String SQL_AND = " AND ";
 	private static final String SLASH = "/";
 	private static final String QM = "?";
@@ -29,6 +30,8 @@ public class PostGISConfig {
 	private static final String SEQ = "<=";
 	private static final String GEQ = ">=";
 	private static final char COLON = ':';
+	private static final char COMMA = ',';
+	private static final char CLOSING_PAREN = ')';
 
 	private String serverAdress;
 	private String port;
@@ -41,6 +44,7 @@ public class PostGISConfig {
 	private String geometryColName;
 	private int from;
 	private int until = -1;
+	private boolean flipCoordinates;
 	private boolean enableProjection;
 	private int projectionSRID;
 	private boolean ssl;
@@ -98,11 +102,27 @@ public class PostGISConfig {
 	}
 
 	private String buildGeometryExpression() {
-		if (isEnableProjection() && getProjectionSRID() != 0) {
-			return String.format(SQL_PROJECTGEOM, getGeometryColName(), getProjectionSRID());
-		} else {
-			return String.format(SQL_GEOM, getGeometryColName());
+		int parenthesis = 1;
+		StringBuilder result = new StringBuilder();
+		result.append(SQL_AS_TEXT);
+
+		if (flipCoordinates) {
+			result.append(SQL_FLIP);
+			parenthesis++;
 		}
+
+		if (isEnableProjection() && getProjectionSRID() != 0) {
+			result.append(SQL_TRANSFORM).append(getGeometryColName()).append(COMMA).append(getProjectionSRID());
+			parenthesis++;
+		} else {
+			result.append(getGeometryColName());
+		}
+
+		for (; parenthesis > 0; parenthesis--) {
+			result.append(CLOSING_PAREN);
+		}
+
+		return result.toString();
 	}
 
 	protected static boolean colsExist(ResultSet cols, String... colNames) throws SQLException {

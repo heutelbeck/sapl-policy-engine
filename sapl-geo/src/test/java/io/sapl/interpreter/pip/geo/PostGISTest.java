@@ -51,11 +51,11 @@ import nl.jqno.equalsverifier.Warning;
 public class PostGISTest {
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-	private static final String JSON_CONF = "{\"serverAdress\": \"localhost\"," + "\"port\": \"5432\","
-			+ "\"db\": \"db_sample\"," + "\"table\": \"geofences\"," + "\"username\": \"uname\","
-			+ "\"password\": \"pw\"," + "\"geometryColName\": \"geom\"," + "\"idColName\": \"fences\","
-			+ "\"pkColName\": \"gid\"," + "\"from\": 0" + "%s}";
-	private static final String PROJECTION_CONFIG = ",\"enableProjection\": true," + "\"projectionSRID\": 12345,"
+	private static final String JSON_CONF = "{\"serverAdress\": \"localhost\", \"port\": \"5432\","
+			+ "\"db\": \"db_sample\", \"table\": \"geofences\", \"username\": \"uname\", \"password\": \"pw\","
+			+ "\"geometryColName\": \"geom\", \"idColName\": \"fences\", \"pkColName\": \"gid\",\"from\": 0,"
+			+ "\"flipCoordinates\": true %s}";
+	private static final String PROJECTION_CONFIG = ",\"enableProjection\": true, \"projectionSRID\": 12345,"
 			+ "\"until\": 1";
 	private static final String JSON_ANSWER = "{\"name\":{\"type\":\"Point\",\"coordinates\":[1,1]}}";
 	private PostGISConfig pgConfFromJson;
@@ -243,10 +243,10 @@ public class PostGISTest {
 
 	@Test
 	public void buildUrlWithParams() throws IOException {
-		String config = "{\"serverAdress\": \"localhost\"," + "\"port\": \"5432\"," + "\"db\": \"db_sample\","
-				+ "\"table\": \"geofences\"," + "\"username\": \"uname\"," + "\"password\": \"pw\","
-				+ "\"geometryColName\": \"geom\"," + "\"idColName\": \"fences\"," + "\"pkColName\": \"gid\","
-				+ "\"from\": 0," + "\"ssl\": true," + "\"urlParams\": \"test=test\"}";
+		String config = "{\"serverAdress\": \"localhost\", \"port\": \"5432\", \"db\": \"db_sample\","
+				+ "\"table\": \"geofences\", \"username\": \"uname\", \"password\": \"pw\","
+				+ "\"geometryColName\": \"geom\", \"idColName\": \"fences\", \"pkColName\": \"gid\","
+				+ "\"from\": 0, \"ssl\": true, \"urlParams\": \"test=test\"}";
 		PostGISConfig pgConfWithParams = MAPPER.readValue(config, PostGISConfig.class);
 		assertEquals("PostGIS-URL is not correctly built.",
 				"jdbc:postgresql://localhost:5432/db_sample?ssl=true&test=test", pgConfWithParams.buildUrl());

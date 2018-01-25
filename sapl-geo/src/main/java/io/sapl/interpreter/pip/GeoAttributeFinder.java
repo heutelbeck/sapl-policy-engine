@@ -30,7 +30,7 @@ import io.sapl.interpreter.pip.geo.TraccarConnection;
 @PolicyInformationPoint(name = GeoAttributeFinder.NAME, description = GeoAttributeFinder.DESCRIPTION)
 public class GeoAttributeFinder {
 
-	public static final String NAME = "sapl.pip.geo";
+	public static final String NAME = "io.sapl.pip.geo";
 	public static final String DESCRIPTION = "AttributeFinder for geographical data.";
 
 	@Attribute
