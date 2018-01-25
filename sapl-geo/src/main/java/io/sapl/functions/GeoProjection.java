@@ -19,7 +19,6 @@ import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.MathTransformFactory;
-import org.opengis.referencing.operation.NoninvertibleTransformException;
 import org.opengis.referencing.operation.TransformException;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -61,20 +60,16 @@ public class GeoProjection {
 	}
 
 	public Geometry project(Geometry geometry) throws FunctionException {
-		return project(geometry, mathTransform);
+		try {
+			return JTS.transform(geometry, mathTransform);
+		} catch (MismatchedDimensionException | TransformException e) {
+			throw new FunctionException(UNABLE_TO_TRANSFORM, e);
+		}
 	}
 
 	public Geometry reProject(Geometry geometry) throws FunctionException {
 		try {
-			return project(geometry, mathTransform.inverse());
-		} catch (NoninvertibleTransformException e) {
-			throw new FunctionException(NO_MATH_TRANSFORMATION_FOUND);
-		}
-	}
-
-	private static Geometry project(Geometry geometry, MathTransform transform) throws FunctionException {
-		try {
-			return JTS.transform(geometry, transform);
+			return JTS.transform(geometry, mathTransform.inverse());
 		} catch (MismatchedDimensionException | TransformException e) {
 			throw new FunctionException(UNABLE_TO_TRANSFORM, e);
 		}

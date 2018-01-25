@@ -39,7 +39,7 @@ public final class GeometryBuilder {
 	private static final String UNABLE_TO_PARSE_GEOJSON = "Provided GeoJSON-format is not compliant. Unable to parse geometry.";
 	private static final String UNABLE_TO_PARSE_WKT = "Provided WKT-format is not compliant. Unable to parse geometry.";
 	private static final String UTILITY_CLASS = "Utility class";
-	protected static final String UNABLE_TO_PARSE_GEOMETRY = "Unable to parse geometry to JsonNode.";
+	private static final String UNABLE_TO_PARSE_GEOMETRY = "Unable to parse geometry to JsonNode.";
 
 	private GeometryBuilder() {
 		throw new IllegalStateException(UTILITY_CLASS);
