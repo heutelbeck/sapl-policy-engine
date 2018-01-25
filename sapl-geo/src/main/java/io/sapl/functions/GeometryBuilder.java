@@ -34,7 +34,7 @@ import com.vividsolutions.jts.operation.distance.DistanceOp;
 
 import io.sapl.api.functions.FunctionException;
 
-public class GeometryBuilder {
+public final class GeometryBuilder {
 
 	private static final String UNABLE_TO_PARSE_GEOJSON = "Provided GeoJSON-format is not compliant. Unable to parse geometry.";
 	private static final String UNABLE_TO_PARSE_WKT = "Provided WKT-format is not compliant. Unable to parse geometry.";

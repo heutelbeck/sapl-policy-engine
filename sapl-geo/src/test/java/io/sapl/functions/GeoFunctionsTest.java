@@ -137,7 +137,7 @@ public class GeoFunctionsTest {
 		GeoProjection projection = new GeoProjection();
 
 		assertTrue("Geodesic distances are not correctly calculated.",
-				pointFRA.distance(projection.project(projection.project(pointFRA), true)) < COORDINATE_TOLERANCE);
+				pointFRA.distance(projection.reProject(projection.project(pointFRA))) < COORDINATE_TOLERANCE);
 	}
 
 	@Test
