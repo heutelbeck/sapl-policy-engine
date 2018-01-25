@@ -21,6 +21,7 @@ import org.junit.Test
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.junit.Assert.assertThat
 import io.sapl.functions.SelectionFunctionLibrary
+import io.sapl.functions.FilterFunctionLibrary
 
 class SampleXACMLTest {
 
@@ -38,6 +39,7 @@ class SampleXACMLTest {
 		FUNCTION_CTX.loadLibrary(new MockXACMLStringFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new MockXACMLDateFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new SelectionFunctionLibrary());
+		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(new MockXACMLPatientProfilePIP());
 		
 		io.sapl.interpreter.SampleXACMLTest.request_example_two = MAPPER.readValue('''
@@ -67,6 +69,16 @@ class SampleXACMLTest {
 			}
 		''', Request)
 	}
+	
+	def String policyExampleOne() {
+		return '''
+			policy "SimplePolicy1"
+			/* Any subject with an e-mail name in the med.example.com 
+			    domain can perform any action on any resource. */
+			
+			permit subject =~ "(?i).*@med\\.example\\.com"
+		''';
+	}
 
 	@Test
 	def void exampleOne() throws PolicyEvaluationException {
@@ -78,18 +90,10 @@ class SampleXACMLTest {
 			}
 		''', Request)
 
-		val policyDefinition = '''
-			policy "SimplePolicy1"
-			/* Any subject with an e-mail name in the med.example.com 
-			    domain can perform any action on any resource. */
-			
-			permit subject =~ "(?i).*@med\\.example\\.com"
-		''';
-
 		val expectedResponse = Response.notApplicable()
 
 		assertThat("XACML example one not working as expected",
-			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			INTERPRETER.evaluate(request_object, policyExampleOne(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
 	}
 	
@@ -118,9 +122,8 @@ class SampleXACMLTest {
 			equalTo(expectedResponse));
 	}
 	
-	@Test
-	def void exampleTwoRule1() throws PolicyEvaluationException {
-		val policyDefinition = '''
+	def String policyExampleTwoRule1() {
+		return '''
 			policy "rule_1"
 			/* A person may read any medical record in the
 			    http://www.med.example.com/schemas/record.xsd namespace
@@ -134,17 +137,19 @@ class SampleXACMLTest {
 				subject.role == "patient";
 				subject.patient_number == resource._content.patient.patient_number;
 		''';
-
-		val expectedResponse = Response.notApplicable()
-
-		assertThat("XACML example two rule 1 not working as expected",
-			INTERPRETER.evaluate(io.sapl.interpreter.SampleXACMLTest.request_example_two, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
-			equalTo(expectedResponse));
 	}
 	
 	@Test
-	def void exampleTwoRule2() throws PolicyEvaluationException {
-		val policyDefinition = '''
+	def void exampleTwoRule1() throws PolicyEvaluationException {
+		val expectedResponse = Response.notApplicable()
+
+		assertThat("XACML example two rule 1 not working as expected",
+			INTERPRETER.evaluate(request_example_two, policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			equalTo(expectedResponse));
+	}
+	
+	def String policyExampleTwoRule2() {
+		return '''
 			policy "rule_2"
 			/* A person may read any medical record in the
 			    http://www.med.example.com/records.xsd namespace
@@ -160,17 +165,19 @@ class SampleXACMLTest {
 				subject.parent_guardian_id == resource._content.patient.patient_number.<patient.profile>.parentGuardian.id;
 				date.diff("years", environment.current_date, resource._content.patient.dob) < 16;
 		''';
-
-		val expectedResponse = Response.notApplicable()
-
-		assertThat("XACML example two rule 2 not working as expected",
-			INTERPRETER.evaluate(io.sapl.interpreter.SampleXACMLTest.request_example_two, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
-			equalTo(expectedResponse));
 	}
 	
 	@Test
-	def void exampleTwoRule3() throws PolicyEvaluationException {
-		val policyDefinition = '''
+	def void exampleTwoRule2() throws PolicyEvaluationException {
+		val expectedResponse = Response.notApplicable()
+
+		assertThat("XACML example two rule 2 not working as expected",
+			INTERPRETER.evaluate(request_example_two, policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			equalTo(expectedResponse));
+	}
+	
+	def String policyExampleTwoRule3() {
+		return '''
 			policy "rule_3"
 			/* A physician may write any medical element in a record 
 			    for which he or she is the designated primary care 
@@ -181,7 +188,6 @@ class SampleXACMLTest {
 				string.starts_with(resource._selector, "@.medical") &&
 				action == "write"
 			where
-				subject.role == "physician";
 				subject.physician_id == resource._content.primaryCarePhysician.registrationID;
 			obligation
 				{
@@ -190,17 +196,19 @@ class SampleXACMLTest {
 					"text" : "Your medical record has been accessed by:" + subject.id
 				}
 		''';
-
-		val expectedResponse = Response.notApplicable()
-
-		assertThat("XACML example two rule 3 not working as expected",
-			INTERPRETER.evaluate(io.sapl.interpreter.SampleXACMLTest.request_example_two, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
-			equalTo(expectedResponse));
 	}
 	
 	@Test
-	def void exampleTwoRule4() throws PolicyEvaluationException {
-		val policyDefinition = '''
+	def void exampleTwoRule3() throws PolicyEvaluationException {
+		val expectedResponse = Response.notApplicable()
+
+		assertThat("XACML example two rule 3 not working as expected",
+			INTERPRETER.evaluate(request_example_two, policyExampleTwoRule3(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			equalTo(expectedResponse));
+	}
+	
+	def String policyExampleTwoRule4() {
+		return '''
 			policy "rule_4"
 			/* An Administrator shall not be permitted to read or write
 			   medical elements of a patient record in the
@@ -215,11 +223,15 @@ class SampleXACMLTest {
 					selection.match(resource._content, "@.medical", resource._selector) 
 				)
 		''';
-
+	}
+	
+	@Test
+	def void exampleTwoRule4() throws PolicyEvaluationException {
+		val request = request_example_two
 		val expectedResponse = Response.notApplicable()
 
 		assertThat("XACML example two rule 4 not working as expected",
-			INTERPRETER.evaluate(io.sapl.interpreter.SampleXACMLTest.request_example_two, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			INTERPRETER.evaluate(request, policyExampleTwoRule4(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
 	}
 }

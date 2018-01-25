@@ -63,6 +63,12 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 	@Override
 	public void applyFunction(String function, Arguments arguments, boolean each, EvaluationContext ctx)
 			throws PolicyEvaluationException {
+		applyFunctionWithRelativeNode(function, arguments, each, ctx, null);
+	}
+	
+	@Override
+	void applyFunctionWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx,
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		if (each) {
 			applyFunctionToEachItem(function, node, arguments, ctx);
 		} else {

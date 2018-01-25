@@ -63,13 +63,19 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 	@Override
 	public void applyFunction(String function, Arguments arguments, boolean each, EvaluationContext ctx)
 			throws PolicyEvaluationException {
+		applyFunctionWithRelativeNode(function, arguments, each, ctx, null);
+	}
+
+	@Override
+	void applyFunctionWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx,
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		if (each) {
 			applyFunctionToEachItem(function, node, arguments, ctx);
 		} else {
-			((ObjectNode) parent).set(attribute, applyFunctionToNode(function, node, arguments, ctx, null));
+			((ObjectNode) parent).set(attribute, applyFunctionToNode(function, node, arguments, ctx, relativeNode));
 		}
 	}
-
+	
 	@Override
 	public boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException {
 		return other.isNodeWithParentObject() && other.getParent() == getParent()

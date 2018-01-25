@@ -147,4 +147,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 *             in case the annotated JSON node is a JsonNodeWithoutParent
 	 */
 	public abstract boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException;
+
+	abstract void applyFunctionWithRelativeNode(String function, Arguments arguments, boolean each,
+			EvaluationContext ctx, JsonNode relativeNode) throws PolicyEvaluationException;
 }

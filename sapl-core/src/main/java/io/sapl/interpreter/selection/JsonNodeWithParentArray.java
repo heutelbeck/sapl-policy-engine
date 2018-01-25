@@ -62,13 +62,19 @@ public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 
 	@Override
 	public void applyFunction(String function, Arguments arguments, boolean each, EvaluationContext ctx) throws PolicyEvaluationException {
+		applyFunctionWithRelativeNode(function, arguments, each, ctx, null);
+	}
+
+	@Override
+	void applyFunctionWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx,
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		if (each) {
 			applyFunctionToEachItem(function, node, arguments, ctx);
 		} else {
-			((ArrayNode) parent).set(index, applyFunctionToNode(function, node, arguments, ctx, null));
-		}	
+			((ArrayNode) parent).set(index, applyFunctionToNode(function, node, arguments, ctx, relativeNode));
+		}
 	}
-
+	
 	@Override
 	public boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException {
 		return other.isNodeWithParentArray() && other.getParent() == getParent()
