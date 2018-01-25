@@ -35,7 +35,7 @@ import com.vividsolutions.jts.geom.Point;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
-import io.sapl.functions.SAPLGeometry;
+import io.sapl.functions.GeometryBuilder;
 import io.sapl.pip.http.RequestExecutor;
 import io.sapl.pip.http.RequestSpecification;
 import lombok.Getter;
@@ -130,7 +130,7 @@ public class TraccarConnection {
 	private static ObjectNode formatGeofencesForPIPResponse(TraccarGeofence... geofences) throws FunctionException {
 		ObjectNode returnGeofences = JSON.objectNode();
 		for (TraccarGeofence fence : geofences) {
-			returnGeofences.set(fence.getName(), new SAPLGeometry(fence.getArea()).toJsonNode());
+			returnGeofences.set(fence.getName(), GeometryBuilder.wktToJsonNode(fence.getArea()));
 		}
 		return returnGeofences;
 	}
@@ -140,7 +140,7 @@ public class TraccarConnection {
 		Point jtsPosition = geometryFactory
 				.createPoint(new Coordinate(position.getLatitude(), position.getLongitude()));
 
-		return new SAPLGeometry(jtsPosition).toJsonNode();
+		return GeometryBuilder.toJsonNode(jtsPosition);
 	}
 
 	protected final Map<String, String> getTraccarHTTPHeader() {

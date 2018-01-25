@@ -33,117 +33,69 @@ import com.vividsolutions.jts.io.WKTWriter;
 import com.vividsolutions.jts.operation.distance.DistanceOp;
 
 import io.sapl.api.functions.FunctionException;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
 
-@Getter
-@Setter
-@EqualsAndHashCode
-public class SAPLGeometry {
+public class GeometryBuilder {
 
 	private static final String UNABLE_TO_PARSE_GEOJSON = "Provided GeoJSON-format is not compliant. Unable to parse geometry.";
 	private static final String UNABLE_TO_PARSE_WKT = "Provided WKT-format is not compliant. Unable to parse geometry.";
+	private static final String UTILITY_CLASS = "Utility class";
 	protected static final String UNABLE_TO_PARSE_GEOMETRY = "Unable to parse geometry to JsonNode.";
 
-	private Geometry geometry;
-	private GeoProjection projection;
-
-	public SAPLGeometry(Geometry geom) {
-		geometry = geom;
+	private GeometryBuilder() {
+		throw new IllegalStateException(UTILITY_CLASS);
 	}
 
-	public SAPLGeometry(Geometry jtsGeometry, GeoProjection geoProj) throws FunctionException {
-		geometry = jtsGeometry;
-		if (geoProj != null) {
-			projection = geoProj;
-			geometry = projection.transformSrcToDestCRS(jtsGeometry);
-		}
-	}
-
-	public SAPLGeometry(JsonNode jsonGeometry) throws FunctionException {
-		fromJsonNode(jsonGeometry);
-	}
-
-	public SAPLGeometry(JsonNode jsonGeometry, GeoProjection geoProj) throws FunctionException {
-		fromJsonNode(jsonGeometry);
-		if (geoProj != null) {
-			projection = geoProj;
-			geometry = projection.transformSrcToDestCRS(geometry);
-		}
-	}
-
-	public SAPLGeometry(String wktGeometry) throws FunctionException {
-		fromWkt(wktGeometry);
-	}
-
-	public SAPLGeometry(String wktGeometry, GeoProjection geoProj) throws FunctionException {
-		fromWkt(wktGeometry);
-		if (geoProj != null) {
-			projection = geoProj;
-			geometry = projection.transformSrcToDestCRS(geometry);
-		}
-	}
-
-	private void fromJsonNode(JsonNode jsonGeometry) throws FunctionException {
+	public static Geometry fromJsonNode(JsonNode jsonGeometry) throws FunctionException {
 		GeometryJSON geoJsonReader = new GeometryJSON();
 		Reader stringReader = new StringReader(jsonGeometry.toString());
 
 		try {
-			geometry = geoJsonReader.read(stringReader);
+			return geoJsonReader.read(stringReader);
 		} catch (IOException e) {
 			throw new FunctionException(UNABLE_TO_PARSE_GEOJSON, e);
 		}
 	}
 
-	private void fromWkt(String wktGeometry) throws FunctionException {
+	public static Geometry fromWkt(String wktGeometry) throws FunctionException {
 		try {
 			WKTReader wkt = new WKTReader();
-			geometry = wkt.read(wktGeometry);
+			return wkt.read(wktGeometry);
 		} catch (ParseException e) {
 			throw new FunctionException(UNABLE_TO_PARSE_WKT, e);
 		}
 	}
 
-	public String toWkt() throws FunctionException {
+	public static String toWkt(Geometry geometry) {
 		WKTWriter wkt = new WKTWriter();
-		if (projection != null) {
-			return wkt.write(projection.transformDestToSrcCRS(geometry));
-		} else {
-			return wkt.write(geometry);
-		}
+		return wkt.write(geometry);
 	}
 
-	public Geometry toJTSGeometry() throws FunctionException {
-		if (projection != null) {
-			return projection.transformDestToSrcCRS(geometry);
-		} else {
-			return geometry;
-		}
-	}
-
-	public JsonNode toJsonNode() throws FunctionException {
+	public static JsonNode toJsonNode(Geometry geometry) throws FunctionException {
 		ObjectMapper mapper = new ObjectMapper();
 		GeometryJSON geoJsonWriter = new GeometryJSON();
 
 		try {
-			if (projection != null) {
-				return mapper.readTree(geoJsonWriter.toString(projection.transformDestToSrcCRS(geometry)));
-			} else {
-				return mapper.readTree(geoJsonWriter.toString(geometry));
-			}
+			return mapper.readTree(geoJsonWriter.toString(geometry));
 		} catch (IOException e) {
 			throw new FunctionException(UNABLE_TO_PARSE_GEOMETRY, e);
 		}
 	}
 
-	public double geodesicDistance(SAPLGeometry geometryTwo) throws FunctionException {
+	public static JsonNode wktToJsonNode(String wktGeometry) throws FunctionException {
+		return toJsonNode(fromWkt(wktGeometry));
+	}
+
+	public static String jsonNodeToWkt(JsonNode jsonGeometry) throws FunctionException {
+		return toWkt(fromJsonNode(jsonGeometry));
+	}
+
+	public static double geodesicDistance(Geometry geometryOne, Geometry geometryTwo) throws FunctionException {
 		try {
 			int startingPointIndex = 0;
 			int destinationPointIndex = 1;
 
 			CoordinateReferenceSystem crs = CRS.decode(GeoProjection.WGS84_CRS);
-			DistanceOp distOp = new DistanceOp(geometry, geometryTwo.getGeometry());
+			DistanceOp distOp = new DistanceOp(geometryOne, geometryTwo);
 			GeodeticCalculator gc = new GeodeticCalculator(crs);
 
 			gc.setStartingPosition(JTS.toDirectPosition(distOp.nearestPoints()[startingPointIndex], crs));

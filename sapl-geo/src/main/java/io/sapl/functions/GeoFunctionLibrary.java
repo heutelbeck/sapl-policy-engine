@@ -86,134 +86,119 @@ public class GeoFunctionLibrary {
 	private static final String RES_TO_GEOMETRYBAG_DOC = "resToGeometryBag(RESOURCE_ARRAY): Takes multiple Geometries from RESOURCE_ARRAY and turns them into a GeometryCollection (e.g. geofences from a third party system).";
 	private static final String ATLEASTONEMEMBEROF_DOC = "atLeastOneMemberOf(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns TRUE if at least one member of GEOMETRYCOLLECTION1 is contained in GEOMETRYCOLLECTION2.";
 	private static final String SUBSET_DOC = "subset(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns true, if GEOMETRYCOLLECTION1 is a subset of GEOMETRYCOLLECTION2.";
-	private static final String ENABLEPROJ_DOC = "enableProjection(SRCSYSTEM, DESTSYSTEM): Enables the projection from SRCSYSTEM to DESTSYSTEM (must be provided in ESPG-format).";
-	private static final String DISABLEPROJ_DOC = "disableProjection(): Disables projection of geometries.";
-	private static final String PROJECT_DOC = "project(GEOMETRY): Returns the projected geometry (or the geometry itself in case no projection is defined)";
+	private static final String GETPROJECTION_DOC = "getProjection(SRCSYSTEM, DESTSYSTEM): Returns the projection parameters between the given set of coordinate systems (given as EPSG id).";
+	private static final String PROJECT_DOC = "project(GEOMETRY): Returns the projected geometry (or the geometry itself in case no projection is defined).";
 
 	private static final String INPUT_NOT_GEOCOLLECTION_WITH_ONLY_ONE_GEOM = "Input must be a GeometryCollection containing only one Geometry.";
 	private static final String UNIT_NOT_CONVERTIBLE = "Given unit '%s' is not convertible to '%s'.";
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private GeoProjection projection;
-
-	public GeoFunctionLibrary(GeoProjection geoProj) {
-		projection = geoProj;
-	}
-
 	public GeoFunctionLibrary() {
-		// standard configuration - no projection to be applied
+		// standard configuration
 	}
 
 	@Function(name = "equals", docs = EQUALS_DOC)
 	public JsonNode geometryEquals(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo);
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		return JSON.booleanNode(saplGeometryOne.getGeometry().equals(saplGeometryTwo.getGeometry()));
+		return JSON.booleanNode(geometryOne.equals(geometryTwo));
 	}
 
 	@Function(docs = DISJOINT_DOC)
 	public JsonNode disjoint(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo);
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		return JSON.booleanNode(saplGeometryOne.getGeometry().disjoint(saplGeometryTwo.getGeometry()));
+		return JSON.booleanNode(geometryOne.disjoint(geometryTwo));
 	}
 
 	@Function(docs = TOUCHES_DOC)
 	public JsonNode touches(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo);
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		return JSON.booleanNode(saplGeometryOne.getGeometry().touches(saplGeometryTwo.getGeometry()));
+		return JSON.booleanNode(geometryOne.touches(geometryTwo));
 	}
 
 	@Function(docs = CROSSES_DOC)
 	public JsonNode crosses(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo);
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		return JSON.booleanNode(saplGeometryOne.getGeometry().crosses(saplGeometryTwo.getGeometry()));
+		return JSON.booleanNode(geometryOne.crosses(geometryTwo));
 	}
 
 	@Function(docs = WITHIN_DOC)
 	public JsonNode within(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo);
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		if (saplGeometryTwo.getGeometry() instanceof GeometryCollection) {
-			return JSON.booleanNode(saplGeometryOne.getGeometry().within(saplGeometryTwo.getGeometry().union()));
+		if (geometryTwo instanceof GeometryCollection) {
+			return JSON.booleanNode(geometryOne.within(geometryTwo.union()));
 		} else {
-			return JSON.booleanNode(saplGeometryOne.getGeometry().within(saplGeometryTwo.getGeometry()));
+			return JSON.booleanNode(geometryOne.within(geometryTwo));
 		}
 	}
 
 	@Function(docs = CONTAINS_DOC)
 	public JsonNode contains(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo);
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		if (saplGeometryOne.getGeometry() instanceof GeometryCollection) {
-			return JSON.booleanNode(saplGeometryOne.getGeometry().union().contains(saplGeometryTwo.getGeometry()));
+		if (geometryOne instanceof GeometryCollection) {
+			return JSON.booleanNode(geometryOne.union().contains(geometryTwo));
 		} else {
-			return JSON.booleanNode(saplGeometryOne.getGeometry().contains(saplGeometryTwo.getGeometry()));
+			return JSON.booleanNode(geometryOne.contains(geometryTwo));
 		}
 	}
 
 	@Function(docs = OVERLAPS_DOC)
 	public JsonNode overlaps(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo);
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		return JSON.booleanNode(saplGeometryOne.getGeometry().overlaps(saplGeometryTwo.getGeometry()));
+		return JSON.booleanNode(geometryOne.overlaps(geometryTwo));
 	}
 
 	@Function(docs = INTERSECTS_DOC)
 	public JsonNode intersects(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo);
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		return JSON.booleanNode(saplGeometryOne.getGeometry().intersects(saplGeometryTwo.getGeometry()));
+		return JSON.booleanNode(geometryOne.intersects(geometryTwo));
 	}
 
 	@Function(docs = BUFFER_DOC)
 	public JsonNode buffer(@JsonObject JsonNode jsonGeometry, @Number JsonNode buffer) throws FunctionException {
-		SAPLGeometry saplGeometry = new SAPLGeometry(jsonGeometry, projection);
-		saplGeometry.setGeometry(saplGeometry.getGeometry().buffer(buffer.asDouble()));
-
-		return saplGeometry.toJsonNode();
+		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
+		return GeometryBuilder.toJsonNode(geometry.buffer(buffer.asDouble()));
 	}
 
 	@Function(docs = BOUNDARY_DOC)
 	public JsonNode boundary(@JsonObject JsonNode jsonGeometry) throws FunctionException {
-		SAPLGeometry saplGeometry = new SAPLGeometry(jsonGeometry, projection);
-		saplGeometry.setGeometry(saplGeometry.getGeometry().getBoundary());
-
-		return saplGeometry.toJsonNode();
+		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
+		return GeometryBuilder.toJsonNode(geometry.getBoundary());
 	}
 
 	@Function(docs = CENTROID_DOC)
 	public JsonNode centroid(@JsonObject JsonNode jsonGeometry) throws FunctionException {
-		SAPLGeometry saplGeometry = new SAPLGeometry(jsonGeometry, projection);
-		saplGeometry.setGeometry(saplGeometry.getGeometry().getCentroid());
-
-		return saplGeometry.toJsonNode();
+		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
+		return GeometryBuilder.toJsonNode(geometry.getCentroid());
 	}
 
 	@Function(docs = CONVEXHULL_DOC)
 	public JsonNode convexHull(@JsonObject JsonNode jsonGeometry) throws FunctionException {
-		SAPLGeometry saplGeometry = new SAPLGeometry(jsonGeometry, projection);
-		saplGeometry.setGeometry(saplGeometry.getGeometry().convexHull());
-
-		return saplGeometry.toJsonNode();
+		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
+		return GeometryBuilder.toJsonNode(geometry.convexHull());
 	}
 
 	@Function(docs = UNION_DOC)
@@ -222,84 +207,79 @@ public class GeoFunctionLibrary {
 			return jsonGeometries[0];
 		}
 
-		SAPLGeometry geomUnion = new SAPLGeometry(jsonGeometries[0], projection);
+		Geometry geomUnion = GeometryBuilder.fromJsonNode(jsonGeometries[0]);
 		for (int i = 1; i < jsonGeometries.length; i++) {
-			SAPLGeometry additionalGeom = new SAPLGeometry(jsonGeometries[i], projection);
-			geomUnion.setGeometry(geomUnion.getGeometry().union(additionalGeom.getGeometry()));
+			Geometry additionalGeom = GeometryBuilder.fromJsonNode(jsonGeometries[i]);
+			geomUnion = geomUnion.union(additionalGeom);
 		}
 
-		return geomUnion.toJsonNode();
+		return GeometryBuilder.toJsonNode(geomUnion);
 	}
 
 	@Function(docs = INTERSECTION_DOC)
 	public JsonNode intersection(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne, projection);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo, projection);
-		saplGeometryOne.setGeometry(saplGeometryOne.getGeometry().intersection(saplGeometryTwo.getGeometry()));
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		return saplGeometryOne.toJsonNode();
+		return GeometryBuilder.toJsonNode(geometryOne.intersection(geometryTwo));
 	}
 
 	@Function(docs = DIFFERENCE_DOC)
 	public JsonNode difference(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne, projection);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo, projection);
-		saplGeometryOne.setGeometry(saplGeometryOne.getGeometry().difference(saplGeometryTwo.getGeometry()));
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		return saplGeometryOne.toJsonNode();
+		return GeometryBuilder.toJsonNode(geometryOne.difference(geometryTwo));
 	}
 
 	@Function(docs = SYMDIFFERENCE_DOC)
 	public JsonNode symDifference(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne, projection);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo, projection);
-		saplGeometryOne.setGeometry(saplGeometryOne.getGeometry().symDifference(saplGeometryTwo.getGeometry()));
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		return saplGeometryOne.toJsonNode();
+		return GeometryBuilder.toJsonNode(geometryOne.symDifference(geometryTwo));
 	}
 
 	@Function(docs = DISTANCE_DOC)
 	public JsonNode distance(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne, projection);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo, projection);
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		return JSON
-				.numberNode(BigDecimal.valueOf(saplGeometryOne.getGeometry().distance(saplGeometryTwo.getGeometry())));
+		return JSON.numberNode(BigDecimal.valueOf(geometryOne.distance(geometryTwo)));
 	}
 
 	@Function(docs = GEODISTANCE_DOC)
 	public JsonNode geoDistance(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
 			throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo);
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		return JSON.numberNode(BigDecimal.valueOf(saplGeometryOne.geodesicDistance(saplGeometryTwo)));
+		return JSON.numberNode(BigDecimal.valueOf(GeometryBuilder.geodesicDistance(geometryOne, geometryTwo)));
 	}
 
 	@Function(docs = ISWITHINDISTANCE_DOC)
 	public JsonNode isWithinDistance(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo,
 			@Number JsonNode distInput) throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne, projection);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo, projection);
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 		double distance = distInput.asDouble();
 
-		return JSON
-				.booleanNode(saplGeometryOne.getGeometry().isWithinDistance(saplGeometryTwo.getGeometry(), distance));
+		return JSON.booleanNode(geometryOne.isWithinDistance(geometryTwo, distance));
 	}
 
 	@Function(docs = ISWITHINGEODISTANCE_DOC)
 	public JsonNode isWithinGeoDistance(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo,
 			@Number JsonNode distInput) throws FunctionException {
-		SAPLGeometry saplGeometryOne = new SAPLGeometry(jsonGeometryOne);
-		SAPLGeometry saplGeometryTwo = new SAPLGeometry(jsonGeometryTwo);
+		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
+		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
 		double distance = distInput.asDouble();
 
-		if (saplGeometryOne.geodesicDistance(saplGeometryTwo) <= distance) {
+		if (GeometryBuilder.geodesicDistance(geometryOne, geometryTwo) <= distance) {
 			return JSON.booleanNode(true);
 		} else {
 			return JSON.booleanNode(false);
@@ -308,35 +288,31 @@ public class GeoFunctionLibrary {
 
 	@Function(docs = LENGTH_DOC)
 	public JsonNode length(@JsonObject JsonNode jsonGeometry) throws FunctionException {
-		SAPLGeometry saplGeometry = new SAPLGeometry(jsonGeometry, projection);
-
-		return JSON.numberNode(BigDecimal.valueOf(saplGeometry.getGeometry().getLength()));
+		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
+		return JSON.numberNode(BigDecimal.valueOf(geometry.getLength()));
 	}
 
 	@Function(docs = AREA_DOC)
 	public JsonNode area(@JsonObject JsonNode jsonGeometry) throws FunctionException {
-		SAPLGeometry saplGeometry = new SAPLGeometry(jsonGeometry, projection);
-
-		return JSON.numberNode(BigDecimal.valueOf(saplGeometry.getGeometry().getArea()));
+		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
+		return JSON.numberNode(BigDecimal.valueOf(geometry.getArea()));
 	}
 
 	@Function(docs = ISSIMPLE_DOC)
 	public JsonNode isSimple(@JsonObject JsonNode jsonGeometry) throws FunctionException {
-		SAPLGeometry saplGeometry = new SAPLGeometry(jsonGeometry);
-
-		return JSON.booleanNode(saplGeometry.getGeometry().isSimple());
+		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
+		return JSON.booleanNode(geometry.isSimple());
 	}
 
 	@Function(docs = ISVALID_DOC)
 	public JsonNode isValid(@JsonObject JsonNode jsonGeometry) throws FunctionException {
-		SAPLGeometry saplGeometry = new SAPLGeometry(jsonGeometry);
-
-		return JSON.booleanNode(saplGeometry.getGeometry().isValid());
+		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
+		return JSON.booleanNode(geometry.isValid());
 	}
 
 	@Function(docs = ISCLOSED_DOC)
 	public JsonNode isClosed(@JsonObject JsonNode jsonGeometry) throws FunctionException {
-		Geometry geometry = new SAPLGeometry(jsonGeometry).getGeometry();
+		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
 		boolean result = false;
 
 		if (geometry.isEmpty() || ("Point".equals(geometry.getGeometryType()))
@@ -381,17 +357,17 @@ public class GeoFunctionLibrary {
 
 	@Function(docs = BAGSIZE_DOC)
 	public JsonNode bagSize(@JsonObject JsonNode jsonGeometry) throws FunctionException {
-		SAPLGeometry geometry = new SAPLGeometry(jsonGeometry);
-		return JSON.numberNode(BigDecimal.valueOf(geometry.getGeometry().getNumGeometries()));
+		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
+		return JSON.numberNode(BigDecimal.valueOf(geometry.getNumGeometries()));
 	}
 
 	@Function(docs = ONEANDONLY_DOC)
 	public JsonNode oneAndOnly(@JsonObject JsonNode jsonGeometryCollection) throws FunctionException {
-		GeometryCollection geometryCollection = (GeometryCollection) new SAPLGeometry(jsonGeometryCollection)
-				.getGeometry();
+		GeometryCollection geometryCollection = (GeometryCollection) GeometryBuilder
+				.fromJsonNode(jsonGeometryCollection);
 
 		if (geometryCollection.getNumGeometries() == 1) {
-			return new SAPLGeometry(geometryCollection.getGeometryN(0)).toJsonNode();
+			return GeometryBuilder.toJsonNode(geometryCollection.getGeometryN(0));
 		} else {
 			throw new FunctionException(INPUT_NOT_GEOCOLLECTION_WITH_ONLY_ONE_GEOM);
 		}
@@ -400,9 +376,9 @@ public class GeoFunctionLibrary {
 	@Function(docs = GEOMETRYISIN_DOC)
 	public JsonNode geometryIsIn(@JsonObject JsonNode jsonGeometry, @JsonObject JsonNode jsonGeometryCollection)
 			throws FunctionException {
-		Geometry geometry = new SAPLGeometry(jsonGeometry).getGeometry();
-		GeometryCollection geometryCollection = (GeometryCollection) new SAPLGeometry(jsonGeometryCollection)
-				.getGeometry();
+		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
+		GeometryCollection geometryCollection = (GeometryCollection) GeometryBuilder
+				.fromJsonNode(jsonGeometryCollection);
 		boolean result = false;
 
 		for (int i = 0; i < geometryCollection.getNumGeometries(); i++) {
@@ -417,11 +393,11 @@ public class GeoFunctionLibrary {
 	public JsonNode geometryBag(@JsonObject JsonNode... geometryJsonInput) throws FunctionException {
 		Geometry[] geometries = new Geometry[geometryJsonInput.length];
 		for (int i = 0; i < geometryJsonInput.length; i++) {
-			geometries[i] = new SAPLGeometry(geometryJsonInput[i]).getGeometry();
+			geometries[i] = GeometryBuilder.fromJsonNode(geometryJsonInput[i]);
 		}
 
 		GeometryFactory geomFactory = new GeometryFactory();
-		return new SAPLGeometry(geomFactory.createGeometryCollection(geometries)).toJsonNode();
+		return GeometryBuilder.toJsonNode(geomFactory.createGeometryCollection(geometries));
 	}
 
 	@Function(docs = RES_TO_GEOMETRYBAG_DOC)
@@ -433,10 +409,10 @@ public class GeoFunctionLibrary {
 	@Function(docs = ATLEASTONEMEMBEROF_DOC)
 	public JsonNode atLeastOneMemberOf(@JsonObject JsonNode jsonGeometryCollectionOne,
 			@JsonObject JsonNode jsonGeometryCollectionTwo) throws FunctionException {
-		GeometryCollection geometryCollectionOne = (GeometryCollection) new SAPLGeometry(jsonGeometryCollectionOne)
-				.getGeometry();
-		GeometryCollection geometryCollectionTwo = (GeometryCollection) new SAPLGeometry(jsonGeometryCollectionOne)
-				.getGeometry();
+		GeometryCollection geometryCollectionOne = (GeometryCollection) GeometryBuilder
+				.fromJsonNode(jsonGeometryCollectionOne);
+		GeometryCollection geometryCollectionTwo = (GeometryCollection) GeometryBuilder
+				.fromJsonNode(jsonGeometryCollectionTwo);
 		boolean result = false;
 
 		for (int i = 0; i < geometryCollectionOne.getNumGeometries(); i++) {
@@ -452,10 +428,10 @@ public class GeoFunctionLibrary {
 	@Function(docs = SUBSET_DOC)
 	public JsonNode subset(@JsonObject JsonNode jsonGeometryCollectionOne,
 			@JsonObject JsonNode jsonGeometryCollectionTwo) throws FunctionException {
-		GeometryCollection geometryCollectionOne = (GeometryCollection) new SAPLGeometry(jsonGeometryCollectionOne)
-				.getGeometry();
-		GeometryCollection geometryCollectionTwo = (GeometryCollection) new SAPLGeometry(jsonGeometryCollectionTwo)
-				.getGeometry();
+		GeometryCollection geometryCollectionOne = (GeometryCollection) GeometryBuilder
+				.fromJsonNode(jsonGeometryCollectionOne);
+		GeometryCollection geometryCollectionTwo = (GeometryCollection) GeometryBuilder
+				.fromJsonNode(jsonGeometryCollectionTwo);
 		if (geometryCollectionOne.getNumGeometries() > geometryCollectionTwo.getNumGeometries()) {
 			return JSON.booleanNode(false);
 		}
@@ -478,23 +454,16 @@ public class GeoFunctionLibrary {
 		}
 	}
 
-	@Function(docs = ENABLEPROJ_DOC)
-	public JsonNode enableProjection(@Text JsonNode srcSystem, @Text JsonNode destSystem) throws FunctionException {
-		projection = new GeoProjection(srcSystem.asText(), destSystem.asText());
-		return JSON.booleanNode(true);
-	}
-
-	@Function(docs = DISABLEPROJ_DOC)
-	public JsonNode disableProjection() {
-		projection = GeoProjection.returnEmptyProjection();
-		return JSON.booleanNode(true);
+	@Function(docs = GETPROJECTION_DOC)
+	public JsonNode getProjection(@Text JsonNode srcSystem, @Text JsonNode destSystem) throws FunctionException {
+		return JSON.textNode(new GeoProjection(srcSystem.asText(), destSystem.asText()).toWkt());
 	}
 
 	@Function(docs = PROJECT_DOC)
-	public JsonNode project(@JsonObject JsonNode jsonGeometry) throws FunctionException {
-		SAPLGeometry geometry = new SAPLGeometry(jsonGeometry, projection);
-		geometry.setProjection(GeoProjection.returnEmptyProjection());
-		return geometry.toJsonNode();
+	public JsonNode project(@JsonObject JsonNode jsonGeometry, @Text JsonNode mathTransform) throws FunctionException {
+		GeoProjection projection = new GeoProjection(mathTransform.asText());
+		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
+		return GeometryBuilder.toJsonNode(projection.project(geometry));
 	}
 
 	@Function

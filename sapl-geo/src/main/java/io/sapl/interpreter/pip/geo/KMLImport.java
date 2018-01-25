@@ -37,7 +37,7 @@ import com.vividsolutions.jts.geom.Geometry;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
-import io.sapl.functions.SAPLGeometry;
+import io.sapl.functions.GeometryBuilder;
 import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode
@@ -118,9 +118,8 @@ public class KMLImport {
 				throw new AttributeException(UNABLE_TO_PARSE_KML);
 			} else {
 				SimpleFeature feature = (SimpleFeature) obj;
-				SAPLGeometry geom = new SAPLGeometry((Geometry) feature.getAttribute(ATT_GEOM));
-
-				geometries.set((String) feature.getAttribute(ATT_NAME), geom.toJsonNode());
+				Geometry geom = (Geometry) feature.getAttribute(ATT_GEOM);
+				geometries.set((String) feature.getAttribute(ATT_NAME), GeometryBuilder.toJsonNode(geom));
 			}
 		}
 		return geometries;

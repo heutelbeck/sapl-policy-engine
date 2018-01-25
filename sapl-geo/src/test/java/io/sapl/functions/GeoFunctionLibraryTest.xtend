@@ -41,7 +41,6 @@ class GeoFunctionLibraryTest {
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 	private static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
 	private static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
-	private static final FunctionContext FUNCTION_CTX_WITH_PROJECTION = new AnnotationFunctionContext();
 	private static Map<String, JsonNode> variables = new HashMap<String, JsonNode>();
 	private static JsonNode subject;
 	private static JsonNode resource;
@@ -50,8 +49,6 @@ class GeoFunctionLibraryTest {
 	def void init() {
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(new GeoAttributeFinder());
 		FUNCTION_CTX.loadLibrary(new GeoFunctionLibrary());
-		FUNCTION_CTX_WITH_PROJECTION.loadLibrary(
-			new GeoFunctionLibrary(new GeoProjection(GeoProjection.WGS84_CRS, GeoProjection.WEB_MERCATOR_CRS)));
 		subject = MAPPER.readValue('''
 		{
 			"subject":{
@@ -303,19 +300,6 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void centroidProjectionTest() throws PolicyEvaluationException {
-		val policyDefinition = '''
-			policy "centroidProjectionTest" 
-			permit
-			where
-			geo.isWithinDistance(resource.pointTwo, geo.centroid(resource.polyOne), 20000);
-		''';
-		assertEquals("geo.centroid() or geo.isWithinDistance() work not as expected when applying projections",
-			INTERPRETER.evaluate(new Request(subject, null, resource, null), policyDefinition, 
-			ATTRIBUTE_CTX,  FUNCTION_CTX_WITH_PROJECTION, variables).getDecision(), Decision.PERMIT);
-	}
-
-	@Test
 	def void boundaryConvexhullTest() throws PolicyEvaluationException {
 		val policyDefinition = '''
 			policy "boundaryConvexhullTest" 
@@ -524,18 +508,18 @@ class GeoFunctionLibraryTest {
 	}
 	
 	@Test
-	def void enableProjectionTest() throws PolicyEvaluationException {
+	def void projectionTest() throws PolicyEvaluationException {
 		val policyDefinition = '''
 			policy "enableProjectionTest" 
 			permit
 			where
-			geo.enableProjection("EPSG:4326", "EPSG:3857"); 
-			var pointOneProj = geo.project(resource.pointOne);
-			geo.disableProjection();
-			!geo.equals(resource.pointOne, pointOneProj);
-			
+			var proj = geo.getProjection("EPSG:4326", "EPSG:3857");
+			var projInv = geo.getProjection("EPSG:3857","EPSG:4326");
+			var projPointOne = geo.project(resource.pointOne, proj);
+			!geo.equals(resource.pointOne, projPointOne);
+			geo.equals(resource.pointOne, geo.project(projPointOne, projInv));
 		''';
-		assertEquals("geo.projection() does not work as expected",
+		assertEquals("Projections do not work as expected",
 			getDecision(policyDefinition) , Decision.PERMIT);
 	}
 	

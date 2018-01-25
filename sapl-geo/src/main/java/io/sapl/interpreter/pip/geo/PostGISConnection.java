@@ -25,10 +25,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.vividsolutions.jts.geom.Geometry;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
-import io.sapl.functions.SAPLGeometry;
+import io.sapl.functions.GeometryBuilder;
 import lombok.Getter;
 
 public class PostGISConnection {
@@ -83,8 +84,8 @@ public class PostGISConnection {
 		ObjectNode geometries = JSON.objectNode();
 		while (rs.next()) {
 			String name = jsonNamePattern.matcher(rs.getString(NAME_INDEX)).replaceAll(EMPTY_STRING);
-			SAPLGeometry geom = new SAPLGeometry(rs.getString(GEOM_INDEX));
-			geometries.set(name, geom.toJsonNode());
+			Geometry geom = GeometryBuilder.fromWkt(rs.getString(GEOM_INDEX));
+			geometries.set(name, GeometryBuilder.toJsonNode(geom));
 		}
 		return geometries;
 	}

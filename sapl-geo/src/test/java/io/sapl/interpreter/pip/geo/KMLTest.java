@@ -107,8 +107,8 @@ public class KMLTest {
 			KMLImport.formatCollection(coll);
 			fail("No exception is thrown when providing non compliant KML source.");
 		} catch (AttributeException e) {
-			assertEquals("Wrong exception handling when providing non compliant KML source.", e.getMessage(),
-					KMLImport.UNABLE_TO_PARSE_KML);
+			assertEquals("Wrong exception handling when providing non compliant KML source.",
+					KMLImport.UNABLE_TO_PARSE_KML, e.getMessage());
 		}
 	}
 }

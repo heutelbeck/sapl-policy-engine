@@ -14,72 +14,67 @@ package io.sapl.functions;
 
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
+import org.geotools.referencing.operation.DefaultMathTransformFactory;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
+import org.opengis.referencing.operation.MathTransformFactory;
 import org.opengis.referencing.operation.TransformException;
 
 import com.vividsolutions.jts.geom.Geometry;
 
 import io.sapl.api.functions.FunctionException;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 
-@Getter
 @EqualsAndHashCode
 public class GeoProjection {
 
 	public static final String WGS84_CRS = "EPSG:4326"; // WGS84
 	public static final String WEB_MERCATOR_CRS = "EPSG:3857"; // WebMercator
-	protected static final String CRS_COULD_NOT_INITIALIZE = "Provided ESPG references could not be decoded into a coordinate reference system.";
+	protected static final String CRS_COULD_NOT_INITIALIZE = "Provided ESPG references could not be decoded into a coordinate reference system or math transformation.";
 	protected static final String NO_MATH_TRANSFORMATION_FOUND = "No math-transformation could be found to convert between the provided CRS.";
 	protected static final String UNABLE_TO_TRANSFORM = "Unable to transform/project the provided geometry.";
 
-	private final CoordinateReferenceSystem sourceCrs;
-	private final CoordinateReferenceSystem destinationCrs;
+	private final MathTransform mathTransform;
 
 	public GeoProjection() throws FunctionException {
 		// standard configuration
-		try {
-			sourceCrs = CRS.decode(WGS84_CRS);
-			destinationCrs = CRS.decode(WEB_MERCATOR_CRS);
-		} catch (FactoryException e) {
-			throw new FunctionException(CRS_COULD_NOT_INITIALIZE, e);
-		}
+		this(WGS84_CRS, WEB_MERCATOR_CRS);
 	}
 
 	public GeoProjection(String source, String dest) throws FunctionException {
 		try {
-			sourceCrs = CRS.decode(source);
-			destinationCrs = CRS.decode(dest);
+			mathTransform = CRS.findMathTransform(CRS.decode(source), CRS.decode(dest), false);
 		} catch (FactoryException e) {
 			throw new FunctionException(CRS_COULD_NOT_INITIALIZE, e);
 		}
 	}
 
-	public Geometry transformSrcToDestCRS(Geometry geometry) throws FunctionException {
+	public GeoProjection(String mathTransformWkt) throws FunctionException {
 		try {
-			MathTransform mathTransform = CRS.findMathTransform(sourceCrs, destinationCrs, false);
-			return JTS.transform(geometry, mathTransform);
+			MathTransformFactory fact = new DefaultMathTransformFactory();
+			mathTransform = fact.createFromWKT(mathTransformWkt);
 		} catch (FactoryException e) {
-			throw new FunctionException(NO_MATH_TRANSFORMATION_FOUND, e);
+			throw new FunctionException(CRS_COULD_NOT_INITIALIZE, e);
+		}
+	}
+
+	public Geometry project(Geometry geometry) throws FunctionException {
+		return project(geometry, false);
+	}
+
+	public Geometry project(Geometry geometry, boolean inverse) throws FunctionException {
+		try {
+			return JTS.transform(geometry, inverse ? mathTransform.inverse() : mathTransform);
 		} catch (MismatchedDimensionException | TransformException e) {
 			throw new FunctionException(UNABLE_TO_TRANSFORM, e);
 		}
 	}
 
-	public Geometry transformDestToSrcCRS(Geometry geometry) throws FunctionException {
-		try {
-			MathTransform mathTransform = CRS.findMathTransform(destinationCrs, sourceCrs, false);
-			return JTS.transform(geometry, mathTransform);
-		} catch (FactoryException e) {
-			throw new FunctionException(NO_MATH_TRANSFORMATION_FOUND, e);
-		} catch (MismatchedDimensionException | TransformException e) {
-			throw new FunctionException(UNABLE_TO_TRANSFORM, e);
-		}
+	public String toWkt() {
+		return mathTransform.toWKT();
 	}
-	
+
 	public static GeoProjection returnEmptyProjection() {
 		return null;
 	}

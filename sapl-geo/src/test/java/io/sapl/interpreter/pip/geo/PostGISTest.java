@@ -143,8 +143,9 @@ public class PostGISTest {
 		PostGISConfig pgConfSpy = spy(pgConfFromJson);
 		doReturn(true).when(pgConfSpy).verifySqlArguments();
 
-		assertEquals("PostGIS SQL Query is not correctly build.", pgConfSpy.buildQuery(),
-				"SELECT fences, ST_AsText(ST_FlipCoordinates(geom)) FROM geofences WHERE gid>=0;");
+		assertEquals("PostGIS SQL Query is not correctly build.",
+				"SELECT fences, ST_AsText(ST_FlipCoordinates(geom)) FROM geofences WHERE gid>=0;",
+				pgConfSpy.buildQuery());
 	}
 
 	@Test(expected = AttributeException.class)
@@ -160,8 +161,9 @@ public class PostGISTest {
 	public void buildProjectionQuery() throws AttributeException {
 		PostGISConfig pgConfSpy = spy(pgProjectionConfFromJson);
 		doReturn(true).when(pgConfSpy).verifySqlArguments();
-		assertEquals("PostGIS SQL Query is not correctly build.", pgConfSpy.buildQuery(),
-				"SELECT fences, ST_AsText(ST_FlipCoordinates(ST_Transform(geom,12345))) FROM geofences WHERE gid>=0 AND gid<=1;");
+		assertEquals("PostGIS SQL Query is not correctly build.",
+				"SELECT fences, ST_AsText(ST_FlipCoordinates(ST_Transform(geom,12345))) FROM geofences WHERE gid>=0 AND gid<=1;",
+				pgConfSpy.buildQuery());
 	}
 
 	@Test(expected = AttributeException.class)
@@ -235,8 +237,8 @@ public class PostGISTest {
 
 	@Test
 	public void buildUrl() {
-		assertEquals("PostGIS-URL is not correctly built.", pgConfFromJson.buildUrl(),
-				"jdbc:postgresql://localhost:5432/db_sample?");
+		assertEquals("PostGIS-URL is not correctly built.", "jdbc:postgresql://localhost:5432/db_sample?",
+				pgConfFromJson.buildUrl());
 	}
 
 	@Test
@@ -246,7 +248,7 @@ public class PostGISTest {
 				+ "\"geometryColName\": \"geom\"," + "\"idColName\": \"fences\"," + "\"pkColName\": \"gid\","
 				+ "\"from\": 0," + "\"ssl\": true," + "\"urlParams\": \"test=test\"}";
 		PostGISConfig pgConfWithParams = MAPPER.readValue(config, PostGISConfig.class);
-		assertEquals("PostGIS-URL is not correctly built.", pgConfWithParams.buildUrl(),
-				"jdbc:postgresql://localhost:5432/db_sample?ssl=true&test=test");
+		assertEquals("PostGIS-URL is not correctly built.",
+				"jdbc:postgresql://localhost:5432/db_sample?ssl=true&test=test", pgConfWithParams.buildUrl());
 	}
 }
