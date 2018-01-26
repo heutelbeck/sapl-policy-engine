@@ -36,6 +36,7 @@ import io.sapl.api.validation.Array;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /*
@@ -43,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Slf4j
+@NoArgsConstructor
 @FunctionLibrary(name = GeoFunctionLibrary.NAME, description = GeoFunctionLibrary.DESCRIPTION)
 public class GeoFunctionLibrary {
 
@@ -92,10 +94,6 @@ public class GeoFunctionLibrary {
 	private static final String INPUT_NOT_GEOCOLLECTION_WITH_ONLY_ONE_GEOM = "Input must be a GeometryCollection containing only one Geometry.";
 	private static final String UNIT_NOT_CONVERTIBLE = "Given unit '%s' is not convertible to '%s'.";
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	public GeoFunctionLibrary() {
-		// standard configuration
-	}
 
 	@Function(name = "equals", docs = EQUALS_DOC)
 	public JsonNode geometryEquals(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)

@@ -33,17 +33,14 @@ import com.vividsolutions.jts.io.WKTWriter;
 import com.vividsolutions.jts.operation.distance.DistanceOp;
 
 import io.sapl.api.functions.FunctionException;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 public final class GeometryBuilder {
 
 	private static final String UNABLE_TO_PARSE_GEOJSON = "Provided GeoJSON-format is not compliant. Unable to parse geometry.";
 	private static final String UNABLE_TO_PARSE_WKT = "Provided WKT-format is not compliant. Unable to parse geometry.";
-	private static final String UTILITY_CLASS = "Utility class";
 	private static final String UNABLE_TO_PARSE_GEOMETRY = "Unable to parse geometry to JsonNode.";
-
-	private GeometryBuilder() {
-		throw new IllegalStateException(UTILITY_CLASS);
-	}
 
 	public static Geometry fromJsonNode(JsonNode jsonGeometry) throws FunctionException {
 		GeometryJSON geoJsonReader = new GeometryJSON();
