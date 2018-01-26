@@ -113,6 +113,7 @@ public class PDPAutoConfiguration {
 		return Collections::emptyList;
 	}
 
+
 	@Bean
 	@ConditionalOnProperty("policyEnforcementFilter")
 	public PolicyEnforcementFilter policyEnforcementFilter(StandardSAPLAuthorizator saplAuthorizer) {
@@ -120,32 +121,23 @@ public class PDPAutoConfiguration {
 				PolicyEnforcementFilter.class);
 		return new PolicyEnforcementFilter(saplAuthorizer);
 	}
-/*	
+
+
 	@Bean
 	@ConditionalOnMissingBean
 	public StandardSAPLAuthorizator createStandardSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationsHandlerService ohs){
-		log.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of class {}",
-				SAPLPermissionEvaluator.class);
+		log.debug("no Bean of type StandardSAPLAuthorizator  defined. Will create default Bean of class {}",
+				StandardSAPLAuthorizator.class);
 		return new StandardSAPLAuthorizator(pdp, ohs);
 	}
-*/
-
-	@Bean
-	@ConditionalOnMissingBean
-	public PolicyEnforcementPoint createPolicyEnforcementPoint(PolicyDecisionPoint pdp,
-															   ObligationsHandlerService ohs) {
-		log.debug("no Bean of type PolicyEnforcementPoint defined. Will create default Bean of class {}",
-				PolicyEnforcementPoint.class);
-		return new PolicyEnforcementPoint(pdp,ohs);
-	}
 
 
 	@Bean
 	@ConditionalOnMissingBean
-	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(PolicyEnforcementPoint pep){
+	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(StandardSAPLAuthorizator saplAuthorizer){
 		log.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of class {}",
 				SAPLPermissionEvaluator.class);
-		return new SAPLPermissionEvaluator(pep);
+		return new SAPLPermissionEvaluator(saplAuthorizer);
 	}
 
 
