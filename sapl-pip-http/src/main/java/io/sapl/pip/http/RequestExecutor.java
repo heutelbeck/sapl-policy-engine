@@ -19,35 +19,35 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class RequestExecutor {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final ObjectMapper MAPPER = new ObjectMapper();
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    public static JsonNode executeUriRequest(RequestSpecification saplRequest, String requestType)
-	    throws AttributeException {
-	HttpUriRequest request = saplRequest.toHttpUriRequest(requestType);
-	try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
-	    return getHttpResponseAndConvert(request, httpclient);
-	} catch (IOException e) {
-	    throw new AttributeException(e);
+	public static JsonNode executeUriRequest(RequestSpecification saplRequest, String requestType)
+			throws AttributeException {
+		HttpUriRequest request = saplRequest.toHttpUriRequest(requestType);
+		try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+			return getHttpResponseAndConvert(request, httpclient);
+		} catch (IOException e) {
+			throw new AttributeException(e);
+		}
 	}
-    }
 
-    private static JsonNode getHttpResponseAndConvert(HttpUriRequest request, CloseableHttpClient httpclient)
-	    throws IOException {
-	try (CloseableHttpResponse response = httpclient.execute(request)) {
-	    String content = convertStreamToString(response.getEntity().getContent());
-	    try {
-		return MAPPER.readValue(content, JsonNode.class);
-	    } catch (IOException e) {
-		return JSON.textNode(content);
-	    }
+	private static JsonNode getHttpResponseAndConvert(HttpUriRequest request, CloseableHttpClient httpclient)
+			throws IOException {
+		try (CloseableHttpResponse response = httpclient.execute(request)) {
+			String content = convertStreamToString(response.getEntity().getContent());
+			try {
+				return MAPPER.readValue(content, JsonNode.class);
+			} catch (IOException e) {
+				return JSON.textNode(content);
+			}
+		}
 	}
-    }
 
-    static String convertStreamToString(java.io.InputStream inputStream) {
-	try (Scanner s = new Scanner(inputStream, StandardCharsets.UTF_8.toString())) {
-	    s.useDelimiter("\\A");
-	    return s.hasNext() ? s.next() : "";
+	static String convertStreamToString(java.io.InputStream inputStream) {
+		try (Scanner s = new Scanner(inputStream, StandardCharsets.UTF_8.toString())) {
+			s.useDelimiter("\\A");
+			return s.hasNext() ? s.next() : "";
+		}
 	}
-    }
 }

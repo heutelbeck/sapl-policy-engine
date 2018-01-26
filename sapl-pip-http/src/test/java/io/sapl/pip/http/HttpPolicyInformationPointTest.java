@@ -41,9 +41,6 @@ import com.google.common.net.HttpHeaders;
 
 import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.pip.http.HttpPolicyInformationPoint;
-import io.sapl.pip.http.RequestExecutor;
-import io.sapl.pip.http.RequestSpecification;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(RequestExecutor.class)

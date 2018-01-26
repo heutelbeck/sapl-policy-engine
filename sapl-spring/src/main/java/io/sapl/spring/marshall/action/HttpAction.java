@@ -13,22 +13,20 @@ import lombok.Value;
 public class HttpAction implements Action {
 
 	public static final String TYPE_VALUE = "HTTPAction";
-	
+
 	String method;
-	
-	public HttpAction(HttpServletRequest request){
+
+	public HttpAction(HttpServletRequest request) {
 		method = request.getMethod().toUpperCase();
 	}
-	
-	public HttpAction(RequestMethod method){
+
+	public HttpAction(RequestMethod method) {
 		this.method = method.name().toUpperCase();
 	}
-	
+
 	@JsonIgnore
-	public String getType(){
+	public String getType() {
 		return TYPE_VALUE;
 	}
-	
 
-	
 }

@@ -10,19 +10,18 @@ import lombok.Value;
 
 @Value
 public class AuthenticationSubject implements Subject {
-	
+
 	String name;
 	Collection<? extends GrantedAuthority> authorities;
 	Object details;
-	 
-	
-	public AuthenticationSubject (Authentication authentication) {
+
+	public AuthenticationSubject(Authentication authentication) {
 		this.name = authentication.getName();
 		this.authorities = authentication.getAuthorities();
 		this.details = authentication.getDetails();
 	}
-	
-	public AuthenticationSubject (Authentication authentication, Object details) {
+
+	public AuthenticationSubject(Authentication authentication, Object details) {
 		this.name = authentication.getName();
 		this.authorities = authentication.getAuthorities();
 		this.details = details;

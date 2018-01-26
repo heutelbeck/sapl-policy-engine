@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 public class HttpServletRequestSerializer extends StdSerializer<HttpServletRequest> {
-	
+
 	/**
 	 * 
 	 */
@@ -18,19 +18,20 @@ public class HttpServletRequestSerializer extends StdSerializer<HttpServletReque
 	public HttpServletRequestSerializer() {
 		this(null);
 	}
-	
-	public HttpServletRequestSerializer (Class<HttpServletRequest> t) {
-        super(t);
-    }
-	
+
+	public HttpServletRequestSerializer(Class<HttpServletRequest> t) {
+		super(t);
+	}
+
 	@Override
-    public void serialize(HttpServletRequest request, JsonGenerator jsonGenerator, SerializerProvider serializer) throws IOException {
+	public void serialize(HttpServletRequest request, JsonGenerator jsonGenerator, SerializerProvider serializer)
+			throws IOException {
 
-    	jsonGenerator.writeStartObject();
-    	jsonGenerator.writeStringField("uri", request.getRequestURI().toLowerCase());
-    	jsonGenerator.writeStringField("method", request.getMethod().toUpperCase());
-        jsonGenerator.writeEndObject();
+		jsonGenerator.writeStartObject();
+		jsonGenerator.writeStringField("uri", request.getRequestURI().toLowerCase());
+		jsonGenerator.writeStringField("method", request.getMethod().toUpperCase());
+		jsonGenerator.writeEndObject();
 
-    }
+	}
 
 }

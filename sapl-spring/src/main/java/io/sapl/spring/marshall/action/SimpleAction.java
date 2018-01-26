@@ -7,6 +7,5 @@ import lombok.Value;
 public class SimpleAction implements Action {
 
 	String method;
-	
-	
+
 }

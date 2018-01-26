@@ -10,7 +10,7 @@ import lombok.Value;
 public class StringResource implements Resource {
 
 	String string;
-	
+
 	@Override
 	public JsonNode getAsJson() {
 		return new ObjectMapper().convertValue(string, JsonNode.class);

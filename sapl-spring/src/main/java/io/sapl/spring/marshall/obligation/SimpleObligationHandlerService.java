@@ -7,7 +7,7 @@ import java.util.List;
 public class SimpleObligationHandlerService implements ObligationsHandlerService {
 
 	private final List<ObligationHandler> handlers = new LinkedList<>();
-	
+
 	@Override
 	public void register(ObligationHandler obligationHandler) {
 		handlers.add(obligationHandler);

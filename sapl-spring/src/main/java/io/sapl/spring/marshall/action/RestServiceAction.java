@@ -22,18 +22,16 @@ public class RestServiceAction implements Action {
 	HttpMethod httpMethod;
 	Map<String, List<String>> parameters;
 	String uri;
-	
-	public RestServiceAction(HttpServletRequest request){
+
+	public RestServiceAction(HttpServletRequest request) {
 		httpMethod = HttpMethod.resolve(request.getMethod());
 		Map<String, List<String>> paramMap = new HashMap<>();
-				request.getParameterMap()
-				.entrySet()
-				.stream()
+		request.getParameterMap().entrySet().stream()
 				.forEach(entry -> paramMap.put(entry.getKey(), Arrays.asList(entry.getValue())));
 		this.parameters = Collections.unmodifiableMap(paramMap);
 		uri = request.getRequestURI();
 	}
-	
+
 	@Override
 	public JsonNode getAsJson() {
 		ObjectMapper om = new ObjectMapper();

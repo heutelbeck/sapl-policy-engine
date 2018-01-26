@@ -7,7 +7,7 @@ import java.util.List;
 public class SimpleAdviceHandlerService implements AdviceHandlerService {
 
 	private final List<AdviceHandler> handlers = new LinkedList<>();
-	
+
 	@Override
 	public void register(AdviceHandler adviceHandler) {
 		handlers.add(adviceHandler);

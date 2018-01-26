@@ -32,8 +32,7 @@ public class PolicyEnforcementFilter extends GenericFilterBean {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * io.sapl.mock.beans.SAPLGenericFilterBean#doFilter(javax.servlet.
+	 * @see io.sapl.mock.beans.SAPLGenericFilterBean#doFilter(javax.servlet.
 	 * ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)
 	 */
 	@Override

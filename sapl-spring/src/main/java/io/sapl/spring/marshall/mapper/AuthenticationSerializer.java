@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 public class AuthenticationSerializer extends StdSerializer<Authentication> {
-	
+
 	/**
 	 * 
 	 */
@@ -20,24 +20,25 @@ public class AuthenticationSerializer extends StdSerializer<Authentication> {
 	public AuthenticationSerializer() {
 		this(null);
 	}
-	
-	public AuthenticationSerializer (Class<Authentication> t) {
-        super(t);
-    }
-	
+
+	public AuthenticationSerializer(Class<Authentication> t) {
+		super(t);
+	}
+
 	@Override
-    public void serialize(Authentication authentication, JsonGenerator jsonGenerator, SerializerProvider serializer) throws IOException {
+	public void serialize(Authentication authentication, JsonGenerator jsonGenerator, SerializerProvider serializer)
+			throws IOException {
 
-    	jsonGenerator.writeStartObject();
-        jsonGenerator.writeStringField("name", authentication.getName());
-        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-        jsonGenerator.writeArrayFieldStart("authorities");
-        for ( GrantedAuthority authority : authorities) {
-        	jsonGenerator.writeStringField("authority", authority.toString());
-        }
-        jsonGenerator.writeEndArray();
-        jsonGenerator.writeEndObject();
+		jsonGenerator.writeStartObject();
+		jsonGenerator.writeStringField("name", authentication.getName());
+		Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+		jsonGenerator.writeArrayFieldStart("authorities");
+		for (GrantedAuthority authority : authorities) {
+			jsonGenerator.writeStringField("authority", authority.toString());
+		}
+		jsonGenerator.writeEndArray();
+		jsonGenerator.writeEndObject();
 
-    }
+	}
 
 }

@@ -14,9 +14,9 @@ public class ObligationFailedException extends Exception {
 	public ObligationFailedException(String message) {
 		super(message);
 	}
-	
+
 	public ObligationFailedException(Exception exception) {
 		super(exception);
 	}
-	
+
 }
