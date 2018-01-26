@@ -59,8 +59,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 
 	@Override
 	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode)
-			throws PolicyEvaluationException {
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		throw new PolicyEvaluationException(UNION_TYPE_MISMATCH);
 	}
 

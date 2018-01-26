@@ -18,7 +18,6 @@ import java.util.Objects;
 
 import org.eclipse.emf.ecore.EObject;
 
-
 public class FilterStatementImplCustom extends io.sapl.grammar.sapl.impl.FilterStatementImpl {
 
 	private static final int HASH_PRIME_06 = 37;

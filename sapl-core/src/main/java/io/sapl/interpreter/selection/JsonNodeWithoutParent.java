@@ -22,7 +22,8 @@ import lombok.ToString;
 import lombok.Value;
 
 /**
- * Represents a JsonNode which has no parent node (array or object) in the tree on which the selection is performed. Typically the root element of the tree.
+ * Represents a JsonNode which has no parent node (array or object) in the tree
+ * on which the selection is performed. Typically the root element of the tree.
  */
 @Value
 @EqualsAndHashCode(callSuper = true)
@@ -65,7 +66,7 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 			throws PolicyEvaluationException {
 		applyFunctionWithRelativeNode(function, arguments, each, ctx, null);
 	}
-	
+
 	@Override
 	void applyFunctionWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx,
 			JsonNode relativeNode) throws PolicyEvaluationException {
@@ -77,7 +78,7 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public boolean sameReference(AbstractAnnotatedJsonNode other)  throws PolicyEvaluationException {
+	public boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException {
 		throw new PolicyEvaluationException(REFERENCE_CANNOT_BE_COMPARED);
 	}
 }

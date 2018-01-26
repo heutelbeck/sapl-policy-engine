@@ -35,8 +35,7 @@ public class IndexStepImplCustom extends io.sapl.grammar.sapl.impl.IndexStepImpl
 
 	@Override
 	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode)
-			throws PolicyEvaluationException {
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		if (!previousResult.getNode().isArray()) {
 			throw new PolicyEvaluationException(
 					String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), previousResult.getNode().getNodeType()));

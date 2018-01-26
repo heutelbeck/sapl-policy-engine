@@ -33,8 +33,7 @@ public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionIm
 
 	protected static void assertBoolean(JsonNode node) throws PolicyEvaluationException {
 		if (!node.isBoolean()) {
-			throw new PolicyEvaluationException(
-					String.format(BOOLEAN_OPERATION_TYPE_MISMATCH, node.getNodeType()));
+			throw new PolicyEvaluationException(String.format(BOOLEAN_OPERATION_TYPE_MISMATCH, node.getNodeType()));
 		}
 	}
 

@@ -23,7 +23,8 @@ import lombok.ToString;
 import lombok.Value;
 
 /**
- * Represents a JsonNode which is the value of an attribute of an ObjectNode in the tree on which the selection is performed.
+ * Represents a JsonNode which is the value of an attribute of an ObjectNode in
+ * the tree on which the selection is performed.
  */
 @Value
 @EqualsAndHashCode(callSuper = true)
@@ -75,7 +76,7 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 			((ObjectNode) parent).set(attribute, applyFunctionToNode(function, node, arguments, ctx, relativeNode));
 		}
 	}
-	
+
 	@Override
 	public boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException {
 		return other.isNodeWithParentObject() && other.getParent() == getParent()

@@ -36,8 +36,7 @@ public class FilterExtendedImplCustom extends io.sapl.grammar.sapl.impl.FilterEx
 
 		for (FilterStatement statement : statements) {
 			String function = String.join(".", statement.getFsteps());
-			result = applyFilterStatement(result, function, statement.getArguments(),
-					statement.getTarget().getSteps(),
+			result = applyFilterStatement(result, function, statement.getArguments(), statement.getTarget().getSteps(),
 					statement.isEach(), ctx, relativeNode);
 		}
 

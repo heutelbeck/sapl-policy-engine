@@ -39,8 +39,7 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
 
 	@Override
 	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode)
-			throws PolicyEvaluationException {
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		JsonNode result = getExpression().evaluate(ctx, isBody, relativeNode);
 
 		if (result.isNumber()) {

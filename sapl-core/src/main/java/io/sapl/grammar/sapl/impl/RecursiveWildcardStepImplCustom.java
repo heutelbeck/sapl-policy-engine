@@ -34,6 +34,7 @@ public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.R
 	private static final int HASH_PRIME_11 = 59;
 	private static final int INIT_PRIME_01 = 3;
 	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
+
 	@Override
 	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
 			JsonNode relativeNode) throws PolicyEvaluationException {
@@ -47,8 +48,7 @@ public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.R
 
 	@Override
 	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode)
-			throws PolicyEvaluationException {
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
 			resultList.add(child);

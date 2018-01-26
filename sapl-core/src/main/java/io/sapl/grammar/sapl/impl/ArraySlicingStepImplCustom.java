@@ -41,8 +41,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
 	@Override
 	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode)
-			throws PolicyEvaluationException {
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		if (!previousResult.getNode().isArray()) {
 			throw new PolicyEvaluationException(
 					String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), previousResult.getNode().getNodeType()));
@@ -74,28 +73,28 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 		}
 
 		BigDecimal index = indexStep.getIndex() == null ? null : indexStep.getIndex();
-		if(index != null && index.compareTo(BigDecimal.ZERO) < 0) {
+		if (index != null && index.compareTo(BigDecimal.ZERO) < 0) {
 			index = index.add(BigDecimal.valueOf(value.size()));
 		}
 		BigDecimal to = indexStep.getTo() == null ? null : indexStep.getTo();
-		if(to != null && to.compareTo(BigDecimal.ZERO) < 0) {
+		if (to != null && to.compareTo(BigDecimal.ZERO) < 0) {
 			to = to.add(BigDecimal.valueOf(value.size()));
 		}
-		
+
 		List<Integer> returnIndices = new ArrayList<>();
-		if(step.compareTo(BigDecimal.ZERO) > 0) {
+		if (step.compareTo(BigDecimal.ZERO) > 0) {
 			index = index == null ? BigDecimal.ZERO : index;
 			to = to == null ? BigDecimal.valueOf(value.size()) : to;
-			if(index.compareTo(to) < 0) {
-				for(int i=index.intValue();i<to.intValue();i=i+step.intValue()) {
+			if (index.compareTo(to) < 0) {
+				for (int i = index.intValue(); i < to.intValue(); i = i + step.intValue()) {
 					returnIndices.add(i);
 				}
 			}
 		} else {
-			index = index == null ? BigDecimal.valueOf(value.size()-1L) : index;
+			index = index == null ? BigDecimal.valueOf(value.size() - 1L) : index;
 			to = to == null ? BigDecimal.valueOf(-1) : to;
-			if(index.compareTo(to) > 0) {
-				for(int i=index.intValue();i>to.intValue();i=i+step.intValue()) {
+			if (index.compareTo(to) > 0) {
+				for (int i = index.intValue(); i > to.intValue(); i = i + step.intValue()) {
 					returnIndices.add(i);
 				}
 			}

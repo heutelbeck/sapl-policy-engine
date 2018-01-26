@@ -61,16 +61,15 @@ public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.Condition
 				}
 			}
 		} else {
-			throw new PolicyEvaluationException(String.format(CONDITION_ACCESS_TYPE_MISMATCH,
-					previousResult.getNode().getNodeType()));
+			throw new PolicyEvaluationException(
+					String.format(CONDITION_ACCESS_TYPE_MISMATCH, previousResult.getNode().getNodeType()));
 		}
 		return new ArrayResultNode(resultList);
 	}
 
 	@Override
 	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode)
-			throws PolicyEvaluationException {
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode resultNode : previousResult) {
 			JsonNode result = getExpression().evaluate(ctx, isBody, resultNode.getNode());

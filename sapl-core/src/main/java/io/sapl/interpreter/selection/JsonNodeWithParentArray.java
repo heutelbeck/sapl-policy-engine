@@ -23,14 +23,15 @@ import lombok.ToString;
 import lombok.Value;
 
 /**
- * Represents a JsonNode which is the item of an ArrayNode in the tree on which the selection is performed.
+ * Represents a JsonNode which is the item of an ArrayNode in the tree on which
+ * the selection is performed.
  */
 @Value
-@EqualsAndHashCode(callSuper=true)
-@ToString(callSuper=true)
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 	private int index;
-	
+
 	public JsonNodeWithParentArray(JsonNode node, JsonNode parent, int index) {
 		super(node, parent);
 		this.index = index;
@@ -61,7 +62,8 @@ public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public void applyFunction(String function, Arguments arguments, boolean each, EvaluationContext ctx) throws PolicyEvaluationException {
+	public void applyFunction(String function, Arguments arguments, boolean each, EvaluationContext ctx)
+			throws PolicyEvaluationException {
 		applyFunctionWithRelativeNode(function, arguments, each, ctx, null);
 	}
 
@@ -74,7 +76,7 @@ public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 			((ArrayNode) parent).set(index, applyFunctionToNode(function, node, arguments, ctx, relativeNode));
 		}
 	}
-	
+
 	@Override
 	public boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException {
 		return other.isNodeWithParentArray() && other.getParent() == getParent()

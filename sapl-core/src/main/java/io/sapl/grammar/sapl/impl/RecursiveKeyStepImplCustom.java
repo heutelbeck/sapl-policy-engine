@@ -46,8 +46,7 @@ public class RecursiveKeyStepImplCustom extends io.sapl.grammar.sapl.impl.Recurs
 
 	@Override
 	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode)
-			throws PolicyEvaluationException {
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
 			resultList.addAll(resolveRecursive(child.getNode()));

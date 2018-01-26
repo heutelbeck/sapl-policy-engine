@@ -43,7 +43,8 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 			JsonNode relativeNode) throws PolicyEvaluationException {
 		JsonNode previousResultNode = previousResult.getNode();
 		if (!previousResultNode.isArray()) {
-			throw new PolicyEvaluationException(String.format(UNION_TYPE_MISMATCH, "array", previousResultNode.getNodeType()));
+			throw new PolicyEvaluationException(
+					String.format(UNION_TYPE_MISMATCH, "array", previousResultNode.getNodeType()));
 		}
 		Set<Integer> indices = new HashSet<>();
 		for (BigDecimal index : getIndices()) {
@@ -56,8 +57,7 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (int index : indices) {
 			if (previousResultNode.has(index)) {
-				resultList.add(
-						new JsonNodeWithParentArray(previousResultNode.get(index), previousResultNode, index));
+				resultList.add(new JsonNodeWithParentArray(previousResultNode.get(index), previousResultNode, index));
 			}
 		}
 		return new ArrayResultNode(resultList);
@@ -65,8 +65,7 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 
 	@Override
 	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode)
-			throws PolicyEvaluationException {
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		int size = previousResult.getNodes().size();
 		Set<Integer> indices = new HashSet<>();
 		for (BigDecimal index : getIndices()) {

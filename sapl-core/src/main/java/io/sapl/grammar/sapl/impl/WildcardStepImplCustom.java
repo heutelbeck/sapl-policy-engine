@@ -37,8 +37,7 @@ public class WildcardStepImplCustom extends io.sapl.grammar.sapl.impl.WildcardSt
 
 	@Override
 	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode)
-			throws PolicyEvaluationException {
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		JsonNode previousResultNode = previousResult.getNode();
 		if (previousResultNode.isArray()) {
 			return previousResult;
@@ -51,8 +50,8 @@ public class WildcardStepImplCustom extends io.sapl.grammar.sapl.impl.WildcardSt
 			}
 			return new ArrayResultNode(resultList);
 		} else {
-			throw new PolicyEvaluationException(String.format(WILDCARD_ACCESS_TYPE_MISMATCH,
-					previousResultNode.getNodeType()));
+			throw new PolicyEvaluationException(
+					String.format(WILDCARD_ACCESS_TYPE_MISMATCH, previousResultNode.getNodeType()));
 		}
 	}
 

@@ -46,8 +46,7 @@ public class RecursiveIndexStepImplCustom extends io.sapl.grammar.sapl.impl.Recu
 
 	@Override
 	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode)
-			throws PolicyEvaluationException {
+			JsonNode relativeNode) throws PolicyEvaluationException {
 		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode target : previousResult) {
 			resultList.addAll(resolveRecursive(target.getNode()));
