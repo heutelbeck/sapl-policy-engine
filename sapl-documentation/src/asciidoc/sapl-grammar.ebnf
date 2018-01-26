@@ -41,7 +41,7 @@ wildcard-step    	= ".", "*"
 rec-descent-step 	= "..", ID 
                  	| "..", "[", STRING, "]"
                  	| "..", "[", NUMBER, "]" ;
-rec-wildcard-ste 	= "..", "*" 
+rec-wildcard-step 	= "..", "*" 
                  	| "..", "[", "*", "]" ;
 slicing-step     	= "[", [ NUMBER ], ":", [ [ NUMBER ], [ ":", [ NUMBER ] ] ], "]" ;
 expression-step  	= "[", "(", expression, ")", "]" ;
