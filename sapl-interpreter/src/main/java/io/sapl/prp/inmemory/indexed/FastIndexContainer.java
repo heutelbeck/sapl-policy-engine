@@ -65,15 +65,19 @@ public class FastIndexContainer implements IndexContainer {
 						candidates.clear(index);
 						result.addAll(documents.get(index));
 						associatedClauses.get(index).forEach(coindex -> {
-							uncheckedClausesOfFormula[coindex] -= 1;
-							if (uncheckedClausesOfFormula[coindex] == 0) {
-								candidates.clear(coindex);
-							}
+							decrementAndCheckClausesOfFormula(candidates, uncheckedClausesOfFormula, coindex);
 						});
 					}
 				}
 			});
 		}
 		return new PolicyRetrievalResult(result, false);
+	}
+
+	private void decrementAndCheckClausesOfFormula(final BitSet candidates, final int[] uncheckedClausesOfFormula, Integer coindex) {
+		uncheckedClausesOfFormula[coindex] -= 1;
+		if (uncheckedClausesOfFormula[coindex] == 0) {
+			candidates.clear(coindex);
+		}
 	}
 }
