@@ -24,12 +24,18 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class OrImplCustom extends io.sapl.grammar.sapl.impl.OrImpl {
 
+	private static final String LAZY_OR_OPERATOR_IN_TARGET = "Lazy OR operator is not allowed in the target";
+
 	private static final int HASH_PRIME_10 = 53;
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
 	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
 			throws PolicyEvaluationException {
+		if (!isBody) {
+			throw new PolicyEvaluationException(LAZY_OR_OPERATOR_IN_TARGET);
+		}
+
 		JsonNode leftResult = getLeft().evaluate(ctx, isBody, relativeNode);
 		assertBoolean(leftResult);
 		if (leftResult.asBoolean()) {

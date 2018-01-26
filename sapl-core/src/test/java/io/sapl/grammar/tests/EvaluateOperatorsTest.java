@@ -15,6 +15,8 @@ import io.sapl.grammar.sapl.And;
 import io.sapl.grammar.sapl.Array;
 import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.Div;
+import io.sapl.grammar.sapl.EagerAnd;
+import io.sapl.grammar.sapl.EagerOr;
 import io.sapl.grammar.sapl.ElementOf;
 import io.sapl.grammar.sapl.Equals;
 import io.sapl.grammar.sapl.Less;
@@ -46,6 +48,15 @@ public class EvaluateOperatorsTest {
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private static EvaluationContext ctx = new EvaluationContext(null, null, null, new HashMap<>());
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void evaluateAndInTarget() throws PolicyEvaluationException {
+		And and = factory.createAnd();
+		and.setLeft(basicValueFrom(factory.createFalseLiteral()));
+		and.setRight(basicValueFrom(factory.createFalseLiteral()));
+
+		and.evaluate(ctx, false, null);
+	}
 
 	@Test
 	public void evaluateAndFalseFalse() throws PolicyEvaluationException {
@@ -124,6 +135,87 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test
+	public void evaluateEagerAndFalseFalse() throws PolicyEvaluationException {
+		EagerAnd eagerAnd = factory.createEagerAnd();
+		eagerAnd.setLeft(basicValueFrom(factory.createFalseLiteral()));
+		eagerAnd.setRight(basicValueFrom(factory.createFalseLiteral()));
+
+		JsonNode result = eagerAnd.evaluate(ctx, true, null);
+
+		assertEquals("False EagerAnd False should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+	}
+
+	@Test
+	public void evaluateEagerAndTrueFalse() throws PolicyEvaluationException {
+		EagerAnd eagerAnd = factory.createEagerAnd();
+		eagerAnd.setLeft(basicValueFrom(factory.createTrueLiteral()));
+		eagerAnd.setRight(basicValueFrom(factory.createFalseLiteral()));
+
+		JsonNode result = eagerAnd.evaluate(ctx, true, null);
+
+		assertEquals("True EagerAnd False should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+	}
+
+	@Test
+	public void evaluateEagerAndTrueTrue() throws PolicyEvaluationException {
+		EagerAnd eagerAnd = factory.createEagerAnd();
+		eagerAnd.setLeft(basicValueFrom(factory.createTrueLiteral()));
+		eagerAnd.setRight(basicValueFrom(factory.createTrueLiteral()));
+
+		JsonNode result = eagerAnd.evaluate(ctx, true, null);
+
+		assertEquals("True EagerAnd True should evaluate to BooleanNode(false)", JSON.booleanNode(true), result);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void evaluateEagerAndWrongDatatypeLeft() throws PolicyEvaluationException {
+		And and = factory.createAnd();
+
+		NumberLiteral num = factory.createNumberLiteral();
+		num.setNumber(TEST_NUMBER);
+		and.setLeft(basicValueFrom(num));
+
+		and.setRight(basicValueFrom(factory.createFalseLiteral()));
+
+		and.evaluate(ctx, true, null);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void evaluateEagerAndLeftTrueWrongDatatypeRight() throws PolicyEvaluationException {
+		EagerAnd eagerAnd = factory.createEagerAnd();
+
+		eagerAnd.setLeft(basicValueFrom(factory.createTrueLiteral()));
+
+		NumberLiteral num = factory.createNumberLiteral();
+		num.setNumber(TEST_NUMBER);
+		eagerAnd.setRight(basicValueFrom(num));
+
+		eagerAnd.evaluate(ctx, true, null);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void evaluateEagerAndLeftFalseWrongDatatypeRight() throws PolicyEvaluationException {
+		EagerAnd eagerAnd = factory.createEagerAnd();
+
+		eagerAnd.setLeft(basicValueFrom(factory.createFalseLiteral()));
+
+		NumberLiteral num = factory.createNumberLiteral();
+		num.setNumber(TEST_NUMBER);
+		eagerAnd.setRight(basicValueFrom(num));
+
+		eagerAnd.evaluate(ctx, true, null);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void evaluateOrInTarget() throws PolicyEvaluationException {
+		Or or = factory.createOr();
+		or.setLeft(basicValueFrom(factory.createFalseLiteral()));
+		or.setRight(basicValueFrom(factory.createFalseLiteral()));
+
+		or.evaluate(ctx, false, null);
+	}
+
+	@Test
 	public void evaluateOrFalseFalse() throws PolicyEvaluationException {
 		Or or = factory.createOr();
 		or.setLeft(basicValueFrom(factory.createFalseLiteral()));
@@ -194,6 +286,77 @@ public class EvaluateOperatorsTest {
 		JsonNode result = or.evaluate(ctx, true, null);
 		assertEquals("True Or wrong datatype should evaluate to BooleanNode(true) (lazy evaluation)",
 				JSON.booleanNode(true), result);
+	}
+
+	@Test
+	public void evaluateEagerOrFalseFalse() throws PolicyEvaluationException {
+		EagerOr eagerOr = factory.createEagerOr();
+		eagerOr.setLeft(basicValueFrom(factory.createFalseLiteral()));
+		eagerOr.setRight(basicValueFrom(factory.createFalseLiteral()));
+
+		JsonNode result = eagerOr.evaluate(ctx, true, null);
+
+		assertEquals("False EagerOr False should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+	}
+
+	@Test
+	public void evaluateEagerOrTrueFalse() throws PolicyEvaluationException {
+		EagerOr eagerOr = factory.createEagerOr();
+		eagerOr.setLeft(basicValueFrom(factory.createTrueLiteral()));
+		eagerOr.setRight(basicValueFrom(factory.createFalseLiteral()));
+
+		JsonNode result = eagerOr.evaluate(ctx, true, null);
+
+		assertEquals("True EagerOr False should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+	}
+
+	@Test
+	public void evaluateEagerOrFalseTrue() throws PolicyEvaluationException {
+		EagerOr eagerOr = factory.createEagerOr();
+		eagerOr.setLeft(basicValueFrom(factory.createFalseLiteral()));
+		eagerOr.setRight(basicValueFrom(factory.createTrueLiteral()));
+
+		JsonNode result = eagerOr.evaluate(ctx, true, null);
+
+		assertEquals("False EagerOr True should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void evaluateEagerOrWrongDatatypeLeft() throws PolicyEvaluationException {
+		EagerOr eagerOr = factory.createEagerOr();
+
+		NumberLiteral num = factory.createNumberLiteral();
+		num.setNumber(TEST_NUMBER);
+		eagerOr.setLeft(basicValueFrom(num));
+
+		eagerOr.setRight(basicValueFrom(factory.createTrueLiteral()));
+
+		eagerOr.evaluate(ctx, true, null);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void evaluateEagerOrWrongDatatypeRightLeftFalse() throws PolicyEvaluationException {
+		EagerOr eagerOr = factory.createEagerOr();
+		eagerOr.setLeft(basicValueFrom(factory.createFalseLiteral()));
+
+		NumberLiteral num = factory.createNumberLiteral();
+		num.setNumber(TEST_NUMBER);
+		eagerOr.setRight(basicValueFrom(num));
+
+		eagerOr.evaluate(ctx, true, null);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void evaluateEagerOrWrongDatatypeRightLeftTrue() throws PolicyEvaluationException {
+		EagerOr eagerOr = factory.createEagerOr();
+
+		eagerOr.setLeft(basicValueFrom(factory.createTrueLiteral()));
+
+		NumberLiteral num = factory.createNumberLiteral();
+		num.setNumber(TEST_NUMBER);
+		eagerOr.setRight(basicValueFrom(num));
+
+		eagerOr.evaluate(ctx, true, null);
 	}
 
 	@Test

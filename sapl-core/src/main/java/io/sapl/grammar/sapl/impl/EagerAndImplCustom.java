@@ -22,9 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
 
-public class AndImplCustom extends io.sapl.grammar.sapl.impl.AndImpl {
-
-	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy AND operator is not allowed in the target";
+public class EagerAndImplCustom extends io.sapl.grammar.sapl.impl.EagerAndImpl {
 
 	private static final int HASH_PRIME_04 = 29;
 	private static final int INIT_PRIME_01 = 3;
@@ -32,19 +30,13 @@ public class AndImplCustom extends io.sapl.grammar.sapl.impl.AndImpl {
 	@Override
 	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
 			throws PolicyEvaluationException {
-		if (!isBody) {
-			throw new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET);
-		}
-
 		JsonNode leftResult = getLeft().evaluate(ctx, isBody, relativeNode);
-		assertBoolean(leftResult);
-		if (!leftResult.asBoolean()) {
-			return JSON.booleanNode(false);
-		}
-
 		JsonNode rightResult = getRight().evaluate(ctx, isBody, relativeNode);
+
+		assertBoolean(leftResult);
 		assertBoolean(rightResult);
-		return JSON.booleanNode(rightResult.asBoolean());
+
+		return JSON.booleanNode(rightResult.asBoolean() && leftResult.asBoolean());
 	}
 
 	@Override
@@ -64,7 +56,7 @@ public class AndImplCustom extends io.sapl.grammar.sapl.impl.AndImpl {
 		if (other == null || getClass() != other.getClass()) {
 			return false;
 		}
-		final AndImplCustom otherImpl = (AndImplCustom) other;
+		final EagerAndImplCustom otherImpl = (EagerAndImplCustom) other;
 		if ((getLeft() == null) ? (getLeft() != otherImpl.getLeft())
 				: !getLeft().isEqualTo(otherImpl.getLeft(), otherImports, imports)) {
 			return false;

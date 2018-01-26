@@ -143,8 +143,8 @@ class SampleXACMLTest {
 			    for which he or she is the designated patient */
 			   
 			permit 
-				resource._type == "urn:example:med:schemas:record" &&
-				string.starts_with(resource._selector, "@") &&
+				resource._type == "urn:example:med:schemas:record" &
+				string.starts_with(resource._selector, "@") &
 				action == "read"
 			where
 				subject.role == "patient";
@@ -206,8 +206,8 @@ class SampleXACMLTest {
 			    and for which the patient is under 16 years of age */
 			   
 			permit 
-				resource._type == "urn:example:med:schemas:record" &&
-				string.starts_with(resource._selector, "@") &&
+				resource._type == "urn:example:med:schemas:record" &
+				string.starts_with(resource._selector, "@") &
 				action == "read"
 			where
 				subject.role == "parent_guardian";
@@ -269,8 +269,8 @@ class SampleXACMLTest {
 			    physician, provided an email is sent to the patient */
 			
 			permit 
-				subject.role == "physician" &&
-				string.starts_with(resource._selector, "@.medical") &&
+				subject.role == "physician" &
+				string.starts_with(resource._selector, "@.medical") &
 				action == "write"
 			where
 				subject.physician_id == resource._content.primaryCarePhysician.registrationID;
@@ -349,13 +349,14 @@ class SampleXACMLTest {
 			   http://www.med.example.com/records.xsd namespace. */
 			
 			deny
-				subject.role == "administrator" &&
-				resource._type == "urn:example:med:schemas:record" &&
-				(action == "write" || action == "read") && 
+				subject.role == "administrator"
+			where
+				resource._type == "urn:example:med:schemas:record" &
+				(action == "write" | action == "read") &
 				(
-					selection.match(resource._content, resource._selector, "@.medical") ||
+					selection.match(resource._content, resource._selector, "@.medical") |
 					selection.match(resource._content, "@.medical", resource._selector) 
-				)
+				);
 		''';
 	}
 	

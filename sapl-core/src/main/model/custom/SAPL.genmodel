@@ -83,6 +83,10 @@
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Or/left"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Or/right"/>
     </genClasses>
+    <genClasses ecoreClass="SAPL.ecore#//EagerOr">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//EagerOr/left"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//EagerOr/right"/>
+    </genClasses>
     <genClasses ecoreClass="SAPL.ecore#//Multi">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Multi/left"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Multi/right"/>
@@ -94,6 +98,10 @@
     <genClasses ecoreClass="SAPL.ecore#//And">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//And/left"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//And/right"/>
+    </genClasses>
+    <genClasses ecoreClass="SAPL.ecore#//EagerAnd">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//EagerAnd/left"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//EagerAnd/right"/>
     </genClasses>
     <genClasses ecoreClass="SAPL.ecore#//Equals">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Equals/left"/>

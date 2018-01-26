@@ -64,11 +64,11 @@ Expression:
 	Addition ;
 
 Addition returns Expression:
-	Multiplication (({Plus.left=current} '+' | {Minus.left=current} '-' | {Or.left=current} '||')
+	Multiplication (({Plus.left=current} '+' | {Minus.left=current} '-' | {Or.left=current} '||' | '|' {EagerOr.left=current})
 	right=Multiplication)* ;
 
 Multiplication returns Expression:
-	Comparison (({Multi.left=current} '*' | {Div.left=current} '/' | {And.left=current} '&&')
+	Comparison (({Multi.left=current} '*' | {Div.left=current} '/' | {And.left=current} '&&' | '&' {EagerAnd.left=current})
 	right=Comparison)* ;
 
 Comparison returns Expression:

@@ -97,7 +97,7 @@ class SampleOurPuppetTest {
 		val policyDefinition = '''
 			policy "annotators_anonymize_patient" 
 			permit 
-				subject.role == "annotator" &&
+				subject.role == "annotator" &
 				action.verb == "show_patientdata"
 			transform
 				{
@@ -171,7 +171,7 @@ class SampleOurPuppetTest {
 		val policyDefinition = '''
 			policy "doctors_hide_icd10" 
 			permit 
-				subject.role == "doctor" &&
+				subject.role == "doctor" &
 				action.verb == "show_patientdata"
 			transform
 				resource |- {
@@ -264,7 +264,7 @@ class SampleOurPuppetTest {
 		val policyDefinition = '''
 		policy "familymembers_truncate_situations" 
 		permit 
-			subject.role == "familymember" &&
+			subject.role == "familymember" &
 			action.verb == "show_patient_situations"
 		transform
 			{
@@ -369,7 +369,7 @@ class SampleOurPuppetTest {
 		val policyDefinition = '''
 			policy "professional_caregiver_truncate_contexthistory" 
 			permit 
-				subject.role == "professional_caregiver" &&
+				subject.role == "professional_caregiver" &
 				action.verb == "show_patient_situations"
 			transform
 				resource |- {
@@ -466,7 +466,7 @@ class SampleOurPuppetTest {
 		val policyDefinition = '''
 			policy "puppetintroducers_truncate_situations" 
 				permit 
-					subject.role == "puppet_introducer" &&
+					subject.role == "puppet_introducer" &
 					action.verb == "show_patient_situations"
 				transform
 					{
