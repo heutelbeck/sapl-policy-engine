@@ -57,9 +57,9 @@ filter-function  	= ID, { ".", ID },
                    	  [ "(", [ expression, { ",", expression } ], ")" ] ;
                  
 value            	= object | array | NUMBER | STRING | "true" | "false" | "null" ;
-object           	= "{", [ STRING, ":", expression ], 
-                   	  { ",", STRING, ":", expression }, "}" ;
-array            	= "[", [ expression ], { ",", expression }, "]" ;
+object           	= "{", [ STRING, ":", expression, 
+                   	  { ",", STRING, ":", expression } ], "}" ;
+array            	= "[", [ expression, { ",", expression } ], "]" ;
                  
 ID               	= ( LETTER | "_" | "$" ), { LETTER | DIGIT | "_" | "$" } ;
 LETTER           	= "A" | "B" | ... | "Z" | "a" | "b" | ... | "z" ;
