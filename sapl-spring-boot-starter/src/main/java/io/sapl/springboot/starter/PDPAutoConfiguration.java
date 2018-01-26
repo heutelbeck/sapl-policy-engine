@@ -4,10 +4,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import io.sapl.spring.PIPProvider;
-import io.sapl.spring.PolicyEnforcementFilter;
-import io.sapl.spring.StandardSAPLAuthorizator;
-import io.sapl.spring.SAPLPermissionEvaluator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -22,6 +18,10 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
+import io.sapl.spring.PIPProvider;
+import io.sapl.spring.PolicyEnforcementFilter;
+import io.sapl.spring.SAPLPermissionEvaluator;
+import io.sapl.spring.StandardSAPLAuthorizator;
 import io.sapl.spring.marshall.obligation.Obligation;
 import io.sapl.spring.marshall.obligation.ObligationHandler;
 import io.sapl.spring.marshall.obligation.ObligationsHandlerService;
@@ -112,7 +112,6 @@ public class PDPAutoConfiguration {
 		return Collections::emptyList;
 	}
 
-
 	@Bean
 	@ConditionalOnProperty("policyEnforcementFilter")
 	public PolicyEnforcementFilter policyEnforcementFilter(StandardSAPLAuthorizator saplAuthorizer) {
@@ -121,24 +120,22 @@ public class PDPAutoConfiguration {
 		return new PolicyEnforcementFilter(saplAuthorizer);
 	}
 
-
 	@Bean
 	@ConditionalOnMissingBean
-	public StandardSAPLAuthorizator createStandardSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationsHandlerService ohs){
+	public StandardSAPLAuthorizator createStandardSAPLAuthorizer(PolicyDecisionPoint pdp,
+			ObligationsHandlerService ohs) {
 		log.debug("no Bean of type StandardSAPLAuthorizator  defined. Will create default Bean of class {}",
 				StandardSAPLAuthorizator.class);
 		return new StandardSAPLAuthorizator(pdp, ohs);
 	}
 
-
 	@Bean
 	@ConditionalOnMissingBean
-	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(StandardSAPLAuthorizator saplAuthorizer){
+	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(StandardSAPLAuthorizator saplAuthorizer) {
 		log.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of class {}",
 				SAPLPermissionEvaluator.class);
 		return new SAPLPermissionEvaluator(saplAuthorizer);
 	}
-
 
 	@Bean
 	@ConditionalOnMissingBean
@@ -154,6 +151,7 @@ public class PDPAutoConfiguration {
 		if (!pdpProperties.getObligationsHandler().isAutoregister()) {
 			log.debug("Automatic registration of obligation hanlders is deactivated.");
 			return args -> {
+				// NOP
 			};
 		}
 		log.debug(

@@ -14,8 +14,6 @@ import com.vaadin.util.ReflectTools;
  * syntax validation functionality.
  *
  * The SAPLTextArea could be used as surrogate for a regular Vaadin TextArea.
- *
- * TODO: Add more documentation here
  */
 @StyleSheet({ "vaadin://../webjars/codemirror/5.13.2/lib/codemirror.css",
 		"vaadin://../webjars/codemirror/5.13.2/addon/hint/show-hint.css",

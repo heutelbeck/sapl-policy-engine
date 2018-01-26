@@ -248,7 +248,7 @@ public class FastIndexCreationStrategy implements IndexCreationStrategy {
 	private static Map<Integer, Set<SAPL>> mapIndexToDocuments(final Map<ConjunctiveClause, Integer> clauseToIndex,
 			final Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas,
 			final Map<DisjunctiveFormula, Set<String>> formulaToIds, final Map<String, SAPL> idToDocument) {
-		Map<Integer, Set<SAPL>> result = new HashMap<>();
+		Map<Integer, Set<SAPL>> result = new HashMap<>(clauseToFormulas.size());
 		for (Map.Entry<ConjunctiveClause, Set<DisjunctiveFormula>> entry : clauseToFormulas.entrySet()) {
 			final Set<SAPL> documents = new HashSet<>();
 			for (DisjunctiveFormula formula : entry.getValue()) {
