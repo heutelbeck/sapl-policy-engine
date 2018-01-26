@@ -6,7 +6,6 @@ import java.util.List;
 
 import io.sapl.spring.PIPProvider;
 import io.sapl.spring.PolicyEnforcementFilter;
-import io.sapl.spring.PolicyEnforcementPoint;
 import io.sapl.spring.StandardSAPLAuthorizator;
 import io.sapl.spring.SAPLPermissionEvaluator;
 import org.springframework.beans.factory.annotation.Autowired;

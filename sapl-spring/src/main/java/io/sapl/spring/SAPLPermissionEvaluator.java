@@ -10,6 +10,7 @@ import io.sapl.spring.marshall.Subject;
 import io.sapl.spring.marshall.action.HttpAction;
 import io.sapl.spring.marshall.resource.HttpResource;
 import io.sapl.spring.marshall.subject.AuthenticationSubject;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.core.Authentication;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletRequest;
 
+@Slf4j
 @Component
 public class SAPLPermissionEvaluator implements PermissionEvaluator {
 
