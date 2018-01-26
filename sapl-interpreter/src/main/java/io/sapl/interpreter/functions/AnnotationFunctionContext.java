@@ -16,8 +16,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.functions.LibraryDocumentation;
 import io.sapl.interpreter.validation.IllegalParameterType;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;

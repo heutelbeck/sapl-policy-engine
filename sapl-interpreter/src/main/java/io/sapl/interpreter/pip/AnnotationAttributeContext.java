@@ -17,8 +17,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.interpreter.validation.IllegalParameterType;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;

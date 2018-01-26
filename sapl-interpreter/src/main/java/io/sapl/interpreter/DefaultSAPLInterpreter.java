@@ -357,7 +357,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 		return returnImports;
 	}
-	
+
 	private static Decision evaluateBody(Decision response, PolicyBody body, EvaluationContext evaluationCtx) {
 		Decision result = response;
 		try {
@@ -372,7 +372,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		}
 		return result;
 	}
-	
+
 	private static boolean evaluateStatement(EvaluationContext evaluationCtx, Statement statement)
 			throws PolicyEvaluationException {
 		if (statement instanceof ValueDefinition) {
@@ -388,7 +388,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			}
 		}
 	}
-	
+
 	private static void evaluateValueDefinition(EvaluationContext evaluationCtx, ValueDefinition statement)
 			throws PolicyEvaluationException {
 		evaluationCtx.getVariableCtx().put(statement.getName(),
@@ -404,8 +404,9 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			return Optional.empty();
 		}
 	}
-	
-	private static Optional<ArrayNode> evaluateObligation(Policy policy, EvaluationContext evaluationCtx) throws PolicyEvaluationException {
+
+	private static Optional<ArrayNode> evaluateObligation(Policy policy, EvaluationContext evaluationCtx)
+			throws PolicyEvaluationException {
 		if (policy.getObligation() != null) {
 			ArrayNode obligation = JSON.arrayNode();
 			obligation.add(policy.getObligation().evaluate(evaluationCtx, true, null));
@@ -413,8 +414,9 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		}
 		return Optional.empty();
 	}
-	
-	private static Optional<ArrayNode> evaluateAdvice(Policy policy, EvaluationContext evaluationCtx) throws PolicyEvaluationException {
+
+	private static Optional<ArrayNode> evaluateAdvice(Policy policy, EvaluationContext evaluationCtx)
+			throws PolicyEvaluationException {
 		if (policy.getAdvice() != null) {
 			ArrayNode advice = JSON.arrayNode();
 			advice.add(policy.getAdvice().evaluate(evaluationCtx, true, null));
