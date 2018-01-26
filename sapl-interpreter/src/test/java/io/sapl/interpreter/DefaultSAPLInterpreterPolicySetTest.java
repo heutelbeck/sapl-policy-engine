@@ -14,7 +14,6 @@ package io.sapl.interpreter;
 
 import static org.junit.Assert.assertEquals;
 
-import java.time.Clock;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,10 +51,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
     public void init() throws FunctionException, AttributeException {
         attributeCtx = new AnnotationAttributeContext();
         functionCtx = new AnnotationFunctionContext();
-        functionCtx.loadLibrary(new SimpleFunctionLibrary());
-        functionCtx.loadLibrary(new FilterFunctionLibrary());
-        functionCtx.loadLibrary(
-                new SimpleFilterFunctionLibrary(Clock.systemUTC()));
+		functionCtx.loadLibrary(new FilterFunctionLibrary());
     }
 
     @Test
@@ -163,7 +159,8 @@ public class DefaultSAPLInterpreterPolicySetTest {
     @Test
     public void importsInSetAvailableInPolicy() throws PolicyEvaluationException {
         SAPL policySet = INTERPRETER.parse(
-                "import filter.replace set \"tests\" deny-overrides"+
+				"import filter.replace set \"tests\" deny-overrides"
+						+
         		" policy \"testp1\" permit transform true |- replace(false)");
         assertEquals("imports for policy set must be available in policies",
                 Optional.of(JsonNodeFactory.instance.booleanNode(false)),
@@ -191,6 +188,15 @@ public class DefaultSAPLInterpreterPolicySetTest {
                 INTERPRETER.evaluate(new Request(null, null, null, null),
                         policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
     }
+
+	@Test
+	public void variablesOnSetLevelError() throws PolicyEvaluationException {
+		SAPL policySet = INTERPRETER
+				.parse("set \"tests\" deny-overrides var var1 = true + null;" + " policy \"testp1\" permit");
+		assertEquals("error in policy set variable definition should lead to indeterminate", Response.indeterminate(),
+				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
+						SYSTEM_VARIABLES));
+	}
     
     @Test
     public void variablesOverwriteInPolicy() throws PolicyEvaluationException {

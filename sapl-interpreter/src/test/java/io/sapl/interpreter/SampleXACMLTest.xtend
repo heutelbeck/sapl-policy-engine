@@ -1,3 +1,15 @@
+/**
+ * Copyright © 2017 Dominic Heutelbeck (dheutelbeck@ftk.de)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package io.sapl.interpreter
 
 import com.fasterxml.jackson.databind.JsonNode
@@ -22,6 +34,7 @@ import static org.hamcrest.CoreMatchers.equalTo
 import static org.junit.Assert.assertThat
 import io.sapl.functions.SelectionFunctionLibrary
 import io.sapl.functions.FilterFunctionLibrary
+import com.fasterxml.jackson.databind.node.ArrayNode
 
 class SampleXACMLTest {
 
@@ -148,6 +161,42 @@ class SampleXACMLTest {
 			equalTo(expectedResponse));
 	}
 	
+	@Test
+	def void exampleTwoRule1Permit() throws PolicyEvaluationException {
+		val request = MAPPER.readValue('''
+			{
+				"subject": {
+					"id": "alice",
+					"role": "patient",
+					"patient_number": "555555"
+				},
+				"resource": {
+					"_type": "urn:example:med:schemas:record",
+					"_content": {
+						"patient": {
+							"dob": "1992-03-21",
+							"patient_number": "555555",
+							"contact": {
+								"email": "b.simpsons@example.com"
+							}
+						}
+					},
+					"_selector": "@.patient.dob"
+				},
+				"action": "read",
+				"environment": {
+					"current_date": "2010-01-11"
+				}
+			}
+		''', Request)
+		
+		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, Optional.empty, Optional.empty)
+		
+		assertThat("XACML example two rule 1 not working as expected",
+			INTERPRETER.evaluate(request, policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			equalTo(expectedResponse));
+	}
+	
 	def String policyExampleTwoRule2() {
 		return '''
 			policy "rule_2"
@@ -173,6 +222,42 @@ class SampleXACMLTest {
 
 		assertThat("XACML example two rule 2 not working as expected",
 			INTERPRETER.evaluate(request_example_two, policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			equalTo(expectedResponse));
+	}
+	
+	@Test
+	def void exampleTwoRule2Permit() throws PolicyEvaluationException {
+		val request = MAPPER.readValue('''
+			{
+				"subject": {
+					"id": "john",
+					"role": "parent_guardian",
+					"parent_guardian_id": "HS001"
+				},
+				"resource": {
+					"_type": "urn:example:med:schemas:record",
+					"_content": {
+						"patient": {
+							"dob": "1992-03-21",
+							"patient_number": "555555",
+							"contact": {
+								"email": "b.simpsons@example.com"
+							}
+						}
+					},
+					"_selector": "@.patient.dob"
+				},
+				"action": "read",
+				"environment": {
+					"current_date": "2010-01-11"
+				}
+			}
+		''', Request)
+		
+		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, Optional.empty, Optional.empty)
+		
+		assertThat("XACML example two rule 2 not working as expected",
+			INTERPRETER.evaluate(request, policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
 	}
 	
@@ -207,6 +292,55 @@ class SampleXACMLTest {
 			equalTo(expectedResponse));
 	}
 	
+	@Test
+	def void exampleTwoRule3Permit() throws PolicyEvaluationException {
+		val request = MAPPER.readValue('''
+			{
+				"subject": {
+					"id": "CN=Julius Hibbert",
+					"role": "physician",
+					"physician_id": "jh1234"
+				},
+				"resource": {
+					"_type": "urn:example:med:schemas:record",
+					"_content": {
+						"patient": {
+							"dob": "1992-03-21",
+							"patient_number": "555555",
+							"contact": {
+								"email": "b.simpsons@example.com"
+							}
+						},
+						"primaryCarePhysician": {
+							"registrationID": "jh1234"
+						}
+					},
+					"_selector": "@.medical"
+				},
+				"action": "write",
+				"environment": {
+					"current_date": "2010-01-11"
+				}
+			}
+		''', Request)
+		
+		val expectedObligation = MAPPER.readValue('''
+			[
+				{
+					"id": "email",
+					"mailto": "b.simpsons@example.com",
+					"text": "Your medical record has been accessed by:CN=Julius Hibbert"
+				}
+			]
+		''', ArrayNode)
+		
+		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, Optional.of(expectedObligation), Optional.empty)
+		
+		assertThat("XACML example two rule 3 not working as expected",
+			INTERPRETER.evaluate(request, policyExampleTwoRule3(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			equalTo(expectedResponse));
+	}
+	
 	def String policyExampleTwoRule4() {
 		return '''
 			policy "rule_4"
@@ -230,6 +364,45 @@ class SampleXACMLTest {
 		val request = request_example_two
 		val expectedResponse = Response.notApplicable()
 
+		assertThat("XACML example two rule 4 not working as expected",
+			INTERPRETER.evaluate(request, policyExampleTwoRule4(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			equalTo(expectedResponse));
+	}
+	
+	@Test
+	def void exampleTwoRule4Deny() throws PolicyEvaluationException {
+		val request = MAPPER.readValue('''
+			{
+				"subject": {
+					"id": "admin",
+					"role": "administrator",
+					"admin_id": "admin_01"
+				},
+				"resource": {
+					"_type": "urn:example:med:schemas:record",
+					"_content": {
+						"patient": {
+							"dob": "1992-03-21",
+							"patient_number": "555555",
+							"contact": {
+								"email": "b.simpsons@example.com"
+							}
+						},
+						"medical": {
+							"drug": "xyz"
+						}
+					},
+					"_selector": "@..drug"
+				},
+				"action": "read",
+				"environment": {
+					"current_date": "2010-01-11"
+				}
+			}
+		''', Request)
+		
+		val expectedResponse = Response.deny()
+		
 		assertThat("XACML example two rule 4 not working as expected",
 			INTERPRETER.evaluate(request, policyExampleTwoRule4(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
 			equalTo(expectedResponse));
