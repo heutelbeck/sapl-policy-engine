@@ -14,21 +14,21 @@ package io.sapl.api.pip;
 
 public class AttributeException extends Exception {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    public AttributeException() {
-        super();
-    }
+	public AttributeException() {
+		super();
+	}
 
-    public AttributeException(String message) {
-        super(message);
-    }
+	public AttributeException(String message) {
+		super(message);
+	}
 
-    public AttributeException(String message, Throwable cause) {
-        super(message, cause);
-    }
+	public AttributeException(String message, Throwable cause) {
+		super(message, cause);
+	}
 
-    public AttributeException(Throwable cause) {
-        super(cause);
-    }
+	public AttributeException(Throwable cause) {
+		super(cause);
+	}
 }

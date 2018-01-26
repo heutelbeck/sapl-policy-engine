@@ -15,14 +15,17 @@ package io.sapl.api.pdp;
 /**
  * The different possible outcomes of a SAPL decision.
  *
- * PERMIT grants access to the resource, while respecting potential obligations, advises, or resource transformation.
+ * PERMIT grants access to the resource, while respecting potential obligations,
+ * advises, or resource transformation.
  *
  * DENY denies access the the resource.
  *
- * INDETERMINATE means that an error occurred during the decision process. Access must be denied in this case.
+ * INDETERMINATE means that an error occurred during the decision process.
+ * Access must be denied in this case.
  *
- * NOT_APPLICABLE means no policies were found matching the request. Access must be denied in this case.
+ * NOT_APPLICABLE means no policies were found matching the request. Access must
+ * be denied in this case.
  */
 public enum Decision {
-    PERMIT, DENY, INDETERMINATE, NOT_APPLICABLE
+	PERMIT, DENY, INDETERMINATE, NOT_APPLICABLE
 }

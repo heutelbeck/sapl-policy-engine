@@ -9,8 +9,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface Attribute {
 
-    String name() default "";
+	String name() default "";
 
-    String docs() default "";
+	String docs() default "";
 
 }
