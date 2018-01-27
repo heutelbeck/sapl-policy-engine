@@ -109,7 +109,7 @@ Extending the example above, in a real world application there will be multiple 
 ----
 policy "doctors_get_patient"
 permit
-  action == "HTTP:GET" &&
+  action == "HTTP:GET" &
   resource =~ "^https://medical\.org/api/patients/\d*$"
 where
   subject.username.<user.profile>.function == "doctor";
@@ -298,7 +298,7 @@ import filter as filter <1>
 
 policy "test_policy" <2>
 permit <3>
-	(subject.id == "anId" || action == "anAction") <4> 
+	subject.id == "anId" | action == "anAction" <4> 
 where 
 	var variable = "anAttribute";
 	subject.attribute == variable; <5>
@@ -789,7 +789,7 @@ The operators are already listed in descending order of their *precedence*, i.e.
 
 The operator `+` concatenates two strings, e.g. `"Hello" + " World!"` evaluates to `"Hello World!"`. 
 
-String concatenation is applied if at least one of the operands is an expression evaluating to a string. If the other expression evaluates to a string as well, the two strings are concatenated. If the other expression does not evaluate to a string, an error is thrown.
+String concatenation is applied if the left operand is an expression evaluating to a string. If the right expression evaluates to a string as well, the two strings are concatenated. Otherwise an error is thrown.
 
 ==== Selection Steps
 
