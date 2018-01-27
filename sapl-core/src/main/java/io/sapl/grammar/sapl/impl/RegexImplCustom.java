@@ -26,7 +26,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 
-	private static final String REGEX_TYPE_MISMATCH = "Type mismatch. Matching regular expressions expects string values, but got: '%s' and '%s'.";
+	private static final String REGEX_TYPE_MISMATCH = "Type mismatch. Matching regular expressions expects string values, but got: '%s'.";
 	private static final String REGEX_SYNTAX_ERROR = "Syntax error in regular expression '%s'.";
 
 	private static final int HASH_PRIME_13 = 67;
@@ -36,16 +36,21 @@ public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
 			throws PolicyEvaluationException {
 		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
-		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
-		if (left.isTextual() && right.isTextual()) {
-			try {
-				return JSON.booleanNode(Pattern.matches(right.asText(), left.asText()));
-			} catch (PatternSyntaxException e) {
-				throw new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, right.asText()), e);
-			}
-		} else {
+		if (!left.isTextual()) {
 			throw new PolicyEvaluationException(
-					String.format(REGEX_TYPE_MISMATCH, left.getNodeType(), right.getNodeType()));
+					String.format(REGEX_TYPE_MISMATCH, left.getNodeType()));
+		}
+
+		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
+		if (!right.isTextual()) {
+			throw new PolicyEvaluationException(
+					String.format(REGEX_TYPE_MISMATCH, right.getNodeType()));
+		}
+
+		try {
+			return JSON.booleanNode(Pattern.matches(right.asText(), left.asText()));
+		} catch (PatternSyntaxException e) {
+			throw new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, right.asText()), e);
 		}
 	}
 

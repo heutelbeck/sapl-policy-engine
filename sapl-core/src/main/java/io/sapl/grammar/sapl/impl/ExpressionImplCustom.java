@@ -19,15 +19,15 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 
 public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionImpl {
 
-	protected static final String ARITHMETIC_OPERATION_TYPE_MISMATCH = "Type mismatch. Arithmetic operation expects number values, but got: '%s' and '%s'.";
+	protected static final String ARITHMETIC_OPERATION_TYPE_MISMATCH = "Type mismatch. Arithmetic operation expects number values, but got: '%s'.";
 	protected static final String BOOLEAN_OPERATION_TYPE_MISMATCH = "Type mismatch. Boolean opration expects boolean values, but got: '%s'.";
 
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	protected static void assertNumbers(JsonNode left, JsonNode right) throws PolicyEvaluationException {
-		if (!left.isNumber() || !right.isNumber()) {
+	protected static void assertNumber(JsonNode node) throws PolicyEvaluationException {
+		if (!node.isNumber()) {
 			throw new PolicyEvaluationException(
-					String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH, left.getNodeType(), right.getNodeType()));
+					String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH, node.getNodeType()));
 		}
 	}
 

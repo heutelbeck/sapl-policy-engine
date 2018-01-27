@@ -31,8 +31,11 @@ public class MinusImplCustom extends io.sapl.grammar.sapl.impl.MinusImpl {
 	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
 			throws PolicyEvaluationException {
 		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
+		assertNumber(left);
+
 		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
-		assertNumbers(left, right);
+		assertNumber(right);
+
 		return JSON.numberNode(left.decimalValue().subtract(right.decimalValue()));
 	}
 

@@ -31,8 +31,11 @@ public class MultiImplCustom extends io.sapl.grammar.sapl.impl.MultiImpl {
 	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
 			throws PolicyEvaluationException {
 		JsonNode leftResult = left.evaluate(ctx, isBody, relativeNode);
+		assertNumber(leftResult);
+
 		JsonNode rightResult = right.evaluate(ctx, isBody, relativeNode);
-		assertNumbers(leftResult, rightResult);
+		assertNumber(rightResult);
+
 		return JSON.numberNode(leftResult.decimalValue().multiply(rightResult.decimalValue()));
 	}
 

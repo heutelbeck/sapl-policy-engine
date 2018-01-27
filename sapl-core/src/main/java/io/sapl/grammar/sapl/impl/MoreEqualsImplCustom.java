@@ -33,8 +33,10 @@ public class MoreEqualsImplCustom extends io.sapl.grammar.sapl.impl.MoreEqualsIm
 		final int zero = 0;
 
 		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
+		assertNumber(left);
+
 		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
-		assertNumbers(left, right);
+		assertNumber(right);
 
 		int result = left.decimalValue().compareTo(right.decimalValue());
 		return JSON.booleanNode(result >= zero);

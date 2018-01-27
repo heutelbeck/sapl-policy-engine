@@ -24,6 +24,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class PlusImplCustom extends io.sapl.grammar.sapl.impl.PlusImpl {
 
+	private static final String STRING_CONCATENATION_TYPE_MISMATCH = "String concatenation requires the right side to evaluate to a string, but got %s.";
 	private static final int HASH_PRIME_05 = 31;
 	private static final int INIT_PRIME_01 = 3;
 
@@ -31,12 +32,20 @@ public class PlusImplCustom extends io.sapl.grammar.sapl.impl.PlusImpl {
 	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
 			throws PolicyEvaluationException {
 		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
-		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
 
-		if (left.isTextual() && right.isTextual()) {
+		if (left.isTextual()) {
+			JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
+			if (!right.isTextual()) {
+				throw new PolicyEvaluationException(
+						String.format(STRING_CONCATENATION_TYPE_MISMATCH, right.getNodeType()));
+			}
 			return JSON.textNode(left.asText().concat(right.asText()));
 		} else {
-			assertNumbers(left, right);
+			assertNumber(left);
+
+			JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
+			assertNumber(right);
+
 			return JSON.numberNode(left.decimalValue().add(right.decimalValue()));
 		}
 	}

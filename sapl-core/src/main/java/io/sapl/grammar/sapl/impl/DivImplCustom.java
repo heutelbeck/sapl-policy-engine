@@ -31,8 +31,11 @@ public class DivImplCustom extends io.sapl.grammar.sapl.impl.DivImpl {
 	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
 			throws PolicyEvaluationException {
 		JsonNode leftResult = getLeft().evaluate(ctx, isBody, relativeNode);
+		assertNumber(leftResult);
+
 		JsonNode rightResult = getRight().evaluate(ctx, isBody, relativeNode);
-		assertNumbers(leftResult, rightResult);
+		assertNumber(rightResult);
+
 		return JSON.numberNode(leftResult.decimalValue().divide(rightResult.decimalValue()));
 	}
 
