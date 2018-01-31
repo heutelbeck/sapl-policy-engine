@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,6 +17,7 @@ import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pip.AttributeException;
+import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import io.sapl.spring.PIPProvider;
@@ -42,7 +44,8 @@ import lombok.extern.slf4j.Slf4j;
  * <h2>Configure an EmbeddedPolicyDecisionPoint</h2> To have a bean instance of
  * an {@link EmbeddedPolicyDecisionPoint} just activate it in your
  * <i>application.properties</i>-file (or whatever spring supported way to
- * provide properties you wish to use. c. f. <a href=
+ * provide properties you wish to use.<br/>
+ * c. f. <a href=
  * "https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html">Spring
  * Boot Documentation on config parameters</a>) <br/>
  * Do not forget to provide the minimal required files in your policy path! (at
@@ -56,11 +59,47 @@ import lombok.extern.slf4j.Slf4j;
  * <b>Hint:</b>The Bean is provided with the predefined qualifier name:
  * {@value #BEAN_NAME_PDP_EMBEDDED}
  *
- * <br/>
- * <br/>
- * <br/>
  *
- * @author danschmi
+ * <h2>Configure a RemotePolicyDecisionPoint</h2> To have a bean instance of a
+ * {@link RemotePolicyDecisionPoint} just activate it in your
+ * <i>application.properties</i>-file (or whatever spring supported way to
+ * provide properties you wish to use. <br/>
+ * c. f. <a href=
+ * "https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html">Spring
+ * Boot Documentation on config parameters</a>) <br/>
+ * Example Snippet from .properties:<br/>
+ * <code>
+ * pdp.remote.active=true<br/>
+ * pdp.remote.host=myhost.example.io<br/>
+ * pdp.remote.port=8443<br/>
+ * pdp.remote.secret=password<br/>
+ * pdp.remote.key=username
+ * </code> <br/>
+ * Provide the host without a protocol. It will always be assumed to be
+ * https<br/>
+ * <b>Hint:</b>The Bean is provided with the predefined qualifier name:
+ * {@value #BEAN_NAME_PDP_REMOTE} <br/>
+ * <br/>
+ * If you do not really need a remote and an embedded PDP at once, we recommend
+ * to deactivate the by default activated RemotePolicyDecisionPoint. Among other
+ * things this will allow you to autowire {@link PolicyDecisionPoint}-instances
+ * without explicitly use Spring´s {@link Qualifier}-annotation<br/>
+ * <br/>
+ * <br/>
+ * <h2>Using a policy information point</h2> If your EmbeddedPolicyDecisionPoint
+ * shall use one or more PolicyInformationPoints, you can achieve this by
+ * providing a bean of type {@link PIPProvider}. This bean must provide a
+ * collection of all classes that instances you want to use as
+ * PolicyInformationPoints. They need to implement the
+ * {@link PolicyInformationPoint}-interface.<br/>
+ * <br/>
+ * If you do not define a bean of this type, this starter will provide a simple
+ * implementation of {@link PIPProvider} that always returns a empty list.
+ * 
+ * <br/>
+ * <br/>
+ * 
+ * @author Daniel T. Schmidt
  * @see PDPProperties
  */
 @Slf4j
