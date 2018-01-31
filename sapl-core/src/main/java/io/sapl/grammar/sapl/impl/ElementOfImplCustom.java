@@ -32,12 +32,12 @@ public class ElementOfImplCustom extends io.sapl.grammar.sapl.impl.ElementOfImpl
 	@Override
 	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
 			throws PolicyEvaluationException {
-		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
 
 		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
 		if (!right.isArray()) {
 			throw new PolicyEvaluationException(String.format(ELEMENTOF_TYPE_MISMATCH, right.getNodeType()));
 		}
+		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
 		for (JsonNode node : right) {
 			if (left.equals(node)) {
 				return JSON.booleanNode(true);
