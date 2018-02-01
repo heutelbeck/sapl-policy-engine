@@ -49,7 +49,7 @@ public class IndexedInMemoryDocumentIndex implements InMemoryDocumentIndex {
 
 	@Override
 	public void setLiveMode() {
-		// TODO Auto-generated method stub
+		// NOP
 	}
 
 }
