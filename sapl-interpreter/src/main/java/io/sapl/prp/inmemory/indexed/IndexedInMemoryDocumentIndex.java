@@ -49,7 +49,7 @@ public class IndexedInMemoryDocumentIndex implements InMemoryDocumentIndex {
 
 	@Override
 	public void setLiveMode() {
-		// NOP
+		// TODO: Implementation of this is critical!
 	}
 
 }
