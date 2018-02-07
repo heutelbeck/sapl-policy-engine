@@ -10,6 +10,8 @@ import io.sapl.api.pdp.Response;
 import io.sapl.spring.marshall.Action;
 import io.sapl.spring.marshall.Resource;
 import io.sapl.spring.marshall.Subject;
+import io.sapl.spring.marshall.advice.Advice;
+import io.sapl.spring.marshall.advice.AdviceHandlerService;
 import io.sapl.spring.marshall.obligation.Obligation;
 import io.sapl.spring.marshall.obligation.ObligationFailedException;
 import io.sapl.spring.marshall.obligation.ObligationsHandlerService;
@@ -21,11 +23,14 @@ public class StandardSAPLAuthorizator {
 	protected final PolicyDecisionPoint pdp;
 
 	protected final ObligationsHandlerService obs;
+	
+	protected final AdviceHandlerService ahs;
 
 	@Autowired
-	public StandardSAPLAuthorizator(PolicyDecisionPoint pdp, ObligationsHandlerService obs) {
+	public StandardSAPLAuthorizator(PolicyDecisionPoint pdp, ObligationsHandlerService obs, AdviceHandlerService ahs) {
 		this.pdp = pdp;
 		this.obs = obs;
+		this.ahs = ahs;
 	}
 
 	public boolean authorize(Subject subject, Action action, Resource resource) {
@@ -61,6 +66,16 @@ public class StandardSAPLAuthorizator {
 			} catch (ObligationFailedException e) {
 				response = new Response(Decision.DENY, null, null, null);
 			}
+		}
+		
+		if (response.getAdvice().orElse(null) != null) {
+			
+			List<Advice> adviceList = Advice.fromJson(response.getAdvice().get());
+
+			for (Advice a : adviceList) {
+				ahs.handle(a);
+			}
+
 		}
 
 		return response;
