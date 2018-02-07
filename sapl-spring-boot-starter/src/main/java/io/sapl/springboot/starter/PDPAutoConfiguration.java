@@ -24,6 +24,8 @@ import io.sapl.spring.PIPProvider;
 import io.sapl.spring.PolicyEnforcementFilter;
 import io.sapl.spring.SAPLPermissionEvaluator;
 import io.sapl.spring.StandardSAPLAuthorizator;
+import io.sapl.spring.marshall.advice.AdviceHandlerService;
+import io.sapl.spring.marshall.advice.SimpleAdviceHandlerService;
 import io.sapl.spring.marshall.obligation.Obligation;
 import io.sapl.spring.marshall.obligation.ObligationHandler;
 import io.sapl.spring.marshall.obligation.ObligationsHandlerService;
@@ -162,10 +164,10 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public StandardSAPLAuthorizator createStandardSAPLAuthorizer(PolicyDecisionPoint pdp,
-			ObligationsHandlerService ohs) {
+			ObligationsHandlerService ohs, AdviceHandlerService ahs) {
 		log.debug("no Bean of type StandardSAPLAuthorizator  defined. Will create default Bean of class {}",
 				StandardSAPLAuthorizator.class);
-		return new StandardSAPLAuthorizator(pdp, ohs);
+		return new StandardSAPLAuthorizator(pdp, ohs, ahs);
 	}
 
 	@Bean
@@ -182,6 +184,14 @@ public class PDPAutoConfiguration {
 		log.debug("no Bean of type ObligationsHandlerService defined. Will create default Bean of class {}",
 				SimpleObligationHandlerService.class);
 		return new SimpleObligationHandlerService();
+	}
+	
+	@Bean
+	@ConditionalOnMissingBean
+	public AdviceHandlerService createDefaultAdviceHanlderService() {
+		log.debug("no Bean of type AdviceHandlerService defined. Will create default Bean of class {}",
+				SimpleAdviceHandlerService.class);
+		return new SimpleAdviceHandlerService();
 	}
 
 	@Bean

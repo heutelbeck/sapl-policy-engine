@@ -2,6 +2,7 @@ package io.sapl.prp.inmemory.indexed;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -20,6 +21,7 @@ public class IndexedInMemoryDocumentIndex implements InMemoryDocumentIndex {
 
 	ParsedDocumentPolicyRetrievalPoint index = new FastParsedDocumentIndex();
 	Map<String, SAPL> parsedDocuments = new ConcurrentHashMap<>();
+	AtomicBoolean live = new AtomicBoolean(false);
 
 	@Override
 	public void insert(String documentKey, String document) throws PolicyEvaluationException {
@@ -34,7 +36,11 @@ public class IndexedInMemoryDocumentIndex implements InMemoryDocumentIndex {
 	@Override
 	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
 			Map<String, JsonNode> variables) {
-		return index.retrievePolicies(request, functionCtx, variables);
+		if (live.get()) {
+			return index.retrievePolicies(request, functionCtx, variables);
+		} else {
+			throw new IndexStillInReplayMode();
+		}
 	}
 
 	@Override
@@ -49,7 +55,7 @@ public class IndexedInMemoryDocumentIndex implements InMemoryDocumentIndex {
 
 	@Override
 	public void setLiveMode() {
-		// TODO Auto-generated method stub
+		live.set(true);
 	}
 
 }
