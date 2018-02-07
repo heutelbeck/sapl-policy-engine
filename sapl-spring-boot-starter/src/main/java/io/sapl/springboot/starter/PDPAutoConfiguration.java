@@ -154,7 +154,7 @@ public class PDPAutoConfiguration {
 	}
 
 	@Bean
-	@ConditionalOnProperty("policyEnforcementFilter")
+	@ConditionalOnProperty("pdp.policyEnforcementFilter")
 	public PolicyEnforcementFilter policyEnforcementFilter(StandardSAPLAuthorizator saplAuthorizer) {
 		log.debug("no Bean of type PolicyEnforcementFilter defined. Will create default Beanof class {}",
 				PolicyEnforcementFilter.class);
