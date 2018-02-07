@@ -71,8 +71,11 @@ public class StandardSAPLAuthorizator {
 		if (response.getAdvice().orElse(null) != null) {
 			
 			List<Advice> adviceList = Advice.fromJson(response.getAdvice().get());
+			
+			LOGGER.debug("Start handling advices {}", adviceList);
 
 			for (Advice a : adviceList) {
+				LOGGER.debug("Handling now {}", a);
 				ahs.handle(a);
 			}
 
