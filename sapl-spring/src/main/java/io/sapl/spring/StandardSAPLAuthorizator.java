@@ -11,7 +11,7 @@ import io.sapl.spring.marshall.Action;
 import io.sapl.spring.marshall.Resource;
 import io.sapl.spring.marshall.Subject;
 import io.sapl.spring.marshall.obligation.Obligation;
-import io.sapl.spring.marshall.obligation.ObligationFailedException;
+import io.sapl.spring.marshall.obligation.ObligationFailed;
 import io.sapl.spring.marshall.obligation.ObligationsHandlerService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -58,7 +58,7 @@ public class StandardSAPLAuthorizator {
 					LOGGER.debug("Handling now {}", o);
 					obs.handle(o);
 				}
-			} catch (ObligationFailedException e) {
+			} catch (ObligationFailed e) {
 				response = new Response(Decision.DENY, null, null, null);
 			}
 		}

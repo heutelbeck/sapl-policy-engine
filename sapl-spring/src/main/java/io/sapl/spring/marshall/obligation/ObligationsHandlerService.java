@@ -36,8 +36,8 @@ public interface ObligationsHandlerService {
 	 * How to handle the case, where no suitable handler for an obligation is
 	 * available
 	 */
-	default void onNoHandlerAvailable() throws ObligationFailedException {
-		throw new ObligationFailedException("no suitable handler registered in service");
+	default void onNoHandlerAvailable() throws ObligationFailed {
+		throw new ObligationFailed("no suitable handler registered in service");
 	}
 
 	/**
@@ -61,10 +61,10 @@ public interface ObligationsHandlerService {
 	 * 
 	 * @param obligation
 	 *            - the obligation to handle
-	 * @throws ObligationFailedException
+	 * @throws ObligationFailed
 	 *             - maybe thrown by the used {@link ObligationHandler}
 	 */
-	default void handle(Obligation obligation) throws ObligationFailedException {
+	default void handle(Obligation obligation) throws ObligationFailed {
 		Optional<ObligationHandler> handler = chooseHandler(obligation);
 		if (handler.isPresent()) {
 			handler.get().handleObligation(obligation);
