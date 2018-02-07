@@ -17,6 +17,12 @@ import lombok.Setter;
 @ConfigurationProperties(prefix = "pdp")
 public class PDPProperties {
 
+	public enum PDPType {
+		EMBEDDED, REMOTE;
+	}
+
+	private PDPType type = PDPType.EMBEDDED;
+
 	private Remote remote = new Remote();
 
 	private Embedded embedded = new Embedded();
