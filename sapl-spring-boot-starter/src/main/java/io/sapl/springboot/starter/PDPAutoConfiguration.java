@@ -119,7 +119,7 @@ public class PDPAutoConfiguration {
 	private PDPProperties pdpProperties;
 
 	@Bean(BEAN_NAME_PDP_EMBEDDED)
-	@ConditionalOnProperty("pdp.embedded.active")
+	@ConditionalOnProperty(name = "pdp.type", havingValue = "EMBEDDED")
 	public PolicyDecisionPoint pdpEmbedded(PIPProvider pipProvider)
 			throws PolicyEvaluationException, AttributeException, FunctionException, IOException {
 		log.debug("creating embedded PDP with Bean name {} and policy path {}", BEAN_NAME_PDP_EMBEDDED,
@@ -135,7 +135,7 @@ public class PDPAutoConfiguration {
 	}
 
 	@Bean(BEAN_NAME_PDP_REMOTE)
-	@ConditionalOnProperty("pdp.remote.active")
+	@ConditionalOnProperty(name = "pdp.type", havingValue = "REMOTE")
 	public PolicyDecisionPoint pdpRemote() {
 		Remote remoteProps = pdpProperties.getRemote();
 		String host = remoteProps.getHost();
@@ -163,8 +163,8 @@ public class PDPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public StandardSAPLAuthorizator createStandardSAPLAuthorizer(PolicyDecisionPoint pdp,
-			ObligationsHandlerService ohs, AdviceHandlerService ahs) {
+	public StandardSAPLAuthorizator createStandardSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationsHandlerService ohs,
+			AdviceHandlerService ahs) {
 		log.debug("no Bean of type StandardSAPLAuthorizator  defined. Will create default Bean of class {}",
 				StandardSAPLAuthorizator.class);
 		return new StandardSAPLAuthorizator(pdp, ohs, ahs);
@@ -185,7 +185,7 @@ public class PDPAutoConfiguration {
 				SimpleObligationHandlerService.class);
 		return new SimpleObligationHandlerService();
 	}
-	
+
 	@Bean
 	@ConditionalOnMissingBean
 	public AdviceHandlerService createDefaultAdviceHanlderService() {
