@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 
+import com.google.common.base.Preconditions;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
@@ -22,10 +24,7 @@ public class ConjunctiveClause {
 	private final List<Literal> literals;
 
 	public ConjunctiveClause(final Collection<Literal> literals) {
-		Objects.requireNonNull(literals);
-		if (literals.isEmpty()) {
-			throw new IllegalArgumentException(CONSTRUCTION_FAILED);
-		}
+		Preconditions.checkArgument(!literals.isEmpty(), CONSTRUCTION_FAILED);
 		this.literals = new ArrayList<>(literals);
 	}
 

@@ -1,7 +1,8 @@
 package io.sapl.prp.inmemory.indexed;
 
 import java.util.Map;
-import java.util.Objects;
+
+import com.google.common.base.Preconditions;
 
 import io.sapl.grammar.sapl.And;
 import io.sapl.grammar.sapl.BasicGroup;
@@ -12,9 +13,8 @@ import io.sapl.grammar.sapl.Or;
 public class TreeWalker {
 
 	public static DisjunctiveFormula walk(final Expression expression, final Map<String, String> imports) {
-		Objects.requireNonNull(expression);
-		Objects.requireNonNull(imports);
-		if (expression instanceof And) {
+		Preconditions.checkNotNull(imports);
+		if (Preconditions.checkNotNull(expression) instanceof And) {
 			return traverse((And) expression, imports);
 		} else if (expression instanceof Or) {
 			return traverse((Or) expression, imports);

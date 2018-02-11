@@ -3,7 +3,6 @@ package io.sapl.prp.inmemory.indexed;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -12,6 +11,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -52,7 +52,8 @@ public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoi
 
 	@Override
 	public void put(String documentKey, SAPL sapl) {
-		documentChanges.offer(Maps.immutableEntry(Objects.requireNonNull(documentKey), Objects.requireNonNull(sapl)));
+		Preconditions.checkArgument(documentKey != null && sapl != null);
+		documentChanges.offer(Maps.immutableEntry(documentKey, sapl));
 		if (documentSwitch.compareAndSet(true, false)) {
 			updateDocumentReferences();
 		}
@@ -60,7 +61,8 @@ public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoi
 
 	@Override
 	public void remove(String documentKey) {
-		documentChanges.offer(Maps.immutableEntry(Objects.requireNonNull(documentKey), null));
+		Preconditions.checkArgument(documentKey != null);
+		documentChanges.offer(Maps.immutableEntry(documentKey, null));
 		if (documentSwitch.compareAndSet(true, false)) {
 			updateDocumentReferences();
 		}
@@ -69,7 +71,7 @@ public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoi
 	@Override
 	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
 			Map<String, JsonNode> variables) {
-		lazyInit(Objects.requireNonNull(functionCtx));
+		lazyInit(Preconditions.checkNotNull(functionCtx));
 		PolicyRetrievalResult result;
 		try {
 			VariableContext variableCtx = new VariableContext(request, variables);
@@ -85,7 +87,7 @@ public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoi
 
 	@Override
 	public void updateFunctionContext(FunctionContext functionCtx) {
-		bufferCtx = Objects.requireNonNull(functionCtx);
+		bufferCtx = Preconditions.checkNotNull(functionCtx);
 		if (functionCtxSwitch.compareAndSet(true, false)) {
 			updateFunctionContextReference();
 		}

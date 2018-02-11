@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Preconditions;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Expression;
@@ -29,8 +30,7 @@ public class Bool {
 	}
 
 	public Bool(final Expression expression, final Map<String, String> imports) {
-		Objects.requireNonNull(expression);
-		this.expression = expression;
+		this.expression = Preconditions.checkNotNull(expression);
 		this.imports = imports;
 	}
 

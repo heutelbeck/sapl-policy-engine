@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 
+import com.google.common.base.Preconditions;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
@@ -22,10 +24,7 @@ public class DisjunctiveFormula {
 	private boolean hasHashCode;
 
 	public DisjunctiveFormula(final Collection<ConjunctiveClause> clauses) {
-		Objects.requireNonNull(clauses);
-		if (clauses.isEmpty()) {
-			throw new IllegalArgumentException(CONSTRUCTION_FAILED);
-		}
+		Preconditions.checkArgument(!clauses.isEmpty(), CONSTRUCTION_FAILED);
 		this.clauses = new ArrayList<>(clauses);
 	}
 
