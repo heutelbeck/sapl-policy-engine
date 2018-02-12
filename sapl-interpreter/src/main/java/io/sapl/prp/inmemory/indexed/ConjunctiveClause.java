@@ -14,7 +14,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 
-public class ConjunctiveClause {
+public class ConjunctiveClause implements Simplifiable {
 
 	static final String CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";
 	static final String EVALUATION_NOT_POSSIBLE = "Evaluation Error: Attempting to evaluate empty clause.";
@@ -22,6 +22,7 @@ public class ConjunctiveClause {
 	private int hash;
 	private boolean hasHashCode;
 	private final List<Literal> literals;
+	private final ConjunctiveClauseSimplifier simplifier = new ConjunctiveClauseSimplifier();
 
 	public ConjunctiveClause(final Collection<Literal> literals) {
 		Preconditions.checkArgument(!literals.isEmpty(), CONSTRUCTION_FAILED);
@@ -139,65 +140,12 @@ public class ConjunctiveClause {
 		return Collections.unmodifiableList(result);
 	}
 
+	@Override
 	public ConjunctiveClause reduce() {
-		if (literals.size() > 1) {
-			List<Literal> result = new ArrayList<>(literals);
-			reduceConstants(result);
-			reduceFormula(result);
-			return new ConjunctiveClause(result);
-		}
-		return this;
+		return simplifier.reduce(this);
 	}
 
 	public int size() {
 		return literals.size();
-	}
-
-	private static void reduceConstants(final List<Literal> data) {
-		ListIterator<Literal> iter = data.listIterator();
-		while (iter.hasNext() && data.size() > 1) {
-			Literal literal = iter.next();
-			if (literal.isImmutable()) {
-				if (!literal.evaluate()) {
-					data.clear();
-					data.add(literal);
-					return;
-				} else {
-					iter.remove();
-				}
-			}
-		}
-	}
-
-	private static void reduceFormula(final List<Literal> data) {
-		ListIterator<Literal> pointer = data.listIterator();
-		while (pointer.hasNext()) {
-			Literal lhs = pointer.next();
-			if (lhs != null && reduceFormulaImpl(data, pointer, lhs)) {
-				break;
-			}
-		}
-		data.removeIf(Objects::isNull);
-	}
-
-	private static boolean reduceFormulaImpl(final List<Literal> data, final ListIterator<Literal> pointer,
-			final Literal value) {
-		ListIterator<Literal> forward = data.listIterator(pointer.nextIndex());
-		while (forward.hasNext()) {
-			Literal rhs = forward.next();
-			if (rhs == null) {
-				continue;
-			}
-			if (value.sharesBool(rhs)) {
-				if (value.sharesNegation(rhs)) {
-					forward.set(null);
-				} else {
-					data.clear();
-					data.add(new Literal(new Bool(false)));
-					return true;
-				}
-			}
-		}
-		return false;
 	}
 }

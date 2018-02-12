@@ -37,7 +37,8 @@ public class FastIndexCreationStrategy implements IndexCreationStrategy {
 
 		int[] indexToLengthTemplate = mapIndexToLength(clauseToIndexBiMap.inverse());
 		int[] indexToOccurencesTemplate = mapIndexToOccurences(clauseToIndexBiMap.inverse(), clauseToFormulas);
-		AuxiliaryMatrix matrix = new AuxiliaryMatrix(indexToLengthTemplate, indexToOccurencesTemplate);
+		int[][] template = { indexToLengthTemplate, indexToOccurencesTemplate };
+		AuxiliaryMatrix matrix = new AuxiliaryMatrix(template);
 
 		return new FastIndexContainer(true, variableOrder, formulaToClauses, flattenIndexMap(indexToTargets),
 				formulaToDocuments, matrix);

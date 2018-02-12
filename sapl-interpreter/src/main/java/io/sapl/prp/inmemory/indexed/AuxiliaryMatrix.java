@@ -16,8 +16,13 @@ public class AuxiliaryMatrix {
 		uncheckedOccurrencesOfClause = Arrays.copyOf(matrix.uncheckedOccurrencesOfClause, size);
 	}
 
-	public AuxiliaryMatrix(final int[] sizeOfClauses, final int[] occurrencesOfClauses) {
+	public AuxiliaryMatrix(final int[][] matrix) {
+		final int expectedRows = 2;
+		Preconditions.checkArgument(matrix.length == expectedRows);
+		int[] sizeOfClauses = matrix[0];
+		int[] occurrencesOfClauses = matrix[1];
 		Preconditions.checkArgument(sizeOfClauses.length == occurrencesOfClauses.length);
+
 		size = sizeOfClauses.length;
 		uncheckedLiteralsOfClause = Arrays.copyOf(sizeOfClauses, size);
 		uncheckedOccurrencesOfClause = Arrays.copyOf(occurrencesOfClauses, size);
