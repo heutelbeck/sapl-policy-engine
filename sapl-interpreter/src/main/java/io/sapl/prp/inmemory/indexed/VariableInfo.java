@@ -1,7 +1,5 @@
 package io.sapl.prp.inmemory.indexed;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -9,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import com.google.common.math.DoubleMath;
 
 public class VariableInfo implements Comparable<VariableInfo> {
@@ -25,7 +24,7 @@ public class VariableInfo implements Comparable<VariableInfo> {
 	private final Variable variable;
 
 	public VariableInfo(final Variable variable) {
-		this.variable = checkNotNull(variable);
+		this.variable = Preconditions.checkNotNull(variable);
 	}
 
 	public void addToClauseRelevanceList(double relevanceForClause) {

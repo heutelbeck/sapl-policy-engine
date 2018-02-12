@@ -112,7 +112,7 @@ public class FastIndexCreationStrategy implements IndexCreationStrategy {
 			}
 			for (ConjunctiveClause clause : variableInfo.getSetOfUnsatisfiableClausesIfFalse()) {
 				Integer index = result.get(clause);
-				if (index == null || !result.containsKey(clause)) {
+				if (index == null) {
 					index = i;
 					result.put(clause, index);
 					i += 1;
@@ -141,7 +141,7 @@ public class FastIndexCreationStrategy implements IndexCreationStrategy {
 			variableInfo.setEnergyScore(createScore(variableInfo));
 		}
 		Collections.sort(infos, Collections.reverseOrder());
-		List<Variable> result = new ArrayList<>();
+		List<Variable> result = new ArrayList<>(infos.size());
 		for (VariableInfo variableInfo : infos) {
 			result.add(variableInfo.getVariable());
 		}
@@ -160,7 +160,7 @@ public class FastIndexCreationStrategy implements IndexCreationStrategy {
 		for (DisjunctiveFormula formula : formulas) {
 			for (ConjunctiveClause clause : formula.getClauses()) {
 				Set<DisjunctiveFormula> set = result.get(clause);
-				if (set == null || !result.containsKey(clause)) {
+				if (set == null) {
 					set = new HashSet<>();
 					result.put(clause, set);
 				}
@@ -217,7 +217,7 @@ public class FastIndexCreationStrategy implements IndexCreationStrategy {
 	private static Map<Integer, Set<DisjunctiveFormula>> mapIndexToTargets(
 			final Map<ConjunctiveClause, Integer> clauseToIndex,
 			final Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas) {
-		Map<Integer, Set<DisjunctiveFormula>> result = new HashMap<>();
+		Map<Integer, Set<DisjunctiveFormula>> result = new HashMap<>(clauseToIndex.size());
 		for (Map.Entry<ConjunctiveClause, Set<DisjunctiveFormula>> entry : clauseToFormulas.entrySet()) {
 			result.put(clauseToIndex.get(entry.getKey()), entry.getValue());
 		}

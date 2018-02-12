@@ -58,12 +58,12 @@ public class FastIndexContainer implements IndexContainer {
 					return new PolicyRetrievalResult(fetchPolicies(result), true);
 				}
 				processVariable(candidates, variable, outcome, matrix, satisfiedCandidates, insignificantCandidates,
-						result, hasError);
+						hasError, result);
 			}
 		}
 		if (isCompilant) {
 			inspectedVariables.flip(0, len);
-			inspectedVariables.forEachSetBit((index) -> {
+			inspectedVariables.forEachSetBit(index -> {
 				Variable variable = variableOrder.get(index);
 				if (isPartOfCandidates(variable, insignificantCandidates)) {
 					Optional<Boolean> outcome = variable.evaluate(functionCtx, variableCtx);
@@ -80,7 +80,7 @@ public class FastIndexContainer implements IndexContainer {
 
 	protected Bitmask checkDispensableRelatingToCandidate(final Bitmask dispensableCandidates, AuxiliaryMatrix matrix) {
 		final Bitmask result = new Bitmask();
-		dispensableCandidates.forEachSetBit((index) -> {
+		dispensableCandidates.forEachSetBit(index -> {
 			if (matrix.decrementAndGetRemainingOccurrencesOfClause(index) == 0) {
 				result.set(index);
 			}
@@ -97,9 +97,7 @@ public class FastIndexContainer implements IndexContainer {
 
 	protected Set<DisjunctiveFormula> fetchFormulas(final Bitmask satisfiableCandidates) {
 		final Set<DisjunctiveFormula> result = new HashSet<>();
-		satisfiableCandidates.forEachSetBit((index) -> {
-			result.addAll(relatedFormulas.get(index));
-		});
+		satisfiableCandidates.forEachSetBit(index -> result.addAll(relatedFormulas.get(index)));
 		return result;
 	}
 
@@ -114,9 +112,8 @@ public class FastIndexContainer implements IndexContainer {
 	protected Bitmask findDispensableCandidates(final Bitmask candidates, final Bitmask satisfiableCandidates,
 			final AuxiliaryMatrix matrix) {
 		final Bitmask result = new Bitmask();
-		satisfiableCandidates.forEachSetBit((index) -> {
-			result.or(identifyDispensableRelatingToCandidate(candidates, index, matrix));
-		});
+		satisfiableCandidates
+				.forEachSetBit(index -> result.or(identifyDispensableRelatingToCandidate(candidates, index, matrix)));
 		return result;
 	}
 
@@ -133,7 +130,7 @@ public class FastIndexContainer implements IndexContainer {
 			final AuxiliaryMatrix matrix) {
 		final Bitmask result = new Bitmask();
 		Bitmask affectedCandidates = findUnsatisfiableCandidates(candidates, variable, !value);
-		affectedCandidates.forEachSetBit((index) -> {
+		affectedCandidates.forEachSetBit(index -> {
 			if (matrix.decrementAndGetRemainingLiteralsOfClause(index) == 0) {
 				result.set(index);
 			}
@@ -152,17 +149,11 @@ public class FastIndexContainer implements IndexContainer {
 	}
 
 	protected boolean handleErrorGracefully(Optional<Boolean> outcome) {
-		if (!outcome.isPresent() && isCompilant) {
-			return true;
-		}
-		return false;
+		return !outcome.isPresent() && isCompilant;
 	}
 
 	protected boolean handleErrorHarshly(Optional<Boolean> outcome) {
-		if (!outcome.isPresent() && !isCompilant) {
-			return true;
-		}
-		return false;
+		return !outcome.isPresent() && !isCompilant;
 	}
 
 	protected Bitmask identifyDispensableRelatingToCandidate(final Bitmask candidates, int index,
@@ -183,14 +174,13 @@ public class FastIndexContainer implements IndexContainer {
 
 	protected void processVariable(final Bitmask candidates, final Variable variable, Optional<Boolean> outcome,
 			final AuxiliaryMatrix matrix, final Bitmask satisfiedCandidates, final Bitmask insignificantCandidates,
-			final Set<DisjunctiveFormula> result, boolean[] hasError) {
-		boolean value;
+			final boolean[] hasError, final Set<DisjunctiveFormula> result) {
 		if (handleErrorGracefully(outcome)) {
 			removeCandidatesRelatedToVariable(variable, candidates, satisfiedCandidates, insignificantCandidates);
 			hasError[0] = true;
 			return;
 		}
-		value = outcome.get();
+		boolean value = outcome.get();
 
 		Bitmask unsatisfiableCandidates = findUnsatisfiableCandidates(candidates, variable, value);
 		Bitmask satisfiableCandidates = findSatisfiableCandidates(candidates, variable, value, matrix);
