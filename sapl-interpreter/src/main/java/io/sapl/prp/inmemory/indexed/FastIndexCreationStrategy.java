@@ -112,7 +112,7 @@ public class FastIndexCreationStrategy implements IndexCreationStrategy {
 			}
 			for (ConjunctiveClause clause : variableInfo.getSetOfUnsatisfiableClausesIfFalse()) {
 				Integer index = result.get(clause);
-				if (index == null || !result.containsKey(clause)) {
+				if (index == null) {
 					index = i;
 					result.put(clause, index);
 					i += 1;
@@ -160,7 +160,7 @@ public class FastIndexCreationStrategy implements IndexCreationStrategy {
 		for (DisjunctiveFormula formula : formulas) {
 			for (ConjunctiveClause clause : formula.getClauses()) {
 				Set<DisjunctiveFormula> set = result.get(clause);
-				if (set == null || !result.containsKey(clause)) {
+				if (set == null) {
 					set = new HashSet<>();
 					result.put(clause, set);
 				}
