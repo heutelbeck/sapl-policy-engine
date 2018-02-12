@@ -6,6 +6,10 @@ import com.google.common.base.Preconditions;
 
 public class AuxiliaryMatrix {
 
+	private static final int EXPECTED_ROWS = 2;
+	private static final int INDEX_OF_UNCHECKED_LITERALS = 0;
+	private static final int INDEX_OF_UNCHECKED_OCCURRENCES = 1;
+
 	private final int size;
 	private final int[] uncheckedLiteralsOfClause;
 	private final int[] uncheckedOccurrencesOfClause;
@@ -16,11 +20,10 @@ public class AuxiliaryMatrix {
 		uncheckedOccurrencesOfClause = Arrays.copyOf(matrix.uncheckedOccurrencesOfClause, size);
 	}
 
-	public AuxiliaryMatrix(final int[][] matrix) {
-		final int expectedRows = 2;
-		Preconditions.checkArgument(matrix.length == expectedRows);
-		int[] sizeOfClauses = matrix[0];
-		int[] occurrencesOfClauses = matrix[1];
+	public AuxiliaryMatrix(final int[]... matrix) {
+		Preconditions.checkArgument(matrix.length == EXPECTED_ROWS);
+		int[] sizeOfClauses = matrix[INDEX_OF_UNCHECKED_LITERALS];
+		int[] occurrencesOfClauses = matrix[INDEX_OF_UNCHECKED_OCCURRENCES];
 		Preconditions.checkArgument(sizeOfClauses.length == occurrencesOfClauses.length);
 
 		size = sizeOfClauses.length;
