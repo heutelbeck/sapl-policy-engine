@@ -11,8 +11,6 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
-import io.sapl.prp.inmemory.indexed.TreeWalker;
 
 public class TreeWalkerTest {
 
@@ -37,7 +35,7 @@ public class TreeWalkerTest {
 	@Test
 	public void testNestedStatement() throws PolicyEvaluationException {
 		// given
-		String definition = "policy \"p_0\" permit !(resource.x0 || resource.x1) && resource.x2";
+		String definition = "policy \"p_0\" permit !(resource.x0 | resource.x1) & resource.x2";
 		SAPL document = interpreter.parse(definition);
 
 		// when
@@ -53,7 +51,7 @@ public class TreeWalkerTest {
 	@Test
 	public void testSimpleConjunction() throws PolicyEvaluationException {
 		// given
-		String definition = "policy \"p_0\" permit resource.x0 && resource.x1";
+		String definition = "policy \"p_0\" permit resource.x0 & resource.x1";
 		SAPL document = interpreter.parse(definition);
 
 		// when
@@ -69,7 +67,7 @@ public class TreeWalkerTest {
 	@Test
 	public void testSimpleDisjunction() throws PolicyEvaluationException {
 		// given
-		String definition = "policy \"p_0\" permit resource.x0 || resource.x1";
+		String definition = "policy \"p_0\" permit resource.x0 | resource.x1";
 		SAPL document = interpreter.parse(definition);
 
 		// when

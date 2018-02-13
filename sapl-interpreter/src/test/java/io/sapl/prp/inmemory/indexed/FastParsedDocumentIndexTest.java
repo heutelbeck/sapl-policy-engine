@@ -24,7 +24,6 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 
 public class FastParsedDocumentIndexTest {
 
@@ -53,7 +52,7 @@ public class FastParsedDocumentIndexTest {
 	public void testPut() throws PolicyEvaluationException {
 		// given
 		FunctionContext functionCtx = new AnnotationFunctionContext();
-		String definition = "policy \"p_0\" permit !(resource.x0 || resource.x1)";
+		String definition = "policy \"p_0\" permit !(resource.x0 | resource.x1)";
 		SAPL document = interpreter.parse(definition);
 		prp.put("1", document);
 		bindings.put("x0", false);
@@ -72,7 +71,7 @@ public class FastParsedDocumentIndexTest {
 	public void testRemove() throws PolicyEvaluationException {
 		// given
 		FunctionContext functionCtx = new AnnotationFunctionContext();
-		String definition = "policy \"p_0\" permit resource.x0 && resource.x1";
+		String definition = "policy \"p_0\" permit resource.x0 & resource.x1";
 		SAPL document = interpreter.parse(definition);
 		prp.updateFunctionContext(functionCtx);
 		prp.put("1", document);
