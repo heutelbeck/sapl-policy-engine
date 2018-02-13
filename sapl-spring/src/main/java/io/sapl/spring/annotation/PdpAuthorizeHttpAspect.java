@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
-import io.sapl.spring.StandardSAPLAuthorizator;
+import io.sapl.spring.SAPLAuthorizator;
 import io.sapl.spring.marshall.Action;
 import io.sapl.spring.marshall.Resource;
 import io.sapl.spring.marshall.Subject;
@@ -28,10 +28,10 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class PdpAuthorizeHttpAspect {
 
-	private final StandardSAPLAuthorizator pep;
+	private final SAPLAuthorizator pep;
 
 	@Autowired
-	public PdpAuthorizeHttpAspect(StandardSAPLAuthorizator pep) {
+	public PdpAuthorizeHttpAspect(SAPLAuthorizator pep) {
 		this.pep = pep;
 	}
 

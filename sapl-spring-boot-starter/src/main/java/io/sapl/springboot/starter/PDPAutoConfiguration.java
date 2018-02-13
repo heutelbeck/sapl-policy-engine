@@ -23,7 +23,7 @@ import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import io.sapl.spring.PIPProvider;
 import io.sapl.spring.PolicyEnforcementFilter;
 import io.sapl.spring.SAPLPermissionEvaluator;
-import io.sapl.spring.StandardSAPLAuthorizator;
+import io.sapl.spring.SAPLAuthorizator;
 import io.sapl.spring.marshall.advice.AdviceHandlerService;
 import io.sapl.spring.marshall.advice.SimpleAdviceHandlerService;
 import io.sapl.spring.marshall.obligation.Obligation;
@@ -155,7 +155,7 @@ public class PDPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnProperty("pdp.policyEnforcementFilter")
-	public PolicyEnforcementFilter policyEnforcementFilter(StandardSAPLAuthorizator saplAuthorizer) {
+	public PolicyEnforcementFilter policyEnforcementFilter(SAPLAuthorizator saplAuthorizer) {
 		log.debug("no Bean of type PolicyEnforcementFilter defined. Will create default Beanof class {}",
 				PolicyEnforcementFilter.class);
 		return new PolicyEnforcementFilter(saplAuthorizer);
@@ -163,16 +163,16 @@ public class PDPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public StandardSAPLAuthorizator createStandardSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationsHandlerService ohs,
+	public SAPLAuthorizator createStandardSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationsHandlerService ohs,
 			AdviceHandlerService ahs) {
 		log.debug("no Bean of type StandardSAPLAuthorizator  defined. Will create default Bean of class {}",
-				StandardSAPLAuthorizator.class);
-		return new StandardSAPLAuthorizator(pdp, ohs, ahs);
+				SAPLAuthorizator.class);
+		return new SAPLAuthorizator(pdp, ohs, ahs);
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(StandardSAPLAuthorizator saplAuthorizer) {
+	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(SAPLAuthorizator saplAuthorizer) {
 		log.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of class {}",
 				SAPLPermissionEvaluator.class);
 		return new SAPLPermissionEvaluator(saplAuthorizer);

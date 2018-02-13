@@ -24,10 +24,10 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class SAPLPermissionEvaluator implements PermissionEvaluator {
 
-	private StandardSAPLAuthorizator saplAuthorizer;
+	private SAPLAuthorizator saplAuthorizer;
 
 	@Autowired
-	public SAPLPermissionEvaluator(StandardSAPLAuthorizator saplAuthorizer) {
+	public SAPLPermissionEvaluator(SAPLAuthorizator saplAuthorizer) {
 		this.saplAuthorizer = saplAuthorizer;
 	}
 

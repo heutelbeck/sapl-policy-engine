@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
-import io.sapl.spring.StandardSAPLAuthorizator;
+import io.sapl.spring.SAPLAuthorizator;
 import io.sapl.spring.marshall.Subject;
 import io.sapl.spring.marshall.action.SimpleAction;
 import io.sapl.spring.marshall.resource.StringResource;
@@ -26,10 +26,10 @@ public class PdpAuthorizeAspect {
 
 	private static final String DEFAULT = "default";
 
-	private final StandardSAPLAuthorizator pep;
+	private final SAPLAuthorizator pep;
 
 	@Autowired
-	public PdpAuthorizeAspect(StandardSAPLAuthorizator pep) {
+	public PdpAuthorizeAspect(SAPLAuthorizator pep) {
 		super();
 		this.pep = pep;
 	}

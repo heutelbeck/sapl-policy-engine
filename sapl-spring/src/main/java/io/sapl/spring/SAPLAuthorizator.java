@@ -18,7 +18,7 @@ import io.sapl.spring.marshall.obligation.ObligationsHandlerService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class StandardSAPLAuthorizator {
+public class SAPLAuthorizator {
 
 	protected final PolicyDecisionPoint pdp;
 
@@ -27,7 +27,7 @@ public class StandardSAPLAuthorizator {
 	protected final AdviceHandlerService ahs;
 
 	@Autowired
-	public StandardSAPLAuthorizator(PolicyDecisionPoint pdp, ObligationsHandlerService obs, AdviceHandlerService ahs) {
+	public SAPLAuthorizator(PolicyDecisionPoint pdp, ObligationsHandlerService obs, AdviceHandlerService ahs) {
 		this.pdp = pdp;
 		this.obs = obs;
 		this.ahs = ahs;
