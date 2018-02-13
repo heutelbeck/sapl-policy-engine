@@ -47,17 +47,24 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		return parsedDocPrp.retrievePolicies(request, functionCtx, variables);
 	}
 
-	public static PolicyRetrievalPoint of(String policyPath, EmbeddedPolicyDecisionPointConfiguration config)
-			throws IOException, PolicyEvaluationException {
+	public static PolicyRetrievalPoint of(String policyPath, EmbeddedPolicyDecisionPointConfiguration config,
+			FunctionContext functionCtx) throws IOException, PolicyEvaluationException {
 		if (PrpImplementation.INDEXED == config.getPrpImplementation()) {
-			return new ResourcesPolicyRetrievalPoint(policyPath, new FastParsedDocumentIndex());
+			FastParsedDocumentIndex index = new FastParsedDocumentIndex();
+			index.updateFunctionContext(functionCtx);
+			return new ResourcesPolicyRetrievalPoint(policyPath, index);
 		} else {
 			return new ResourcesPolicyRetrievalPoint(policyPath, new SimpleParsedDocumentIndex());
 		}
 	}
 
-	public static PolicyRetrievalPoint of(EmbeddedPolicyDecisionPointConfiguration config)
+	public static PolicyRetrievalPoint of(EmbeddedPolicyDecisionPointConfiguration config, FunctionContext functionCtx)
 			throws IOException, PolicyEvaluationException {
-		return of(null, config);
+		return of(null, config, functionCtx);
 	}
+
+	public void setLiveMode() {
+		parsedDocPrp.setLiveMode();
+	}
+
 }

@@ -210,4 +210,9 @@ public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoi
 			functionCtxWriteLock.unlock();
 		}
 	}
+
+	@Override
+	public void setLiveMode() {
+		// TODO
+	}
 }
