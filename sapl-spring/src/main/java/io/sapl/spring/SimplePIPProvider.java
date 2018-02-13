@@ -14,7 +14,7 @@ public class SimplePIPProvider implements PIPProvider {
 	
 	@Override
 	public Collection<Class<? extends Object>> getPIPClasses() {
-		return pipList;
+		return Collections.unmodifiableCollection(pipList);
 	}
 
 }
