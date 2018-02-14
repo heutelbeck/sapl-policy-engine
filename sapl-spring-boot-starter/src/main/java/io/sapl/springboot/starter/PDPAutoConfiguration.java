@@ -36,8 +36,8 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * This automatic configuration will provide you several beans to deal with SAPL
  * by default. <br/>
- * <b>PRESUMPTION:</b>The only presumption you have to fullfill to work with the
- * <i>sapl-spring-boot-starter</i> is that you will configure at leat one
+ * <b>PRESUMPTION:</b>The only presumption you have to fulfill to work with the
+ * <i>sapl-spring-boot-starter</i> is that you will configure at least one
  * {@link PolicyDecisionPoint}. <br/>
  * If you do not change it, the default configuration (see
  * {@link PDPProperties}) will configure an {@link EmbeddedPolicyDecisionPoint}
@@ -51,7 +51,7 @@ import lombok.extern.slf4j.Slf4j;
  * "https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html">Spring
  * Boot Documentation on config parameters</a>) <br/>
  * Do not forget to provide the minimal required files in your policy path! (at
- * leat you need a <i>pdp.json</i> file) <br/>
+ * least you need a <i>pdp.json</i> file) <br/>
  * Example Snippet from .properties:<br/>
  * <code>
  * pdp.embedded.active=true
@@ -96,7 +96,7 @@ import lombok.extern.slf4j.Slf4j;
  * {@link PolicyInformationPoint}-interface.<br/>
  * <br/>
  * If you do not define a bean of this type, this starter will provide a simple
- * implementation of {@link PIPProvider} that always returns a empty list.
+ * implementation of {@link PIPProvider} that always returns an empty list.
  * 
  * <br/>
  * <br/>
