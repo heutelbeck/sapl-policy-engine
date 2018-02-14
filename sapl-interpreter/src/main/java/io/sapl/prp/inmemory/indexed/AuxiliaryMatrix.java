@@ -38,7 +38,7 @@ public class AuxiliaryMatrix {
 
 	public int decrementAndGetRemainingOccurrencesOfClause(int index) {
 		uncheckedOccurrencesOfClause[index] -= 1;
-		return --uncheckedOccurrencesOfClause[index];
+		return uncheckedOccurrencesOfClause[index];
 	}
 
 	public int size() {

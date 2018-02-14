@@ -40,6 +40,7 @@ public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoi
 	private final Lock functionCtxWriteLock;
 	private final CountDownLatch initLatch = new CountDownLatch(1);
 	private final AtomicBoolean initSwitch = new AtomicBoolean(true);
+	private final AtomicBoolean liveSwitch = new AtomicBoolean(false);
 	private final Map<String, SAPL> publishedDocuments = new HashMap<>();
 	private final Map<String, DisjunctiveFormula> publishedTargets = new HashMap<>();
 	private final Map<String, SAPL> unusableDocuments = new HashMap<>();
@@ -48,6 +49,11 @@ public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoi
 		ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
 		functionCtxReadLock = readWriteLock.readLock();
 		functionCtxWriteLock = readWriteLock.writeLock();
+	}
+
+	public FastParsedDocumentIndex(FunctionContext functionCtx) {
+		this();
+		this.functionCtx = functionCtx;
 	}
 
 	@Override
@@ -86,6 +92,13 @@ public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoi
 	}
 
 	@Override
+	public void setLiveMode() {
+		if (liveSwitch.compareAndSet(false, true)) {
+			createDocumentIndex();
+		}
+	}
+
+	@Override
 	public void updateFunctionContext(FunctionContext functionCtx) {
 		bufferCtx = Preconditions.checkNotNull(functionCtx);
 		if (functionCtxSwitch.compareAndSet(true, false)) {
@@ -115,6 +128,7 @@ public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoi
 	}
 
 	private void lazyInit(FunctionContext functionCtx) {
+		Preconditions.checkState(liveSwitch.get());
 		if (initSwitch.compareAndSet(true, false)) {
 			functionCtxWriteLock.lock();
 			try {
@@ -147,7 +161,9 @@ public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoi
 				}
 			}
 			discardUnusables();
-			createDocumentIndex();
+			if (liveSwitch.get()) {
+				createDocumentIndex();
+			}
 		}
 	}
 
@@ -161,7 +177,9 @@ public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoi
 				retainTarget(entry.getKey(), entry.getValue());
 			}
 			discardUnusables();
-			createDocumentIndex();
+			if (liveSwitch.get()) {
+				createDocumentIndex();
+			}
 		}
 	}
 
@@ -209,10 +227,5 @@ public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoi
 		} finally {
 			functionCtxWriteLock.unlock();
 		}
-	}
-
-	@Override
-	public void setLiveMode() {
-		// TODO
 	}
 }
