@@ -39,6 +39,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 			SAPL saplDocument = interpreter.parse(policyFile.getInputStream());
 			parsedDocPrp.put(policyFile.getFilename(), saplDocument);
 		}
+		parsedDocPrp.setLiveMode();
 	}
 
 	@Override
@@ -47,17 +48,18 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		return parsedDocPrp.retrievePolicies(request, functionCtx, variables);
 	}
 
-	public static PolicyRetrievalPoint of(String policyPath, EmbeddedPolicyDecisionPointConfiguration config)
-			throws IOException, PolicyEvaluationException {
+	public static PolicyRetrievalPoint of(String policyPath, EmbeddedPolicyDecisionPointConfiguration config,
+			FunctionContext functionCtx) throws IOException, PolicyEvaluationException {
 		if (PrpImplementation.INDEXED == config.getPrpImplementation()) {
-			return new ResourcesPolicyRetrievalPoint(policyPath, new FastParsedDocumentIndex());
+			return new ResourcesPolicyRetrievalPoint(policyPath, new FastParsedDocumentIndex(functionCtx));
 		} else {
 			return new ResourcesPolicyRetrievalPoint(policyPath, new SimpleParsedDocumentIndex());
 		}
 	}
 
-	public static PolicyRetrievalPoint of(EmbeddedPolicyDecisionPointConfiguration config)
+	public static PolicyRetrievalPoint of(EmbeddedPolicyDecisionPointConfiguration config, FunctionContext functionCtx)
 			throws IOException, PolicyEvaluationException {
-		return of(null, config);
+		return of(null, config, functionCtx);
 	}
+
 }

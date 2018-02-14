@@ -43,6 +43,7 @@ public class ConcurrencyTest {
 		interpreter = new DefaultSAPLInterpreter();
 		json = JsonNodeFactory.instance;
 		prp = new FastParsedDocumentIndex();
+		prp.setLiveMode();
 		variables = new HashMap<>();
 	}
 

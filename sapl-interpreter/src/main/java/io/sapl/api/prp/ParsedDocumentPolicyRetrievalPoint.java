@@ -17,4 +17,6 @@ public interface ParsedDocumentPolicyRetrievalPoint {
 	void remove(String documentKey);
 
 	void updateFunctionContext(FunctionContext functionCtx);
+
+	void setLiveMode();
 }

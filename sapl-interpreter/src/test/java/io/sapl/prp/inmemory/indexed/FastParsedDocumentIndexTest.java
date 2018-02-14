@@ -45,6 +45,7 @@ public class FastParsedDocumentIndexTest {
 		interpreter = new DefaultSAPLInterpreter();
 		json = JsonNodeFactory.instance;
 		prp = new FastParsedDocumentIndex();
+		prp.setLiveMode();
 		variables = new HashMap<>();
 	}
 
