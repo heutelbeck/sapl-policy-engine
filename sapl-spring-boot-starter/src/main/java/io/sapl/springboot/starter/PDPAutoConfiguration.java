@@ -156,7 +156,7 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnProperty("pdp.policyEnforcementFilter")
 	public PolicyEnforcementFilter policyEnforcementFilter(SAPLAuthorizator saplAuthorizer) {
-		log.debug("no Bean of type PolicyEnforcementFilter defined. Will create default Beanof class {}",
+		log.debug("no Bean of type PolicyEnforcementFilter defined. Will create default Bean of {}",
 				PolicyEnforcementFilter.class);
 		return new PolicyEnforcementFilter(saplAuthorizer);
 	}
@@ -165,7 +165,7 @@ public class PDPAutoConfiguration {
 	@ConditionalOnMissingBean
 	public SAPLAuthorizator createSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationHandlerService ohs,
 			AdviceHandlerService ahs) {
-		log.debug("no Bean of type SAPLAuthorizator  defined. Will create default Bean of class {}",
+		log.debug("no Bean of type SAPLAuthorizator  defined. Will create default Bean of {}",
 				SAPLAuthorizator.class);
 		return new SAPLAuthorizator(pdp, ohs, ahs);
 	}
@@ -173,23 +173,23 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(SAPLAuthorizator saplAuthorizer) {
-		log.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of class {}",
+		log.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of {}",
 				SAPLPermissionEvaluator.class);
 		return new SAPLPermissionEvaluator(saplAuthorizer);
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public ObligationHandlerService createDefaultObligationsHandlerService() {
-		log.debug("no Bean of type ObligationsHandlerService defined. Will create default Bean of class {}",
+	public ObligationHandlerService createDefaultObligationHandlerService() {
+		log.debug("no Bean of type ObligationHandlerService defined. Will create default Bean of {}",
 				SimpleObligationHandlerService.class);
 		return new SimpleObligationHandlerService();
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public AdviceHandlerService createDefaultAdviceHanlderService() {
-		log.debug("no Bean of type AdviceHandlerService defined. Will create default Bean of class {}",
+	public AdviceHandlerService createDefaultAdviceHandlerService() {
+		log.debug("no Bean of type AdviceHandlerService defined. Will create default Bean of {}",
 				SimpleAdviceHandlerService.class);
 		return new SimpleAdviceHandlerService();
 	}
@@ -198,13 +198,13 @@ public class PDPAutoConfiguration {
 	public CommandLineRunner registerObligationHandlers(List<ObligationHandler> obligationHandlers,
 			ObligationHandlerService ohs) {
 		if (!pdpProperties.getObligationsHandler().isAutoregister()) {
-			log.debug("Automatic registration of obligation hanlders is deactivated.");
+			log.debug("Automatic registration of obligation handlers is deactivated.");
 			return args -> {
 				// NOP
 			};
 		}
 		log.debug(
-				"Automatic registration of obligation handlers is activated. {} beans of type ObligationHandler found, they will be reigistered at the ObligationsHandlerServive-bean",
+				"Automatic registration of obligation handlers is activated. {} beans of type ObligationHandler found, they will be reigistered at the ObligationHandlerService-bean",
 				obligationHandlers.size());
 		return args -> obligationHandlers.stream().forEach(ohs::register);
 
@@ -218,7 +218,7 @@ public class PDPAutoConfiguration {
 			@Override
 			public void handleObligation(Obligation obligation) {
 				log.warn(
-						"using denyAllObligationHandler. If you want to handle Obligations register your own und probably unregister this one (Bean name: {})");
+						"using denyAllObligationHandler. If you want to handle Obligations register your own und probably unregister this one (Bean name: {})", BEAN_NAME_OBLIGATION_HANDLER_DENY_ALL);
 			}
 
 			@Override
