@@ -28,7 +28,7 @@ import io.sapl.spring.marshall.advice.AdviceHandlerService;
 import io.sapl.spring.marshall.advice.SimpleAdviceHandlerService;
 import io.sapl.spring.marshall.obligation.Obligation;
 import io.sapl.spring.marshall.obligation.ObligationHandler;
-import io.sapl.spring.marshall.obligation.ObligationsHandlerService;
+import io.sapl.spring.marshall.obligation.ObligationHandlerService;
 import io.sapl.spring.marshall.obligation.SimpleObligationHandlerService;
 import io.sapl.springboot.starter.PDPProperties.Remote;
 import lombok.extern.slf4j.Slf4j;
@@ -163,7 +163,7 @@ public class PDPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public SAPLAuthorizator createSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationsHandlerService ohs,
+	public SAPLAuthorizator createSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationHandlerService ohs,
 			AdviceHandlerService ahs) {
 		log.debug("no Bean of type SAPLAuthorizator  defined. Will create default Bean of class {}",
 				SAPLAuthorizator.class);
@@ -180,7 +180,7 @@ public class PDPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public ObligationsHandlerService createDefaultObligationsHandlerService() {
+	public ObligationHandlerService createDefaultObligationsHandlerService() {
 		log.debug("no Bean of type ObligationsHandlerService defined. Will create default Bean of class {}",
 				SimpleObligationHandlerService.class);
 		return new SimpleObligationHandlerService();
@@ -196,7 +196,7 @@ public class PDPAutoConfiguration {
 
 	@Bean
 	public CommandLineRunner registerObligationHandlers(List<ObligationHandler> obligationHandlers,
-			ObligationsHandlerService ohs) {
+			ObligationHandlerService ohs) {
 		if (!pdpProperties.getObligationsHandler().isAutoregister()) {
 			log.debug("Automatic registration of obligation hanlders is deactivated.");
 			return args -> {

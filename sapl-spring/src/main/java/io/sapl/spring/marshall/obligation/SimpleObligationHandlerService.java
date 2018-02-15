@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-public class SimpleObligationHandlerService implements ObligationsHandlerService {
+public class SimpleObligationHandlerService implements ObligationHandlerService {
 
 	private final List<ObligationHandler> handlers = new LinkedList<>();
 
