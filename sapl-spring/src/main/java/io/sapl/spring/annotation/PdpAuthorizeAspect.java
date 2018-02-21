@@ -1,5 +1,8 @@
 package io.sapl.spring.annotation;
 
+import java.util.Map;
+import java.util.Map.Entry;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -10,10 +13,15 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
@@ -43,25 +51,36 @@ public class PdpAuthorizeAspect {
 		this.pep = pep;
 	}
 
+	@Autowired
+	private TokenStore tokenStore;
+	
 	@Around("@annotation(pdpAuthorize) && execution(* *(..))")
 	public Object around(ProceedingJoinPoint pjp, PdpAuthorize pdpAuthorize) throws Throwable {
-		Action action;
 		Subject subject;
+		Action action;
 		Resource resource;
 		Object httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		JsonNode details = new ObjectMapper().convertValue(authentication.getDetails(), JsonNode.class);
+		
 		if (!(DEFAULT).equals(pdpAuthorize.subject())) {
 			//manual input
-			Authentication authentication = new UsernamePasswordAuthenticationToken(pdpAuthorize.subject(),
+			authentication = new UsernamePasswordAuthenticationToken(pdpAuthorize.subject(),
 					pdpAuthorize.subject());
 			subject = new AuthenticationSubject(authentication);
-		/*} else if () {
+		} else if (details.findValue("tokenValue") != null) {
 			//jwt input
-			
-		*/	
+			String token = details.findValue("tokenValue").textValue();
+			OAuth2AccessToken parsedToken = tokenStore.readAccessToken(token);
+			Map<String, Object> claims = parsedToken.getAdditionalInformation();
+			for (Entry<String, Object> kvp : claims.entrySet()) {
+				LOGGER.debug("Single claim: {} -> {}", kvp.getKey(), kvp.getValue());
+			}
+			LOGGER.debug("Retrieved token: {}", token);
+			subject = new AuthenticationSubject(authentication, claims);
+		
 		} else { 
 			//default
-			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 			subject = new AuthenticationSubject(authentication);
 		
 		}
