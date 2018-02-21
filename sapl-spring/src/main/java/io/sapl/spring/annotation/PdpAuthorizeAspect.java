@@ -64,12 +64,13 @@ public class PdpAuthorizeAspect {
 		JsonNode details = new ObjectMapper().convertValue(authentication.getDetails(), JsonNode.class);
 		
 		if (!(DEFAULT).equals(pdpAuthorize.subject())) {
-			//manual input
+			LOGGER.debug("Using subject from manual input");
 			authentication = new UsernamePasswordAuthenticationToken(pdpAuthorize.subject(),
 					pdpAuthorize.subject());
 			subject = new AuthenticationSubject(authentication);
+			
 		} else if (details.findValue("tokenValue") != null) {
-			//jwt input
+			LOGGER.debug("Using subject from JWT");
 			String token = details.findValue("tokenValue").textValue();
 			OAuth2AccessToken parsedToken = tokenStore.readAccessToken(token);
 			Map<String, Object> claims = parsedToken.getAdditionalInformation();
@@ -80,47 +81,44 @@ public class PdpAuthorizeAspect {
 			subject = new AuthenticationSubject(authentication, claims);
 		
 		} else { 
-			//default
+			LOGGER.debug("Using default subject");
 			subject = new AuthenticationSubject(authentication);
-		
 		}
 
 		
 				
 		if (!(DEFAULT).equals(pdpAuthorize.action())) {
-			//manual input
+			LOGGER.debug("Using action from manual input");
 			action = new SimpleAction(pdpAuthorize.action());
 			
 		} else if (HttpServletRequest.class.isInstance(httpRequest)) {
-			//http input
+			LOGGER.debug("Using action from HttpServletRequest");
 			action = new HttpAction(RequestMethod.valueOf(((HttpServletRequest) httpRequest).getMethod()));
 		
 		} else {
-			//default input
+			LOGGER.debug("Using default action");
 			action = new SimpleAction(pjp.getSignature().getName());
 		}
 		
 		
 		if (!(DEFAULT).equals(pdpAuthorize.resource())) {
-			//manual input
+			LOGGER.debug("Using resource from manual input");
 			resource = new StringResource(pdpAuthorize.resource());
 			
 		} else if (HttpServletRequest.class.isInstance(httpRequest)){
-			//http input
+			LOGGER.debug("Using resource from HttpServletRequest");
 			resource = new HttpResource((HttpServletRequest) httpRequest);
 			
 		} else {
-			//default input
+			LOGGER.debug("Using default resource");
 			resource = new StringResource(pjp.getTarget().getClass().getSimpleName());
 		}
-
-		LOGGER.debug("Getting pdp Response...");
+		
 		Response response = pep.getResponse(subject, action, resource);
 
 		if (response.getDecision() == Decision.DENY) {
 			LOGGER.debug("Access denied");
 			throw new AccessDeniedException("Insufficient Permission");
-
 		}
 
 		LOGGER.debug("Access granted");
