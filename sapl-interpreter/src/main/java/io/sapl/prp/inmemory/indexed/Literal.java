@@ -2,6 +2,8 @@ package io.sapl.prp.inmemory.indexed;
 
 import java.util.Objects;
 
+import com.google.common.base.Preconditions;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
@@ -18,8 +20,7 @@ public class Literal {
 	}
 
 	public Literal(final Bool bool, boolean negation) {
-		Objects.requireNonNull(bool);
-		this.bool = bool;
+		this.bool = Preconditions.checkNotNull(bool);
 		hasNegation = negation;
 	}
 

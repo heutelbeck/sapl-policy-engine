@@ -8,11 +8,13 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 
+import com.google.common.base.Preconditions;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 
-public class DisjunctiveFormula {
+public class DisjunctiveFormula implements Simplifiable {
 
 	static final String CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";
 	static final String EVALUATION_NOT_POSSIBLE = "Evaluation Error: Attempting to evaluate empty formula.";
@@ -20,12 +22,10 @@ public class DisjunctiveFormula {
 	private final List<ConjunctiveClause> clauses;
 	private int hash;
 	private boolean hasHashCode;
+	private final DisjunctiveFormulaSimplifier simplifier = new DisjunctiveFormulaSimplifier();
 
 	public DisjunctiveFormula(final Collection<ConjunctiveClause> clauses) {
-		Objects.requireNonNull(clauses);
-		if (clauses.isEmpty()) {
-			throw new IllegalArgumentException(CONSTRUCTION_FAILED);
-		}
+		Preconditions.checkArgument(!clauses.isEmpty(), CONSTRUCTION_FAILED);
 		this.clauses = new ArrayList<>(clauses);
 	}
 
@@ -148,63 +148,12 @@ public class DisjunctiveFormula {
 		return result.reduce();
 	}
 
+	@Override
 	public DisjunctiveFormula reduce() {
-		List<ConjunctiveClause> result = new ArrayList<>(clauses.size());
-		for (ConjunctiveClause clause : clauses) {
-			result.add(clause.reduce());
-		}
-		if (result.size() > 1) {
-			reduceConstants(result);
-			reduceFormula(result);
-		}
-		return new DisjunctiveFormula(result);
+		return simplifier.reduce(this);
 	}
 
 	public int size() {
 		return clauses.size();
-	}
-
-	private static void reduceConstants(final List<ConjunctiveClause> data) {
-		ListIterator<ConjunctiveClause> iter = data.listIterator();
-		while (iter.hasNext() && data.size() > 1) {
-			ConjunctiveClause clause = iter.next();
-			if (clause.isImmutable()) {
-				if (clause.evaluate()) {
-					data.clear();
-					data.add(clause);
-					return;
-				} else {
-					iter.remove();
-				}
-			}
-		}
-	}
-
-	private static void reduceFormula(final List<ConjunctiveClause> data) {
-		ListIterator<ConjunctiveClause> pointer = data.listIterator();
-		while (pointer.hasNext()) {
-			ConjunctiveClause lhs = pointer.next();
-			if (lhs != null) {
-				reduceFormulaImpl(data, pointer, lhs);
-			}
-		}
-		data.removeIf(Objects::isNull);
-	}
-
-	private static void reduceFormulaImpl(final List<ConjunctiveClause> data,
-			final ListIterator<ConjunctiveClause> pointer, final ConjunctiveClause value) {
-		ListIterator<ConjunctiveClause> forward = data.listIterator(pointer.nextIndex());
-		while (forward.hasNext()) {
-			ConjunctiveClause rhs = forward.next();
-			if (rhs == null) {
-				continue;
-			}
-			if (value.isSubsetOf(rhs)) {
-				forward.set(null);
-			} else if (rhs.isSubsetOf(value)) {
-				pointer.set(null);
-				return;
-			}
-		}
 	}
 }

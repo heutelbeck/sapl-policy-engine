@@ -20,7 +20,6 @@ WebContent/
 **/.springBeans
 sapl-web/src/main/resources/static/orion/**
 sapl-web/src/main/java/io/sapl/grammar/web/SAPLServlet.xtend
-sapl-web/src/main/java/io/sapl/grammar/web/SAPLWebModule.xtend
 sapl-web/src/main/java/io/sapl/grammar/web/SAPLWebSetup.xtend
 sapl-grammar/.antlr-generator-3.2.0-patch.jar
 .antlr-generator-3.2.0-patch.jar

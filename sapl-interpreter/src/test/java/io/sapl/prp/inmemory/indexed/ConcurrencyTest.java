@@ -26,7 +26,6 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 
 @RunWith(ConcurrentTestRunner.class)
 public class ConcurrencyTest {
@@ -44,6 +43,7 @@ public class ConcurrencyTest {
 		interpreter = new DefaultSAPLInterpreter();
 		json = JsonNodeFactory.instance;
 		prp = new FastParsedDocumentIndex();
+		prp.setLiveMode();
 		variables = new HashMap<>();
 	}
 
@@ -60,7 +60,7 @@ public class ConcurrencyTest {
 	public void testPut() throws PolicyEvaluationException {
 		// given
 		FunctionContext functionCtx = new AnnotationFunctionContext();
-		String definition = "policy \"p_0\" permit (resource.x0 || !resource.x1)";
+		String definition = "policy \"p_0\" permit (resource.x0 | !resource.x1)";
 		SAPL document = interpreter.parse(definition);
 		prp.put("1", document);
 		Map<String, Boolean> bindings = createBindings();
@@ -79,7 +79,7 @@ public class ConcurrencyTest {
 	public void testRemove() throws PolicyEvaluationException {
 		// given
 		FunctionContext functionCtx = new AnnotationFunctionContext();
-		String definition = "policy \"p_0\" permit resource.x0 && !resource.x1";
+		String definition = "policy \"p_0\" permit resource.x0 & !resource.x1";
 		SAPL document = interpreter.parse(definition);
 		prp.updateFunctionContext(functionCtx);
 		prp.put("1", document);

@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
-import io.sapl.spring.StandardSAPLAuthorizator;
+import io.sapl.spring.SAPLAuthorizator;
 import io.sapl.spring.marshall.Subject;
 import io.sapl.spring.marshall.action.HttpAction;
 import io.sapl.spring.marshall.resource.HttpResource;
@@ -36,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PdpAuthorizeJwtAspect {
 
 	@Autowired
-	private StandardSAPLAuthorizator pep;
+	private SAPLAuthorizator pep;
 
 	@Autowired
 	private TokenStore tokenStore;

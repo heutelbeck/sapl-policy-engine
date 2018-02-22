@@ -55,4 +55,9 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentPolicyRetrievalP
 		// NOP
 	}
 
+	@Override
+	public void setLiveMode() {
+		// NOP
+	}
+
 }

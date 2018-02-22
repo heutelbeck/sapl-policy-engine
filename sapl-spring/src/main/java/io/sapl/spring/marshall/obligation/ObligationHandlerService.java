@@ -3,7 +3,7 @@ package io.sapl.spring.marshall.obligation;
 import java.util.List;
 import java.util.Optional;
 
-public interface ObligationsHandlerService {
+public interface ObligationHandlerService {
 
 	/**
 	 * register a new obligationHandler

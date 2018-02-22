@@ -73,9 +73,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	public EmbeddedPolicyDecisionPoint(String policyPath, EmbeddedPolicyDecisionPointConfiguration configuration)
 			throws AttributeException, FunctionException, IOException, PolicyEvaluationException {
 		this.configuration = configuration;
-		prp = ResourcesPolicyRetrievalPoint.of(policyPath, configuration);
 		functionCtx = new AnnotationFunctionContext();
 		attributeCtx = new AnnotationAttributeContext();
+		prp = ResourcesPolicyRetrievalPoint.of(policyPath, configuration, functionCtx);
 		importAttributeFindersFromPackage(DEFAULT_SCAN_PACKAGE);
 		importFunctionLibrariesFromPackage(DEFAULT_SCAN_PACKAGE);
 		buildVariables(configuration);

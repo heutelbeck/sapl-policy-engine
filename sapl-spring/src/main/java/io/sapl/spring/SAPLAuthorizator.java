@@ -14,20 +14,20 @@ import io.sapl.spring.marshall.advice.Advice;
 import io.sapl.spring.marshall.advice.AdviceHandlerService;
 import io.sapl.spring.marshall.obligation.Obligation;
 import io.sapl.spring.marshall.obligation.ObligationFailed;
-import io.sapl.spring.marshall.obligation.ObligationsHandlerService;
+import io.sapl.spring.marshall.obligation.ObligationHandlerService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class StandardSAPLAuthorizator {
+public class SAPLAuthorizator {
 
 	protected final PolicyDecisionPoint pdp;
 
-	protected final ObligationsHandlerService obs;
+	protected final ObligationHandlerService obs;
 	
 	protected final AdviceHandlerService ahs;
 
 	@Autowired
-	public StandardSAPLAuthorizator(PolicyDecisionPoint pdp, ObligationsHandlerService obs, AdviceHandlerService ahs) {
+	public SAPLAuthorizator(PolicyDecisionPoint pdp, ObligationHandlerService obs, AdviceHandlerService ahs) {
 		this.pdp = pdp;
 		this.obs = obs;
 		this.ahs = ahs;
