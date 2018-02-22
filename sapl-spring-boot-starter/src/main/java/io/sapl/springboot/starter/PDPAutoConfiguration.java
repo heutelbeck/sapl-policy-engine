@@ -118,7 +118,7 @@ public class PDPAutoConfiguration {
 	@Autowired
 	private PDPProperties pdpProperties;
 
-	@Bean(BEAN_NAME_PDP_EMBEDDED)
+	@Bean
 	@ConditionalOnProperty(name = "pdp.type", havingValue = "EMBEDDED")
 	public PolicyDecisionPoint pdpEmbedded(PIPProvider pipProvider)
 			throws PolicyEvaluationException, AttributeException, FunctionException, IOException {
@@ -134,7 +134,7 @@ public class PDPAutoConfiguration {
 		return pdp;
 	}
 
-	@Bean(BEAN_NAME_PDP_REMOTE)
+	@Bean
 	@ConditionalOnProperty(name = "pdp.type", havingValue = "REMOTE")
 	public PolicyDecisionPoint pdpRemote() {
 		Remote remoteProps = pdpProperties.getRemote();
