@@ -166,10 +166,10 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public SAPLAuthorizator createSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationHandlerService ohs,
-			AdviceHandlerService ahs) {
+			AdviceHandlerService ahs, SaplMapper sm) {
 		log.debug("no Bean of type SAPLAuthorizator  defined. Will create default Bean of {}",
 				SAPLAuthorizator.class);
-		return new SAPLAuthorizator(pdp, ohs, ahs);
+		return new SAPLAuthorizator(pdp, ohs, ahs, sm);
 	}
 
 	@Bean
