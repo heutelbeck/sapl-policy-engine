@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SimpleSaplMapper implements SaplMapper{
 
-	private List<SaplClassMapper> classMappers = new LinkedList<SaplClassMapper>();
+	private List<SaplClassMapper> classMappers = new LinkedList<>();
 	
 	
 	@Override
