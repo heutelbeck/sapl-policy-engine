@@ -40,7 +40,7 @@ public interface SaplMapper {
 	/**
 	 * @return A list of all registered SaplClassMappers.
 	 */
-	public List<SaplClassMapper> registeredMappers();
+	List<SaplClassMapper> registeredMappers();
 	
 	/**
 	 * Searches a SaplClassMapper for the objectToMap and uses it to map it.
