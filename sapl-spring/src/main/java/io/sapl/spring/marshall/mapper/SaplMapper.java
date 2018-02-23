@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 
+
 /**
  * The SaplMapper is used to marshall a given instance of a class to something 
  * that is more suitable to use with Sapl Policies. Therefore it searches a list
@@ -48,15 +49,7 @@ public interface SaplMapper {
 	 * @param objectToMap This is the Object you want to be transformed.
 	 * @return The transformed Object or the Object itself if no mapper could be found.
 	 */
-	default Object map(Object objectToMap) {
-		
-		Optional<SaplClassMapper> classMapper = findClassMapper(objectToMap);
-		if (classMapper.isPresent()) {
-			return classMapper.get().map(objectToMap);
-		}
-		
-		return objectToMap;
-	}
+	Object map(Object objectToMap); 
 	
 	
 	/**
@@ -64,11 +57,7 @@ public interface SaplMapper {
 	 * @param objectToMap To Object that should be mapped.
 	 * @return Optional of a SaplClassMapper that can map the objectToMap.
 	 */
-	default Optional<SaplClassMapper> findClassMapper(Object objectToMap) {
-		Optional<SaplClassMapper> classMapper = registeredMappers().stream()
-				.filter(mapper -> mapper.canMap(objectToMap)).findAny();
-		return classMapper;
-	}
+	Optional<SaplClassMapper> findClassMapper(Object objectToMap); 
 
 
 }
