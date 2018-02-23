@@ -7,9 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Response;
-import io.sapl.spring.marshall.Action;
-import io.sapl.spring.marshall.Resource;
-import io.sapl.spring.marshall.Subject;
 import io.sapl.spring.marshall.advice.Advice;
 import io.sapl.spring.marshall.advice.AdviceHandlerService;
 import io.sapl.spring.marshall.mapper.SaplMapper;
@@ -37,16 +34,16 @@ public class SAPLAuthorizator {
 		this.sm = sm;
 	}
 
-	public boolean authorize(Subject subject, Action action, Resource resource) {
+	public boolean authorize(Object subject, Object action, Object resource) {
 		LOGGER.trace("Entering hasPermission(Subject subject, Action action, Resource resource)...");
-		Response response = runPolicyCheck(subject.getAsJson(), action.getAsJson(), resource.getAsJson());
+		Response response = runPolicyCheck(subject, action, resource);
 		LOGGER.debug("Response decision ist: {}", response.getDecision());
 		return response.getDecision() == Decision.PERMIT;
 	}
 
-	public Response getResponse(Subject subject, Action action, Resource resource) {
+	public Response getResponse(Object subject, Object action, Object resource) {
 		LOGGER.trace("Entering getResponse...");
-		Response response = runPolicyCheck(subject.getAsJson(), action.getAsJson(), resource.getAsJson());
+		Response response = runPolicyCheck(subject, action, resource);
 		return response;
 	}
 
