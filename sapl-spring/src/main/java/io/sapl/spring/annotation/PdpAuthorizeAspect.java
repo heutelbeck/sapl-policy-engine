@@ -44,19 +44,14 @@ import lombok.extern.slf4j.Slf4j;
 public class PdpAuthorizeAspect {
 
 	private static final String DEFAULT = "default";
+	
+	private boolean tokenStoreInitialized = false;
 
 	private final SAPLAuthorizator pep;
 
 	public PdpAuthorizeAspect(SAPLAuthorizator pep) {
 		super();
 		this.pep = pep;
-		try {
-			this.tokenStore = applicationContext.getBean(TokenStore.class);
-		}
-		catch (NoSuchBeanDefinitionException e)
-		{
-			//No Such Bean
-		}
 	}
 
 	@Autowired
@@ -66,6 +61,10 @@ public class PdpAuthorizeAspect {
 	
 	@Around("@annotation(pdpAuthorize) && execution(* *(..))")
 	public Object around(ProceedingJoinPoint pjp, PdpAuthorize pdpAuthorize) throws Throwable {
+		if (!tokenStoreInitialized)
+		{
+			InitializeTokenStore();
+		}
 		Subject subject;
 		Action action;
 		Resource resource;
@@ -135,4 +134,15 @@ public class PdpAuthorizeAspect {
 		return pjp.proceed();
 	}
 
+	private void InitializeTokenStore()
+	{
+		try {
+			this.tokenStore = applicationContext.getBean(TokenStore.class);
+		}
+		catch (NoSuchBeanDefinitionException e)
+		{
+			//No Such Bean
+		}
+		tokenStoreInitialized = true;
+	}
 }

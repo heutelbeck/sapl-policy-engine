@@ -1,6 +1,7 @@
 package io.sapl.spring;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -69,7 +70,7 @@ public class SAPLAuthorizator {
 					obs.handle(o);
 				}
 			} catch (ObligationFailed e) {
-				response = new Response(Decision.DENY, null, null, null);
+				response = new Response(Decision.DENY, Optional.empty(), Optional.empty(), Optional.empty());
 			}
 		}
 		
