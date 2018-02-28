@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.access.AccessDeniedException;
@@ -46,11 +47,16 @@ public class PdpAuthorizeAspect {
 
 	private final SAPLAuthorizator pep;
 
-	@Autowired
 	public PdpAuthorizeAspect(SAPLAuthorizator pep) {
 		super();
 		this.pep = pep;
-		this.tokenStore = applicationContext.getBean(TokenStore.class);
+		try {
+			this.tokenStore = applicationContext.getBean(TokenStore.class);
+		}
+		catch (NoSuchBeanDefinitionException e)
+		{
+			//No Such Bean
+		}
 	}
 
 	@Autowired
