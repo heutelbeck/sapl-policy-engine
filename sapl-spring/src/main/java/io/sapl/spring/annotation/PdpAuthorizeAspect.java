@@ -9,6 +9,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -49,9 +50,12 @@ public class PdpAuthorizeAspect {
 	public PdpAuthorizeAspect(SAPLAuthorizator pep) {
 		super();
 		this.pep = pep;
+		this.tokenStore = applicationContext.getBean(TokenStore.class);
 	}
 
 	@Autowired
+	private ApplicationContext applicationContext;
+	
 	private TokenStore tokenStore;
 	
 	@Around("@annotation(pdpAuthorize) && execution(* *(..))")
@@ -69,7 +73,7 @@ public class PdpAuthorizeAspect {
 					pdpAuthorize.subject());
 			subject = new AuthenticationSubject(authentication);
 			
-		} else if (details.findValue("tokenValue") != null) {
+		} else if (tokenStore != null && details.findValue("tokenValue") != null) {
 			LOGGER.debug("Using subject from JWT");
 			String token = details.findValue("tokenValue").textValue();
 			OAuth2AccessToken parsedToken = tokenStore.readAccessToken(token);
