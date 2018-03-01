@@ -45,25 +45,26 @@ public class PdpAuthorizeAspect {
 
 	private static final String DEFAULT = "default";
 	
-	private boolean tokenStoreInitialized = false;
+	private boolean tokenStoreInitialized;
 
 	private final SAPLAuthorizator pep;
-
-	public PdpAuthorizeAspect(SAPLAuthorizator pep) {
-		super();
-		this.pep = pep;
-	}
-
+	
 	@Autowired
 	private ApplicationContext applicationContext;
 	
 	private TokenStore tokenStore;
 	
+	
+	public PdpAuthorizeAspect(SAPLAuthorizator pep) {
+		super();
+		this.pep = pep;
+	}
+
+	
 	@Around("@annotation(pdpAuthorize) && execution(* *(..))")
 	public Object around(ProceedingJoinPoint pjp, PdpAuthorize pdpAuthorize) throws Throwable {
-		if (!tokenStoreInitialized)
-		{
-			InitializeTokenStore();
+		if (!tokenStoreInitialized){
+			initializeTokenStore();
 		}
 		Subject subject;
 		Action action;
@@ -134,13 +135,10 @@ public class PdpAuthorizeAspect {
 		return pjp.proceed();
 	}
 
-	private void InitializeTokenStore()
-	{
+	private void initializeTokenStore(){
 		try {
 			this.tokenStore = applicationContext.getBean(TokenStore.class);
-		}
-		catch (NoSuchBeanDefinitionException e)
-		{
+		} catch (NoSuchBeanDefinitionException e){
 			//No Such Bean
 		}
 		tokenStoreInitialized = true;
