@@ -1,17 +1,16 @@
 package io.sapl.spring;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Response;
-import io.sapl.spring.marshall.Action;
-import io.sapl.spring.marshall.Resource;
-import io.sapl.spring.marshall.Subject;
 import io.sapl.spring.marshall.advice.Advice;
 import io.sapl.spring.marshall.advice.AdviceHandlerService;
+import io.sapl.spring.marshall.mapper.SaplMapper;
 import io.sapl.spring.marshall.obligation.Obligation;
 import io.sapl.spring.marshall.obligation.ObligationFailed;
 import io.sapl.spring.marshall.obligation.ObligationHandlerService;
@@ -25,33 +24,40 @@ public class SAPLAuthorizator {
 	protected final ObligationHandlerService obs;
 	
 	protected final AdviceHandlerService ahs;
+	
+	protected final SaplMapper sm;
 
 	@Autowired
-	public SAPLAuthorizator(PolicyDecisionPoint pdp, ObligationHandlerService obs, AdviceHandlerService ahs) {
+	public SAPLAuthorizator(PolicyDecisionPoint pdp, ObligationHandlerService obs, AdviceHandlerService ahs, SaplMapper sm) {
 		this.pdp = pdp;
 		this.obs = obs;
 		this.ahs = ahs;
+		this.sm = sm;
 	}
 
-	public boolean authorize(Subject subject, Action action, Resource resource) {
+	public boolean authorize(Object subject, Object action, Object resource) {
 		LOGGER.trace("Entering hasPermission(Subject subject, Action action, Resource resource)...");
-		Response response = runPolicyCheck(subject.getAsJson(), action.getAsJson(), resource.getAsJson());
+		Response response = runPolicyCheck(subject, action, resource);
 		LOGGER.debug("Response decision ist: {}", response.getDecision());
 		return response.getDecision() == Decision.PERMIT;
 	}
 
-	public Response getResponse(Subject subject, Action action, Resource resource) {
+	public Response getResponse(Object subject, Object action, Object resource) {
 		LOGGER.trace("Entering getResponse...");
-		Response response = runPolicyCheck(subject.getAsJson(), action.getAsJson(), resource.getAsJson());
+		Response response = runPolicyCheck(subject, action, resource);
 		return response;
 	}
 
 	protected Response runPolicyCheck(Object subject, Object action, Object resource) {
 		LOGGER.trace("Entering runPolicyCheck...");
-		LOGGER.debug("These are the parameters: \n  subject:{} \n  action:{} \n  resource:{}", subject, action,
-				resource);
+		Object mappedSubject = sm.map(subject);
+		Object mappedAction = sm.map(action);
+		Object mappedResource = sm.map(resource);
 
-		Response response = pdp.decide(subject, action, resource);
+		LOGGER.debug("These are the parameters: \n  subject:{} \n  action:{} \n  resource:{}", mappedSubject, mappedAction,
+				mappedResource);
+
+		Response response = pdp.decide(mappedSubject, mappedAction, mappedResource);
 
 		LOGGER.debug("Here comes the response: {}", response);
 		if (response.getObligation().orElse(null) != null) {
@@ -64,7 +70,7 @@ public class SAPLAuthorizator {
 					obs.handle(o);
 				}
 			} catch (ObligationFailed e) {
-				response = new Response(Decision.DENY, null, null, null);
+				response = new Response(Decision.DENY, Optional.empty(), Optional.empty(), Optional.empty());
 			}
 		}
 		

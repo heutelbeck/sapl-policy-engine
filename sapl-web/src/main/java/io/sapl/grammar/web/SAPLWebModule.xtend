@@ -3,20 +3,9 @@
  */
 package io.sapl.grammar.web
 
-import com.google.inject.Binder
-import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider
-import org.eclipse.xtext.ide.editor.contentassist.IdeCrossrefProposalProvider
-import org.eclipse.xtext.ide.editor.syntaxcoloring.ISemanticHighlightingCalculator
 
 /**
  * Use this class to register additional components to be used within the web application.
  */
 class SAPLWebModule extends AbstractSAPLWebModule {
-
-	def void configureSpecificExtensionsForSAPLTextArea(Binder binder) {
-		binder.bind(IdeCrossrefProposalProvider).to(SAPLCrossrefProposalProvider);
-		binder.bind(IdeContentProposalProvider).to(SAPLContentProposalProvider);
-		binder.bind(ISemanticHighlightingCalculator).to(SAPLSemanticHighlightingCalculator);
-		
-	}
 }

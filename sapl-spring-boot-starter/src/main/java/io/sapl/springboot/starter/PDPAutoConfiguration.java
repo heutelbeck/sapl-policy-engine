@@ -26,6 +26,8 @@ import io.sapl.spring.SAPLPermissionEvaluator;
 import io.sapl.spring.SAPLAuthorizator;
 import io.sapl.spring.marshall.advice.AdviceHandlerService;
 import io.sapl.spring.marshall.advice.SimpleAdviceHandlerService;
+import io.sapl.spring.marshall.mapper.SaplMapper;
+import io.sapl.spring.marshall.mapper.SimpleSaplMapper;
 import io.sapl.spring.marshall.obligation.Obligation;
 import io.sapl.spring.marshall.obligation.ObligationHandler;
 import io.sapl.spring.marshall.obligation.ObligationHandlerService;
@@ -164,10 +166,10 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public SAPLAuthorizator createSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationHandlerService ohs,
-			AdviceHandlerService ahs) {
+			AdviceHandlerService ahs, SaplMapper sm) {
 		log.debug("no Bean of type SAPLAuthorizator  defined. Will create default Bean of {}",
 				SAPLAuthorizator.class);
-		return new SAPLAuthorizator(pdp, ohs, ahs);
+		return new SAPLAuthorizator(pdp, ohs, ahs, sm);
 	}
 
 	@Bean
@@ -176,6 +178,14 @@ public class PDPAutoConfiguration {
 		log.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of {}",
 				SAPLPermissionEvaluator.class);
 		return new SAPLPermissionEvaluator(saplAuthorizer);
+	}
+	
+	@Bean
+	@ConditionalOnMissingBean
+	public SaplMapper createSaplMapper() {
+		log.debug("no Bean of type SaplMapper defined. Will create default Bean of {}",
+				SimpleSaplMapper.class);
+		return new SimpleSaplMapper();
 	}
 
 	@Bean

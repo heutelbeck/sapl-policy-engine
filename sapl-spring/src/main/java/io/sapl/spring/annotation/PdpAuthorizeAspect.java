@@ -8,7 +8,9 @@ import javax.servlet.http.HttpServletRequest;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -42,20 +44,28 @@ import lombok.extern.slf4j.Slf4j;
 public class PdpAuthorizeAspect {
 
 	private static final String DEFAULT = "default";
+	
+	private boolean tokenStoreInitialized;
 
 	private final SAPLAuthorizator pep;
-
+	
 	@Autowired
+	private ApplicationContext applicationContext;
+	
+	private TokenStore tokenStore;
+	
+	
 	public PdpAuthorizeAspect(SAPLAuthorizator pep) {
 		super();
 		this.pep = pep;
 	}
 
-	@Autowired
-	private TokenStore tokenStore;
 	
 	@Around("@annotation(pdpAuthorize) && execution(* *(..))")
 	public Object around(ProceedingJoinPoint pjp, PdpAuthorize pdpAuthorize) throws Throwable {
+		if (!tokenStoreInitialized){
+			initializeTokenStore();
+		}
 		Subject subject;
 		Action action;
 		Resource resource;
@@ -69,7 +79,7 @@ public class PdpAuthorizeAspect {
 					pdpAuthorize.subject());
 			subject = new AuthenticationSubject(authentication);
 			
-		} else if (details.findValue("tokenValue") != null) {
+		} else if (tokenStore != null && details.findValue("tokenValue") != null) {
 			LOGGER.debug("Using subject from JWT");
 			String token = details.findValue("tokenValue").textValue();
 			OAuth2AccessToken parsedToken = tokenStore.readAccessToken(token);
@@ -125,4 +135,12 @@ public class PdpAuthorizeAspect {
 		return pjp.proceed();
 	}
 
+	private void initializeTokenStore(){
+		try {
+			this.tokenStore = applicationContext.getBean(TokenStore.class);
+		} catch (NoSuchBeanDefinitionException e){
+			//No Such Bean
+		}
+		tokenStoreInitialized = true;
+	}
 }
