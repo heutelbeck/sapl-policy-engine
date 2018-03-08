@@ -36,11 +36,11 @@ public class SimpleSaplMapper implements SaplMapper{
 	}
 
 	@Override
-	public Object map(Object objectToMap) {
+	public Object map(Object objectToMap, SaplRequestType type) {
 		LOGGER.debug("Entering mapping for {}", objectToMap);
 		Optional<SaplClassMapper> classMapper = findClassMapper(objectToMap);
 		if (classMapper.isPresent()) {
-			return classMapper.get().map(objectToMap);
+			return classMapper.get().map(objectToMap, type);
 		}
 		return objectToMap;
 	}

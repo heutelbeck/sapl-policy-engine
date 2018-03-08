@@ -1,6 +1,7 @@
 package io.sapl.spring;
 
 import java.io.Serializable;
+import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -55,7 +56,7 @@ public class SAPLPermissionEvaluator implements PermissionEvaluator {
 			Resource httpResource = new HttpResource(request);
 			return saplAuthorizer.authorize(authSubject, httpAction, httpResource);
 		}
-		Response response = saplAuthorizer.runPolicyCheck(subject, action, resource);
+		Response response = saplAuthorizer.runPolicyCheck(subject, action, resource, Optional.empty());
 		return response.getDecision() == Decision.PERMIT;
 	}
 

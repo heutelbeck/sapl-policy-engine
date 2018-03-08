@@ -12,7 +12,7 @@ public interface SaplClassMapper {
 	 * @param objectToMap The object that should be mapped.
 	 * @return The mapped Object.
 	 */
-	Object map (Object objectToMap);
+	Object map (Object objectToMap, SaplRequestType type);
 	
 	
 	/**
@@ -20,7 +20,9 @@ public interface SaplClassMapper {
 	 * @param objectToMap The object that should be mapped.
 	 * @return True, if the Object can be mapped, or false if not.
 	 */
-	boolean canMap(Object objectToMap);
+	default boolean canMap(Object objectToMap) {
+		return objectToMap.getClass().toString().equals(getMappedClass());
+	}
 	
 	/**
 	 * Provides the class this mapper can map.
