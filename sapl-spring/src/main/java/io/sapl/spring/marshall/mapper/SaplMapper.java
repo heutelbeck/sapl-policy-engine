@@ -49,7 +49,7 @@ public interface SaplMapper {
 	 * @param objectToMap This is the Object you want to be transformed.
 	 * @return The transformed Object or the Object itself if no mapper could be found.
 	 */
-	Object map(Object objectToMap, SaplRequestType type); 
+	Object map(Object objectToMap, SaplRequestElement type); 
 	
 	
 	/**

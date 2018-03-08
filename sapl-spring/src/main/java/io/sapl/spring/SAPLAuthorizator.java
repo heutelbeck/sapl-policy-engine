@@ -11,7 +11,7 @@ import io.sapl.api.pdp.Response;
 import io.sapl.spring.marshall.advice.Advice;
 import io.sapl.spring.marshall.advice.AdviceHandlerService;
 import io.sapl.spring.marshall.mapper.SaplMapper;
-import io.sapl.spring.marshall.mapper.SaplRequestType;
+import io.sapl.spring.marshall.mapper.SaplRequestElement;
 import io.sapl.spring.marshall.obligation.Obligation;
 import io.sapl.spring.marshall.obligation.ObligationFailed;
 import io.sapl.spring.marshall.obligation.ObligationHandlerService;
@@ -38,11 +38,11 @@ public class SAPLAuthorizator {
 
 	
 	public boolean authorize(Object subject, Object action, Object resource) {
-		return authorize(subject, action, resource, Optional.empty());
+		return authorize(subject, action, resource, null);
 	}
 	
 	public Response getResponse(Object subject, Object action, Object resource) {
-		return getResponse(subject, action, resource, Optional.empty());
+		return getResponse(subject, action, resource, null);
 	}
 	
 	
@@ -61,10 +61,10 @@ public class SAPLAuthorizator {
 
 	protected Response runPolicyCheck(Object subject, Object action, Object resource, Object environment) {
 		LOGGER.trace("Entering runPolicyCheck...");
-		Object mappedSubject = sm.map(subject, SaplRequestType.SUBJECT);
-		Object mappedAction = sm.map(action, SaplRequestType.ACTION);
-		Object mappedResource = sm.map(resource, SaplRequestType.RESOURCE);
-		Object mappedEnvironment = sm.map(environment, SaplRequestType.ENVIRONMENT);
+		Object mappedSubject = sm.map(subject, SaplRequestElement.SUBJECT);
+		Object mappedAction = sm.map(action, SaplRequestElement.ACTION);
+		Object mappedResource = sm.map(resource, SaplRequestElement.RESOURCE);
+		Object mappedEnvironment = sm.map(environment, SaplRequestElement.ENVIRONMENT);
 
 		LOGGER.debug("These are the parameters: \n  subject:{} \n  action:{} \n  resource:{} \n environment:{}", mappedSubject, mappedAction,
 				mappedResource, mappedEnvironment);
