@@ -47,7 +47,7 @@ public class SAPLAuthorizator {
 	
 	
 	public boolean authorize(Object subject, Object action, Object resource, Object environment) {
-		LOGGER.trace("Entering hasPermission(Subject subject, Action action, Resource resource)...");
+		LOGGER.trace("###################################### NEW SAPL REQUEST ########################################");
 		Response response = runPolicyCheck(subject, action, resource, environment);
 		LOGGER.debug("Response decision ist: {}", response.getDecision());
 		return response.getDecision() == Decision.PERMIT;
@@ -65,7 +65,8 @@ public class SAPLAuthorizator {
 		Object mappedAction = sm.map(action, SaplRequestElement.ACTION);
 		Object mappedResource = sm.map(resource, SaplRequestElement.RESOURCE);
 		Object mappedEnvironment = sm.map(environment, SaplRequestElement.ENVIRONMENT);
-
+		
+		LOGGER.debug("-------------------------------------- Response ---------------------------------------------------");
 		LOGGER.debug("These are the parameters: \n  subject: {} \n  action: {} \n  resource: {} \n  environment: {}", mappedSubject, mappedAction,
 				mappedResource, mappedEnvironment);
 

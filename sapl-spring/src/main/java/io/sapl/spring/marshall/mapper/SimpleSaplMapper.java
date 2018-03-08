@@ -37,6 +37,7 @@ public class SimpleSaplMapper implements SaplMapper{
 
 	@Override
 	public Object map(Object objectToMap, SaplRequestElement type) {
+		LOGGER.debug("-------------------------------------- Mapping {} ---------------------------------------------------", type);
 		LOGGER.debug("Entering mapping for {}", objectToMap);
 		Optional<SaplClassMapper> classMapper = findClassMapper(objectToMap);
 		if (classMapper.isPresent()) {
@@ -47,16 +48,17 @@ public class SimpleSaplMapper implements SaplMapper{
 
 	@Override
 	public Optional<SaplClassMapper> findClassMapper(Object objectToMap) {
-		LOGGER.debug("Searching ClassMapper in {}", registeredMappers());
+		LOGGER.trace("Searching ClassMapper in {}", registeredMappers());
 		if(objectToMap != null) {
 			for(SaplClassMapper cm : registeredMappers()) {
-				LOGGER.debug("Mapped Class: {}, Object Class: {}", cm.getMappedClass(), objectToMap.getClass().toString());
+				LOGGER.trace("Mapped Class: {}, Object Class: {}", cm.getMappedClass(), objectToMap.getClass().toString());
 			}
 			Optional<SaplClassMapper> classMapper = registeredMappers().stream()
 					.filter(mapper -> mapper.canMap(objectToMap)).findAny();
 			LOGGER.debug("Found ClassMapper: {}", classMapper.isPresent());
 			return classMapper;
 		}
+		LOGGER.debug("Found ClassMapper: false (Object is null)");
 		return Optional.empty();
 		
 	}
