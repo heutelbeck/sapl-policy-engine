@@ -66,7 +66,7 @@ public class SAPLAuthorizator {
 		Object mappedResource = sm.map(resource, SaplRequestElement.RESOURCE);
 		Object mappedEnvironment = sm.map(environment, SaplRequestElement.ENVIRONMENT);
 
-		LOGGER.debug("These are the parameters: \n  subject:{} \n  action:{} \n  resource:{} \n environment:{}", mappedSubject, mappedAction,
+		LOGGER.debug("These are the parameters: \n  subject: {} \n  action: {} \n  resource: {} \n  environment: {}", mappedSubject, mappedAction,
 				mappedResource, mappedEnvironment);
 
 		Response response = pdp.decide(mappedSubject, mappedAction, mappedResource, mappedEnvironment);

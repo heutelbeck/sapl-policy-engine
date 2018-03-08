@@ -7,6 +7,7 @@ import io.sapl.spring.marshall.Resource;
 import lombok.Value;
 
 @Value
+@Deprecated
 public class StringResource implements Resource {
 
 	String string;
