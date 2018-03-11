@@ -4,8 +4,7 @@ import io.sapl.spring.marshall.Action;
 import lombok.Value;
 
 /**
- * OldStyle
- * @deprecated
+ * @deprecated OldStyle
  */
 @Value
 @Deprecated

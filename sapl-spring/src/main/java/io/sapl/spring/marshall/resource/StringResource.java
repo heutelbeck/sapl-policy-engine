@@ -7,8 +7,7 @@ import io.sapl.spring.marshall.Resource;
 import lombok.Value;
 
 /**
- * OldStyle
- * @deprecated
+ * @deprecated OldStyle
  */
 @Value
 @Deprecated
