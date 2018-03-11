@@ -8,6 +8,9 @@ import lombok.Value;
 
 @Value
 @Deprecated
+/**
+ * @deprecated
+ */
 public class StringResource implements Resource {
 
 	String string;

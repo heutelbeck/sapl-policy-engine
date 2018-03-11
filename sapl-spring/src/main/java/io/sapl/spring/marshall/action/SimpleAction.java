@@ -5,6 +5,9 @@ import lombok.Value;
 
 @Value
 @Deprecated
+/**
+ * @deprecated
+ */
 public class SimpleAction implements Action {
 
 	String method;
