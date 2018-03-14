@@ -147,15 +147,6 @@ public class PDPAutoConfiguration {
 	@Autowired
 	private PDPProperties pdpProperties;
 
-	/**
-	 * 
-	 * @param pipProvider
-	 * @return
-	 * @throws PolicyEvaluationException
-	 * @throws AttributeException
-	 * @throws FunctionException
-	 * @throws IOException
-	 */
 	@Bean
 	@ConditionalOnProperty(name = "pdp.type", havingValue = "EMBEDDED")
 	public PolicyDecisionPoint pdpEmbedded(PIPProvider pipProvider)
@@ -172,10 +163,6 @@ public class PDPAutoConfiguration {
 		return pdp;
 	}
 
-	/**
-	 * 
-	 * @return
-	 */
 	@Bean
 	@ConditionalOnProperty(name = "pdp.type", havingValue = "REMOTE")
 	public PolicyDecisionPoint pdpRemote() {
@@ -193,7 +180,7 @@ public class PDPAutoConfiguration {
 	 * If no bean-definition of type {@link PIPProvider} exists, this method
 	 * will define a PIPProvide-bean that allways delivers an enmpty list.
 	 * 
-	 * @return
+	 * @return a PIPProvider
 	 * @see PIPProvider
 	 */
 	@Bean
@@ -205,7 +192,8 @@ public class PDPAutoConfiguration {
 	/**
 	 * 
 	 * @param saplAuthorizer
-	 * @return
+	 *            - the SAPLAuthorizator to be used by the Filter
+	 * @return a PolicyEnforcementFilter
 	 */
 	@Bean
 	@ConditionalOnProperty("pdp.policyEnforcementFilter")
@@ -218,9 +206,13 @@ public class PDPAutoConfiguration {
 	/**
 	 * 
 	 * @param pdp
+	 *            - a PolicyDecisionPoint instance
 	 * @param ohs
+	 *            - a ObligationHandlerService instance
 	 * @param ahs
+	 *            - a AdviceHandlerService instance
 	 * @param sm
+	 *            - a SaplMapper instance
 	 * @return
 	 */
 	@Bean
@@ -234,7 +226,8 @@ public class PDPAutoConfiguration {
 	/**
 	 * 
 	 * @param saplAuthorizer
-	 * @return
+	 *            - the SAPLAuthorizator to be used
+	 * @return a SAPLPermissionEvaluator
 	 */
 	@Bean
 	@ConditionalOnMissingBean
@@ -248,7 +241,7 @@ public class PDPAutoConfiguration {
 	 * If no other bean-definition of type {@link SaplMapper} is provided, then
 	 * this will provide a {@link SimpleSaplMapper}
 	 * 
-	 * @return
+	 * @return an implementation of SaplMapper
 	 */
 	@Bean
 	@ConditionalOnMissingBean
@@ -261,7 +254,7 @@ public class PDPAutoConfiguration {
 	 * If no other bean-definition of type {@link ObligationHandlerService} is
 	 * provided, then this will provide a {@link SimpleObligationHandlerService}
 	 * 
-	 * @return
+	 * @return an ObligationHandlerService implementation
 	 */
 	@Bean
 	@ConditionalOnMissingBean
@@ -275,7 +268,7 @@ public class PDPAutoConfiguration {
 	 * If no other bean-definition of type {@link AdviceHandlerService} is
 	 * provided, then this will provide a {@link SimpleAdviceHandlerService}
 	 * 
-	 * @return
+	 * @return an AdviceHandlerService
 	 */
 	@Bean
 	@ConditionalOnMissingBean
@@ -292,8 +285,10 @@ public class PDPAutoConfiguration {
 	 * {@link ObligationHandlerService}
 	 * 
 	 * @param obligationHandlers
+	 *            - List of all ObligationHandler-beans
 	 * @param ohs
-	 * @return
+	 *            - ObligationHandlerService to register the handler with
+	 * @return a CommandLineRunner object
 	 * @see ObligationHandlerService#register(ObligationHandler)
 	 * @see #createDefaultObligationHandlerService()
 	 */
@@ -320,7 +315,7 @@ public class PDPAutoConfiguration {
 	 * allways returns <b>false</b> when
 	 * {@link ObligationHandler#canHandle(Obligation)} ia called.
 	 * 
-	 * @return
+	 * @return an ObligationHandler implementation
 	 */
 	@Bean(BEAN_NAME_OBLIGATION_HANDLER_DENY_ALL)
 	@ConditionalOnMissingBean
