@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -22,8 +21,8 @@ import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import io.sapl.spring.PIPProvider;
 import io.sapl.spring.PolicyEnforcementFilter;
-import io.sapl.spring.SAPLPermissionEvaluator;
 import io.sapl.spring.SAPLAuthorizator;
+import io.sapl.spring.SAPLPermissionEvaluator;
 import io.sapl.spring.marshall.advice.AdviceHandlerService;
 import io.sapl.spring.marshall.advice.SimpleAdviceHandlerService;
 import io.sapl.spring.marshall.mapper.SaplMapper;
@@ -38,9 +37,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * This automatic configuration will provide you several beans to deal with SAPL
  * by default. <br/>
- * <b>PRESUMPTION:</b>The only presumption you have to fulfill to work with the
- * <i>sapl-spring-boot-starter</i> is that you will configure at least one
- * {@link PolicyDecisionPoint}. <br/>
  * If you do not change it, the default configuration (see
  * {@link PDPProperties}) will configure an {@link EmbeddedPolicyDecisionPoint}
  * for you. <br/>
@@ -48,20 +44,17 @@ import lombok.extern.slf4j.Slf4j;
  * <h2>Configure an EmbeddedPolicyDecisionPoint</h2> To have a bean instance of
  * an {@link EmbeddedPolicyDecisionPoint} just activate it in your
  * <i>application.properties</i>-file (or whatever spring supported way to
- * provide properties you wish to use.<br/>
- * c. f. <a href=
+ * provide properties you wish to use. c. f. <a href=
  * "https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html">Spring
  * Boot Documentation on config parameters</a>) <br/>
  * Do not forget to provide the minimal required files in your policy path! (at
  * least you need a <i>pdp.json</i> file) <br/>
  * Example Snippet from .properties:<br/>
  * <code>
- * pdp.embedded.active=true
+ * pdp.type=embedded
  * <br/>
  * pdp.embedded.policyPath=classpath:path/to/policies
  * </code> <br/>
- * <b>Hint:</b>The Bean is provided with the predefined qualifier name:
- * {@value #BEAN_NAME_PDP_EMBEDDED}
  *
  *
  * <h2>Configure a RemotePolicyDecisionPoint</h2> To have a bean instance of a
@@ -73,7 +66,7 @@ import lombok.extern.slf4j.Slf4j;
  * Boot Documentation on config parameters</a>) <br/>
  * Example Snippet from .properties:<br/>
  * <code>
- * pdp.remote.active=true<br/>
+ * pdp.type=remote<br/>
  * pdp.remote.host=myhost.example.io<br/>
  * pdp.remote.port=8443<br/>
  * pdp.remote.secret=password<br/>
@@ -81,13 +74,6 @@ import lombok.extern.slf4j.Slf4j;
  * </code> <br/>
  * Provide the host without a protocol. It will always be assumed to be
  * https<br/>
- * <b>Hint:</b>The Bean is provided with the predefined qualifier name:
- * {@value #BEAN_NAME_PDP_REMOTE} <br/>
- * <br/>
- * If you do not really need a remote and an embedded PDP at once, we recommend
- * to deactivate the by default activated RemotePolicyDecisionPoint. Among other
- * things this will allow you to autowire {@link PolicyDecisionPoint}-instances
- * without explicitly use Spring´s {@link Qualifier}-annotation<br/>
  * <br/>
  * <br/>
  * <h2>Using a policy information point</h2> If your EmbeddedPolicyDecisionPoint
@@ -102,9 +88,50 @@ import lombok.extern.slf4j.Slf4j;
  * 
  * <br/>
  * <br/>
+ * <h2>The SaplAuthorizer</h2> If you do not define a Bean of type
+ * {@link SAPLAuthorizator} on your own this will be done for you. The
+ * SAPLAuthorizator-instance created by
+ * {@link #createSAPLAuthorizer(PolicyDecisionPoint, ObligationHandlerService, AdviceHandlerService, SaplMapper)}
+ * will use beans of the following types. All of these are provided with a
+ * default implementation if and only if you do not define beans of the types on
+ * your own. <br/>
+ * <ul>
+ * <li>{@link PolicyDecisionPoint}: the embbeded- or remote-PDP you choosed to
+ * use (see above)</li>
+ * <li>{@link ObligationHandlerService}: see
+ * {@link #createDefaultObligationHandlerService()}</li>
+ * <li>{@link AdviceHandlerService}: see
+ * {@link #createDefaultAdviceHandlerService()}</li>
+ * <li>{@link SaplMapper}: see {@link #createSaplMapper()}</li>
+ * </ul>
+ * <br/>
+ * <br/>
+ * <h2>Registration of ObligationHandlers</h2> At startup all beans of type
+ * {@link ObligationHandler} will be registered with your
+ * {@link ObligationHandlerService}. See
+ * {@link #registerObligationHandlers(List, ObligationHandlerService)} <br/>
+ * This behavior can not be overridden. But you can make this method do nothing
+ * with the following property set to false. That way you can handle the
+ * ObligationHandler-registration completely on your own. <br/>
+ * <code>pdp.obligationsHandler.autoregister=false</code> <br/>
+ * <br/>
+ * <h2>The default ObligationHandler</h2> If and only if you do not provide any
+ * bean-definition of type {@link ObligationHandler} one bean will be defined by
+ * {@link #denyAllObligationHandler()}. <br/>
+ * <br/>
+ * <h2>The PolicyEnforcementFilter</h2> If activated through the following
+ * property, a bean of type {@link PolicyEnforcementFilter} will be defined. You
+ * can use it to extends the spring-security filterchain. See
+ * {@link #policyEnforcementFilter(SAPLAuthorizator)} <br/>
+ * <code>
+ * pdp.policyEnforcementFilter=true
+ * </code> <br/>
  * 
- * @author Daniel T. Schmidt
+ * <br/>
+ * <br/>
+ * 
  * @see PDPProperties
+ * @see SAPLAuthorizator
  */
 @Slf4j
 @Configuration
@@ -120,6 +147,15 @@ public class PDPAutoConfiguration {
 	@Autowired
 	private PDPProperties pdpProperties;
 
+	/**
+	 * 
+	 * @param pipProvider
+	 * @return
+	 * @throws PolicyEvaluationException
+	 * @throws AttributeException
+	 * @throws FunctionException
+	 * @throws IOException
+	 */
 	@Bean
 	@ConditionalOnProperty(name = "pdp.type", havingValue = "EMBEDDED")
 	public PolicyDecisionPoint pdpEmbedded(PIPProvider pipProvider)
@@ -136,6 +172,10 @@ public class PDPAutoConfiguration {
 		return pdp;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	@Bean
 	@ConditionalOnProperty(name = "pdp.type", havingValue = "REMOTE")
 	public PolicyDecisionPoint pdpRemote() {
@@ -149,12 +189,24 @@ public class PDPAutoConfiguration {
 		return new RemotePolicyDecisionPoint(host, port, key, secret);
 	}
 
+	/**
+	 * If no bean-definition of type {@link PIPProvider} exists, this method
+	 * will define a PIPProvide-bean that allways delivers an enmpty list.
+	 * 
+	 * @return
+	 * @see PIPProvider
+	 */
 	@Bean
 	@ConditionalOnMissingBean
 	public PIPProvider processInformationPoints() {
 		return Collections::emptyList;
 	}
 
+	/**
+	 * 
+	 * @param saplAuthorizer
+	 * @return
+	 */
 	@Bean
 	@ConditionalOnProperty("pdp.policyEnforcementFilter")
 	public PolicyEnforcementFilter policyEnforcementFilter(SAPLAuthorizator saplAuthorizer) {
@@ -163,15 +215,27 @@ public class PDPAutoConfiguration {
 		return new PolicyEnforcementFilter(saplAuthorizer);
 	}
 
+	/**
+	 * 
+	 * @param pdp
+	 * @param ohs
+	 * @param ahs
+	 * @param sm
+	 * @return
+	 */
 	@Bean
 	@ConditionalOnMissingBean
 	public SAPLAuthorizator createSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationHandlerService ohs,
 			AdviceHandlerService ahs, SaplMapper sm) {
-		log.debug("no Bean of type SAPLAuthorizator  defined. Will create default Bean of {}",
-				SAPLAuthorizator.class);
+		log.debug("no Bean of type SAPLAuthorizator  defined. Will create default Bean of {}", SAPLAuthorizator.class);
 		return new SAPLAuthorizator(pdp, ohs, ahs, sm);
 	}
 
+	/**
+	 * 
+	 * @param saplAuthorizer
+	 * @return
+	 */
 	@Bean
 	@ConditionalOnMissingBean
 	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(SAPLAuthorizator saplAuthorizer) {
@@ -179,15 +243,26 @@ public class PDPAutoConfiguration {
 				SAPLPermissionEvaluator.class);
 		return new SAPLPermissionEvaluator(saplAuthorizer);
 	}
-	
+
+	/**
+	 * If no other bean-definition of type {@link SaplMapper} is provided, then
+	 * this will provide a {@link SimpleSaplMapper}
+	 * 
+	 * @return
+	 */
 	@Bean
 	@ConditionalOnMissingBean
 	public SaplMapper createSaplMapper() {
-		log.debug("no Bean of type SaplMapper defined. Will create default Bean of {}",
-				SimpleSaplMapper.class);
+		log.debug("no Bean of type SaplMapper defined. Will create default Bean of {}", SimpleSaplMapper.class);
 		return new SimpleSaplMapper();
 	}
 
+	/**
+	 * If no other bean-definition of type {@link ObligationHandlerService} is
+	 * provided, then this will provide a {@link SimpleObligationHandlerService}
+	 * 
+	 * @return
+	 */
 	@Bean
 	@ConditionalOnMissingBean
 	public ObligationHandlerService createDefaultObligationHandlerService() {
@@ -196,6 +271,12 @@ public class PDPAutoConfiguration {
 		return new SimpleObligationHandlerService();
 	}
 
+	/**
+	 * If no other bean-definition of type {@link AdviceHandlerService} is
+	 * provided, then this will provide a {@link SimpleAdviceHandlerService}
+	 * 
+	 * @return
+	 */
 	@Bean
 	@ConditionalOnMissingBean
 	public AdviceHandlerService createDefaultAdviceHandlerService() {
@@ -204,6 +285,18 @@ public class PDPAutoConfiguration {
 		return new SimpleAdviceHandlerService();
 	}
 
+	/**
+	 * If property <code>pdp.obligationsHandler.autoregister</code> is set to
+	 * <b>true</b> this method will register all beans of type
+	 * {@link ObligationHandler} to the Bean of type
+	 * {@link ObligationHandlerService}
+	 * 
+	 * @param obligationHandlers
+	 * @param ohs
+	 * @return
+	 * @see ObligationHandlerService#register(ObligationHandler)
+	 * @see #createDefaultObligationHandlerService()
+	 */
 	@Bean
 	public CommandLineRunner registerObligationHandlers(List<ObligationHandler> obligationHandlers,
 			ObligationHandlerService ohs) {
@@ -220,6 +313,15 @@ public class PDPAutoConfiguration {
 
 	}
 
+	/**
+	 * Returns an implementation of {@link ObligationHandler} does nothing but
+	 * logg a message on logg-level warn, when
+	 * {@link ObligationHandler#handleObligation(Obligation)} is called and
+	 * allways returns <b>false</b> when
+	 * {@link ObligationHandler#canHandle(Obligation)} ia called.
+	 * 
+	 * @return
+	 */
 	@Bean(BEAN_NAME_OBLIGATION_HANDLER_DENY_ALL)
 	@ConditionalOnMissingBean
 	public ObligationHandler denyAllObligationHandler() {
@@ -228,7 +330,8 @@ public class PDPAutoConfiguration {
 			@Override
 			public void handleObligation(Obligation obligation) {
 				log.warn(
-						"using denyAllObligationHandler. If you want to handle Obligations register your own und probably unregister this one (Bean name: {})", BEAN_NAME_OBLIGATION_HANDLER_DENY_ALL);
+						"using denyAllObligationHandler. If you want to handle Obligations register your own und probably unregister this one (Bean name: {})",
+						BEAN_NAME_OBLIGATION_HANDLER_DENY_ALL);
 			}
 
 			@Override
