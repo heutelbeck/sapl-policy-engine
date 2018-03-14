@@ -213,7 +213,7 @@ public class PDPAutoConfiguration {
 	 *            - a AdviceHandlerService instance
 	 * @param sm
 	 *            - a SaplMapper instance
-	 * @return
+	 * @return a SAPLAuthorizator instance
 	 */
 	@Bean
 	@ConditionalOnMissingBean
