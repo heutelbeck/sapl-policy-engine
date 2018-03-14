@@ -18,7 +18,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -28,13 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
 import io.sapl.spring.SAPLAuthorizator;
-import io.sapl.spring.marshall.Action;
-import io.sapl.spring.marshall.Resource;
 import io.sapl.spring.marshall.Subject;
-import io.sapl.spring.marshall.action.HttpAction;
-import io.sapl.spring.marshall.action.SimpleAction;
-import io.sapl.spring.marshall.resource.HttpResource;
-import io.sapl.spring.marshall.resource.StringResource;
 import io.sapl.spring.marshall.subject.AuthenticationSubject;
 import lombok.extern.slf4j.Slf4j;
 
@@ -67,8 +60,8 @@ public class PdpAuthorizeAspect {
 			initializeTokenStore();
 		}
 		Subject subject;
-		Action action;
-		Resource resource;
+		Object action;
+		Object resource;
 		Object httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		JsonNode details = new ObjectMapper().convertValue(authentication.getDetails(), JsonNode.class);
@@ -99,29 +92,29 @@ public class PdpAuthorizeAspect {
 				
 		if (!(DEFAULT).equals(pdpAuthorize.action())) {
 			LOGGER.debug("Using action from manual input");
-			action = new SimpleAction(pdpAuthorize.action());
+			action = pdpAuthorize.action();
 			
 		} else if (HttpServletRequest.class.isInstance(httpRequest)) {
 			LOGGER.debug("Using action from HttpServletRequest");
-			action = new HttpAction(RequestMethod.valueOf(((HttpServletRequest) httpRequest).getMethod()));
+			action = (HttpServletRequest) httpRequest;
 		
 		} else {
 			LOGGER.debug("Using default action");
-			action = new SimpleAction(pjp.getSignature().getName());
+			action = pjp.getSignature().getName();
 		}
 		
 		
 		if (!(DEFAULT).equals(pdpAuthorize.resource())) {
 			LOGGER.debug("Using resource from manual input");
-			resource = new StringResource(pdpAuthorize.resource());
+			resource = pdpAuthorize.resource();
 			
 		} else if (HttpServletRequest.class.isInstance(httpRequest)){
 			LOGGER.debug("Using resource from HttpServletRequest");
-			resource = new HttpResource((HttpServletRequest) httpRequest);
+			resource = (HttpServletRequest) httpRequest;
 			
 		} else {
 			LOGGER.debug("Using default resource");
-			resource = new StringResource(pjp.getTarget().getClass().getSimpleName());
+			resource = pjp.getTarget().getClass().getSimpleName();
 		}
 		
 		Response response = sapl.getResponse(subject, action, resource);
