@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
 import io.sapl.spring.SAPLAuthorizator;
-import io.sapl.spring.marshall.Subject;
 import io.sapl.spring.marshall.subject.AuthenticationSubject;
 import lombok.extern.slf4j.Slf4j;
 
@@ -59,10 +58,25 @@ public class PdpAuthorizeAspect {
 		if (!tokenStoreInitialized){
 			initializeTokenStore();
 		}
-		Subject subject;
-		Object action;
-		Object resource;
-		Object httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+		
+		Object subject = pdpAuthorizeRetrieveSubject(pdpAuthorize);
+		Object action = pdpAuthorizeRetrieveAction(pdpAuthorize, pjp);				
+		Object resource = pdpAuthorizeRetrieveResource(pdpAuthorize, pjp);
+		
+		Response response = sapl.getResponse(subject, action, resource);
+
+		if (response.getDecision() == Decision.DENY) {
+			LOGGER.debug("Access denied");
+			throw new AccessDeniedException("Insufficient Permission");
+		}
+
+		LOGGER.debug("Access granted");
+		return pjp.proceed();
+	}
+	
+	
+	private Object pdpAuthorizeRetrieveSubject(PdpAuthorize pdpAuthorize){
+		Object subject;
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		JsonNode details = new ObjectMapper().convertValue(authentication.getDetails(), JsonNode.class);
 		
@@ -88,8 +102,14 @@ public class PdpAuthorizeAspect {
 			subject = new AuthenticationSubject(authentication);
 		}
 
+		return subject;
+	}
+	
+	
+	private Object pdpAuthorizeRetrieveAction(PdpAuthorize pdpAuthorize, ProceedingJoinPoint pjp){
+		Object action;
+		Object httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 		
-				
 		if (!(DEFAULT).equals(pdpAuthorize.action())) {
 			LOGGER.debug("Using action from manual input");
 			action = pdpAuthorize.action();
@@ -102,7 +122,13 @@ public class PdpAuthorizeAspect {
 			LOGGER.debug("Using default action");
 			action = pjp.getSignature().getName();
 		}
-		
+		return action;
+	}
+	
+	
+	private Object pdpAuthorizeRetrieveResource(PdpAuthorize pdpAuthorize, ProceedingJoinPoint pjp){
+		Object resource;
+		Object httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 		
 		if (!(DEFAULT).equals(pdpAuthorize.resource())) {
 			LOGGER.debug("Using resource from manual input");
@@ -116,18 +142,10 @@ public class PdpAuthorizeAspect {
 			LOGGER.debug("Using default resource");
 			resource = pjp.getTarget().getClass().getSimpleName();
 		}
-		
-		Response response = sapl.getResponse(subject, action, resource);
-
-		if (response.getDecision() == Decision.DENY) {
-			LOGGER.debug("Access denied");
-			throw new AccessDeniedException("Insufficient Permission");
-		}
-
-		LOGGER.debug("Access granted");
-		return pjp.proceed();
+		return resource;
 	}
-
+	
+	
 	private void initializeTokenStore(){
 		try {
 			this.tokenStore = applicationContext.getBean(TokenStore.class);
