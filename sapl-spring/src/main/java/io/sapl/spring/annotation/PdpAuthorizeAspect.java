@@ -116,7 +116,7 @@ public class PdpAuthorizeAspect {
 			
 		} else if (HttpServletRequest.class.isInstance(httpRequest)) {
 			LOGGER.debug("Using action from HttpServletRequest");
-			action = (HttpServletRequest) httpRequest;
+			action = httpRequest;
 		
 		} else {
 			LOGGER.debug("Using default action");
@@ -136,7 +136,7 @@ public class PdpAuthorizeAspect {
 			
 		} else if (HttpServletRequest.class.isInstance(httpRequest)){
 			LOGGER.debug("Using resource from HttpServletRequest");
-			resource = (HttpServletRequest) httpRequest;
+			resource = httpRequest;
 			
 		} else {
 			LOGGER.debug("Using default resource");
