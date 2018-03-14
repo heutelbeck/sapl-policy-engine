@@ -12,7 +12,7 @@ public interface SaplClassMapper {
 	 * @param objectToMap The object that should be mapped.
 	 * @return The mapped Object.
 	 */
-	Object map (Object objectToMap, SaplRequestElement type);
+	Object map (Object objectToMap, SaplRequestElement element);
 	
 	
 	/**

@@ -47,7 +47,7 @@ public class PdpAuthorizeAspect {
 	
 	private boolean tokenStoreInitialized;
 
-	private final SAPLAuthorizator pep;
+	private final SAPLAuthorizator sapl;
 	
 	@Autowired
 	private ApplicationContext applicationContext;
@@ -55,9 +55,9 @@ public class PdpAuthorizeAspect {
 	private TokenStore tokenStore;
 	
 	
-	public PdpAuthorizeAspect(SAPLAuthorizator pep) {
+	public PdpAuthorizeAspect(SAPLAuthorizator sapl) {
 		super();
-		this.pep = pep;
+		this.sapl = sapl;
 	}
 
 	
@@ -124,7 +124,7 @@ public class PdpAuthorizeAspect {
 			resource = new StringResource(pjp.getTarget().getClass().getSimpleName());
 		}
 		
-		Response response = pep.getResponse(subject, action, resource);
+		Response response = sapl.getResponse(subject, action, resource);
 
 		if (response.getDecision() == Decision.DENY) {
 			LOGGER.debug("Access denied");

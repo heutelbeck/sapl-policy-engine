@@ -27,7 +27,7 @@ public class PolicyEnforcementFilter extends GenericFilterBean {
 	private static final String SERVER = "localhost:8080";
 	private static final String PROTOCOL = "HTTP:";
 
-	private final SAPLAuthorizator pep;
+	private final SAPLAuthorizator sapl;
 
 	/*
 	 * (non-Javadoc)
@@ -43,12 +43,11 @@ public class PolicyEnforcementFilter extends GenericFilterBean {
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		if (authentication != null) {
-			LOGGER.debug("Enter the real CustomFilter:");
 
-			LOGGER.debug("Request to Customspermissionevaluator: {} {}{} {}{}", authentication.toString(), SERVER,
+			LOGGER.debug("Request to Policy Enforcement Filter: {} {}{} {}{}", authentication.toString(), SERVER,
 					req.getRequestURI(), PROTOCOL, req.getMethod());
 
-			boolean permission = pep.authorize(new AuthenticationSubject(authentication), new HttpAction(req),
+			boolean permission = sapl.authorize(new AuthenticationSubject(authentication), new HttpAction(req),
 					new HttpResource(req));
 			LOGGER.debug("The response is: {}", permission);
 
