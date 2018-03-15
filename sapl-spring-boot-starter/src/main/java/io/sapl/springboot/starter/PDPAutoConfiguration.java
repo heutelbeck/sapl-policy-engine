@@ -23,6 +23,7 @@ import io.sapl.spring.PIPProvider;
 import io.sapl.spring.PolicyEnforcementFilter;
 import io.sapl.spring.SAPLAuthorizator;
 import io.sapl.spring.SAPLPermissionEvaluator;
+import io.sapl.spring.annotation.PdpAuthorizeAspect;
 import io.sapl.spring.marshall.advice.AdviceHandlerService;
 import io.sapl.spring.marshall.advice.SimpleAdviceHandlerService;
 import io.sapl.spring.marshall.mapper.SaplMapper;
@@ -335,5 +336,9 @@ public class PDPAutoConfiguration {
 			}
 		};
 	}
-
+	
+	@Bean
+	PdpAuthorizeAspect pdpAuthorizeAspect(SAPLAuthorizator sapl){
+		return new PdpAuthorizeAspect(sapl);
+	}
 }

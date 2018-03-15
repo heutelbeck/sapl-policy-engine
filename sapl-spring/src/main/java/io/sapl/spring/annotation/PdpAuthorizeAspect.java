@@ -12,12 +12,10 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.token.TokenStore;
-import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -32,7 +30,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Aspect
-@Component
 public class PdpAuthorizeAspect {
 
 	private static final String DEFAULT = "default";
@@ -82,10 +79,8 @@ public class PdpAuthorizeAspect {
 		
 		if (!(DEFAULT).equals(pdpAuthorize.subject())) {
 			LOGGER.debug("Using subject from manual input");
-			authentication = new UsernamePasswordAuthenticationToken(pdpAuthorize.subject(),
-					pdpAuthorize.subject());
-			subject = new AuthenticationSubject(authentication);
-			
+			subject = pdpAuthorize.subject();
+						
 		} else if (tokenStore != null && details.findValue("tokenValue") != null) {
 			LOGGER.debug("Using subject from JWT");
 			String token = details.findValue("tokenValue").textValue();
