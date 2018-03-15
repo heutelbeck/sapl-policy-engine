@@ -11,9 +11,6 @@ import org.springframework.security.web.FilterInvocation;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
-import io.sapl.spring.marshall.action.HttpAction;
-import io.sapl.spring.marshall.resource.HttpResource;
-import io.sapl.spring.marshall.subject.AuthenticationSubject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
