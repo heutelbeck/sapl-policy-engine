@@ -52,6 +52,7 @@ public class PdpAuthorizeAspect {
 	
 	@Around("@annotation(pdpAuthorize) && execution(* *(..))")
 	public Object around(ProceedingJoinPoint pjp, PdpAuthorize pdpAuthorize) throws Throwable {
+		LOGGER.debug("Annotated method: " + pjp.getSignature().getName() + " in class: " + pjp.getTarget().getClass().getSimpleName() + " called. Constructing SAPL request...");
 		if (!tokenStoreInitialized){
 			initializeTokenStore();
 		}
