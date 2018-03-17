@@ -12,12 +12,10 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.token.TokenStore;
-import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -32,7 +30,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Aspect
-@Component
 public class PdpAuthorizeAspect {
 
 	private static final String DEFAULT = "default";
@@ -55,6 +52,7 @@ public class PdpAuthorizeAspect {
 	
 	@Around("@annotation(pdpAuthorize) && execution(* *(..))")
 	public Object around(ProceedingJoinPoint pjp, PdpAuthorize pdpAuthorize) throws Throwable {
+		LOGGER.debug("Annotated method: {} in class: {} called. Constructing SAPL request...", pjp.getSignature().getName(), pjp.getTarget().getClass().getSimpleName());
 		if (!tokenStoreInitialized){
 			initializeTokenStore();
 		}
@@ -82,10 +80,8 @@ public class PdpAuthorizeAspect {
 		
 		if (!(DEFAULT).equals(pdpAuthorize.subject())) {
 			LOGGER.debug("Using subject from manual input");
-			authentication = new UsernamePasswordAuthenticationToken(pdpAuthorize.subject(),
-					pdpAuthorize.subject());
-			subject = new AuthenticationSubject(authentication);
-			
+			subject = pdpAuthorize.subject();
+						
 		} else if (tokenStore != null && details.findValue("tokenValue") != null) {
 			LOGGER.debug("Using subject from JWT");
 			String token = details.findValue("tokenValue").textValue();
@@ -116,7 +112,7 @@ public class PdpAuthorizeAspect {
 			
 		} else if (HttpServletRequest.class.isInstance(httpRequest)) {
 			LOGGER.debug("Using action from HttpServletRequest");
-			action = (HttpServletRequest) httpRequest;
+			action = httpRequest;
 		
 		} else {
 			LOGGER.debug("Using default action");
@@ -136,7 +132,7 @@ public class PdpAuthorizeAspect {
 			
 		} else if (HttpServletRequest.class.isInstance(httpRequest)){
 			LOGGER.debug("Using resource from HttpServletRequest");
-			resource = (HttpServletRequest) httpRequest;
+			resource = httpRequest;
 			
 		} else {
 			LOGGER.debug("Using default resource");

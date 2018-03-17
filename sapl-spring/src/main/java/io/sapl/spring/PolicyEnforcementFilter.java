@@ -14,9 +14,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
 
-import io.sapl.spring.marshall.action.HttpAction;
-import io.sapl.spring.marshall.resource.HttpResource;
-import io.sapl.spring.marshall.subject.AuthenticationSubject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,8 +44,7 @@ public class PolicyEnforcementFilter extends GenericFilterBean {
 			LOGGER.debug("Request to Policy Enforcement Filter: {} {}{} {}{}", authentication.toString(), SERVER,
 					req.getRequestURI(), PROTOCOL, req.getMethod());
 
-			boolean permission = sapl.authorize(new AuthenticationSubject(authentication), new HttpAction(req),
-					new HttpResource(req));
+			boolean permission = sapl.authorize(authentication, req, req);
 			LOGGER.debug("The response is: {}", permission);
 
 			if (!permission) {

@@ -11,9 +11,6 @@ import org.springframework.security.web.FilterInvocation;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
-import io.sapl.spring.marshall.action.HttpAction;
-import io.sapl.spring.marshall.resource.HttpResource;
-import io.sapl.spring.marshall.subject.AuthenticationSubject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class SaplBasedVoter implements AccessDecisionVoter<Object> {
 
-	private final SAPLAuthorizator pep;
+	private final SAPLAuthorizator sapl;
 
 	private static final String LOGGER_FORMAT = "Decision from SAPLVoter is : {}";
 
@@ -46,8 +43,7 @@ public class SaplBasedVoter implements AccessDecisionVoter<Object> {
 		for (ConfigAttribute configAttribute : arg2) {
 			LOGGER.info(configAttribute.toString());
 		}
-		Response decision = pep.getResponse(new AuthenticationSubject(authentication), new HttpAction(request),
-				new HttpResource(request));
+		Response decision = sapl.getResponse(authentication, request, request);
 
 		if (decision == null) {
 			throw new IllegalArgumentException();
