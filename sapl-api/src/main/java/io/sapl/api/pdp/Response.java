@@ -29,14 +29,16 @@ import lombok.NoArgsConstructor;
 public class Response {
 	Decision decision;
 
+	// Optional fields initialialized as Optional.empty to allow comparing with JSON marshalling/unmarshalling
+	// Withoud initialization, fields would be null after JSON marshalling/unmarshalling
 	@JsonInclude(Include.NON_ABSENT)
-	Optional<JsonNode> resource;
+	Optional<JsonNode> resource = Optional.empty();
 
 	@JsonInclude(Include.NON_ABSENT)
-	Optional<ArrayNode> obligation;
+	Optional<ArrayNode> obligation = Optional.empty();
 
 	@JsonInclude(Include.NON_ABSENT)
-	Optional<ArrayNode> advice;
+	Optional<ArrayNode> advice = Optional.empty();
 
 	public static Response deny() {
 		return new Response(Decision.DENY, Optional.empty(), Optional.empty(), Optional.empty());
