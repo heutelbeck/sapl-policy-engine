@@ -45,7 +45,7 @@
 		<version.maven-source-plugin>2.4</version.maven-source-plugin>
 		<version.junit>4.12</version.junit>
 		<version.lombok>1.16.20</version.lombok>
-		<version.springboot>2.0.0.M7</version.springboot>
+		<version.springboot>2.0.1.RELEASE</version.springboot>
 		<version.powermock>2.0.0-beta.5</version.powermock>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
