@@ -7,13 +7,11 @@ import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
-public class SimpleSaplMapper implements SaplMapper{
+public class SimpleSaplMapper implements SaplMapper {
 
 	private List<SaplClassMapper> classMappers = new LinkedList<>();
-	
-	
+
 	@Override
 	public void register(SaplClassMapper saplClassMapper) {
 		LOG.debug("Adding SaplClassMapper: {}", saplClassMapper.getClass().toString());
@@ -29,7 +27,7 @@ public class SimpleSaplMapper implements SaplMapper{
 	public void unregisterAll() {
 		classMappers.clear();
 	}
-	
+
 	@Override
 	public List<SaplClassMapper> registeredMappers() {
 		return Collections.unmodifiableList(classMappers);
@@ -37,7 +35,9 @@ public class SimpleSaplMapper implements SaplMapper{
 
 	@Override
 	public Object map(Object objectToMap, SaplRequestElement type) {
-		LOG.debug("-------------------------------------- Mapping {} ---------------------------------------------------", type);
+		LOG.debug(
+				"-------------------------------------- Mapping {} ---------------------------------------------------",
+				type);
 		LOG.debug("Entering mapping for {}", objectToMap);
 		Optional<SaplClassMapper> classMapper = findClassMapper(objectToMap);
 		if (classMapper.isPresent()) {
@@ -49,8 +49,8 @@ public class SimpleSaplMapper implements SaplMapper{
 	@Override
 	public Optional<SaplClassMapper> findClassMapper(Object objectToMap) {
 		LOG.trace("Searching ClassMapper in {}", registeredMappers());
-		if(objectToMap != null) {
-			for(SaplClassMapper cm : registeredMappers()) {
+		if (objectToMap != null) {
+			for (SaplClassMapper cm : registeredMappers()) {
 				LOG.trace("Mapped Class: {}, Object Class: {}", cm.getMappedClass(), objectToMap.getClass().toString());
 			}
 			Optional<SaplClassMapper> classMapper = registeredMappers().stream()
@@ -60,8 +60,7 @@ public class SimpleSaplMapper implements SaplMapper{
 		}
 		LOG.debug("Found ClassMapper: false (Object is null)");
 		return Optional.empty();
-		
+
 	}
-	
 
 }

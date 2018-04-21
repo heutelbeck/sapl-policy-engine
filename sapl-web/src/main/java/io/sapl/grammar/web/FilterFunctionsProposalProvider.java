@@ -8,9 +8,9 @@ import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalCreator;
  *
  */
 public interface FilterFunctionsProposalProvider {
-    void appendFilterFunctionNames(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
-	    IdeContentProposalCreator proposalCreator);
+	void appendFilterFunctionNames(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
+			IdeContentProposalCreator proposalCreator);
 
-    void appendFilterLibraryNames(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
-	    IdeContentProposalCreator proposalCreator);
+	void appendFilterLibraryNames(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
+			IdeContentProposalCreator proposalCreator);
 }

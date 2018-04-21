@@ -35,7 +35,6 @@ public class ApplyStepsIndexUnionTest {
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
-
 	@Test(expected = PolicyEvaluationException.class)
 	public void applyToNonArray() throws PolicyEvaluationException {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
@@ -46,7 +45,6 @@ public class ApplyStepsIndexUnionTest {
 
 		previousResult.applyStep(step, ctx, true, null);
 	}
-
 
 	@Test
 	public void applyToResultArray() throws PolicyEvaluationException {

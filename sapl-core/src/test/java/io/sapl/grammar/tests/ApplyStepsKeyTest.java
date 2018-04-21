@@ -1,6 +1,5 @@
 package io.sapl.grammar.tests;
 
-
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -116,8 +115,8 @@ public class ApplyStepsKeyTest {
 		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
 		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
 
-		assertEquals("Key step applied to array node should return ArrayResultNode with results",
-				expectedResultSet, resultSet);
+		assertEquals("Key step applied to array node should return ArrayResultNode with results", expectedResultSet,
+				resultSet);
 	}
 
 	@Test
@@ -139,7 +138,7 @@ public class ApplyStepsKeyTest {
 
 		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
 		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-		
+
 		assertEquals("Key step applied to ArrayResultNode should return an array with the correct values",
 				expectedResultSet, resultSet);
 

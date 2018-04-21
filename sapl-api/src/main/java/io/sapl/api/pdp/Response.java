@@ -29,8 +29,10 @@ import lombok.NoArgsConstructor;
 public class Response {
 	Decision decision;
 
-	// Optional fields initialialized as Optional.empty to allow comparing with JSON marshalling/unmarshalling
-	// Withoud initialization, fields would be null after JSON marshalling/unmarshalling
+	// Optional fields initialialized as Optional.empty to allow comparing with JSON
+	// marshalling/unmarshalling
+	// Withoud initialization, fields would be null after JSON
+	// marshalling/unmarshalling
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<JsonNode> resource = Optional.empty();
 

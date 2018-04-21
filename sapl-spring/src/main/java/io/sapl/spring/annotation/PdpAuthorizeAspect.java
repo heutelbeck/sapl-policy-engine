@@ -33,34 +33,33 @@ import lombok.extern.slf4j.Slf4j;
 public class PdpAuthorizeAspect {
 
 	private static final String DEFAULT = "default";
-	
+
 	private boolean tokenStoreInitialized;
 
 	private final SAPLAuthorizator sapl;
-	
+
 	@Autowired
 	private ApplicationContext applicationContext;
-	
+
 	private TokenStore tokenStore;
-	
-	
+
 	public PdpAuthorizeAspect(SAPLAuthorizator sapl) {
 		super();
 		this.sapl = sapl;
 	}
 
-	
 	@Around("@annotation(pdpAuthorize) && execution(* *(..))")
 	public Object around(ProceedingJoinPoint pjp, PdpAuthorize pdpAuthorize) throws Throwable {
-		LOG.debug("Annotated method: {} in class: {} called. Constructing SAPL request...", pjp.getSignature().getName(), pjp.getTarget().getClass().getSimpleName());
-		if (!tokenStoreInitialized){
+		LOG.debug("Annotated method: {} in class: {} called. Constructing SAPL request...",
+				pjp.getSignature().getName(), pjp.getTarget().getClass().getSimpleName());
+		if (!tokenStoreInitialized) {
 			initializeTokenStore();
 		}
-		
+
 		Object subject = pdpAuthorizeRetrieveSubject(pdpAuthorize);
-		Object action = pdpAuthorizeRetrieveAction(pdpAuthorize, pjp);				
+		Object action = pdpAuthorizeRetrieveAction(pdpAuthorize, pjp);
 		Object resource = pdpAuthorizeRetrieveResource(pdpAuthorize, pjp);
-		
+
 		Response response = sapl.getResponse(subject, action, resource);
 
 		if (response.getDecision() == Decision.DENY) {
@@ -71,17 +70,16 @@ public class PdpAuthorizeAspect {
 		LOG.debug("Access granted");
 		return pjp.proceed();
 	}
-	
-	
-	private Object pdpAuthorizeRetrieveSubject(PdpAuthorize pdpAuthorize){
+
+	private Object pdpAuthorizeRetrieveSubject(PdpAuthorize pdpAuthorize) {
 		Object subject;
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		JsonNode details = new ObjectMapper().convertValue(authentication.getDetails(), JsonNode.class);
-		
+
 		if (!(DEFAULT).equals(pdpAuthorize.subject())) {
 			LOG.debug("Using subject from manual input");
 			subject = pdpAuthorize.subject();
-						
+
 		} else if (tokenStore != null && details.findValue("tokenValue") != null) {
 			LOG.debug("Using subject from JWT");
 			String token = details.findValue("tokenValue").textValue();
@@ -92,61 +90,58 @@ public class PdpAuthorizeAspect {
 			}
 			LOG.debug("Retrieved token: {}", token);
 			subject = new AuthenticationSubject(authentication, claims);
-		
-		} else { 
+
+		} else {
 			LOG.debug("Using default subject");
 			subject = new AuthenticationSubject(authentication);
 		}
 
 		return subject;
 	}
-	
-	
-	private Object pdpAuthorizeRetrieveAction(PdpAuthorize pdpAuthorize, ProceedingJoinPoint pjp){
+
+	private Object pdpAuthorizeRetrieveAction(PdpAuthorize pdpAuthorize, ProceedingJoinPoint pjp) {
 		Object action;
 		Object httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-		
+
 		if (!(DEFAULT).equals(pdpAuthorize.action())) {
 			LOG.debug("Using action from manual input");
 			action = pdpAuthorize.action();
-			
+
 		} else if (HttpServletRequest.class.isInstance(httpRequest)) {
 			LOG.debug("Using action from HttpServletRequest");
 			action = httpRequest;
-		
+
 		} else {
 			LOG.debug("Using default action");
 			action = pjp.getSignature().getName();
 		}
 		return action;
 	}
-	
-	
-	private Object pdpAuthorizeRetrieveResource(PdpAuthorize pdpAuthorize, ProceedingJoinPoint pjp){
+
+	private Object pdpAuthorizeRetrieveResource(PdpAuthorize pdpAuthorize, ProceedingJoinPoint pjp) {
 		Object resource;
 		Object httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-		
+
 		if (!(DEFAULT).equals(pdpAuthorize.resource())) {
 			LOG.debug("Using resource from manual input");
 			resource = pdpAuthorize.resource();
-			
-		} else if (HttpServletRequest.class.isInstance(httpRequest)){
+
+		} else if (HttpServletRequest.class.isInstance(httpRequest)) {
 			LOG.debug("Using resource from HttpServletRequest");
 			resource = httpRequest;
-			
+
 		} else {
 			LOG.debug("Using default resource");
 			resource = pjp.getTarget().getClass().getSimpleName();
 		}
 		return resource;
 	}
-	
-	
-	private void initializeTokenStore(){
+
+	private void initializeTokenStore() {
 		try {
 			this.tokenStore = applicationContext.getBean(TokenStore.class);
-		} catch (NoSuchBeanDefinitionException e){
-			//No Such Bean
+		} catch (NoSuchBeanDefinitionException e) {
+			// No Such Bean
 		}
 		tokenStoreInitialized = true;
 	}

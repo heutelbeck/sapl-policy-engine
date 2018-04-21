@@ -26,8 +26,7 @@ public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionIm
 
 	protected static void assertNumber(JsonNode node) throws PolicyEvaluationException {
 		if (!node.isNumber()) {
-			throw new PolicyEvaluationException(
-					String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH, node.getNodeType()));
+			throw new PolicyEvaluationException(String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH, node.getNodeType()));
 		}
 	}
 

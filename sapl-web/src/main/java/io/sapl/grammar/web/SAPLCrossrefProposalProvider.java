@@ -13,13 +13,13 @@ import org.eclipse.xtext.resource.IEObjectDescription;
  */
 public class SAPLCrossrefProposalProvider extends IdeCrossrefProposalProvider {
 
-    public SAPLCrossrefProposalProvider() {
-    }
+	public SAPLCrossrefProposalProvider() {
+	}
 
-    @Override
-    protected ContentAssistEntry createProposal(IEObjectDescription candidate, CrossReference crossRef,
-	    ContentAssistContext context) {
-	return super.createProposal(candidate, crossRef, context);
-    }
+	@Override
+	protected ContentAssistEntry createProposal(IEObjectDescription candidate, CrossReference crossRef,
+			ContentAssistContext context) {
+		return super.createProposal(candidate, crossRef, context);
+	}
 
 }

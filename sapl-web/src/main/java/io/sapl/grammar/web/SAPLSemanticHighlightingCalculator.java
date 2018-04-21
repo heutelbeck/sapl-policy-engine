@@ -11,15 +11,15 @@ import org.eclipse.xtext.util.CancelIndicator;
  */
 public class SAPLSemanticHighlightingCalculator extends DefaultSemanticHighlightingCalculator {
 
-    public SAPLSemanticHighlightingCalculator() {
-    }
+	public SAPLSemanticHighlightingCalculator() {
+	}
 
-    @Override
-    protected boolean highlightElement(EObject object, IHighlightedPositionAcceptor acceptor,
-	    CancelIndicator cancelIndicator) {
-	// here we could add some additional highlighting by calling
-	// acceptor.addPosition(start, length, style-class-Names.class..);
-	return super.highlightElement(object, acceptor, cancelIndicator);
-    }
+	@Override
+	protected boolean highlightElement(EObject object, IHighlightedPositionAcceptor acceptor,
+			CancelIndicator cancelIndicator) {
+		// here we could add some additional highlighting by calling
+		// acceptor.addPosition(start, length, style-class-Names.class..);
+		return super.highlightElement(object, acceptor, cancelIndicator);
+	}
 
 }

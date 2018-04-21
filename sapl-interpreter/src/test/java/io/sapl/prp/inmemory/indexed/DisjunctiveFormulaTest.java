@@ -9,10 +9,6 @@ import org.junit.Test;
 import io.sapl.grammar.sapl.BasicIdentifier;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
-import io.sapl.prp.inmemory.indexed.Bool;
-import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
-import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
-import io.sapl.prp.inmemory.indexed.Literal;
 
 public class DisjunctiveFormulaTest {
 

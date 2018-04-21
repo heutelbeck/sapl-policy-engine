@@ -21,13 +21,13 @@ import io.sapl.api.functions.FunctionLibrary;
 
 @FunctionLibrary(name = "date")
 public class MockXACMLDateFunctionLibrary {
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    @Function
+	@Function
 	public JsonNode diff(JsonNode type, JsonNode to, JsonNode from) throws FunctionException {
 		if ("years".equals(type.asText())) {
 			return JSON.numberNode(15);
 		}
 		return JSON.numberNode(5);
-    }
+	}
 }

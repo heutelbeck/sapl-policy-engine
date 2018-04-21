@@ -37,14 +37,12 @@ public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 			throws PolicyEvaluationException {
 		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
 		if (!left.isTextual()) {
-			throw new PolicyEvaluationException(
-					String.format(REGEX_TYPE_MISMATCH, left.getNodeType()));
+			throw new PolicyEvaluationException(String.format(REGEX_TYPE_MISMATCH, left.getNodeType()));
 		}
 
 		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
 		if (!right.isTextual()) {
-			throw new PolicyEvaluationException(
-					String.format(REGEX_TYPE_MISMATCH, right.getNodeType()));
+			throw new PolicyEvaluationException(String.format(REGEX_TYPE_MISMATCH, right.getNodeType()));
 		}
 
 		try {

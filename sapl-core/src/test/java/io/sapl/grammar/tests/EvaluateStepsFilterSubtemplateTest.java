@@ -24,7 +24,7 @@ import io.sapl.interpreter.variables.VariableContext;
 public class EvaluateStepsFilterSubtemplateTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
-	
+
 	private static VariableContext variableCtx = new VariableContext();
 	private static FunctionContext functionCtx = new MockFilteringContext();
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
@@ -78,22 +78,22 @@ public class EvaluateStepsFilterSubtemplateTest {
 	@Test
 	public void subtemplateArray() throws PolicyEvaluationException {
 		BasicValue expression = factory.createBasicValue();
-		
+
 		BasicValue item1 = factory.createBasicValue();
 		item1.setValue(factory.createTrueLiteral());
 		BasicValue item2 = factory.createBasicValue();
 		item2.setValue(factory.createFalseLiteral());
-		
+
 		Array array = factory.createArray();
 		array.getItems().add(item1);
 		array.getItems().add(item2);
-		
+
 		expression.setValue(array);
 
 		BasicValue subtemplate = factory.createBasicValue();
 		subtemplate.setValue(factory.createNullLiteral());
 		expression.setSubtemplate(subtemplate);
-		
+
 		ArrayNode expectedResult = JSON.arrayNode();
 		expectedResult.add(JSON.nullNode());
 		expectedResult.add(JSON.nullNode());

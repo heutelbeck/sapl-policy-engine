@@ -82,11 +82,9 @@ public class ApplyStepsArraySlicingTest {
 		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(3)), numberArray, 3));
 		ResultNode expectedResult = new ArrayResultNode(list);
 
-
 		ResultNode result = applySlicingToArrayNode(1, 4, null);
 
-		assertEquals("Slicing applied to array node should return corresponding items", expectedResult,
-				result);
+		assertEquals("Slicing applied to array node should return corresponding items", expectedResult, result);
 	}
 
 	@Test
@@ -247,8 +245,6 @@ public class ApplyStepsArraySlicingTest {
 
 		ResultNode result = previousResult.applyStep(step, ctx, true, null);
 
-		assertEquals(
-				"Slicing applied to result array should return the correct items",
-				expectedResult, result);
+		assertEquals("Slicing applied to result array should return the correct items", expectedResult, result);
 	}
 }

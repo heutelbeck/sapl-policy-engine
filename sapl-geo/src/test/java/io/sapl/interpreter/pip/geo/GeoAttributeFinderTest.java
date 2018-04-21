@@ -24,31 +24,28 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.pip.GeoAttributeFinder;
-import io.sapl.interpreter.pip.geo.KMLImport;
-import io.sapl.interpreter.pip.geo.PostGISConnection;
-import io.sapl.interpreter.pip.geo.TraccarConnection;
 
 public class GeoAttributeFinderTest {
 
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-    private static final GeoAttributeFinder AF = new GeoAttributeFinder();
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final GeoAttributeFinder AF = new GeoAttributeFinder();
 
-    @Test
-    public void postgisTest() throws AttributeException, FunctionException {
-	assertEquals("GeoAttributeFinder does not call the correct methods when accessing PostGIS.",
-			PostGISConnection.TEST_OKAY, AF.postgis(JSON.textNode(PostGISConnection.AF_TEST), null).asText());
-    }
+	@Test
+	public void postgisTest() throws AttributeException, FunctionException {
+		assertEquals("GeoAttributeFinder does not call the correct methods when accessing PostGIS.",
+				PostGISConnection.TEST_OKAY, AF.postgis(JSON.textNode(PostGISConnection.AF_TEST), null).asText());
+	}
 
-    @Test
-    public void traccarTest() throws AttributeException, FunctionException {
-	assertEquals("GeoAttributeFinder does not call the correct methods when accessing Traccar.",
-			TraccarConnection.TEST_OKAY, AF.traccar(JSON.textNode(TraccarConnection.AF_TEST), null).asText());
-    }
+	@Test
+	public void traccarTest() throws AttributeException, FunctionException {
+		assertEquals("GeoAttributeFinder does not call the correct methods when accessing Traccar.",
+				TraccarConnection.TEST_OKAY, AF.traccar(JSON.textNode(TraccarConnection.AF_TEST), null).asText());
+	}
 
-    @Test
-    public void kmlTest() throws AttributeException, FunctionException {
-	assertEquals("GeoAttributeFinder does not call the correct methods when accessing KML.",
-			KMLImport.TEST_OKAY, AF.kml(JSON.textNode(""), null).asText());
-    }
+	@Test
+	public void kmlTest() throws AttributeException, FunctionException {
+		assertEquals("GeoAttributeFinder does not call the correct methods when accessing KML.", KMLImport.TEST_OKAY,
+				AF.kml(JSON.textNode(""), null).asText());
+	}
 
 }

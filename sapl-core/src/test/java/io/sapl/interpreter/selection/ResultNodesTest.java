@@ -338,8 +338,8 @@ public class ResultNodesTest {
 
 		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
 
-		assertEquals("function applied to ArrayResultNode with each should replace each selected item",
-				expectedResult, target);
+		assertEquals("function applied to ArrayResultNode with each should replace each selected item", expectedResult,
+				target);
 	}
 
 	@Test(expected = PolicyEvaluationException.class)

@@ -26,39 +26,34 @@ import io.sapl.api.validation.Text;
 
 @FunctionLibrary(name = "simple", description = "some simple functions")
 public class SimpleFunctionLibrary {
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    @Function
-    public JsonNode now() throws FunctionException {
-        return JSON.textNode(Instant.now().toString());
-    }
+	@Function
+	public JsonNode now() throws FunctionException {
+		return JSON.textNode(Instant.now().toString());
+	}
 
-    @Function
-    public JsonNode length(
-            JsonNode parameter
-    ) throws FunctionException {
-        JsonNode result = null;
-        if (parameter.isArray()) {
-            result = JSON.numberNode((float) ((ArrayNode) parameter).size());
-        } else if (parameter.isTextual()) {
-            result = JSON.numberNode((float) ((TextNode) parameter).size());
-        } else {
-            throw new FunctionException(
-                    "length() parameter must be a string or an array, found "
-                            + parameter.getNodeType() + ".");
-        }
-        return result;
-    }
+	@Function
+	public JsonNode length(JsonNode parameter) throws FunctionException {
+		JsonNode result = null;
+		if (parameter.isArray()) {
+			result = JSON.numberNode((float) ((ArrayNode) parameter).size());
+		} else if (parameter.isTextual()) {
+			result = JSON.numberNode((float) ((TextNode) parameter).size());
+		} else {
+			throw new FunctionException(
+					"length() parameter must be a string or an array, found " + parameter.getNodeType() + ".");
+		}
+		return result;
+	}
 
-    @Function
-    public JsonNode append(
-            @Text JsonNode... parameters
-    ) throws FunctionException {
-        StringBuilder builder = new StringBuilder();
-        for (JsonNode parameter : parameters) {
-            builder.append(parameter.asText());
-        }
-        return JSON.textNode(builder.toString());
-    }
+	@Function
+	public JsonNode append(@Text JsonNode... parameters) throws FunctionException {
+		StringBuilder builder = new StringBuilder();
+		for (JsonNode parameter : parameters) {
+			builder.append(parameter.asText());
+		}
+		return JSON.textNode(builder.toString());
+	}
 
 }

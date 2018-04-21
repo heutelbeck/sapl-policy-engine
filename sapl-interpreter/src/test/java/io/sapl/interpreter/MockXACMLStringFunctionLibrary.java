@@ -21,11 +21,11 @@ import io.sapl.api.functions.FunctionLibrary;
 
 @FunctionLibrary(name = "string")
 public class MockXACMLStringFunctionLibrary {
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    @Function
+	@Function
 	public JsonNode starts_with(JsonNode string, JsonNode start) throws FunctionException {
 		String str = string.asText();
 		return JSON.booleanNode(str.startsWith(start.asText()));
-    }
+	}
 }

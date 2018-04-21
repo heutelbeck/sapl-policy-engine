@@ -23,29 +23,28 @@ public class SAPLAuthorizator {
 	protected final PolicyDecisionPoint pdp;
 
 	protected final ObligationHandlerService obs;
-	
+
 	protected final AdviceHandlerService ahs;
-	
+
 	protected final SaplMapper sm;
 
 	@Autowired
-	public SAPLAuthorizator(PolicyDecisionPoint pdp, ObligationHandlerService obs, AdviceHandlerService ahs, SaplMapper sm) {
+	public SAPLAuthorizator(PolicyDecisionPoint pdp, ObligationHandlerService obs, AdviceHandlerService ahs,
+			SaplMapper sm) {
 		this.pdp = pdp;
 		this.obs = obs;
 		this.ahs = ahs;
 		this.sm = sm;
 	}
 
-	
 	public boolean authorize(Object subject, Object action, Object resource) {
 		return authorize(subject, action, resource, null);
 	}
-	
+
 	public Response getResponse(Object subject, Object action, Object resource) {
 		return getResponse(subject, action, resource, null);
 	}
-	
-	
+
 	public boolean authorize(Object subject, Object action, Object resource, Object environment) {
 		LOG.trace("###################################### NEW SAPL REQUEST ########################################");
 		Response response = runPolicyCheck(subject, action, resource, environment);
@@ -65,18 +64,19 @@ public class SAPLAuthorizator {
 		Object mappedAction = sm.map(action, SaplRequestElement.ACTION);
 		Object mappedResource = sm.map(resource, SaplRequestElement.RESOURCE);
 		Object mappedEnvironment = sm.map(environment, SaplRequestElement.ENVIRONMENT);
-		
-		LOG.debug("-------------------------------------- Response ---------------------------------------------------");
-		LOG.debug("These are the parameters: \n  subject: {} \n  action: {} \n  resource: {} \n  environment: {}", mappedSubject, mappedAction,
-				mappedResource, mappedEnvironment);
+
+		LOG.debug(
+				"-------------------------------------- Response ---------------------------------------------------");
+		LOG.debug("These are the parameters: \n  subject: {} \n  action: {} \n  resource: {} \n  environment: {}",
+				mappedSubject, mappedAction, mappedResource, mappedEnvironment);
 
 		Response response = pdp.decide(mappedSubject, mappedAction, mappedResource, mappedEnvironment);
 
 		LOG.debug("Here comes the response: {}", response);
-		
+
 		if (response.getObligation().orElse(null) != null) {
 			List<Obligation> obligationsList = Obligation.fromJson(response.getObligation().get());
-			
+
 			LOG.debug("Start handling obligations {}", obligationsList);
 			try {
 				for (Obligation o : obligationsList) {
@@ -87,10 +87,10 @@ public class SAPLAuthorizator {
 				response = new Response(Decision.DENY, Optional.empty(), Optional.empty(), Optional.empty());
 			}
 		}
-		
+
 		if (response.getAdvice().orElse(null) != null) {
 			List<Advice> adviceList = Advice.fromJson(response.getAdvice().get());
-			
+
 			LOG.debug("Start handling advices {}", adviceList);
 			for (Advice a : adviceList) {
 				LOG.debug("Handling now {}", a);

@@ -178,8 +178,8 @@ public class PDPAutoConfiguration {
 	}
 
 	/**
-	 * If no bean-definition of type {@link PIPProvider} exists, this method
-	 * will define a PIPProvide-bean that allways delivers an enmpty list.
+	 * If no bean-definition of type {@link PIPProvider} exists, this method will
+	 * define a PIPProvide-bean that allways delivers an enmpty list.
 	 * 
 	 * @return a PIPProvider
 	 * @see PIPProvider
@@ -239,8 +239,8 @@ public class PDPAutoConfiguration {
 	}
 
 	/**
-	 * If no other bean-definition of type {@link SaplMapper} is provided, then
-	 * this will provide a {@link SimpleSaplMapper}
+	 * If no other bean-definition of type {@link SaplMapper} is provided, then this
+	 * will provide a {@link SimpleSaplMapper}
 	 * 
 	 * @return an implementation of SaplMapper
 	 */
@@ -266,8 +266,8 @@ public class PDPAutoConfiguration {
 	}
 
 	/**
-	 * If no other bean-definition of type {@link AdviceHandlerService} is
-	 * provided, then this will provide a {@link SimpleAdviceHandlerService}
+	 * If no other bean-definition of type {@link AdviceHandlerService} is provided,
+	 * then this will provide a {@link SimpleAdviceHandlerService}
 	 * 
 	 * @return an AdviceHandlerService
 	 */
@@ -310,11 +310,11 @@ public class PDPAutoConfiguration {
 	}
 
 	/**
-	 * Returns an implementation of {@link ObligationHandler} does nothing but
-	 * logg a message on logg-level warn, when
-	 * {@link ObligationHandler#handleObligation(Obligation)} is called and
-	 * allways returns <b>false</b> when
-	 * {@link ObligationHandler#canHandle(Obligation)} ia called.
+	 * Returns an implementation of {@link ObligationHandler} does nothing but logg
+	 * a message on logg-level warn, when
+	 * {@link ObligationHandler#handleObligation(Obligation)} is called and allways
+	 * returns <b>false</b> when {@link ObligationHandler#canHandle(Obligation)} ia
+	 * called.
 	 * 
 	 * @return an ObligationHandler implementation
 	 */
@@ -336,9 +336,9 @@ public class PDPAutoConfiguration {
 			}
 		};
 	}
-	
+
 	@Bean
-	PdpAuthorizeAspect pdpAuthorizeAspect(SAPLAuthorizator sapl){
+	PdpAuthorizeAspect pdpAuthorizeAspect(SAPLAuthorizator sapl) {
 		return new PdpAuthorizeAspect(sapl);
 	}
 }

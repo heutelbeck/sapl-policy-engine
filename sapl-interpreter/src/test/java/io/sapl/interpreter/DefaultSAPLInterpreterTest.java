@@ -207,8 +207,7 @@ public class DefaultSAPLInterpreterTest {
 	public void evaluateWorkingBodyError() throws PolicyEvaluationException {
 		String policyDefinition = "policy \"test\" permit subject.isActive == true where 4 && true;";
 		assertEquals("evaluateRule behaves unexpectedly", Response.indeterminate(), INTERPRETER.evaluateRules(
-				requestObject,
-						INTERPRETER.parse(policyDefinition), attributeCtx, functionCtx, SYSTEM_VARIABLES));
+				requestObject, INTERPRETER.parse(policyDefinition), attributeCtx, functionCtx, SYSTEM_VARIABLES));
 	}
 
 	@Test
@@ -270,9 +269,8 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void transformation() throws PolicyEvaluationException {
 		String policyDefinition = "policy \"test\" permit transform null";
-		assertEquals("transformation not evaluated as expected", Optional.of(JSON.nullNode()),
-				INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.getResource());
+		assertEquals("transformation not evaluated as expected", Optional.of(JSON.nullNode()), INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).getResource());
 	}
 
 	@Test
@@ -386,9 +384,8 @@ public class DefaultSAPLInterpreterTest {
 		Map<String, JsonNode> variables = new HashMap<>();
 		variables.put("subject", JSON.nullNode());
 		assertEquals("evaluateRules called with subject as variable name short evaluate to indeterminate",
-				Response.indeterminate(),
-				INTERPRETER.evaluateRules(requestObject, policy.getPolicyElement(), attributeCtx, functionCtx,
-						SYSTEM_VARIABLES, variables, new HashMap<>()));
+				Response.indeterminate(), INTERPRETER.evaluateRules(requestObject, policy.getPolicyElement(),
+						attributeCtx, functionCtx, SYSTEM_VARIABLES, variables, new HashMap<>()));
 	}
 
 }

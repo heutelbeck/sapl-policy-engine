@@ -130,8 +130,7 @@ public class EvaluateOperatorsTest {
 		JsonNode result = and.evaluate(ctx, true, null);
 
 		assertEquals("False And wrong datatype should evaluate to BooleanNode(false) (lazy evaluation)",
-				JSON.booleanNode(false),
-				result);
+				JSON.booleanNode(false), result);
 	}
 
 	@Test

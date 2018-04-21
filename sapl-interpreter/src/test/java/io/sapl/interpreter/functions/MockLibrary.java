@@ -20,14 +20,14 @@ import io.sapl.api.functions.FunctionLibrary;
 
 @FunctionLibrary(name = MockLibrary.NAME, description = "docs of my lib")
 public class MockLibrary {
-    public static final String NAME = "test.lib";
+	public static final String NAME = "test.lib";
 
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    @Function(docs = "docs for helloTest")
-    public static JsonNode helloTest() {
+	@Function(docs = "docs for helloTest")
+	public static JsonNode helloTest() {
 
-        return JSON.textNode("HELLO TEST");
-    }
+		return JSON.textNode("HELLO TEST");
+	}
 
 }

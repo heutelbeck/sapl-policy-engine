@@ -60,15 +60,15 @@ public class ApplyStepsAttributeUnionTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(object);
 
 		ResultNode expectedResult = new ArrayResultNode(new ArrayList<>());
-		
+
 		AttributeUnionStep step = factory.createAttributeUnionStep();
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
 		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-		
-		assertEquals("Attribute union applied to empty object should return empty result array",
-				expectedResult, result);
+
+		assertEquals("Attribute union applied to empty object should return empty result array", expectedResult,
+				result);
 	}
 
 	@Test
@@ -89,7 +89,7 @@ public class ApplyStepsAttributeUnionTest {
 
 		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
 		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-		
+
 		assertEquals("Attribute union applied to object should return result array with corresponding attribute values",
 				expectedResultSet, resultSet);
 	}
