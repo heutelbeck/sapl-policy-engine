@@ -24,14 +24,14 @@ public class SaplBasedVoter implements AccessDecisionVoter<Object> {
 
 	@Override
 	public boolean supports(ConfigAttribute attribute) {
-		// we wanna vote on every attribute
+		// we want to vote on every attribute
 		// maybe this has to be limited in the future
 		return true;
 	}
 
 	@Override
 	public boolean supports(Class<?> arg0) {
-		// we wanna vote on every secured object
+		// we want to vote on every secured object
 		// maybe this has to be limited in the future
 		return true;
 	}
