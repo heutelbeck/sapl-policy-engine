@@ -466,7 +466,7 @@ public class GeoFunctionLibrary {
 
 	@Function
 	public JsonNode print(JsonNode node) {
-		LOG.info(node.toString());
+		LOGGER.info(node.toString());
 		return JSON.booleanNode(true);
 	}
 }

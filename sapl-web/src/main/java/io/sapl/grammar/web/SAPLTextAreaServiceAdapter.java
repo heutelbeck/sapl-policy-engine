@@ -55,7 +55,7 @@ public class SAPLTextAreaServiceAdapter implements FilterFunctionsProposalProvid
 	public void appendFilterFunctionNames(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
 			IdeContentProposalCreator proposalCreator) {
 		EObject prev = context.getPreviousModel();
-		LOG.error("prev: {}", prev.eClass());
+		LOGGER.error("prev: {}", prev.eClass());
 	}
 
 	@Override

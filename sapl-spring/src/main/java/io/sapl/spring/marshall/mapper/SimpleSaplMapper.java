@@ -14,7 +14,7 @@ public class SimpleSaplMapper implements SaplMapper {
 
 	@Override
 	public void register(SaplClassMapper saplClassMapper) {
-		LOG.debug("Adding SaplClassMapper: {}", saplClassMapper.getClass().toString());
+		LOGGER.debug("Adding SaplClassMapper: {}", saplClassMapper.getClass().toString());
 		classMappers.add(saplClassMapper);
 	}
 
@@ -35,10 +35,10 @@ public class SimpleSaplMapper implements SaplMapper {
 
 	@Override
 	public Object map(Object objectToMap, SaplRequestElement type) {
-		LOG.debug(
+		LOGGER.debug(
 				"-------------------------------------- Mapping {} ---------------------------------------------------",
 				type);
-		LOG.debug("Entering mapping for {}", objectToMap);
+		LOGGER.debug("Entering mapping for {}", objectToMap);
 		Optional<SaplClassMapper> classMapper = findClassMapper(objectToMap);
 		if (classMapper.isPresent()) {
 			return classMapper.get().map(objectToMap, type);
@@ -48,17 +48,17 @@ public class SimpleSaplMapper implements SaplMapper {
 
 	@Override
 	public Optional<SaplClassMapper> findClassMapper(Object objectToMap) {
-		LOG.trace("Searching ClassMapper in {}", registeredMappers());
+		LOGGER.trace("Searching ClassMapper in {}", registeredMappers());
 		if (objectToMap != null) {
 			for (SaplClassMapper cm : registeredMappers()) {
-				LOG.trace("Mapped Class: {}, Object Class: {}", cm.getMappedClass(), objectToMap.getClass().toString());
+				LOGGER.trace("Mapped Class: {}, Object Class: {}", cm.getMappedClass(), objectToMap.getClass().toString());
 			}
 			Optional<SaplClassMapper> classMapper = registeredMappers().stream()
 					.filter(mapper -> mapper.canMap(objectToMap)).findAny();
-			LOG.debug("Found ClassMapper: {}", classMapper.isPresent());
+			LOGGER.debug("Found ClassMapper: {}", classMapper.isPresent());
 			return classMapper;
 		}
-		LOG.debug("Found ClassMapper: false (Object is null)");
+		LOGGER.debug("Found ClassMapper: false (Object is null)");
 		return Optional.empty();
 
 	}

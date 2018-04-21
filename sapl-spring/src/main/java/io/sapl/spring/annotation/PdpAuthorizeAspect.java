@@ -50,7 +50,7 @@ public class PdpAuthorizeAspect {
 
 	@Around("@annotation(pdpAuthorize) && execution(* *(..))")
 	public Object around(ProceedingJoinPoint pjp, PdpAuthorize pdpAuthorize) throws Throwable {
-		LOG.debug("Annotated method: {} in class: {} called. Constructing SAPL request...",
+		LOGGER.debug("Annotated method: {} in class: {} called. Constructing SAPL request...",
 				pjp.getSignature().getName(), pjp.getTarget().getClass().getSimpleName());
 		if (!tokenStoreInitialized) {
 			initializeTokenStore();
@@ -63,11 +63,11 @@ public class PdpAuthorizeAspect {
 		Response response = sapl.getResponse(subject, action, resource);
 
 		if (response.getDecision() == Decision.DENY) {
-			LOG.debug("Access denied");
+			LOGGER.debug("Access denied");
 			throw new AccessDeniedException("Insufficient Permission");
 		}
 
-		LOG.debug("Access granted");
+		LOGGER.debug("Access granted");
 		return pjp.proceed();
 	}
 
@@ -77,22 +77,22 @@ public class PdpAuthorizeAspect {
 		JsonNode details = new ObjectMapper().convertValue(authentication.getDetails(), JsonNode.class);
 
 		if (!(DEFAULT).equals(pdpAuthorize.subject())) {
-			LOG.debug("Using subject from manual input");
+			LOGGER.debug("Using subject from manual input");
 			subject = pdpAuthorize.subject();
 
 		} else if (tokenStore != null && details.findValue("tokenValue") != null) {
-			LOG.debug("Using subject from JWT");
+			LOGGER.debug("Using subject from JWT");
 			String token = details.findValue("tokenValue").textValue();
 			OAuth2AccessToken parsedToken = tokenStore.readAccessToken(token);
 			Map<String, Object> claims = parsedToken.getAdditionalInformation();
 			for (Entry<String, Object> kvp : claims.entrySet()) {
-				LOG.debug("Single claim: {} -> {}", kvp.getKey(), kvp.getValue());
+				LOGGER.debug("Single claim: {} -> {}", kvp.getKey(), kvp.getValue());
 			}
-			LOG.debug("Retrieved token: {}", token);
+			LOGGER.debug("Retrieved token: {}", token);
 			subject = new AuthenticationSubject(authentication, claims);
 
 		} else {
-			LOG.debug("Using default subject");
+			LOGGER.debug("Using default subject");
 			subject = new AuthenticationSubject(authentication);
 		}
 
@@ -104,15 +104,15 @@ public class PdpAuthorizeAspect {
 		Object httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 
 		if (!(DEFAULT).equals(pdpAuthorize.action())) {
-			LOG.debug("Using action from manual input");
+			LOGGER.debug("Using action from manual input");
 			action = pdpAuthorize.action();
 
 		} else if (HttpServletRequest.class.isInstance(httpRequest)) {
-			LOG.debug("Using action from HttpServletRequest");
+			LOGGER.debug("Using action from HttpServletRequest");
 			action = httpRequest;
 
 		} else {
-			LOG.debug("Using default action");
+			LOGGER.debug("Using default action");
 			action = pjp.getSignature().getName();
 		}
 		return action;
@@ -123,15 +123,15 @@ public class PdpAuthorizeAspect {
 		Object httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 
 		if (!(DEFAULT).equals(pdpAuthorize.resource())) {
-			LOG.debug("Using resource from manual input");
+			LOGGER.debug("Using resource from manual input");
 			resource = pdpAuthorize.resource();
 
 		} else if (HttpServletRequest.class.isInstance(httpRequest)) {
-			LOG.debug("Using resource from HttpServletRequest");
+			LOGGER.debug("Using resource from HttpServletRequest");
 			resource = httpRequest;
 
 		} else {
-			LOG.debug("Using default resource");
+			LOGGER.debug("Using default resource");
 			resource = pjp.getTarget().getClass().getSimpleName();
 		}
 		return resource;

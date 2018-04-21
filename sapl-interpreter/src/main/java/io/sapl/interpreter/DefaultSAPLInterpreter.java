@@ -119,7 +119,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	private static Resource loadAsResource(String saplDefinition) throws PolicyEvaluationException {
 		XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
 		Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
-		LOG.trace("policy : {}", saplDefinition);
+		LOGGER.trace("policy : {}", saplDefinition);
 
 		try (InputStream in = new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8))) {
 			resource.load(in, resourceSet.getLoadOptions());
@@ -173,7 +173,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			SAPL saplDocument = parse(saplDefinition);
 			return evaluate(request, saplDocument, attributeCtx, functionCtx, systemVariables);
 		} catch (PolicyEvaluationException e) {
-			LOG.trace(e.getMessage());
+			LOGGER.trace(e.getMessage());
 			return Response.indeterminate();
 		}
 	}
@@ -185,11 +185,11 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			if (matches(request, saplDocument, functionCtx, systemVariables)) {
 				return evaluateRules(request, saplDocument, attributeCtx, functionCtx, systemVariables);
 			} else {
-				LOG.trace(NO_TARGET_MATCH);
+				LOGGER.trace(NO_TARGET_MATCH);
 				return Response.notApplicable();
 			}
 		} catch (PolicyEvaluationException e) {
-			LOG.trace(POLICY_EVALUATION_FAILED, e.getMessage());
+			LOGGER.trace(POLICY_EVALUATION_FAILED, e.getMessage());
 			return Response.indeterminate();
 		}
 	}
@@ -250,7 +250,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 				obligation = evaluateObligation(policy, evaluationCtx);
 				advice = evaluateAdvice(policy, evaluationCtx);
 			} catch (PolicyEvaluationException e) {
-				LOG.trace(TRANSFORMATION_OBLIGATION_ADVICE_ERROR, e);
+				LOGGER.trace(TRANSFORMATION_OBLIGATION_ADVICE_ERROR, e);
 				return Response.indeterminate();
 			}
 		}
@@ -260,7 +260,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			try {
 				returnedResource = evaluateTransformation(request.getResource(), policy, evaluationCtx);
 			} catch (PolicyEvaluationException e) {
-				LOG.trace(TRANSFORMATION_OBLIGATION_ADVICE_ERROR, e);
+				LOGGER.trace(TRANSFORMATION_OBLIGATION_ADVICE_ERROR, e);
 				return Response.indeterminate();
 			}
 		}

@@ -20,7 +20,7 @@ public class TestPIP {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	public TestPIP() {
-		LOG.trace("PIP: " + NAME);
+		LOGGER.trace("PIP: " + NAME);
 	}
 
 	@Attribute
@@ -31,7 +31,7 @@ public class TestPIP {
 
 	private void logVars(Map<String, JsonNode> variables) {
 		for (Entry<String, JsonNode> entry : variables.entrySet()) {
-			LOG.trace("env: {} value: {}", entry.getKey(), entry.getValue());
+			LOGGER.trace("env: {} value: {}", entry.getKey(), entry.getValue());
 		}
 	}
 

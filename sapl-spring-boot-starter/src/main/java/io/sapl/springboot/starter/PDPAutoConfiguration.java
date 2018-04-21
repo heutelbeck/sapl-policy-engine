@@ -152,13 +152,13 @@ public class PDPAutoConfiguration {
 	@ConditionalOnProperty(name = "pdp.type", havingValue = "EMBEDDED")
 	public PolicyDecisionPoint pdpEmbedded(PIPProvider pipProvider)
 			throws PolicyEvaluationException, AttributeException, FunctionException, IOException {
-		LOG.debug("creating embedded PDP with Bean name {} and policy path {}", BEAN_NAME_PDP_EMBEDDED,
+		LOGGER.debug("creating embedded PDP with Bean name {} and policy path {}", BEAN_NAME_PDP_EMBEDDED,
 				pdpProperties.getEmbedded().getPolicyPath());
 
 		EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint(pdpProperties.getEmbedded().getPolicyPath());
-		LOG.debug("PIP-Provider has {} entries.", pipProvider.getPIPClasses().size());
+		LOGGER.debug("PIP-Provider has {} entries.", pipProvider.getPIPClasses().size());
 		for (Class<?> clazz : pipProvider.getPIPClasses()) {
-			LOG.debug("importAttributeFindersFromPackage: {}", clazz.getPackage().getName());
+			LOGGER.debug("importAttributeFindersFromPackage: {}", clazz.getPackage().getName());
 			pdp.importAttributeFindersFromPackage(clazz.getPackage().getName());
 		}
 		return pdp;
@@ -172,7 +172,7 @@ public class PDPAutoConfiguration {
 		int port = remoteProps.getPort();
 		String key = remoteProps.getKey();
 		String secret = remoteProps.getSecret();
-		LOG.debug("creating remote PDP with Bean name {} and properties: \nhost {} \nport {} \nkey {} \nsecret {}",
+		LOGGER.debug("creating remote PDP with Bean name {} and properties: \nhost {} \nport {} \nkey {} \nsecret {}",
 				BEAN_NAME_PDP_REMOTE, host, port, key, "*******");
 		return new RemotePolicyDecisionPoint(host, port, key, secret);
 	}
@@ -199,7 +199,7 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnProperty("pdp.policyEnforcementFilter")
 	public PolicyEnforcementFilter policyEnforcementFilter(SAPLAuthorizator saplAuthorizer) {
-		LOG.debug("no Bean of type PolicyEnforcementFilter defined. Will create default Bean of {}",
+		LOGGER.debug("no Bean of type PolicyEnforcementFilter defined. Will create default Bean of {}",
 				PolicyEnforcementFilter.class);
 		return new PolicyEnforcementFilter(saplAuthorizer);
 	}
@@ -220,7 +220,7 @@ public class PDPAutoConfiguration {
 	@ConditionalOnMissingBean
 	public SAPLAuthorizator createSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationHandlerService ohs,
 			AdviceHandlerService ahs, SaplMapper sm) {
-		LOG.debug("no Bean of type SAPLAuthorizator  defined. Will create default Bean of {}", SAPLAuthorizator.class);
+		LOGGER.debug("no Bean of type SAPLAuthorizator  defined. Will create default Bean of {}", SAPLAuthorizator.class);
 		return new SAPLAuthorizator(pdp, ohs, ahs, sm);
 	}
 
@@ -233,7 +233,7 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(SAPLAuthorizator saplAuthorizer) {
-		LOG.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of {}",
+		LOGGER.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of {}",
 				SAPLPermissionEvaluator.class);
 		return new SAPLPermissionEvaluator(saplAuthorizer);
 	}
@@ -247,7 +247,7 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public SaplMapper createSaplMapper() {
-		LOG.debug("no Bean of type SaplMapper defined. Will create default Bean of {}", SimpleSaplMapper.class);
+		LOGGER.debug("no Bean of type SaplMapper defined. Will create default Bean of {}", SimpleSaplMapper.class);
 		return new SimpleSaplMapper();
 	}
 
@@ -260,7 +260,7 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public ObligationHandlerService createDefaultObligationHandlerService() {
-		LOG.debug("no Bean of type ObligationHandlerService defined. Will create default Bean of {}",
+		LOGGER.debug("no Bean of type ObligationHandlerService defined. Will create default Bean of {}",
 				SimpleObligationHandlerService.class);
 		return new SimpleObligationHandlerService();
 	}
@@ -274,7 +274,7 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public AdviceHandlerService createDefaultAdviceHandlerService() {
-		LOG.debug("no Bean of type AdviceHandlerService defined. Will create default Bean of {}",
+		LOGGER.debug("no Bean of type AdviceHandlerService defined. Will create default Bean of {}",
 				SimpleAdviceHandlerService.class);
 		return new SimpleAdviceHandlerService();
 	}
@@ -297,12 +297,12 @@ public class PDPAutoConfiguration {
 	public CommandLineRunner registerObligationHandlers(List<ObligationHandler> obligationHandlers,
 			ObligationHandlerService ohs) {
 		if (!pdpProperties.getObligationsHandler().isAutoregister()) {
-			LOG.debug("Automatic registration of obligation handlers is deactivated.");
+			LOGGER.debug("Automatic registration of obligation handlers is deactivated.");
 			return args -> {
 				// NOP
 			};
 		}
-		LOG.debug(
+		LOGGER.debug(
 				"Automatic registration of obligation handlers is activated. {} beans of type ObligationHandler found, they will be reigistered at the ObligationHandlerService-bean",
 				obligationHandlers.size());
 		return args -> obligationHandlers.stream().forEach(ohs::register);
@@ -325,7 +325,7 @@ public class PDPAutoConfiguration {
 
 			@Override
 			public void handleObligation(Obligation obligation) {
-				LOG.warn(
+				LOGGER.warn(
 						"using denyAllObligationHandler. If you want to handle Obligations register your own und probably unregister this one (Bean name: {})",
 						BEAN_NAME_OBLIGATION_HANDLER_DENY_ALL);
 			}
