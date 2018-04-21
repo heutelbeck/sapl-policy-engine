@@ -43,7 +43,7 @@ public class Variable {
 		try {
 			result = getBool().evaluate(functionCtx, variableCtx);
 		} catch (PolicyEvaluationException e) {
-			log.debug(Throwables.getStackTraceAsString(e));
+			LOG.debug(Throwables.getStackTraceAsString(e));
 		}
 		return Optional.ofNullable(result);
 	}

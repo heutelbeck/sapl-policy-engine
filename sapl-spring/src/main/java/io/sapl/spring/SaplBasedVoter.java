@@ -41,7 +41,7 @@ public class SaplBasedVoter implements AccessDecisionVoter<Object> {
 		FilterInvocation invocation = (FilterInvocation) object;
 		HttpServletRequest request = invocation.getRequest();
 		for (ConfigAttribute configAttribute : arg2) {
-			LOGGER.info(configAttribute.toString());
+			LOG.info(configAttribute.toString());
 		}
 		Response decision = sapl.getResponse(authentication, request, request);
 
@@ -55,16 +55,16 @@ public class SaplBasedVoter implements AccessDecisionVoter<Object> {
 		int returnValue;
 		switch (decision) {
 		case PERMIT:
-			LOGGER.info(LOGGER_FORMAT, "ACCESS_GRANTED");
+			LOG.info(LOGGER_FORMAT, "ACCESS_GRANTED");
 			returnValue = ACCESS_GRANTED;
 			break;
 		case DENY:
-			LOGGER.info(LOGGER_FORMAT, "ACCESS_DENIED");
+			LOG.info(LOGGER_FORMAT, "ACCESS_DENIED");
 			returnValue = ACCESS_DENIED;
 			break;
 		case INDETERMINATE:
 		case NOT_APPLICABLE:
-			LOGGER.info(LOGGER_FORMAT, "ACCESS_ABSTAIN");
+			LOG.info(LOGGER_FORMAT, "ACCESS_ABSTAIN");
 			returnValue = ACCESS_ABSTAIN;
 			break;
 		default:

@@ -71,7 +71,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		try {
 			body = MAPPER.writeValueAsString(request);
 		} catch (JsonProcessingException e) {
-			log.error("Marshalling request failed: {}", request, e);
+			LOG.error("Marshalling request failed: {}", request, e);
 			return new Response(Decision.INDETERMINATE, null, null, null);
 		}
 		HttpEntity entity = new ByteArrayEntity(body.getBytes(StandardCharsets.UTF_8));
@@ -80,7 +80,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		try {
 			response = executeHttpRequest(post);
 		} catch (IOException e) {
-			log.error("Request failed: {}", post, e);
+			LOG.error("Request failed: {}", post, e);
 			return new Response(Decision.INDETERMINATE, null, null, null);
 		}
 		return response;

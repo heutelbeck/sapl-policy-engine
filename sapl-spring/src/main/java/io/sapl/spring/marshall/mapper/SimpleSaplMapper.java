@@ -16,7 +16,7 @@ public class SimpleSaplMapper implements SaplMapper{
 	
 	@Override
 	public void register(SaplClassMapper saplClassMapper) {
-		LOGGER.debug("Adding SaplClassMapper: {}", saplClassMapper.getClass().toString());
+		LOG.debug("Adding SaplClassMapper: {}", saplClassMapper.getClass().toString());
 		classMappers.add(saplClassMapper);
 	}
 
@@ -37,8 +37,8 @@ public class SimpleSaplMapper implements SaplMapper{
 
 	@Override
 	public Object map(Object objectToMap, SaplRequestElement type) {
-		LOGGER.debug("-------------------------------------- Mapping {} ---------------------------------------------------", type);
-		LOGGER.debug("Entering mapping for {}", objectToMap);
+		LOG.debug("-------------------------------------- Mapping {} ---------------------------------------------------", type);
+		LOG.debug("Entering mapping for {}", objectToMap);
 		Optional<SaplClassMapper> classMapper = findClassMapper(objectToMap);
 		if (classMapper.isPresent()) {
 			return classMapper.get().map(objectToMap, type);
@@ -48,17 +48,17 @@ public class SimpleSaplMapper implements SaplMapper{
 
 	@Override
 	public Optional<SaplClassMapper> findClassMapper(Object objectToMap) {
-		LOGGER.trace("Searching ClassMapper in {}", registeredMappers());
+		LOG.trace("Searching ClassMapper in {}", registeredMappers());
 		if(objectToMap != null) {
 			for(SaplClassMapper cm : registeredMappers()) {
-				LOGGER.trace("Mapped Class: {}, Object Class: {}", cm.getMappedClass(), objectToMap.getClass().toString());
+				LOG.trace("Mapped Class: {}, Object Class: {}", cm.getMappedClass(), objectToMap.getClass().toString());
 			}
 			Optional<SaplClassMapper> classMapper = registeredMappers().stream()
 					.filter(mapper -> mapper.canMap(objectToMap)).findAny();
-			LOGGER.debug("Found ClassMapper: {}", classMapper.isPresent());
+			LOG.debug("Found ClassMapper: {}", classMapper.isPresent());
 			return classMapper;
 		}
-		LOGGER.debug("Found ClassMapper: false (Object is null)");
+		LOG.debug("Found ClassMapper: false (Object is null)");
 		return Optional.empty();
 		
 	}

@@ -30,7 +30,7 @@ public class AnnotationScanPipProvider implements PIPProvider {
 				try {
 					result.add(Class.forName(bd.getBeanClassName()));
 				} catch (ClassNotFoundException e) {
-					LOGGER.warn("could not load class for name {}", bd.getBeanClassName());
+					LOG.warn("could not load class for name {}", bd.getBeanClassName());
 				}
 			}
 		}

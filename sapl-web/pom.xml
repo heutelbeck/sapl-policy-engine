@@ -18,7 +18,7 @@
 	<name>SAPL Generic Web Integration</name>
 	<artifactId>sapl-web</artifactId>
 	<packaging>jar</packaging>
-	
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -30,7 +30,7 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
@@ -42,7 +42,7 @@
 			<artifactId>sapl-ide</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>com.vaadin</groupId>
 			<artifactId>vaadin-spring-boot-starter</artifactId>
@@ -86,6 +86,11 @@
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-annotations</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
 	</dependencies>

@@ -41,19 +41,19 @@ public class PolicyEnforcementFilter extends GenericFilterBean {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		if (authentication != null) {
 
-			LOGGER.debug("Request to Policy Enforcement Filter: {} {}{} {}{}", authentication.toString(), SERVER,
+			LOG.debug("Request to Policy Enforcement Filter: {} {}{} {}{}", authentication.toString(), SERVER,
 					req.getRequestURI(), PROTOCOL, req.getMethod());
 
 			boolean permission = sapl.authorize(authentication, req, req);
-			LOGGER.debug("The response is: {}", permission);
+			LOG.debug("The response is: {}", permission);
 
 			if (!permission) {
-				LOGGER.debug("User was not authorized for this action");
+				LOG.debug("User was not authorized for this action");
 				throw new AccessDeniedException("Current User may not perform this action.");
 			}
 
 		} else {
-			LOGGER.debug("unauthenticated User");
+			LOG.debug("unauthenticated User");
 			throw new AuthenticationCredentialsNotFoundException("Not authenticated");
 
 		}
