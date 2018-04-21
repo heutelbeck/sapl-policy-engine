@@ -4,5 +4,4 @@ import io.sapl.api.pip.PolicyInformationPoint;
 
 @PolicyInformationPoint
 public class TestPiP {
-
 }

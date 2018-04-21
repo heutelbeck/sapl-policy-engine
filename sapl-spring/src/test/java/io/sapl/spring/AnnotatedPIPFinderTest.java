@@ -23,7 +23,6 @@ public class AnnotatedPIPFinderTest {
 		Collection<Class<? extends Object>> expected = Arrays.asList(Class.forName(TestPiP.class.getName()), PIP1.class,
 				PIP2.class, PIPX.class, PIPY.class);
 		assertTrue("must contain all registered pips", classes.containsAll(expected) && expected.containsAll(classes));
-
 	}
 
 	@Test
@@ -32,7 +31,6 @@ public class AnnotatedPIPFinderTest {
 		Collection<Class<? extends Object>> classes = provider.getPIPClasses();
 		Collection<Class<? extends Object>> expected = Arrays.asList(PIP1.class, PIP2.class);
 		assertTrue("must contain all registered pips", classes.containsAll(expected) && expected.containsAll(classes));
-
 	}
 
 	@Test
@@ -41,7 +39,6 @@ public class AnnotatedPIPFinderTest {
 		Collection<Class<? extends Object>> classes = provider.getPIPClasses();
 		Collection<Class<? extends Object>> expected = Arrays.asList(PIP1.class, PIP2.class, PIPX.class, PIPY.class);
 		assertTrue("must contain all registered pips", classes.containsAll(expected) && expected.containsAll(classes));
-
 	}
 
 }
