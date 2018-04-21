@@ -15,42 +15,42 @@ import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
  */
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
-    private final FilterFunctionsProposalProvider filterFunctionsProposalProvider = SAPLTextAreaServiceAdapter
-	    .getInstance();
+	private final FilterFunctionsProposalProvider filterFunctionsProposalProvider = SAPLTextAreaServiceAdapter
+			.getInstance();
 
-    @Override
-    protected void _createProposals(AbstractElement element, ContentAssistContext context,
-	    IIdeContentProposalAcceptor acceptor) {
-	super._createProposals(element, context, acceptor);
-    }
-
-    @Override
-    protected void _createProposals(Assignment assignment, ContentAssistContext context,
-	    IIdeContentProposalAcceptor acceptor) {
-	if (assignment.getFeature().equals("libSteps")) {
-	    filterFunctionsProposalProvider.appendFilterLibraryNames(context, acceptor, getProposalCreator());
-	} else if (assignment.getFeature().equals("functionName")) {
-	    filterFunctionsProposalProvider.appendFilterFunctionNames(context, acceptor, getProposalCreator());
-	} else {
-
-	    super._createProposals(assignment, context, acceptor);
+	@Override
+	protected void _createProposals(AbstractElement element, ContentAssistContext context,
+			IIdeContentProposalAcceptor acceptor) {
+		super._createProposals(element, context, acceptor);
 	}
-    }
 
-    @Override
-    protected void _createProposals(Keyword keyword, ContentAssistContext context,
-	    IIdeContentProposalAcceptor acceptor) {
-	super._createProposals(keyword, context, acceptor);
-	// filterFunctionsProposalProvider.appendFilterFunctions(null,
-	// acceptor);
-    }
+	@Override
+	protected void _createProposals(Assignment assignment, ContentAssistContext context,
+			IIdeContentProposalAcceptor acceptor) {
+		if ("libSteps".equals(assignment.getFeature())) {
+			filterFunctionsProposalProvider.appendFilterLibraryNames(context, acceptor, getProposalCreator());
+		} else if ("functionName".equals(assignment.getFeature())) {
+			filterFunctionsProposalProvider.appendFilterFunctionNames(context, acceptor, getProposalCreator());
+		} else {
 
-    @Override
-    protected void _createProposals(RuleCall ruleCall, ContentAssistContext context,
-	    IIdeContentProposalAcceptor acceptor) {
-	super._createProposals(ruleCall, context, acceptor);
-	// filterFunctionsProposalProvider.appendFilterFunctions(null,
-	// acceptor);
-    }
+			super._createProposals(assignment, context, acceptor);
+		}
+	}
+
+	@Override
+	protected void _createProposals(Keyword keyword, ContentAssistContext context,
+			IIdeContentProposalAcceptor acceptor) {
+		super._createProposals(keyword, context, acceptor);
+		// filterFunctionsProposalProvider.appendFilterFunctions(null,
+		// acceptor);
+	}
+
+	@Override
+	protected void _createProposals(RuleCall ruleCall, ContentAssistContext context,
+			IIdeContentProposalAcceptor acceptor) {
+		super._createProposals(ruleCall, context, acceptor);
+		// filterFunctionsProposalProvider.appendFilterFunctions(null,
+		// acceptor);
+	}
 
 }
