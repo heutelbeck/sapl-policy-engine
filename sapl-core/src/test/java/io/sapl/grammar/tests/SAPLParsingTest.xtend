@@ -27,7 +27,7 @@ class SAPLParsingTest {
 			set "A policy set" deny-overrides
 			policy "test policy"
 			permit 
-			where { "a" : ^subject.id, "b" : [ resource, action, environment.id ] } 
+			where { "a" : ^subject.id, "b" : [ resource, action, environment.id ] };
 		'''.parse.assertNoErrors
 	}
 
