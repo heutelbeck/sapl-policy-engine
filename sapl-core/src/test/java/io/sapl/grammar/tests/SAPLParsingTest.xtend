@@ -26,7 +26,8 @@ class SAPLParsingTest {
 		'''
 			set "A policy set" deny-overrides
 			policy "test policy"
-			permit { "a" : ^subject.id, "b" : [ resource, action, environment.id.<test>[34] ] } 
+			permit 
+			where { "a" : ^subject.id, "b" : [ resource, action, environment.id ] } 
 		'''.parse.assertNoErrors
 	}
 
@@ -34,7 +35,7 @@ class SAPLParsingTest {
 	def void targetExperiment() {
 		'''
 			policy "test policy"
-			permit { "a" : subject.id, "b" : [ resource, action, environment.id.<test>[34] ] } 
+			permit { "a" : subject.id, "b" : [ resource, action, environment.id ] } 
 		'''.parse.assertNoErrors
 	}
 
@@ -138,18 +139,10 @@ class SAPLParsingTest {
 	}
 
 	@Test
-	def void malformedHeaderExternalAttributeAccess() {
-		'''
-			policy "test policy"
-			permit subject.patterns[7].<foo>.bar == "something"
-		'''.parse.assertNoErrors // .parse.assertError(SAPLPackage::eINSTANCE.keyAttribute, Diagnostic.SYNTAX_DIAGNOSTIC, "mismatched input '\"foo\"' expecting RULE_ID")
-	}
-
-	@Test
 	def void headerWithMatcherConjuctionA() {
 		'''
 			policy "test policy"
-			permit subject == "aSubject" && target == "aTarget" 
+			permit subject == "aSubject" & target == "aTarget" 
 		'''.parse.assertNoErrors
 	}
 
@@ -157,7 +150,7 @@ class SAPLParsingTest {
 	def void headerWithMatcherConjuctionB() {
 		'''
 			policy "test policy"
-			permit (subject == "aSubject" && target == "aTarget") 
+			permit (subject == "aSubject" & target == "aTarget") 
 		'''.parse.assertNoErrors
 	}
 
@@ -165,7 +158,7 @@ class SAPLParsingTest {
 	def void headerWithMatcherConjuctionC() {
 		'''
 			policy "test policy"
-			permit ((subject == "aSubject") && (target == "aTarget")) 
+			permit ((subject == "aSubject") & (target == "aTarget")) 
 		'''.parse.assertNoErrors
 	}
 
@@ -173,7 +166,7 @@ class SAPLParsingTest {
 	def void headerWithMatcherDisjuctionA() {
 		'''
 			policy "test policy"
-			permit subject == "aSubject" || target == "aTarget" 
+			permit subject == "aSubject" | target == "aTarget" 
 		'''.parse.assertNoErrors
 	}
 
@@ -181,7 +174,7 @@ class SAPLParsingTest {
 	def void headerWithMatcherDisjuctionB() {
 		'''
 			policy "test policy"
-			permit (subject == "aSubject" || target == "aTarget") 
+			permit (subject == "aSubject" | target == "aTarget") 
 		'''.parse.assertNoErrors
 	}
 
@@ -189,7 +182,7 @@ class SAPLParsingTest {
 	def void headerWithMatcherDisjuctionC() {
 		'''
 			policy "test policy"
-			permit ((subject == "aSubject") || (target == "aTarget")) 
+			permit ((subject == "aSubject") | (target == "aTarget")) 
 		'''.parse.assertNoErrors
 	}
 
@@ -197,7 +190,7 @@ class SAPLParsingTest {
 	def void headersWithNegationsA() {
 		'''
 			policy "test policy"
-			permit !subject == "aSubject" || target == "aTarget" 
+			permit !subject == "aSubject" | target == "aTarget" 
 		'''.parse.assertNoErrors
 	}
 
@@ -205,7 +198,7 @@ class SAPLParsingTest {
 	def void headersWithNegationsB() {
 		'''
 			policy "test policy"
-			permit !(subject == "aSubject" || target == "aTarget") 
+			permit !(subject == "aSubject" | target == "aTarget") 
 		'''.parse.assertNoErrors
 	}
 
@@ -213,7 +206,7 @@ class SAPLParsingTest {
 	def void headersWithNegationsC() {
 		'''
 			policy "test policy"
-			permit ((subject == { "id" : "x27", "name": "willi" }) || !target == "aTarget") 
+			permit ((subject == { "id" : "x27", "name": "willi" }) | !target == "aTarget") 
 		'''.parse.assertNoErrors
 	}
 
@@ -224,17 +217,17 @@ class SAPLParsingTest {
 			permit (
 			          (
 			             (
-			               !subject == "aSubject" || target == "aTarget"
+			               !subject == "aSubject" | target == "aTarget"
 			             )
-			             && 
+			             &
 			             !environment.data[2].errors =~ "regex"
 			          )
-			          ||
+			          |
 			          false == true
 			       ) 
-			       && 
+			       &
 			       (
-			          action.volume == "some" || action.name == "bar"
+			          action.volume == "some" | action.name == "bar"
 			       ) 
 		'''.parse.assertNoErrors
 	}
@@ -378,7 +371,7 @@ class SAPLParsingTest {
 		'''
 			policy "doctors_hide_icd10" 
 				permit 
-					subject.role == "doctor" &&
+					subject.role == "doctor" &
 					action.verb == "show_patientdata"
 				transform
 					resource |- {
@@ -393,7 +386,7 @@ class SAPLParsingTest {
 		'''
 			policy "familymembers_truncate_contexthistory" 
 				permit 
-					subject.role == "familymember" &&
+					subject.role == "familymember" &
 					action.verb == "show_patient_contexthistory"
 				transform
 					{
@@ -412,7 +405,7 @@ class SAPLParsingTest {
 		'''
 			policy "puppetintroducers_truncate_contexthistory" 
 				permit 
-					subject.role == "puppetintroducer" &&
+					subject.role == "puppetintroducer" &
 					action.verb == "show_patient_contexthistory"
 				transform
 					{
