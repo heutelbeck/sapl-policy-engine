@@ -52,7 +52,7 @@ class SAPLValidator extends AbstractSAPLValidator {
 	def <T extends EObject> genericCheckForTargetExpression(Policy policy, Class<T> aClass, String message) {
 		val foundItem = findClass(policy.targetExpression, aClass);
 		if (foundItem !== null) {
-			warning(message, foundItem, null)
+			error(message, foundItem, null)
 		}
 	}
 
