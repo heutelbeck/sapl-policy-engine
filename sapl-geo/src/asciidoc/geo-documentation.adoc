@@ -80,16 +80,16 @@ Usually you would first have to define a projection via the `getProjection`-func
 
 
 === Embedding the module
-To use the SAPL-Geo FunctionLibrary a new instance of `GeoFunctionLibrary` has to be loaded into the `FunctionContext`. The `GeoAttributeFinder` is included into the `AttributeContext` analogously as the following code shows.
+To use the SAPL-Geo FunctionLibrary a new instance of `GeoFunctionLibrary` has to be loaded into the `FunctionContext`. The `GeoPolicyInformationPoint` is included into the `AttributeContext` analogously as the following code shows.
 
 [source,java]
 ----
 FUNCTION_CTX.loadLibrary(new GeoFunctionLibrary()); <1>
-ATTRIBUTE_CTX.loadPolicyInformationPoint(new GeoAttributeFinder()); <2>
+ATTRIBUTE_CTX.loadPolicyInformationPoint(new GeoPolicyInformationPoint()); <2>
 ----
 
 <1> Loads a new instance of `GeoFunctionLibrary` into the `FunctionContext`.
-<2> Loads the `GeoAttributeFinder` into the `AttributeContext`.
+<2> Loads the `GeoPolicyInformationPoint` into the `AttributeContext`.
 
 If the Policy Decision Point (PDP) is configured via the `pdp.json` one would just have to add `io.sapl.pip.geo` to the AttributeFinders and `geo` to the libraries.
      
@@ -108,16 +108,16 @@ where
   geo.within(userPos, hospital); <3>
 ----
 
-<1> Loads the current geographical position of the user from an external tracking software that is connected to the policy engine via the `GeoAttributeFinder`.
-<2> Loads a polygon object describing the geographical area of the hospital from an external geographic information system (GIS) that is connected to the policy engine via the `GeoAttributeFinder`.
+<1> Loads the current geographical position of the user from an external tracking software that is connected to the policy engine via the `GeoPolicyInformationPoint`.
+<2> Loads a polygon object describing the geographical area of the hospital from an external geographic information system (GIS) that is connected to the policy engine via the `GeoPolicyInformationPoint`.
 <3> Uses the function `within` from the `GeoFunctionLibrary` to check, whether the user position is currently inside the hospital or not. 
 
-TIP: All possible fields that are returned from the `GeoAttributeFinder` are listed in the <<sec:geopipresponse, Response object>>.
+TIP: All possible fields that are returned from the `GeoPolicyInformationPoint` are listed in the <<sec:geopipresponse, Response object>>.
 
 
 [[sec:attribute_reference]]
 == Attribute reference
-To make the best use from location based authorization it is usually required to connect external systems to the policy engine to retrieve certain data (such as the user location, geofences from an external library, etc.). These systems could comprise tracking system, mobile device management systems (MDM) or even geographic information systems (GIS). Unfortunately there does not yet exist one standardized interface or protocol to retrieve data from different sources, which is why the `GeoAttributeFinder` is build in a modular way. Each module makes use of a standard data exchange formats wherever possible and on top provides an individual configuration for the specific system to connect to. There are already a few connection adapters predefined but it is, of course, left open to the developer to write an own adapter to integrate a particular system. Additionally, a common standardized format is defined for the responses which is described in <<sec:geopipresponse, Response object>>.
+To make the best use from location based authorization it is usually required to connect external systems to the policy engine to retrieve certain data (such as the user location, geofences from an external library, etc.). These systems could comprise tracking system, mobile device management systems (MDM) or even geographic information systems (GIS). Unfortunately there does not yet exist one standardized interface or protocol to retrieve data from different sources, which is why the `GeoPolicyInformationPoint` is build in a modular way. Each module makes use of a standard data exchange formats wherever possible and on top provides an individual configuration for the specific system to connect to. There are already a few connection adapters predefined but it is, of course, left open to the developer to write an own adapter to integrate a particular system. Additionally, a common standardized format is defined for the responses which is described in <<sec:geopipresponse, Response object>>.
 
 === PostGIS
 http://postgis.net/[PostGIS] is a geo-spatial extension to https://www.postgresql.org[PostgreSQL] object-relational databases. It has become very popular especially within open source applications and is widely used for storing and querying geo-spatial data. Therefore multiple servers, applications and tools use PostGIS as their database backend. SAPL-Geo is therefore able to connect to such a database as well, retrieve geometries of interest and make them accessible directly from within policies. 
@@ -125,7 +125,7 @@ http://postgis.net/[PostGIS] is a geo-spatial extension to https://www.postgresq
 A PostGIS database can be connected via the AttributeFinder `io.sapl.pip.geo.postgis` while the configuration has to be in the following format.
 
 [[postgisconfig]]
-.Structure of the configuration for the PostGIS AttributeFinder
+.Structure of the configuration for the PostGIS Policy Information Point
 [source,java]
 ----
 public class PostGISConfig {
@@ -166,15 +166,15 @@ public class PostGISConfig {
 
 [[sec:kml]]
 === KML Import
-KML-files can be imported into SAPL policies via the AttributeFinder `sapl.pip.geo.kml`, whereby the configuration only exists of the filename (that must exist in a predefined directory) or the HTTP/HTTPS-address. All `<Placemark>` attributes will be imported and made accessible via their `<Name>` tags.
+KML-files can be imported into SAPL policies via the PIP `sapl.pip.geo.kml`, whereby the configuration only exists of the filename (that must exist in a predefined directory) or the HTTP/HTTPS-address. All `<Placemark>` attributes will be imported and made accessible via their `<Name>` tags.
 
 IMPORTANT: A bug is currently present in the GeoTools KML import dependency. If a `<LookAt>` tag exists within a `<Placemark>` tag in the KML-file, only the very first geometry within the `<MultiGeometry>` will be imported.
 
 === Traccar
-https://www.traccar.org[Traccar] is a fleet managing and tracking software. Multiple devices can log their GPS systems onto the server. Furthermore, the frontend also allows for an easy creation and configuration of geofences. The AttributeFinder `sapl.pip.geo.traccar` connects to the Traccar server via a RESTful service and therefore requires the following configuration:
+https://www.traccar.org[Traccar] is a fleet managing and tracking software. Multiple devices can log their GPS systems onto the server. Furthermore, the frontend also allows for an easy creation and configuration of geofences. The PIP `sapl.pip.geo.traccar` connects to the Traccar server via a RESTful service and therefore requires the following configuration:
 
 [[traccarconfig]]
-.Structure of the configuration for the Traccar AttributeFinder
+.Structure of the configuration for the Traccar Policy Information Point
 [source,java]
 ----
 public class TraccarConfig {
@@ -198,10 +198,10 @@ public class TraccarConfig {
 [[sec:geopipresponse]]
 === Response object
 
-To facilitate and standardize the use of the the `GeoAttributeFinder` within SAPL policies, all the individual modules respond to requests in a common way. Hence, a general skeleton in form of a `GeoPIPResponse` is being created, which holds all the relevant information. It is basically divided into two parts, whereby the first one (<1> until <6>) holds information about the user's position and the other one (<6>) stores geometries/geofences. If a certain value cannot be retrieved from the source system, the respective value in the response equals the standard value for the datatype or is empty instead.
+To facilitate and standardize the use of the the `GeoPolicyInformationPoint` within SAPL policies, all the individual modules respond to requests in a common way. Hence, a general skeleton in form of a `GeoPIPResponse` is being created, which holds all the relevant information. It is basically divided into two parts, whereby the first one (<1> until <6>) holds information about the user's position and the other one (<6>) stores geometries/geofences. If a certain value cannot be retrieved from the source system, the respective value in the response equals the standard value for the datatype or is empty instead.
 
 [[geopipresponse]]
-.Structure of the response Java-POJO for the GeoAttributeFinder
+.Structure of the response class for the GeoPolicyInformationPoint
 [source,java]
 ----
 public class GeoPIPResponse {
@@ -223,7 +223,7 @@ public class GeoPIPResponse {
 <6> Trust value of the users position. The value on a scale between 0 (not trusted) and 1 (fully trustworthy) represents e.g. how easily the position could be spoofed (obviously depending on the used tracking system).
 <7> Collection of geofences in which each one can be addressed by its name (see sample below).
 
-.Sample JSON-Response from the GeoAttributeFinder
+.Sample JSON-Response from the GeoPolicyInformationPoint
 ----
 {  
    "identifier":"DeviceID",

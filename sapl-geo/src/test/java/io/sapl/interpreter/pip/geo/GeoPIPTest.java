@@ -23,12 +23,12 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
-import io.sapl.interpreter.pip.GeoAttributeFinder;
+import io.sapl.interpreter.pip.GeoPolicyInformationPoint;
 
-public class GeoAttributeFinderTest {
+public class GeoPIPTest {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-	private static final GeoAttributeFinder AF = new GeoAttributeFinder();
+	private static final GeoPolicyInformationPoint AF = new GeoPolicyInformationPoint();
 
 	@Test
 	public void postgisTest() throws AttributeException, FunctionException {

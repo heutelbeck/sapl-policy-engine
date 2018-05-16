@@ -27,11 +27,11 @@ import io.sapl.interpreter.pip.geo.KMLImport;
 import io.sapl.interpreter.pip.geo.PostGISConnection;
 import io.sapl.interpreter.pip.geo.TraccarConnection;
 
-@PolicyInformationPoint(name = GeoAttributeFinder.NAME, description = GeoAttributeFinder.DESCRIPTION)
-public class GeoAttributeFinder {
+@PolicyInformationPoint(name = GeoPolicyInformationPoint.NAME, description = GeoPolicyInformationPoint.DESCRIPTION)
+public class GeoPolicyInformationPoint {
 
 	public static final String NAME = "io.sapl.pip.geo";
-	public static final String DESCRIPTION = "AttributeFinder for geographical data.";
+	public static final String DESCRIPTION = "PIP for geographical data.";
 
 	@Attribute
 	public JsonNode traccar(JsonNode value, Map<String, JsonNode> variables)

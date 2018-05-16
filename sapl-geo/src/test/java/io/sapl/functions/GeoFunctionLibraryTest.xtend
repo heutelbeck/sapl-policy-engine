@@ -27,7 +27,7 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
 import io.sapl.interpreter.pip.AttributeContext
-import io.sapl.interpreter.pip.GeoAttributeFinder
+import io.sapl.interpreter.pip.GeoPolicyInformationPoint
 import java.util.HashMap
 import java.util.Map
 import org.junit.Before
@@ -47,7 +47,7 @@ class GeoFunctionLibraryTest {
 
 	@Before
 	def void init() {
-		ATTRIBUTE_CTX.loadPolicyInformationPoint(new GeoAttributeFinder());
+		ATTRIBUTE_CTX.loadPolicyInformationPoint(new GeoPolicyInformationPoint());
 		FUNCTION_CTX.loadLibrary(new GeoFunctionLibrary());
 		subject = MAPPER.readValue('''
 		{
