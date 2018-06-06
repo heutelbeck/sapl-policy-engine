@@ -37,13 +37,11 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /*
  * Format always [Lat(y), Long(x)]
  */
 
-@Slf4j
 @NoArgsConstructor
 @FunctionLibrary(name = GeoFunctionLibrary.NAME, description = GeoFunctionLibrary.DESCRIPTION)
 public class GeoFunctionLibrary {
@@ -462,11 +460,5 @@ public class GeoFunctionLibrary {
 		GeoProjection projection = new GeoProjection(mathTransform.asText());
 		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
 		return GeometryBuilder.toJsonNode(projection.project(geometry));
-	}
-
-	@Function
-	public JsonNode print(JsonNode node) {
-		LOGGER.info(node.toString());
-		return JSON.booleanNode(true);
 	}
 }
