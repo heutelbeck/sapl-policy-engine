@@ -30,14 +30,8 @@ Workflow {
 				baseName = "sapl-core"
 				rootPath = rootPath
 				genericIde = {
-        				name = "sapl-ide"
-    				}
-				 /*   			eclipsePlugin ={
-				    				name = "sapl-eclipse"
-				    				enabled = true
-				    				overwriteSrc = true
-									
-				    			} */
+       				name = "sapl-ide"
+   				} 
 				runtimeTest = {
 					enabled = true
 				}
@@ -45,7 +39,7 @@ Workflow {
 					name = "sapl-web"			
 					enabled = true
 					overwriteSrc = true
-					assets = "../sapl-web/src/main/resources/static"
+					assets = "${rootPath}/sapl-web/src/main/resources/static"
 					
 				}
 				mavenLayout = true
