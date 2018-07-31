@@ -37,13 +37,13 @@ import static org.junit.Assert.assertEquals
 
 class GeoFunctionLibraryTest {
 
-	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-	private static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
-	private static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
-	private static Map<String, JsonNode> variables = new HashMap<String, JsonNode>();
-	private static JsonNode subject;
-	private static JsonNode resource;
+	 static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	 static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+	 static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
+	 static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+	 static Map<String, JsonNode> variables = new HashMap<String, JsonNode>();
+	 static JsonNode subject;
+	 static JsonNode resource;
 
 	@Before
 	def void init() {

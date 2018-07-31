@@ -38,14 +38,14 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 
 class SampleXACMLTest {
 
-	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-	private static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
-	private static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
-	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(
+	 static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	 static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+	 static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
+	 static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+	 static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(
 		new HashMap<String, JsonNode>());
 		
-	private static Request request_example_two;
+	 static Request request_example_two;
 
 	@Before
 	def void init() {

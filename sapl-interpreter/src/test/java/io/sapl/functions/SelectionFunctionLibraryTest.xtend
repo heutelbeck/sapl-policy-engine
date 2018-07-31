@@ -1,11 +1,11 @@
 /**
  * Copyright © 2017 Dominic Heutelbeck (dheutelbeck@ftk.de)
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
- *
+ * 
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -37,16 +37,14 @@ import static org.junit.Assert.assertThat
 
 class SelectionFunctionLibraryTest {
 
-	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-	private static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
-	private static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
-	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(
-		new HashMap<String, JsonNode>());
-	private static final Response PERMIT_EMPTY = new Response(Decision.PERMIT, Optional.empty, Optional.empty,
-		Optional.empty)
+	static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
+	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>());
+	static final Response PERMIT_EMPTY = new Response(Decision.PERMIT, Optional.empty, Optional.empty, Optional.empty)
 
-	private static final String request = '''
+	static final String request = '''
 		{  
 		    "subject": {  
 		        "id": "12345"
@@ -79,7 +77,7 @@ class SelectionFunctionLibraryTest {
 			"environment": {	}
 		}
 	''';
-	private static Request requestObject
+	static Request requestObject
 
 	@Before
 	def void init() {
