@@ -70,7 +70,7 @@ Keyhole Markup Language (KML):: The Keyhole Markup Language (KML) is a XML-based
 === Coordinate Reference Systems
 SAPL-Geo supports the projection of coordinates into different coordinate reference systems (CRS). Depending on how the geospatial data is extracted from third party systems, this might be required to facilitate comparisons and to simplify the use of the provided geospatial functions. The CRS are loaded from the https://www.epsg-registry.org/[EPSG Geodetic Parameter Dataset] and identified by their respective codes (e.g. _EPSG:4326_ for the WGS84-CRS). 
 
-Two different parameters are required to initialize a projection:
+Two different parameters are required retrieve a mathematical transformation for a projection:
 
 Source CRS:: The Source CRS is the system that decoded the coordinates of the external data. 
 
@@ -91,7 +91,7 @@ ATTRIBUTE_CTX.loadPolicyInformationPoint(new GeoPolicyInformationPoint()); <2>
 <1> Loads a new instance of `GeoFunctionLibrary` into the `FunctionContext`.
 <2> Loads the `GeoPolicyInformationPoint` into the `AttributeContext`.
 
-If the Policy Decision Point (PDP) is configured via the `pdp.json` one would just have to add `io.sapl.pip.geo` to the AttributeFinders and `geo` to the libraries.
+If the Policy Decision Point (PDP) is configured via a `pdp.json` one would just have to add `io.sapl.pip.geo` to the AttributeFinders and `geo` to the libraries.
      
 That way all geographical functions are registered to the SAPL interpreter and can be accessed within policies via the keyword `geo`. For an exhaustive list of all provided functions and their syntax please refer to the <<sec:function_reference, Function Reference>> or <<sec:attribute_reference, Attribute Reference>> respectively. The following sample demonstrates the use of the library within a policy description:
 
@@ -300,7 +300,10 @@ public class GeoPIPResponse {
 ** `<<subset, subset(GeometryCollection geoCollection1, GeometryCollection geoCollection2)>>`
 * <<sec:conv, Conversion Functions>>
 ** `<<tometer, toMeter(double value, String unit)>>`
-** `<<tosquaremeter, toSqaureMeter(double value, String unit)>>`
+** `<<tosquaremeter, toSquareMeter(double value, String unit)>>`
+* <<sec:proj, Projection Functions>>
+** `<<getProjection, getProjection(String fromCrs, String toCrs)>>`
+** `<<project, project(Geometry geom, Projection mathTransform)>>`
 
 [[sec:topo]]
 === Topological Functions
@@ -873,5 +876,42 @@ Parameter::
 
 Returns::
 the converted as value as `double`
+***************
+
+[[sec:proj]]
+=== Projection Functions
+
+***************
+[[getProjection]]
+`*getProjection(String fromCrs, String toCrs)*`
+
+---
+
+Calculates a mathematical transformation to convert from `fromCrs` to `toCrs`.
+
+Parameter::
+`fromCrs` - the EPSG-Code of the coordinate reference system to be converted from
++
+`toCrs` - the EPSG-Code of the coordinate reference system to be converted from
+
+Returns::
+a mathematical conversion decoded in the WKT format to be further used in the `project`-function
+***************
+
+***************
+[[project]]
+`*project(Geometry geom, Projection mathTransform)*`
+
+---
+
+Projects `geom` according to the given `mathTransform`
+
+Parameter::
+`geom` - the geometry to project
++
+`mathTransform` - the mathematical conversion (can be retrieved via the `getProjection`-function
+
+Returns::
+the projected geometry
 ***************
 
