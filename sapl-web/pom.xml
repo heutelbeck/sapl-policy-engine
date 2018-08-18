@@ -142,9 +142,6 @@
 							be deleted afterwards -->
 						<!-- <fileset> <directory>src/main/xtext-gen</directory> </fileset> -->
 						<fileset>
-							<directory>src/main/resources/static/orion</directory>
-						</fileset>
-						<fileset>
 							<directory>src/main/resources/VAADIN/themes</directory>
 							<includes>
 								<include>**/styles.css</include>
