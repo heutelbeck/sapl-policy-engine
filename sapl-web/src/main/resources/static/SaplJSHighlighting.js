@@ -7,8 +7,8 @@ define("SaplJSHighlighting", ["codemirror", "codemirror/addon/mode/simple"], fun
 			{token: "string", regex: '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'},
 			{token: "string", regex: "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"},
 			{token: "constant.numeric", regex: "[+-]?\\d+(?:(?:\\.\\d*)?(?:[eE][+-]?\\d+)?)?\\b"},
-			{token: "lparen", regex: "[\\[({]"},
-			{token: "rparen", regex: "[\\])}]"},
+			{token: "paren", regex: "[\\[({]"},
+			{token: "paren", regex: "[\\])}]"},
 			{token: "keyword", regex: "\\b(?:" + keywords + ")\\b"}
 		],
 		comment: [

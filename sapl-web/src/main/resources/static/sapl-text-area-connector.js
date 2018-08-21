@@ -15,16 +15,15 @@ window.io_sapl_grammar_web_SAPLTextArea = function() {
 	},
 	packages : [ {
 	    name : "codemirror",
-	    location : "webjars/codemirror/5.13.2",
+	    location : "webjars/codemirror/5.39.2",
 	    main : "lib/codemirror"
-	} ]
+	}]
     });
     var editor;
-
     var _this = this;
-
-    require([ "SaplJSHighlighting", "xtext/xtext-codemirror" ], function(mode,
-	    xtext) {
+    
+    require(["codemirror/addon/edit/matchbrackets", "codemirror/addon/edit/closebrackets" ,  "SaplJSHighlighting", "xtext/xtext-codemirror"], 
+    		function(addon1, addon2, mode, xtext) {
 	// now the editor gets created
 	editor = xtext.createEditor({
 	    baseUrl : baseUrl,
@@ -38,6 +37,8 @@ window.io_sapl_grammar_web_SAPLTextArea = function() {
 	// tweaking options according to https://codemirror.net/doc/manual.html#setOption
 	editor.setOption("lineNumbers", true);
 	editor.setOption("showCursorWhenSelecting", true);
+	editor.setOption("autoCloseBrackets", true);
+	editor.setOption("matchBrackets", true);
 	
 	// initialize the Text View with current server-side state
 	editor.doc.setValue(_this.getState().text);

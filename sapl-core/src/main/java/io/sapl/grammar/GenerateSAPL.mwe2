@@ -74,14 +74,14 @@ Workflow {
 
 			webSupport = {
 				generateHtmlExample = false
-				codeMirrorVersion = "5.13.2"
+				codeMirrorVersion = "5.39.2"
 //				aceVersion = "1.2.6"
 				requireJsVersion = "2.2.0"
 				requireJsTextVersion = "2.0.15"
 				jQueryVersion = "2.2.3"
 				framework = "CodeMirror" // Orion, CodeMirror, Ace
 				generateJettyLauncher = false
-				generateJsHighlighting = true
+				generateJsHighlighting = false // Syntax changes must be handled manually
 				generateServlet = false
 				generateWebXml = false
 				highlightingModuleName ="SaplJSHighlighting"
