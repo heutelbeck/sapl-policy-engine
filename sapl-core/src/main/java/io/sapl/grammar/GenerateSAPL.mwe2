@@ -81,11 +81,17 @@ Workflow {
 				jQueryVersion = "2.2.3"
 				framework = "CodeMirror" // Orion, CodeMirror, Ace
 				generateJettyLauncher = false
-				generateJsHighlighting = false // Syntax changes must be handled manually
+				generateJsHighlighting = true // overwrites file on every run
 				generateServlet = false
 				generateWebXml = false
 				highlightingModuleName ="SaplJSHighlighting"
-				
+				// some patterns need to be suppressed to make Bracket Matching working
+				suppressPattern = "bracket_open"
+				suppressPattern = "parenthesis_open"
+				suppressPattern = "brace_open"
+				suppressPattern = "bracket_close"
+				suppressPattern = "parenthesis_close"
+				suppressPattern = "brace_close"
 			}
 		}
 	}
