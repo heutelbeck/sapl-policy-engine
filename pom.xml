@@ -91,11 +91,19 @@
 			</dependency>
 
 			<!-- Spring-Boot -->
-
 			<dependency>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-dependencies</artifactId>
 				<version>${version.springboot}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<!-- Project Reactor -->
+			<dependency>
+				<groupId>io.projectreactor</groupId>
+				<artifactId>reactor-bom</artifactId>
+				<version>RELEASE</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>

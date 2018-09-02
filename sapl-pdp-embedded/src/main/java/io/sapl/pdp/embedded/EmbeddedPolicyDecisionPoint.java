@@ -10,20 +10,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.core.type.filter.AnnotationTypeFilter;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pip.AttributeException;
@@ -42,8 +36,14 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.embedded.PolicyRetrievalPoint;
 import io.sapl.prp.embedded.ResourcesPolicyRetrievalPoint;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
+import reactor.core.publisher.Mono;
 
-public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
+public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, ReactivePolicyDecisionPoint {
 
 	private static final String DEFAULT_SCAN_PACKAGE = "io.sapl";
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
@@ -174,6 +174,26 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	@Override
 	public Response decide(Object subject, Object action, Object resource) {
 		return decide(subject, action, resource, null);
+	}
+
+	// ---- ReactivePolicyDecisionPoint
+
+	@Override
+	public Mono<Response> reactiveDecide(Request request) {
+		final Response response = decide(request);
+		return Mono.just(response);
+	}
+
+	@Override
+	public Mono<Response> reactiveDecide(Object subject, Object action, Object resource, Object environment) {
+		final Response response = decide(subject, action, resource, environment);
+		return Mono.just(response);
+	}
+
+	@Override
+	public Mono<Response> reactiveDecide(Object subject, Object action, Object resource) {
+		final Response response = decide(subject, action, resource);
+		return Mono.just(response);
 	}
 
 }

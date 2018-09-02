@@ -1,0 +1,50 @@
+package io.sapl.prp.embedded;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.Response;
+import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
+import org.junit.Before;
+import org.junit.Test;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+public class EmbeddedPolicyDecisionPointTest {
+
+	private EmbeddedPolicyDecisionPoint pdp;
+
+	@Before
+	public void setUp() throws Exception {
+		pdp = new EmbeddedPolicyDecisionPoint();
+	}
+
+	@Test
+	public void decide_withAllowedAction_shouldReturnPermit() {
+		final Response response = pdp.decide("willi", "read", "something");
+		assertThat(response.getDecision(), is(Decision.PERMIT));
+	}
+
+	@Test
+	public void decide_withForbiddenAction_shouldReturnDeny() {
+		final Response response = pdp.decide("willi", "write", "something");
+		assertThat(response.getDecision(), is(Decision.DENY));
+	}
+
+	@Test
+	public void reactiveDecide_withAllowedAction_shouldReturnPermit() {
+		final Mono<Response> response = pdp.reactiveDecide("willi", "read", "something");
+		StepVerifier.create(response)
+				.expectNextMatches(resp -> resp.getDecision() == Decision.PERMIT)
+				.verifyComplete();
+	}
+
+	@Test
+	public void reactiveDecide_withForbiddenAction_shouldReturnDeny() {
+		final Mono<Response> response = pdp.reactiveDecide("willi", "write", "something");
+		StepVerifier.create(response)
+				.expectNextMatches(resp -> resp.getDecision() == Decision.DENY)
+				.verifyComplete();
+	}
+}
