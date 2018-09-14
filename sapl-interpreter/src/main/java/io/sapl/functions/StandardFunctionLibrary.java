@@ -25,9 +25,9 @@ import io.sapl.api.validation.Text;
 public class StandardFunctionLibrary {
 
 	public static final String NAME = "standard";
-	public static final String DESCRIPTION = "This library contains the mandantory functions for the SAPL implementation.";
+	public static final String DESCRIPTION = "This library contains the mandatory functions for the SAPL implementation.";
 
-	private static final String LENGTH_DOC = "length(JSON_VALUE): For STRING it retuns the length of the STRING. "
+	private static final String LENGTH_DOC = "length(JSON_VALUE): For STRING it returns the length of the STRING. "
 			+ "For ARRAY, it returns the number of elements in the array. "
 			+ "For OBJECT, it returns the number of keys in the OBJECT. "
 			+ "For NUMBER, BOOLEAN, or NULL, the function will return an error.";
