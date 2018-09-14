@@ -38,9 +38,9 @@ public class TemporalFunctionLibrary {
 	private static final String PLUSNANOS_DOC = "plusNanos(TIME, NANOS): Assumes, that TIME is a string representing UTC time in ISO 8601, and NANOS is an integer. Returns a new time by adding the given duration to TIME.";
 	private static final String PLUSMILLIS_DOC = "plusMillis(TIME, SECONDS): Assumes, that TIME is a string representing UTC time in ISO 8601, and MILLIS is an integer. Returns a new time by adding the given duration to TIME.";
 	private static final String PLUSSECONDS_DOC = "plusSeconds(TIME, SECONDS): Assumes, that TIME is a string representing UTC time in ISO 8601, and SECONDS is an integer. Returns a new time by adding the given duration to TIME.";
-	private static final String MINUSNANOS_DOC = "minusNanos(TIME, NANOS): Assumes, that TIME is a string representing UTC time in ISO 8601, and NANOS is an integer. Returns a new time by substracting the given duration to TIME.";
-	private static final String MINUSMILLIS_DOC = "minusMillis(TIME, SECONDS): Assumes, that TIME is a string representing UTC time in ISO 8601, and MILLIS is an integer. Returns a new time by substracting the given duration to TIME.";
-	private static final String MINUSSECONDS_DOC = "minusSeconds(TIME, SECONDS): Assumes, that TIME is a string representing UTC time in ISO 8601, and SECONDS is an integer. Returns a new time by substracting the given duration to TIME.";
+	private static final String MINUSNANOS_DOC = "minusNanos(TIME, NANOS): Assumes, that TIME is a string representing UTC time in ISO 8601, and NANOS is an integer. Returns a new time by subtracting the given duration to TIME.";
+	private static final String MINUSMILLIS_DOC = "minusMillis(TIME, SECONDS): Assumes, that TIME is a string representing UTC time in ISO 8601, and MILLIS is an integer. Returns a new time by subtracting the given duration to TIME.";
+	private static final String MINUSSECONDS_DOC = "minusSeconds(TIME, SECONDS): Assumes, that TIME is a string representing UTC time in ISO 8601, and SECONDS is an integer. Returns a new time by subtracting the given duration to TIME.";
 	private static final String DAYOFWEEK_DOC = "Returns the day of the week for the given time.";
 
 	private static final String PARAMETER_NOT_AN_ISO_8601_STRING = "Parameter not an ISO 8601 string";
