@@ -3,6 +3,16 @@ package io.sapl.pdp.remote;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.Request;
+import io.sapl.api.pdp.Response;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -21,20 +31,10 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.Request;
-import io.sapl.api.pdp.Response;
-import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 @Slf4j
-public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
+public class RemotePolicyDecisionPoint implements PolicyDecisionPoint, ReactivePolicyDecisionPoint {
 
 	public static final String APPLICATION_JSON_VALUE = "application/json;charset=UTF-8";
 	public static final String AUTHORIZATION_REQUEST = "/api/authorizationRequests";
@@ -88,9 +88,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Response decide(Object subject, Object action, Object resource, Object environment) {
-		Request request = new Request(MAPPER.convertValue(subject, JsonNode.class),
-				MAPPER.convertValue(action, JsonNode.class), MAPPER.convertValue(resource, JsonNode.class),
-				MAPPER.convertValue(environment, JsonNode.class));
+		final Request request = toRequest(subject, action, resource, environment);
 		return decide(request);
 	}
 
@@ -128,4 +126,32 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		return response;
 	}
 
+	private Request toRequest(Object subject, Object action, Object resource, Object environment) {
+		return new Request(
+				MAPPER.convertValue(subject, JsonNode.class),
+				MAPPER.convertValue(action, JsonNode.class),
+				MAPPER.convertValue(resource, JsonNode.class),
+				MAPPER.convertValue(environment, JsonNode.class)
+		);
+	}
+
+	// ---- ReactivePolicyDecisionPoint
+
+	@Override
+	public Mono<Response> reactiveDecide(Request request) {
+		// TODO
+		final Response response = decide(request);
+		return Mono.just(response);
+	}
+
+	@Override
+	public Mono<Response> reactiveDecide(Object subject, Object action, Object resource, Object environment) {
+		final Request request = toRequest(subject, action, resource, environment);
+		return reactiveDecide(request);
+	}
+
+	@Override
+	public Mono<Response> reactiveDecide(Object subject, Object action, Object resource) {
+		return reactiveDecide(subject, action, resource, null);
+	}
 }

@@ -157,42 +157,50 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 	}
 
 	@Override
+	public Response decide(Object subject, Object action, Object resource) {
+		return decide(subject, action, resource, null);
+	}
+
+	@Override
+	public Response decide(Object subject, Object action, Object resource, Object environment) {
+		return decide(toRequest(subject, action, resource, environment));
+	}
+
+	@Override
 	public Response decide(Request request) {
 		PolicyRetrievalResult retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
 		return combinator.combineMatchingDocuments(retrievalResult.getMatchingDocuments(),
 				retrievalResult.isErrorsInTarget(), request, attributeCtx, functionCtx, variables);
 	}
 
-	@Override
-	public Response decide(Object subject, Object action, Object resource, Object environment) {
-		Request request = new Request(MAPPER.convertValue(subject, JsonNode.class),
-				MAPPER.convertValue(action, JsonNode.class), MAPPER.convertValue(resource, JsonNode.class),
-				MAPPER.convertValue(environment, JsonNode.class));
-		return decide(request);
-	}
-
-	@Override
-	public Response decide(Object subject, Object action, Object resource) {
-		return decide(subject, action, resource, null);
+	private Request toRequest(Object subject, Object action, Object resource, Object environment) {
+		return new Request(
+				MAPPER.convertValue(subject, JsonNode.class),
+				MAPPER.convertValue(action, JsonNode.class),
+				MAPPER.convertValue(resource, JsonNode.class),
+				MAPPER.convertValue(environment, JsonNode.class)
+		);
 	}
 
 	// ---- ReactivePolicyDecisionPoint
 
 	@Override
-	public Mono<Response> reactiveDecide(Request request) {
-		final Response response = decide(request);
-		return Mono.just(response);
+	public Mono<Response> reactiveDecide(Object subject, Object action, Object resource) {
+		return reactiveDecide(subject, action, resource, null);
 	}
 
 	@Override
 	public Mono<Response> reactiveDecide(Object subject, Object action, Object resource, Object environment) {
-		final Response response = decide(subject, action, resource, environment);
-		return Mono.just(response);
+		final Request request = toRequest(subject, action, resource, environment);
+		return reactiveDecide(request);
 	}
 
 	@Override
-	public Mono<Response> reactiveDecide(Object subject, Object action, Object resource) {
-		final Response response = decide(subject, action, resource);
+	public Mono<Response> reactiveDecide(Request request) {
+		// TODO
+		final PolicyRetrievalResult retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
+		final Response response = combinator.combineMatchingDocuments(retrievalResult.getMatchingDocuments(),
+				retrievalResult.isErrorsInTarget(), request, attributeCtx, functionCtx, variables);
 		return Mono.just(response);
 	}
 
