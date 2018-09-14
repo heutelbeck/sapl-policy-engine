@@ -14,11 +14,13 @@ package io.sapl.functions;
 
 import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
@@ -120,12 +122,20 @@ public class TemporalFunctionLibrary {
 
 	@Function(docs = DAYOFWEEK_DOC)
 	public static JsonNode dayOfWeekFrom(@Text JsonNode time) throws FunctionException {
-		return JSON.textNode(DayOfWeek.from(nodeToInstant(time)).toString());
+		return JSON.textNode(DayOfWeek.from(nodeToDateTime(time)).toString());
 	}
 
 	private static Instant nodeToInstant(JsonNode time) throws FunctionException {
 		try {
 			return Instant.parse(time.asText());
+		} catch (DateTimeParseException e) {
+			throw new FunctionException(PARAMETER_NOT_AN_ISO_8601_STRING, e);
+		}
+	}
+
+	private static LocalDateTime nodeToDateTime(JsonNode time) throws FunctionException {
+		try {
+			return LocalDateTime.parse(time.asText(), DateTimeFormatter.ISO_INSTANT.withZone(ZoneOffset.UTC));
 		} catch (DateTimeParseException e) {
 			throw new FunctionException(PARAMETER_NOT_AN_ISO_8601_STRING, e);
 		}
