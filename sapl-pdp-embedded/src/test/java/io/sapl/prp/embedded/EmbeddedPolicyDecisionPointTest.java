@@ -23,13 +23,13 @@ public class EmbeddedPolicyDecisionPointTest {
 	@Test
 	public void decide_withAllowedAction_shouldReturnPermit() {
 		final Response response = pdp.decide("willi", "read", "something");
-		assertThat(response.getDecision(), is(Decision.PERMIT));
+		assertThat("Wrong decision for allowed action.", response.getDecision(), is(Decision.PERMIT));
 	}
 
 	@Test
 	public void decide_withForbiddenAction_shouldReturnDeny() {
 		final Response response = pdp.decide("willi", "write", "something");
-		assertThat(response.getDecision(), is(Decision.DENY));
+		assertThat("Wrong decision for forbidden action.", response.getDecision(), is(Decision.DENY));
 	}
 
 	@Test

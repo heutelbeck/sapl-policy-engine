@@ -126,7 +126,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint, ReactiveP
 		return response;
 	}
 
-	private Request toRequest(Object subject, Object action, Object resource, Object environment) {
+	private static Request toRequest(Object subject, Object action, Object resource, Object environment) {
 		return new Request(
 				MAPPER.convertValue(subject, JsonNode.class),
 				MAPPER.convertValue(action, JsonNode.class),
@@ -139,7 +139,6 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint, ReactiveP
 
 	@Override
 	public Mono<Response> reactiveDecide(Request request) {
-		// TODO
 		final Response response = decide(request);
 		return Mono.just(response);
 	}

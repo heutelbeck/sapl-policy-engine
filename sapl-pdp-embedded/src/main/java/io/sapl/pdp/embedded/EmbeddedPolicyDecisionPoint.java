@@ -173,7 +173,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 				retrievalResult.isErrorsInTarget(), request, attributeCtx, functionCtx, variables);
 	}
 
-	private Request toRequest(Object subject, Object action, Object resource, Object environment) {
+	private static Request toRequest(Object subject, Object action, Object resource, Object environment) {
 		return new Request(
 				MAPPER.convertValue(subject, JsonNode.class),
 				MAPPER.convertValue(action, JsonNode.class),
@@ -197,7 +197,6 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 
 	@Override
 	public Mono<Response> reactiveDecide(Request request) {
-		// TODO
 		final PolicyRetrievalResult retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
 		final Response response = combinator.combineMatchingDocuments(retrievalResult.getMatchingDocuments(),
 				retrievalResult.isErrorsInTarget(), request, attributeCtx, functionCtx, variables);
