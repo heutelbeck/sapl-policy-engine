@@ -17,7 +17,7 @@ import com.google.common.collect.Maps;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Request;
-import io.sapl.api.prp.ParsedDocumentPolicyRetrievalPoint;
+import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SAPL;
@@ -25,7 +25,7 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 
-public class FastParsedDocumentIndex implements ParsedDocumentPolicyRetrievalPoint {
+public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
