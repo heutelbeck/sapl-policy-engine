@@ -34,7 +34,7 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.prp.embedded.PolicyRetrievalPoint;
+import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.prp.embedded.ResourcesPolicyRetrievalPoint;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
