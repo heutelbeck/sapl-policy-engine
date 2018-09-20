@@ -1,5 +1,5 @@
 :tabsize: 4
-= Web - VAADIN Web-Editor Component for SAPL
+= Web - VAADIN Web-Editor for SAPL
 Miro Selent
 v0.1, 2018-09-20
 
@@ -10,22 +10,64 @@ Editing complex Access Control Policies with a regular text editor is inconvenie
 
 This thoughts lead to the newly developed feature-rich VAADIN editor component for SAPL Policies that could seamlessly substitute regular a VAADIN `+TextArea+`. The name of that new component is `+SAPLTextArea+` and it resides in the package `+io.sapl.grammar.web+`.
 
+== Supported Features
+* Line Numbering
+* Inline annotations to mark errors and warnings
+* Syntax Highlighting
+* Custom Validation support
+    ** target expression must not contain 'lazy' operations
+    ** target expression must not contain Attribute Finders
+* Bracket Matching
+* Bracket Completion
+* Coding Assist
 
 == Architectural Overview
 
 .Web Editor Architecture
 [#img-architecture]
 [caption="Figure 1: "]
-image::ClientServerArchitecture.png[Test]
+image::ClientServerArchitecture.png[Architecture]
 
-== API
+== External Dependencies
+* Editor library: Code Mirror
+* Language Workbench: Xtext
+* Web-Framework: VAADIN
+* Container: Spring-Boot
+
+== Example
 [source, JAVA]
 ----
 // Create the area
-TextArea area = new TextArea("Big Area");
+SAPLTextArea editor = new SAPLTextArea("Big Area");
 
 // Put some content in it
-area.setValue("A row\n"+
-              "Another row\n"+
-              "Yet another row");
+editor.setValue("policy \"example\" permit where (a == b);");
+
+// Register a value change event listener
+editor.addValueChangeListener(new ValueChangeListener<String>() {
+    @Override
+    public void valueChange(ValueChangeEvent<String> event) {
+        // do what ever you want
+    }
+});
+----
+This could be the resulting view:
+
+.Example SAPLTextArea
+[#img-example]
+[caption="Figure 2: "]
+image::SAPLTextArea.png[Example]
+
+== API documentation 
+`+public class SAPLTextArea+` 
+
+**extends**: `+com.vaadin.ui.AbstractJavaScriptComponent+` 
+
+This super class is responsible for fundamental lifecycle and state synchronization between client and server. It also provides the functionality to inject JavaScript and CSS into the site: 
+https://vaadin.com/api/framework/8.5.2/com/vaadin/ui/AbstractJavaScriptComponent.html[AbstractJavaScriptComponent API]
+
+**implements**: `+com.vaadin.data.HasValue<String>+` 
+
+This is relevant API also used by regular TextArea. The API documentation can be found here:  https://vaadin.com/api/framework/8.5.2/com/vaadin/data/HasValue.html[HasValue API]
+----
 ----
