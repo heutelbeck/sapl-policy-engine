@@ -1,5 +1,4 @@
 :tabsize: 4
-:imagesdir: images
 = Web - VAADIN Web-Editor Component for SAPL
 Miro Selent
 v0.1, 2018-09-20
@@ -7,4 +6,26 @@ v0.1, 2018-09-20
 :toc!:
 
 == General Information
-xxx
+Editing complex Access Control Policies with a regular text editor is inconvenient for Security Administrators and potentially error-prone. Since flawed Policies may result in severe security risks it seems to be beneficial to work on improving the editing capabilities and mitigate the root cause. 
+
+This thoughts lead to the newly developed feature-rich VAADIN editor component for SAPL Policies that could seamlessly substitute regular a VAADIN `+TextArea+`. The name of that new component is `+SAPLTextArea+` and it resides in the package `+io.sapl.grammar.web+`.
+
+
+== Architectural Overview
+
+.Web Editor Architecture
+[#img-architecture]
+[caption="Figure 1: "]
+image::ClientServerArchitecture.png[Test]
+
+== API
+[source, JAVA]
+----
+// Create the area
+TextArea area = new TextArea("Big Area");
+
+// Put some content in it
+area.setValue("A row\n"+
+              "Another row\n"+
+              "Yet another row");
+----
