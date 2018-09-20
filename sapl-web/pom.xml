@@ -18,6 +18,9 @@
 	<name>SAPL Generic Web Integration</name>
 	<artifactId>sapl-web</artifactId>
 	<packaging>jar</packaging>
+	<properties>
+		<asciidoc.version>1.5.5</asciidoc.version>
+	</properties>
 
 	<dependencyManagement>
 		<dependencies>
@@ -97,6 +100,41 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.asciidoctor</groupId>
+				<artifactId>asciidoctor-maven-plugin</artifactId>
+				<version>${asciidoc.version}</version>
+				<executions>
+					<execution>
+						<id>asciidoc-to-html</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>process-asciidoc</goal>
+						</goals>
+						<configuration>
+							<backend>html5</backend>
+							<sourceHighlighter>coderay</sourceHighlighter>
+							<attributes>
+								<imagesdir>./images</imagesdir>
+								<toc>left</toc>
+								<icons>font</icons>
+								<sectanchors>true</sectanchors>
+								<idprefix />
+								<idseparator>-</idseparator>
+								<docinfo1>true</docinfo1>
+							</attributes>
+						</configuration>
+					</execution>
+				</executions>
+				<configuration>
+					<sourceDirectory>src/asciidoc</sourceDirectory>
+					<attributes>
+						<endpoint-url>http://docs.openconjurer.org</endpoint-url>
+						<sourcedir>${project.build.sourceDirectory}</sourcedir>
+						<project-version>${project.version}</project-version>
+					</attributes>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.eclipse.xtend</groupId>
 				<artifactId>xtend-maven-plugin</artifactId>
