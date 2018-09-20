@@ -1,4 +1,5 @@
 :tabsize: 4
+:imagesdir: images
 = Web - VAADIN Web-Editor for SAPL
 Miro Selent
 v0.1, 2018-09-20
@@ -22,11 +23,21 @@ This thoughts lead to the newly developed feature-rich VAADIN editor component f
 * Coding Assist
 
 == Architectural Overview
+The architectural big picture is shown in the following Figure 1 (<<img-architecture>>).
+There are three major software items to consider:
 
+. The JavaScript Editor which is implemented by Code Mirror.
+. The XtextServlet which need to be loaded and exposed by the container on server-side.
+. The VAADIN component SAPLTextArea including the data model which is accessible in Java and which can be used to subscribe to events on model changes.  
+
+
+[[img-architecture]]
 .Web Editor Architecture
-[#img-architecture]
-[caption="Figure 1: "]
-image::ClientServerArchitecture.png[Architecture]
+image::ClientServerArchitecture.png[]
+
+To get the `+XtextServlet+` loaded the sapl-web module comes with a Spring configuration `+XtextServletConfiguration+` that can be included by the main application configuration.
+
+Figure 1 are also shows 'Xtext Backend Services', which are responsible for all language-dependent functionality that relies on parsing, validaten, et cetera. For example, the class `+SAPLValidator+` in sapl-core module implements the Custom Validation rules regarding the target expression. More information regarding the provided services can be found here: https://www.eclipse.org/Xtext/documentation/330_web_support.html[Xtext Web Editor Support].
 
 == External Dependencies
 * Editor library: Code Mirror
@@ -53,10 +64,14 @@ editor.addValueChangeListener(new ValueChangeListener<String>() {
 ----
 This could be the resulting view:
 
+[[img-example]]
 .Example SAPLTextArea
-[#img-example]
-[caption="Figure 2: "]
-image::SAPLTextArea.png[Example]
+image::SAPLTextArea.png[]
+
+[NOTE]
+====
+To use the SAPLTextArea with the VAADIN Designer it is required to let it run a classpath scan first.
+====
 
 == API documentation 
 `+public class SAPLTextArea+` 
