@@ -308,14 +308,14 @@
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
-			<id>openconjurer-snapshots</id>
-			<name>OpenConjurer Nexus Maven Snapshot Repository</name>
-			<url>http://nexus.openconjurer.org/content/repositories/snapshots</url>
+			<id>sapl-snapshots</id>
+			<name>SAPL Snapshot Repository</name>
+			<url>http://repo.sapl.io/snapshots</url>
 		</repository>
 		<repository>
-			<id>openconjurer</id>
-			<name>OpenConjurer Nexus Maven Release Repository</name>
-			<url>http://nexus.openconjurer.org/content/repositories/releases</url>
+			<id>sapl</id>
+			<name>SAPL Release Repository</name>
+			<url>http://repo.sapl.io/releases</url>
 		</repository>
 		<repository>
 			<id>codehaus-snapshots</id>

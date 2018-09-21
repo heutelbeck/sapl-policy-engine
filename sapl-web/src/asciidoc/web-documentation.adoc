@@ -1,10 +1,88 @@
 :tabsize: 4
 :imagesdir: images
-= Web - VAADIN Web-Editor Component for SAPL
+= Web - VAADIN Web-Editor for SAPL
 Miro Selent
 v0.1, 2018-09-20
 
 :toc!:
 
 == General Information
-xxx
+Editing complex Access Control Policies with a regular text editor is inconvenient for Security Administrators and potentially error-prone. Since flawed Policies may result in severe security risks it seems to be beneficial to work on improving the editing capabilities and mitigate the root cause. 
+
+This thoughts lead to the newly developed feature-rich VAADIN editor component for SAPL Policies that could seamlessly substitute regular a VAADIN `+TextArea+`. The name of that new component is `+SAPLTextArea+` and it resides in the package `+io.sapl.grammar.web+`.
+
+== Supported Features
+* Line Numbering
+* Inline annotations to mark errors and warnings
+* Syntax Highlighting
+* Custom Validation support
+    ** target expression must not contain 'lazy' operations
+    ** target expression must not contain Attribute Finders
+* Bracket Matching
+* Bracket Completion
+* Coding Assist
+
+== Architectural Overview
+The architectural big picture is shown in the following Figure 1 (<<img-architecture>>).
+There are three major software items to consider:
+
+. The JavaScript Editor which is implemented by Code Mirror.
+. The XtextServlet which need to be loaded and exposed by the container on server-side.
+. The VAADIN component SAPLTextArea including the data model which is accessible in Java and which can be used to subscribe to events on model changes.  
+
+
+[[img-architecture]]
+.Web Editor Architecture
+image::ClientServerArchitecture.png[]
+
+To get the `+XtextServlet+` loaded the sapl-web module comes with a Spring configuration `+XtextServletConfiguration+` that can be included by the main application configuration.
+
+Figure 1 are also shows 'Xtext Backend Services', which are responsible for all language-dependent functionality that relies on parsing, validaten, et cetera. For example, the class `+SAPLValidator+` in sapl-core module implements the Custom Validation rules regarding the target expression. More information regarding the provided services can be found here: https://www.eclipse.org/Xtext/documentation/330_web_support.html[Xtext Web Editor Support].
+
+== External Dependencies
+* Editor library: Code Mirror
+* Language Workbench: Xtext
+* Web-Framework: VAADIN
+* Container: Spring-Boot
+
+== Example
+[source, JAVA]
+----
+// Create the area
+SAPLTextArea editor = new SAPLTextArea("Big Area");
+
+// Put some content in it
+editor.setValue("policy \"example\" permit where (a == b);");
+
+// Register a value change event listener
+editor.addValueChangeListener(new ValueChangeListener<String>() {
+    @Override
+    public void valueChange(ValueChangeEvent<String> event) {
+        // do what ever you want
+    }
+});
+----
+This could be the resulting view:
+
+[[img-example]]
+.Example SAPLTextArea
+image::SAPLTextArea.png[]
+
+[NOTE]
+====
+To use the SAPLTextArea with the VAADIN Designer it is required to let it run a classpath scan first.
+====
+
+== API documentation 
+`+public class SAPLTextArea+` 
+
+**extends**: `+com.vaadin.ui.AbstractJavaScriptComponent+` 
+
+This super class is responsible for fundamental lifecycle and state synchronization between client and server. It also provides the functionality to inject JavaScript and CSS into the site: 
+https://vaadin.com/api/framework/8.5.2/com/vaadin/ui/AbstractJavaScriptComponent.html[AbstractJavaScriptComponent API]
+
+**implements**: `+com.vaadin.data.HasValue<String>+` 
+
+This is relevant API also used by regular TextArea. The API documentation can be found here:  https://vaadin.com/api/framework/8.5.2/com/vaadin/data/HasValue.html[HasValue API]
+----
+----

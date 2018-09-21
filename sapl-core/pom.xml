@@ -135,8 +135,9 @@
 						</goals>
 						<configuration>
 							<sources>
-								<source>src/main/xtext-gen</source>
 								<source>src/main/emf-gen</source>
+								<source>src/main/xtend-gen</source>
+								<source>src/main/xtext-gen</source>
 							</sources>
 							<resources>
 								<resource>
@@ -158,6 +159,7 @@
 						</goals>
 						<configuration>
 							<sources>
+								<source>src/test/xtend-gen</source>
 								<source>src/test/xtext-gen</source>
 							</sources>
 							<resources>
