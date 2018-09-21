@@ -30,9 +30,9 @@ import io.sapl.grammar.sapl.Or
  */
 class SAPLValidator extends AbstractSAPLValidator {
 
-	static final String MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "And is not allowed in target expression."
-	static final String MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Or is not allowed in target expression."
-	static final String MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "AttributeFinderStep is not allowed in target expression."
+	protected static final String MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "And is not allowed in target expression."
+	protected static final String MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Or is not allowed in target expression."
+	protected static final String MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "AttributeFinderStep is not allowed in target expression."
 
 	/**
 	 * According to SAPL documentation, no lazy And operators are allowed in the target expression.

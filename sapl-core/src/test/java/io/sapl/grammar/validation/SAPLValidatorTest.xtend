@@ -34,21 +34,21 @@ class SAPLValidatorTest {
 	def void targetWithLazyAnd() {
 		'''
 			policy "test policy" permit a == b && c == d | e > f
-		'''.parse.assertError(SaplPackage::eINSTANCE.and, null, "And is not allowed in target expression.");
+		'''.parse.assertError(SaplPackage::eINSTANCE.and, null, SAPLValidator.MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
 	}
 
 	@Test
 	def void targetWithLazyOr() {
 		'''
 			policy "test policy" permit a == b & c == d || e > f
-		'''.parse.assertError(SaplPackage::eINSTANCE.or, null, "Or is not allowed in target expression.");
+		'''.parse.assertError(SaplPackage::eINSTANCE.or, null, SAPLValidator.MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
 	}
 
 	@Test
 	def void targetWithAttributeFinderStep() {
 		'''
 			policy "test policy" permit action.patientid.<pip.hospital_units.by_patientid>.doctorid == "Brinkmann"
-		'''.parse.assertError(SaplPackage::eINSTANCE.attributeFinderStep, null, "AttributeFinderStep is not allowed in target expression.");
+		'''.parse.assertError(SaplPackage::eINSTANCE.attributeFinderStep, null, SAPLValidator.MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
 	}
 	
 	@Test	
