@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import io.sapl.api.prp.PolicyRetrievalPoint;
+import io.sapl.api.prp.ReactivePolicyRetrievalPoint;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
@@ -21,8 +22,9 @@ import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPointConfiguration;
 import io.sapl.pdp.embedded.PrpImplementation;
 import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
+import reactor.core.publisher.Mono;
 
-public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
+public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint, ReactivePolicyRetrievalPoint {
 
 	public static final String DEFAULT_PATH = "classpath:policies";
 	private static final String SAPL_SUFFIX = "/*.sapl";
@@ -49,8 +51,13 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		return parsedDocIdx.retrievePolicies(request, functionCtx, variables);
 	}
 
-	public static PolicyRetrievalPoint of(String policyPath, EmbeddedPolicyDecisionPointConfiguration config,
-			FunctionContext functionCtx) throws IOException, PolicyEvaluationException {
+	@Override
+	public Mono<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
+		return parsedDocIdx.reactiveRetrievePolicies(request, functionCtx, variables);
+	}
+
+	public static ResourcesPolicyRetrievalPoint of(String policyPath, EmbeddedPolicyDecisionPointConfiguration config,
+										  FunctionContext functionCtx) throws IOException, PolicyEvaluationException {
 		if (PrpImplementation.INDEXED == config.getPrpImplementation()) {
 			return new ResourcesPolicyRetrievalPoint(policyPath, new FastParsedDocumentIndex(functionCtx));
 		} else {

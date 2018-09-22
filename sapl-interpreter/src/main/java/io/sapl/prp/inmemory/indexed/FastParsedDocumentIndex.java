@@ -13,7 +13,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Request;
@@ -24,6 +23,7 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.core.publisher.Mono;
 
 public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 
@@ -89,6 +89,12 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 			return new PolicyRetrievalResult(result.getMatchingDocuments(), true);
 		}
 		return result;
+	}
+
+	@Override
+	public Mono<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
+		final PolicyRetrievalResult retrievalResult = retrievePolicies(request, functionCtx, variables);
+		return Mono.just(retrievalResult);
 	}
 
 	@Override

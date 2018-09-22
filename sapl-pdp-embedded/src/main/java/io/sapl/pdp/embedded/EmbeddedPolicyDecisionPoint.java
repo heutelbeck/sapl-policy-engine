@@ -34,7 +34,6 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.prp.embedded.ResourcesPolicyRetrievalPoint;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
@@ -53,7 +52,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 	private static final Set<String> DEFAULT_LIBRARIES = new HashSet<>(Arrays.asList("filter", "standard"));
 	private static final Set<String> DEFAULT_PIPS = new HashSet<>(Arrays.asList("http"));
 
-	private PolicyRetrievalPoint prp;
+	private ResourcesPolicyRetrievalPoint prp;
 	private DocumentsCombinator combinator;
 	private Map<String, JsonNode> variables = new HashMap<>();
 	private AttributeContext attributeCtx;
@@ -197,10 +196,11 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 
 	@Override
 	public Mono<Response> reactiveDecide(Request request) {
-		final PolicyRetrievalResult retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
-		final Response response = combinator.combineMatchingDocuments(retrievalResult.getMatchingDocuments(),
-				retrievalResult.isErrorsInTarget(), request, attributeCtx, functionCtx, variables);
-		return Mono.just(response);
+        final Mono<PolicyRetrievalResult> retrievalResult = prp.reactiveRetrievePolicies(request, functionCtx, variables);
+        return retrievalResult.map(result ->
+            combinator.combineMatchingDocuments(result.getMatchingDocuments(),
+                    result.isErrorsInTarget(), request, attributeCtx, functionCtx, variables)
+        );
 	}
 
 }

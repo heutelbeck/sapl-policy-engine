@@ -16,6 +16,7 @@ import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
+import reactor.core.publisher.Mono;
 
 public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
@@ -38,6 +39,12 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 		}
 		return new PolicyRetrievalResult(result, errorOccured);
 
+	}
+
+	@Override
+	public Mono<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
+		final PolicyRetrievalResult retrievalResult = retrievePolicies(request, functionCtx, variables);
+		return Mono.just(retrievalResult);
 	}
 
 	@Override
