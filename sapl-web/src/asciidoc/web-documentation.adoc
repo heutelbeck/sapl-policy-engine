@@ -16,7 +16,7 @@ This thoughts lead to the newly developed feature-rich VAADIN editor component f
 * Inline annotations to mark errors and warnings
 * Syntax Highlighting
 * Custom Validation support
-    ** target expression must not contain 'lazy' operations
+    ** target expression must not contain 'lazy' operators
     ** target expression must not contain Attribute Finders
 * Bracket Matching
 * Bracket Completion
@@ -84,5 +84,10 @@ https://vaadin.com/api/framework/8.5.2/com/vaadin/ui/AbstractJavaScriptComponent
 **implements**: `+com.vaadin.data.HasValue<String>+` 
 
 This is relevant API also used by regular TextArea. The API documentation can be found here:  https://vaadin.com/api/framework/8.5.2/com/vaadin/data/HasValue.html[HasValue API]
+
+[NOTE]
+====
+The custom validation rules mentioned above were implemented by the Xtend class `+io.sapl.grammar.validation.SAPLValidator+` in the "sapl-core" module and a proper unit test can be found as `+SAPLValidator+` in the according test folder.
+====
 ----
 ----
