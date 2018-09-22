@@ -30,25 +30,37 @@ import io.sapl.grammar.sapl.Or
  */
 class SAPLValidator extends AbstractSAPLValidator {
 
-	static final String MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "And is not allowed in target expression."
-	static final String MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Or is not allowed in target expression."
-	static final String MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "AttributeFinderStep is not allowed in target expression."
+	protected static final String MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "And is not allowed in target expression."
+	protected static final String MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Or is not allowed in target expression."
+	protected static final String MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "AttributeFinderStep is not allowed in target expression."
 
+	/**
+	 * According to SAPL documentation, no lazy And operators are allowed in the target expression.
+	 */
 	@Check
 	def policyRuleNoAndAllowedInTargetExpression(Policy policy) {
 		genericCheckForTargetExpression(policy, And, MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION)
 	}
 
+	/**
+	 * According to SAPL documentation, no lazy Or operators are allowed in the target expression.
+	 */
 	@Check
 	def policyRuleNoOrAllowedInTargetExpression(Policy policy) {
 		genericCheckForTargetExpression(policy, Or, MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION)
 	}
 
+	/**
+	 * According to SAPL documentation, no lazy Or operators are allowed in the target expression.
+	 */
 	@Check
 	def policyRuleNoAttributeFinderAllowedInTargetExpression(Policy policy) {
 		genericCheckForTargetExpression(policy, AttributeFinderStep, MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION)
 	}
 
+	/**
+	 * looks for given class in the target expression of given Policy
+	 */
 	def <T extends EObject> genericCheckForTargetExpression(Policy policy, Class<T> aClass, String message) {
 		val foundItem = findClass(policy.targetExpression, aClass);
 		if (foundItem !== null) {
@@ -56,6 +68,9 @@ class SAPLValidator extends AbstractSAPLValidator {
 		}
 	}
 
+	/**
+	 * scan content of given EObject recursively
+	 */
 	def <T extends EObject> T findClass(EObject eObj, Class<T> aClass) {
 		if (aClass.isInstance(eObj)) {
 			return eObj as T
