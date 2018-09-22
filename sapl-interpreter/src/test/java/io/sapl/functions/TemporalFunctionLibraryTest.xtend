@@ -48,7 +48,6 @@ class TemporalFunctionLibraryTest {
 	static final TemporalFunctionLibrary LIBRARY = new TemporalFunctionLibrary()
 	static final JsonNodeFactory JSON = JsonNodeFactory.instance
     static final Response PERMIT_EMPTY = new Response(Decision.PERMIT, Optional.empty, Optional.empty, Optional.empty)
-    static final Response NOT_APPLICABLE_EMPTY = new Response(Decision.NOT_APPLICABLE, Optional.empty, Optional.empty, Optional.empty)
 
     static final String request = '''
 		{
@@ -107,7 +106,7 @@ class TemporalFunctionLibraryTest {
 			    action == "read" & time.after(time.now(), time.plusSeconds(time.now(), 10))
 		'''
 
-        val expectedResponse = TemporalFunctionLibraryTest.NOT_APPLICABLE_EMPTY
+        val expectedResponse = Response.notApplicable
         val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
 
         assertThat("temporal functions not working as expected", response, equalTo(expectedResponse))
@@ -125,7 +124,7 @@ class TemporalFunctionLibraryTest {
         if (DayOfWeek.from(LocalDateTime.now()) == DayOfWeek.SUNDAY) {
             expectedResponse = TemporalFunctionLibraryTest.PERMIT_EMPTY
         } else {
-            expectedResponse = TemporalFunctionLibraryTest.NOT_APPLICABLE_EMPTY
+            expectedResponse = Response.notApplicable
         }
         val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
 
