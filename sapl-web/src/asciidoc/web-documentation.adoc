@@ -22,6 +22,19 @@ This thoughts lead to the newly developed feature-rich VAADIN editor component f
 * Bracket Completion
 * Coding Assist
 
+== System Requirements
+There are some prerequisites to the development environment for including the SAPLTextArea component in a development project. If these are given and libraries are accessible, Maven dependencies can be extended to `+groupId+` "io.sapl" and `+artifactId+` "sapl-web". 
+
+* Java 8 compatible JDK
+* Apache Maven 3.5.3
+* Eclipse IDE 4.7 (Oxygen)
+* Xtext 2.13 Eclipse-Plugin
+* VAADIN Eclipse-Plugin 4.0.2
+* Spring IDE Eclipse-Plugin 3.9.5
+* Lombok 1.18.2
+
+The versions of listed development tools have been used for acceptance testing.
+
 == Architectural Overview
 The architectural big picture is shown in the following Figure 1 (<<img-architecture>>).
 There are three major software items to consider:
