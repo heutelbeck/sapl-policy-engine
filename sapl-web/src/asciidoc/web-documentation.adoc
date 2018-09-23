@@ -23,7 +23,7 @@ This thoughts lead to the newly developed feature-rich VAADIN editor component f
 * Coding Assist
 
 == System Requirements
-There are some prerequisites to the development environment for including the SAPLTextArea component in a development project. If these are given and libraries are accessible, Maven dependencies can be extended to `+groupId+` "io.sapl" and `+artifactId+` "sapl-web". 
+There are some prerequisites to the development environment for including the SAPLTextArea component in a development project. If these are given and all required libraries are accessible, Maven dependencies can be extended to `+groupId+` "io.sapl" and `+artifactId+` "sapl-web". 
 
 * Java 8 compatible JDK
 * Apache Maven 3.5.3
@@ -40,7 +40,7 @@ The architectural big picture is shown in the following Figure 1 (<<img-architec
 There are three major software items to consider:
 
 . The JavaScript Editor which is implemented by Code Mirror.
-. The XtextServlet which need to be loaded and exposed by the container on server-side.
+. The SAPLServlet which need to be loaded and exposed by the container on server-side.
 . The VAADIN component SAPLTextArea including the data model which is accessible in Java and which can be used to subscribe to events on model changes.  
 
 
@@ -48,7 +48,7 @@ There are three major software items to consider:
 .Web Editor Architecture
 image::ClientServerArchitecture.png[]
 
-To get the `+XtextServlet+` loaded the sapl-web module comes with a Spring configuration `+XtextServletConfiguration+` that can be included by the main application configuration.
+To get the `+SAPLServlet+` loaded the `+sapl-web+` module comes with a Spring configuration `+XtextServletConfiguration+` that can be included by the main application configuration.
 
 Figure 1 are also shows 'Xtext Backend Services', which are responsible for all language-dependent functionality that relies on parsing, validaten, et cetera. For example, the class `+SAPLValidator+` in sapl-core module implements the Custom Validation rules regarding the target expression. More information regarding the provided services can be found here: https://www.eclipse.org/Xtext/documentation/330_web_support.html[Xtext Web Editor Support].
 
