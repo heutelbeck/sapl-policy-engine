@@ -1,6 +1,6 @@
 :tabsize: 4
 :imagesdir: images
-= Web - VAADIN Web-Editor for SAPL
+= sapl-web: VAADIN Web-Editor for SAPL
 Miro Selent
 v0.1, 2018-09-20
 
@@ -9,7 +9,7 @@ v0.1, 2018-09-20
 == General Information
 Editing complex Access Control Policies with a regular text editor is inconvenient for Security Administrators and potentially error-prone. Since flawed Policies may result in severe security risks it seems to be beneficial to work on improving the editing capabilities and mitigate the root cause. 
 
-This thoughts lead to the newly developed feature-rich VAADIN editor component for SAPL Policies that could seamlessly substitute regular a VAADIN `+TextArea+`. The name of that new component is `+SAPLTextArea+` and it resides in the package `+io.sapl.grammar.web+`.
+This thoughts lead to the newly developed feature-rich VAADIN editor component for SAPL Policies that could seamlessly substitute regular a VAADIN `+TextArea+`. The name of that new component is `+SAPLTextArea+` and it resides in the package `+io.sapl.grammar.web+` as part of the module `+sapl-policy-engine/sapl-web+`.
 
 == Supported Features
 * Line Numbering
