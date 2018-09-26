@@ -1,2 +1,8 @@
+import io.sapl.prp.embedded.TestPIP as test
+
 policy "policy 1"
-permit action == "read"
+permit
+    action == "read" & time.dayOfWeekFrom(time.now()) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY"
+where
+    subject.<test.upper> == "WILLI"
+;

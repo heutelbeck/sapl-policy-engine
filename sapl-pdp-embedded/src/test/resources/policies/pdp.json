@@ -12,8 +12,10 @@
 		}
 	},
 	"attributeFinders": [
-		"geo"
+		"test"
 	],
-	"libraries": [],
+	"libraries": [
+		"time"
+	],
 	"prpImplementation": "INDEXED"
 }
