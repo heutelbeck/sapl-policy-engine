@@ -15,8 +15,6 @@ package io.sapl.interpreter.pip.geo;
  * limitations under the License.
  */
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -24,21 +22,18 @@ import java.util.Collection;
 
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.commons.io.FilenameUtils;
-import org.geotools.kml.v22.KMLConfiguration;
-import org.geotools.xml.Parser;
-import org.opengis.feature.simple.SimpleFeature;
-import org.xml.sax.SAXException;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.vividsolutions.jts.geom.Geometry;
-
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.GeometryBuilder;
 import lombok.EqualsAndHashCode;
+import org.geotools.kml.v22.KMLConfiguration;
+import org.geotools.xml.Parser;
+import org.opengis.feature.simple.SimpleFeature;
+import org.xml.sax.SAXException;
 
 @EqualsAndHashCode
 public class KMLImport {
@@ -46,7 +41,6 @@ public class KMLImport {
 	private static final String ATT_FEATURE = "Feature";
 	private static final String ATT_NAME = "name";
 	private static final String ATT_GEOM = "Geometry";
-	private static final String FOLDER_PATH = "src/test/resources/";
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 	protected static final String UNABLE_TO_PARSE_KML = "Provided KML-file cannot be found or is not compliant. Unable to parse geometry.";
 	protected static final String NO_VALID_FILENAME = "Provided filename is not valid or nested in an Json-Object.";
@@ -93,8 +87,7 @@ public class KMLImport {
 	}
 
 	private SimpleFeature getKmlFromFile() throws AttributeException {
-		try (FileInputStream inputStream = new FileInputStream(
-				new File(FOLDER_PATH, FilenameUtils.getName((kmlSource))))) {
+		try (InputStream inputStream = getClass().getResourceAsStream(kmlSource)) {
 
 			return parse(inputStream);
 

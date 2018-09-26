@@ -35,7 +35,7 @@ import nl.jqno.equalsverifier.Warning;
 
 public class KMLTest {
 
-	public static final String TESTFILE = "sample.kml";
+	public static final String TESTFILE = "/sample.kml";
 	public static final String EXPECTED_RESPONSE = "{\"altitude\":0.0,\"accuracy\":0.0,\"trust\":0.0,"
 			+ "\"geofences\":{\"Sample1\":{\"type\":\"MultiPoint\",\"coordinates\":[[-80,40],[-86,41]]},"
 			+ "\"Sample2\":{\"type\":\"MultiPolygon\",\"coordinates\":"
