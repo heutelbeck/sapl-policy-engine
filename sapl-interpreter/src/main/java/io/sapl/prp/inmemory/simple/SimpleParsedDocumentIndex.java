@@ -7,7 +7,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Request;
@@ -16,7 +15,7 @@ import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
@@ -42,9 +41,9 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 	}
 
 	@Override
-	public Mono<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
-		final PolicyRetrievalResult retrievalResult = retrievePolicies(request, functionCtx, variables);
-		return Mono.just(retrievalResult);
+	public Flux<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
+		final PolicyRetrievalResult retrievalResult = retrievePolicies(request, functionCtx, variables); // must be replaced
+		return Flux.just(retrievalResult);
 	}
 
 	@Override

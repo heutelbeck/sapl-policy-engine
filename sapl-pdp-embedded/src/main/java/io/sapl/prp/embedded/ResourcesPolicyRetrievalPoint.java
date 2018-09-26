@@ -3,18 +3,14 @@ package io.sapl.prp.embedded;
 import java.io.IOException;
 import java.util.Map;
 
-import io.sapl.api.prp.PolicyRetrievalPoint;
-import io.sapl.api.prp.ReactivePolicyRetrievalPoint;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.prp.ParsedDocumentIndex;
+import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
+import io.sapl.api.prp.ReactivePolicyRetrievalPoint;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -22,7 +18,9 @@ import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPointConfiguration;
 import io.sapl.pdp.embedded.PrpImplementation;
 import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
-import reactor.core.publisher.Mono;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import reactor.core.publisher.Flux;
 
 public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint, ReactivePolicyRetrievalPoint {
 
@@ -52,7 +50,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint, Reac
 	}
 
 	@Override
-	public Mono<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
+	public Flux<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
 		return parsedDocIdx.reactiveRetrievePolicies(request, functionCtx, variables);
 	}
 

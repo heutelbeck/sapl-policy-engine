@@ -23,7 +23,7 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 
@@ -92,9 +92,9 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 	}
 
 	@Override
-	public Mono<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
-		final PolicyRetrievalResult retrievalResult = retrievePolicies(request, functionCtx, variables);
-		return Mono.just(retrievalResult);
+	public Flux<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
+		final PolicyRetrievalResult retrievalResult = retrievePolicies(request, functionCtx, variables); // must be replaced
+		return Flux.just(retrievalResult);
 	}
 
 	@Override

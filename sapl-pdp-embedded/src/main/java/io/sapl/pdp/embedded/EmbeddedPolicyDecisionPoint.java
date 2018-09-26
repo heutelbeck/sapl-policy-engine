@@ -40,7 +40,7 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, ReactivePolicyDecisionPoint {
 
@@ -184,19 +184,19 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 	// ---- ReactivePolicyDecisionPoint
 
 	@Override
-	public Mono<Response> reactiveDecide(Object subject, Object action, Object resource) {
+	public Flux<Response> reactiveDecide(Object subject, Object action, Object resource) {
 		return reactiveDecide(subject, action, resource, null);
 	}
 
 	@Override
-	public Mono<Response> reactiveDecide(Object subject, Object action, Object resource, Object environment) {
+	public Flux<Response> reactiveDecide(Object subject, Object action, Object resource, Object environment) {
 		final Request request = toRequest(subject, action, resource, environment);
 		return reactiveDecide(request);
 	}
 
 	@Override
-	public Mono<Response> reactiveDecide(Request request) {
-        final Mono<PolicyRetrievalResult> retrievalResult = prp.reactiveRetrievePolicies(request, functionCtx, variables);
+	public Flux<Response> reactiveDecide(Request request) {
+        final Flux<PolicyRetrievalResult> retrievalResult = prp.reactiveRetrievePolicies(request, functionCtx, variables);
         return retrievalResult.map(result ->
             combinator.combineMatchingDocuments(result.getMatchingDocuments(),
                     result.isErrorsInTarget(), request, attributeCtx, functionCtx, variables)

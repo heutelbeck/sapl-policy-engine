@@ -8,7 +8,7 @@ import io.sapl.api.pdp.Response;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import org.junit.Before;
 import org.junit.Test;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 public class EmbeddedPolicyDecisionPointTest {
@@ -34,7 +34,7 @@ public class EmbeddedPolicyDecisionPointTest {
 
 	@Test
 	public void reactiveDecide_withAllowedAction_shouldReturnPermit() {
-		final Mono<Response> response = pdp.reactiveDecide("willi", "read", "something");
+		final Flux<Response> response = pdp.reactiveDecide("willi", "read", "something");
 		StepVerifier.create(response)
 				.expectNextMatches(resp -> resp.getDecision() == Decision.PERMIT)
 				.verifyComplete();
@@ -42,7 +42,7 @@ public class EmbeddedPolicyDecisionPointTest {
 
 	@Test
 	public void reactiveDecide_withForbiddenAction_shouldReturnDeny() {
-		final Mono<Response> response = pdp.reactiveDecide("willi", "write", "something");
+		final Flux<Response> response = pdp.reactiveDecide("willi", "write", "something");
 		StepVerifier.create(response)
 				.expectNextMatches(resp -> resp.getDecision() == Decision.DENY)
 				.verifyComplete();

@@ -31,7 +31,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 public class RemotePolicyDecisionPoint implements PolicyDecisionPoint, ReactivePolicyDecisionPoint {
@@ -138,19 +138,19 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint, ReactiveP
 	// ---- ReactivePolicyDecisionPoint
 
 	@Override
-	public Mono<Response> reactiveDecide(Request request) {
-		final Response response = decide(request);
-		return Mono.just(response);
+	public Flux<Response> reactiveDecide(Request request) {
+		final Response response = decide(request); // must be replaced with a reactive http call
+		return Flux.just(response);
 	}
 
 	@Override
-	public Mono<Response> reactiveDecide(Object subject, Object action, Object resource, Object environment) {
+	public Flux<Response> reactiveDecide(Object subject, Object action, Object resource, Object environment) {
 		final Request request = toRequest(subject, action, resource, environment);
 		return reactiveDecide(request);
 	}
 
 	@Override
-	public Mono<Response> reactiveDecide(Object subject, Object action, Object resource) {
+	public Flux<Response> reactiveDecide(Object subject, Object action, Object resource) {
 		return reactiveDecide(subject, action, resource, null);
 	}
 }

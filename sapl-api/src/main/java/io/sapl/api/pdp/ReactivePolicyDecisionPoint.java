@@ -1,6 +1,6 @@
 package io.sapl.api.pdp;
 
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 /**
  * The policy decision point is the component in the system, which will take a
@@ -12,18 +12,23 @@ import reactor.core.publisher.Mono;
  * to the policy decision point, which only differ in the construction of the
  * underlying request object.
  *
- * This is the reactive version of the {@link PolicyDecisionPoint} returning {@link Mono}
- * instances eventually providing the response for the given request.
+ * This is the reactive version of the {@link PolicyDecisionPoint}. Its methods
+ * return a {@link Flux} instance providing responses for the given request as a
+ * stream. New responses are only added to the stream if they are different from
+ * the preceding response.
  */
 public interface ReactivePolicyDecisionPoint {
 	/**
-	 * Takes an pre-built Request object and returns the matching decision response.
+	 * Takes an pre-built Request object and returns a {@link Flux} providing a
+     * stream of matching decision responses.
 	 *
 	 * @param request
 	 *            the SAPL request object
-	 * @return a {@link Mono} eventually providing the response for the given request.
+	 * @return a {@link Flux} providing the responses for the given request as a
+     *         stream. New responses are only added to the stream if they are
+     *         different from the preceding response.
 	 */
-	Mono<Response> reactiveDecide(Request request);
+	Flux<Response> reactiveDecide(Request request);
 
 	/**
 	 * Takes POJOs representing subject, action, resource, and environment. These
@@ -37,9 +42,11 @@ public interface ReactivePolicyDecisionPoint {
 	 *            a POJO representing the resource
 	 * @param environment
 	 *            a POJO representing the environment
-	 * @return a {@link Mono} eventually providing the response for the given request.
+	 * @return a {@link Flux} providing the responses for the given request as a
+     *         stream. New responses are only added to the stream if they are
+     *         different from the preceding response.
 	 */
-	Mono<Response> reactiveDecide(Object subject, Object action, Object resource, Object environment);
+	Flux<Response> reactiveDecide(Object subject, Object action, Object resource, Object environment);
 
 	/**
 	 * Takes POJOs representing subject, action, and resource. These objects are
@@ -52,8 +59,10 @@ public interface ReactivePolicyDecisionPoint {
 	 *            a POJO representing the action
 	 * @param resource
 	 *            a POJO representing the resource
-	 * @return a {@link Mono} eventually providing the response for the given request.
+	 * @return a {@link Flux} providing the responses for the given request as a
+     *         stream. New responses are only added to the stream if they are
+     *         different from the preceding response.
 	 */
-	Mono<Response> reactiveDecide(Object subject, Object action, Object resource);
+	Flux<Response> reactiveDecide(Object subject, Object action, Object resource);
 
 }
