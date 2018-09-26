@@ -26,7 +26,7 @@ public interface PolicyRetrievalPoint {
      * @return a policy retrieval result containing all the policies or policy sets
      *         matching the given request.
      */
-	PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
+    PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
                                            Map<String, JsonNode> variables);
 
 }
