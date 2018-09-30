@@ -2,12 +2,10 @@ package io.sapl.prp.embedded;
 
 import java.io.IOException;
 
-import org.junit.Test;
-
 import io.sapl.api.functions.FunctionException;
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
+import org.junit.Test;
 
 public class EmbeddedPRPTest {
 
@@ -20,7 +18,7 @@ public class EmbeddedPRPTest {
 	}
 
 	@Test
-	public void testTest() throws IOException, PolicyEvaluationException, AttributeException, FunctionException {
+	public void testTest() throws IOException, AttributeException, FunctionException {
 		// long startpdp = System.nanoTime();
 		EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
 		// long endpdp = System.nanoTime();

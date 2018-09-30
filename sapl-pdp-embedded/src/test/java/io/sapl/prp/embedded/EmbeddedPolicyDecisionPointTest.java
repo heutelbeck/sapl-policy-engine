@@ -34,17 +34,22 @@ public class EmbeddedPolicyDecisionPointTest {
 
 	@Test
 	public void reactiveDecide_withAllowedAction_shouldReturnPermit() {
-		final Flux<Response> response = pdp.reactiveDecide("willi", "read", "something");
+		final Flux<Response> response = pdp.reactiveDecide("willi", "read", "something").log();
 		StepVerifier.create(response)
 				.expectNextMatches(resp -> resp.getDecision() == Decision.PERMIT)
-				.verifyComplete();
+				// activate the next line, run the test and change the action in target/test-classes/policies/policy_1.sapl
+				// from read to write
+//				.expectNextMatches(resp -> resp.getDecision() == Decision.DENY)
+				.thenCancel()
+				.verify();
 	}
 
 	@Test
 	public void reactiveDecide_withForbiddenAction_shouldReturnDeny() {
-		final Flux<Response> response = pdp.reactiveDecide("willi", "write", "something");
+		final Flux<Response> response = pdp.reactiveDecide("willi", "write", "something").log();
 		StepVerifier.create(response)
 				.expectNextMatches(resp -> resp.getDecision() == Decision.DENY)
-				.verifyComplete();
+				.thenCancel()
+				.verify();
 	}
 }

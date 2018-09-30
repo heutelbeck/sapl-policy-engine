@@ -3,7 +3,7 @@ package io.sapl.api.prp;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 
-public interface ParsedDocumentIndex extends PolicyRetrievalPoint, ReactivePolicyRetrievalPoint {
+public interface ParsedDocumentIndex extends PolicyRetrievalPoint {
 
 	void put(String documentKey, SAPL sapl);
 

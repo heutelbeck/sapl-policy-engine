@@ -3,7 +3,6 @@ package io.sapl.prp.inmemory.simple;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -15,7 +14,6 @@ import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
-import reactor.core.publisher.Flux;
 
 public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
@@ -27,10 +25,10 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 			Map<String, JsonNode> variables) {
 		boolean errorOccured = false;
 		List<SAPL> result = new ArrayList<>();
-		for (Entry<String, SAPL> entry : publishedDocuments.entrySet()) {
+		for (SAPL sapl : publishedDocuments.values()) {
 			try {
-				if (INTERPRETER.matches(request, entry.getValue(), functionCtx, variables)) {
-					result.add(entry.getValue());
+				if (INTERPRETER.matches(request, sapl, functionCtx, variables)) {
+					result.add(sapl);
 				}
 			} catch (PolicyEvaluationException e) {
 				errorOccured = true;
@@ -38,12 +36,6 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 		}
 		return new PolicyRetrievalResult(result, errorOccured);
 
-	}
-
-	@Override
-	public Flux<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
-		final PolicyRetrievalResult retrievalResult = retrievePolicies(request, functionCtx, variables); // must be replaced
-		return Flux.just(retrievalResult);
 	}
 
 	@Override

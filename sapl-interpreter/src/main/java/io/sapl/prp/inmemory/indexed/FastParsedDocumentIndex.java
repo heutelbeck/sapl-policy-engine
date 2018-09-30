@@ -23,7 +23,6 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
-import reactor.core.publisher.Flux;
 
 public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 
@@ -89,12 +88,6 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 			return new PolicyRetrievalResult(result.getMatchingDocuments(), true);
 		}
 		return result;
-	}
-
-	@Override
-	public Flux<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
-		final PolicyRetrievalResult retrievalResult = retrievePolicies(request, functionCtx, variables); // must be replaced
-		return Flux.just(retrievalResult);
 	}
 
 	@Override

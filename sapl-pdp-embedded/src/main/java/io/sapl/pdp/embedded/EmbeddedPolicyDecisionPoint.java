@@ -14,7 +14,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.ReactivePolicyDecisionPoint;
@@ -60,21 +59,21 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 	private EmbeddedPolicyDecisionPointConfiguration configuration;
 
 	public EmbeddedPolicyDecisionPoint()
-			throws IOException, PolicyEvaluationException, AttributeException, FunctionException {
+			throws IOException, AttributeException, FunctionException {
 		this(null);
 	}
 
 	public EmbeddedPolicyDecisionPoint(String policyPath)
-			throws IOException, PolicyEvaluationException, AttributeException, FunctionException {
+			throws IOException, AttributeException, FunctionException {
 		this(policyPath, loadConfiguration(policyPath));
 	}
 
 	public EmbeddedPolicyDecisionPoint(String policyPath, EmbeddedPolicyDecisionPointConfiguration configuration)
-			throws AttributeException, FunctionException, IOException, PolicyEvaluationException {
+			throws AttributeException, FunctionException, IOException {
 		this.configuration = configuration;
 		functionCtx = new AnnotationFunctionContext();
 		attributeCtx = new AnnotationAttributeContext();
-		prp = ResourcesPolicyRetrievalPoint.of(policyPath, configuration, functionCtx);
+		prp = new ResourcesPolicyRetrievalPoint(policyPath, configuration.getPrpImplementation(), functionCtx);
 		importAttributeFindersFromPackage(DEFAULT_SCAN_PACKAGE);
 		importFunctionLibrariesFromPackage(DEFAULT_SCAN_PACKAGE);
 		buildVariables(configuration);
@@ -84,10 +83,10 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 	private static EmbeddedPolicyDecisionPointConfiguration loadConfiguration(String policyPath) throws IOException {
 		String path = policyPath == null ? ResourcesPolicyRetrievalPoint.DEFAULT_PATH : policyPath;
 		PathMatchingResourcePatternResolver pm = new PathMatchingResourcePatternResolver();
-		Resource[] configFiles = pm.getResources(path + PDP_JSON);
-		for (Resource resource : configFiles) {
-			return MAPPER.readValue(resource.getURL().openStream(), EmbeddedPolicyDecisionPointConfiguration.class);
-		}
+		Resource configFile = pm.getResource(path + PDP_JSON);
+        if (configFile != null) {
+            return MAPPER.readValue(configFile.getURL().openStream(), EmbeddedPolicyDecisionPointConfiguration.class);
+        }
 		return new EmbeddedPolicyDecisionPointConfiguration();
 	}
 
@@ -200,7 +199,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
         return retrievalResult.map(result ->
             combinator.combineMatchingDocuments(result.getMatchingDocuments(),
                     result.isErrorsInTarget(), request, attributeCtx, functionCtx, variables)
-        );
+        ).distinctUntilChanged();
 	}
 
 }

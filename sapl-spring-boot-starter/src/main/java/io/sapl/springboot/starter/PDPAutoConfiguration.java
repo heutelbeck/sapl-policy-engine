@@ -151,7 +151,7 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnProperty(name = "pdp.type", havingValue = "EMBEDDED")
 	public PolicyDecisionPoint pdpEmbedded(PIPProvider pipProvider)
-			throws PolicyEvaluationException, AttributeException, FunctionException, IOException {
+			throws AttributeException, FunctionException, IOException {
 		LOGGER.debug("creating embedded PDP with Bean name {} and policy path {}", BEAN_NAME_PDP_EMBEDDED,
 				pdpProperties.getEmbedded().getPolicyPath());
 

@@ -6,3 +6,4 @@ permit
 where
     subject.<test.upper> == "WILLI"
 ;
+
