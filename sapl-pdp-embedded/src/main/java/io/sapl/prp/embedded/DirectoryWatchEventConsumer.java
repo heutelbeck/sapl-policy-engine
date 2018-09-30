@@ -2,7 +2,7 @@ package io.sapl.prp.embedded;
 
 import java.nio.file.WatchEvent;
 
-public interface DirectoryWatchEventConsumer<T> {
+public interface DirectoryWatchEventConsumer {
 
     void onEvent(WatchEvent<?> event);
 

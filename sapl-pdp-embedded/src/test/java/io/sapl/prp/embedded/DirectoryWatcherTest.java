@@ -7,8 +7,6 @@ import java.nio.file.Paths;
 import java.nio.file.WatchEvent;
 import java.util.concurrent.CountDownLatch;
 
-import org.junit.Ignore;
-import org.junit.Test;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
@@ -18,7 +16,7 @@ public class DirectoryWatcherTest {
      * Run this test and create, modify or delete files under the directory target/test-classes/policies.
      * To terminate the test, add a file called "stop.sapl" or delete the whole directory.
      */
-    @Test @Ignore
+    // @Test
     public void watchPoliciesDirectory() {
         try {
             final PathMatchingResourcePatternResolver pm = new PathMatchingResourcePatternResolver();
@@ -27,7 +25,7 @@ public class DirectoryWatcherTest {
             final Path watchDir = Paths.get(configFileURI).getParent();
             final DirectoryWatcher watcher = new DirectoryWatcher(watchDir);
             final CountDownLatch cdl = new CountDownLatch(1);
-            watcher.watch(new DirectoryWatchEventConsumer<String>() {
+            watcher.watch(new DirectoryWatchEventConsumer() {
 
                 private boolean isCanceled;
 

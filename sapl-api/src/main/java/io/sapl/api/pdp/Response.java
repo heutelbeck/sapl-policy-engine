@@ -89,7 +89,7 @@ public class Response {
 		if (o == this) {
 			return true;
 		}
-		if (!(o instanceof Response)) {
+		if (o.getClass() != this.getClass()) {
 			return false;
 		}
 		final Response other = (Response) o;
@@ -105,7 +105,7 @@ public class Response {
 		return areEqual(this.getAdvice(), other.getAdvice());
 	}
 
-	private boolean areEqual(Optional<?> thisOptional, Optional<?> otherOptional) {
+	private static boolean areEqual(Optional<?> thisOptional, Optional<?> otherOptional) {
 		if (! thisOptional.isPresent()) {
 			return ! otherOptional.isPresent();
 		}
@@ -119,14 +119,14 @@ public class Response {
 	public int hashCode() {
 		final int PRIME = 59;
 		int result = 1;
-		final Object $decision = this.getDecision();
-		result = result * PRIME + ($decision == null ? 43 : $decision.hashCode());
-		final Object $resource = this.getResource();
-		result = result * PRIME + ($resource == null ? 43 : $resource.hashCode());
-		final Object $obligation = this.getObligation();
-		result = result * PRIME + ($obligation == null ? 43 : $obligation.hashCode());
-		final Object $advice = this.getAdvice();
-		result = result * PRIME + ($advice == null ? 43 : $advice.hashCode());
+		final Object decision = this.getDecision();
+		result = result * PRIME + (decision == null ? 43 : decision.hashCode());
+		final Object resource = this.getResource();
+		result = result * PRIME + (resource == null ? 43 : resource.hashCode());
+		final Object obligation = this.getObligation();
+		result = result * PRIME + (obligation == null ? 43 : obligation.hashCode());
+		final Object advice = this.getAdvice();
+		result = result * PRIME + (advice == null ? 43 : advice.hashCode());
 		return result;
 	}
 

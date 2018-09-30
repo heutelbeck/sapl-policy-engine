@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.prp.ParsedDocumentIndex;
@@ -70,11 +71,11 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint, Reac
                 this.parsedDocIdx.put(policyFile.getFilename(), saplDocument);
             }
             this.parsedDocIdx.setLiveMode();
-        }
-        catch (Exception e) {
+        } catch (IOException e) {
             LOGGER.error("Error while initializing the document index.", e);
-        }
-        finally {
+        } catch (PolicyEvaluationException e) {
+            LOGGER.error("Error while initializing the document index.", e);
+        } finally {
             lock.unlock();
         }
     }
@@ -85,8 +86,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint, Reac
 	    try {
             lock.lock();
             return parsedDocIdx.retrievePolicies(request, functionCtx, variables);
-        }
-        finally {
+        } finally {
 	        lock.unlock();
         }
 	}
@@ -102,7 +102,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint, Reac
         return Flux.just("initial event")
                 .concatWith(dirWatcherFlux.doOnCancel(adapter::cancel))
                 .map(e -> {
-                    if (e.equals("policy modification event")) {
+                    if ("policy modification event".equals(e)) {
                         init();
                     }
                     return parsedDocIdx.retrievePolicies(request, functionCtx, variables);

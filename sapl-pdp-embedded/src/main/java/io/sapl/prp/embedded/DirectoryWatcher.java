@@ -12,6 +12,9 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 class DirectoryWatcher {
 
     private Path watchedDir;
@@ -25,43 +28,30 @@ class DirectoryWatcher {
             final WatchService watcher = FileSystems.getDefault().newWatchService();
             watchedDir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
             while (! eventConsumer.isCanceled()) {
-                WatchKey key;
-                try {
-                    key = watcher.take();
-                }
-                catch (InterruptedException x) {
-                    break;
-                }
-
-                for (WatchEvent<?> event : key.pollEvents()) {
-                    WatchEvent.Kind<?> kind = event.kind();
-                    if (kind == OVERFLOW) {
-                        continue;
-                    }
-
-                    eventConsumer.onEvent(event);
-
-//                        WatchEvent<Path> ev = (WatchEvent<Path>)event;
-//                        Path filename = ev.context();
-//
-//                        if (kind == ENTRY_CREATE)
-//                            System.out.format("file %s created%n", filename);
-//                        else if (kind == ENTRY_DELETE)
-//                            System.out.format("file %s deleted%n", filename);
-//                        else if (kind == ENTRY_MODIFY)
-//                            System.out.format("file %s modified%n", filename);
-                }
-
-                // If the key is no longer valid, the directory is inaccessible.
-                boolean valid = key.reset();
-                if (! valid) {
-                    eventConsumer.cancel();
-                }
+                final WatchKey key = watcher.take();
+                handleWatchKey(key, eventConsumer);
             }
-        }
-        catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            LOGGER.error(e.getMessage());
+        } catch (InterruptedException e) {
+            LOGGER.error(e.getMessage());
         }
         eventConsumer.onComplete();
+    }
+
+    private void handleWatchKey(WatchKey key, DirectoryWatchEventConsumer eventConsumer) {
+        for (WatchEvent<?> event : key.pollEvents()) {
+            WatchEvent.Kind<?> kind = event.kind();
+            if (kind == OVERFLOW) {
+                continue;
+            }
+            eventConsumer.onEvent(event);
+        }
+
+        // If the key is no longer valid, the directory is inaccessible.
+        boolean valid = key.reset();
+        if (! valid) {
+            eventConsumer.cancel();
+        }
     }
 }

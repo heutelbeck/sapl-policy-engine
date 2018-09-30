@@ -63,8 +63,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 		this(null);
 	}
 
-	public EmbeddedPolicyDecisionPoint(String policyPath)
-			throws IOException, AttributeException, FunctionException {
+	public EmbeddedPolicyDecisionPoint(String policyPath) throws IOException, AttributeException, FunctionException {
 		this(policyPath, loadConfiguration(policyPath));
 	}
 
@@ -80,14 +79,15 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 		buildCombinator(configuration);
 	}
 
-	private static EmbeddedPolicyDecisionPointConfiguration loadConfiguration(String policyPath) throws IOException {
+	private static EmbeddedPolicyDecisionPointConfiguration loadConfiguration(String policyPath) {
 		String path = policyPath == null ? ResourcesPolicyRetrievalPoint.DEFAULT_PATH : policyPath;
 		PathMatchingResourcePatternResolver pm = new PathMatchingResourcePatternResolver();
 		Resource configFile = pm.getResource(path + PDP_JSON);
-        if (configFile != null) {
+        try {
             return MAPPER.readValue(configFile.getURL().openStream(), EmbeddedPolicyDecisionPointConfiguration.class);
+        } catch (IOException e) {
+            return new EmbeddedPolicyDecisionPointConfiguration();
         }
-		return new EmbeddedPolicyDecisionPointConfiguration();
 	}
 
 	private static Set<BeanDefinition> discover(Class<? extends Annotation> clazz, String scanPackage) {

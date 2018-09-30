@@ -4,7 +4,7 @@ import java.nio.file.WatchEvent;
 
 import reactor.core.publisher.FluxSink;
 
-public class DirectoryWatchEventFluxSinkAdapter implements DirectoryWatchEventConsumer<String> {
+public class DirectoryWatchEventFluxSinkAdapter implements DirectoryWatchEventConsumer {
 
     private FluxSink<String> sink;
     private boolean canceled;

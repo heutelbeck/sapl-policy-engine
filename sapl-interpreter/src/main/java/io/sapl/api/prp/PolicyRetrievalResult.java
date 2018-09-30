@@ -26,7 +26,7 @@ public class PolicyRetrievalResult {
 		if (other == this) {
 			return true;
 		}
-		if (!(other instanceof PolicyRetrievalResult)) {
+		if (other.getClass() != this.getClass()) {
 			return false;
 		}
 		final PolicyRetrievalResult otherResult = (PolicyRetrievalResult) other;
@@ -36,7 +36,7 @@ public class PolicyRetrievalResult {
 		return this.isErrorsInTarget() == otherResult.isErrorsInTarget();
 	}
 
-	private boolean areEqual(Collection<SAPL> thisMatchingDocuments, Collection<SAPL> otherMatchingDocuments) {
+	private static boolean areEqual(Collection<SAPL> thisMatchingDocuments, Collection<SAPL> otherMatchingDocuments) {
 		if (thisMatchingDocuments == null) {
 			return otherMatchingDocuments == null;
 		}
@@ -60,8 +60,8 @@ public class PolicyRetrievalResult {
 	public int hashCode() {
 		final int PRIME = 59;
 		int result = 1;
-		final Collection<SAPL> $matchingDocuments = getMatchingDocuments();
-		result = result * PRIME + ($matchingDocuments == null ? 43 : $matchingDocuments.hashCode());
+		final Collection<SAPL> matchingDocuments = getMatchingDocuments();
+		result = result * PRIME + (matchingDocuments == null ? 43 : matchingDocuments.hashCode());
 		result = result * PRIME + (isErrorsInTarget() ? 79 : 97);
 		return result;
 	}
