@@ -26,7 +26,7 @@ public class PolicyRetrievalResult {
 		if (other == this) {
 			return true;
 		}
-		if (other.getClass() != this.getClass()) {
+		if (other == null || other.getClass() != this.getClass()) {
 			return false;
 		}
 		final PolicyRetrievalResult otherResult = (PolicyRetrievalResult) other;
@@ -60,8 +60,8 @@ public class PolicyRetrievalResult {
 	public int hashCode() {
 		final int PRIME = 59;
 		int result = 1;
-		final Collection<SAPL> matchingDocuments = getMatchingDocuments();
-		result = result * PRIME + (matchingDocuments == null ? 43 : matchingDocuments.hashCode());
+		final Collection<SAPL> thisMatchingDocuments = getMatchingDocuments();
+		result = result * PRIME + (thisMatchingDocuments == null ? 43 : thisMatchingDocuments.hashCode());
 		result = result * PRIME + (isErrorsInTarget() ? 79 : 97);
 		return result;
 	}

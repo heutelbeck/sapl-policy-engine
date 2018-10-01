@@ -89,7 +89,7 @@ public class Response {
 		if (o == this) {
 			return true;
 		}
-		if (o.getClass() != this.getClass()) {
+		if (o == null || o.getClass() != this.getClass()) {
 			return false;
 		}
 		final Response other = (Response) o;
@@ -119,14 +119,14 @@ public class Response {
 	public int hashCode() {
 		final int PRIME = 59;
 		int result = 1;
-		final Object decision = this.getDecision();
-		result = result * PRIME + (decision == null ? 43 : decision.hashCode());
-		final Object resource = this.getResource();
-		result = result * PRIME + (resource == null ? 43 : resource.hashCode());
-		final Object obligation = this.getObligation();
-		result = result * PRIME + (obligation == null ? 43 : obligation.hashCode());
-		final Object advice = this.getAdvice();
-		result = result * PRIME + (advice == null ? 43 : advice.hashCode());
+		final Object thisDecision = this.getDecision();
+		result = result * PRIME + (thisDecision == null ? 43 : thisDecision.hashCode());
+		final Object thisResource = this.getResource();
+		result = result * PRIME + (thisResource == null ? 43 : thisResource.hashCode());
+		final Object thisObligation = this.getObligation();
+		result = result * PRIME + (thisObligation == null ? 43 : thisObligation.hashCode());
+		final Object thisAdvice = this.getAdvice();
+		result = result * PRIME + (thisAdvice == null ? 43 : thisAdvice.hashCode());
 		return result;
 	}
 
