@@ -39,7 +39,7 @@ class DirectoryWatcher {
         eventConsumer.onComplete();
     }
 
-    private void handleWatchKey(WatchKey key, DirectoryWatchEventConsumer eventConsumer) {
+    void handleWatchKey(WatchKey key, DirectoryWatchEventConsumer eventConsumer) {
         for (WatchEvent<?> event : key.pollEvents()) {
             WatchEvent.Kind<?> kind = event.kind();
             if (kind == OVERFLOW) {

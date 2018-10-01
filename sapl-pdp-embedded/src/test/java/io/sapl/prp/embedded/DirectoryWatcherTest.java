@@ -1,15 +1,27 @@
 package io.sapl.prp.embedded;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 
+import lombok.extern.slf4j.Slf4j;
+import org.junit.Test;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
+@Slf4j
 public class DirectoryWatcherTest {
 
     /**
@@ -55,9 +67,32 @@ public class DirectoryWatcherTest {
                 }
             });
             cdl.await();
+        } catch (IOException e) {
+            LOGGER.error(e.getMessage());
+        } catch (InterruptedException e) {
+            LOGGER.error(e.getMessage());
         }
-        catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }
+    }
+
+    @Test
+    public void handleWatchKey() {
+        // given
+        final WatchEvent overflowEvent = mock(WatchEvent.class);
+        when(overflowEvent.kind()).thenReturn(StandardWatchEventKinds.OVERFLOW);
+        final WatchEvent modifyEvent = mock(WatchEvent.class);
+        when(modifyEvent.kind()).thenReturn(StandardWatchEventKinds.ENTRY_MODIFY);
+
+        final WatchKey watchKey = mock(WatchKey.class);
+        when(watchKey.pollEvents()).thenReturn(Arrays.asList(overflowEvent, modifyEvent));
+
+        final DirectoryWatchEventConsumer eventConsumer = spy(DirectoryWatchEventConsumer.class);
+
+        // when
+        new DirectoryWatcher(null).handleWatchKey(watchKey, eventConsumer);
+
+        // then
+        verify(eventConsumer, times(1)).onEvent(modifyEvent);
+        verify(eventConsumer, times(1)).cancel();
+
     }
 }
