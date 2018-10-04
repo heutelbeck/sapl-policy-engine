@@ -1,5 +1,6 @@
 package io.sapl.prp.embedded;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -77,13 +78,18 @@ public class DirectoryWatcherTest {
     @Test
     public void handleWatchKey() {
         // given
-        final WatchEvent overflowEvent = mock(WatchEvent.class);
-        when(overflowEvent.kind()).thenReturn(StandardWatchEventKinds.OVERFLOW);
+        final WatchEvent createEvent = mock(WatchEvent.class);
+        when(createEvent.kind()).thenReturn(StandardWatchEventKinds.ENTRY_CREATE);
         final WatchEvent modifyEvent = mock(WatchEvent.class);
         when(modifyEvent.kind()).thenReturn(StandardWatchEventKinds.ENTRY_MODIFY);
+        final WatchEvent deleteEvent = mock(WatchEvent.class);
+        when(deleteEvent.kind()).thenReturn(StandardWatchEventKinds.ENTRY_DELETE);
+        final WatchEvent overflowEvent = mock(WatchEvent.class);
+        when(overflowEvent.kind()).thenReturn(StandardWatchEventKinds.OVERFLOW);
 
         final WatchKey watchKey = mock(WatchKey.class);
-        when(watchKey.pollEvents()).thenReturn(Arrays.asList(overflowEvent, modifyEvent));
+        when(watchKey.pollEvents()).thenReturn(Arrays.asList(createEvent, modifyEvent, deleteEvent, overflowEvent));
+        when(watchKey.isValid()).thenReturn(false);
 
         final DirectoryWatchEventConsumer eventConsumer = spy(DirectoryWatchEventConsumer.class);
 
@@ -91,7 +97,7 @@ public class DirectoryWatcherTest {
         new DirectoryWatcher(null).handleWatchKey(watchKey, eventConsumer);
 
         // then
-        verify(eventConsumer, times(1)).onEvent(modifyEvent);
+        verify(eventConsumer, times(3)).onEvent(any(WatchEvent.class));
         verify(eventConsumer, times(1)).cancel();
 
     }
