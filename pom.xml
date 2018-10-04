@@ -103,7 +103,7 @@
 			<dependency>
 				<groupId>io.projectreactor</groupId>
 				<artifactId>reactor-bom</artifactId>
-				<version>RELEASE</version>
+				<version>Californium-RELEASE</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
