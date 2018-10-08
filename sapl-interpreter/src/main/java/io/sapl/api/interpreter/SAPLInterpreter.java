@@ -52,7 +52,7 @@ public interface SAPLInterpreter {
 	 * Method which applies the SAPL parser to an InputStream containing a SAPL
 	 * document and generates the matching parse-tree.
 	 *
-	 * @param saplDefinition
+	 * @param saplInputStream
 	 *            an InputStream containing a SAPL document
 	 * @return A parse tree of the document
 	 * @throws PolicyEvaluationException
@@ -177,14 +177,14 @@ public interface SAPLInterpreter {
 
 	/**
 	 * Method which checks whether a policy element (policy set or policy) matches a
-	 * Request by evaluating the document's target expression.
+	 * Request by evaluating the element's target expression.
 	 *
 	 * An import mapping and custom variables can be provided.
 	 *
 	 * @param request
 	 *            the Request to check against
-	 * @param saplDocument
-	 *            the SAPL document
+	 * @param policyElement
+	 *            the policy element (policy set or policy) to be checked
 	 * @param functionCtx
 	 *            the function context, as functions can be used in the target
 	 *            expression
