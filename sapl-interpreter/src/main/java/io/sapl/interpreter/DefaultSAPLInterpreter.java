@@ -144,26 +144,31 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	public boolean matches(Request request, PolicyElement policyElement, FunctionContext functionCtx,
 			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables, Map<String, String> imports)
 			throws PolicyEvaluationException {
+
+		if (policyElement.getTargetExpression() == null) {
+			return true;
+		} else {
+			EvaluationContext evaluationCtx = createEvaluationContext(request, functionCtx, systemVariables, variables, imports);
+			JsonNode expressionResult = policyElement.getTargetExpression().evaluate(evaluationCtx, false, null);
+			if (expressionResult.isBoolean()) {
+				return expressionResult.asBoolean();
+			} else {
+				throw new PolicyEvaluationException(
+						String.format(CONDITION_NOT_BOOLEAN, expressionResult.getNodeType()));
+			}
+		}
+	}
+
+	private static EvaluationContext createEvaluationContext(Request request, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables, Map<String, String> imports)
+			throws PolicyEvaluationException {
 		VariableContext variableCtx = new VariableContext(request, systemVariables);
 		if (variables != null) {
 			for (Map.Entry<String, JsonNode> entry : variables.entrySet()) {
 				variableCtx.put(entry.getKey(), entry.getValue());
 			}
 		}
-		EvaluationContext evaluationCtx = new EvaluationContext(functionCtx, variableCtx, imports);
-
-		if (policyElement.getTargetExpression() == null) {
-			return true;
-		} else {
-			JsonNode expressionResult = policyElement.getTargetExpression().evaluate(evaluationCtx, false, null);
-
-			if (expressionResult.isBoolean()) {
-				return ((BooleanNode) expressionResult).asBoolean();
-			} else {
-				throw new PolicyEvaluationException(
-						String.format(CONDITION_NOT_BOOLEAN, expressionResult.getNodeType()));
-			}
-		}
+		return new EvaluationContext(functionCtx, variableCtx, imports);
 	}
 
 	@Override
