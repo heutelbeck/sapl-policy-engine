@@ -11,9 +11,9 @@ install: true
 env:
   - SONAR_HOST=http://sonar.ftk.de:9000
 script:
-  - sed -e "s/{NEXUS_USERNAME}/$NEXUS_USERNAME/g" -e "s/{NEXUS_PASSWORD}/$NEXUS_PASSWORD/g" <.travis.settings.xml >$HOME/.m2/settings.xml
-  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -Dsonar.host.url=http://sonar.ftk.de:9000  -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*
-  - mvn deploy -DskipTests=true -Dmaven.javadoc.skip=true
+  - cp .travis.settings.xml $HOME/.m2/settings.xml
+  - bash ./.travis.build.sh
+
 # Cache local maven repository to speed up build
 # Remove packages from local maven repository before caching to avoid errors when refactoring maven structure
 before_cache:
