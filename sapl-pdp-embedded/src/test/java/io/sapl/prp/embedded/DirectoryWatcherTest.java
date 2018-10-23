@@ -17,6 +17,7 @@ import java.nio.file.WatchKey;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 
+import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.springframework.core.io.Resource;
@@ -33,7 +34,7 @@ public class DirectoryWatcherTest {
     public void watchPoliciesDirectory() {
         try {
             final PathMatchingResourcePatternResolver pm = new PathMatchingResourcePatternResolver();
-            final Resource configFile = pm.getResource("classpath:policies/pdp.json");
+            final Resource configFile = pm.getResource("classpath:policies/" + EmbeddedPolicyDecisionPoint.PDP_JSON);
             final URI configFileURI = configFile.getURI();
             final Path watchDir = Paths.get(configFileURI).getParent();
             final DirectoryWatcher watcher = new DirectoryWatcher(watchDir);

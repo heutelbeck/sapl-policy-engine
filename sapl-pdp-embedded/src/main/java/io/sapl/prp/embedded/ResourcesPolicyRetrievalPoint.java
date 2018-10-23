@@ -18,6 +18,7 @@ import io.sapl.api.prp.ReactivePolicyRetrievalPoint;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.embedded.PrpImplementation;
 import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
@@ -30,6 +31,7 @@ import reactor.core.publisher.Flux;
 public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint, ReactivePolicyRetrievalPoint {
 
 	public static final String DEFAULT_PATH = "classpath:policies";
+	public static final String POLICY_FILE_EXTENSION = ".sapl";
 
     private String path;
 	private PrpImplementation prpImplementation;
@@ -47,7 +49,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint, Reac
         this.functionCtx = functionCtx;
 
         final PathMatchingResourcePatternResolver pm = new PathMatchingResourcePatternResolver();
-        final Resource configFile = pm.getResource(path + "/pdp.json");
+        final Resource configFile = pm.getResource(path + "/" + EmbeddedPolicyDecisionPoint.PDP_JSON);
         final URI configFileURI = configFile.getURI();
         final Path watchDir = Paths.get(configFileURI).getParent();
         this.directoryWatcher = new DirectoryWatcher(watchDir);
@@ -65,7 +67,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint, Reac
                     : new SimpleParsedDocumentIndex();
 
             final PathMatchingResourcePatternResolver pm = new PathMatchingResourcePatternResolver();
-            final Resource[] policyFiles = pm.getResources(path + "/*.sapl");
+            final Resource[] policyFiles = pm.getResources(path + "/*" + POLICY_FILE_EXTENSION);
             for (Resource policyFile : policyFiles) {
                 final SAPL saplDocument = interpreter.parse(policyFile.getInputStream());
                 this.parsedDocIdx.put(policyFile.getFilename(), saplDocument);

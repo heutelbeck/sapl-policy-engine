@@ -1,5 +1,6 @@
 package io.sapl.prp.embedded;
 
+import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 
 import reactor.core.publisher.FluxSink;
@@ -15,7 +16,11 @@ public class DirectoryWatchEventFluxSinkAdapter implements DirectoryWatchEventCo
 
     @Override
     public void onEvent(WatchEvent<?> event) {
-        sink.next("policy modification event");
+        final WatchEvent<Path> ev = (WatchEvent<Path>)event;
+        final Path filename = ev.context();
+        if (filename.toString().endsWith(ResourcesPolicyRetrievalPoint.POLICY_FILE_EXTENSION)) {
+            sink.next("policy modification event");
+        }
     }
 
     @Override

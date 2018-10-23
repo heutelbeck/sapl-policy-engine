@@ -43,11 +43,12 @@ import reactor.core.publisher.Flux;
 
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, ReactivePolicyDecisionPoint {
 
+	public static final String PDP_JSON = "pdp.json";
+
 	private static final String DEFAULT_SCAN_PACKAGE = "io.sapl";
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final String ALGORITHM_NOT_ALLOWED_FOR_PDP_LEVEL_COMBINATION = "algorithm not allowed for PDP level combination.";
-	private static final String PDP_JSON = "/pdp.json";
 	private static final Set<String> DEFAULT_LIBRARIES = new HashSet<>(Arrays.asList("filter", "standard"));
 	private static final Set<String> DEFAULT_PIPS = new HashSet<>(Arrays.asList("http"));
 
@@ -82,7 +83,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 	private static EmbeddedPolicyDecisionPointConfiguration loadConfiguration(String policyPath) {
 		String path = policyPath == null ? ResourcesPolicyRetrievalPoint.DEFAULT_PATH : policyPath;
 		PathMatchingResourcePatternResolver pm = new PathMatchingResourcePatternResolver();
-		Resource configFile = pm.getResource(path + PDP_JSON);
+		Resource configFile = pm.getResource(path + "/" + PDP_JSON);
         try {
             return MAPPER.readValue(configFile.getURL().openStream(), EmbeddedPolicyDecisionPointConfiguration.class);
         } catch (IOException e) {
