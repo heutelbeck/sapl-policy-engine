@@ -74,7 +74,7 @@ public class SAPLAuthorizator {
 
 		LOGGER.debug("Here comes the response: {}", response);
 
-		if (response.getObligation().orElse(null) != null) {
+		if (response.getObligation().isPresent()) {
 			List<Obligation> obligationsList = Obligation.fromJson(response.getObligation().get());
 
 			LOGGER.debug("Start handling obligations {}", obligationsList);
@@ -88,7 +88,7 @@ public class SAPLAuthorizator {
 			}
 		}
 
-		if (response.getAdvice().orElse(null) != null) {
+		if (response.getAdvice().isPresent()) {
 			List<Advice> adviceList = Advice.fromJson(response.getAdvice().get());
 
 			LOGGER.debug("Start handling advices {}", adviceList);
