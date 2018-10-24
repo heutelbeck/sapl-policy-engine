@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +33,7 @@ import org.apache.http.util.EntityUtils;
 import reactor.core.publisher.Flux;
 
 @Slf4j
-public class RemotePolicyDecisionPoint implements PolicyDecisionPoint, ReactivePolicyDecisionPoint {
+public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	public static final String APPLICATION_JSON_VALUE = "application/json;charset=UTF-8";
 	public static final String AUTHORIZATION_REQUEST = "/api/authorizationRequests";
@@ -134,8 +133,6 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint, ReactiveP
 				MAPPER.convertValue(environment, JsonNode.class)
 		);
 	}
-
-	// ---- ReactivePolicyDecisionPoint
 
 	@Override
 	public Flux<Response> reactiveDecide(Request request) {

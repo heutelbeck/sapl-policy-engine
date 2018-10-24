@@ -16,11 +16,11 @@ import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.combinators.DenyOverridesCombinator;
@@ -41,7 +41,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import reactor.core.publisher.Flux;
 
-public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, ReactivePolicyDecisionPoint {
+public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	public static final String PDP_JSON = "pdp.json";
 
@@ -52,7 +52,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 	private static final Set<String> DEFAULT_LIBRARIES = new HashSet<>(Arrays.asList("filter", "standard"));
 	private static final Set<String> DEFAULT_PIPS = new HashSet<>(Arrays.asList("http"));
 
-	private ResourcesPolicyRetrievalPoint prp;
+	private PolicyRetrievalPoint prp;
 	private DocumentsCombinator combinator;
 	private Map<String, JsonNode> variables = new HashMap<>();
 	private AttributeContext attributeCtx;
@@ -180,8 +180,6 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Reactiv
 				MAPPER.convertValue(environment, JsonNode.class)
 		);
 	}
-
-	// ---- ReactivePolicyDecisionPoint
 
 	@Override
 	public Flux<Response> reactiveDecide(Object subject, Object action, Object resource) {

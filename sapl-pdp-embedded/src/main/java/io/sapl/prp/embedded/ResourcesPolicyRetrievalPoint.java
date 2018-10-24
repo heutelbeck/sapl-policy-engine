@@ -14,7 +14,6 @@ import io.sapl.api.pdp.Request;
 import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
-import io.sapl.api.prp.ReactivePolicyRetrievalPoint;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -28,7 +27,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import reactor.core.publisher.Flux;
 
 @Slf4j
-public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint, ReactivePolicyRetrievalPoint {
+public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 	public static final String DEFAULT_PATH = "classpath:policies";
 	public static final String POLICY_FILE_EXTENSION = ".sapl";

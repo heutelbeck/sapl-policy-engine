@@ -5,6 +5,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.pdp.Request;
 import io.sapl.interpreter.functions.FunctionContext;
+import reactor.core.publisher.Flux;
 
 /**
  * A policy retrieval point is responsible for selecting all the policies matching
@@ -28,5 +29,21 @@ public interface PolicyRetrievalPoint {
      */
     PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
                                            Map<String, JsonNode> variables);
+
+    /**
+     * Reactive variant of the {@link #retrievePolicies(Request, FunctionContext, Map)}
+     * method.
+     *
+     * @param request the request for which matching policies are to be retrieved.
+     * @param functionCtx the function context being part of the target expression's
+     *                    evaluation environment.
+     * @param variables the variables being part of the target expression's evaluation
+     *                  environment.
+     * @return a {@link Flux} providing the policy retrieval results containing all the
+     *         matching policies or policy sets. New results are only added to the stream
+     *         if they are different from the preceding result.
+     */
+    Flux<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx,
+                                                         Map<String, JsonNode> variables);
 
 }
