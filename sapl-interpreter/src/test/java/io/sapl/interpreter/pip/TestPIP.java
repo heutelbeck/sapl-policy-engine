@@ -15,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 public class TestPIP {
 
 	public static final String NAME = "sapl.pip.test";
-	public static final String DESCRIPTION = "Policy tracermation Point for testing";
+	public static final String DESCRIPTION = "Policy information Point for testing";
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
