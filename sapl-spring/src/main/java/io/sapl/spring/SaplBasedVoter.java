@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class SaplBasedVoter implements AccessDecisionVoter<Object> {
 
-	private final SAPLAuthorizator sapl;
+	private final SAPLAuthorizer sapl;
 
 	private static final String LOGGER_FORMAT = "Decision from SAPLVoter is : {}";
 

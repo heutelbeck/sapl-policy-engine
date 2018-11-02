@@ -24,7 +24,7 @@ public class PolicyEnforcementFilter extends GenericFilterBean {
 	private static final String SERVER = "localhost:8080";
 	private static final String PROTOCOL = "HTTP:";
 
-	private final SAPLAuthorizator sapl;
+	private final SAPLAuthorizer sapl;
 
 	/*
 	 * (non-Javadoc)

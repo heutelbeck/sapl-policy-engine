@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
-import io.sapl.spring.SAPLAuthorizator;
+import io.sapl.spring.SAPLAuthorizer;
 import io.sapl.spring.marshall.subject.AuthenticationSubject;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,14 +36,14 @@ public class PdpAuthorizeAspect {
 
 	private boolean tokenStoreInitialized;
 
-	private final SAPLAuthorizator sapl;
+	private final SAPLAuthorizer sapl;
 
 	@Autowired
 	private ApplicationContext applicationContext;
 
 	private TokenStore tokenStore;
 
-	public PdpAuthorizeAspect(SAPLAuthorizator sapl) {
+	public PdpAuthorizeAspect(SAPLAuthorizer sapl) {
 		super();
 		this.sapl = sapl;
 	}

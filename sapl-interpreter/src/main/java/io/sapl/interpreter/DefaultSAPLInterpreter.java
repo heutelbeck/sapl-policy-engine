@@ -153,8 +153,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			if (expressionResult.isBoolean()) {
 				return expressionResult.asBoolean();
 			} else {
-				throw new PolicyEvaluationException(
-						String.format(CONDITION_NOT_BOOLEAN, expressionResult.getNodeType()));
+				throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, expressionResult.getNodeType()));
 			}
 		}
 	}
