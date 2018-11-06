@@ -1,4 +1,4 @@
-package io.sapl.spring.marshall.advice;
+package io.sapl.api.pdp.advice;
 
 public interface AdviceHandler {
 

@@ -1,10 +1,21 @@
-package io.sapl.pdp.embedded;
+package io.sapl.prp.embedded;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Map;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.multirequest.IdentifiableAction;
+import io.sapl.api.pdp.multirequest.MultiRequest;
+import io.sapl.api.pdp.multirequest.MultiResponse;
+import io.sapl.api.pdp.multirequest.IdentifiableResponse;
+import io.sapl.api.pdp.multirequest.RequestElements;
+import io.sapl.api.pdp.multirequest.IdentifiableResource;
+import io.sapl.api.pdp.multirequest.IdentifiableSubject;
+import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
@@ -20,6 +31,12 @@ public class EmbeddedPolicyDecisionPointTest {
 	}
 
 	@Test
+	public void decide_withEmptyRequest_shouldReturnDeny() {
+		final Response response = pdp.decide(null, null, null);
+		assertThat("Wrong decision for allowed action.", response.getDecision(), is(Decision.DENY));
+	}
+
+	@Test
 	public void decide_withAllowedAction_shouldReturnPermit() {
 		final Response response = pdp.decide("willi", "read", "something");
 		assertThat("Wrong decision for allowed action.", response.getDecision(), is(Decision.PERMIT));
@@ -29,6 +46,55 @@ public class EmbeddedPolicyDecisionPointTest {
 	public void decide_withForbiddenAction_shouldReturnDeny() {
 		final Response response = pdp.decide("willi", "write", "something");
 		assertThat("Wrong decision for forbidden action.", response.getDecision(), is(Decision.DENY));
+	}
+
+	@Test
+	public void multiDecide_withoutRequest_shouldReturnOneIndeterminateResponse() {
+		final MultiRequest multiRequest = new MultiRequest();
+
+		final MultiResponse multiResponse = pdp.multiDecide(multiRequest);
+
+		final Map<String, Response> responses = multiResponse.getResponses();
+		assertThat("Wrong number of responses", responses.size(), is(1));
+		assertTrue("Wrong requestId", responses.containsKey(""));
+		assertTrue("Wrong response", responses.containsValue(Response.indeterminate()));
+	}
+
+	@Test
+	public void multiDecide_withOneRequest_shouldReturnOneResponse() {
+		final MultiRequest multiRequest = new MultiRequest();
+		multiRequest.addSubject(new IdentifiableSubject("sub", "willi"));
+		multiRequest.addAction(new IdentifiableAction("act", "read"));
+		multiRequest.addResource(new IdentifiableResource("res", "something"));
+		multiRequest.addRequest("req", new RequestElements("sub", "act", "res"));
+
+		final MultiResponse multiResponse = pdp.multiDecide(multiRequest);
+
+		final Map<String, Response> responses = multiResponse.getResponses();
+		assertThat("Wrong number of responses", responses.size(), is(1));
+		assertTrue("Wrong requestId", responses.containsKey("req"));
+		assertTrue("Wrong response", responses.containsValue(Response.permit()));
+	}
+
+	@Test
+	public void multiDecide_withTwoRequests_shouldReturnTwoResponses() {
+		final MultiRequest multiRequest = new MultiRequest();
+		multiRequest.addSubject(new IdentifiableSubject("sub", "willi"));
+		multiRequest.addAction(new IdentifiableAction("act1", "read"));
+		multiRequest.addAction(new IdentifiableAction("act2", "write"));
+		multiRequest.addResource(new IdentifiableResource("res", "something"));
+		multiRequest.addRequest("req1", new RequestElements("sub", "act1", "res"));
+		multiRequest.addRequest("req2", new RequestElements("sub", "act2", "res"));
+
+		final MultiResponse multiResponse = pdp.multiDecide(multiRequest);
+
+		final Map<String, Response> responses = multiResponse.getResponses();
+		assertThat("Wrong number of responses", responses.size(), is(2));
+		assertTrue("Missing requestId req1", responses.containsKey("req1"));
+		assertTrue("Missing requestId req2", responses.containsKey("req2"));
+
+		assertThat("Wrong response for request 1", multiResponse.getResponseForRequestWithId("req1"), is(Response.permit()));
+		assertThat("Wrong response for request 2", multiResponse.getResponseForRequestWithId("req2"), is(Response.deny()));
 	}
 
 	@Test
@@ -49,6 +115,60 @@ public class EmbeddedPolicyDecisionPointTest {
 		StepVerifier.create(response)
 				.expectNextMatches(resp -> resp.getDecision() == Decision.DENY)
 				.thenCancel()
+				.verify();
+	}
+
+	@Test
+	public void reactiveMultiDecide_withEmptyRequest_shouldReturnOneIndeterminateResponse() {
+		final MultiRequest multiRequest = new MultiRequest();
+
+		final Flux<IdentifiableResponse> responseFlux = pdp.reactiveMultiDecide(multiRequest);
+
+		StepVerifier.create(responseFlux)
+				.expectNextMatches(pair -> pair.getResponse().getDecision() == Decision.INDETERMINATE)
+				.verifyComplete();
+	}
+
+	@Test
+	public void reactiveMultiDecide_withOneRequest_shouldReturnOneResponse() {
+		final MultiRequest multiRequest = new MultiRequest();
+		multiRequest.addSubject(new IdentifiableSubject("sub", "willi"));
+		multiRequest.addAction(new IdentifiableAction("act", "read"));
+		multiRequest.addResource(new IdentifiableResource("res", "something"));
+		multiRequest.addRequest("req", new RequestElements("sub", "act", "res"));
+
+		final Flux<IdentifiableResponse> responseFlux = pdp.reactiveMultiDecide(multiRequest);
+
+		StepVerifier.create(responseFlux)
+				.expectNextMatches(pair -> pair.getRequestId().equals("req") && pair.getResponse().getDecision() == Decision.PERMIT)
+				.thenCancel()
+				.verify();
+	}
+
+	@Test
+	public void reactiveMultiDecide_withTwoRequests_shouldReturnTwoResponses() {
+		final MultiRequest multiRequest = new MultiRequest();
+		multiRequest.addSubject(new IdentifiableSubject("sub", "willi"));
+		multiRequest.addAction(new IdentifiableAction("act1", "read"));
+		multiRequest.addAction(new IdentifiableAction("act2", "write"));
+		multiRequest.addResource(new IdentifiableResource("res", "something"));
+		multiRequest.addRequest("req1", new RequestElements("sub", "act1", "res"));
+		multiRequest.addRequest("req2", new RequestElements("sub", "act2", "res"));
+
+		final Flux<IdentifiableResponse> responseFlux = pdp.reactiveMultiDecide(multiRequest);
+
+        StepVerifier.create(responseFlux)
+				.expectNextMatches(pair -> {
+					final String requestId = pair.getRequestId();
+					final Response response = pair.getResponse();
+					return response.getDecision() == (requestId.equals("req1") ? Decision.PERMIT : Decision.DENY);
+				})
+				.expectNextMatches(pair -> {
+					final String requestId = pair.getRequestId();
+					final Response response = pair.getResponse();
+					return response.getDecision() == (requestId.equals("req1") ? Decision.PERMIT : Decision.DENY);
+				})
+                .thenCancel()
 				.verify();
 	}
 }

@@ -4,7 +4,7 @@ import java.util.Locale;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.sapl.spring.marshall.Resource;
+import io.sapl.api.pdp.marshall.Resource;
 import lombok.Value;
 
 @Value

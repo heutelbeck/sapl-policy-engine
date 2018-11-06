@@ -3,10 +3,12 @@ package io.sapl.pdp.embedded;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -19,6 +21,10 @@ import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.multirequest.IdentifiableRequest;
+import io.sapl.api.pdp.multirequest.MultiRequest;
+import io.sapl.api.pdp.multirequest.MultiResponse;
+import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.prp.PolicyRetrievalPoint;
@@ -42,6 +48,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
@@ -189,6 +196,19 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
+	public MultiResponse multiDecide(MultiRequest multiRequest) {
+		if (multiRequest.hasRequests()) {
+			final MultiResponse multiResponse = new MultiResponse();
+			for (IdentifiableRequest identifiableRequest : multiRequest) {
+				final Response response = decide(identifiableRequest.getRequest());
+				multiResponse.setResponseForRequestWithId(identifiableRequest.getId(), response);
+			}
+			return multiResponse;
+		}
+		return MultiResponse.indeterminate();
+	}
+
+	@Override
 	public Flux<Response> reactiveDecide(Object subject, Object action, Object resource) {
 		return reactiveDecide(subject, action, resource, null);
 	}
@@ -210,4 +230,21 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
         }).distinctUntilChanged();
 	}
 
+    @Override
+    public Flux<IdentifiableResponse> reactiveMultiDecide(MultiRequest multiRequest) {
+        if (multiRequest.hasRequests()) {
+            final List<Flux<IdentifiableResponse>> requestIdResponsePairFluxes = new ArrayList<>();
+            for (IdentifiableRequest identifiableRequest : multiRequest) {
+                final Request request = identifiableRequest.getRequest();
+                final Flux<Response> responseFlux = reactiveDecide(request);
+                final Flux<IdentifiableResponse> requestResponsePairFlux = responseFlux
+                        .map(response -> new IdentifiableResponse(identifiableRequest.getId(), response))
+                        .subscribeOn(Schedulers.elastic());
+                //.publishOn(Schedulers.elastic());
+                requestIdResponsePairFluxes.add(requestResponsePairFlux);
+            }
+            return Flux.merge(requestIdResponsePairFluxes);
+        }
+        return Flux.just(IdentifiableResponse.indeterminate());
+    }
 }

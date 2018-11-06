@@ -1,4 +1,4 @@
-package io.sapl.spring.marshall;
+package io.sapl.api.pdp.marshall;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;

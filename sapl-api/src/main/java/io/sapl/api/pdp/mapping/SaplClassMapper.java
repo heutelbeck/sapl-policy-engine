@@ -1,4 +1,4 @@
-package io.sapl.spring.marshall.mapper;
+package io.sapl.api.pdp.mapping;
 
 /**
  * Each SaplClassMapper can map Objects of a certain class. The SaplClassMappers

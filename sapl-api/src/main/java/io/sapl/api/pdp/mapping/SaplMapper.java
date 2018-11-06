@@ -1,4 +1,4 @@
-package io.sapl.spring.marshall.mapper;
+package io.sapl.api.pdp.mapping;
 
 import java.util.List;
 import java.util.Optional;

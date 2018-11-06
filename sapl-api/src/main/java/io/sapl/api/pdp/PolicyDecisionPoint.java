@@ -1,5 +1,8 @@
 package io.sapl.api.pdp;
 
+import io.sapl.api.pdp.multirequest.MultiRequest;
+import io.sapl.api.pdp.multirequest.MultiResponse;
+import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import reactor.core.publisher.Flux;
 
 /**
@@ -54,6 +57,18 @@ public interface PolicyDecisionPoint {
 	 */
 	Response decide(Object subject, Object action, Object resource);
 
+    /**
+     * Multi-request variant of {@link #decide(Request)}.
+	 *
+     * @param multiRequest
+	 *            the multi request object containing the subjects, actions, resources
+	 *            and environments of the authorization requests to be evaluated by the
+	 *            PDP.
+     * @return an object containing a response for each request in the multi-request
+	 *         object.
+     */
+	MultiResponse multiDecide(MultiRequest multiRequest);
+
 	/**
 	 * Takes a pre-built Request object and returns a {@link Flux} providing a
 	 * stream of matching decision responses.
@@ -102,5 +117,17 @@ public interface PolicyDecisionPoint {
 	 *         different from the preceding response.
 	 */
 	Flux<Response> reactiveDecide(Object subject, Object action, Object resource);
+
+    /**
+     * Reactive variant of {@link #multiDecide(MultiRequest)}.
+	 *
+     * @param multiRequest
+	 *            the multi request object containing the subjects, actions, resources
+	 *            and environments of the authorization requests to be evaluated by the
+	 *            PDP.
+     * @return a {@link Flux} providing the responses for the given requests as a stream.
+	 *         Related responses and requests have the same id.
+     */
+	Flux<IdentifiableResponse> reactiveMultiDecide(MultiRequest multiRequest);
 
 }

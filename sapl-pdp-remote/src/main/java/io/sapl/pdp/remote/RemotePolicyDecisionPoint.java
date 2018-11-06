@@ -11,6 +11,9 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.multirequest.MultiRequest;
+import io.sapl.api.pdp.multirequest.MultiResponse;
+import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -135,6 +138,11 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
+	public MultiResponse multiDecide(MultiRequest multiRequest) {
+		return null;
+	}
+
+	@Override
 	public Flux<Response> reactiveDecide(Request request) {
 		final Response response = decide(request); // must be replaced with a reactive http call
 		return Flux.just(response);
@@ -149,5 +157,10 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	@Override
 	public Flux<Response> reactiveDecide(Object subject, Object action, Object resource) {
 		return reactiveDecide(subject, action, resource, null);
+	}
+
+	@Override
+	public Flux<IdentifiableResponse> reactiveMultiDecide(MultiRequest multiRequest) {
+		return null;
 	}
 }

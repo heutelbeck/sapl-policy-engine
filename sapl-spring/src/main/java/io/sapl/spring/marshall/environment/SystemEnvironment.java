@@ -5,7 +5,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.spring.marshall.Environment;
+import io.sapl.api.pdp.marshall.Environment;
 import lombok.Value;
 
 @Value

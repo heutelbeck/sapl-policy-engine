@@ -2,6 +2,7 @@ package io.sapl.spring;
 
 import java.io.Serializable;
 
+import io.sapl.api.SAPLAuthorizer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.core.Authentication;

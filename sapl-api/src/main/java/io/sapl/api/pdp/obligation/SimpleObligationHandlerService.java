@@ -1,4 +1,4 @@
-package io.sapl.spring.marshall.obligation;
+package io.sapl.api.pdp.obligation;
 
 import java.util.Collections;
 import java.util.LinkedList;

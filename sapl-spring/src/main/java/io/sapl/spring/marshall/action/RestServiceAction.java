@@ -13,7 +13,7 @@ import org.springframework.http.HttpMethod;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.spring.marshall.Action;
+import io.sapl.api.pdp.marshall.Action;
 import lombok.Value;
 
 @Value
