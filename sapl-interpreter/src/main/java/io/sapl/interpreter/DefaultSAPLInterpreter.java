@@ -467,7 +467,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		}
 
 		return combinator.combinePolicies(policySet.getPolicies(), request, attributeCtx, functionCtx, systemVariables,
-				variables, imports);
+				variables, imports).blockFirst();
 	}
 
 	@Override

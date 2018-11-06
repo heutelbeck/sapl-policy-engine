@@ -34,7 +34,7 @@ public class EmbeddedPolicyDecisionPointTest {
 
 	@Test
 	public void reactiveDecide_withAllowedAction_shouldReturnPermit() {
-		final Flux<Response> response = pdp.reactiveDecide("willi", "read", "something").log();
+		final Flux<Response> response = pdp.reactiveDecide("willi", "read", "something");
 		StepVerifier.create(response)
 				.expectNextMatches(resp -> resp.getDecision() == Decision.PERMIT)
 				// activate the next line, run the test and change the action in target/test-classes/policies/policy_1.sapl
@@ -46,7 +46,7 @@ public class EmbeddedPolicyDecisionPointTest {
 
 	@Test
 	public void reactiveDecide_withForbiddenAction_shouldReturnDeny() {
-		final Flux<Response> response = pdp.reactiveDecide("willi", "write", "something").log();
+		final Flux<Response> response = pdp.reactiveDecide("willi", "write", "something");
 		StepVerifier.create(response)
 				.expectNextMatches(resp -> resp.getDecision() == Decision.DENY)
 				.thenCancel()

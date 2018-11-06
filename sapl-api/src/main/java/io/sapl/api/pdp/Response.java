@@ -20,10 +20,16 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
+@ToString
 public class Response {
 
 	Decision decision;
@@ -39,9 +45,13 @@ public class Response {
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<ArrayNode> advice = Optional.empty();
 
-	public static Response deny() {
-		return new Response(Decision.DENY, Optional.empty(), Optional.empty(), Optional.empty());
+	public static Response permit() {
+		return new Response(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty());
 	}
+
+    public static Response deny() {
+        return new Response(Decision.DENY, Optional.empty(), Optional.empty(), Optional.empty());
+    }
 
 	public static Response indeterminate() {
 		return new Response(Decision.INDETERMINATE, Optional.empty(), Optional.empty(), Optional.empty());
@@ -49,39 +59,6 @@ public class Response {
 
 	public static Response notApplicable() {
 		return new Response(Decision.NOT_APPLICABLE, Optional.empty(), Optional.empty(), Optional.empty());
-	}
-
-
-	public Decision getDecision() {
-		return this.decision;
-	}
-
-	public void setDecision(Decision decision) {
-		this.decision = decision;
-	}
-
-	public Optional<JsonNode> getResource() {
-		return this.resource;
-	}
-
-	public void setResource(Optional<JsonNode> resource) {
-		this.resource = resource;
-	}
-
-	public Optional<ArrayNode> getObligation() {
-		return this.obligation;
-	}
-
-	public void setObligation(Optional<ArrayNode> obligation) {
-		this.obligation = obligation;
-	}
-
-	public Optional<ArrayNode> getAdvice() {
-		return this.advice;
-	}
-
-	public void setAdvice(Optional<ArrayNode> advice) {
-		this.advice = advice;
 	}
 
 	@Override
@@ -128,15 +105,5 @@ public class Response {
 		final Object thisAdvice = this.getAdvice();
 		result = result * PRIME + (thisAdvice == null ? 43 : thisAdvice.hashCode());
 		return result;
-	}
-
-	@Override
-	public String toString() {
-		return "Response(" +
-				"decision=" + this.getDecision() +
-				", resource=" + this.getResource() +
-				", obligation=" + this.getObligation() +
-				", advice=" + this.getAdvice() +
-				")";
 	}
 }

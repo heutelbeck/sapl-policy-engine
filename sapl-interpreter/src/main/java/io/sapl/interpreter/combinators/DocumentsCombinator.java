@@ -4,12 +4,12 @@ import java.util.Collection;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import reactor.core.publisher.Flux;
 
 /**
  * Interface which provides a method for obtaining a combined Response for the
@@ -25,7 +25,7 @@ public interface DocumentsCombinator {
 	 *
 	 * Imports are obtained from the SAPL document.
 	 *
-	 * @param policies
+	 * @param matchingSaplDocuments
 	 *            the SAPL documents
 	 * @param errorsInTarget
 	 *            true if there was an error evaluating the document's target
@@ -38,9 +38,12 @@ public interface DocumentsCombinator {
 	 *            the function context
 	 * @param systemVariables
 	 *            the system variables
-	 * @return a Response object containing the combined decision, the combined
-	 *         obligation and advice and a transformed resource if applicable
+	 * @return a {@link Flux} of {@link Response} objects containing the combined decision, the combined
+	 *         obligation and advice and a transformed resource if applicable. A new response object is
+	 *         only pushed if it is different from the previous one.
 	 */
-	Response combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget, Request request,
-			AttributeContext attributeCtx, FunctionContext functionCtx, Map<String, JsonNode> systemVariables);
+	Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
+											boolean errorsInTarget, Request request,
+											AttributeContext attributeCtx, FunctionContext functionCtx,
+											Map<String, JsonNode> systemVariables);
 }

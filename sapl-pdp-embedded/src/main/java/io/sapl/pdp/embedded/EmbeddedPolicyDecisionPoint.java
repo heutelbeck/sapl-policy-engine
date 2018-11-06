@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -22,6 +23,7 @@ import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
+import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.combinators.DenyOverridesCombinator;
 import io.sapl.interpreter.combinators.DenyUnlessPermitCombinator;
@@ -167,9 +169,14 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Response decide(Request request) {
-		PolicyRetrievalResult retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
-		return combinator.combineMatchingDocuments(retrievalResult.getMatchingDocuments(),
-				retrievalResult.isErrorsInTarget(), request, attributeCtx, functionCtx, variables);
+		final PolicyRetrievalResult retrievalResult = prp.reactiveRetrievePolicies(request, functionCtx, variables).blockFirst();
+        if (retrievalResult != null) {
+            final Collection<SAPL> matchingDocuments = retrievalResult.getMatchingDocuments();
+            final boolean errorsInTarget = retrievalResult.isErrorsInTarget();
+            return combinator.combineMatchingDocuments(matchingDocuments, errorsInTarget,
+                    request, attributeCtx, functionCtx, variables).blockFirst();
+        }
+        return Response.indeterminate();
 	}
 
 	private static Request toRequest(Object subject, Object action, Object resource, Object environment) {
@@ -195,10 +202,12 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	@Override
 	public Flux<Response> reactiveDecide(Request request) {
         final Flux<PolicyRetrievalResult> retrievalResult = prp.reactiveRetrievePolicies(request, functionCtx, variables);
-        return retrievalResult.map(result ->
-            combinator.combineMatchingDocuments(result.getMatchingDocuments(),
-                    result.isErrorsInTarget(), request, attributeCtx, functionCtx, variables)
-        ).distinctUntilChanged();
+        return retrievalResult.switchMap(result -> {
+            final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
+            final boolean errorsInTarget = result.isErrorsInTarget();
+            return combinator.combineMatchingDocuments(matchingDocuments, errorsInTarget,
+                    request, attributeCtx, functionCtx, variables);
+        }).distinctUntilChanged();
 	}
 
 }
