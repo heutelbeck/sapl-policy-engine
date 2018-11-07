@@ -27,21 +27,17 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
 			Map<String, String> imports) {
 		for (Policy policy : policies) {
-			boolean matches;
 			try {
-				matches = interpreter.matches(request, policy, functionCtx, systemVariables, variables, imports);
-			} catch (PolicyEvaluationException e) {
-				return Response.indeterminate();
-			}
-			if (matches) {
-				Response tempResponse = interpreter.evaluateRules(request, policy, attributeCtx, functionCtx,
-						systemVariables, variables, imports);
-				Decision tempDecision = tempResponse.getDecision();
-
-				if (tempDecision != Decision.NOT_APPLICABLE) {
-					return tempResponse;
-				}
-			}
+                if (interpreter.matches(request, policy, functionCtx, systemVariables, variables, imports)) {
+                    final Response response = interpreter.evaluateRules(request, policy, attributeCtx, functionCtx,
+                            systemVariables, variables, imports);
+                    if (response.getDecision() != Decision.NOT_APPLICABLE) {
+                        return response;
+                    }
+                }
+            } catch (PolicyEvaluationException e) {
+                return Response.indeterminate();
+            }
 		}
 		return Response.notApplicable();
 	}

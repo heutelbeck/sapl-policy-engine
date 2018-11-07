@@ -1,12 +1,10 @@
 package io.sapl.interpreter.combinators;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Request;
@@ -42,25 +40,26 @@ public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyC
 	public Response combinePolicies(List<Policy> policies, Request request, AttributeContext attributeCtx,
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
 			Map<String, String> imports) {
-		boolean errorsInTarget = false;
-		List<Policy> matchingPolicies = new ArrayList<>();
+
+		Policy matchingPolicy = null;
 		for (Policy policy : policies) {
 			try {
 				if (interpreter.matches(request, policy, functionCtx, systemVariables, variables, imports)) {
-					matchingPolicies.add(policy);
+					if (matchingPolicy != null) {
+						return Response.indeterminate();
+					}
+					matchingPolicy = policy;
 				}
 			} catch (PolicyEvaluationException e) {
-				errorsInTarget = true;
+				return Response.indeterminate();
 			}
 		}
 
-		if (errorsInTarget || matchingPolicies.size() > 1) {
-			return Response.indeterminate();
-		} else if (matchingPolicies.size() == 1) {
-			return interpreter.evaluateRules(request, matchingPolicies.get(0), attributeCtx, functionCtx,
-					systemVariables, variables, imports);
-		} else {
+		if (matchingPolicy == null) {
 			return Response.notApplicable();
 		}
+
+		return interpreter.evaluateRules(request, matchingPolicy, attributeCtx, functionCtx,
+				systemVariables, variables, imports);
 	}
 }
