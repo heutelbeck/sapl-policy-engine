@@ -82,14 +82,15 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		buildCombinator(configuration);
 	}
 
-	private static EmbeddedPolicyDecisionPointConfiguration loadConfiguration(String policyPath) throws IOException {
+	private static EmbeddedPolicyDecisionPointConfiguration loadConfiguration(String policyPath) {
 		String path = policyPath == null ? ResourcesPolicyRetrievalPoint.DEFAULT_PATH : policyPath;
 		PathMatchingResourcePatternResolver pm = new PathMatchingResourcePatternResolver();
-		Resource[] configFiles = pm.getResources(path + PDP_JSON);
-		for (Resource resource : configFiles) {
-			return MAPPER.readValue(resource.getURL().openStream(), EmbeddedPolicyDecisionPointConfiguration.class);
+		Resource configFile = pm.getResource(path + PDP_JSON);
+		try {
+			return MAPPER.readValue(configFile.getURL().openStream(), EmbeddedPolicyDecisionPointConfiguration.class);
+		} catch (IOException e) {
+			return new EmbeddedPolicyDecisionPointConfiguration();
 		}
-		return new EmbeddedPolicyDecisionPointConfiguration();
 	}
 
 	private static Set<BeanDefinition> discover(Class<? extends Annotation> clazz, String scanPackage) {

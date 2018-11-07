@@ -26,8 +26,8 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 	public Response combinePolicies(List<Policy> policies, Request request, AttributeContext attributeCtx,
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
 			Map<String, String> imports) {
-		for (Policy policy : policies) {
-			try {
+        for (Policy policy : policies) {
+            try {
                 if (interpreter.matches(request, policy, functionCtx, systemVariables, variables, imports)) {
                     final Response response = interpreter.evaluateRules(request, policy, attributeCtx, functionCtx,
                             systemVariables, variables, imports);
