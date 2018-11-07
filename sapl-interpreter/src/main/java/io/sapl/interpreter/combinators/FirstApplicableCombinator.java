@@ -33,8 +33,7 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 				if (interpreter.matches(request, policy, functionCtx, systemVariables, variables, imports)) {
 					matchingPolicies.add(policy);
 				}
-			}
-			catch (PolicyEvaluationException e) {
+			} catch (PolicyEvaluationException e) {
 				return Flux.just(Response.indeterminate());
 			}
 		}

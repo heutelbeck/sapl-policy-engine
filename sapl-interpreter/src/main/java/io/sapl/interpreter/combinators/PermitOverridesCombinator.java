@@ -35,7 +35,7 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
             return errorsInTarget ? Flux.just(Response.indeterminate()) : Flux.just(Response.notApplicable());
         }
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>();
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
 			responseFluxes.add(Flux.just(interpreter.evaluate(request, document, attributeCtx, functionCtx, systemVariables)));
 		}
@@ -53,7 +53,7 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 			Map<String, String> imports) {
 
 		boolean errorsInTarget = false;
-		List<Policy> matchingPolicies = new ArrayList<>();
+		final List<Policy> matchingPolicies = new ArrayList<>();
 		for (Policy policy : policies) {
 			try {
 				if (interpreter.matches(request, policy, functionCtx, systemVariables, variables, imports)) {
@@ -68,7 +68,7 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
             return errorsInTarget ? Flux.just(Response.indeterminate()) : Flux.just(Response.notApplicable());
         }
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>();
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
 			responseFluxes.add(Flux.just(interpreter.evaluateRules(request, policy, attributeCtx, functionCtx,
 					systemVariables, variables, imports)));
@@ -79,6 +79,7 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 			return responseAccumulator.getCombinedResponse();
 		}).distinctUntilChanged();
 	}
+
 
 	private static class ResponseAccumulator {
 
@@ -100,10 +101,10 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 			response = errorsInTarget ? Response.indeterminate() : Response.notApplicable();
 		}
 
-		void addSingleResponses(Object[] responses) {
+		void addSingleResponses(Object... responses) {
 			init();
-			for (Object response : responses) {
-				addSingleResponse((Response) response);
+			for (Object resp : responses) {
+				addSingleResponse((Response) resp);
 			}
 		}
 

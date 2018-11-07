@@ -35,12 +35,12 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 			return Flux.just(Response.deny());
 		}
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>();
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
 			responseFluxes.add(Flux.just(interpreter.evaluate(request, document, attributeCtx, functionCtx, systemVariables)));
 		}
 
-		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(errorsInTarget);
+		final ResponseAccumulator responseAccumulator = new ResponseAccumulator();
 		return Flux.combineLatest(responseFluxes, responses -> {
 			responseAccumulator.addSingleResponses(responses);
 			return responseAccumulator.getCombinedResponse();
@@ -51,15 +51,15 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 	public Flux<Response> combinePolicies(List<Policy> policies, Request request, AttributeContext attributeCtx,
 										  FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
 										  Map<String, String> imports) {
-		boolean errorsInTarget = false;
-		List<Policy> matchingPolicies = new ArrayList<>();
+
+		final List<Policy> matchingPolicies = new ArrayList<>();
 		for (Policy policy : policies) {
 			try {
 				if (interpreter.matches(request, policy, functionCtx, systemVariables, variables, imports)) {
 					matchingPolicies.add(policy);
 				}
 			} catch (PolicyEvaluationException e) {
-				errorsInTarget = true;
+				// we won't further evaluate this policy
 			}
 		}
 
@@ -67,12 +67,12 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 			return Flux.just(Response.deny());
 		}
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>();
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
 			responseFluxes.add(Flux.just(interpreter.evaluateRules(request, policy, attributeCtx, functionCtx,
 					systemVariables, variables, imports)));
 		}
-		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(errorsInTarget);
+		final ResponseAccumulator responseAccumulator = new ResponseAccumulator();
 		return Flux.combineLatest(responseFluxes, responses -> {
 			responseAccumulator.addSingleResponses(responses);
 			return responseAccumulator.getCombinedResponse();
@@ -82,14 +82,12 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 
 	private static class ResponseAccumulator {
 
-		private boolean errorsInTarget;
 		private Response response;
 		private int permitCount;
 		private boolean transformation;
 		private ObligationAdviceCollector obligationAdvice;
 
-		ResponseAccumulator(boolean errorsInTarget) {
-			this.errorsInTarget = errorsInTarget;
+		ResponseAccumulator() {
 			init();
 		}
 
@@ -100,10 +98,10 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 			response = Response.deny();
 		}
 
-		void addSingleResponses(Object[] responses) {
+		void addSingleResponses(Object... responses) {
 			init();
-			for (Object response : responses) {
-				addSingleResponse((Response) response);
+			for (Object resp : responses) {
+				addSingleResponse((Response) resp);
 			}
 		}
 
