@@ -1,4 +1,4 @@
-package io.sapl.prp.embedded;
+package io.sapl.pdp.embedded;
 
 import java.util.Map;
 

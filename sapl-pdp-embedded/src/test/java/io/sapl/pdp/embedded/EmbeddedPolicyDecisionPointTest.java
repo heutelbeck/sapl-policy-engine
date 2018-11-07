@@ -1,11 +1,10 @@
-package io.sapl.prp.embedded;
+package io.sapl.pdp.embedded;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
