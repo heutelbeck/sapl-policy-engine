@@ -2,9 +2,17 @@ package io.sapl.spring.annotation;
 
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.Response;
+import io.sapl.spring.SAPLAuthorizator;
+import io.sapl.spring.marshall.subject.AuthenticationSubject;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -16,17 +24,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.token.TokenStore;
+import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.Response;
-import io.sapl.spring.SAPLAuthorizator;
-import io.sapl.spring.marshall.subject.AuthenticationSubject;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Aspect
@@ -52,6 +52,7 @@ public class PdpAuthorizeAspect {
 	public Object around(ProceedingJoinPoint pjp, PdpAuthorize pdpAuthorize) throws Throwable {
 		LOGGER.debug("Annotated method: {} in class: {} called. Constructing SAPL request...",
 				pjp.getSignature().getName(), pjp.getTarget().getClass().getSimpleName());
+
 		if (!tokenStoreInitialized) {
 			initializeTokenStore();
 		}
@@ -73,17 +74,17 @@ public class PdpAuthorizeAspect {
 
 	private Object pdpAuthorizeRetrieveSubject(PdpAuthorize pdpAuthorize) {
 		Object subject;
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		JsonNode details = new ObjectMapper().convertValue(authentication.getDetails(), JsonNode.class);
 
-		if (!(DEFAULT).equals(pdpAuthorize.subject())) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Optional<String> token = retrieveJwtTokenFrom(authentication);
+
+		if (!DEFAULT.equals(pdpAuthorize.subject())) {
 			LOGGER.debug("Using subject from manual input");
 			subject = pdpAuthorize.subject();
 
-		} else if (tokenStore != null && details.findValue("tokenValue") != null) {
+		} else if (tokenStore != null && token.isPresent()) {
 			LOGGER.debug("Using subject from JWT");
-			String token = details.findValue("tokenValue").textValue();
-			OAuth2AccessToken parsedToken = tokenStore.readAccessToken(token);
+			OAuth2AccessToken parsedToken = tokenStore.readAccessToken(token.get());
 			Map<String, Object> claims = parsedToken.getAdditionalInformation();
 			for (Entry<String, Object> kvp : claims.entrySet()) {
 				LOGGER.debug("Single claim: {} -> {}", kvp.getKey(), kvp.getValue());
@@ -99,17 +100,24 @@ public class PdpAuthorizeAspect {
 		return subject;
 	}
 
+	private static Optional<String> retrieveJwtTokenFrom(Authentication authentication) {
+        final JsonNode details = new ObjectMapper().convertValue(authentication.getDetails(), JsonNode.class);
+        final String token = details.findValue("tokenValue") != null ? details.findValue("tokenValue").textValue() : null;
+        return Optional.ofNullable(token);
+    }
+
 	private Object pdpAuthorizeRetrieveAction(PdpAuthorize pdpAuthorize, ProceedingJoinPoint pjp) {
 		Object action;
-		Object httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
 
-		if (!(DEFAULT).equals(pdpAuthorize.action())) {
+        final Optional<HttpServletRequest> httpServletRequest = retrieveRequestObject();
+
+        if (!DEFAULT.equals(pdpAuthorize.action())) {
 			LOGGER.debug("Using action from manual input");
 			action = pdpAuthorize.action();
 
-		} else if (HttpServletRequest.class.isInstance(httpRequest)) {
+		} else if (httpServletRequest.isPresent()) {
 			LOGGER.debug("Using action from HttpServletRequest");
-			action = httpRequest;
+			action = httpServletRequest.get();
 
 		} else {
 			LOGGER.debug("Using default action");
@@ -119,16 +127,17 @@ public class PdpAuthorizeAspect {
 	}
 
 	private Object pdpAuthorizeRetrieveResource(PdpAuthorize pdpAuthorize, ProceedingJoinPoint pjp) {
-		Object resource;
-		Object httpRequest = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        Object resource;
 
-		if (!(DEFAULT).equals(pdpAuthorize.resource())) {
+        final Optional<HttpServletRequest> httpServletRequest = retrieveRequestObject();
+
+        if (!DEFAULT.equals(pdpAuthorize.resource())) {
 			LOGGER.debug("Using resource from manual input");
 			resource = pdpAuthorize.resource();
 
-		} else if (HttpServletRequest.class.isInstance(httpRequest)) {
+		} else if (httpServletRequest.isPresent()) {
 			LOGGER.debug("Using resource from HttpServletRequest");
-			resource = httpRequest;
+			resource = httpServletRequest.get();
 
 		} else {
 			LOGGER.debug("Using default resource");
@@ -136,6 +145,14 @@ public class PdpAuthorizeAspect {
 		}
 		return resource;
 	}
+
+	private static Optional<HttpServletRequest> retrieveRequestObject() {
+        final RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        final HttpServletRequest httpRequest = requestAttributes != null
+                ? ((ServletRequestAttributes) requestAttributes).getRequest()
+                : null;
+        return Optional.ofNullable(httpRequest);
+    }
 
 	private void initializeTokenStore() {
 		try {
