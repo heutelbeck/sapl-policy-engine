@@ -98,12 +98,12 @@ public class Response {
 		int result = 1;
 		final Object thisDecision = this.getDecision();
 		result = result * PRIME + (thisDecision == null ? 43 : thisDecision.hashCode());
-		final Object thisResource = this.getResource();
-		result = result * PRIME + (thisResource == null ? 43 : thisResource.hashCode());
-		final Object thisObligation = this.getObligation();
-		result = result * PRIME + (thisObligation == null ? 43 : thisObligation.hashCode());
-		final Object thisAdvice = this.getAdvice();
-		result = result * PRIME + (thisAdvice == null ? 43 : thisAdvice.hashCode());
+		final Optional<JsonNode> thisResource = this.getResource();
+		result = result * PRIME + thisResource.map(Object::hashCode).orElse(43);
+		final Optional<ArrayNode> thisObligation = this.getObligation();
+		result = result * PRIME + thisObligation.map(Object::hashCode).orElse(43);
+		final Optional<ArrayNode> thisAdvice = this.getAdvice();
+		result = result * PRIME + thisAdvice.map(Object::hashCode).orElse(43);
 		return result;
 	}
 }
