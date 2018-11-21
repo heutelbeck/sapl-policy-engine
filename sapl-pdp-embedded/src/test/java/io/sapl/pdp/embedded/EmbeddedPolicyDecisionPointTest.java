@@ -1,21 +1,17 @@
-package io.sapl.prp.embedded;
+package io.sapl.pdp.embedded;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Map;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pdp.multirequest.IdentifiableAction;
+import io.sapl.api.pdp.multirequest.IdentifiableResource;
+import io.sapl.api.pdp.multirequest.IdentifiableResponse;
+import io.sapl.api.pdp.multirequest.IdentifiableSubject;
 import io.sapl.api.pdp.multirequest.MultiRequest;
 import io.sapl.api.pdp.multirequest.MultiResponse;
-import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import io.sapl.api.pdp.multirequest.RequestElements;
-import io.sapl.api.pdp.multirequest.IdentifiableResource;
-import io.sapl.api.pdp.multirequest.IdentifiableSubject;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
@@ -54,10 +50,8 @@ public class EmbeddedPolicyDecisionPointTest {
 
 		final MultiResponse multiResponse = pdp.multiDecide(multiRequest);
 
-		final Map<String, Response> responses = multiResponse.getResponses();
-		assertThat("Wrong number of responses", responses.size(), is(1));
-		assertTrue("Wrong requestId", responses.containsKey(""));
-		assertTrue("Wrong response", responses.containsValue(Response.indeterminate()));
+		assertThat("Wrong number of responses", multiResponse.size(), is(1));
+		assertThat("Wrong response", multiResponse.getResponseForRequestWithId(""), is(Response.indeterminate()));
 	}
 
 	@Test
@@ -70,10 +64,8 @@ public class EmbeddedPolicyDecisionPointTest {
 
 		final MultiResponse multiResponse = pdp.multiDecide(multiRequest);
 
-		final Map<String, Response> responses = multiResponse.getResponses();
-		assertThat("Wrong number of responses", responses.size(), is(1));
-		assertTrue("Wrong requestId", responses.containsKey("req"));
-		assertTrue("Wrong response", responses.containsValue(Response.permit()));
+		assertThat("Wrong number of responses", multiResponse.size(), is(1));
+		assertThat("Wrong response", multiResponse.getResponseForRequestWithId("req"), is(Response.permit()));
 	}
 
 	@Test
@@ -88,11 +80,7 @@ public class EmbeddedPolicyDecisionPointTest {
 
 		final MultiResponse multiResponse = pdp.multiDecide(multiRequest);
 
-		final Map<String, Response> responses = multiResponse.getResponses();
-		assertThat("Wrong number of responses", responses.size(), is(2));
-		assertTrue("Missing requestId req1", responses.containsKey("req1"));
-		assertTrue("Missing requestId req2", responses.containsKey("req2"));
-
+		assertThat("Wrong number of responses", multiResponse.size(), is(2));
 		assertThat("Wrong response for request 1", multiResponse.getResponseForRequestWithId("req1"), is(Response.permit()));
 		assertThat("Wrong response for request 2", multiResponse.getResponseForRequestWithId("req2"), is(Response.deny()));
 	}

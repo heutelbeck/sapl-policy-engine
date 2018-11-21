@@ -48,9 +48,27 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 		this.subjects.put(identifiableSubject.getId(), identifiableSubject.getSubject());
 	}
 
+	/**
+	 * Convenience method to add a string subject using its value as its ID.
+	 *
+	 * @param subject the string subject to be added.
+	 */
+	public void addSubject(String subject) {
+		addSubject(new IdentifiableSubject(subject, subject));
+	}
+
 	public void addAction(IdentifiableAction identifiableAction) {
 		requireNonNull(identifiableAction, "action must not be null");
 		this.actions.put(identifiableAction.getId(), identifiableAction.getAction());
+	}
+
+	/**
+	 * Convenience method to add a string action using its value as its ID.
+	 *
+	 * @param action the string action to be added.
+	 */
+	public void addAction(String action) {
+		addAction(new IdentifiableAction(action, action));
 	}
 
 	public void addResource(IdentifiableResource identifiableResource) {
@@ -58,9 +76,27 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 		this.resources.put(identifiableResource.getId(), identifiableResource.getResource());
 	}
 
+	/**
+	 * Convenience method to add a string resource using its value as its ID.
+	 *
+	 * @param resource the string resource to be added.
+	 */
+	public void addResource(String resource) {
+		addResource(new IdentifiableResource(resource, resource));
+	}
+
 	public void addEnvironment(IdentifiableEnvironment identifiableEnvironment) {
 		requireNonNull(identifiableEnvironment, "environment must not be null");
 		this.environments.put(identifiableEnvironment.getId(), identifiableEnvironment.getEnvironment());
+	}
+
+	/**
+	 * Convenience method to add a string environment using its value as its ID.
+	 *
+	 * @param environment the string environment to be added.
+	 */
+	public void addEnvironment(String environment) {
+		addEnvironment(new IdentifiableEnvironment(environment, environment));
 	}
 
 	public void addRequest(String requestId, RequestElements requestElements) {
@@ -101,25 +137,25 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 	}
 
 	public void applySaplMapper(SaplMapper mapper) {
-		final Map<String, Object> tempSubjects = new HashMap<>();
+		final Map<String, Object> tempSubjects = new HashMap<>(subjects.size());
 		for (Map.Entry<String, Object> entry : subjects.entrySet()) {
 			tempSubjects.put(entry.getKey(), mapper.map(entry.getValue(), SaplRequestElement.SUBJECT));
 		}
 		subjects = tempSubjects;
 
-		final Map<String, Object> tempActions = new HashMap<>();
+		final Map<String, Object> tempActions = new HashMap<>(actions.size());
 		for (Map.Entry<String, Object> entry : actions.entrySet()) {
 			tempActions.put(entry.getKey(), mapper.map(entry.getValue(), SaplRequestElement.ACTION));
 		}
 		actions = tempActions;
 
-		final Map<String, Object> tempResources = new HashMap<>();
+		final Map<String, Object> tempResources = new HashMap<>(resources.size());
 		for (Map.Entry<String, Object> entry : resources.entrySet()) {
 			tempResources.put(entry.getKey(), mapper.map(entry.getValue(), SaplRequestElement.RESOURCE));
 		}
 		resources = tempResources;
 
-		final Map<String, Object> tempEnvironments = new HashMap<>();
+		final Map<String, Object> tempEnvironments = new HashMap<>(environments.size());
 		for (Map.Entry<String, Object> entry : environments.entrySet()) {
 			tempEnvironments.put(entry.getKey(), mapper.map(entry.getValue(), SaplRequestElement.ENVIRONMENT));
 		}

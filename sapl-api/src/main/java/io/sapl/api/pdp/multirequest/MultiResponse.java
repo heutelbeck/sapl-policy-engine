@@ -17,27 +17,14 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
     @JsonInclude(NON_EMPTY)
     private Map<String, Response> responses = new HashMap<>();
 
-    public MultiResponse() {
-    }
-
-    public MultiResponse(Map<String, Response> responses) {
-        if (responses != null) {
-            this.responses = responses;
-        }
-    }
-
     public static MultiResponse indeterminate() {
         final MultiResponse multiResponse = new MultiResponse();
         multiResponse.setResponseForRequestWithId("", Response.indeterminate());
         return multiResponse;
     }
 
-    public boolean hasResponses() {
-        return ! responses.isEmpty();
-    }
-
-    public Map<String, Response> getResponses() {
-        return responses;
+    public int size() {
+        return responses.size();
     }
 
     public void setResponseForRequestWithId(String requestId, Response response) {

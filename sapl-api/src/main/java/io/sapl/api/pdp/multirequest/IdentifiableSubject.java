@@ -9,6 +9,8 @@ import lombok.ToString;
 @ToString
 public class IdentifiableSubject implements Identifiable {
 
+    public static final String AUTHENTICATION_ID = "authentication";
+
     private String id;
     private Object subject;
 

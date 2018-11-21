@@ -9,6 +9,11 @@ import lombok.ToString;
 @ToString
 public class IdentifiableAction implements Identifiable {
 
+    public static final String CREATE_ID = "create";
+    public static final String READ_ID = "read";
+    public static final String UPDATE_ID = "update";
+    public static final String DELETE_ID = "delete";
+
     private String id;
     private Object action;
 
