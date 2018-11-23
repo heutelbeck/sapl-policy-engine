@@ -12,7 +12,8 @@
 		}
 	},
 	"attributeFinders": [
-		"test"
+		"test",
+		"clock"
 	],
 	"libraries": [
 		"time"

@@ -2,8 +2,9 @@ import io.sapl.prp.embedded.TestPIP as test
 
 policy "policy 1"
 permit
-    action == "read" & time.dayOfWeekFrom(time.now()) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY"
+    action == "read"
 where
-    subject.<test.upper> == "WILLI"
-;
+    subject.<test.upper> == "WILLI";
+    time.dayOfWeekFrom("UTC".<clock.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
+
 

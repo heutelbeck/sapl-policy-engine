@@ -10,7 +10,7 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.sapl.functions
+package io.sapl.pip
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -19,17 +19,12 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import io.sapl.api.pdp.Decision
 import io.sapl.api.pdp.Request
 import io.sapl.api.pdp.Response
+import io.sapl.functions.StandardFunctionLibrary
 import io.sapl.interpreter.DefaultSAPLInterpreter
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
 import io.sapl.interpreter.pip.AttributeContext
-import io.sapl.pip.ClockPolicyInformationPoint
-import java.time.DayOfWeek;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections
 import java.util.HashMap
 import java.util.Map
@@ -40,16 +35,16 @@ import org.junit.Test
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.junit.Assert.assertThat
 
-class TemporalFunctionLibraryTest {
+class ClockPolicyInformationPointTest {
 
 	static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT)
 	static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter()
 	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext()
 	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext()
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>())
-	static final TemporalFunctionLibrary LIBRARY = new TemporalFunctionLibrary()
-	static final ClockPolicyInformationPoint CLOCK_PIP = new ClockPolicyInformationPoint()
+	static final ClockPolicyInformationPoint PIP = new ClockPolicyInformationPoint()
 	static final JsonNodeFactory JSON = JsonNodeFactory.instance
+    static final Response PERMIT_EMPTY = new Response(Decision.PERMIT, Optional.empty, Optional.empty, Optional.empty)
 
     static final String request = '''
 		{
@@ -64,82 +59,72 @@ class TemporalFunctionLibraryTest {
 
 	@Before
 	def void init() {
-		FUNCTION_CTX.loadLibrary(LIBRARY)
-        ATTRIBUTE_CTX.loadPolicyInformationPoint(CLOCK_PIP)
+        FUNCTION_CTX.loadLibrary(new StandardFunctionLibrary())
+		ATTRIBUTE_CTX.loadPolicyInformationPoint(PIP)
         requestObject = MAPPER.readValue(request, Request)
 	}
-	
-	@Test
-	def void nowPlus10Seconds() {
-        val zoneId = JSON.textNode("UTC")
-		val now = new ClockPolicyInformationPoint().now(zoneId, Collections.<String, JsonNode> emptyMap)
-		val plus10 = TemporalFunctionLibrary.plusSeconds(now, JSON.numberNode(10))
-
-		val expected = Instant.parse(now.asText).plusSeconds(10)
-
-		assertThat("plusSeconds function not working as expected", Instant.parse(plus10.asText), equalTo(expected))
-	}
-
-	@Test
-	def void dayOfWeekFrom() {
-        val zoneId = JSON.textNode("UTC")
-        val now = new ClockPolicyInformationPoint().now(zoneId, Collections.<String, JsonNode> emptyMap)
-		val dayOfWeek = TemporalFunctionLibrary.dayOfWeekFrom(now).asText
-		val expected = DayOfWeek.from(OffsetDateTime.now(ZoneId.of("UTC"))).toString
-
-		assertThat("dayOfWeekFrom function not working as expected", dayOfWeek, equalTo(expected))
-	}
 
     @Test
-    def void policyWithMatchingTemporalBody() {
+    def void nowAsUtcTime() {
         val policyDefinition = '''
 			policy "test"
 			permit
 			    action == "read"
 			where
-			    time.before("UTC".<clock.now>, time.plusSeconds("UTC".<clock.now>, 10));
+			    standard.length("UTC".<clock.now>) == 24;
 		'''
 
-        val expectedResponse = Response.permit
+        val expectedResponse = ClockPolicyInformationPointTest.PERMIT_EMPTY
         val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
 
-        assertThat("temporal functions not working as expected", response, equalTo(expectedResponse))
+        assertThat("clock PIP not working as expected", response, equalTo(expectedResponse))
     }
 
     @Test
-    def void policyWithNonMatchingTemporalBody() {
+    def void nowInEctTime() {
         val policyDefinition = '''
 			policy "test"
 			permit
 			    action == "read"
 			where
-			    time.after("UTC".<clock.now>, time.plusSeconds("UTC".<clock.now>, 10));
+			    standard.length("ECT".<clock.now>) == 29;
 		'''
 
-        val expectedResponse = Response.notApplicable
+        val expectedResponse = ClockPolicyInformationPointTest.PERMIT_EMPTY
         val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
 
-        assertThat("temporal functions not working as expected", response, equalTo(expectedResponse))
+        assertThat("clock PIP not working as expected", response, equalTo(expectedResponse))
     }
 
     @Test
-    def void policyWithDayOfWeekBody() {
+    def void nowInEuropeBerlinTime() {
         val policyDefinition = '''
 			policy "test"
 			permit
 			    action == "read"
 			where
-			    time.dayOfWeekFrom("UTC".<clock.now>) == "SUNDAY";
+			    standard.length("Europe/Berlin".<clock.now>) == 29;
 		'''
 
-        var Response expectedResponse
-        if (DayOfWeek.from(OffsetDateTime.now(ZoneId.systemDefault)) == DayOfWeek.SUNDAY) {
-            expectedResponse = Response.permit
-        } else {
-            expectedResponse = Response.notApplicable
-        }
+        val expectedResponse = ClockPolicyInformationPointTest.PERMIT_EMPTY
         val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
 
-        assertThat("temporal functions not working as expected", response, equalTo(expectedResponse))
+        assertThat("clock PIP not working as expected", response, equalTo(expectedResponse))
+    }
+
+    @Test
+    def void nowInSystemTime() {
+        val policyDefinition = '''
+			policy "test"
+			permit
+			    action == "read"
+			where
+			    standard.length("system".<clock.now>) == 29;
+		'''
+
+        val expectedResponse = ClockPolicyInformationPointTest.PERMIT_EMPTY
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+
+        assertThat("clock PIP not working as expected", response, equalTo(expectedResponse))
     }
 }
