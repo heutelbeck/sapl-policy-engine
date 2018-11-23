@@ -1,10 +1,7 @@
 package io.sapl.pip;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -43,12 +40,5 @@ public class ClockPolicyInformationPoint {
             return ZoneId.of(zoneIdStr, ZoneId.SHORT_IDS);
         }
         return ZoneId.of(zoneIdStr);
-    }
-
-    public static void main(String[] args) {
-        final OffsetDateTime now = OffsetDateTime.now(ZoneId.of("UTC"));
-        System.out.println(now.getDayOfWeek().toString());
-        final LocalDateTime localDateTime = LocalDateTime.parse(now.toString(), DateTimeFormatter.ISO_INSTANT.withZone(ZoneOffset.UTC));
-        System.out.println(localDateTime.toString());
     }
 }
