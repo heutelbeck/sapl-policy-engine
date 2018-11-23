@@ -39,7 +39,11 @@ public class ElementOfImplCustom extends io.sapl.grammar.sapl.impl.ElementOfImpl
 		}
 		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
 		for (JsonNode node : right) {
-			if (left.equals(node)) {
+			if (left.isNumber() && node.isNumber()) {
+				if (left.decimalValue().equals(node.decimalValue())) {
+					return JSON.booleanNode(true);
+				}
+			} else if (left.equals(node)) {
 				return JSON.booleanNode(true);
 			}
 		}
