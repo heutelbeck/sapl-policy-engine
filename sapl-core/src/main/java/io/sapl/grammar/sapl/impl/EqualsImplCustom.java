@@ -32,7 +32,7 @@ public class EqualsImplCustom extends io.sapl.grammar.sapl.impl.EqualsImpl {
 		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
 
 		if (left.isNumber() && right.isNumber()) {
-			return JSON.booleanNode(left.decimalValue().equals(right.decimalValue()));
+			return JSON.booleanNode(left.decimalValue().compareTo(right.decimalValue()) == 0);
 		} else {
 			return JSON.booleanNode(left.equals(right));
 		}
