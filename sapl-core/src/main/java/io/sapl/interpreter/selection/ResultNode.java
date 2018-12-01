@@ -123,4 +123,19 @@ public interface ResultNode {
 	 */
 	ResultNode applyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
 			throws PolicyEvaluationException;
+
+	/**
+	 * Applies a step to the result node and returns a {@link Flux} of new result nodes.
+	 *
+	 * @param step
+	 *            the step to apply
+	 * @param ctx
+	 *            the evaluation context
+	 * @param isBody
+	 *            true if the step is applied within the policy body
+	 * @param relativeNode
+	 *            the node a relative expression evaluates to
+	 * @return a {@link Flux} of result nodes resulting from application of the step
+	 */
+	Flux<ResultNode> reactiveApplyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode);
 }

@@ -16,47 +16,65 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.emf.ecore.EObject;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
+import org.eclipse.emf.ecore.EObject;
+import reactor.core.publisher.Flux;
 
 public class RecursiveIndexStepImplCustom extends io.sapl.grammar.sapl.impl.RecursiveIndexStepImpl {
 
-	private static final int HASH_PRIME_06 = 37;
-	private static final int INIT_PRIME_01 = 3;
 	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
 
+	private static final int HASH_PRIME_06 = 37;
+	private static final int INIT_PRIME_01 = 3;
+
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
+	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
 		if (!previousResult.getNode().isArray() && !previousResult.getNode().isObject()) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		resultList.addAll(resolveRecursive(previousResult.getNode()));
 		return new ArrayResultNode(resultList);
 	}
 
 	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
+		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode target : previousResult) {
 			resultList.addAll(resolveRecursive(target.getNode()));
 		}
 		return new ArrayResultNode(resultList);
 	}
 
+	@Override
+	public Flux<ResultNode> reactiveApply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		try {
+			return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
+	}
+
+	@Override
+	public Flux<ResultNode> reactiveApply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		try {
+			return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
+	}
+
 	private ArrayList<AbstractAnnotatedJsonNode> resolveRecursive(JsonNode node) {
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		int intIndex = index.toBigInteger().intValue();
+		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		int intIndex = index.intValue();
 		if (node.isArray() && node.has(intIndex)) {
 			resultList.add(new JsonNodeWithParentArray(node.get(intIndex), node, intIndex));
 		}

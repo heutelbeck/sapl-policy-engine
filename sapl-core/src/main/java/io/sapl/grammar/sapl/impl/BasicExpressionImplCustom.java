@@ -12,16 +12,18 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import org.eclipse.emf.common.util.EList;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
+import org.eclipse.emf.common.util.EList;
+import reactor.core.publisher.Flux;
 
 public class BasicExpressionImplCustom extends io.sapl.grammar.sapl.impl.BasicExpressionImpl {
 
@@ -58,19 +60,36 @@ public class BasicExpressionImplCustom extends io.sapl.grammar.sapl.impl.BasicEx
 	 * @throws PolicyEvaluationException
 	 *             in case there is an error
 	 */
-	protected JsonNode evaluateStepsFilterSubtemplate(JsonNode resultBeforeSteps, EList<Step> steps,
-			EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
+	protected JsonNode evaluateStepsFilterSubtemplate(JsonNode resultBeforeSteps, EList<Step> steps, EvaluationContext ctx,
+													  boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
 		JsonNode result = resolveSteps(resultBeforeSteps, steps, ctx, isBody, relativeNode).asJsonWithoutAnnotations();
-
-		if (subtemplate != null) {
-			result = evaluateSubtemplate(result, ctx, isBody);
-		}
 
 		if (filter != null) {
 			result = filter.apply(result, ctx, relativeNode);
-		}
+		} else if (subtemplate != null) {
+            result = evaluateSubtemplate(result, ctx, isBody);
+        }
 
 		return result;
+	}
+
+	protected Flux<JsonNode> reactiveEvaluateStepsFilterSubtemplate(JsonNode resultBeforeSteps, EList<Step> steps,
+																	EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        Flux<ResultNode> result = reactiveResolveSteps(resultBeforeSteps, steps, ctx, isBody, relativeNode);
+        if (filter != null) {
+            result = result.switchMap(resultNode -> {
+                final JsonNode jsonNode = resultNode.asJsonWithoutAnnotations();
+                return filter.reactiveApply(jsonNode, ctx, relativeNode)
+                        .map(JsonNodeWithoutParent::new);
+            });
+        } else if (subtemplate != null) {
+            result = result.switchMap(resultNode -> {
+                final JsonNode jsonNode = resultNode.asJsonWithoutAnnotations();
+                return reactiveEvaluateSubtemplate(jsonNode, ctx, isBody)
+                        .map(JsonNodeWithoutParent::new);
+            });
+        }
+        return result.map(ResultNode::asJsonWithoutAnnotations);
 	}
 
 	/**
@@ -96,8 +115,9 @@ public class BasicExpressionImplCustom extends io.sapl.grammar.sapl.impl.BasicEx
 	 * @throws PolicyEvaluationException
 	 *             in case there is an error
 	 */
-	public ResultNode resolveSteps(JsonNode rootNode, EList<Step> steps, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
+	public ResultNode resolveSteps(JsonNode rootNode, EList<Step> steps, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
+            throws PolicyEvaluationException {
+
 		ResultNode result = new JsonNodeWithoutParent(rootNode);
 		if (steps != null) {
 			for (Step step : steps) {
@@ -106,6 +126,27 @@ public class BasicExpressionImplCustom extends io.sapl.grammar.sapl.impl.BasicEx
 		}
 		return result;
 	}
+
+	public Flux<ResultNode> reactiveResolveSteps(JsonNode rootNode, EList<Step> steps, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        // this implementation must be able to handle expressions like "input".<first.attr>.<second.attr>.<third.attr>... correctly
+        final ResultNode result = new JsonNodeWithoutParent(rootNode);
+        if (steps != null && ! steps.isEmpty()) {
+            final List<FluxProvider<ResultNode>> fluxProviders = new ArrayList<>(steps.size());
+            for (Step step : steps) {
+                fluxProviders.add(resultNode -> resultNode.reactiveApplyStep(step, ctx, isBody, relativeNode));
+            }
+            return cascadingSwitchMap(result, fluxProviders, 0);
+        } else {
+            return Flux.just(result);
+        }
+	}
+
+    private Flux<ResultNode> cascadingSwitchMap(ResultNode input, List<FluxProvider<ResultNode>> fluxProviders, int idx) {
+        if (idx < fluxProviders.size()) {
+            return fluxProviders.get(idx).fluxFor(input).switchMap(result -> cascadingSwitchMap(result, fluxProviders, idx + 1));
+        }
+        return Flux.just(input);
+    }
 
 	/**
 	 * The function applies a subtemplate to an array. I.e., it evaluates an
@@ -123,15 +164,41 @@ public class BasicExpressionImplCustom extends io.sapl.grammar.sapl.impl.BasicEx
 	 *             in case the input JsonNode is no array or an error occurs while
 	 *             evaluating the expression
 	 */
-	private JsonNode evaluateSubtemplate(JsonNode preliminaryResult, EvaluationContext ctx, boolean isBody)
-			throws PolicyEvaluationException {
+	private JsonNode evaluateSubtemplate(JsonNode preliminaryResult, EvaluationContext ctx, boolean isBody) throws PolicyEvaluationException {
 		if (!preliminaryResult.isArray()) {
 			throw new PolicyEvaluationException(SUBTEMPLATE_NO_ARRAY);
 		}
-		for (int i = 0; i < ((ArrayNode) preliminaryResult).size(); i++) {
-			((ArrayNode) preliminaryResult).set(i,
-					subtemplate.evaluate(ctx, isBody, ((ArrayNode) preliminaryResult).get(i)));
+
+        final ArrayNode arrayNode = (ArrayNode) preliminaryResult;
+        for (int i = 0; i < arrayNode.size(); i++) {
+            final JsonNode childNode = arrayNode.get(i);
+            final JsonNode evaluatedSubtemplate = subtemplate.evaluate(ctx, isBody, childNode);
+            arrayNode.set(i, evaluatedSubtemplate);
 		}
-		return preliminaryResult;
+		return arrayNode;
 	}
+
+	private Flux<JsonNode> reactiveEvaluateSubtemplate(JsonNode preliminaryResult, EvaluationContext ctx, boolean isBody) {
+        if (!preliminaryResult.isArray()) {
+            return Flux.error(new PolicyEvaluationException(SUBTEMPLATE_NO_ARRAY));
+        }
+
+        final ArrayNode arrayNode = (ArrayNode) preliminaryResult;
+        final List<Flux<JsonNode>> fluxes = new ArrayList<>(arrayNode.size());
+        for (int i = 0; i < arrayNode.size(); i++) {
+            final JsonNode childNode = arrayNode.get(i);
+            fluxes.add(subtemplate.reactiveEvaluate(ctx, isBody, childNode));
+        }
+        return Flux.combineLatest(fluxes, replacements -> {
+            for (int i = 0; i < arrayNode.size(); i++) {
+                arrayNode.set(i, (JsonNode) replacements[i]);
+            }
+            return arrayNode;
+        });
+	}
+
+	@FunctionalInterface
+	private interface FluxProvider<T>  {
+	    Flux<T> fluxFor(T input);
+    }
 }

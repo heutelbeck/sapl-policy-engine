@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
 import org.eclipse.emf.ecore.EObject;
+import reactor.core.publisher.Flux;
 
 public class EqualsImplCustom extends io.sapl.grammar.sapl.impl.EqualsImpl {
 
@@ -26,10 +27,9 @@ public class EqualsImplCustom extends io.sapl.grammar.sapl.impl.EqualsImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
-		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
+	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
+		final JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
 
 		if (left.isNumber() && right.isNumber()) {
 			return JSON.booleanNode(left.decimalValue().compareTo(right.decimalValue()) == 0);
@@ -37,6 +37,22 @@ public class EqualsImplCustom extends io.sapl.grammar.sapl.impl.EqualsImpl {
 			return JSON.booleanNode(left.equals(right));
 		}
 	}
+
+    @Override
+    public Flux<JsonNode> reactiveEvaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		final Flux<JsonNode> leftResultFlux = getLeft().reactiveEvaluate(ctx, isBody, relativeNode);
+		final Flux<JsonNode> rightResultFlux = getRight().reactiveEvaluate(ctx, isBody, relativeNode);
+
+		return Flux.combineLatest(leftResultFlux, rightResultFlux,
+				(leftResult, rightResult) -> {
+					if (leftResult.isNumber() && rightResult.isNumber()) {
+						return JSON.booleanNode(leftResult.decimalValue().compareTo(rightResult.decimalValue()) == 0);
+					} else {
+						return (JsonNode) JSON.booleanNode(leftResult.equals(rightResult));
+					}
+				})
+				.distinctUntilChanged();
+    }
 
 	@Override
 	public int hash(Map<String, String> imports) {

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.publisher.Flux;
 
 public class FilterSimpleImplCustom extends io.sapl.grammar.sapl.impl.FilterSimpleImpl {
 
@@ -34,6 +35,17 @@ public class FilterSimpleImplCustom extends io.sapl.grammar.sapl.impl.FilterSimp
 		String function = String.join(".", fsteps);
 		return applyFilterStatement(unfilteredRootNode.deepCopy(), function, getArguments(), null, each, ctx,
 				relativeNode);
+	}
+
+	@Override
+	public Flux<JsonNode> reactiveApply(JsonNode unfilteredRootNode, EvaluationContext ctx, JsonNode relativeNode) {
+		// TODO
+		try {
+			return Flux.just(apply(unfilteredRootNode, ctx, relativeNode));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
 	}
 
 	@Override

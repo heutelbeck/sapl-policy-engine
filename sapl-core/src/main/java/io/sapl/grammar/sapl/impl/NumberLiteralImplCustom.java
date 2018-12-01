@@ -15,12 +15,12 @@ package io.sapl.grammar.sapl.impl;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.emf.ecore.EObject;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
+import org.eclipse.emf.ecore.EObject;
+import reactor.core.publisher.Flux;
 
 public class NumberLiteralImplCustom extends io.sapl.grammar.sapl.impl.NumberLiteralImpl {
 
@@ -28,8 +28,13 @@ public class NumberLiteralImplCustom extends io.sapl.grammar.sapl.impl.NumberLit
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
 		return JsonNodeFactory.instance.numberNode(getNumber());
+	}
+
+	@Override
+	public Flux<JsonNode> reactiveEvaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return Flux.just(JsonNodeFactory.instance.numberNode(getNumber()));
 	}
 
 	@Override

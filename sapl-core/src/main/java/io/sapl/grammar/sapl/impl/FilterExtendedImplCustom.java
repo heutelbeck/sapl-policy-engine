@@ -16,13 +16,12 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.emf.ecore.EObject;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
+import org.eclipse.emf.ecore.EObject;
+import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends io.sapl.grammar.sapl.impl.FilterExtendedImpl {
 
@@ -41,6 +40,17 @@ public class FilterExtendedImplCustom extends io.sapl.grammar.sapl.impl.FilterEx
 		}
 
 		return result;
+	}
+
+	@Override
+	public Flux<JsonNode> reactiveApply(JsonNode unfilteredRootNode, EvaluationContext ctx, JsonNode relativeNode) {
+		// TODO
+		try {
+			return Flux.just(apply(unfilteredRootNode, ctx, relativeNode));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
 	}
 
 	@Override

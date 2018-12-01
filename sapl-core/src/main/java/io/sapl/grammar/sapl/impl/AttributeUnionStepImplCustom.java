@@ -15,20 +15,21 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
+import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
+import org.eclipse.emf.ecore.EObject;
+import reactor.core.publisher.Flux;
 
 public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 
@@ -38,18 +39,18 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isObject()) {
+	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
+		final JsonNode previousResultNode = previousResult.getNode();
+		if (!previousResultNode.isObject()) {
 			throw new PolicyEvaluationException(UNION_TYPE_MISMATCH);
 		}
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		JsonNode previousResultNode = previousResult.getNode();
-		HashSet<String> attributes = new HashSet<>(getAttributes());
 
-		Iterator<String> iterator = previousResultNode.fieldNames();
+		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		final Set<String> attributes = new HashSet<>(getAttributes());
+
+		final Iterator<String> iterator = previousResultNode.fieldNames();
 		while (iterator.hasNext()) {
-			String key = iterator.next();
+			final String key = iterator.next();
 			if (attributes.contains(key)) {
 				resultList.add(new JsonNodeWithParentObject(previousResultNode.get(key), previousResultNode, key));
 			}
@@ -58,9 +59,23 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	}
 
 	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
+	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
 		throw new PolicyEvaluationException(UNION_TYPE_MISMATCH);
+	}
+
+	@Override
+	public Flux<ResultNode> reactiveApply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        try {
+            return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
+        }
+        catch (PolicyEvaluationException e) {
+            return Flux.error(e);
+        }
+	}
+
+	@Override
+	public Flux<ResultNode> reactiveApply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        return Flux.error(new PolicyEvaluationException(UNION_TYPE_MISMATCH));
 	}
 
 	@Override

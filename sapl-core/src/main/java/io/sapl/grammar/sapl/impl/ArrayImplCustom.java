@@ -12,19 +12,20 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.emf.ecore.EObject;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
+import org.eclipse.emf.ecore.EObject;
+import reactor.core.publisher.Flux;
 
 public class ArrayImplCustom extends io.sapl.grammar.sapl.impl.ArrayImpl {
 
@@ -32,13 +33,27 @@ public class ArrayImplCustom extends io.sapl.grammar.sapl.impl.ArrayImpl {
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-		ArrayNode result = JsonNodeFactory.instance.arrayNode(getItems().size());
+	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
+		final ArrayNode result = JsonNodeFactory.instance.arrayNode(getItems().size());
 		for (Expression item : getItems()) {
 			result.add(item.evaluate(ctx, isBody, relativeNode));
 		}
 		return result;
+	}
+
+	@Override
+	public Flux<JsonNode> reactiveEvaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(getItems().size());
+        for (Expression item : getItems()) {
+            itemFluxes.add(item.reactiveEvaluate(ctx, isBody, relativeNode));
+        }
+        return Flux.combineLatest(itemFluxes, results -> {
+            final ArrayNode resultArr = JsonNodeFactory.instance.arrayNode(results.length);
+            for (Object result : results) {
+                resultArr.add((JsonNode) result);
+            }
+            return resultArr;
+        });
 	}
 
 	@Override

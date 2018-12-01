@@ -29,6 +29,7 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+import reactor.core.publisher.Flux;
 
 /**
  * Represents an array node in a selection result tree. Its items have to be
@@ -137,8 +138,12 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	}
 
 	@Override
-	public ResultNode applyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
+	public ResultNode applyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
 		return step.apply(this, ctx, isBody, relativeNode);
+	}
+
+	@Override
+	public Flux<ResultNode> reactiveApplyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return step.reactiveApply(this, ctx, isBody, relativeNode);
 	}
 }

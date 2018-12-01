@@ -16,13 +16,12 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.emf.ecore.EObject;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
+import org.eclipse.emf.ecore.EObject;
+import reactor.core.publisher.Flux;
 
 public class BasicIdentifierImplCustom extends io.sapl.grammar.sapl.impl.BasicIdentifierImpl {
 
@@ -32,13 +31,27 @@ public class BasicIdentifierImplCustom extends io.sapl.grammar.sapl.impl.BasicId
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
+	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
 		if (!ctx.getVariableCtx().exists(getIdentifier())) {
 			throw new PolicyEvaluationException(String.format(UNBOUND_VARIABLE, getIdentifier()));
 		}
-		JsonNode resultBeforeSteps = ctx.getVariableCtx().get(getIdentifier());
+
+		final JsonNode resultBeforeSteps = ctx.getVariableCtx().get(getIdentifier());
 		return evaluateStepsFilterSubtemplate(resultBeforeSteps, steps, ctx, isBody, relativeNode);
+	}
+
+	@Override
+	public Flux<JsonNode> reactiveEvaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		if (!ctx.getVariableCtx().exists(getIdentifier())) {
+			return Flux.error(new PolicyEvaluationException(String.format(UNBOUND_VARIABLE, getIdentifier())));
+		}
+
+		try {
+			final JsonNode resultBeforeSteps = ctx.getVariableCtx().get(getIdentifier());
+			return reactiveEvaluateStepsFilterSubtemplate(resultBeforeSteps, steps, ctx, isBody, relativeNode);
+		} catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
 	}
 
 	@Override

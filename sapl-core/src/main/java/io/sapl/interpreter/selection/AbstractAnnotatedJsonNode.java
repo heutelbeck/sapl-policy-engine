@@ -24,6 +24,7 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import reactor.core.publisher.Flux;
 
 /**
  * Represents an annotated JsonNode in a selection result tree.
@@ -37,6 +38,11 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 
 	protected JsonNode node;
 	protected JsonNode parent;
+
+	public AbstractAnnotatedJsonNode(JsonNode node) {
+		this.node = node;
+		this.parent = null;
+	}
 
 	@Override
 	public JsonNode asJsonWithoutAnnotations() {
@@ -130,9 +136,13 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	}
 
 	@Override
-	public ResultNode applyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
+	public ResultNode applyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
 		return step.apply(this, ctx, isBody, relativeNode);
+	}
+
+	@Override
+	public Flux<ResultNode> reactiveApplyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return step.reactiveApply(this, ctx, isBody, relativeNode);
 	}
 
 	/**

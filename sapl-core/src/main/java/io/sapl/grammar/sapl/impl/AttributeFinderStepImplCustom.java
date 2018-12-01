@@ -16,10 +16,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 
-import org.eclipse.emf.ecore.EObject;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.EvaluationContext;
@@ -27,6 +24,8 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
+import org.eclipse.emf.ecore.EObject;
+import reactor.core.publisher.Flux;
 
 public class AttributeFinderStepImplCustom extends io.sapl.grammar.sapl.impl.AttributeFinderStepImpl {
 
@@ -46,6 +45,28 @@ public class AttributeFinderStepImplCustom extends io.sapl.grammar.sapl.impl.Att
 	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
 			JsonNode relativeNode) throws PolicyEvaluationException {
 		return applyToJson(previousResult.asJsonWithoutAnnotations(), ctx, isBody);
+	}
+
+	@Override
+	public Flux<ResultNode> reactiveApply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		// TODO
+		try {
+			return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
+	}
+
+	@Override
+	public Flux<ResultNode> reactiveApply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		// TODO
+		try {
+			return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
 	}
 
 	private ResultNode applyToJson(JsonNode previousResult, EvaluationContext ctx, boolean isBody)

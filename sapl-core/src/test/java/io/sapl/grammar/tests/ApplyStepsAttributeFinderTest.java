@@ -31,8 +31,7 @@ public class ApplyStepsAttributeFinderTest {
 	private static VariableContext variableCtx = new VariableContext();
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static Map<String, String> imports = new HashMap<>();
-	private static EvaluationContext ctx = new EvaluationContext(new MockAttributeContext(), functionCtx, variableCtx,
-			imports);
+	private static EvaluationContext ctx = new EvaluationContext(new MockAttributeContext(), functionCtx, variableCtx, imports);
 
 	@Test(expected = PolicyEvaluationException.class)
 	public void applyToTarget() throws PolicyEvaluationException {
