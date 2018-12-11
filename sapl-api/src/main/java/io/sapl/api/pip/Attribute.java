@@ -11,6 +11,8 @@ public @interface Attribute {
 
 	String name() default "";
 
+	boolean reactive() default false;
+
 	String docs() default "";
 
 }

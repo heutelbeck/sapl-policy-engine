@@ -36,56 +36,56 @@ public class AttributeFinderStepImplCustom extends io.sapl.grammar.sapl.impl.Att
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
+	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
 		return applyToJson(previousResult.asJsonWithoutAnnotations(), ctx, isBody);
 	}
 
 	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
+	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
 		return applyToJson(previousResult.asJsonWithoutAnnotations(), ctx, isBody);
 	}
 
-	@Override
-	public Flux<ResultNode> reactiveApply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		// TODO
-		try {
-			return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
-		}
-		catch (PolicyEvaluationException e) {
-			return Flux.error(e);
-		}
-	}
-
-	@Override
-	public Flux<ResultNode> reactiveApply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		// TODO
-		try {
-			return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
-		}
-		catch (PolicyEvaluationException e) {
-			return Flux.error(e);
-		}
-	}
-
-	private ResultNode applyToJson(JsonNode previousResult, EvaluationContext ctx, boolean isBody)
-			throws PolicyEvaluationException {
-		String fullyQualifiedName = String.join(".", getIdSteps());
-		if (ctx.getImports().containsKey(fullyQualifiedName)) {
-			fullyQualifiedName = ctx.getImports().get(fullyQualifiedName);
-		}
-
+	private ResultNode applyToJson(JsonNode previousResult, EvaluationContext ctx, boolean isBody) throws PolicyEvaluationException {
+		final String fullyQualifiedName = getFullyQualifiedName(ctx);
 		if (!isBody) {
 			throw new PolicyEvaluationException(String.format(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName));
 		}
 
 		try {
-			return new JsonNodeWithoutParent(ctx.getAttributeCtx().evaluate(fullyQualifiedName, previousResult,
-					ctx.getVariableCtx().getVariables()));
+			final Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
+			return new JsonNodeWithoutParent(ctx.getAttributeCtx().evaluate(fullyQualifiedName, previousResult, variables));
 		} catch (AttributeException e) {
 			throw new PolicyEvaluationException(String.format(ATTRIBUTE_RESOLUTION, fullyQualifiedName), e);
 		}
+	}
+
+	private String getFullyQualifiedName(EvaluationContext ctx) {
+		String fullyQualifiedName = String.join(".", getIdSteps());
+		if (ctx.getImports().containsKey(fullyQualifiedName)) {
+			fullyQualifiedName = ctx.getImports().get(fullyQualifiedName);
+		}
+		return fullyQualifiedName;
+	}
+
+	@Override
+	public Flux<ResultNode> reactiveApply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return reactiveApplyToJson(previousResult.asJsonWithoutAnnotations(), ctx, isBody);
+	}
+
+	@Override
+	public Flux<ResultNode> reactiveApply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return reactiveApplyToJson(previousResult.asJsonWithoutAnnotations(), ctx, isBody);
+	}
+
+	private Flux<ResultNode> reactiveApplyToJson(JsonNode previousResult, EvaluationContext ctx, boolean isBody) {
+		final String fullyQualifiedName = getFullyQualifiedName(ctx);
+		if (!isBody) {
+			return Flux.error(new PolicyEvaluationException(String.format(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName)));
+		}
+
+		final Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
+		final Flux<JsonNode> jsonNodeFlux = ctx.getAttributeCtx().reactiveEvaluate(fullyQualifiedName, previousResult, variables);
+		return jsonNodeFlux.map(JsonNodeWithoutParent::new);
 	}
 
 	@Override

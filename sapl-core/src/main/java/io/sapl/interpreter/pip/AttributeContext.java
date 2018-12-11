@@ -16,18 +16,20 @@ import java.util.Collection;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.pip.AttributeException;
+import reactor.core.publisher.Flux;
 
 public interface AttributeContext {
 
 	JsonNode evaluate(String attribute, JsonNode value, Map<String, JsonNode> variables) throws AttributeException;
 
+	Flux<JsonNode> reactiveEvaluate(String attribute, JsonNode value, Map<String, JsonNode> variables);
+
 	Boolean provides(String function);
 
-	Collection<String> findersInLibrary(String libraryName);
+	Collection<String> findersInLibrary(String pipName);
 
-	void loadPolicyInformationPoint(Object library) throws AttributeException;
+	void loadPolicyInformationPoint(Object pip) throws AttributeException;
 
 	Collection<PolicyInformationPointDocumentation> getDocumentation();
 

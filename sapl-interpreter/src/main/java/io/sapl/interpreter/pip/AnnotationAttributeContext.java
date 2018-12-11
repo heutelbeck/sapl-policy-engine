@@ -23,52 +23,83 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import reactor.core.publisher.Flux;
 
 @NoArgsConstructor
 public class AnnotationAttributeContext implements AttributeContext {
 
-	private static final int TWO_PARAMETERS = 2;
-	private static final String DOT = ".";
-	private static final String VALUE_TYPE_OF_THE_MAP_MUST_BE_JSON_NODE = "Value type of the map must be JsonNode. But the key type Was: %s";
-	private static final String KEY_TYPE_OF_THE_MAP_MUST_BE_STRING = "Key type of the map must be String. But the key type Was: %s";
-	private static final String SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP = "Second parameter of method must be a Map<String, JsonNode>. Was: %s";
-	private static final String FIRST_PARAMETER_OF_METHOD_MUST_BE_A_JSON_NODE = "First parameter of method must be a JsonNode. Was: %s";
-	private static final String BAD_NUMBER_OF_PARAMETERS = "Bad number of parameters for attribute finder. Atrribute finders are supposed to have one JsonNode and one Map<String, JsonNode> as parameters. The method had %d parameters";
+	private static final int REQUIRED_NUMBER_OF_PARAMETERS = 2;
+	private static final String NAME_DELIMITER = ".";
+	private static final String CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION = "Provided class has no @PolicyInformationPoint annotation.";
 	private static final String UNKNOWN_ATTRIBUTE = "Unknown attribute %s";
-	private static final String CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION = "Provided class has no @FunctionLibrary annotation.";
+	private static final String BAD_NUMBER_OF_PARAMETERS = "Bad number of parameters for attribute finder. Attribute finders are supposed to have one JsonNode and one Map<String, JsonNode> as parameters. The method had %d parameters";
+	private static final String FIRST_PARAMETER_OF_METHOD_MUST_BE_A_JSON_NODE = "First parameter of method must be a JsonNode. Was: %s";
+	private static final String SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP = "Second parameter of method must be a Map<String, JsonNode>. Was: %s";
+	private static final String KEY_TYPE_OF_THE_MAP_MUST_BE_STRING = "Key type of the map must be String. Was: %s";
+	private static final String VALUE_TYPE_OF_THE_MAP_MUST_BE_JSON_NODE = "Value type of the map must be JsonNode. Was: %s";
+	private static final String RETURN_TYPE_OF_NON_REACTIVE_METHOD_MUST_BE_JSON_NODE = "The return type of a non reactive attribute finder must be JsonNode. Was: %s";
+	private static final String RETURN_TYPE_OF_REACTIVE_METHOD_MUST_BE_FLUX_OF_JSON_NODE = "The return type of a reactive attribute finder must be Flux<JsonNode>. Was: %s";
 
-	private Collection<PolicyInformationPointDocumentation> documentation = new LinkedList<>();
-	private Map<String, AttributeFinderMetadata> attributes = new HashMap<>();
-	private Map<String, Collection<String>> libraries = new HashMap<>();
+	private Map<String, Collection<String>> attributeNamesByPipName = new HashMap<>();
+	private Map<String, AttributeFinderMetadata> attributeMetadataByAttributeName = new HashMap<>();
+	private Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
 
-	public AnnotationAttributeContext(Object... libraries) throws AttributeException {
-		for (Object library : libraries) {
-			loadPolicyInformationPoint(library);
+	public AnnotationAttributeContext(Object... policyInformationPoints) throws AttributeException {
+		for (Object pip : policyInformationPoints) {
+			loadPolicyInformationPoint(pip);
 		}
 	}
 
 	@Override
-	public JsonNode evaluate(String attribute, JsonNode value, Map<String, JsonNode> variables)
-			throws AttributeException {
-		AttributeFinderMetadata att = attributes.get(attribute);
-		if (att == null) {
+	public JsonNode evaluate(String attribute, JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
+		final AttributeFinderMetadata metadata = attributeMetadataByAttributeName.get(attribute);
+		if (metadata == null) {
 			throw new AttributeException(String.format(UNKNOWN_ATTRIBUTE, attribute));
 		}
-		Parameter[] attParams = att.getFunction().getParameters();
+
+		final Object pip = metadata.getPolicyInformationPoint();
+		final Method method = metadata.getFunction();
+		final Parameter firstParameter = method.getParameters()[0];
 		try {
-			ParameterTypeValidator.validateType(value, attParams[0]);
-			return (JsonNode) att.getFunction().invoke(att.getPolicyInformationPoint(), value, variables);
-		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
-				| IllegalParameterType e) {
+			ParameterTypeValidator.validateType(value, firstParameter);
+			if (metadata.isReactive()) {
+				return ((Flux<JsonNode>) method.invoke(pip, value, variables)).blockFirst();
+			} else {
+				return (JsonNode) method.invoke(pip, value, variables);
+			}
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | IllegalParameterType e) {
 			throw new AttributeException(e);
 		}
 	}
 
 	@Override
-	public final void loadPolicyInformationPoint(Object policyInformationPoint) throws AttributeException {
-		Class<?> clazz = policyInformationPoint.getClass();
+	public Flux<JsonNode> reactiveEvaluate(String attribute, JsonNode value, Map<String, JsonNode> variables) {
+		final AttributeFinderMetadata metadata = attributeMetadataByAttributeName.get(attribute);
+		if (metadata == null) {
+			return Flux.error(new AttributeException(String.format(UNKNOWN_ATTRIBUTE, attribute)));
+		}
 
-		PolicyInformationPoint pipAnnotation = clazz.getAnnotation(PolicyInformationPoint.class);
+		final Object pip = metadata.getPolicyInformationPoint();
+		final Method method = metadata.getFunction();
+		final Parameter firstParameter = method.getParameters()[0];
+		try {
+			ParameterTypeValidator.validateType(value, firstParameter);
+			if (metadata.isReactive()) {
+				return (Flux<JsonNode>) method.invoke(pip, value, variables);
+			} else {
+				final JsonNode jsonNode = (JsonNode) method.invoke(pip, value, variables);
+				return Flux.just(jsonNode);
+			}
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | IllegalParameterType e) {
+			return Flux.error(new AttributeException(e));
+		}
+	}
+
+	@Override
+	public final void loadPolicyInformationPoint(Object pip) throws AttributeException {
+		final Class<?> clazz = pip.getClass();
+
+		final PolicyInformationPoint pipAnnotation = clazz.getAnnotation(PolicyInformationPoint.class);
 
 		if (pipAnnotation == null) {
 			throw new AttributeException(CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION);
@@ -78,80 +109,92 @@ public class AnnotationAttributeContext implements AttributeContext {
 		if (pipName.isEmpty()) {
 			pipName = clazz.getName();
 		}
-		libraries.put(pipName, new HashSet<>());
+		attributeNamesByPipName.put(pipName, new HashSet<>());
 		PolicyInformationPointDocumentation pipDocs = new PolicyInformationPointDocumentation(pipName,
-				pipAnnotation.description(), policyInformationPoint);
+				pipAnnotation.description(), pip);
 
 		pipDocs.setName(pipAnnotation.name());
 		for (Method method : clazz.getDeclaredMethods()) {
 			if (method.isAnnotationPresent(Attribute.class)) {
-				importAttribute(policyInformationPoint, pipName, pipDocs, method);
+				importAttribute(pip, pipName, pipDocs, method);
 			}
 		}
-		documentation.add(pipDocs);
+		pipDocumentations.add(pipDocs);
 
 	}
 
-	private void importAttribute(Object policyInformationPoint, String pipName,
-			PolicyInformationPointDocumentation pipDocs, Method method) throws AttributeException {
-		Attribute attAnnotation = method.getAnnotation(Attribute.class);
+	private void importAttribute(Object policyInformationPoint, String pipName, PolicyInformationPointDocumentation pipDocs, Method method)
+			throws AttributeException {
+
+		final Attribute attAnnotation = method.getAnnotation(Attribute.class);
+
 		String attName = attAnnotation.name();
 		if (attName.isEmpty()) {
 			attName = method.getName();
 		}
 
 		int parameters = method.getParameterCount();
-		if (parameters != TWO_PARAMETERS) {
+		if (parameters != REQUIRED_NUMBER_OF_PARAMETERS) {
 			throw new AttributeException(String.format(BAD_NUMBER_OF_PARAMETERS, parameters));
 		}
-		Class<?>[] parameterTypes = method.getParameterTypes();
+		final Class<?>[] parameterTypes = method.getParameterTypes();
 		if (!JsonNode.class.isAssignableFrom(parameterTypes[0])) {
-			throw new AttributeException(
-					String.format(FIRST_PARAMETER_OF_METHOD_MUST_BE_A_JSON_NODE, parameterTypes[0].getName()));
+			throw new AttributeException(String.format(FIRST_PARAMETER_OF_METHOD_MUST_BE_A_JSON_NODE, parameterTypes[0].getName()));
 		}
 		if (!Map.class.isAssignableFrom(parameterTypes[1])) {
-			throw new AttributeException(
-					String.format(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName()));
+			throw new AttributeException(String.format(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName()));
 		}
 
-		Type[] genericTypes = method.getGenericParameterTypes();
-
-		Class<?> fistTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1]).getActualTypeArguments()[0];
+		final Type[] genericTypes = method.getGenericParameterTypes();
+		final Class<?> fistTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1]).getActualTypeArguments()[0];
 		if (!String.class.isAssignableFrom(fistTypeArgument)) {
 			throw new AttributeException(String.format(KEY_TYPE_OF_THE_MAP_MUST_BE_STRING, fistTypeArgument.getName()));
 		}
-		Class<?> secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1]).getActualTypeArguments()[1];
+		final Class<?> secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1]).getActualTypeArguments()[1];
 		if (!JsonNode.class.isAssignableFrom(secondTypeArgument)) {
-			throw new AttributeException(
-					String.format(VALUE_TYPE_OF_THE_MAP_MUST_BE_JSON_NODE, secondTypeArgument.getName()));
+			throw new AttributeException(String.format(VALUE_TYPE_OF_THE_MAP_MUST_BE_JSON_NODE, secondTypeArgument.getName()));
+		}
+
+		final boolean isReactive = attAnnotation.reactive();
+
+		final Class<?> returnType = method.getReturnType();
+		if (isReactive) {
+			final Type genericReturnType = method.getGenericReturnType();
+			final Class<?> returnTypeArgument = (Class<?>) ((ParameterizedType) genericReturnType).getActualTypeArguments()[0];
+			if (!Flux.class.isAssignableFrom(returnType) || !JsonNode.class.isAssignableFrom(returnTypeArgument)) {
+				throw new AttributeException(String.format(RETURN_TYPE_OF_REACTIVE_METHOD_MUST_BE_FLUX_OF_JSON_NODE, returnType.getName() + "<" + returnTypeArgument.getName() + ">"));
+			}
+		} else {
+			if (!JsonNode.class.isAssignableFrom(returnType)) {
+				throw new AttributeException(String.format(RETURN_TYPE_OF_NON_REACTIVE_METHOD_MUST_BE_JSON_NODE, returnType.getName()));
+			}
 		}
 
 		pipDocs.documentation.put(attName, attAnnotation.docs());
 
-		AttributeFinderMetadata attMeta = new AttributeFinderMetadata(policyInformationPoint, method);
-		attributes.put(fullName(pipName, attName), attMeta);
+		attributeMetadataByAttributeName.put(fullName(pipName, attName), new AttributeFinderMetadata(policyInformationPoint, method, isReactive));
 
-		libraries.get(pipName).add(attName);
+		attributeNamesByPipName.get(pipName).add(attName);
+	}
+
+	private static String fullName(String packageName, String methodName) {
+		return packageName + NAME_DELIMITER + methodName;
 	}
 
 	@Override
 	public Boolean provides(String attribute) {
-		return attributes.containsKey(attribute);
-	}
-
-	private static String fullName(String packageName, String methodName) {
-		return packageName + DOT + methodName;
+		return attributeMetadataByAttributeName.containsKey(attribute);
 	}
 
 	@Override
 	public Collection<PolicyInformationPointDocumentation> getDocumentation() {
-		return Collections.unmodifiableCollection(documentation);
+		return Collections.unmodifiableCollection(pipDocumentations);
 	}
 
 	@Override
-	public Collection<String> findersInLibrary(String libraryName) {
-		if (libraries.containsKey(libraryName)) {
-			return libraries.get(libraryName);
+	public Collection<String> findersInLibrary(String pipName) {
+		if (attributeNamesByPipName.containsKey(pipName)) {
+			return attributeNamesByPipName.get(pipName);
 		} else {
 			return new HashSet<>();
 		}
@@ -160,10 +203,15 @@ public class AnnotationAttributeContext implements AttributeContext {
 	@Data
 	@AllArgsConstructor
 	public static class AttributeFinderMetadata {
+
 		@NonNull
 		Object policyInformationPoint;
+
 		@NonNull
 		Method function;
+
+		@NonNull
+		boolean isReactive;
 	}
 
 }
