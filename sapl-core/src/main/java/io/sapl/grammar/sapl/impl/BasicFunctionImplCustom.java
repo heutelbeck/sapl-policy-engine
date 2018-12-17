@@ -63,7 +63,7 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 		final String fullyQualifiedName = ctx.getImports().getOrDefault(joinedSteps, joinedSteps);
 
 		final ArrayNode argumentsArray = JSON.arrayNode();
-		if (getArguments() != null) {
+		if (getArguments() != null && ! getArguments().getArgs().isEmpty()) {
 			final List<Flux<JsonNode>> parameterFluxes = new ArrayList<>(getArguments().getArgs().size());
 			for (Expression argument : getArguments().getArgs()) {
 				parameterFluxes.add(argument.reactiveEvaluate(ctx, isBody, relativeNode));

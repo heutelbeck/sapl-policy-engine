@@ -30,22 +30,15 @@ public class FilterSimpleImplCustom extends io.sapl.grammar.sapl.impl.FilterSimp
 	private static final int HASH_PRIME_07 = 41;
 
 	@Override
-	public JsonNode apply(JsonNode unfilteredRootNode, EvaluationContext ctx, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-		String function = String.join(".", fsteps);
-		return applyFilterStatement(unfilteredRootNode.deepCopy(), function, getArguments(), null, each, ctx,
-				relativeNode);
+	public JsonNode apply(JsonNode unfilteredRootNode, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
+		final String function = String.join(".", fsteps);
+		return applyFilterStatement(unfilteredRootNode.deepCopy(), function, getArguments(), null, each, ctx, isBody, relativeNode);
 	}
 
 	@Override
-	public Flux<JsonNode> reactiveApply(JsonNode unfilteredRootNode, EvaluationContext ctx, JsonNode relativeNode) {
-		// TODO
-		try {
-			return Flux.just(apply(unfilteredRootNode, ctx, relativeNode));
-		}
-		catch (PolicyEvaluationException e) {
-			return Flux.error(e);
-		}
+	public Flux<JsonNode> reactiveApply(JsonNode unfilteredRootNode, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		final String function = String.join(".", fsteps);
+		return reactiveApplyFilterStatement(unfilteredRootNode.deepCopy(), function, getArguments(), null, each, ctx, isBody, relativeNode);
 	}
 
 	@Override

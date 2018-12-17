@@ -87,7 +87,7 @@ public class ResultNodesTest {
 	@Test
 	public void isResultArrayOnArrayResultNode() {
 		ResultNode resultNode = new ArrayResultNode(new ArrayList<>());
-		assertTrue("isResultArray on ArrayResultNode should return false", resultNode.isResultArray());
+		assertTrue("isResultArray on ArrayResultNode should return true", resultNode.isResultArray());
 	}
 
 	@Test
@@ -316,7 +316,7 @@ public class ResultNodesTest {
 		list.add(new JsonNodeWithParentArray(JSON.nullNode(), target, 0));
 		ArrayResultNode resultNode = new ArrayResultNode(list);
 
-		resultNode.applyFunction("dummy", factory.createArguments(), false, ctx);
+		resultNode.applyFilter("dummy", factory.createArguments(), false, ctx, false);
 	}
 
 	@Test
@@ -336,7 +336,7 @@ public class ResultNodesTest {
 		list.add(new JsonNodeWithParentArray(JSON.booleanNode(false), target, 2));
 		ResultNode resultNode = new ArrayResultNode(list);
 
-		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+		resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false);
 
 		assertEquals("function applied to ArrayResultNode with each should replace each selected item", expectedResult,
 				target);
@@ -348,7 +348,7 @@ public class ResultNodesTest {
 
 		ResultNode resultNode = new JsonNodeWithoutParent(target);
 
-		resultNode.applyFunction("dummy", factory.createArguments(), false, ctx);
+		resultNode.applyFilter("dummy", factory.createArguments(), false, ctx, false);
 	}
 
 	@Test(expected = PolicyEvaluationException.class)
@@ -357,7 +357,7 @@ public class ResultNodesTest {
 
 		ResultNode resultNode = new JsonNodeWithoutParent(target);
 
-		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+		resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false);
 	}
 
 	@Test
@@ -370,7 +370,7 @@ public class ResultNodesTest {
 
 		ResultNode resultNode = new JsonNodeWithoutParent(target);
 
-		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+		resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false);
 
 		assertEquals("function applied to JsonNodeWithoutParent with each should replace each node", expectedResult,
 				target);
@@ -386,7 +386,7 @@ public class ResultNodesTest {
 
 		ResultNode resultNode = new JsonNodeWithParentObject(JSON.nullNode(), target, "key");
 
-		resultNode.applyFunction("dummy", factory.createArguments(), false, ctx);
+		resultNode.applyFilter("dummy", factory.createArguments(), false, ctx, false);
 
 		assertEquals("function applied to JsonNodeWithParentObject should replace selected node", expectedResult,
 				target);
@@ -406,7 +406,7 @@ public class ResultNodesTest {
 
 		ResultNode resultNode = new JsonNodeWithParentObject(array, target, "key");
 
-		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+		resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false);
 
 		assertEquals("function applied to JsonNodeWithParentObject with each should replace each item of selected node",
 				expectedResult, target);
@@ -419,7 +419,7 @@ public class ResultNodesTest {
 
 		ResultNode resultNode = new JsonNodeWithParentObject(JSON.nullNode(), target, "key");
 
-		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+		resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false);
 	}
 
 	@Test
@@ -432,7 +432,7 @@ public class ResultNodesTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
 
-		resultNode.applyFunction("dummy", factory.createArguments(), false, ctx);
+		resultNode.applyFilter("dummy", factory.createArguments(), false, ctx, false);
 
 		assertEquals("function applied to JsonNodeWithParentArray should replace selected node", expectedResult,
 				target);
@@ -452,7 +452,7 @@ public class ResultNodesTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(array, target, 0);
 
-		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+		resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false);
 
 		assertEquals("function applied to JsonNodeWithParentArray with each should replace each item of selected node",
 				expectedResult, target);
@@ -465,7 +465,7 @@ public class ResultNodesTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
 
-		resultNode.applyFunction("dummy", factory.createArguments(), true, ctx);
+		resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false);
 	}
 
 	@Test
@@ -482,7 +482,7 @@ public class ResultNodesTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
 
-		resultNode.applyFunction("short", null, false, ctx);
+		resultNode.applyFilter("short", null, false, ctx, false);
 
 		assertEquals("function with imports should replace selected node", expectedResult, target);
 	}
@@ -494,7 +494,7 @@ public class ResultNodesTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
 
-		resultNode.applyFunction("EXCEPTION", factory.createArguments(), false, ctx);
+		resultNode.applyFilter("EXCEPTION", factory.createArguments(), false, ctx, false);
 	}
 
 	@Test
@@ -513,7 +513,7 @@ public class ResultNodesTest {
 		argumentExpression.setValue(value);
 		arguments.getArgs().add(argumentExpression);
 
-		resultNode.applyFunction("dummy", arguments, false, ctx);
+		resultNode.applyFilter("dummy", arguments, false, ctx, false);
 
 		assertEquals("function with arguments should replace selected node", expectedResult, target);
 	}
@@ -529,7 +529,7 @@ public class ResultNodesTest {
 
 		ResultNode expectedResult = new JsonNodeWithoutParent(JSON.nullNode());
 
-		ResultNode result = resultNode.applyStep(step, ctx, true, null);
+		ResultNode result = resultNode.applyStep(step, ctx, false, null);
 
 		assertEquals("applyStep on ArrayResultNode should return correct ResultNode", expectedResult, result);
 	}
@@ -545,7 +545,7 @@ public class ResultNodesTest {
 
 		ResultNode expectedResult = new JsonNodeWithParentArray(JSON.nullNode(), array, 0);
 
-		ResultNode result = resultNode.applyStep(step, ctx, true, null);
+		ResultNode result = resultNode.applyStep(step, ctx, false, null);
 
 		assertEquals("applyStep on AbstractAnnotatedJsonNode should return correct ResultNode", expectedResult, result);
 	}

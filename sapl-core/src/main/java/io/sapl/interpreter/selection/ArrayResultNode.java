@@ -38,6 +38,7 @@ import reactor.core.publisher.Flux;
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJsonNode> {
+
 	protected static final String FILTER_HELPER_ARRAY = "Cannot apply filter to helper array.";
 
 	List<AbstractAnnotatedJsonNode> nodes;
@@ -88,15 +89,28 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	}
 
 	@Override
-	public void applyFunction(String function, Arguments arguments, boolean each, EvaluationContext ctx)
-			throws PolicyEvaluationException {
+	public void applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) throws PolicyEvaluationException {
 		if (each) {
 			for (AbstractAnnotatedJsonNode node : nodes) {
-				node.applyFunctionWithRelativeNode(function, arguments, false, ctx, node.getNode());
+				node.applyFilterWithRelativeNode(function, arguments, false, ctx, isBody, node.getParent());
 			}
 		} else {
 			throw new PolicyEvaluationException(FILTER_HELPER_ARRAY);
 		}
+	}
+
+	@Override
+	public Flux<Void> reactiveApplyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
+		if (each) {
+		    final List<Flux<Void>> appliedFilterFluxes = new ArrayList<>(nodes.size());
+            for (AbstractAnnotatedJsonNode node : nodes) {
+                appliedFilterFluxes.add(node.reactiveApplyFilterWithRelativeNode(function, arguments, false, ctx, isBody, node.getParent()));
+            }
+            return Flux.combineLatest(appliedFilterFluxes,
+                    voidResults -> Void.INSTANCE);
+        } else {
+	        return Flux.error(new PolicyEvaluationException(FILTER_HELPER_ARRAY));
+        }
 	}
 
 	/**

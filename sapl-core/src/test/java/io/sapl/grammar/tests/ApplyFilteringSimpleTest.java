@@ -2,13 +2,10 @@ package io.sapl.grammar.tests;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.BasicValue;
@@ -18,6 +15,7 @@ import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+import org.junit.Test;
 
 public class ApplyFilteringSimpleTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
@@ -36,7 +34,7 @@ public class ApplyFilteringSimpleTest {
 		FilterSimple filter = factory.createFilterSimple();
 		filter.getFsteps().add(REMOVE);
 
-		filter.apply(root, ctx, null);
+		filter.apply(root, ctx, false, null);
 	}
 
 	@Test(expected = PolicyEvaluationException.class)
@@ -47,7 +45,7 @@ public class ApplyFilteringSimpleTest {
 		filter.getFsteps().add(REMOVE);
 		filter.setEach(true);
 
-		filter.apply(root, ctx, null);
+		filter.apply(root, ctx, false, null);
 	}
 
 	@Test
@@ -61,7 +59,7 @@ public class ApplyFilteringSimpleTest {
 
 		JsonNode expectedResult = JSON.arrayNode();
 
-		JsonNode result = filter.apply(root, ctx, null);
+		JsonNode result = filter.apply(root, ctx, false, null);
 
 		assertEquals("Remove applied to array with each should return empty array", expectedResult, result);
 	}
@@ -75,7 +73,7 @@ public class ApplyFilteringSimpleTest {
 
 		JsonNode expectedResult = JSON.textNode("");
 
-		JsonNode result = filter.apply(root, ctx, null);
+		JsonNode result = filter.apply(root, ctx, false, null);
 
 		assertEquals("Mock function EMPTY_STRING applied to array without each should return empty string",
 				expectedResult, result);
@@ -100,7 +98,7 @@ public class ApplyFilteringSimpleTest {
 		expectedResult.add(JSON.textNode(""));
 		expectedResult.add(JSON.textNode(""));
 
-		JsonNode result = filter.apply(root, ctx, null);
+		JsonNode result = filter.apply(root, ctx, false, null);
 
 		assertEquals("Mock function EMPTY_STRING applied to array with each should return array with empty strings",
 				expectedResult, result);

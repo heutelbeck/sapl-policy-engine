@@ -42,7 +42,7 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add(REMOVE);
 		filter.getStatements().add(statement);
 
-		filter.apply(root, ctx, null);
+		filter.apply(root, ctx, false, null);
 	}
 
 	@Test(expected = PolicyEvaluationException.class)
@@ -56,7 +56,7 @@ public class ApplyFilteringExtendedTest {
 		statement.setEach(true);
 		filter.getStatements().add(statement);
 
-		filter.apply(root, ctx, null);
+		filter.apply(root, ctx, false, null);
 	}
 
 	@Test
@@ -74,7 +74,7 @@ public class ApplyFilteringExtendedTest {
 
 		JsonNode expectedResult = JSON.arrayNode();
 
-		JsonNode result = filter.apply(root, ctx, null);
+		JsonNode result = filter.apply(root, ctx, false, null);
 
 		assertEquals("Function remove, no steps and each should return empty array", expectedResult, result);
 	}
@@ -93,7 +93,7 @@ public class ApplyFilteringExtendedTest {
 
 		JsonNode expectedResult = JSON.textNode("");
 
-		JsonNode result = filter.apply(root, ctx, null);
+		JsonNode result = filter.apply(root, ctx, false, null);
 
 		assertEquals("Mock function EMPTY_STRING, no steps, no each should return empty string", expectedResult,
 				result);
@@ -116,7 +116,7 @@ public class ApplyFilteringExtendedTest {
 		expectedResult.add(JSON.textNode(""));
 		expectedResult.add(JSON.textNode(""));
 
-		JsonNode result = filter.apply(root, ctx, null);
+		JsonNode result = filter.apply(root, ctx, false, null);
 
 		assertEquals("Mock function EMPTY_STRING, no steps, each should array with empty strings", expectedResult,
 				result);
@@ -143,7 +143,7 @@ public class ApplyFilteringExtendedTest {
 
 		filter.getStatements().add(statement);
 
-		filter.apply(root, ctx, null);
+		filter.apply(root, ctx, false, null);
 	}
 
 	@Test(expected = PolicyEvaluationException.class)
@@ -163,7 +163,7 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add(REMOVE);
 		filter.getStatements().add(statement);
 
-		filter.apply(root, ctx, null);
+		filter.apply(root, ctx, false, null);
 	}
 
 	@Test(expected = PolicyEvaluationException.class)
@@ -183,7 +183,7 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add("EMPTY_STRING");
 		filter.getStatements().add(statement);
 
-		filter.apply(root, ctx, null);
+		filter.apply(root, ctx, false, null);
 	}
 
 	@Test
@@ -208,7 +208,7 @@ public class ApplyFilteringExtendedTest {
 		expectedResult.add(JSON.textNode(""));
 		expectedResult.add(JSON.booleanNode(true));
 
-		JsonNode result = filter.apply(root, ctx, null);
+		JsonNode result = filter.apply(root, ctx, false, null);
 
 		assertEquals(
 				"Mock function EMPTY_STRING applied to result array and each should replace selected elements by empty string",
@@ -236,7 +236,7 @@ public class ApplyFilteringExtendedTest {
 		ArrayNode expectedResult = JSON.arrayNode();
 		expectedResult.add(JSON.booleanNode(true));
 
-		JsonNode result = filter.apply(root, ctx, null);
+		JsonNode result = filter.apply(root, ctx, false, null);
 
 		assertEquals("Remove applied to result array and each should remove each element", expectedResult, result);
 	}

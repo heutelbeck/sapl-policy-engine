@@ -20,6 +20,7 @@ import io.sapl.interpreter.EvaluationContext;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.Value;
+import reactor.core.publisher.Flux;
 
 /**
  * Represents a JsonNode which has no parent node (array or object) in the tree
@@ -34,7 +35,7 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 	private static final String FILTER_ROOT_ELEMENT = "The root element cannot be filtered.";
 
 	public JsonNodeWithoutParent(JsonNode node) {
-		super(node, null);
+		super(node);
 	}
 
 	@Override
@@ -62,18 +63,31 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public void applyFunction(String function, Arguments arguments, boolean each, EvaluationContext ctx)
-			throws PolicyEvaluationException {
-		applyFunctionWithRelativeNode(function, arguments, each, ctx, null);
+	public void applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) throws PolicyEvaluationException {
+		applyFilterWithRelativeNode(function, arguments, each, ctx, isBody,null);
 	}
 
 	@Override
-	void applyFunctionWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx,
-			JsonNode relativeNode) throws PolicyEvaluationException {
+	public Flux<Void> reactiveApplyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
+		return reactiveApplyFilterWithRelativeNode(function, arguments, each, ctx, isBody, null);
+	}
+
+	@Override
+	public void applyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
+			throws PolicyEvaluationException {
 		if (each) {
-			applyFunctionToEachItem(function, node, arguments, ctx);
+			applyFilterToEachItem(function, node, arguments, ctx, isBody);
 		} else {
 			throw new PolicyEvaluationException(FILTER_ROOT_ELEMENT);
+		}
+	}
+
+	@Override
+	public Flux<Void> reactiveApplyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		if (each) {
+			return reactiveApplyFilterToEachItem(function, node, arguments, ctx, isBody);
+		} else {
+			return Flux.error(new PolicyEvaluationException(FILTER_ROOT_ELEMENT));
 		}
 	}
 

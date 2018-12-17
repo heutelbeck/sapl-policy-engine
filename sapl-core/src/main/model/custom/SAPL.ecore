@@ -108,18 +108,20 @@
   <eClassifiers xsi:type="ecore:EClass" name="FilterComponent" eSuperTypes="#//Hashable">
     <eOperations name="apply" eType="#//JsonNode" eExceptions="#//PolicyEvaluationException">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method applies the filter to a JSON tree and returns the filtered tree.&#xA;&#xA;@param unfilteredRootNode &#xA;&#x9;&#x9;the root node of the tree to be filtered&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the filtered tree&#xA;@throws PolicyEvaluationException &#xA;&#x9;&#x9;in case there is an error during application of the filtering component"/>
+        <details key="documentation" value="The method applies the filter to a JSON tree and returns the filtered tree.&#xA;&#xA;@param unfilteredRootNode &#xA;&#x9;&#x9;the root node of the tree to be filtered&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param isBody&#xA;&#x9;&#x9;true if the expression occurs within the policy body (attribute&#xA;&#x9;&#x9;finder steps are only allowed if set to true)&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the filtered tree&#xA;@throws PolicyEvaluationException &#xA;&#x9;&#x9;in case there is an error during application of the filtering component"/>
       </eAnnotations>
       <eParameters name="unfilteredRootNode" eType="#//JsonNode"/>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
+      <eParameters name="isBody" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
       <eParameters name="relativeNode" eType="#//JsonNode"/>
     </eOperations>
     <eOperations name="reactiveApply" lowerBound="1" eType="#//JsonNodeFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method applies the filter to a JSON tree and returns a Flux providing the filtered trees.&#xA;&#xA;@param unfilteredRootNode &#xA;&#x9;&#x9;the root node of the tree to be filtered&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the filtered tree&#xA;@throws PolicyEvaluationException &#xA;&#x9;&#x9;in case there is an error during application of the filtering component"/>
+        <details key="documentation" value="The method applies the filter to a JSON tree and returns a Flux providing the filtered trees.&#xA;&#xA;@param unfilteredRootNode &#xA;&#x9;&#x9;the root node of the tree to be filtered&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param isBody&#xA;&#x9;&#x9;true if the expression occurs within the policy body (attribute&#xA;&#x9;&#x9;finder steps are only allowed if set to true)&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the filtered tree&#xA;@throws PolicyEvaluationException &#xA;&#x9;&#x9;in case there is an error during application of the filtering component"/>
       </eAnnotations>
       <eParameters name="unfilteredRootNode" eType="#//JsonNode"/>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
+      <eParameters name="isBody" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
       <eParameters name="relativeNode" eType="#//JsonNode"/>
     </eOperations>
   </eClassifiers>

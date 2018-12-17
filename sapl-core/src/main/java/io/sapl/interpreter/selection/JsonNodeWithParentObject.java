@@ -21,6 +21,7 @@ import io.sapl.interpreter.EvaluationContext;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.Value;
+import reactor.core.publisher.Flux;
 
 /**
  * Represents a JsonNode which is the value of an attribute of an ObjectNode in
@@ -62,18 +63,36 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public void applyFunction(String function, Arguments arguments, boolean each, EvaluationContext ctx)
-			throws PolicyEvaluationException {
-		applyFunctionWithRelativeNode(function, arguments, each, ctx, null);
+	public void applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) throws PolicyEvaluationException {
+		applyFilterWithRelativeNode(function, arguments, each, ctx, isBody, parent);
 	}
 
 	@Override
-	void applyFunctionWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx,
-			JsonNode relativeNode) throws PolicyEvaluationException {
+	public Flux<Void> reactiveApplyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
+		return reactiveApplyFilterWithRelativeNode(function, arguments, each, ctx, isBody, parent);
+	}
+
+	@Override
+	public void applyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
+			throws PolicyEvaluationException {
 		if (each) {
-			applyFunctionToEachItem(function, node, arguments, ctx);
+			applyFilterToEachItem(function, node, arguments, ctx, isBody);
 		} else {
-			((ObjectNode) parent).set(attribute, applyFunctionToNode(function, node, arguments, ctx, relativeNode));
+			((ObjectNode) parent).set(attribute, applyFilterToNode(function, node, arguments, ctx, isBody, relativeNode));
+		}
+	}
+
+	@Override
+	public Flux<Void> reactiveApplyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		if (each) {
+			return reactiveApplyFilterToEachItem(function, node, arguments, ctx, isBody);
+		} else {
+			return reactiveApplyFilterToNode(function, node, arguments, ctx, isBody, relativeNode)
+					.map(filteredNode -> {
+						((ObjectNode) parent).set(attribute, filteredNode);
+						return ResultNode.Void.INSTANCE;
+					});
+
 		}
 	}
 

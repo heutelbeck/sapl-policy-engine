@@ -39,7 +39,7 @@ public class SimpleFunctionLibrary {
 		if (parameter.isArray()) {
 			result = JSON.numberNode((float) ((ArrayNode) parameter).size());
 		} else if (parameter.isTextual()) {
-			result = JSON.numberNode((float) ((TextNode) parameter).size());
+			result = JSON.numberNode((float) ((TextNode) parameter).asText().length());
 		} else {
 			throw new FunctionException(
 					"length() parameter must be a string or an array, found " + parameter.getNodeType() + ".");

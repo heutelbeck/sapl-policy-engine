@@ -12,10 +12,12 @@
  */
 package io.sapl.interpreter.selection;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
@@ -24,6 +26,7 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 /**
@@ -77,29 +80,100 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 * @param function
 	 *            name of the filter function
 	 * @param parentNode
-	 *            the parent JsonNode
+	 *            the parent JsonNode (must be an array node)
 	 * @param arguments
 	 *            arguments to be passed to the function as a JSON array
 	 * @param ctx
 	 *            the evaluation context
+	 * @param isBody
+	 *            true if the expression occurs within the policy body (attribute
+	 *            finder steps are only allowed if set to true)
 	 * @throws PolicyEvaluationException
 	 *             in case an error occurs during evaluation, e.g., if the
 	 *             parentNode is not an array or if the function cannot be evaluated
 	 */
-	protected static void applyFunctionToEachItem(String function, JsonNode parentNode, Arguments arguments,
-			EvaluationContext ctx) throws PolicyEvaluationException {
+	protected static void applyFilterToEachItem(String function, JsonNode parentNode, Arguments arguments, EvaluationContext ctx, boolean isBody)
+			throws PolicyEvaluationException {
 		if (!parentNode.isArray()) {
 			throw new PolicyEvaluationException(String.format(FILTER_EACH_NO_ARRAY, parentNode.getNodeType()));
 		}
 
-		for (int i = 0; i < parentNode.size(); i++) {
-			((ArrayNode) parentNode).set(i,
-					applyFunctionToNode(function, parentNode.get(i), arguments, ctx, parentNode.get(i)));
+		final ArrayNode arrayNode = (ArrayNode) parentNode;
+		for (int i = 0; i < arrayNode.size(); i++) {
+			final JsonNode childNode = arrayNode.get(i);
+			final JsonNode modifiedChildNode = applyFilterToNode(function, childNode, arguments, ctx, isBody, parentNode);
+			arrayNode.set(i, modifiedChildNode);
 		}
 	}
 
 	/**
-	 * Applies a function to a JSON node and returns the result.
+	 * Replaces each item of an array by the result of evaluating a filter function
+	 * for the item.
+	 *
+	 * @param function
+	 *            name of the filter function
+	 * @param parentNode
+	 *            the parent JsonNode (must be an array node)
+	 * @param arguments
+	 *            arguments to be passed to the function as a JSON array
+	 * @param ctx
+	 *            the evaluation context
+	 * @param isBody
+	 *            true if the expression occurs within the policy body (attribute
+	 *            finder steps are only allowed if set to true)
+	 * @return a flux of {@link ResultNode.Void} instances, each indicating a finished
+	 *         application of the function to each item of the parent array node
+	 */
+	protected static Flux<Void> reactiveApplyFilterToEachItem(String function, JsonNode parentNode, Arguments arguments, EvaluationContext ctx, boolean isBody) {
+		if (!parentNode.isArray()) {
+			return Flux.error(new PolicyEvaluationException(String.format(FILTER_EACH_NO_ARRAY, parentNode.getNodeType())));
+		}
+
+		final ArrayNode arrayNode = (ArrayNode) parentNode;
+
+		final String fullyQualifiedName = ctx.getImports().getOrDefault(function, function);
+		if (arguments != null && ! arguments.getArgs().isEmpty()) {
+			final List<Flux<JsonNode>> parameterFluxes = new ArrayList<>(arguments.getArgs().size());
+			for (Expression argument : arguments.getArgs()) {
+				parameterFluxes.add(argument.reactiveEvaluate(ctx, isBody, parentNode));
+			}
+			return Flux.combineLatest(parameterFluxes,
+					paramNodes -> {
+						for (int i = 0; i < arrayNode.size(); i++) {
+							final JsonNode childNode = arrayNode.get(i);
+							final ArrayNode argumentsArray = JsonNodeFactory.instance.arrayNode();
+							argumentsArray.add(childNode);
+							for (Object paramNode : paramNodes) {
+								argumentsArray.add((JsonNode) paramNode);
+							}
+							try {
+								final JsonNode modifiedChildNode = ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray);
+								arrayNode.set(i, modifiedChildNode);
+							} catch (FunctionException e) {
+								throw Exceptions.propagate(new PolicyEvaluationException(String.format(FILTER_FUNCTION_EVALUATION, function), e));
+							}
+						}
+						return ResultNode.Void.INSTANCE;
+					})
+					.onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+		} else {
+			try {
+				for (int i = 0; i < arrayNode.size(); i++) {
+					final JsonNode childNode = arrayNode.get(i);
+					final ArrayNode argumentsArray = JsonNodeFactory.instance.arrayNode();
+					argumentsArray.add(childNode);
+					final JsonNode modifiedChildNode = ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray);
+					arrayNode.set(i, modifiedChildNode);
+				}
+				return Flux.just(ResultNode.Void.INSTANCE);
+			} catch (FunctionException e) {
+				return Flux.error(new PolicyEvaluationException(String.format(FILTER_FUNCTION_EVALUATION, function), e));
+			}
+		}
+	}
+
+	/**
+	 * Applies a filter function to a JSON node and returns the result.
 	 *
 	 * @param function
 	 *            the name of the function
@@ -109,29 +183,81 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 *            other arguments to be passed to the function as a JSON array
 	 * @param ctx
 	 *            the evaluation context
+	 * @param isBody
+	 *            true if the expression occurs within the policy body (attribute
+	 *            finder steps are only allowed if set to true)
+	 * @param relativeNode
+	 *            the node a relative expression evaluates to
 	 * @return the result as a JsonNode
 	 * @throws PolicyEvaluationException
 	 *             in case there is an error during the evaluation
 	 */
-	public static JsonNode applyFunctionToNode(String function, JsonNode node, Arguments arguments,
-			EvaluationContext ctx, JsonNode relativeNode) throws PolicyEvaluationException {
-		ArrayNode args = JsonNodeFactory.instance.arrayNode();
+	public static JsonNode applyFilterToNode(String function, JsonNode node, Arguments arguments, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
+			throws PolicyEvaluationException {
+
+		final ArrayNode args = JsonNodeFactory.instance.arrayNode();
 		args.add(node);
 		if (arguments != null) {
 			for (Expression argument : arguments.getArgs()) {
-				args.add(argument.evaluate(ctx, true, relativeNode));
+				args.add(argument.evaluate(ctx, isBody, relativeNode));
 			}
 		}
 
-		String fullyQualifiedName = function;
-		if (ctx.getImports().containsKey(function)) {
-			fullyQualifiedName = ctx.getImports().get(function);
-		}
-
+		final String fullyQualifiedName = ctx.getImports().getOrDefault(function, function);
 		try {
 			return ctx.getFunctionCtx().evaluate(fullyQualifiedName, args);
 		} catch (FunctionException e) {
 			throw new PolicyEvaluationException(String.format(FILTER_FUNCTION_EVALUATION, function), e);
+		}
+	}
+
+	/**
+	 * Applies a function to a JSON node and returns a flux of the results.
+	 *
+	 * @param function
+	 *            the name of the function
+	 * @param node
+	 *            the JSON node to apply the function to
+	 * @param arguments
+	 *            other arguments to be passed to the function as a JSON array
+	 * @param ctx
+	 *            the evaluation context
+	 * @param isBody
+	 *            true if the expression occurs within the policy body (attribute
+	 *            finder steps are only allowed if set to true)
+	 * @param relativeNode
+	 *            the node a relative expression evaluates to
+	 * @return a flux of the results as JsonNodes
+	 */
+	public static Flux<JsonNode> reactiveApplyFilterToNode(String function, JsonNode node, Arguments arguments, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		final String fullyQualifiedName = ctx.getImports().getOrDefault(function, function);
+		if (arguments != null && ! arguments.getArgs().isEmpty()) {
+			final List<Flux<JsonNode>> parameterFluxes = new ArrayList<>(arguments.getArgs().size());
+			for (Expression argument : arguments.getArgs()) {
+				parameterFluxes.add(argument.reactiveEvaluate(ctx, isBody, relativeNode));
+			}
+			return Flux.combineLatest(parameterFluxes,
+					paramNodes -> {
+						final ArrayNode argumentsArray = JsonNodeFactory.instance.arrayNode();
+						argumentsArray.add(node);
+						for (Object paramNode : paramNodes) {
+							argumentsArray.add((JsonNode) paramNode);
+						}
+						try {
+							return ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray);
+						} catch (FunctionException e) {
+							throw Exceptions.propagate(new PolicyEvaluationException(String.format(FILTER_FUNCTION_EVALUATION, function), e));
+						}
+					})
+					.onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+		} else {
+			try {
+				final ArrayNode argumentsArray = JsonNodeFactory.instance.arrayNode();
+				argumentsArray.add(node);
+				return Flux.just(ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray));
+			} catch (FunctionException e) {
+				return Flux.error(new PolicyEvaluationException(String.format(FILTER_FUNCTION_EVALUATION, function), e));
+			}
 		}
 	}
 
@@ -146,6 +272,50 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	}
 
 	/**
+	 * Applies a filter function to this JSON node.
+	 *
+	 * @param function
+	 *            the name of the filter function
+	 * @param arguments
+	 *            other arguments to be passed to the function as a JSON array
+	 * @param each
+	 *            true if the selected node should be treated as an array and the
+	 *            filter function should be applied to each of its items
+	 * @param ctx
+	 *            the evaluation context
+	 * @param isBody
+	 *            true if the expression occurs within the policy body (attribute
+	 *            finder steps are only allowed if set to true)
+	 * @param relativeNode
+	 *            the node a relative expression evaluates to
+	 * @throws PolicyEvaluationException
+	 */
+	public abstract void applyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
+			throws PolicyEvaluationException;
+
+	/**
+	 * Applies a filter function to this JSON node.
+	 *
+	 * @param function
+	 *            the name of the filter function
+	 * @param arguments
+	 *            other arguments to be passed to the function as a JSON array
+	 * @param each
+	 *            true if the selected node should be treated as an array and the
+	 *            filter function should be applied to each of its items
+	 * @param ctx
+	 *            the evaluation context
+	 * @param isBody
+	 *            true if the expression occurs within the policy body (attribute
+	 *            finder steps are only allowed if set to true)
+	 * @param relativeNode
+	 *            the node a relative expression evaluates to
+	 * @return a flux of {@link ResultNode.Void} instances, each indicating a finished
+	 *         application of the function
+	 */
+	public abstract Flux<Void> reactiveApplyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode);
+
+	/**
 	 * The method checks whether two AbstractAnnotatedJsonNodes reference the same
 	 * nodes in a structure, considering the parent nodes and access information.
 	 * Cannot be applied to a JsonNodeWithoutParent.
@@ -157,7 +327,4 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 *             in case the annotated JSON node is a JsonNodeWithoutParent
 	 */
 	public abstract boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException;
-
-	abstract void applyFunctionWithRelativeNode(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, JsonNode relativeNode) throws PolicyEvaluationException;
 }
