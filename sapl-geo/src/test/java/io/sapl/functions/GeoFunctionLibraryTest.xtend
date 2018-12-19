@@ -525,6 +525,6 @@ class GeoFunctionLibraryTest {
 	
 	def Decision getDecision(String policyDefinition) {
 		return INTERPRETER.evaluate(new Request(subject, null, resource, null), policyDefinition, 
-			ATTRIBUTE_CTX, FUNCTION_CTX, variables).getDecision();
+			ATTRIBUTE_CTX, FUNCTION_CTX, variables).blockFirst().getDecision();
 	}
 }

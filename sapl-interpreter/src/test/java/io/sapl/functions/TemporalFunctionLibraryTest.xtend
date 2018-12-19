@@ -101,7 +101,7 @@ class TemporalFunctionLibraryTest {
 		'''
 
         val expectedResponse = Response.permit
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("temporal functions not working as expected", response, equalTo(expectedResponse))
     }
@@ -117,7 +117,7 @@ class TemporalFunctionLibraryTest {
 		'''
 
         val expectedResponse = Response.notApplicable
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("temporal functions not working as expected", response, equalTo(expectedResponse))
     }
@@ -138,7 +138,7 @@ class TemporalFunctionLibraryTest {
         } else {
             expectedResponse = Response.notApplicable
         }
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("temporal functions not working as expected", response, equalTo(expectedResponse))
     }

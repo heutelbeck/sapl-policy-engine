@@ -75,7 +75,7 @@ class ClockPolicyInformationPointTest {
 		'''
 
         val expectedResponse = ClockPolicyInformationPointTest.PERMIT_EMPTY
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("now in UTC time zone should return a string of length 24", response, equalTo(expectedResponse))
     }
@@ -91,7 +91,7 @@ class ClockPolicyInformationPointTest {
 		'''
 
         val expectedResponse = ClockPolicyInformationPointTest.PERMIT_EMPTY
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("now in ECT time zone should return a string of length 29", response, equalTo(expectedResponse))
     }
@@ -107,7 +107,7 @@ class ClockPolicyInformationPointTest {
 		'''
 
         val expectedResponse = ClockPolicyInformationPointTest.PERMIT_EMPTY
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("now in Europe/Berlin time zone should return a string of length 29", response, equalTo(expectedResponse))
     }
@@ -124,7 +124,7 @@ class ClockPolicyInformationPointTest {
 		'''
 
         val expectedResponse = ClockPolicyInformationPointTest.PERMIT_EMPTY
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("now in the system's time zone should return a string of length 24 or 29", response, equalTo(expectedResponse))
     }

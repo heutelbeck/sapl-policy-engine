@@ -37,7 +37,7 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
-			responseFluxes.add(Flux.just(interpreter.evaluate(request, document, attributeCtx, functionCtx, systemVariables)));
+			responseFluxes.add(interpreter.evaluate(request, document, attributeCtx, functionCtx, systemVariables));
 		}
 
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(errorsInTarget);
@@ -70,8 +70,8 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
-			responseFluxes.add(Flux.just(interpreter.evaluateRules(request, policy, attributeCtx, functionCtx,
-					systemVariables, variables, imports)));
+			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx, functionCtx,
+					systemVariables, variables, imports));
 		}
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(errorsInTarget);
 		return Flux.combineLatest(responseFluxes, responses -> {

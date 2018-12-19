@@ -131,7 +131,7 @@ public class DefaultSAPLInterpreterTest {
 	public void permitAll() {
 		final String policyDefinition = "policy \"test\" permit transform [\"foo\", \"bar\"] |- {each @.<sapl.pip.test.echo> : simple.length}";
 		final Response expected = Response.permit();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("permit all did not evaluate to permit", expected, actual);
 	}
 
@@ -139,7 +139,7 @@ public class DefaultSAPLInterpreterTest {
 	public void denyAll() {
 		final String policyDefinition = "policy \"test\" deny";
 		final Response expected = Response.deny();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("deny all did not evaluate to deny", expected, actual);
 	}
 
@@ -147,7 +147,7 @@ public class DefaultSAPLInterpreterTest {
 	public void permitFalse() {
 		final String policyDefinition = "policy \"test\" permit false";
 		final Response expected = Response.notApplicable();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("false in target did not lead to not_applicable result", expected, actual);
 	}
 
@@ -155,7 +155,7 @@ public class DefaultSAPLInterpreterTest {
 	public void permitParseError() {
 		final String policyDefinition = "--- policy \"test\" permit ---";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("parse error should lead to indeterminate", expected, actual);
 	}
 
@@ -163,7 +163,7 @@ public class DefaultSAPLInterpreterTest {
 	public void targetNotBoolean() {
 		final String policyDefinition = "policy \"test\" permit 20";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("target expression type mismatch not detected", expected, actual);
 	}
 
@@ -177,7 +177,7 @@ public class DefaultSAPLInterpreterTest {
 	public void evaluateWorkingBodyTrue() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where true;";
 		final Response expected = Response.permit();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("evaluateRule behaves unexpectedly", expected, actual);
 	}
 
@@ -185,7 +185,7 @@ public class DefaultSAPLInterpreterTest {
 	public void evaluateWorkingBodyFalse() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where false;";
 		final Response expected = Response.notApplicable();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("evaluateRule behaves unexpectedly", expected, actual);
 	}
 
@@ -193,7 +193,7 @@ public class DefaultSAPLInterpreterTest {
 	public void evaluateWorkingBodyError() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where 4 && true;";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("evaluateRule behaves unexpectedly", expected, actual);
 	}
 
@@ -201,7 +201,7 @@ public class DefaultSAPLInterpreterTest {
 	public void echoAttributeFinder() {
 		final String policyDefinition = "policy \"test\" permit where var variable = [1,2,3]; variable.<sapl.pip.test.echo> == variable;";
 		final Response expected = Response.permit();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("external attribute finder not evaluated as expected", expected, actual);
 	}
 
@@ -209,7 +209,10 @@ public class DefaultSAPLInterpreterTest {
 	public void attributeFinderInTarget() {
 		final String policyDefinition = "policy \"test\" permit \"test\".<sapl.pip.test.echo> == \"test\"";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+//		StepVerifier.create(INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES))
+//				.expectNext(expected)
+//				.verifyComplete();
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("external attribute finder was allowed in target", expected, actual);
 	}
 
@@ -217,7 +220,7 @@ public class DefaultSAPLInterpreterTest {
 	public void bodyStatementNotBoolean() {
 		final String policyDefinition = "policy \"test\" permit where null;";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("non boolean statement should lead to an error", expected, actual);
 	}
 
@@ -225,7 +228,7 @@ public class DefaultSAPLInterpreterTest {
 	public void variableRedefinition() {
 		final String policyDefinition = "policy \"test\" permit where var test = null; var test = 2; test == 2;";
 		final Response expected = Response.permit();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("redefinition of value was not allowed", expected, actual);
 	}
 
@@ -233,7 +236,7 @@ public class DefaultSAPLInterpreterTest {
 	public void unboundVariable() {
 		final String policyDefinition = "policy \"test\" permit where variable;";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("access to unbound variable should lead to an error", expected, actual);
 	}
 
@@ -241,7 +244,7 @@ public class DefaultSAPLInterpreterTest {
 	public void functionCall() {
 		final String policyDefinition = "policy \"test\" permit where simple.append(\"a\",\"b\") == \"ab\";";
 		final Response expected = Response.permit();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("function call not evaluated as expected", expected, actual);
 	}
 
@@ -249,7 +252,7 @@ public class DefaultSAPLInterpreterTest {
 	public void functionCallImport() {
 		final String policyDefinition = "import simple.append policy \"test\" permit where append(\"a\",\"b\") == \"ab\";";
 		final Response expected = Response.permit();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("function call with import not evaluated as expected", expected, actual);
 	}
 
@@ -257,7 +260,7 @@ public class DefaultSAPLInterpreterTest {
 	public void functionCallError() {
 		final String policyDefinition = "policy \"test\" permit where append(null) == \"ab\";";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("function call error should lead to indeterminate", expected, actual);
 	}
 
@@ -265,7 +268,7 @@ public class DefaultSAPLInterpreterTest {
 	public void functionCallOnObjectNodeWithRelativeArguments() {
 		final String policyDefinition = "import simple.append policy \"test\" permit where {\"name\": \"Ben\", \"origin\": \"Berlin\"} |- {@.name : append(\" from \", @.origin), @.origin : remove} == {\"name\": \"Ben from Berlin\"};";
 		final Response expected = Response.permit();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("function call on object node passing relative arguments not evaluated as expected", expected, actual);
 	}
 
@@ -273,7 +276,7 @@ public class DefaultSAPLInterpreterTest {
 	public void functionCallOnEachArrayItemWithRelativeArguments() {
 		final String policyDefinition = "import simple.append policy \"test\" permit where [{\"name\": \"Ben\", \"origin\": \"Berlin\"}, {\"name\": \"Zoe\", \"origin\": \"Zurich\"}] |- {each @.name : append(\" from \", @.origin), each @.origin : remove} == [{\"name\": \"Ben from Berlin\"}, {\"name\": \"Zoe from Zurich\"}];";
 		final Response expected = Response.permit();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("function call on each array item passing relative arguments not evaluated as expected", expected, actual);
 	}
 
@@ -281,7 +284,7 @@ public class DefaultSAPLInterpreterTest {
 	public void transformation() {
 		final String policyDefinition = "policy \"test\" permit transform null";
 		final Optional<NullNode> expected = Optional.of(JSON.nullNode());
-		final Response response = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response response = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		final Optional<JsonNode> actual = response.getResource();
 		assertEquals("transformation not evaluated as expected", expected, actual);
 	}
@@ -290,7 +293,7 @@ public class DefaultSAPLInterpreterTest {
 	public void transformationError() {
 		final String policyDefinition = "policy \"test\" permit transform null + true";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("error in transformation should evaluate to indeterminate", expected, actual);
 	}
 
@@ -302,7 +305,7 @@ public class DefaultSAPLInterpreterTest {
 		expectedObligation.add(JSON.nullNode());
 		final Optional<ArrayNode> expected = Optional.of(expectedObligation);
 
-		final Response response = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response response = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		final Optional<ArrayNode> actual = response.getObligation();
 
 		assertEquals("obligation not evaluated as expected", expected, actual);
@@ -312,7 +315,7 @@ public class DefaultSAPLInterpreterTest {
 	public void obligationError() {
 		final String policyDefinition = "policy \"test\" permit obligation \"a\" > 5";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("error in obligation evaluation should evaluate to indeterminate", expected, actual);
 	}
 
@@ -324,7 +327,7 @@ public class DefaultSAPLInterpreterTest {
 		expectedAdvice.add(JSON.nullNode());
 		final Optional<ArrayNode> expected = Optional.of(expectedAdvice);
 
-		final Response response = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response response = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		final Optional<ArrayNode> actual = response.getAdvice();
 
 		assertEquals("advice not evaluated as expected", expected, actual);
@@ -334,7 +337,7 @@ public class DefaultSAPLInterpreterTest {
 	public void adviceError() {
 		final String policyDefinition = "policy \"test\" permit advice \"a\" > 5";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("error in advice evaluation should evaluate to indeterminate", expected, actual);
 	}
 
@@ -342,7 +345,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importWildcard() {
 		final String policyDefinition = "import simple.* policy \"test\" permit where var a = append(\"a\",\"b\");";
 		final Response expected = Response.permit();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("wildcard import not working", expected, actual);
 	}
 
@@ -350,7 +353,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importAttributeFinder() {
 		final String policyDefinition = "import sapl.pip.test.echo policy \"test\" permit where \"echo\" == \"echo\".<echo>;";
 		final Response expected = Response.permit();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("attribute finder import not working", expected, actual);
 	}
 
@@ -358,7 +361,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importLibrary() {
 		final String policyDefinition = "import simple as simple_lib policy \"test\" permit where var a = simple_lib.append(\"a\",\"b\");";
 		final Response expected = Response.permit();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("library import with alias not working", expected, actual);
 	}
 
@@ -366,7 +369,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importMultiple() {
 		final String policyDefinition = "import simple.length import simple.append policy \"test\" permit where var a = append(\"a\",\"b\");";
 		final Response expected = Response.permit();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("multiple imports not working", expected, actual);
 	}
 
@@ -374,7 +377,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importNonExistingFunction() {
 		final String policyDefinition = "import simple.non_existing policy \"test\" permit where true;";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("importing non existing function should cause an error", expected, actual);
 	}
 
@@ -382,7 +385,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importDuplicateFunction() {
 		final String policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("importing duplicate short name should cause an error", expected, actual);
 	}
 
@@ -390,7 +393,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importDuplicateFunctionMatchingPolicy() {
 		final String policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("importing duplicate short name should cause an error", expected, actual);
 	}
 
@@ -398,7 +401,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importDuplicateWildcard() {
 		final String policyDefinition = "import simple.append import simple.* policy \"test\" permit where true;";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("importing duplicate short name should cause an error", expected, actual);
 	}
 
@@ -406,7 +409,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importDuplicateAlias() {
 		final String policyDefinition = "import simple as test import simple as test policy \"test\" permit where true;";
 		final Response expected = Response.indeterminate();
-		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES);
+		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("importing duplicate aliased name should cause an error", expected, actual);
 	}
 

@@ -44,8 +44,8 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
-			responseFluxes.add(Flux.just(interpreter.evaluateRules(request, policy, attributeCtx, functionCtx,
-					systemVariables, variables, imports)));
+			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx, functionCtx,
+					systemVariables, variables, imports));
 		}
 		return Flux.combineLatest(responseFluxes, responses -> {
 			for (Object response : responses) {

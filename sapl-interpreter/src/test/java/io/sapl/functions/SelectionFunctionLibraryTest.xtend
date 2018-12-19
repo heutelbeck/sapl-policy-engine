@@ -96,7 +96,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = io.sapl.functions.SelectionFunctionLibraryTest.PERMIT_EMPTY
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("apply function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -112,7 +112,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = Response.notApplicable()
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("match function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -128,7 +128,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = io.sapl.functions.SelectionFunctionLibraryTest.PERMIT_EMPTY
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("match function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -144,7 +144,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = Response.notApplicable()
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("match function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -160,7 +160,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = Response.notApplicable()
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("match function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -176,7 +176,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = io.sapl.functions.SelectionFunctionLibraryTest.PERMIT_EMPTY
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("match function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -192,7 +192,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = Response.notApplicable()
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("match function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -208,7 +208,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = io.sapl.functions.SelectionFunctionLibraryTest.PERMIT_EMPTY
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("match function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -224,7 +224,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = io.sapl.functions.SelectionFunctionLibraryTest.PERMIT_EMPTY
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("match function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -240,7 +240,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = io.sapl.functions.SelectionFunctionLibraryTest.PERMIT_EMPTY
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("match function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -256,7 +256,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = Response.notApplicable()
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("match function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -270,7 +270,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = PERMIT_EMPTY
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("equals function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -284,7 +284,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = PERMIT_EMPTY
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("equals function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -298,7 +298,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = Response.notApplicable()
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("equals function not working as expected", response, equalTo(expectedResponse))
 	}
@@ -312,7 +312,7 @@ class SelectionFunctionLibraryTest {
 
 		val expectedResponse = PERMIT_EMPTY
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES)
+			SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("equals function not working as expected", response, equalTo(expectedResponse))
 	}

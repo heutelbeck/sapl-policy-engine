@@ -32,7 +32,7 @@ public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyC
 			return Flux.just(Response.indeterminate());
 		} else if (matchingSaplDocuments.size() == 1) {
 			final SAPL matchingDocument = matchingSaplDocuments.iterator().next();
-			return Flux.just(interpreter.evaluateRules(request, matchingDocument, attributeCtx, functionCtx, systemVariables));
+			return interpreter.evaluateRules(request, matchingDocument, attributeCtx, functionCtx, systemVariables);
 		} else {
 			return Flux.just(Response.notApplicable());
 		}
@@ -61,7 +61,6 @@ public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyC
 			return Flux.just(Response.notApplicable());
 		}
 
-		return Flux.just(interpreter.evaluateRules(request, matchingPolicy, attributeCtx, functionCtx,
-				systemVariables, variables, imports));
+		return interpreter.evaluateRules(request, matchingPolicy, attributeCtx, functionCtx, systemVariables, variables, imports);
 	}
 }

@@ -60,7 +60,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return permit if the only policy evaluates to permit", Decision.PERMIT, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -69,7 +69,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return deny if the only policy evaluates to deny", Decision.DENY, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -79,7 +79,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return not applicable if the only policy target evaluates to not applicable",
 				Decision.NOT_APPLICABLE, INTERPRETER.evaluate(new Request(null, null, null, null), policySet,
-						attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+						attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -89,7 +89,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return not applicable if the only policy condition evaluates to not applicable",
 				Decision.NOT_APPLICABLE, INTERPRETER.evaluate(new Request(null, null, null, null), policySet,
-						attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+						attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -98,7 +98,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return indeterminate if the only target is indeterminate", Decision.INDETERMINATE,
 				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).getDecision());
+						SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -108,7 +108,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return indeterminate if the only condition is indeterminate", Decision.INDETERMINATE,
 				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).getDecision());
+						SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -118,7 +118,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return permit if only matching policy evaluates to permit", Decision.PERMIT, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -128,7 +128,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return indeterminate if more than one policy matching", Decision.INDETERMINATE, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -138,7 +138,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return indeterminate if more than one policy matching", Decision.INDETERMINATE, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -150,7 +150,7 @@ public class OnlyOneApplicableTest {
 				"should return indeterminate if more than one policy matching, "
 						+ "even if only one evaluates to permit or deny",
 				Decision.INDETERMINATE, INTERPRETER.evaluate(new Request(null, null, null, null), policySet,
-						attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+						attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -160,7 +160,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return permit if there is no transformation incertainty", Decision.PERMIT, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -170,7 +170,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return resource if there is no transformation incertainty",
 				Optional.of(JSON.booleanNode(true)), INTERPRETER.evaluate(new Request(null, null, null, null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getResource());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getResource());
 	}
 
 	@Test
@@ -186,7 +186,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should collect deny obligation of only matching policy", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getObligation());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligation());
 	}
 
 	@Test
@@ -202,7 +202,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should collect deny advice of only matching policy", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getAdvice());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvice());
 	}
 
 	@Test
@@ -218,7 +218,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should collect permit obligation of only matching policy", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getObligation());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligation());
 	}
 
 	@Test
@@ -234,7 +234,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should collect permit advice of only matching policy", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getAdvice());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvice());
 	}
 
 }

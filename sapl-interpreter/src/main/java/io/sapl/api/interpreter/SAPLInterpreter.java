@@ -16,13 +16,13 @@ import java.io.InputStream;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import reactor.core.publisher.Flux;
 
 public interface SAPLInterpreter {
 
@@ -64,7 +64,7 @@ public interface SAPLInterpreter {
 	/**
 	 * Method which evaluates a SAPL document (containing a policy set or policy)
 	 * against a Request object within a given attribute context and function
-	 * context and returns a Response object.
+	 * context and returns a {@link Flux} of {@link Response} objects.
 	 *
 	 * @param request
 	 *            the Request object
@@ -77,15 +77,16 @@ public interface SAPLInterpreter {
 	 * @param systemVariables
 	 *            the system variables, a Map between the variable name and its
 	 *            value
-	 * @return A Response object
+	 * @return A {@link Flux} of {@link Response} objects.
 	 */
-	Response evaluate(Request request, SAPL saplDocument, AttributeContext attributeCtx, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables);
+	Flux<Response> evaluate(Request request, SAPL saplDocument, AttributeContext attributeCtx, FunctionContext functionCtx,
+							Map<String, JsonNode> systemVariables);
 
 	/**
 	 * Method which evaluates a String containing a SAPL document (containing a
 	 * policy set or policy) against a Request object within a given attribute
-	 * context and function context and returns a Response object.
+	 * context and function context and returns a {@link Flux} of {@link Response}
+	 * objects.
 	 *
 	 * @param request
 	 *            the Request object
@@ -98,15 +99,15 @@ public interface SAPLInterpreter {
 	 * @param systemVariables
 	 *            the system variables, a Map between the variable name and its
 	 *            value
-	 * @return A Response object
+	 * @return A {@link Flux} of {@link Response} objects.
 	 */
-	Response evaluate(Request request, String saplDefinition, AttributeContext attributeCtx,
+	Flux<Response> evaluate(Request request, String saplDefinition, AttributeContext attributeCtx,
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables);
 
 	/**
 	 * Method which evaluates the body of a SAPL document (containing a policy set
 	 * or a policy) against a Request object within a given attribute context and
-	 * function context and returns a Response object.
+	 * function context and returns a {@link Flux} of {@link Response} objects.
 	 *
 	 * @param request
 	 *            the Request object
@@ -119,16 +120,16 @@ public interface SAPLInterpreter {
 	 * @param systemVariables
 	 *            the system variables, a Map between the variable name and its
 	 *            value
-	 * @return A Response object
+	 * @return A {@link Flux} of {@link Response} objects.
 	 */
-	Response evaluateRules(Request request, SAPL saplDocument, AttributeContext attributeCtx,
+	Flux<Response> evaluateRules(Request request, SAPL saplDocument, AttributeContext attributeCtx,
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables);
 
 	/**
 	 * Method which evaluates a SAPL policy element (policy set or policy) against a
-	 * Request object within a given AttributeContext and FunctionContext and
-	 * returns a Response object. An import Map and custom variables can be
-	 * provided.
+	 * Request object within a given AttributeContext and FunctionContext and returns
+	 * a {@link Flux} of {@link Response} objects.. An import Map and custom variables
+	 * can be provided.
 	 *
 	 * @param request
 	 *            the Request object
@@ -147,9 +148,9 @@ public interface SAPLInterpreter {
 	 * @param imports
 	 *            the imports Map, a Map between short names (String) and fully
 	 *            qualified names (String)
-	 * @return A Response object
+	 * @return A {@link Flux} of {@link Response} objects.
 	 */
-	Response evaluateRules(Request request, PolicyElement policyElement, AttributeContext attributeCtx,
+	Flux<Response> evaluateRules(Request request, PolicyElement policyElement, AttributeContext attributeCtx,
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
 			Map<String, String> imports);
 
