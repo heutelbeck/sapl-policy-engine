@@ -54,7 +54,6 @@ public class DivImplCustom extends io.sapl.grammar.sapl.impl.DivImpl {
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 	}
 

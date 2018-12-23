@@ -54,7 +54,6 @@ public class MinusImplCustom extends io.sapl.grammar.sapl.impl.MinusImpl {
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 	}
 

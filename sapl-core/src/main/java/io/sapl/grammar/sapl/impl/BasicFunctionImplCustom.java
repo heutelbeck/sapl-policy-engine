@@ -80,8 +80,7 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 							throw Exceptions.propagate(new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, fullyQualifiedName), e));
 						}
 					})
-					.flatMap(Function.identity())
-					.onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+					.flatMap(Function.identity());
 		} else {
 			try {
 				final JsonNode resultBeforeSteps = ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray);

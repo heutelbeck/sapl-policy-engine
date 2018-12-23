@@ -54,7 +54,6 @@ public class EagerAndImplCustom extends io.sapl.grammar.sapl.impl.EagerAndImpl {
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 	}
 

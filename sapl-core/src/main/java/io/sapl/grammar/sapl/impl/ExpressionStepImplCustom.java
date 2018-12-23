@@ -99,8 +99,7 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
                     } catch (PolicyEvaluationException e) {
                         throw Exceptions.propagate(e);
                     }
-                })
-                .onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+                });
 	}
 
 	@Override
@@ -112,8 +111,7 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
                     } catch (PolicyEvaluationException e) {
                         throw Exceptions.propagate(e);
                     }
-                })
-                .onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+                });
 	}
 
 	@Override

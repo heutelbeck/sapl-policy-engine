@@ -54,7 +54,6 @@ public class MultiImplCustom extends io.sapl.grammar.sapl.impl.MultiImpl {
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 	}
 

@@ -69,7 +69,6 @@ public class AndImplCustom extends io.sapl.grammar.sapl.impl.AndImpl {
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 	}
 

@@ -54,7 +54,6 @@ public class MoreEqualsImplCustom extends io.sapl.grammar.sapl.impl.MoreEqualsIm
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 	}
 

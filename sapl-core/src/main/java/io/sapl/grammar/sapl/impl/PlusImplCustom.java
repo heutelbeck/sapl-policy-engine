@@ -69,7 +69,6 @@ public class PlusImplCustom extends io.sapl.grammar.sapl.impl.PlusImpl {
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 	}
 

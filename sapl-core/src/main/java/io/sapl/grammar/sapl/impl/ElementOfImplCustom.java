@@ -64,7 +64,6 @@ public class ElementOfImplCustom extends io.sapl.grammar.sapl.impl.ElementOfImpl
 					}
 					return JSON.booleanNode(false);
 				})
-				.onErrorResume(error -> Flux.error(Exceptions.unwrap(error)))
 				.distinctUntilChanged();
 	}
 

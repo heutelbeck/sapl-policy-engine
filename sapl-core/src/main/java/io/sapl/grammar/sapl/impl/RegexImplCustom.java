@@ -75,7 +75,6 @@ public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 	}
 

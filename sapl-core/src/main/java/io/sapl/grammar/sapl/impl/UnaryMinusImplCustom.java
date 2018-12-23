@@ -46,7 +46,6 @@ public class UnaryMinusImplCustom extends io.sapl.grammar.sapl.impl.UnaryMinusIm
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 	}
 

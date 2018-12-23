@@ -69,7 +69,6 @@ public class OrImplCustom extends io.sapl.grammar.sapl.impl.OrImpl {
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 	}
 

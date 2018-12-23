@@ -54,7 +54,6 @@ public class LessImplCustom extends io.sapl.grammar.sapl.impl.LessImpl {
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 	}
 

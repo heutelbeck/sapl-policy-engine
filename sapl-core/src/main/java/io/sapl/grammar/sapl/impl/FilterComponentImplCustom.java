@@ -231,8 +231,7 @@ public class FilterComponentImplCustom extends io.sapl.grammar.sapl.impl.FilterC
                         } catch (PolicyEvaluationException e) {
                             throw Exceptions.propagate(e);
                         }
-                    })
-                    .onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+                    });
         } else {
             return target.reactiveApplyFilter(function, arguments, each, ctx, isBody);
         }

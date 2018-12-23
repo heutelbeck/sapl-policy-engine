@@ -46,7 +46,6 @@ public class NotImplCustom extends io.sapl.grammar.sapl.impl.NotImpl {
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 
 	}

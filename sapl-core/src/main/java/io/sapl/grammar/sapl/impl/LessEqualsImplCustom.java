@@ -54,7 +54,6 @@ public class LessEqualsImplCustom extends io.sapl.grammar.sapl.impl.LessEqualsIm
 						throw Exceptions.propagate(e);
 					}
 				})
-				.onErrorResume(e -> Flux.error(Exceptions.unwrap(e)))
 				.distinctUntilChanged();
 	}
 
