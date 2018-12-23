@@ -306,6 +306,11 @@
 			<artifactId>org.eclipse.equinox.common</artifactId>
 			<version>3.8.0</version>
 		</dependency>
+
+		<dependency>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
+		</dependency>
 	</dependencies>
 	<repositories>
 		<repository>
