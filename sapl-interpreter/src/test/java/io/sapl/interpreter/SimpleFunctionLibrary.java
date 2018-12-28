@@ -12,8 +12,6 @@
  */
 package io.sapl.interpreter;
 
-import java.time.Instant;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -27,11 +25,6 @@ import io.sapl.api.validation.Text;
 @FunctionLibrary(name = "simple", description = "some simple functions")
 public class SimpleFunctionLibrary {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	@Function
-	public JsonNode now() throws FunctionException {
-		return JSON.textNode(Instant.now().toString());
-	}
 
 	@Function
 	public JsonNode length(JsonNode parameter) throws FunctionException {

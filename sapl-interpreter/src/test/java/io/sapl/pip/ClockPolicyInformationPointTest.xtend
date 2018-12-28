@@ -65,7 +65,7 @@ class ClockPolicyInformationPointTest {
 	}
 
     @Test
-    def void nowAsUtcTime() {
+    def void nowInUtcTime() {
         val policyDefinition = '''
 			policy "test"
 			permit
