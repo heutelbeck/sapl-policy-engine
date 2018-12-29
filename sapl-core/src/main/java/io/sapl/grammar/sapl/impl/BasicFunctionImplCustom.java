@@ -19,14 +19,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
-import org.eclipse.emf.ecore.EObject;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
@@ -62,7 +64,6 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 		final String joinedSteps = String.join(".", getFsteps());
 		final String fullyQualifiedName = ctx.getImports().getOrDefault(joinedSteps, joinedSteps);
 
-		final ArrayNode argumentsArray = JSON.arrayNode();
 		if (getArguments() != null && ! getArguments().getArgs().isEmpty()) {
 			final List<Flux<JsonNode>> parameterFluxes = new ArrayList<>(getArguments().getArgs().size());
 			for (Expression argument : getArguments().getArgs()) {
@@ -70,6 +71,7 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 			}
 			return Flux.combineLatest(parameterFluxes,
 					paramNodes -> {
+						final ArrayNode argumentsArray = JSON.arrayNode();
 						for (Object paramNode : paramNodes) {
 							argumentsArray.add((JsonNode) paramNode);
 						}
@@ -83,6 +85,7 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 					.flatMap(Function.identity());
 		} else {
 			try {
+				final ArrayNode argumentsArray = JSON.arrayNode();
 				final JsonNode resultBeforeSteps = ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray);
 				return reactiveEvaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
 			} catch (FunctionException e) {
