@@ -13,8 +13,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.SAPLInterpreter;
@@ -22,9 +29,9 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pdp.multirequest.IdentifiableRequest;
+import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import io.sapl.api.pdp.multirequest.MultiRequest;
 import io.sapl.api.pdp.multirequest.MultiResponse;
-import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.prp.PolicyRetrievalPoint;
@@ -42,11 +49,6 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.embedded.ResourcesPolicyRetrievalPoint;
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.core.type.filter.AnnotationTypeFilter;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
@@ -239,8 +241,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
                 final Flux<Response> responseFlux = reactiveDecide(request);
                 final Flux<IdentifiableResponse> requestResponsePairFlux = responseFlux
                         .map(response -> new IdentifiableResponse(identifiableRequest.getId(), response))
-                        .subscribeOn(Schedulers.elastic());
-                //.publishOn(Schedulers.elastic());
+                        .subscribeOn(Schedulers.newElastic("pdp"));
                 requestIdResponsePairFluxes.add(requestResponsePairFlux);
             }
             return Flux.merge(requestIdResponsePairFluxes);

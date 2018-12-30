@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -86,7 +87,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 			ParameterTypeValidator.validateType(value, firstParameter);
 			if (metadata.isReactive()) {
                 final Flux<JsonNode> resultFlux = (Flux<JsonNode>) method.invoke(pip, value, variables);
-                return resultFlux.subscribeOn(Schedulers.elastic());
+                return resultFlux.subscribeOn(Schedulers.newElastic("pip"));
             } else {
 				final JsonNode jsonNode = (JsonNode) method.invoke(pip, value, variables);
 				return Flux.just(jsonNode);
