@@ -73,4 +73,17 @@ public interface ObligationHandlerService {
 		}
 	}
 
+	/**
+	 * Returns {@code true} if a handler suitable for the given obligation
+	 * has been registered, {@code false} otherwise.
+	 *
+	 * @param obligation the obligation to handle
+	 * @return {@code true} iff a handler suitable for the given obligation
+	 *         has been registered.
+	 */
+	default boolean couldHandle(Obligation obligation) {
+		Optional<ObligationHandler> handler = chooseHandler(obligation);
+		return handler.isPresent();
+	}
+
 }

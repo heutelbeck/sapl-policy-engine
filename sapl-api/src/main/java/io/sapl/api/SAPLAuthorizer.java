@@ -49,10 +49,12 @@ public class SAPLAuthorizer {
 
 	/**
 	 * Retrieves an authorization response from the policy decision point but does not handle any obligations
-	 * or advice contained in the response. If the authorization decision is {@link Decision#PERMIT} {@code true}
-	 * is returned, {@code false} otherwise. This method is meant to be used if the specified action shall not
-	 * yet be executed, but the caller still has to know whether it could be executed (e.g. to decide whether
-	 * a link or button triggering the action should be displayed/enabled).
+	 * or advice contained in the response (but checks, whether obligations could be handled, though). If the
+	 * authorization decision is {@link Decision#PERMIT} and handlers for all the obligations contained in the
+	 * response have been registered with the current obligation handler, {@code true} is returned, {@code false}
+	 * otherwise. This method is meant to be used if the specified action should not yet be executed, but the
+	 * caller still has to know whether it could be executed (e.g. to decide whether a link or button triggering
+	 * the action should be displayed/enabled).
 	 * Thus a later call to {@link #authorize(Object, Object, Object, Object) authorize()} or
 	 * {@link #getResponse(Object, Object, Object, Object) getResponse()} has to be executed prior to performing
 	 * the specified action.
@@ -84,7 +86,7 @@ public class SAPLAuthorizer {
 		final Response response = pdp.decide(mappedSubject, mappedAction, mappedResource, mappedEnvironment);
 		LOGGER.debug("Response decision is: {}", response.getDecision());
 
-		return response.getDecision() == Decision.PERMIT;
+		return response.getDecision() == Decision.PERMIT && couldHandleObligations(response);
 	}
 
 	/**
@@ -110,7 +112,13 @@ public class SAPLAuthorizer {
 		final Object mappedEnvironment = sm.map(environment, SaplRequestElement.ENVIRONMENT);
 
 		final Flux<Response> responseFlux = pdp.reactiveDecide(mappedSubject, mappedAction, mappedResource, mappedEnvironment);
-		return responseFlux.map(Response::getDecision).distinctUntilChanged();
+		return responseFlux
+				.map(response ->
+					response.getDecision() == Decision.PERMIT && couldHandleObligations(response)
+						? Decision.PERMIT
+						: Decision.DENY
+				)
+				.distinctUntilChanged();
 	}
 
 	/**
@@ -124,7 +132,17 @@ public class SAPLAuthorizer {
 	public MultiDecision wouldAuthorize(MultiRequest multiRequest) {
 		multiRequest.applySaplMapper(sm);
 		final MultiResponse multiResponse = pdp.multiDecide(multiRequest);
-		return new MultiDecision(multiResponse);
+		final MultiResponse adjustedMultiResponse = new MultiResponse();
+		multiResponse.forEach(identifiableResponse -> {
+			final String requestId = identifiableResponse.getRequestId();
+			final Response response = identifiableResponse.getResponse();
+			if (response.getDecision() == Decision.PERMIT && couldHandleObligations(response)) {
+				adjustedMultiResponse.setResponseForRequestWithId(requestId, response);
+			} else {
+				adjustedMultiResponse.setResponseForRequestWithId(requestId, Response.deny());
+			}
+		});
+		return new MultiDecision(adjustedMultiResponse);
 	}
 
 	/**
@@ -138,7 +156,15 @@ public class SAPLAuthorizer {
 	public Flux<IdentifiableDecision> reactiveWouldAuthorize(MultiRequest multiRequest) {
 		multiRequest.applySaplMapper(sm);
 		final Flux<IdentifiableResponse> identifiableResponseFlux = pdp.reactiveMultiDecide(multiRequest);
-		return identifiableResponseFlux.map(IdentifiableDecision::new);
+		return identifiableResponseFlux
+				.map(identifiableResponse -> {
+					final Response response = identifiableResponse.getResponse();
+					if (response.getDecision() == Decision.PERMIT && couldHandleObligations(response)) {
+						return new IdentifiableDecision(identifiableResponse);
+					} else {
+						return new IdentifiableDecision(identifiableResponse.getRequestId(), Decision.DENY);
+					}
+				});
 	}
 
 	/**
@@ -365,7 +391,7 @@ public class SAPLAuthorizer {
      * @return a {@link Flux} providing the responses for the given requests as a stream. Related responses and
      *         requests have the same id.
      */
-    public Flux<IdentifiableResponse> reactiveGetResponse(MultiRequest multiRequest) {
+    public Flux<IdentifiableResponse> reactiveGetResponses(MultiRequest multiRequest) {
         multiRequest.applySaplMapper(sm);
         final Flux<IdentifiableResponse> responseFlux = pdp.reactiveMultiDecide(multiRequest);
         return responseFlux.map(response -> {
@@ -375,14 +401,26 @@ public class SAPLAuthorizer {
         });
     }
 
+    private boolean couldHandleObligations(Response response) {
+    	if (response.getObligation().isPresent()) {
+			final List<Obligation> obligations = Obligation.fromJson(response.getObligation().get());
+			for (Obligation obligation : obligations) {
+				if (! obs.couldHandle(obligation)) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
     private Response handleObligations(Response response) {
 	    boolean obligationFailed = false;
         if (response.getObligation().isPresent()) {
-            final List<Obligation> obligationsList = Obligation.fromJson(response.getObligation().get());
+            final List<Obligation> obligations = Obligation.fromJson(response.getObligation().get());
             try {
-                for (Obligation o : obligationsList) {
-                    LOGGER.debug("Handling obligation {}", o);
-                    obs.handle(o);
+                for (Obligation obligation : obligations) {
+                    LOGGER.debug("Handling obligation {}", obligation);
+                    obs.handle(obligation);
                 }
             } catch (ObligationFailed e) {
                 obligationFailed = true;
@@ -393,10 +431,10 @@ public class SAPLAuthorizer {
 
     private void handleAdvice(Response response) {
         if (response.getAdvice().isPresent()) {
-            final List<Advice> adviceList = Advice.fromJson(response.getAdvice().get());
-            for (Advice a : adviceList) {
-                LOGGER.debug("Handling advise {}", a);
-                ahs.handle(a);
+            final List<Advice> advice = Advice.fromJson(response.getAdvice().get());
+            for (Advice advise : advice) {
+                LOGGER.debug("Handling advise {}", advise);
+                ahs.handle(advise);
             }
         }
     }
