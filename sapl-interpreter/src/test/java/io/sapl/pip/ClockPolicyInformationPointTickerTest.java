@@ -1,7 +1,6 @@
 package io.sapl.pip;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.math.BigDecimal;
@@ -43,7 +42,7 @@ public class ClockPolicyInformationPointTickerTest {
                         final LocalDateTime localDateTime = LocalDateTime.now();
                         final String actual = TemporalFunctionLibrary.localDateTime(node).textValue();
                         final String expected = localDateTime.truncatedTo(ChronoUnit.SECONDS).toString();
-                        assertThat("<clock.ticker> or time.localDateTime() do not work as expected", actual, is(expected));
+                        assertEquals("<clock.ticker> or time.localDateTime() do not work as expected", expected, actual);
                     } catch (FunctionException e) {
                         fail(e.getMessage());
                     }
@@ -54,7 +53,7 @@ public class ClockPolicyInformationPointTickerTest {
                         final LocalTime localTime = LocalTime.now();
                         final String actual = TemporalFunctionLibrary.localTime(node).textValue();
                         final String expected = localTime.truncatedTo(ChronoUnit.SECONDS).toString();
-                        assertThat("<clock.ticker> or time.localTime() do not work as expected", actual, is(expected));
+                        assertEquals("<clock.ticker> or time.localTime() do not work as expected", expected, actual);
                     } catch (FunctionException e) {
                         fail(e.getMessage());
                     }
@@ -65,7 +64,7 @@ public class ClockPolicyInformationPointTickerTest {
                         final LocalTime localTime = LocalTime.now();
                         final Number actual = TemporalFunctionLibrary.localHour(node).numberValue();
                         final Number expected = BigDecimal.valueOf(localTime.getHour());
-                        assertThat("<clock.ticker> or time.localHour() do not work as expected", actual, is(expected));
+                        assertEquals("<clock.ticker> or time.localHour() do not work as expected", expected.longValue(), actual.longValue());
                     } catch (FunctionException e) {
                         fail(e.getMessage());
                     }
@@ -76,7 +75,7 @@ public class ClockPolicyInformationPointTickerTest {
                         final LocalTime localTime = LocalTime.now();
                         final Number actual = TemporalFunctionLibrary.localMinute(node).numberValue();
                         final Number expected = BigDecimal.valueOf(localTime.getMinute());
-                        assertThat("<clock.ticker> or time.localMinute() do not work as expected", actual, is(expected));
+                        assertEquals("<clock.ticker> or time.localMinute() do not work as expected", expected.longValue(), actual.longValue());
                     } catch (FunctionException e) {
                         fail(e.getMessage());
                     }
@@ -87,7 +86,7 @@ public class ClockPolicyInformationPointTickerTest {
                         final LocalTime localTime = LocalTime.now();
                         final Number actual = TemporalFunctionLibrary.localSecond(node).numberValue();
                         final Number expected = BigDecimal.valueOf(localTime.getSecond());
-                        assertThat("<clock.ticker> or time.localSecond() do not work as expected", actual, is(expected));
+                        assertEquals("<clock.ticker> or time.localSecond() do not work as expected", expected.longValue(), actual.longValue());
                     } catch (FunctionException e) {
                         fail(e.getMessage());
                     }
