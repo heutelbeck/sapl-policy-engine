@@ -5,6 +5,9 @@ import java.nio.file.WatchEvent;
 
 import reactor.core.publisher.FluxSink;
 
+/**
+ * Adapter translating directory watch events into reactive flux events.
+ */
 public class DirectoryWatchEventFluxSinkAdapter implements DirectoryWatchEventConsumer {
 
     private FluxSink<String> sink;
