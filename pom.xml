@@ -60,6 +60,7 @@
 		<module>sapl-pip-http</module>
 		<module>sapl-pdp-embedded</module>
 		<module>sapl-pdp-remote</module>
+		<module>sapl-pep</module>
 		<module>sapl-documentation</module>
 		<module>sapl-geo</module>
 		<module>sapl-spring</module>

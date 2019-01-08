@@ -1,10 +1,13 @@
-package io.sapl.api.pdp.mapping;
+package io.sapl.pep.pdp.mapping;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
+import io.sapl.api.pdp.mapping.SaplClassMapper;
+import io.sapl.api.pdp.mapping.SaplMapper;
+import io.sapl.api.pdp.mapping.SaplRequestElement;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

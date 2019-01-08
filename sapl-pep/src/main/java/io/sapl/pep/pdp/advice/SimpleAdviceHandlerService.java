@@ -1,8 +1,11 @@
-package io.sapl.api.pdp.advice;
+package io.sapl.pep.pdp.advice;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+
+import io.sapl.api.pdp.advice.AdviceHandler;
+import io.sapl.api.pdp.advice.AdviceHandlerService;
 
 public class SimpleAdviceHandlerService implements AdviceHandlerService {
 

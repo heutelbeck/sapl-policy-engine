@@ -4,7 +4,6 @@ import java.util.Collection;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.sapl.api.SAPLAuthorizer;
 import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
@@ -12,6 +11,7 @@ import org.springframework.security.web.FilterInvocation;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
+import io.sapl.pep.SAPLAuthorizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,12 +44,12 @@ public class SaplBasedVoter implements AccessDecisionVoter<Object> {
 		for (ConfigAttribute configAttribute : arg2) {
 			LOGGER.info(configAttribute.toString());
 		}
-		Response decision = sapl.getResponse(authentication, request, request);
+		Response response = sapl.getResponse(authentication, request, request).blockFirst();
 
-		if (decision == null) {
+		if (response == null) {
 			throw new IllegalArgumentException();
 		}
-		return mapDecisionToVoteResponse(decision.getDecision());
+		return mapDecisionToVoteResponse(response.getDecision());
 	}
 
 	private int mapDecisionToVoteResponse(Decision decision) {

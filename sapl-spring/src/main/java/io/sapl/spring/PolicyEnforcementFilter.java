@@ -8,13 +8,14 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
-import io.sapl.api.SAPLAuthorizer;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
 
+import io.sapl.api.pdp.Decision;
+import io.sapl.pep.SAPLAuthorizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,7 +46,8 @@ public class PolicyEnforcementFilter extends GenericFilterBean {
 			LOGGER.debug("Request to Policy Enforcement Filter: {} {}{} {}{}", authentication.toString(), SERVER,
 					req.getRequestURI(), PROTOCOL, req.getMethod());
 
-			boolean permission = sapl.authorize(authentication, req, req);
+			final Decision decision = sapl.authorize(authentication, req, req).blockFirst();
+			boolean permission = decision == Decision.PERMIT;
 			LOGGER.debug("The response is: {}", permission);
 
 			if (!permission) {

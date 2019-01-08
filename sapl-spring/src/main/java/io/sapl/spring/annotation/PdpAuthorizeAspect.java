@@ -6,13 +6,6 @@ import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.Response;
-import io.sapl.api.SAPLAuthorizer;
-import io.sapl.spring.marshall.subject.AuthenticationSubject;
-import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -27,6 +20,15 @@ import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.Response;
+import io.sapl.pep.SAPLAuthorizer;
+import io.sapl.spring.marshall.subject.AuthenticationSubject;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Aspect
@@ -61,7 +63,7 @@ public class PdpAuthorizeAspect {
 		Object action = pdpAuthorizeRetrieveAction(pdpAuthorize, pjp);
 		Object resource = pdpAuthorizeRetrieveResource(pdpAuthorize, pjp);
 
-		Response response = sapl.getResponse(subject, action, resource);
+		Response response = sapl.getResponse(subject, action, resource).blockFirst();
 
 		if (response.getDecision() == Decision.DENY) {
 			LOGGER.debug("Access denied");

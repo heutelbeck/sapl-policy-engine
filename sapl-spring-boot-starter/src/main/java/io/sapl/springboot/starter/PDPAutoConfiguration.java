@@ -4,27 +4,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import io.sapl.api.SAPLAuthorizer;
-import io.sapl.api.functions.FunctionException;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.advice.AdviceHandlerService;
-import io.sapl.api.pdp.advice.SimpleAdviceHandlerService;
-import io.sapl.api.pdp.mapping.SaplMapper;
-import io.sapl.api.pdp.mapping.SimpleSaplMapper;
-import io.sapl.api.pdp.obligation.Obligation;
-import io.sapl.api.pdp.obligation.ObligationHandler;
-import io.sapl.api.pdp.obligation.ObligationHandlerService;
-import io.sapl.api.pdp.obligation.SimpleObligationHandlerService;
-import io.sapl.api.pip.AttributeException;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
-import io.sapl.spring.PIPProvider;
-import io.sapl.spring.PolicyEnforcementFilter;
-import io.sapl.spring.SAPLPermissionEvaluator;
-import io.sapl.spring.annotation.PdpAuthorizeAspect;
-import io.sapl.springboot.starter.PDPProperties.Remote;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -32,6 +11,28 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import io.sapl.api.functions.FunctionException;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.advice.AdviceHandlerService;
+import io.sapl.api.pdp.mapping.SaplMapper;
+import io.sapl.pep.pdp.mapping.SimpleSaplMapper;
+import io.sapl.api.pdp.obligation.Obligation;
+import io.sapl.api.pdp.obligation.ObligationHandler;
+import io.sapl.api.pdp.obligation.ObligationHandlerService;
+import io.sapl.api.pip.AttributeException;
+import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
+import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
+import io.sapl.pep.SAPLAuthorizer;
+import io.sapl.pep.pdp.advice.SimpleAdviceHandlerService;
+import io.sapl.pep.pdp.obligation.SimpleObligationHandlerService;
+import io.sapl.spring.PIPProvider;
+import io.sapl.spring.PolicyEnforcementFilter;
+import io.sapl.spring.SAPLPermissionEvaluator;
+import io.sapl.spring.annotation.PdpAuthorizeAspect;
+import io.sapl.springboot.starter.PDPProperties.Remote;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This automatic configuration will provide you several beans to deal with SAPL
