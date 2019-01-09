@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
+import io.sapl.pep.BlockingSAPLAuthorizer;
 import io.sapl.pep.SAPLAuthorizer;
 import io.sapl.spring.marshall.subject.AuthenticationSubject;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +39,7 @@ public class PdpAuthorizeAspect {
 
 	private boolean tokenStoreInitialized;
 
-	private final SAPLAuthorizer sapl;
+	private final BlockingSAPLAuthorizer sapl;
 
 	@Autowired
 	private ApplicationContext applicationContext;
@@ -46,8 +47,7 @@ public class PdpAuthorizeAspect {
 	private TokenStore tokenStore;
 
 	public PdpAuthorizeAspect(SAPLAuthorizer sapl) {
-		super();
-		this.sapl = sapl;
+		this.sapl = new BlockingSAPLAuthorizer(sapl);
 	}
 
 	@Around("@annotation(pdpAuthorize) && execution(* *(..))")
@@ -63,7 +63,7 @@ public class PdpAuthorizeAspect {
 		Object action = pdpAuthorizeRetrieveAction(pdpAuthorize, pjp);
 		Object resource = pdpAuthorizeRetrieveResource(pdpAuthorize, pjp);
 
-		Response response = sapl.getResponse(subject, action, resource).blockFirst();
+		Response response = sapl.getResponse(subject, action, resource);
 
 		if (response.getDecision() == Decision.DENY) {
 			LOGGER.debug("Access denied");

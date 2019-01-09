@@ -11,17 +11,20 @@ import org.springframework.security.web.FilterInvocation;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
+import io.sapl.pep.BlockingSAPLAuthorizer;
 import io.sapl.pep.SAPLAuthorizer;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RequiredArgsConstructor
 public class SaplBasedVoter implements AccessDecisionVoter<Object> {
 
-	private final SAPLAuthorizer sapl;
-
 	private static final String LOGGER_FORMAT = "Decision from SAPLVoter is : {}";
+
+	private final BlockingSAPLAuthorizer sapl;
+
+	public SaplBasedVoter(SAPLAuthorizer sapl) {
+		this.sapl = new BlockingSAPLAuthorizer(sapl);
+	}
 
 	@Override
 	public boolean supports(ConfigAttribute attribute) {
@@ -44,7 +47,7 @@ public class SaplBasedVoter implements AccessDecisionVoter<Object> {
 		for (ConfigAttribute configAttribute : arg2) {
 			LOGGER.info(configAttribute.toString());
 		}
-		Response response = sapl.getResponse(authentication, request, request).blockFirst();
+		Response response = sapl.getResponse(authentication, request, request);
 
 		if (response == null) {
 			throw new IllegalArgumentException();

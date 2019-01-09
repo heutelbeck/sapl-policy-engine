@@ -7,23 +7,22 @@ import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
-import io.sapl.api.pdp.Decision;
+import io.sapl.pep.BlockingSAPLAuthorizer;
 import io.sapl.pep.SAPLAuthorizer;
 
 @Component
 public class SAPLPermissionEvaluator implements PermissionEvaluator {
 
-	private SAPLAuthorizer sapl;
+	private BlockingSAPLAuthorizer sapl;
 
 	@Autowired
 	public SAPLPermissionEvaluator(SAPLAuthorizer saplAuthorizer) {
-		this.sapl = saplAuthorizer;
+		this.sapl = new BlockingSAPLAuthorizer(saplAuthorizer);
 	}
 
 	@Override
 	public boolean hasPermission(Authentication authentication, Object targetDomainObject, Object permission) {
-		final Decision decision = sapl.authorize(authentication, permission, targetDomainObject).blockFirst();
-		return decision == Decision.PERMIT;
+		return sapl.authorize(authentication, permission, targetDomainObject);
 	}
 
 	@Override

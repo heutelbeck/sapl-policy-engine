@@ -14,19 +14,21 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
 
-import io.sapl.api.pdp.Decision;
+import io.sapl.pep.BlockingSAPLAuthorizer;
 import io.sapl.pep.SAPLAuthorizer;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RequiredArgsConstructor
 public class PolicyEnforcementFilter extends GenericFilterBean {
 
 	private static final String SERVER = "localhost:8080";
 	private static final String PROTOCOL = "HTTP:";
 
-	private final SAPLAuthorizer sapl;
+	private final BlockingSAPLAuthorizer sapl;
+
+	public PolicyEnforcementFilter(SAPLAuthorizer sapl) {
+		this.sapl = new BlockingSAPLAuthorizer(sapl);
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -46,8 +48,7 @@ public class PolicyEnforcementFilter extends GenericFilterBean {
 			LOGGER.debug("Request to Policy Enforcement Filter: {} {}{} {}{}", authentication.toString(), SERVER,
 					req.getRequestURI(), PROTOCOL, req.getMethod());
 
-			final Decision decision = sapl.authorize(authentication, req, req).blockFirst();
-			boolean permission = decision == Decision.PERMIT;
+			boolean permission = sapl.authorize(authentication, req, req);
 			LOGGER.debug("The response is: {}", permission);
 
 			if (!permission) {

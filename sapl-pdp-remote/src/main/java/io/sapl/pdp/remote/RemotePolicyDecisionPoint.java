@@ -3,18 +3,6 @@ package io.sapl.pdp.remote;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.Request;
-import io.sapl.api.pdp.Response;
-import io.sapl.api.pdp.multirequest.MultiRequest;
-import io.sapl.api.pdp.multirequest.MultiResponse;
-import io.sapl.api.pdp.multirequest.IdentifiableResponse;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -33,6 +21,20 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.Request;
+import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.multirequest.IdentifiableResponse;
+import io.sapl.api.pdp.multirequest.MultiRequest;
+import io.sapl.api.pdp.multirequest.MultiResponse;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 @Slf4j
@@ -47,8 +49,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	private HttpHost httpHost;
 	private HttpClientContext clientContext;
 
-	public RemotePolicyDecisionPoint(final String hostName, final int port, final String applicationKey,
-			final String applicationSecret) {
+	public RemotePolicyDecisionPoint(String hostName, int port, String applicationKey, String applicationSecret) {
 		MAPPER.registerModule(new Jdk8Module());
 
 		httpHost = new HttpHost(hostName, port, HTTPS);
@@ -69,23 +70,18 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	public Response decide(Request request) {
 		HttpPost post = new HttpPost(AUTHORIZATION_REQUEST);
 		post.addHeader("content-type", APPLICATION_JSON_VALUE);
-		String body;
 		try {
-			body = MAPPER.writeValueAsString(request);
+			String body = MAPPER.writeValueAsString(request);
+			HttpEntity entity = new ByteArrayEntity(body.getBytes(StandardCharsets.UTF_8));
+			post.setEntity(entity);
+			return executeHttpRequest(post);
 		} catch (JsonProcessingException e) {
 			LOGGER.error("Marshalling request failed: {}", request, e);
 			return new Response(Decision.INDETERMINATE, null, null, null);
-		}
-		HttpEntity entity = new ByteArrayEntity(body.getBytes(StandardCharsets.UTF_8));
-		post.setEntity(entity);
-		Response response = null;
-		try {
-			response = executeHttpRequest(post);
 		} catch (IOException e) {
 			LOGGER.error("Request failed: {}", post, e);
 			return new Response(Decision.INDETERMINATE, null, null, null);
 		}
-		return response;
 	}
 
 	@Override

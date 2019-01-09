@@ -1,28 +1,35 @@
 package io.sapl.api.pdp.multirequest;
 
+import static java.util.Objects.requireNonNull;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
+
 import java.util.HashMap;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.sapl.api.pdp.Decision;
 
 public class MultiDecision {
 
+    @JsonInclude(NON_EMPTY)
     private Map<String, Decision> decisionsByRequestId;
 
-    public MultiDecision(MultiResponse multiResponse) {
-        decisionsByRequestId = new HashMap<>(multiResponse.size());
-        multiResponse.forEach(identifiableResponse -> {
-            final String requestId = identifiableResponse.getRequestId();
-            final Decision decision = identifiableResponse.getResponse().getDecision();
-            decisionsByRequestId.put(requestId, decision);
-        });
+    public MultiDecision() {
+        decisionsByRequestId = new HashMap<>();
+    }
+
+    public void setDecisionForRequestWithId(String requestId, Decision decision) {
+        requireNonNull(requestId, "requestId must not be null");
+        requireNonNull(decision, "decision must not be null");
+        decisionsByRequestId.put(requestId, decision);
     }
 
     public Decision getDecisionForRequestWithId(String requestId) {
         return decisionsByRequestId.get(requestId);
     }
 
-    public boolean getFlagForRequestWithId(String requestId) {
+    public boolean isAccessPermittedForRequestWithId(String requestId) {
         return decisionsByRequestId.get(requestId) == Decision.PERMIT;
     }
 }

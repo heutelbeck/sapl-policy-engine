@@ -10,6 +10,8 @@ import java.util.Objects;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
 
 public class MultiResponse implements Iterable<IdentifiableResponse> {
@@ -36,6 +38,16 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
     public Response getResponseForRequestWithId(String requestId) {
         requireNonNull(requestId, "requestId must not be null");
         return responses.get(requestId);
+    }
+
+    public Decision getDecisionForRequestWithId(String requestId) {
+        requireNonNull(requestId, "requestId must not be null");
+        return responses.get(requestId).getDecision();
+    }
+
+    public boolean isAccessPermittedForRequestWithId(String requestId) {
+        requireNonNull(requestId, "requestId must not be null");
+        return responses.get(requestId).getDecision() == Decision.PERMIT;
     }
 
     @Override
