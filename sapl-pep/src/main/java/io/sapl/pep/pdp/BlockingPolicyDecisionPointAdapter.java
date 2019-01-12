@@ -23,21 +23,21 @@ public class BlockingPolicyDecisionPointAdapter implements BlockingPolicyDecisio
 
     @Override
     public Response decide(Object subject, Object action, Object resource) {
-        return reactivePdp.reactiveDecide(subject, action, resource).blockFirst();
+        return reactivePdp.decide(subject, action, resource).blockFirst();
     }
 
     @Override
     public Response decide(Object subject, Object action, Object resource, Object environment) {
-        return reactivePdp.reactiveDecide(subject, action, resource, environment).blockFirst();
+        return reactivePdp.decide(subject, action, resource, environment).blockFirst();
     }
 
     @Override
     public Response decide(Request request) {
-        return reactivePdp.reactiveDecide(request).blockFirst();
+        return reactivePdp.decide(request).blockFirst();
     }
 
     @Override
     public MultiResponse decide(MultiRequest multiRequest) {
-        return BlockingMultiRequestSupport.collectResponses(multiRequest, reactivePdp.reactiveMultiDecide(multiRequest));
+        return BlockingMultiRequestSupport.collectResponses(multiRequest, reactivePdp.decide(multiRequest));
     }
 }

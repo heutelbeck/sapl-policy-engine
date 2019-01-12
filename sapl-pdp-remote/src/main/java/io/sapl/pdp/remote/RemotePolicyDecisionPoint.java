@@ -33,7 +33,6 @@ import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import io.sapl.api.pdp.multirequest.MultiRequest;
-import io.sapl.api.pdp.multirequest.MultiResponse;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -67,7 +66,37 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
-	public Response decide(Request request) {
+	public Flux<Response> decide(Object subject, Object action, Object resource) {
+		return decide(subject, action, resource, null);
+	}
+
+	@Override
+	public Flux<Response> decide(Object subject, Object action, Object resource, Object environment) {
+		final Request request = toRequest(subject, action, resource, environment);
+		return decide(request);
+	}
+
+	@Override
+	public Flux<Response> decide(Request request) {
+		final Response response = toBeRemoved(request); // must be replaced with a reactive http call
+		return Flux.just(response);
+	}
+
+	@Override
+	public Flux<IdentifiableResponse> decide(MultiRequest multiRequest) {
+		return null;
+	}
+
+	private static Request toRequest(Object subject, Object action, Object resource, Object environment) {
+		return new Request(
+				MAPPER.convertValue(subject, JsonNode.class),
+				MAPPER.convertValue(action, JsonNode.class),
+				MAPPER.convertValue(resource, JsonNode.class),
+				MAPPER.convertValue(environment, JsonNode.class)
+		);
+	}
+
+	private Response toBeRemoved(Request request) {
 		HttpPost post = new HttpPost(AUTHORIZATION_REQUEST);
 		post.addHeader("content-type", APPLICATION_JSON_VALUE);
 		try {
@@ -84,21 +113,10 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		}
 	}
 
-	@Override
-	public Response decide(Object subject, Object action, Object resource, Object environment) {
-		final Request request = toRequest(subject, action, resource, environment);
-		return decide(request);
-	}
-
-	@Override
-	public Response decide(Object subject, Object action, Object resource) {
-		return decide(subject, action, resource, null);
-	}
-
 	private Response executeHttpRequest(HttpRequest request) throws IOException {
 		Response response = null;
 		try (CloseableHttpClient httpClient = HttpClients.createDefault();
-				CloseableHttpResponse webResponse = httpClient.execute(httpHost, request, clientContext);) {
+			 CloseableHttpResponse webResponse = httpClient.execute(httpHost, request, clientContext);) {
 
 			int resultCode = webResponse.getStatusLine().getStatusCode();
 			if (resultCode != HttpStatus.SC_OK) {
@@ -122,41 +140,5 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 			}
 		}
 		return response;
-	}
-
-	private static Request toRequest(Object subject, Object action, Object resource, Object environment) {
-		return new Request(
-				MAPPER.convertValue(subject, JsonNode.class),
-				MAPPER.convertValue(action, JsonNode.class),
-				MAPPER.convertValue(resource, JsonNode.class),
-				MAPPER.convertValue(environment, JsonNode.class)
-		);
-	}
-
-	@Override
-	public MultiResponse multiDecide(MultiRequest multiRequest) {
-		return null;
-	}
-
-	@Override
-	public Flux<Response> reactiveDecide(Request request) {
-		final Response response = decide(request); // must be replaced with a reactive http call
-		return Flux.just(response);
-	}
-
-	@Override
-	public Flux<Response> reactiveDecide(Object subject, Object action, Object resource, Object environment) {
-		final Request request = toRequest(subject, action, resource, environment);
-		return reactiveDecide(request);
-	}
-
-	@Override
-	public Flux<Response> reactiveDecide(Object subject, Object action, Object resource) {
-		return reactiveDecide(subject, action, resource, null);
-	}
-
-	@Override
-	public Flux<IdentifiableResponse> reactiveMultiDecide(MultiRequest multiRequest) {
-		return null;
 	}
 }

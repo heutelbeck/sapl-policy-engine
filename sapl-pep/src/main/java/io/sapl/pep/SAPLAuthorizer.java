@@ -83,7 +83,7 @@ public class SAPLAuthorizer {
 		final Object mappedResource = sm.map(resource, SaplRequestElement.RESOURCE);
 		final Object mappedEnvironment = sm.map(environment, SaplRequestElement.ENVIRONMENT);
 
-		final Flux<Response> responseFlux = pdp.reactiveDecide(mappedSubject, mappedAction, mappedResource, mappedEnvironment);
+		final Flux<Response> responseFlux = pdp.decide(mappedSubject, mappedAction, mappedResource, mappedEnvironment);
 		return responseFlux
 				.map(response ->
 					response.getDecision() == Decision.PERMIT && couldHandleObligations(response)
@@ -103,7 +103,7 @@ public class SAPLAuthorizer {
 	 */
 	public Flux<IdentifiableDecision> wouldAuthorize(MultiRequest multiRequest) {
 		multiRequest.applySaplMapper(sm);
-		final Flux<IdentifiableResponse> identifiableResponseFlux = pdp.reactiveMultiDecide(multiRequest);
+		final Flux<IdentifiableResponse> identifiableResponseFlux = pdp.decide(multiRequest);
 		return identifiableResponseFlux
 				.map(identifiableResponse -> {
 					final Response response = identifiableResponse.getResponse();
@@ -152,7 +152,7 @@ public class SAPLAuthorizer {
         final Object mappedResource = sm.map(resource, SaplRequestElement.RESOURCE);
         final Object mappedEnvironment = sm.map(environment, SaplRequestElement.ENVIRONMENT);
 
-        final Flux<Response> responseFlux = pdp.reactiveDecide(mappedSubject, mappedAction, mappedResource, mappedEnvironment);
+        final Flux<Response> responseFlux = pdp.decide(mappedSubject, mappedAction, mappedResource, mappedEnvironment);
         return responseFlux.map(response -> {
             final Response resp = handleObligations(response);
             handleAdvice(resp);
@@ -171,7 +171,7 @@ public class SAPLAuthorizer {
      */
     public Flux<IdentifiableDecision> authorize(MultiRequest multiRequest) {
         multiRequest.applySaplMapper(sm);
-        final Flux<IdentifiableResponse> responseFlux = pdp.reactiveMultiDecide(multiRequest);
+        final Flux<IdentifiableResponse> responseFlux = pdp.decide(multiRequest);
         return responseFlux.map(response -> {
             final Response resp = handleObligations(response.getResponse());
             handleAdvice(resp);
@@ -217,7 +217,7 @@ public class SAPLAuthorizer {
         final Object mappedResource = sm.map(resource, SaplRequestElement.RESOURCE);
         final Object mappedEnvironment = sm.map(environment, SaplRequestElement.ENVIRONMENT);
 
-        final Flux<Response> responseFlux = pdp.reactiveDecide(mappedSubject, mappedAction, mappedResource, mappedEnvironment);
+        final Flux<Response> responseFlux = pdp.decide(mappedSubject, mappedAction, mappedResource, mappedEnvironment);
         return responseFlux.map(response -> {
             final Response resp = handleObligations(response);
             handleAdvice(resp);
@@ -236,7 +236,7 @@ public class SAPLAuthorizer {
      */
     public Flux<IdentifiableResponse> getResponses(MultiRequest multiRequest) {
         multiRequest.applySaplMapper(sm);
-        final Flux<IdentifiableResponse> responseFlux = pdp.reactiveMultiDecide(multiRequest);
+        final Flux<IdentifiableResponse> responseFlux = pdp.decide(multiRequest);
         return responseFlux.map(response -> {
             final Response resp = handleObligations(response.getResponse());
             handleAdvice(resp);

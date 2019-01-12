@@ -31,7 +31,6 @@ import io.sapl.api.pdp.Response;
 import io.sapl.api.pdp.multirequest.IdentifiableRequest;
 import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import io.sapl.api.pdp.multirequest.MultiRequest;
-import io.sapl.api.pdp.multirequest.MultiResponse;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.prp.PolicyRetrievalPoint;
@@ -138,13 +137,13 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		}
 	}
 
-	private final void buildVariables(EmbeddedPolicyDecisionPointConfiguration configuration) {
+	private void buildVariables(EmbeddedPolicyDecisionPointConfiguration configuration) {
 		for (Entry<String, JsonNode> var : configuration.getVariables().entrySet()) {
 			variables.put(var.getKey(), var.getValue());
 		}
 	}
 
-	private final void buildCombinator(EmbeddedPolicyDecisionPointConfiguration configuration) {
+	private void buildCombinator(EmbeddedPolicyDecisionPointConfiguration configuration) {
 		switch (configuration.getAlgorithm()) {
 		case PERMIT_UNLESS_DENY:
 			combinator = new PermitUnlessDenyCombinator(INTERPRETER);
@@ -166,28 +165,6 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		}
 	}
 
-	@Override
-	public Response decide(Object subject, Object action, Object resource) {
-		return decide(subject, action, resource, null);
-	}
-
-	@Override
-	public Response decide(Object subject, Object action, Object resource, Object environment) {
-		return decide(toRequest(subject, action, resource, environment));
-	}
-
-	@Override
-	public Response decide(Request request) {
-		final PolicyRetrievalResult retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
-        if (retrievalResult != null) {
-            final Collection<SAPL> matchingDocuments = retrievalResult.getMatchingDocuments();
-            final boolean errorsInTarget = retrievalResult.isErrorsInTarget();
-            return combinator.combineMatchingDocuments(matchingDocuments, errorsInTarget,
-                    request, attributeCtx, functionCtx, variables).blockFirst();
-        }
-        return Response.indeterminate();
-	}
-
 	private static Request toRequest(Object subject, Object action, Object resource, Object environment) {
 		return new Request(
 				MAPPER.convertValue(subject, JsonNode.class),
@@ -198,31 +175,18 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
-	public MultiResponse multiDecide(MultiRequest multiRequest) {
-		if (multiRequest.hasRequests()) {
-			final MultiResponse multiResponse = new MultiResponse();
-			for (IdentifiableRequest identifiableRequest : multiRequest) {
-				final Response response = decide(identifiableRequest.getRequest());
-				multiResponse.setResponseForRequestWithId(identifiableRequest.getId(), response);
-			}
-			return multiResponse;
-		}
-		return MultiResponse.indeterminate();
+	public Flux<Response> decide(Object subject, Object action, Object resource) {
+		return decide(subject, action, resource, null);
 	}
 
 	@Override
-	public Flux<Response> reactiveDecide(Object subject, Object action, Object resource) {
-		return reactiveDecide(subject, action, resource, null);
-	}
-
-	@Override
-	public Flux<Response> reactiveDecide(Object subject, Object action, Object resource, Object environment) {
+	public Flux<Response> decide(Object subject, Object action, Object resource, Object environment) {
 		final Request request = toRequest(subject, action, resource, environment);
-		return reactiveDecide(request);
+		return decide(request);
 	}
 
 	@Override
-	public Flux<Response> reactiveDecide(Request request) {
+	public Flux<Response> decide(Request request) {
         final Flux<PolicyRetrievalResult> retrievalResult = prp.reactiveRetrievePolicies(request, functionCtx, variables);
         return retrievalResult.switchMap(result -> {
             final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
@@ -233,12 +197,12 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
     @Override
-    public Flux<IdentifiableResponse> reactiveMultiDecide(MultiRequest multiRequest) {
+    public Flux<IdentifiableResponse> decide(MultiRequest multiRequest) {
         if (multiRequest.hasRequests()) {
             final List<Flux<IdentifiableResponse>> requestIdResponsePairFluxes = new ArrayList<>();
             for (IdentifiableRequest identifiableRequest : multiRequest) {
                 final Request request = identifiableRequest.getRequest();
-                final Flux<Response> responseFlux = reactiveDecide(request);
+                final Flux<Response> responseFlux = decide(request);
                 final Flux<IdentifiableResponse> requestResponsePairFlux = responseFlux
                         .map(response -> new IdentifiableResponse(identifiableRequest.getId(), response))
                         .subscribeOn(Schedulers.newElastic("pdp"));

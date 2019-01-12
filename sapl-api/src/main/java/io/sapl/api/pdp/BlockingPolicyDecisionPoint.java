@@ -49,11 +49,11 @@ public interface BlockingPolicyDecisionPoint {
      * Multi-request variant of {@link #decide(Request)}.
      *
      * @param multiRequest
-     *            the multi request object containing the subjects, actions, resources
+     *            the multi-request object containing the subjects, actions, resources
      *            and environments of the authorization requests to be evaluated by the
      *            PDP.
      * @return an object containing a response for each request in the multi-request
-     *         object.
+     *         object. Related responses and requests have the same id.
      */
     MultiResponse decide(MultiRequest multiRequest);
 

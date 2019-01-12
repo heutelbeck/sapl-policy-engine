@@ -7,7 +7,11 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Request;
@@ -22,8 +26,6 @@ import io.sapl.pdp.embedded.PrpImplementation;
 import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import reactor.core.publisher.Flux;
 
 @Slf4j
@@ -106,7 +108,12 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
                     if ("policy modification event".equals(e)) {
                         init();
                     }
-                    return parsedDocIdx.retrievePolicies(request, functionCtx, variables);
+                    try {
+                        lock.lock();
+                        return parsedDocIdx.retrievePolicies(request, functionCtx, variables);
+                    } finally {
+                        lock.unlock();
+                    }
                 })
                 .distinctUntilChanged();
 	}

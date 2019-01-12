@@ -2,10 +2,14 @@ package io.sapl.prp.embedded;
 
 import java.io.IOException;
 
+import org.junit.Test;
+
 import io.sapl.api.functions.FunctionException;
+import io.sapl.api.pdp.Response;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
-import org.junit.Test;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 public class EmbeddedPRPTest {
 
@@ -31,8 +35,8 @@ public class EmbeddedPRPTest {
 		// long start = System.nanoTime();
 		int RUNS = 100;
 		for (int i = 0; i < RUNS; i++) {
-			// Response response =
-			pdp.decide("willi", "read", "something");
+			final Flux<Response> responseFlux = pdp.decide("willi", "read", "something");
+			StepVerifier.create(responseFlux).expectNextCount(1).thenCancel().verify();
 			// System.out.println("response: " + response.toString());
 		}
 		// long end = System.nanoTime();
