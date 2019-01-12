@@ -187,7 +187,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Flux<Response> decide(Request request) {
-        final Flux<PolicyRetrievalResult> retrievalResult = prp.reactiveRetrievePolicies(request, functionCtx, variables);
+        final Flux<PolicyRetrievalResult> retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
         return retrievalResult.switchMap(result -> {
             final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
             final boolean errorsInTarget = result.isErrorsInTarget();

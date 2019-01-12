@@ -83,19 +83,8 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
         }
     }
 
-    @Override
-	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
-			Map<String, JsonNode> variables) {
-	    try {
-            lock.lock();
-            return parsedDocIdx.retrievePolicies(request, functionCtx, variables);
-        } finally {
-	        lock.unlock();
-        }
-	}
-
 	@Override
-	public Flux<PolicyRetrievalResult> reactiveRetrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
+	public Flux<PolicyRetrievalResult> retrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
         final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter();
         final Flux<String> dirWatcherFlux = Flux.push(sink -> {
             adapter.setSink(sink);
