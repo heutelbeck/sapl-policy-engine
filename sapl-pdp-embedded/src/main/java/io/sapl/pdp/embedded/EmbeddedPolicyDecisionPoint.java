@@ -212,4 +212,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
         }
         return Flux.just(IdentifiableResponse.indeterminate());
     }
+
+	@Override
+	public void dispose() {
+		prp.dispose();
+	}
 }

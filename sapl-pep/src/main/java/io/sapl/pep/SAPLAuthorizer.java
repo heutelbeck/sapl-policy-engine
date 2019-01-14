@@ -18,6 +18,9 @@ import io.sapl.api.pdp.obligation.ObligationHandlerService;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
+/**
+ * A reactive Policy Enforcement Point (PEP) implementation.
+ */
 @Slf4j
 public class SAPLAuthorizer {
 
@@ -35,6 +38,15 @@ public class SAPLAuthorizer {
 		this.obs = obs;
 		this.ahs = ahs;
 		this.sm = sm;
+	}
+
+	/**
+	 * When clients of this {@code SAPLAuthorizer} no longer need it, they should call
+	 * {@code dispose()} to give it the chance to clean up resources like subscriptions,
+	 * threads, etc.
+	 */
+	public void dispose() {
+		pdp.dispose();
 	}
 
 	/**

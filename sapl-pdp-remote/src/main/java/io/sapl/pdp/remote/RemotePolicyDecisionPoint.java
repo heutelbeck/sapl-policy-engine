@@ -141,4 +141,9 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		}
 		return response;
 	}
+
+	@Override
+	public void dispose() {
+		// ignored
+	}
 }

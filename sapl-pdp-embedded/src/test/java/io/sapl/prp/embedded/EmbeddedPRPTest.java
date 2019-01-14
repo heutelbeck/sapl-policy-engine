@@ -49,5 +49,6 @@ public class EmbeddedPRPTest {
 		// System.out.println(
 		// "Avg. runtime : " + nanoToMs((end - start) / RUNS) + " ms");
 
+		pdp.dispose();
 	}
 }

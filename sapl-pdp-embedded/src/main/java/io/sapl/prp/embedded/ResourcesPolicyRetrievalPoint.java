@@ -26,7 +26,11 @@ import io.sapl.pdp.embedded.PrpImplementation;
 import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.ReplayProcessor;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
@@ -40,7 +44,11 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	private ParsedDocumentIndex parsedDocIdx;
 
 	private SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
-	private DirectoryWatcher directoryWatcher;
+
+	private Scheduler dirWatcherScheduler;
+	private Disposable dirWatcherFluxSubscription;
+    private ReplayProcessor<String> dirWatcherEventProcessor = ReplayProcessor.cacheLastOrDefault("initial event");
+
 	private ReentrantLock lock;
 
 	public ResourcesPolicyRetrievalPoint(String policyPath, PrpImplementation prpImplementation, FunctionContext functionCtx)
@@ -53,11 +61,28 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
         final Resource configFile = pm.getResource(path + "/" + EmbeddedPolicyDecisionPoint.PDP_JSON);
         final URI configFileURI = configFile.getURI();
         final Path watchDir = Paths.get(configFileURI).getParent();
-        this.directoryWatcher = new DirectoryWatcher(watchDir);
+        final DirectoryWatcher directoryWatcher = new DirectoryWatcher(watchDir);
 
         this.lock = new ReentrantLock();
 
         init();
+
+        final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter();
+        dirWatcherScheduler = Schedulers.newElastic("dirWatcher");
+        final Flux<String> dirWatcherFlux = Flux.<String> push(sink -> {
+                    adapter.setSink(sink);
+                    directoryWatcher.watch(adapter);
+                })
+                .doOnNext(e -> {
+                    if ("policy modification event".equals(e)) {
+                        init();
+                    }
+                    dirWatcherEventProcessor.onNext(e);
+                })
+                .doOnCancel(adapter::cancel)
+                .subscribeOn(dirWatcherScheduler);
+
+        dirWatcherFluxSubscription = dirWatcherFlux.subscribe();
     }
 
     private void init() {
@@ -85,26 +110,20 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 	@Override
 	public Flux<PolicyRetrievalResult> retrievePolicies(Request request, FunctionContext functionCtx, Map<String, JsonNode> variables) {
-        final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter();
-        final Flux<String> dirWatcherFlux = Flux.push(sink -> {
-            adapter.setSink(sink);
-            directoryWatcher.watch(adapter);
-        });
-
-        return Flux.just("initial event")
-                .concatWith(dirWatcherFlux.doOnCancel(adapter::cancel))
+	    return dirWatcherEventProcessor
                 .map(e -> {
-                    if ("policy modification event".equals(e)) {
-                        init();
-                    }
                     try {
                         lock.lock();
                         return parsedDocIdx.retrievePolicies(request, functionCtx, variables);
                     } finally {
                         lock.unlock();
                     }
-                })
-                .distinctUntilChanged();
+                });
 	}
 
+    @Override
+    public void dispose() {
+        dirWatcherFluxSubscription.dispose();
+        dirWatcherScheduler.dispose();
+    }
 }

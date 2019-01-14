@@ -3,6 +3,11 @@ package io.sapl.api.pdp;
 import io.sapl.api.pdp.multirequest.MultiRequest;
 import io.sapl.api.pdp.multirequest.MultiResponse;
 
+/**
+ * Blocking (non-reactive) variant of the {@link PolicyDecisionPoint} interface.
+ * Implementations may delegate to a reactive policy decision point and just return
+ * the first emitted result.
+ */
 public interface BlockingPolicyDecisionPoint {
 
     /**
@@ -56,5 +61,14 @@ public interface BlockingPolicyDecisionPoint {
      *         object. Related responses and requests have the same id.
      */
     MultiResponse decide(MultiRequest multiRequest);
+
+    /**
+     * Implementations of this {@code BlockingPolicyDecisionPoint} interface may delegate to a
+     * reactive policy decision point and just return the first emitted result. When clients of
+     * the policy decision point no longer need it, they should call {@code dispose()} to give
+     * the reactive policy decision point the chance to clean up resources like subscriptions,
+     * threads, etc.
+     */
+    void dispose();
 
 }

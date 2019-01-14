@@ -15,29 +15,34 @@ import io.sapl.pep.BlockingMultiRequestSupport;
  */
 public class BlockingPolicyDecisionPointAdapter implements BlockingPolicyDecisionPoint {
 
-    private final PolicyDecisionPoint reactivePdp;
+    private final PolicyDecisionPoint delegate;
 
     public BlockingPolicyDecisionPointAdapter(PolicyDecisionPoint reactivePdp) {
-        this.reactivePdp = Objects.requireNonNull(reactivePdp, "reactivePdp must not be null");
+            delegate = Objects.requireNonNull(reactivePdp, "reactivePdp must not be null");
     }
 
     @Override
     public Response decide(Object subject, Object action, Object resource) {
-        return reactivePdp.decide(subject, action, resource).blockFirst();
+        return delegate.decide(subject, action, resource).blockFirst();
     }
 
     @Override
     public Response decide(Object subject, Object action, Object resource, Object environment) {
-        return reactivePdp.decide(subject, action, resource, environment).blockFirst();
+        return delegate.decide(subject, action, resource, environment).blockFirst();
     }
 
     @Override
     public Response decide(Request request) {
-        return reactivePdp.decide(request).blockFirst();
+        return delegate.decide(request).blockFirst();
     }
 
     @Override
     public MultiResponse decide(MultiRequest multiRequest) {
-        return BlockingMultiRequestSupport.collectResponses(multiRequest, reactivePdp.decide(multiRequest));
+        return BlockingMultiRequestSupport.collectResponses(multiRequest, delegate.decide(multiRequest));
+    }
+
+    @Override
+    public void dispose() {
+        delegate.dispose();
     }
 }

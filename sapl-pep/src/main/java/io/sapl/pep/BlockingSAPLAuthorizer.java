@@ -86,4 +86,13 @@ public class BlockingSAPLAuthorizer {
         return BlockingMultiRequestSupport.collectResponses(multiRequest, delegate.getResponses(multiRequest));
     }
 
+    /**
+     * When clients of this {@code BlockingSAPLAuthorizer} no longer need it, they should call
+     * {@code dispose()} to give it the chance to clean up resources like subscriptions,
+     * threads, etc.
+     */
+    public void dispose() {
+        delegate.dispose();
+    }
+
 }

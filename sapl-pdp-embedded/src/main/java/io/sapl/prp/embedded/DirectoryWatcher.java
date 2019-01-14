@@ -34,7 +34,7 @@ class DirectoryWatcher {
         } catch (IOException e) {
             LOGGER.error(e.getMessage());
         } catch (InterruptedException e) {
-            LOGGER.error(e.getMessage());
+            LOGGER.info("directory watcher thread has been interrupted");
         }
         eventConsumer.onComplete();
     }

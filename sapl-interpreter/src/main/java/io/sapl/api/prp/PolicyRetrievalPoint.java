@@ -31,4 +31,11 @@ public interface PolicyRetrievalPoint {
     Flux<PolicyRetrievalResult> retrievePolicies(Request request, FunctionContext functionCtx,
                                                  Map<String, JsonNode> variables);
 
+    /**
+     * When clients of a policy retrieval point no longer need it, they should call
+     * {@code dispose()} to give it the chance to clean up resources like subscriptions,
+     * threads, directory watcher service registrations etc.
+     */
+    void dispose();
+
 }
