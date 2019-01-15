@@ -16,7 +16,7 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 import org.junit.Test;
 
-public class ResultNodeReactiveApplyStepTest {
+public class ResultNodeApplyStepTest {
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 	private static SaplFactory factory = SaplFactory.eINSTANCE;
 

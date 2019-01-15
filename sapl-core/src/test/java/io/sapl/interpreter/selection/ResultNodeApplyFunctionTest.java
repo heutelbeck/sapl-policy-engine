@@ -7,10 +7,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Test;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.BasicValue;
@@ -20,10 +23,9 @@ import io.sapl.grammar.tests.MockFunctionContext;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
-import org.junit.Test;
 import reactor.test.StepVerifier;
 
-public class ResultNodeReactiveApplyFunctionTest {
+public class ResultNodeApplyFunctionTest {
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 	private static SaplFactory factory = SaplFactory.eINSTANCE;
 
