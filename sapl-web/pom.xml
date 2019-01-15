@@ -55,11 +55,25 @@
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.xbase.web</artifactId>
 			<version>${xtextVersion}</version>
+			<!-- remove as soon as version higher than 2.16.0 (${xtextVersion}) is available in repos accessed by the build -->
+			<exclusions>
+				<exclusion>
+					<groupId>org.eclipse.xtend</groupId>
+					<artifactId>org.eclipse.xtend.lib</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.web.servlet</artifactId>
 			<version>${xtextVersion}</version>
+			<!-- remove as soon as version higher than 2.16.0 (${xtextVersion}) is available in repos accessed by the build -->
+			<exclusions>
+				<exclusion>
+					<groupId>org.eclipse.xtend</groupId>
+					<artifactId>org.eclipse.xtend.lib</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.xtend</groupId>
