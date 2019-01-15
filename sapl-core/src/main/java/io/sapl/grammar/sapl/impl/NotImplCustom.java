@@ -15,10 +15,12 @@ package io.sapl.grammar.sapl.impl;
 import java.util.Map;
 import java.util.Objects;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import org.eclipse.emf.ecore.EObject;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
@@ -28,15 +30,8 @@ public class NotImplCustom extends io.sapl.grammar.sapl.impl.NotImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
-		final JsonNode expressionResult = expression.evaluate(ctx, isBody, relativeNode);
-		assertBoolean(expressionResult);
-		return JSON.booleanNode(!expressionResult.asBoolean());
-	}
-
-	@Override
-	public Flux<JsonNode> reactiveEvaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		return expression.reactiveEvaluate(ctx, isBody, relativeNode)
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return expression.evaluate(ctx, isBody, relativeNode)
 				.map(result -> {
 					try {
 						assertBoolean(result);

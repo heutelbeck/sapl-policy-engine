@@ -32,6 +32,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class ApplyStepsConditionTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
@@ -41,18 +42,20 @@ public class ApplyStepsConditionTest {
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToNullNode() throws PolicyEvaluationException {
+	@Test
+	public void applyToNullNode() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
 
 		ConditionStep step = factory.createConditionStep();
 		step.setExpression(basicValueOf(factory.createTrueLiteral()));
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void applyToObjectConditionNotBoolean() throws PolicyEvaluationException {
+	public void applyToObjectConditionNotBoolean() {
 		ObjectNode object = JSON.objectNode();
 		object.set("key", JSON.nullNode());
 		ResultNode previousResult = new JsonNodeWithoutParent(object);
@@ -65,15 +68,18 @@ public class ApplyStepsConditionTest {
 		expression.setValue(nullLiteral);
 		step.setExpression(expression);
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Condition step with condition always evaluation to null should return empty array",
-				expectedResultSet, resultSet);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+                .consumeNextWith(result -> {
+                    Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+                    assertEquals("Condition step with condition always evaluation to null should return empty array",
+                            expectedResultSet, resultSet);
+                })
+                .thenCancel()
+                .verify();
 	}
 
 	@Test
-	public void applyToArrayConditionNotBoolean() throws PolicyEvaluationException {
+	public void applyToArrayConditionNotBoolean() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 		ResultNode previousResult = new JsonNodeWithoutParent(array);
@@ -86,15 +92,18 @@ public class ApplyStepsConditionTest {
 		expression.setValue(nullLiteral);
 		step.setExpression(expression);
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Condition step with condition always evaluation to null should return empty array",
-				expectedResultSet, resultSet);
+        StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+                .consumeNextWith(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Condition step with condition always evaluation to null should return empty array",
+							expectedResultSet, resultSet);
+				})
+                .thenCancel()
+                .verify();
 	}
 
 	@Test
-	public void applyToResultArrayConditionNotBoolean() throws PolicyEvaluationException {
+	public void applyToResultArrayConditionNotBoolean() {
 		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
 		AbstractAnnotatedJsonNode node1 = new JsonNodeWithParentArray(JSON.numberNode(20), JSON.arrayNode(), 0);
 		AbstractAnnotatedJsonNode node2 = new JsonNodeWithParentArray(JSON.numberNode(5), JSON.arrayNode(), 0);
@@ -110,15 +119,18 @@ public class ApplyStepsConditionTest {
 		expression.setValue(nullLiteral);
 		step.setExpression(expression);
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Condition step with condition always evaluation to null should return empty array",
+							expectedResultSet, resultSet);
+				});
 
-		assertEquals("Condition step with condition always evaluation to null should return empty array",
-				expectedResultSet, resultSet);
 	}
 
 	@Test
-	public void applyToResultArray() throws PolicyEvaluationException {
+	public void applyToResultArray() {
 		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
 		AbstractAnnotatedJsonNode node1 = new JsonNodeWithParentArray(JSON.numberNode(20), JSON.arrayNode(), 0);
 		AbstractAnnotatedJsonNode node2 = new JsonNodeWithParentArray(JSON.numberNode(5), JSON.arrayNode(), 0);
@@ -137,15 +149,18 @@ public class ApplyStepsConditionTest {
 		expression.setRight(basicValueOf(number));
 		step.setExpression(expression);
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Condition step applied to result array should return the nodes for which the condition is true",
+							expectedResultSet, resultSet);
+				});
 
-		assertEquals("Condition step applied to result array should return the nodes for which the condition is true",
-				expectedResultSet, resultSet);
 	}
 
 	@Test
-	public void applyToArrayNode() throws PolicyEvaluationException {
+	public void applyToArrayNode() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.numberNode(20));
 		array.add(JSON.numberNode(5));
@@ -163,15 +178,18 @@ public class ApplyStepsConditionTest {
 		expression.setRight(basicValueOf(number));
 		step.setExpression(expression);
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Condition step applied to array node should return the nodes for which the condition is true",
+							expectedResultSet, resultSet);
+				});
 
-		assertEquals("Condition step applied to array node should return the nodes for which the condition is true",
-				expectedResultSet, resultSet);
 	}
 
 	@Test
-	public void applyToObjectNode() throws PolicyEvaluationException {
+	public void applyToObjectNode() {
 		ObjectNode object = JSON.objectNode();
 		object.set("key1", JSON.numberNode(20));
 		object.set("key2", JSON.numberNode(5));
@@ -189,12 +207,14 @@ public class ApplyStepsConditionTest {
 		expression.setRight(basicValueOf(number));
 		step.setExpression(expression);
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Condition step applied to object node should return the attribute values for which the condition is true",
+							expectedResultSet, resultSet);
+				});
 
-		assertEquals(
-				"Condition step applied to object node should return the attribute values for which the condition is true",
-				expectedResultSet, resultSet);
 	}
 
 	private static BasicValue basicValueOf(Value value) {

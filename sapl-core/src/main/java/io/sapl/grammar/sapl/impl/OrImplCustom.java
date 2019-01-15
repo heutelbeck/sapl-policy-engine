@@ -15,10 +15,12 @@ package io.sapl.grammar.sapl.impl;
 import java.util.Map;
 import java.util.Objects;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import org.eclipse.emf.ecore.EObject;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
@@ -30,30 +32,13 @@ public class OrImplCustom extends io.sapl.grammar.sapl.impl.OrImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
-		if (!isBody) {
-			throw new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET);
-		}
-
-		final JsonNode leftResult = getLeft().evaluate(ctx, isBody, relativeNode);
-		assertBoolean(leftResult);
-		if (leftResult.asBoolean()) {
-			return JSON.booleanNode(true);
-		}
-
-		final JsonNode rightResult = getRight().evaluate(ctx, isBody, relativeNode);
-		assertBoolean(rightResult);
-		return JSON.booleanNode(rightResult.asBoolean());
-	}
-
-	@Override
-	public Flux<JsonNode> reactiveEvaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
 		if (!isBody) {
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
 
-		final Flux<JsonNode> leftResultFlux = getLeft().reactiveEvaluate(ctx, isBody, relativeNode);
-		final Flux<JsonNode> rightResultFlux = getRight().reactiveEvaluate(ctx, isBody, relativeNode);
+		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
 
 		return Flux.combineLatest(leftResultFlux, rightResultFlux,
 				(leftResult, rightResult) -> {

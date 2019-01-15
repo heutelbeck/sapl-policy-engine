@@ -17,10 +17,12 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import org.eclipse.emf.ecore.EObject;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
@@ -33,28 +35,9 @@ public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
-		final JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
-		if (!left.isTextual()) {
-			throw new PolicyEvaluationException(String.format(REGEX_TYPE_MISMATCH, left.getNodeType()));
-		}
-
-		final JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
-		if (!right.isTextual()) {
-			throw new PolicyEvaluationException(String.format(REGEX_TYPE_MISMATCH, right.getNodeType()));
-		}
-
-		try {
-			return JSON.booleanNode(Pattern.matches(right.asText(), left.asText()));
-		} catch (PatternSyntaxException e) {
-			throw new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, right.asText()), e);
-		}
-	}
-
-	@Override
-	public Flux<JsonNode> reactiveEvaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		final Flux<JsonNode> leftResultFlux = getLeft().reactiveEvaluate(ctx, isBody, relativeNode);
-		final Flux<JsonNode> rightResultFlux = getRight().reactiveEvaluate(ctx, isBody, relativeNode);
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
 
 		return Flux.combineLatest(leftResultFlux, rightResultFlux,
 				(leftResult, rightResult) -> {

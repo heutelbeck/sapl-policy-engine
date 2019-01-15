@@ -21,6 +21,7 @@ import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class ApplyFilteringExtendedTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
@@ -32,8 +33,8 @@ public class ApplyFilteringExtendedTest {
 
 	private static final String REMOVE = "remove";
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void removeNoStepsNoEach() throws PolicyEvaluationException {
+	@Test
+	public void removeNoStepsNoEach() {
 		JsonNode root = JSON.objectNode();
 
 		FilterExtended filter = factory.createFilterExtended();
@@ -42,11 +43,13 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add(REMOVE);
 		filter.getStatements().add(statement);
 
-		filter.apply(root, ctx, false, null);
+		StepVerifier.create(filter.apply(root, ctx, false, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void removeEachNoArray() throws PolicyEvaluationException {
+	@Test
+	public void removeEachNoArray() {
 		JsonNode root = JSON.objectNode();
 
 		FilterExtended filter = factory.createFilterExtended();
@@ -56,11 +59,13 @@ public class ApplyFilteringExtendedTest {
 		statement.setEach(true);
 		filter.getStatements().add(statement);
 
-		filter.apply(root, ctx, false, null);
+		StepVerifier.create(filter.apply(root, ctx, false, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void removeNoStepsEach() throws PolicyEvaluationException {
+	public void removeNoStepsEach() {
 		ArrayNode root = JSON.arrayNode();
 		root.add(JSON.nullNode());
 		root.add(JSON.booleanNode(true));
@@ -74,13 +79,15 @@ public class ApplyFilteringExtendedTest {
 
 		JsonNode expectedResult = JSON.arrayNode();
 
-		JsonNode result = filter.apply(root, ctx, false, null);
-
-		assertEquals("Function remove, no steps and each should return empty array", expectedResult, result);
+		filter.apply(root, ctx, false, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Function remove, no steps and each should return empty array",
+						expectedResult, result)
+				);
 	}
 
 	@Test
-	public void emptyStringNoStepsNoEach() throws PolicyEvaluationException {
+	public void emptyStringNoStepsNoEach() {
 		ArrayNode root = JSON.arrayNode();
 		root.add(JSON.nullNode());
 		root.add(JSON.booleanNode(true));
@@ -93,14 +100,15 @@ public class ApplyFilteringExtendedTest {
 
 		JsonNode expectedResult = JSON.textNode("");
 
-		JsonNode result = filter.apply(root, ctx, false, null);
-
-		assertEquals("Mock function EMPTY_STRING, no steps, no each should return empty string", expectedResult,
-				result);
+		filter.apply(root, ctx, false, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Mock function EMPTY_STRING, no steps, no each should return empty string",
+						expectedResult, result)
+				);
 	}
 
 	@Test
-	public void emptyStringNoStepsEach() throws PolicyEvaluationException {
+	public void emptyStringNoStepsEach() {
 		ArrayNode root = JSON.arrayNode();
 		root.add(JSON.nullNode());
 		root.add(JSON.booleanNode(true));
@@ -116,14 +124,15 @@ public class ApplyFilteringExtendedTest {
 		expectedResult.add(JSON.textNode(""));
 		expectedResult.add(JSON.textNode(""));
 
-		JsonNode result = filter.apply(root, ctx, false, null);
-
-		assertEquals("Mock function EMPTY_STRING, no steps, each should array with empty strings", expectedResult,
-				result);
+		filter.apply(root, ctx, false, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Mock function EMPTY_STRING, no steps, each should array with empty strings",
+						expectedResult, result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void emptyStringEachNoArray() throws PolicyEvaluationException {
+	@Test
+	public void emptyStringEachNoArray() {
 		ArrayNode root = JSON.arrayNode();
 		root.add(JSON.objectNode());
 		root.add(JSON.booleanNode(true));
@@ -143,11 +152,13 @@ public class ApplyFilteringExtendedTest {
 
 		filter.getStatements().add(statement);
 
-		filter.apply(root, ctx, false, null);
+		StepVerifier.create(filter.apply(root, ctx, false, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void removeResultArrayNoEach() throws PolicyEvaluationException {
+	@Test
+	public void removeResultArrayNoEach() {
 		ArrayNode root = JSON.arrayNode();
 		root.add(JSON.nullNode());
 		root.add(JSON.booleanNode(true));
@@ -163,11 +174,13 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add(REMOVE);
 		filter.getStatements().add(statement);
 
-		filter.apply(root, ctx, false, null);
+		StepVerifier.create(filter.apply(root, ctx, false, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void emptyStringResultArrayNoEach() throws PolicyEvaluationException {
+	@Test
+	public void emptyStringResultArrayNoEach() {
 		ArrayNode root = JSON.arrayNode();
 		root.add(JSON.nullNode());
 		root.add(JSON.booleanNode(true));
@@ -183,11 +196,13 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add("EMPTY_STRING");
 		filter.getStatements().add(statement);
 
-		filter.apply(root, ctx, false, null);
+		StepVerifier.create(filter.apply(root, ctx, false, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void emptyStringResultArrayEach() throws PolicyEvaluationException {
+	public void emptyStringResultArrayEach() {
 		ArrayNode root = JSON.arrayNode();
 		root.add(JSON.nullNode());
 		root.add(JSON.booleanNode(true));
@@ -208,15 +223,16 @@ public class ApplyFilteringExtendedTest {
 		expectedResult.add(JSON.textNode(""));
 		expectedResult.add(JSON.booleanNode(true));
 
-		JsonNode result = filter.apply(root, ctx, false, null);
-
-		assertEquals(
-				"Mock function EMPTY_STRING applied to result array and each should replace selected elements by empty string",
-				expectedResult, result);
+		filter.apply(root, ctx, false, null)
+				.take(1)
+				.subscribe(result -> assertEquals(
+					"Mock function EMPTY_STRING applied to result array and each should replace selected elements by empty string",
+					expectedResult, result)
+				);
 	}
 
 	@Test
-	public void removeResultArrayEach() throws PolicyEvaluationException {
+	public void removeResultArrayEach() {
 		ArrayNode root = JSON.arrayNode();
 		root.add(JSON.nullNode());
 		root.add(JSON.booleanNode(true));
@@ -236,9 +252,11 @@ public class ApplyFilteringExtendedTest {
 		ArrayNode expectedResult = JSON.arrayNode();
 		expectedResult.add(JSON.booleanNode(true));
 
-		JsonNode result = filter.apply(root, ctx, false, null);
-
-		assertEquals("Remove applied to result array and each should remove each element", expectedResult, result);
+		filter.apply(root, ctx, false, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Remove applied to result array and each should remove each element",
+						expectedResult, result)
+				);
 	}
 
 }

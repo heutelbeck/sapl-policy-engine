@@ -14,18 +14,7 @@ import reactor.core.publisher.Flux;
 public class MockAttributeContext implements AttributeContext {
 
 	@Override
-	public JsonNode evaluate(String attribute, JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
-		if ("ATTRIBUTE".equals(attribute)) {
-			return JsonNodeFactory.instance.textNode(attribute);
-		} else if ("EXCEPTION".equals(attribute)) {
-			throw new AttributeException();
-		} else {
-			return value;
-		}
-	}
-
-	@Override
-	public Flux<JsonNode> reactiveEvaluate(String attribute, JsonNode value, Map<String, JsonNode> variables) {
+	public Flux<JsonNode> evaluate(String attribute, JsonNode value, Map<String, JsonNode> variables) {
 		if ("ATTRIBUTE".equals(attribute)) {
 			return Flux.just(JsonNodeFactory.instance.textNode(attribute));
 		} else if ("EXCEPTION".equals(attribute)) {

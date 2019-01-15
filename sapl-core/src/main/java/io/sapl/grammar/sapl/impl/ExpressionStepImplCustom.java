@@ -16,7 +16,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
@@ -24,7 +27,6 @@ import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
-import org.eclipse.emf.ecore.EObject;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
@@ -37,13 +39,17 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
 	private static final int HASH_PRIME_02 = 19;
 	private static final int INIT_PRIME_01 = 3;
 
-	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-
-		final JsonNode result = getExpression().evaluate(ctx, isBody, relativeNode);
-        return handleExpressionResultFor(previousResult, result);
-    }
+    @Override
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        return getExpression().evaluate(ctx, isBody, relativeNode)
+                .map(expressionResult -> {
+                    try {
+                        return handleExpressionResultFor(previousResult, expressionResult);
+                    } catch (PolicyEvaluationException e) {
+                        throw Exceptions.propagate(e);
+                    }
+                });
+	}
 
     private ResultNode handleExpressionResultFor(AbstractAnnotatedJsonNode previousResult, JsonNode result) throws PolicyEvaluationException {
         if (result.isNumber()) {
@@ -69,13 +75,17 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
         }
     }
 
-    @Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-
-		final JsonNode result = getExpression().evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations());
-        return handleExpressionResultFor(previousResult, result);
-    }
+	@Override
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        return getExpression().evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations())
+                .map(expressionResult -> {
+                    try {
+                        return handleExpressionResultFor(previousResult, expressionResult);
+                    } catch (PolicyEvaluationException e) {
+                        throw Exceptions.propagate(e);
+                    }
+                });
+	}
 
     private ResultNode handleExpressionResultFor(ArrayResultNode previousResult, JsonNode result) throws PolicyEvaluationException {
         if (result.isNumber()) {
@@ -89,30 +99,6 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
             throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
         }
     }
-
-    @Override
-	public Flux<ResultNode> reactiveApply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-        return getExpression().reactiveEvaluate(ctx, isBody, relativeNode)
-                .map(expressionResult -> {
-                    try {
-                        return handleExpressionResultFor(previousResult, expressionResult);
-                    } catch (PolicyEvaluationException e) {
-                        throw Exceptions.propagate(e);
-                    }
-                });
-	}
-
-	@Override
-	public Flux<ResultNode> reactiveApply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-        return getExpression().reactiveEvaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations())
-                .map(expressionResult -> {
-                    try {
-                        return handleExpressionResultFor(previousResult, expressionResult);
-                    } catch (PolicyEvaluationException e) {
-                        throw Exceptions.propagate(e);
-                    }
-                });
-	}
 
 	@Override
 	public int hash(Map<String, String> imports) {

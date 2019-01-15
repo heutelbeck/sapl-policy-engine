@@ -26,6 +26,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class ApplyStepsKeyTest {
 	private static final String KEY = "key";
@@ -38,7 +39,7 @@ public class ApplyStepsKeyTest {
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
 	@Test
-	public void applyToSimpleObject() throws PolicyEvaluationException {
+	public void applyToSimpleObject() {
 		String value = "value";
 
 		ObjectNode node = JSON.objectNode();
@@ -50,33 +51,39 @@ public class ApplyStepsKeyTest {
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Key step applied to object should return the value of the attribute", expectedResult, result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Key step applied to object should return the value of the attribute",
+						expectedResult, result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToNullNode() throws PolicyEvaluationException {
+	@Test
+	public void applyToNullNode() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToObjectWithoutKey() throws PolicyEvaluationException {
+	@Test
+	public void applyToObjectWithoutKey() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.objectNode());
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void applyToArrayNodeWithNoObject() throws PolicyEvaluationException {
+	public void applyToArrayNodeWithNoObject() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 		array.add(JSON.booleanNode(true));
@@ -87,14 +94,15 @@ public class ApplyStepsKeyTest {
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Key step applied to array node without objects should return empty ArrayResultNode",
-				expectedResult, result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Key step applied to array node without objects should return empty ArrayResultNode",
+					expectedResult, result)
+				);
 	}
 
 	@Test
-	public void applyToArrayNodeWithObject() throws PolicyEvaluationException {
+	public void applyToArrayNodeWithObject() {
 		JsonNode value = JSON.booleanNode(true);
 
 		ArrayNode array = JSON.arrayNode();
@@ -112,15 +120,17 @@ public class ApplyStepsKeyTest {
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Key step applied to array node should return ArrayResultNode with results", expectedResultSet,
-				resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Key step applied to array node should return ArrayResultNode with results",
+							expectedResultSet, resultSet);
+				});
 	}
 
 	@Test
-	public void applyToResultArray() throws PolicyEvaluationException {
+	public void applyToResultArray() {
 		String value = "value";
 
 		ObjectNode node = JSON.objectNode();
@@ -136,11 +146,13 @@ public class ApplyStepsKeyTest {
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Key step applied to ArrayResultNode should return an array with the correct values",
-				expectedResultSet, resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Key step applied to ArrayResultNode should return an array with the correct values",
+							expectedResultSet, resultSet);
+				});
 
 	}
 

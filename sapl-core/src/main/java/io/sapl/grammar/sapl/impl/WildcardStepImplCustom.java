@@ -17,14 +17,16 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
-import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
 
 public class WildcardStepImplCustom extends io.sapl.grammar.sapl.impl.WildcardStepImpl {
@@ -35,7 +37,16 @@ public class WildcardStepImplCustom extends io.sapl.grammar.sapl.impl.WildcardSt
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		try {
+			return Flux.just(apply(previousResult));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
+	}
+
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		final JsonNode previousResultNode = previousResult.getNode();
 		if (previousResultNode.isArray()) {
 			return previousResult;
@@ -53,22 +64,7 @@ public class WildcardStepImplCustom extends io.sapl.grammar.sapl.impl.WildcardSt
 	}
 
 	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
-		return previousResult;
-	}
-
-	@Override
-	public Flux<ResultNode> reactiveApply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		try {
-			return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
-		}
-		catch (PolicyEvaluationException e) {
-			return Flux.error(e);
-		}
-	}
-
-	@Override
-	public Flux<ResultNode> reactiveApply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
 		return Flux.just(previousResult);
 	}
 

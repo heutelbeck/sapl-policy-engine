@@ -78,7 +78,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Flux<Response> decide(Request request) {
-		final Response response = toBeRemoved(request); // must be replaced with a reactive http call
+		final Response response = blockingDecide(request); // must be replaced with a reactive http call
 		return Flux.just(response);
 	}
 
@@ -96,7 +96,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		);
 	}
 
-	private Response toBeRemoved(Request request) {
+	private Response blockingDecide(Request request) {
 		HttpPost post = new HttpPost(AUTHORIZATION_REQUEST);
 		post.addHeader("content-type", APPLICATION_JSON_VALUE);
 		try {

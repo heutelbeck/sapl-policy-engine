@@ -35,7 +35,7 @@ public class ResultNodeReactiveApplyStepTest {
 
 		ResultNode expectedResult = new JsonNodeWithoutParent(JSON.nullNode());
 
-		resultNode.reactiveApplyStep(step, ctx, false, null)
+		resultNode.applyStep(step, ctx, false, null)
 				.take(1)
 				.subscribe(result -> assertEquals("applyStep on ArrayResultNode should return correct ResultNode", expectedResult, result));
 	}
@@ -51,7 +51,7 @@ public class ResultNodeReactiveApplyStepTest {
 
 		ResultNode expectedResult = new JsonNodeWithParentArray(JSON.nullNode(), array, 0);
 
-		resultNode.reactiveApplyStep(step, ctx, false, null)
+		resultNode.applyStep(step, ctx, false, null)
 				.take(1)
 				.subscribe(result -> assertEquals("applyStep on AbstractAnnotatedJsonNode should return correct ResultNode", expectedResult, result));
 	}

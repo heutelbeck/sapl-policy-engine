@@ -25,6 +25,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class ApplyStepsWildcardTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
@@ -34,17 +35,19 @@ public class ApplyStepsWildcardTest {
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToNullNode() throws PolicyEvaluationException {
+	@Test
+	public void applyToNullNode() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
 
 		WildcardStep step = factory.createWildcardStep();
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void applyToArray() throws PolicyEvaluationException {
+	public void applyToArray() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 		array.add(JSON.booleanNode(true));
@@ -55,13 +58,15 @@ public class ApplyStepsWildcardTest {
 		ResultNode expectedResult = new JsonNodeWithoutParent(array);
 
 		WildcardStep step = factory.createWildcardStep();
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Wildcard step applied to an array node should return the array", expectedResult, result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Wildcard step applied to an array node should return the array",
+						expectedResult, result)
+				);
 	}
 
 	@Test
-	public void applyToResultArray() throws PolicyEvaluationException {
+	public void applyToResultArray() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
 		list.add(new JsonNodeWithoutParent(JSON.arrayNode()));
 		list.add(new JsonNodeWithoutParent(JSON.nullNode()));
@@ -71,14 +76,15 @@ public class ApplyStepsWildcardTest {
 		ResultNode expectedResult = previousResult;
 
 		WildcardStep step = factory.createWildcardStep();
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Wildcard step applied to a result array node should return the result array", expectedResult,
-				result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Wildcard step applied to a result array node should return the result array", 
+						expectedResult, result)
+				);
 	}
 
 	@Test
-	public void applyToObject() throws PolicyEvaluationException {
+	public void applyToObject() {
 		ObjectNode object = JSON.objectNode();
 		object.set("key1", JSON.nullNode());
 		object.set("key2", JSON.booleanNode(true));
@@ -93,10 +99,12 @@ public class ApplyStepsWildcardTest {
 
 		WildcardStep step = factory.createWildcardStep();
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Wildcard step applied to an object should return all attribute values", expectedResultSet,
-				resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Wildcard step applied to an object should return all attribute values",
+							expectedResultSet, resultSet);
+				});
 	}
 }

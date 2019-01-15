@@ -21,9 +21,7 @@ import reactor.core.publisher.Flux;
 
 public interface AttributeContext {
 
-	JsonNode evaluate(String attribute, JsonNode value, Map<String, JsonNode> variables) throws AttributeException;
-
-	Flux<JsonNode> reactiveEvaluate(String attribute, JsonNode value, Map<String, JsonNode> variables);
+	Flux<JsonNode> evaluate(String attribute, JsonNode value, Map<String, JsonNode> variables);
 
 	Boolean provides(String function);
 

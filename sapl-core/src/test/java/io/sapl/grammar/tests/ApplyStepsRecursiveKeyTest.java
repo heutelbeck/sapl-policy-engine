@@ -25,6 +25,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class ApplyStepsRecursiveKeyTest {
 	private static String KEY = "key";
@@ -36,18 +37,20 @@ public class ApplyStepsRecursiveKeyTest {
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToNull() throws PolicyEvaluationException {
+	@Test
+	public void applyToNull() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
 
 		RecursiveKeyStep step = factory.createRecursiveKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void applyToSimpleObject() throws PolicyEvaluationException {
+	public void applyToSimpleObject() {
 		ObjectNode object = JSON.objectNode();
 		object.set(KEY, JSON.nullNode());
 
@@ -59,14 +62,15 @@ public class ApplyStepsRecursiveKeyTest {
 
 		RecursiveKeyStep step = factory.createRecursiveKeyStep();
 		step.setId(KEY);
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Recursive key step applied to simple object should return result array with attribute value",
-				expectedResult, result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Recursive key step applied to simple object should return result array with attribute value",
+						expectedResult, result)
+				);
 	}
 
 	@Test
-	public void applyToDeeperStructure() throws PolicyEvaluationException {
+	public void applyToDeeperStructure() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 
@@ -93,15 +97,17 @@ public class ApplyStepsRecursiveKeyTest {
 		RecursiveKeyStep step = factory.createRecursiveKeyStep();
 		step.setId(KEY);
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Recursive key step should return result array with attribute value", expectedResultSet,
-				resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Recursive key step should return result array with attribute value",
+							expectedResultSet, resultSet);
+				});
 	}
 
 	@Test
-	public void applyToResultArray() throws PolicyEvaluationException {
+	public void applyToResultArray() {
 		ObjectNode object1 = JSON.objectNode();
 		object1.set(KEY, JSON.booleanNode(true));
 		ObjectNode object2 = JSON.objectNode();
@@ -120,11 +126,13 @@ public class ApplyStepsRecursiveKeyTest {
 		RecursiveKeyStep step = factory.createRecursiveKeyStep();
 		step.setId(KEY);
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Recursive key step applied to result array should return result array with values of attributes",
-				expectedResultSet, resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Recursive key step applied to result array should return result array with values of attributes",
+							expectedResultSet, resultSet);
+				});
 	}
 
 }

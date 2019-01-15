@@ -16,11 +16,13 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
-import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
 
 public class BasicRelativeImplCustom extends io.sapl.grammar.sapl.impl.BasicRelativeImpl {
@@ -31,19 +33,11 @@ public class BasicRelativeImplCustom extends io.sapl.grammar.sapl.impl.BasicRela
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
-		if (relativeNode == null) {
-			throw new PolicyEvaluationException(NOT_ALLOWED);
-		}
-		return evaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, isBody, relativeNode);
-	}
-
-	@Override
-	public Flux<JsonNode> reactiveEvaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
         if (relativeNode == null) {
             return Flux.error(new PolicyEvaluationException(NOT_ALLOWED));
         }
-        return reactiveEvaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, isBody, relativeNode);
+        return evaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, isBody, relativeNode);
 	}
 
 	@Override

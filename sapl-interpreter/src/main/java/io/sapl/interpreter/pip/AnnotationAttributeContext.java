@@ -52,29 +52,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public JsonNode evaluate(String attribute, JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
-		final AttributeFinderMetadata metadata = attributeMetadataByAttributeName.get(attribute);
-		if (metadata == null) {
-			throw new AttributeException(String.format(UNKNOWN_ATTRIBUTE, attribute));
-		}
-
-		final Object pip = metadata.getPolicyInformationPoint();
-		final Method method = metadata.getFunction();
-		final Parameter firstParameter = method.getParameters()[0];
-		try {
-			ParameterTypeValidator.validateType(value, firstParameter);
-			if (metadata.isReactive()) {
-				return ((Flux<JsonNode>) method.invoke(pip, value, variables)).blockFirst();
-			} else {
-				return (JsonNode) method.invoke(pip, value, variables);
-			}
-		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | IllegalParameterType e) {
-			throw new AttributeException(e);
-		}
-	}
-
-	@Override
-	public Flux<JsonNode> reactiveEvaluate(String attribute, JsonNode value, Map<String, JsonNode> variables) {
+	public Flux<JsonNode> evaluate(String attribute, JsonNode value, Map<String, JsonNode> variables) {
 		final AttributeFinderMetadata metadata = attributeMetadataByAttributeName.get(attribute);
 		if (metadata == null) {
 			return Flux.error(new AttributeException(String.format(UNKNOWN_ATTRIBUTE, attribute)));

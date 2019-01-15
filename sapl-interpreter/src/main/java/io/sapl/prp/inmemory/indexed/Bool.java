@@ -11,6 +11,7 @@ import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.core.Exceptions;
 
 public class Bool {
 
@@ -70,11 +71,15 @@ public class Bool {
 			throws PolicyEvaluationException {
 		if (!isConstantExpression) {
 			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
-			JsonNode result = expression.evaluate(ctx, false, null);
-			if (result.isBoolean()) {
-				return result.asBoolean();
+			try {
+				JsonNode result = expression.evaluate(ctx, false, null).blockFirst();
+				if (result.isBoolean()) {
+					return result.asBoolean();
+				}
+				throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, result.getNodeType()));
+			} catch (RuntimeException e) {
+				throw new PolicyEvaluationException(Exceptions.unwrap(e));
 			}
-			throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, result.getNodeType()));
 		}
 		return constant;
 	}

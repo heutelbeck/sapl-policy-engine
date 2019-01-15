@@ -17,11 +17,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+import org.eclipse.emf.common.util.URI;
+import org.eclipse.xtext.resource.XtextResource;
+import org.eclipse.xtext.resource.XtextResourceSet;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Injector;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
@@ -35,9 +40,7 @@ import io.sapl.grammar.services.SAPLGrammarAccess;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.ResultNode;
-import org.eclipse.emf.common.util.URI;
-import org.eclipse.xtext.resource.XtextResource;
-import org.eclipse.xtext.resource.XtextResourceSet;
+import reactor.core.Exceptions;
 
 @FunctionLibrary(name = SelectionFunctionLibrary.NAME, description = SelectionFunctionLibrary.DESCRIPTION)
 public class SelectionFunctionLibrary {
@@ -63,10 +66,11 @@ public class SelectionFunctionLibrary {
 	public static JsonNode apply(@JsonObject JsonNode structure, @Text JsonNode expression) throws FunctionException {
 		BasicRelative relativeExpression = parseRelative(expression.asText());
 		try {
-			return StepResolver.resolveSteps(structure, relativeExpression.getSteps(), null, false, structure)
-					.asJsonWithoutAnnotations();
-		} catch (PolicyEvaluationException e) {
-			throw new FunctionException(e);
+			final ResultNode result = StepResolver.resolveSteps(structure, relativeExpression.getSteps(), null, false, structure)
+					.blockFirst();
+			return result.asJsonWithoutAnnotations();
+		} catch (RuntimeException e) {
+			throw new FunctionException(Exceptions.unwrap(e));
 		}
 	}
 
@@ -74,15 +78,16 @@ public class SelectionFunctionLibrary {
 	public static JsonNode count(@JsonObject JsonNode structure, @Text JsonNode expression) throws FunctionException {
 		BasicRelative relativeExpression = parseRelative(expression.asText());
 		try {
-			ResultNode result = StepResolver.resolveSteps(structure, relativeExpression.getSteps(), null, false, structure);
+			final ResultNode result = StepResolver.resolveSteps(structure, relativeExpression.getSteps(), null, false, structure)
+					.blockFirst();
 			if (result.isResultArray()) {
 				return JSON.numberNode(((ArrayResultNode) result).getNodes().size());
 			} else {
 				final int one = 1;
 				return JSON.numberNode(one);
 			}
-		} catch (PolicyEvaluationException e) {
-			throw new FunctionException(e);
+		} catch (RuntimeException e) {
+			throw new FunctionException(Exceptions.unwrap(e));
 		}
 	}
 
@@ -92,8 +97,10 @@ public class SelectionFunctionLibrary {
 		BasicRelative needleExpression = parseRelative(needle.asText());
 
 		try {
-			ResultNode haystackResult = StepResolver.resolveSteps(structure, haystackExpression.getSteps(), null, false, structure);
-			ResultNode needleResult = StepResolver.resolveSteps(structure, needleExpression.getSteps(), null, false, structure);
+			ResultNode haystackResult = StepResolver.resolveSteps(structure, haystackExpression.getSteps(), null, false, structure)
+					.blockFirst();
+			ResultNode needleResult = StepResolver.resolveSteps(structure, needleExpression.getSteps(), null, false, structure)
+					.blockFirst();
 
 			if (haystackResult.isNodeWithoutParent()) {
 				return JSON.booleanNode(true);
@@ -110,6 +117,8 @@ public class SelectionFunctionLibrary {
 			return JSON.booleanNode(true);
 		} catch (PolicyEvaluationException e) {
 			throw new FunctionException(e);
+		} catch (RuntimeException e) {
+			throw new FunctionException(Exceptions.unwrap(e));
 		}
 	}
 
@@ -119,8 +128,10 @@ public class SelectionFunctionLibrary {
 		BasicRelative secondExpression = parseRelative(first.asText());
 
 		try {
-			ResultNode firstResult = StepResolver.resolveSteps(structure, firstExpression.getSteps(), null, false, structure);
-			ResultNode secondResult = StepResolver.resolveSteps(structure, secondExpression.getSteps(), null, false, structure);
+			ResultNode firstResult = StepResolver.resolveSteps(structure, firstExpression.getSteps(), null, false, structure)
+					.blockFirst();
+			ResultNode secondResult = StepResolver.resolveSteps(structure, secondExpression.getSteps(), null, false, structure)
+					.blockFirst();
 
 			if (firstResult.isNodeWithoutParent() && secondResult.isNodeWithoutParent()) {
 				return JSON.booleanNode(true);
@@ -135,6 +146,8 @@ public class SelectionFunctionLibrary {
 			}
 		} catch (PolicyEvaluationException e) {
 			throw new FunctionException(e);
+		} catch (RuntimeException e) {
+			throw new FunctionException(Exceptions.unwrap(e));
 		}
 	}
 

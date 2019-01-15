@@ -39,7 +39,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 		list.add(new JsonNodeWithParentArray(JSON.nullNode(), target, 0));
 		ArrayResultNode resultNode = new ArrayResultNode(list);
 
-        StepVerifier.create(resultNode.reactiveApplyFilter("dummy", factory.createArguments(), false, ctx, false))
+        StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), false, ctx, false))
                 .expectError(PolicyEvaluationException.class)
                 .verify();
 	}
@@ -61,7 +61,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 		list.add(new JsonNodeWithParentArray(JSON.booleanNode(false), target, 2));
 		ResultNode resultNode = new ArrayResultNode(list);
 
-		StepVerifier.create(resultNode.reactiveApplyFilter("dummy", factory.createArguments(), true, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
 				.expectNext(ResultNode.Void.INSTANCE)
 				.verifyComplete();
 
@@ -73,7 +73,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 		JsonNode target = JSON.nullNode();
 		ResultNode resultNode = new JsonNodeWithoutParent(target);
 
-        StepVerifier.create(resultNode.reactiveApplyFilter("dummy", factory.createArguments(), false, ctx, false))
+        StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), false, ctx, false))
                 .expectError(PolicyEvaluationException.class)
                 .verify();
 	}
@@ -84,7 +84,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithoutParent(target);
 
-        StepVerifier.create(resultNode.reactiveApplyFilter("dummy", factory.createArguments(), true, ctx, false))
+        StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
                 .expectError(PolicyEvaluationException.class)
                 .verify();
 	}
@@ -99,7 +99,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithoutParent(target);
 
-        StepVerifier.create(resultNode.reactiveApplyFilter("dummy", factory.createArguments(), true, ctx, false))
+        StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
                 .expectNext(ResultNode.Void.INSTANCE)
                 .verifyComplete();
 
@@ -116,7 +116,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentObject(JSON.nullNode(), target, "key");
 
-        StepVerifier.create(resultNode.reactiveApplyFilter("dummy", factory.createArguments(), false, ctx, false))
+        StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), false, ctx, false))
                 .expectNext(ResultNode.Void.INSTANCE)
                 .verifyComplete();
 
@@ -138,7 +138,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentObject(array, target, "key");
 
-        StepVerifier.create(resultNode.reactiveApplyFilter("dummy", factory.createArguments(), true, ctx, false))
+        StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
                 .expectNext(ResultNode.Void.INSTANCE)
                 .verifyComplete();
 
@@ -153,7 +153,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentObject(JSON.nullNode(), target, "key");
 
-        StepVerifier.create(resultNode.reactiveApplyFilter("dummy", factory.createArguments(), true, ctx, false))
+        StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
 				.expectError(PolicyEvaluationException.class)
                 .verify();
 	}
@@ -168,7 +168,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
 
-        StepVerifier.create(resultNode.reactiveApplyFilter("dummy", factory.createArguments(), false, ctx, false))
+        StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), false, ctx, false))
                 .expectNext(ResultNode.Void.INSTANCE)
                 .verifyComplete();
 
@@ -190,7 +190,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(array, target, 0);
 
-        StepVerifier.create(resultNode.reactiveApplyFilter("dummy", factory.createArguments(), true, ctx, false))
+        StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
                 .expectNext(ResultNode.Void.INSTANCE)
                 .verifyComplete();
 
@@ -205,7 +205,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
 
-        StepVerifier.create(resultNode.reactiveApplyFilter("dummy", factory.createArguments(), true, ctx, false))
+        StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
 				.expectError(PolicyEvaluationException.class)
                 .verify();
 	}
@@ -224,7 +224,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
 
-        StepVerifier.create(resultNode.reactiveApplyFilter("short", null, false, ctx, false))
+        StepVerifier.create(resultNode.applyFilter("short", null, false, ctx, false))
                 .expectNext(ResultNode.Void.INSTANCE)
                 .verifyComplete();
 
@@ -238,7 +238,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), target, 0);
 
-		StepVerifier.create(resultNode.reactiveApplyFilter("EXCEPTION", factory.createArguments(), false, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("EXCEPTION", factory.createArguments(), false, ctx, false))
 				.expectError(PolicyEvaluationException.class)
 				.verify();
 	}
@@ -259,7 +259,7 @@ public class ResultNodeReactiveApplyFunctionTest {
 		argumentExpression.setValue(value);
 		arguments.getArgs().add(argumentExpression);
 
-		StepVerifier.create(resultNode.reactiveApplyFilter("dummy", arguments, false, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", arguments, false, ctx, false))
                 .expectNext(ResultNode.Void.INSTANCE)
                 .verifyComplete();
 

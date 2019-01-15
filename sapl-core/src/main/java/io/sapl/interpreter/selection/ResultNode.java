@@ -13,6 +13,7 @@
 package io.sapl.interpreter.selection;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Step;
@@ -105,52 +106,11 @@ public interface ResultNode {
 	 *            the evaluation context
 	 * @param isBody
 	 *            true if the filter is applied within the policy body
-	 * @throws PolicyEvaluationException
-	 *             in case an error occurs during application of the filter function
-	 *             or in case the filter function is not applicable
-	 */
-	void applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody)
-			throws PolicyEvaluationException;
-
-	/**
-	 * Applies a filter function to the selected JsonNode. If the selected node is an
-	 * array, the param each can be used to specify that the filter function should be
-	 * applied to each item of this array.
-	 *
-	 * @param function
-	 *            name of the filter function
-	 * @param arguments
-	 *            arguments to pass to the filter function
-	 * @param each
-	 *            true, if the selection should be treated as an array and the
-	 *            filter function should be applied to each of its items
-	 * @param ctx
-	 *            the evaluation context
-	 * @param isBody
-	 *            true if the filter is applied within the policy body
 	 * @return a flux of {@link ResultNode.Void} instances, each indicating a finished
 	 *         application of the filter function to the selected JsonNode or its child
 	 *         elements.
 	 */
-	Flux<Void> reactiveApplyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody);
-
-	/**
-	 * Applies a step to the result node and returns a new result node.
-	 *
-	 * @param step
-	 *            the step to apply
-	 * @param ctx
-	 *            the evaluation context
-	 * @param isBody
-	 *            true if the step is applied within the policy body
-	 * @param relativeNode
-	 *            the node a relative expression evaluates to
-	 * @return the result node resulting from application of the step
-	 * @throws PolicyEvaluationException
-	 *             in case an error occurs during application of the step
-	 */
-	ResultNode applyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException;
+	Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody);
 
 	/**
 	 * Applies a step to the result node and returns a {@link Flux} of new result nodes.
@@ -165,5 +125,5 @@ public interface ResultNode {
 	 *            the node a relative expression evaluates to
 	 * @return a {@link Flux} of result nodes resulting from application of the step
 	 */
-	Flux<ResultNode> reactiveApplyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode);
+	Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode);
 }

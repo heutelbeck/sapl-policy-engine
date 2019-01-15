@@ -18,11 +18,12 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
-import io.sapl.api.interpreter.PolicyEvaluationException;
+
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
-import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends io.sapl.grammar.sapl.impl.FilterExtendedImpl {
@@ -31,26 +32,13 @@ public class FilterExtendedImplCustom extends io.sapl.grammar.sapl.impl.FilterEx
 	private static final int INIT_PRIME_03 = 7;
 
 	@Override
-	public JsonNode apply(JsonNode unfilteredRootNode, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
-		JsonNode result = unfilteredRootNode.deepCopy();
-
-		for (FilterStatement statement : statements) {
-			final String function = String.join(".", statement.getFsteps());
-			result = applyFilterStatement(result, function, statement.getArguments(), statement.getTarget().getSteps(),
-					statement.isEach(), ctx, isBody, relativeNode);
-		}
-
-		return result;
-	}
-
-	@Override
-	public Flux<JsonNode> reactiveApply(JsonNode unfilteredRootNode, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<JsonNode> apply(JsonNode unfilteredRootNode, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
 		final JsonNode result = unfilteredRootNode.deepCopy();
 		if (statements != null && ! statements.isEmpty()) {
 			final List<FluxProvider<JsonNode>> fluxProviders = new ArrayList<>(statements.size());
 			for (FilterStatement statement : statements) {
                 final String function = String.join(".", statement.getFsteps());
-				fluxProviders.add(node -> reactiveApplyFilterStatement(node, function, statement.getArguments(), statement.getTarget().getSteps(),
+				fluxProviders.add(node -> applyFilterStatement(node, function, statement.getArguments(), statement.getTarget().getSteps(),
 						statement.isEach(), ctx, isBody, relativeNode));
 			}
 			return cascadingSwitchMap(result, fluxProviders, 0);

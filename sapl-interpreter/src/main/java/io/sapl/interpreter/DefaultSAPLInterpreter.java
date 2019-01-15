@@ -162,7 +162,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		} else {
 			final EvaluationContext evaluationCtx = createEvaluationContext(request, functionCtx, systemVariables, variables, imports);
 			try {
-                final JsonNode expressionResult = targetExpression.reactiveEvaluate(evaluationCtx, false, null).blockFirst();
+                final JsonNode expressionResult = targetExpression.evaluate(evaluationCtx, false, null).blockFirst();
                 if (expressionResult.isBoolean()) {
                     return expressionResult.asBoolean();
                 }
@@ -297,7 +297,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	}
 
     private static Flux<Void> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx, Map<String, JsonNode> variables) {
-        return valueDefinition.getEval().reactiveEvaluate(evaluationCtx, true, null)
+        return valueDefinition.getEval().evaluate(evaluationCtx, true, null)
                 .map(evaluatedValue -> {
                     try {
                         evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue);
@@ -403,7 +403,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	}
 
     private static Flux<Boolean> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx) {
-		return valueDefinition.getEval().reactiveEvaluate(evaluationCtx, true, null)
+		return valueDefinition.getEval().evaluate(evaluationCtx, true, null)
 				.map(evaluatedValue -> {
 					try {
 						evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue);
@@ -417,7 +417,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	}
 
     private static Flux<Boolean> evaluateCondition(Condition condition, EvaluationContext evaluationCtx) {
-        return condition.getExpression().reactiveEvaluate(evaluationCtx, true, null)
+        return condition.getExpression().evaluate(evaluationCtx, true, null)
                 .map(statementResult -> {
                     if (statementResult.isBoolean()) {
                         return statementResult.asBoolean();
@@ -432,7 +432,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		if (policy.getObligation() != null) {
 			final ArrayNode obligationArr = JSON.arrayNode();
 			try {
-				final JsonNode obligation = policy.getObligation().reactiveEvaluate(evaluationCtx, true, null).blockFirst();
+				final JsonNode obligation = policy.getObligation().evaluate(evaluationCtx, true, null).blockFirst();
 				obligationArr.add(obligation);
 				return Optional.of(obligationArr);
             } catch (RuntimeException fluxError) {
@@ -451,7 +451,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		if (policy.getAdvice() != null) {
 			final ArrayNode adviceArr = JSON.arrayNode();
 			try {
-				final JsonNode advice = policy.getAdvice().reactiveEvaluate(evaluationCtx, true, null).blockFirst();
+				final JsonNode advice = policy.getAdvice().evaluate(evaluationCtx, true, null).blockFirst();
 				adviceArr.add(advice);
 				return Optional.of(adviceArr);
 			} catch (RuntimeException fluxError) {
@@ -468,7 +468,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static Flux<Optional<JsonNode>> evaluateTransformation(Policy policy, EvaluationContext evaluationCtx) {
 		if (policy.getTransformation() != null) {
-			return policy.getTransformation().reactiveEvaluate(evaluationCtx, true, null)
+			return policy.getTransformation().evaluate(evaluationCtx, true, null)
 					.map(Optional::of)
 					.doOnError(error -> LOGGER.error(TRANSFORMATION_ERROR, error));
 		} else {

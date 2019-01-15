@@ -40,34 +40,14 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
-		final String joinedSteps = String.join(".", getFsteps());
-		final String fullyQualifiedName = ctx.getImports().getOrDefault(joinedSteps, joinedSteps);
-
-		final ArrayNode argumentsArray = JSON.arrayNode();
-		if (getArguments() != null) {
-			for (Expression argument : getArguments().getArgs()) {
-				argumentsArray.add(argument.evaluate(ctx, isBody, relativeNode));
-			}
-		}
-
-		try {
-			final JsonNode resultBeforeSteps = ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray);
-			return evaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
-		} catch (FunctionException e) {
-			throw new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, fullyQualifiedName), e);
-		}
-	}
-
-	@Override
-	public Flux<JsonNode> reactiveEvaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
 		final String joinedSteps = String.join(".", getFsteps());
 		final String fullyQualifiedName = ctx.getImports().getOrDefault(joinedSteps, joinedSteps);
 
 		if (getArguments() != null && ! getArguments().getArgs().isEmpty()) {
 			final List<Flux<JsonNode>> parameterFluxes = new ArrayList<>(getArguments().getArgs().size());
 			for (Expression argument : getArguments().getArgs()) {
-				parameterFluxes.add(argument.reactiveEvaluate(ctx, isBody, relativeNode));
+				parameterFluxes.add(argument.evaluate(ctx, isBody, relativeNode));
 			}
 			return Flux.combineLatest(parameterFluxes,
 					paramNodes -> {
@@ -77,7 +57,7 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 						}
 						try {
 							final JsonNode resultBeforeSteps = ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray);
-							return reactiveEvaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
+							return evaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
 						} catch (FunctionException e) {
 							throw Exceptions.propagate(new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, fullyQualifiedName), e));
 						}
@@ -87,7 +67,7 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 			try {
 				final ArrayNode argumentsArray = JSON.arrayNode();
 				final JsonNode resultBeforeSteps = ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray);
-				return reactiveEvaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
+				return evaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
 			} catch (FunctionException e) {
 				return Flux.error(new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, fullyQualifiedName), e));
 			}

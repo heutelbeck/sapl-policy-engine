@@ -21,14 +21,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
-import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
 
 public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
@@ -39,7 +41,16 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		try {
+			return Flux.just(apply(previousResult));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
+	}
+
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		final JsonNode previousResultNode = previousResult.getNode();
 		if (!previousResultNode.isArray()) {
 			throw new PolicyEvaluationException(UNION_TYPE_MISMATCH);
@@ -52,22 +63,6 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 		for (int index : indices) {
 			if (previousResultNode.has(index)) {
 				resultList.add(new JsonNodeWithParentArray(previousResultNode.get(index), previousResultNode, index));
-			}
-		}
-		return new ArrayResultNode(resultList);
-	}
-
-	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
-		final List<AbstractAnnotatedJsonNode> nodes = previousResult.getNodes();
-		final int arrayLength = nodes.size();
-
-		final Set<Integer> indices = collectIndices(arrayLength);
-
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		for (int index : indices) {
-			if (index >= 0 && index < arrayLength) {
-				resultList.add(nodes.get(index));
 			}
 		}
 		return new ArrayResultNode(resultList);
@@ -87,23 +82,23 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	}
 
 	@Override
-	public Flux<ResultNode> reactiveApply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		try {
-			return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
-		}
-		catch (PolicyEvaluationException e) {
-			return Flux.error(e);
-		}
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return Flux.just(apply(previousResult));
 	}
 
-	@Override
-	public Flux<ResultNode> reactiveApply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		try {
-			return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
+	private ResultNode apply(ArrayResultNode previousResult) {
+		final List<AbstractAnnotatedJsonNode> nodes = previousResult.getNodes();
+		final int arrayLength = nodes.size();
+
+		final Set<Integer> indices = collectIndices(arrayLength);
+
+		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		for (int index : indices) {
+			if (index >= 0 && index < arrayLength) {
+				resultList.add(nodes.get(index));
+			}
 		}
-		catch (PolicyEvaluationException e) {
-			return Flux.error(e);
-		}
+		return new ArrayResultNode(resultList);
 	}
 
 	@Override

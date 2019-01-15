@@ -37,6 +37,8 @@ import io.sapl.grammar.sapl.UnaryMinus;
 import io.sapl.grammar.sapl.Value;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 public class EvaluateOperatorsTest {
 	private static final BigDecimal TEST_NUMBER = BigDecimal.valueOf(100.50);
@@ -49,50 +51,58 @@ public class EvaluateOperatorsTest {
 
 	private static EvaluationContext ctx = new EvaluationContext(null, null, null, new HashMap<>());
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateAndInTarget() throws PolicyEvaluationException {
+	@Test
+	public void evaluateAndInTarget() {
 		And and = factory.createAnd();
 		and.setLeft(basicValueFrom(factory.createFalseLiteral()));
 		and.setRight(basicValueFrom(factory.createFalseLiteral()));
 
-		and.evaluate(ctx, false, null);
+		StepVerifier.create(and.evaluate(ctx, false, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void evaluateAndFalseFalse() throws PolicyEvaluationException {
+	public void evaluateAndFalseFalse() {
 		And and = factory.createAnd();
 		and.setLeft(basicValueFrom(factory.createFalseLiteral()));
 		and.setRight(basicValueFrom(factory.createFalseLiteral()));
 
-		JsonNode result = and.evaluate(ctx, true, null);
-
-		assertEquals("False And False should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+		and.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("False And False should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateAndTrueFalse() throws PolicyEvaluationException {
+	public void evaluateAndTrueFalse() {
 		And and = factory.createAnd();
 		and.setLeft(basicValueFrom(factory.createTrueLiteral()));
 		and.setRight(basicValueFrom(factory.createFalseLiteral()));
 
-		JsonNode result = and.evaluate(ctx, true, null);
-
-		assertEquals("True And False should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+		and.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("True And False should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateAndTrueTrue() throws PolicyEvaluationException {
+	public void evaluateAndTrueTrue() {
 		And and = factory.createAnd();
 		and.setLeft(basicValueFrom(factory.createTrueLiteral()));
 		and.setRight(basicValueFrom(factory.createTrueLiteral()));
 
-		JsonNode result = and.evaluate(ctx, true, null);
-
-		assertEquals("True And True should evaluate to BooleanNode(false)", JSON.booleanNode(true), result);
+		and.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("True And True should evaluate to BooleanNode(false)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateAndWrongDatatypeLeft() throws PolicyEvaluationException {
+	@Test
+	public void evaluateAndWrongDatatypeLeft() {
 		And and = factory.createAnd();
 
 		NumberLiteral num = factory.createNumberLiteral();
@@ -101,11 +111,13 @@ public class EvaluateOperatorsTest {
 
 		and.setRight(basicValueFrom(factory.createFalseLiteral()));
 
-		and.evaluate(ctx, true, null);
+		StepVerifier.create(and.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateAndLeftTrueWrongDatatypeRight() throws PolicyEvaluationException {
+	@Test
+	public void evaluateAndLeftTrueWrongDatatypeRight() {
 		And and = factory.createAnd();
 
 		and.setLeft(basicValueFrom(factory.createTrueLiteral()));
@@ -114,11 +126,13 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		and.setRight(basicValueFrom(num));
 
-		and.evaluate(ctx, true, null);
+		StepVerifier.create(and.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void evaluateAndLeftFalseWrongDatatypeRight() throws PolicyEvaluationException {
+	public void evaluateAndLeftFalseWrongDatatypeRight() {
 		And and = factory.createAnd();
 
 		and.setLeft(basicValueFrom(factory.createFalseLiteral()));
@@ -127,47 +141,54 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		and.setRight(basicValueFrom(num));
 
-		JsonNode result = and.evaluate(ctx, true, null);
-
-		assertEquals("False And wrong datatype should evaluate to BooleanNode(false) (lazy evaluation)",
-				JSON.booleanNode(false), result);
+		and.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("False And wrong datatype should evaluate to BooleanNode(false) (lazy evaluation)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateEagerAndFalseFalse() throws PolicyEvaluationException {
+	public void evaluateEagerAndFalseFalse() {
 		EagerAnd eagerAnd = factory.createEagerAnd();
 		eagerAnd.setLeft(basicValueFrom(factory.createFalseLiteral()));
 		eagerAnd.setRight(basicValueFrom(factory.createFalseLiteral()));
 
-		JsonNode result = eagerAnd.evaluate(ctx, true, null);
-
-		assertEquals("False EagerAnd False should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+		eagerAnd.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("False EagerAnd False should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateEagerAndTrueFalse() throws PolicyEvaluationException {
+	public void evaluateEagerAndTrueFalse() {
 		EagerAnd eagerAnd = factory.createEagerAnd();
 		eagerAnd.setLeft(basicValueFrom(factory.createTrueLiteral()));
 		eagerAnd.setRight(basicValueFrom(factory.createFalseLiteral()));
 
-		JsonNode result = eagerAnd.evaluate(ctx, true, null);
-
-		assertEquals("True EagerAnd False should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+		eagerAnd.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("True EagerAnd False should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateEagerAndTrueTrue() throws PolicyEvaluationException {
+	public void evaluateEagerAndTrueTrue() {
 		EagerAnd eagerAnd = factory.createEagerAnd();
 		eagerAnd.setLeft(basicValueFrom(factory.createTrueLiteral()));
 		eagerAnd.setRight(basicValueFrom(factory.createTrueLiteral()));
 
-		JsonNode result = eagerAnd.evaluate(ctx, true, null);
-
-		assertEquals("True EagerAnd True should evaluate to BooleanNode(false)", JSON.booleanNode(true), result);
+		eagerAnd.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("True EagerAnd True should evaluate to BooleanNode(false)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateEagerAndWrongDatatypeLeft() throws PolicyEvaluationException {
+	@Test
+	public void evaluateEagerAndWrongDatatypeLeft() {
 		And and = factory.createAnd();
 
 		NumberLiteral num = factory.createNumberLiteral();
@@ -176,11 +197,13 @@ public class EvaluateOperatorsTest {
 
 		and.setRight(basicValueFrom(factory.createFalseLiteral()));
 
-		and.evaluate(ctx, true, null);
+		StepVerifier.create(and.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateEagerAndLeftTrueWrongDatatypeRight() throws PolicyEvaluationException {
+	@Test
+	public void evaluateEagerAndLeftTrueWrongDatatypeRight() {
 		EagerAnd eagerAnd = factory.createEagerAnd();
 
 		eagerAnd.setLeft(basicValueFrom(factory.createTrueLiteral()));
@@ -189,11 +212,13 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		eagerAnd.setRight(basicValueFrom(num));
 
-		eagerAnd.evaluate(ctx, true, null);
+		StepVerifier.create(eagerAnd.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateEagerAndLeftFalseWrongDatatypeRight() throws PolicyEvaluationException {
+	@Test
+	public void evaluateEagerAndLeftFalseWrongDatatypeRight() {
 		EagerAnd eagerAnd = factory.createEagerAnd();
 
 		eagerAnd.setLeft(basicValueFrom(factory.createFalseLiteral()));
@@ -202,53 +227,63 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		eagerAnd.setRight(basicValueFrom(num));
 
-		eagerAnd.evaluate(ctx, true, null);
+		StepVerifier.create(eagerAnd.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateOrInTarget() throws PolicyEvaluationException {
+	@Test
+	public void evaluateOrInTarget() {
 		Or or = factory.createOr();
 		or.setLeft(basicValueFrom(factory.createFalseLiteral()));
 		or.setRight(basicValueFrom(factory.createFalseLiteral()));
 
-		or.evaluate(ctx, false, null);
+		StepVerifier.create(or.evaluate(ctx, false, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void evaluateOrFalseFalse() throws PolicyEvaluationException {
+	public void evaluateOrFalseFalse() {
 		Or or = factory.createOr();
 		or.setLeft(basicValueFrom(factory.createFalseLiteral()));
 		or.setRight(basicValueFrom(factory.createFalseLiteral()));
 
-		JsonNode result = or.evaluate(ctx, true, null);
-
-		assertEquals("False Or False should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+		or.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("False Or False should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateOrTrueFalse() throws PolicyEvaluationException {
+	public void evaluateOrTrueFalse() {
 		Or or = factory.createOr();
 		or.setLeft(basicValueFrom(factory.createTrueLiteral()));
 		or.setRight(basicValueFrom(factory.createFalseLiteral()));
 
-		JsonNode result = or.evaluate(ctx, true, null);
-
-		assertEquals("True Or False should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+		or.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("True Or False should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
 	@Test
-	public void evaluateOrFalseTrue() throws PolicyEvaluationException {
+	public void evaluateOrFalseTrue() {
 		Or or = factory.createOr();
 		or.setLeft(basicValueFrom(factory.createFalseLiteral()));
 		or.setRight(basicValueFrom(factory.createTrueLiteral()));
 
-		JsonNode result = or.evaluate(ctx, true, null);
-
-		assertEquals("False Or True should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+		or.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("False Or True should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateOrWrongDatatypeLeft() throws PolicyEvaluationException {
+	@Test
+	public void evaluateOrWrongDatatypeLeft() {
 		Or or = factory.createOr();
 
 		NumberLiteral num = factory.createNumberLiteral();
@@ -257,11 +292,13 @@ public class EvaluateOperatorsTest {
 
 		or.setRight(basicValueFrom(factory.createTrueLiteral()));
 
-		or.evaluate(ctx, true, null);
+		StepVerifier.create(or.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateOrWrongDatatypeRightLeftFalse() throws PolicyEvaluationException {
+	@Test
+	public void evaluateOrWrongDatatypeRightLeftFalse() {
 		Or or = factory.createOr();
 		or.setLeft(basicValueFrom(factory.createFalseLiteral()));
 
@@ -269,11 +306,13 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		or.setRight(basicValueFrom(num));
 
-		or.evaluate(ctx, true, null);
+		StepVerifier.create(or.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void evaluateOrWrongDatatypeRightLeftTrue() throws PolicyEvaluationException {
+	public void evaluateOrWrongDatatypeRightLeftTrue() {
 		Or or = factory.createOr();
 
 		or.setLeft(basicValueFrom(factory.createTrueLiteral()));
@@ -282,46 +321,54 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		or.setRight(basicValueFrom(num));
 
-		JsonNode result = or.evaluate(ctx, true, null);
-		assertEquals("True Or wrong datatype should evaluate to BooleanNode(true) (lazy evaluation)",
-				JSON.booleanNode(true), result);
+		or.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("True Or wrong datatype should evaluate to BooleanNode(true) (lazy evaluation)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
 	@Test
-	public void evaluateEagerOrFalseFalse() throws PolicyEvaluationException {
+	public void evaluateEagerOrFalseFalse() {
 		EagerOr eagerOr = factory.createEagerOr();
 		eagerOr.setLeft(basicValueFrom(factory.createFalseLiteral()));
 		eagerOr.setRight(basicValueFrom(factory.createFalseLiteral()));
 
-		JsonNode result = eagerOr.evaluate(ctx, true, null);
-
-		assertEquals("False EagerOr False should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+		eagerOr.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("False EagerOr False should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateEagerOrTrueFalse() throws PolicyEvaluationException {
+	public void evaluateEagerOrTrueFalse() {
 		EagerOr eagerOr = factory.createEagerOr();
 		eagerOr.setLeft(basicValueFrom(factory.createTrueLiteral()));
 		eagerOr.setRight(basicValueFrom(factory.createFalseLiteral()));
 
-		JsonNode result = eagerOr.evaluate(ctx, true, null);
-
-		assertEquals("True EagerOr False should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+		eagerOr.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("True EagerOr False should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
 	@Test
-	public void evaluateEagerOrFalseTrue() throws PolicyEvaluationException {
+	public void evaluateEagerOrFalseTrue() {
 		EagerOr eagerOr = factory.createEagerOr();
 		eagerOr.setLeft(basicValueFrom(factory.createFalseLiteral()));
 		eagerOr.setRight(basicValueFrom(factory.createTrueLiteral()));
 
-		JsonNode result = eagerOr.evaluate(ctx, true, null);
-
-		assertEquals("False EagerOr True should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+		eagerOr.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("False EagerOr True should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateEagerOrWrongDatatypeLeft() throws PolicyEvaluationException {
+	@Test
+	public void evaluateEagerOrWrongDatatypeLeft() {
 		EagerOr eagerOr = factory.createEagerOr();
 
 		NumberLiteral num = factory.createNumberLiteral();
@@ -330,11 +377,13 @@ public class EvaluateOperatorsTest {
 
 		eagerOr.setRight(basicValueFrom(factory.createTrueLiteral()));
 
-		eagerOr.evaluate(ctx, true, null);
+		StepVerifier.create(eagerOr.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateEagerOrWrongDatatypeRightLeftFalse() throws PolicyEvaluationException {
+	@Test
+	public void evaluateEagerOrWrongDatatypeRightLeftFalse() {
 		EagerOr eagerOr = factory.createEagerOr();
 		eagerOr.setLeft(basicValueFrom(factory.createFalseLiteral()));
 
@@ -342,11 +391,13 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		eagerOr.setRight(basicValueFrom(num));
 
-		eagerOr.evaluate(ctx, true, null);
+		StepVerifier.create(eagerOr.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateEagerOrWrongDatatypeRightLeftTrue() throws PolicyEvaluationException {
+	@Test
+	public void evaluateEagerOrWrongDatatypeRightLeftTrue() {
 		EagerOr eagerOr = factory.createEagerOr();
 
 		eagerOr.setLeft(basicValueFrom(factory.createTrueLiteral()));
@@ -355,32 +406,38 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		eagerOr.setRight(basicValueFrom(num));
 
-		eagerOr.evaluate(ctx, true, null);
+		StepVerifier.create(eagerOr.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void evaluateEqualsTrue() throws PolicyEvaluationException {
+	public void evaluateEqualsTrue() {
 		Equals equals = factory.createEquals();
 		equals.setLeft(basicValueFrom(factory.createTrueLiteral()));
 		equals.setRight(basicValueFrom(factory.createTrueLiteral()));
 
-		JsonNode result = equals.evaluate(ctx, true, null);
-
-		assertEquals("True Equals True should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+		equals.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("True Equals True should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
 	@Test
-	public void evaluateEqualsFalse() throws PolicyEvaluationException {
+	public void evaluateEqualsFalse() {
 		Equals equals = factory.createEquals();
 		equals.setLeft(basicValueFrom(factory.createNullLiteral()));
 		equals.setRight(basicValueFrom(factory.createTrueLiteral()));
 
-		JsonNode result = equals.evaluate(ctx, true, null);
-
-		assertEquals("Null Equals True should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+		equals.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Null Equals True should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
-	private JsonNode moreEquals(BigDecimal leftNumber, BigDecimal rightNumber) throws PolicyEvaluationException {
+	private Flux<JsonNode> moreEquals(BigDecimal leftNumber, BigDecimal rightNumber) {
 		MoreEquals moreEquals = factory.createMoreEquals();
 
 		NumberLiteral left = factory.createNumberLiteral();
@@ -395,24 +452,33 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test
-	public void evaluateMoreEquals1ge1() throws PolicyEvaluationException {
-		JsonNode result = moreEquals(NUMBER_ONE, NUMBER_ONE);
-		assertEquals("1 MoreEquals 1 should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+	public void evaluateMoreEquals1ge1() {
+		moreEquals(NUMBER_ONE, NUMBER_ONE)
+				.take(1)
+				.subscribe(result -> assertEquals("1 MoreEquals 1 should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
 	@Test
-	public void evaluateMoreEquals1ge10() throws PolicyEvaluationException {
-		JsonNode result = moreEquals(NUMBER_ONE, NUMBER_TEN);
-		assertEquals("1 MoreEquals 10 should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+	public void evaluateMoreEquals1ge10() {
+		moreEquals(NUMBER_ONE, NUMBER_TEN)
+				.take(1)
+				.subscribe(result -> assertEquals("1 MoreEquals 10 should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateMoreEquals10ge1() throws PolicyEvaluationException {
-		JsonNode result = moreEquals(NUMBER_TEN, NUMBER_ONE);
-		assertEquals("10 MoreEquals 1 should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+	public void evaluateMoreEquals10ge1() {
+		moreEquals(NUMBER_TEN, NUMBER_ONE)
+				.take(1)
+				.subscribe(result -> assertEquals("10 MoreEquals 1 should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
-	private JsonNode more(BigDecimal leftNumber, BigDecimal rightNumber) throws PolicyEvaluationException {
+	private Flux<JsonNode> more(BigDecimal leftNumber, BigDecimal rightNumber) {
 		More more = factory.createMore();
 
 		NumberLiteral left = factory.createNumberLiteral();
@@ -427,24 +493,33 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test
-	public void evaluateMore1gt1() throws PolicyEvaluationException {
-		JsonNode result = more(NUMBER_ONE, NUMBER_ONE);
-		assertEquals("1 More 1 should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+	public void evaluateMore1gt1() {
+		more(NUMBER_ONE, NUMBER_ONE)
+				.take(1)
+				.subscribe(result -> assertEquals("1 More 1 should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateMore1gt10() throws PolicyEvaluationException {
-		JsonNode result = more(NUMBER_ONE, NUMBER_TEN);
-		assertEquals("1 More 10 should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+	public void evaluateMore1gt10() {
+		more(NUMBER_ONE, NUMBER_TEN)
+				.take(1)
+				.subscribe(result -> assertEquals("1 More 10 should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateMore10gt1() throws PolicyEvaluationException {
-		JsonNode result = more(NUMBER_TEN, NUMBER_ONE);
-		assertEquals("10 More 1 should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+	public void evaluateMore10gt1() {
+		more(NUMBER_TEN, NUMBER_ONE)
+				.take(1)
+				.subscribe(result -> assertEquals("10 More 1 should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
-	private JsonNode lessEquals(BigDecimal leftNumber, BigDecimal rightNumber) throws PolicyEvaluationException {
+	private Flux<JsonNode> lessEquals(BigDecimal leftNumber, BigDecimal rightNumber) {
 		LessEquals lessEquals = factory.createLessEquals();
 
 		NumberLiteral left = factory.createNumberLiteral();
@@ -459,24 +534,33 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test
-	public void evaluateLessEquals1le1() throws PolicyEvaluationException {
-		JsonNode result = lessEquals(NUMBER_ONE, NUMBER_ONE);
-		assertEquals("1 LessEquals 1 should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+	public void evaluateLessEquals1le1() {
+		lessEquals(NUMBER_ONE, NUMBER_ONE)
+				.take(1)
+				.subscribe(result -> assertEquals("1 LessEquals 1 should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
 	@Test
-	public void evaluateLessEquals1le10() throws PolicyEvaluationException {
-		JsonNode result = lessEquals(NUMBER_ONE, NUMBER_TEN);
-		assertEquals("1 LessEquals 10 should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+	public void evaluateLessEquals1le10() {
+		lessEquals(NUMBER_ONE, NUMBER_TEN)
+				.take(1)
+				.subscribe(result -> assertEquals("1 LessEquals 10 should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
 	@Test
-	public void evaluateLessEquals10le1() throws PolicyEvaluationException {
-		JsonNode result = lessEquals(NUMBER_TEN, NUMBER_ONE);
-		assertEquals("10 LessEquals 1 should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+	public void evaluateLessEquals10le1() {
+		lessEquals(NUMBER_TEN, NUMBER_ONE)
+				.take(1)
+				.subscribe(result -> assertEquals("10 LessEquals 1 should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
-	private JsonNode less(BigDecimal leftNumber, BigDecimal rightNumber) throws PolicyEvaluationException {
+	private Flux<JsonNode> less(BigDecimal leftNumber, BigDecimal rightNumber) {
 		Less less = factory.createLess();
 
 		NumberLiteral left = factory.createNumberLiteral();
@@ -491,24 +575,33 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test
-	public void evaluateLess1lt1() throws PolicyEvaluationException {
-		JsonNode result = less(NUMBER_ONE, NUMBER_ONE);
-		assertEquals("1 Less 1 should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+	public void evaluateLess1lt1() {
+		less(NUMBER_ONE, NUMBER_ONE)
+				.take(1)
+				.subscribe(result -> assertEquals("1 Less 1 should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateLess1lt10() throws PolicyEvaluationException {
-		JsonNode result = less(NUMBER_ONE, NUMBER_TEN);
-		assertEquals("1 Less 10 should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+	public void evaluateLess1lt10() {
+		less(NUMBER_ONE, NUMBER_TEN)
+				.take(1)
+				.subscribe(result -> assertEquals("1 Less 10 should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
 	@Test
-	public void evaluateLess10lt1() throws PolicyEvaluationException {
-		JsonNode result = less(NUMBER_TEN, NUMBER_ONE);
-		assertEquals("10 Less 1 should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+	public void evaluateLess10lt1() {
+		less(NUMBER_TEN, NUMBER_ONE)
+				.take(1)
+				.subscribe(result -> assertEquals("10 Less 1 should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
-	private JsonNode div(BigDecimal leftNumber, BigDecimal rightNumber) throws PolicyEvaluationException {
+	private Flux<JsonNode> div(BigDecimal leftNumber, BigDecimal rightNumber) {
 		Div div = factory.createDiv();
 
 		NumberLiteral left = factory.createNumberLiteral();
@@ -523,24 +616,33 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test
-	public void evaluate1Div10() throws PolicyEvaluationException {
-		JsonNode result = div(NUMBER_ONE, NUMBER_TEN);
-		assertEquals("1 Div 10 should evaluate to ValueNode(0.1)", JSON.numberNode(BigDecimal.valueOf(0.1)), result);
+	public void evaluate1Div10() {
+		div(NUMBER_ONE, NUMBER_TEN)
+				.take(1)
+				.subscribe(result -> assertEquals("1 Div 10 should evaluate to ValueNode(0.1)",
+						JSON.numberNode(BigDecimal.valueOf(0.1)), result)
+				);
 	}
 
 	@Test
-	public void evaluate10Div2() throws PolicyEvaluationException {
-		JsonNode result = div(NUMBER_TEN, NUMBER_TWO);
-		assertEquals("10 Div 2 should evaluate to ValueNode(5)", JSON.numberNode(BigDecimal.valueOf(5.0)), result);
+	public void evaluate10Div2() {
+		div(NUMBER_TEN, NUMBER_TWO)
+				.take(1)
+				.subscribe(result -> assertEquals("10 Div 2 should evaluate to ValueNode(5)",
+						JSON.numberNode(BigDecimal.valueOf(5.0)), result)
+				);
 	}
 
 	@Test
-	public void evaluate1Div1() throws PolicyEvaluationException {
-		JsonNode result = div(NUMBER_ONE, NUMBER_ONE);
-		assertEquals("1 Div 1 should evaluate to ValueNode(1)", JSON.numberNode(BigDecimal.valueOf(1)), result);
+	public void evaluate1Div1() {
+		div(NUMBER_ONE, NUMBER_ONE)
+				.take(1)
+				.subscribe(result -> assertEquals("1 Div 1 should evaluate to ValueNode(1)",
+						JSON.numberNode(BigDecimal.valueOf(1)), result)
+				);
 	}
 
-	private JsonNode minus(BigDecimal leftNumber, BigDecimal rightNumber) throws PolicyEvaluationException {
+	private Flux<JsonNode> minus(BigDecimal leftNumber, BigDecimal rightNumber) {
 		Minus minus = factory.createMinus();
 
 		NumberLiteral left = factory.createNumberLiteral();
@@ -555,24 +657,33 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test
-	public void evaluate2Minus10() throws PolicyEvaluationException {
-		JsonNode result = minus(NUMBER_TWO, NUMBER_TEN);
-		assertEquals("2 Minus 10 should evaluate to ValueNode(-8)", JSON.numberNode(BigDecimal.valueOf(-8.0)), result);
+	public void evaluate2Minus10() {
+		minus(NUMBER_TWO, NUMBER_TEN)
+				.take(1)
+				.subscribe(result -> assertEquals("2 Minus 10 should evaluate to ValueNode(-8)",
+						JSON.numberNode(BigDecimal.valueOf(-8.0)), result)
+				);
 	}
 
 	@Test
-	public void evaluate10Minus2() throws PolicyEvaluationException {
-		JsonNode result = minus(NUMBER_TEN, NUMBER_TWO);
-		assertEquals("10 Minus 2 should evaluate to ValueNode(8)", JSON.numberNode(BigDecimal.valueOf(8.0)), result);
+	public void evaluate10Minus2() {
+		minus(NUMBER_TEN, NUMBER_TWO)
+				.take(1)
+				.subscribe(result -> assertEquals("10 Minus 2 should evaluate to ValueNode(8)",
+						JSON.numberNode(BigDecimal.valueOf(8.0)), result)
+				);
 	}
 
 	@Test
-	public void evaluate1Minus1() throws PolicyEvaluationException {
-		JsonNode result = minus(NUMBER_ONE, NUMBER_ONE);
-		assertEquals("1 Minus 1 should evaluate to ValueNode(0)", JSON.numberNode(BigDecimal.valueOf(0.0)), result);
+	public void evaluate1Minus1() {
+		minus(NUMBER_ONE, NUMBER_ONE)
+				.take(1)
+				.subscribe(result -> assertEquals("1 Minus 1 should evaluate to ValueNode(0)",
+						JSON.numberNode(BigDecimal.valueOf(0.0)), result)
+				);
 	}
 
-	private JsonNode multi(BigDecimal leftNumber, BigDecimal rightNumber) throws PolicyEvaluationException {
+	private Flux<JsonNode> multi(BigDecimal leftNumber, BigDecimal rightNumber) {
 		Multi multi = factory.createMulti();
 
 		NumberLiteral left = factory.createNumberLiteral();
@@ -587,73 +698,94 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test
-	public void evaluate2Multi10() throws PolicyEvaluationException {
-		JsonNode result = multi(NUMBER_TWO, NUMBER_TEN);
-		assertEquals("2 Multi 10 should evaluate to ValueNode(20)", JSON.numberNode(BigDecimal.valueOf(20.0)), result);
+	public void evaluate2Multi10() {
+		multi(NUMBER_TWO, NUMBER_TEN)
+				.take(1)
+				.subscribe(result -> assertEquals("2 Multi 10 should evaluate to ValueNode(20)",
+						JSON.numberNode(BigDecimal.valueOf(20.0)), result)
+				);
 	}
 
 	@Test
-	public void evaluate10Multi2() throws PolicyEvaluationException {
-		JsonNode result = multi(NUMBER_TEN, NUMBER_TWO);
-		assertEquals("10 Multi 2 should evaluate to ValueNode(20)", JSON.numberNode(BigDecimal.valueOf(20.0)), result);
+	public void evaluate10Multi2() {
+		multi(NUMBER_TEN, NUMBER_TWO)
+				.take(1)
+				.subscribe(result -> assertEquals("10 Multi 2 should evaluate to ValueNode(20)",
+						JSON.numberNode(BigDecimal.valueOf(20.0)), result)
+				);
 	}
 
 	@Test
-	public void evaluate1Multi1() throws PolicyEvaluationException {
-		JsonNode result = multi(NUMBER_ONE, NUMBER_ONE);
-		assertEquals("1 Multi 1 should evaluate to ValueNode(1)", JSON.numberNode(BigDecimal.valueOf(1.0)), result);
+	public void evaluate1Multi1() {
+		multi(NUMBER_ONE, NUMBER_ONE)
+				.take(1)
+				.subscribe(result -> assertEquals("1 Multi 1 should evaluate to ValueNode(1)",
+						JSON.numberNode(BigDecimal.valueOf(1.0)), result)
+				);
 	}
 
 	@Test
-	public void evaluateNotOnBooleanTrue() throws PolicyEvaluationException {
+	public void evaluateNotOnBooleanTrue() {
 		Not not = factory.createNot();
 		not.setExpression(basicValueFrom(factory.createTrueLiteral()));
 
-		JsonNode result = not.evaluate(ctx, true, null);
-		assertEquals("Not True should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+		not.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Not True should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateNotOnBooleanFalse() throws PolicyEvaluationException {
+	public void evaluateNotOnBooleanFalse() {
 		Not not = factory.createNot();
 		not.setExpression(basicValueFrom(factory.createFalseLiteral()));
 
-		JsonNode result = not.evaluate(ctx, true, null);
-		assertEquals("Not False should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+		not.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Not False should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateNotOnWrongType() throws PolicyEvaluationException {
+	@Test
+	public void evaluateNotOnWrongType() {
 		Not not = factory.createNot();
 		StringLiteral literal = factory.createStringLiteral();
 		literal.setString("Makes no sense");
 		not.setExpression(basicValueFrom(literal));
 
-		not.evaluate(ctx, true, null);
+		StepVerifier.create(not.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void unaryMinus() throws PolicyEvaluationException {
+	public void unaryMinus() {
 		UnaryMinus unaryMinus = factory.createUnaryMinus();
 		NumberLiteral numberLiteral = factory.createNumberLiteral();
 		numberLiteral.setNumber(NUMBER_ONE);
 		unaryMinus.setExpression(basicValueFrom(numberLiteral));
 
-		JsonNode result = unaryMinus.evaluate(ctx, true, null);
-		assertEquals("UnaryMinus 1 should evaluate to NumberNode(-1)", JSON.numberNode(BigDecimal.valueOf(-1L)),
-				result);
-	}
-
-	@Test(expected = PolicyEvaluationException.class)
-	public void unaryMinusWrongType() throws PolicyEvaluationException {
-		UnaryMinus unaryMinus = factory.createUnaryMinus();
-		unaryMinus.setExpression(basicValueFrom(factory.createNullLiteral()));
-
-		unaryMinus.evaluate(ctx, true, null);
+		unaryMinus.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("UnaryMinus 1 should evaluate to NumberNode(-1)",
+						JSON.numberNode(BigDecimal.valueOf(-1L)), result)
+				);
 	}
 
 	@Test
-	public void evaluatePlusOnStrings() throws PolicyEvaluationException {
+	public void unaryMinusWrongType() {
+		UnaryMinus unaryMinus = factory.createUnaryMinus();
+		unaryMinus.setExpression(basicValueFrom(factory.createNullLiteral()));
+
+		StepVerifier.create(unaryMinus.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
+	}
+
+	@Test
+	public void evaluatePlusOnStrings() {
 		Plus plus = factory.createPlus();
 		StringLiteral lhs = factory.createStringLiteral();
 		lhs.setString("part a &");
@@ -662,13 +794,15 @@ public class EvaluateOperatorsTest {
 		plus.setLeft(basicValueFrom(lhs));
 		plus.setRight(basicValueFrom(rhs));
 
-		JsonNode result = plus.evaluate(ctx, true, null);
-		assertEquals("Plus on Strings should evaluate to TextNode with concatenated strings",
-				JSON.textNode("part a & part b"), result);
+		plus.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Plus on Strings should evaluate to TextNode with concatenated strings",
+						JSON.textNode("part a & part b"), result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluatePlusOnLeftString() throws PolicyEvaluationException {
+	@Test
+	public void evaluatePlusOnLeftString() {
 		Plus plus = factory.createPlus();
 		StringLiteral lhs = factory.createStringLiteral();
 		lhs.setString("part a &");
@@ -677,11 +811,13 @@ public class EvaluateOperatorsTest {
 		plus.setLeft(basicValueFrom(lhs));
 		plus.setRight(basicValueFrom(rhs));
 
-		plus.evaluate(ctx, true, null);
+		StepVerifier.create(plus.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluatePlusOnRightString() throws PolicyEvaluationException {
+	@Test
+	public void evaluatePlusOnRightString() {
 		Plus plus = factory.createPlus();
 		NumberLiteral lhs = factory.createNumberLiteral();
 		lhs.setNumber(NUMBER_ONE);
@@ -690,11 +826,13 @@ public class EvaluateOperatorsTest {
 		plus.setLeft(basicValueFrom(lhs));
 		plus.setRight(basicValueFrom(rhs));
 
-		plus.evaluate(ctx, true, null);
+		StepVerifier.create(plus.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void evaluatePlusOnNumbers() throws PolicyEvaluationException {
+	public void evaluatePlusOnNumbers() {
 		Plus plus = factory.createPlus();
 		NumberLiteral lhs = factory.createNumberLiteral();
 		lhs.setNumber(NUMBER_ONE);
@@ -703,12 +841,15 @@ public class EvaluateOperatorsTest {
 		plus.setLeft(basicValueFrom(lhs));
 		plus.setRight(basicValueFrom(rhs));
 
-		JsonNode result = plus.evaluate(ctx, true, null);
-		assertEquals("1 Plus 2 should evaluate to ValueNode(3)", JSON.numberNode(BigDecimal.valueOf(3.0)), result);
+		plus.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("1 Plus 2 should evaluate to ValueNode(3)",
+						JSON.numberNode(BigDecimal.valueOf(3.0)), result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateElementOfOnWrongType() throws PolicyEvaluationException {
+	@Test
+	public void evaluateElementOfOnWrongType() {
 		ElementOf elementOf = factory.createElementOf();
 		StringLiteral lhs = factory.createStringLiteral();
 		lhs.setString("A");
@@ -717,11 +858,13 @@ public class EvaluateOperatorsTest {
 		elementOf.setLeft(basicValueFrom(lhs));
 		elementOf.setRight(basicValueFrom(rhs));
 
-		elementOf.evaluate(ctx, true, null);
+		StepVerifier.create(elementOf.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void evaluateElementOfOneElement() throws PolicyEvaluationException {
+	public void evaluateElementOfOneElement() {
 		ElementOf elementOf = factory.createElementOf();
 		StringLiteral lhs = factory.createStringLiteral();
 		lhs.setString("A");
@@ -732,13 +875,15 @@ public class EvaluateOperatorsTest {
 		elementOf.setLeft(basicValueFrom(lhs));
 		elementOf.setRight(basicValueFrom(rhs));
 
-		JsonNode result = elementOf.evaluate(ctx, true, null);
-		assertEquals("\"A\" ElementOf Array[\"A\"] should evaluate to BooleanNode(true)", JSON.booleanNode(true),
-				result);
+		elementOf.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("\"A\" ElementOf Array[\"A\"] should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
 	@Test
-	public void evaluateElementOfTwoElementsTrue() throws PolicyEvaluationException {
+	public void evaluateElementOfTwoElementsTrue() {
 		ElementOf elementOf = factory.createElementOf();
 		StringLiteral lhs = factory.createStringLiteral();
 		lhs.setString("A");
@@ -752,13 +897,15 @@ public class EvaluateOperatorsTest {
 		elementOf.setLeft(basicValueFrom(lhs));
 		elementOf.setRight(basicValueFrom(rhs));
 
-		JsonNode result = elementOf.evaluate(ctx, true, null);
-		assertEquals("\"A\" ElementOf Array[\"A\", \"B\"] should evaluate to BooleanNode(true)", JSON.booleanNode(true),
-				result);
+		elementOf.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("\"A\" ElementOf Array[\"A\", \"B\"] should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
 	@Test
-	public void evaluateElementOfTwoElementsFalse() throws PolicyEvaluationException {
+	public void evaluateElementOfTwoElementsFalse() {
 		ElementOf elementOf = factory.createElementOf();
 		StringLiteral lhs = factory.createStringLiteral();
 		lhs.setString("C");
@@ -772,13 +919,15 @@ public class EvaluateOperatorsTest {
 		elementOf.setLeft(basicValueFrom(lhs));
 		elementOf.setRight(basicValueFrom(rhs));
 
-		JsonNode result = elementOf.evaluate(ctx, true, null);
-		assertEquals("\"C\" ElementOf Array[\"A\", \"B\"] should evaluate to BooleanNode(false)",
-				JSON.booleanNode(false), result);
+		elementOf.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("\"C\" ElementOf Array[\"A\", \"B\"] should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
 	@Test
-	public void evaluateRegExTrue() throws PolicyEvaluationException {
+	public void evaluateRegExTrue() {
 		String value = "test";
 		String pattern = ".*";
 
@@ -791,12 +940,15 @@ public class EvaluateOperatorsTest {
 		regEx.setLeft(basicValueFrom(left));
 		regEx.setRight(basicValueFrom(right));
 
-		JsonNode result = regEx.evaluate(ctx, true, null);
-		assertEquals("\"test\" RegEx \".*\" should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+		regEx.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("\"test\" RegEx \".*\" should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
 	}
 
 	@Test
-	public void evaluateRegExFalse() throws PolicyEvaluationException {
+	public void evaluateRegExFalse() {
 		String value = "test";
 		String pattern = ".";
 
@@ -809,12 +961,15 @@ public class EvaluateOperatorsTest {
 		regEx.setLeft(basicValueFrom(left));
 		regEx.setRight(basicValueFrom(right));
 
-		JsonNode result = regEx.evaluate(ctx, true, null);
-		assertEquals("\"test\" RegEx \".\" should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+		regEx.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("\"test\" RegEx \".\" should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateRegExPatternError() throws PolicyEvaluationException {
+	@Test
+	public void evaluateRegExPatternError() {
 		String value = "test";
 		String pattern = "***";
 
@@ -827,11 +982,13 @@ public class EvaluateOperatorsTest {
 		regEx.setLeft(basicValueFrom(left));
 		regEx.setRight(basicValueFrom(right));
 
-		regEx.evaluate(ctx, true, null);
+		StepVerifier.create(regEx.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateRegExLeftWrongType() throws PolicyEvaluationException {
+	@Test
+	public void evaluateRegExLeftWrongType() {
 		String pattern = ".*";
 
 		NumberLiteral left = factory.createNumberLiteral();
@@ -843,11 +1000,13 @@ public class EvaluateOperatorsTest {
 		regEx.setLeft(basicValueFrom(left));
 		regEx.setRight(basicValueFrom(right));
 
-		regEx.evaluate(ctx, true, null);
+		StepVerifier.create(regEx.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateRegExRightWrongType() throws PolicyEvaluationException {
+	@Test
+	public void evaluateRegExRightWrongType() {
 		String value = "test";
 
 		StringLiteral left = factory.createStringLiteral();
@@ -858,7 +1017,9 @@ public class EvaluateOperatorsTest {
 		regEx.setLeft(basicValueFrom(left));
 		regEx.setRight(basicValueFrom(right));
 
-		regEx.evaluate(ctx, true, null);
+		StepVerifier.create(regEx.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	private static BasicValue basicValueFrom(Value value) {

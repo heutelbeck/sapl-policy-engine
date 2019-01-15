@@ -26,6 +26,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class ApplyStepsRecursiveWildcardTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
@@ -35,15 +36,17 @@ public class ApplyStepsRecursiveWildcardTest {
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToNullNode() throws PolicyEvaluationException {
+	@Test
+	public void applyToNullNode() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void applyToArray() throws PolicyEvaluationException {
+	public void applyToArray() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 		array.add(JSON.booleanNode(true));
@@ -62,15 +65,17 @@ public class ApplyStepsRecursiveWildcardTest {
 
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Recursive wildcard step applied to array should return all items and attribute values",
-				expectedResultSet, resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Recursive wildcard step applied to array should return all items and attribute values",
+							expectedResultSet, resultSet);
+				});
 	}
 
 	@Test
-	public void applyToObject() throws PolicyEvaluationException {
+	public void applyToObject() {
 		ObjectNode object = JSON.objectNode();
 		object.set("key1", JSON.nullNode());
 		object.set("key2", JSON.booleanNode(true));
@@ -89,15 +94,17 @@ public class ApplyStepsRecursiveWildcardTest {
 
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Recursive wildcard step applied to object should return all items and attribute values",
-				expectedResultSet, resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Recursive wildcard step applied to object should return all items and attribute values",
+							expectedResultSet, resultSet);
+				});
 	}
 
 	@Test
-	public void applyToResultArray() throws PolicyEvaluationException {
+	public void applyToResultArray() {
 		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
 
 		ArrayNode array = JSON.arrayNode();
@@ -122,11 +129,12 @@ public class ApplyStepsRecursiveWildcardTest {
 
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals(
-				"Recursive wildcard step applied to a result array node should return all items and attribute values",
-				expectedResultSet, resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Recursive wildcard step applied to a result array node should return all items and attribute values",
+							expectedResultSet, resultSet);
+				});
 	}
 }

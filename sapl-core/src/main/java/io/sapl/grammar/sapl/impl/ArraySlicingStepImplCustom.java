@@ -18,15 +18,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
-import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
 
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
@@ -38,7 +40,16 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		try {
+			return Flux.just(apply(previousResult));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
+	}
+
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		if (!previousResult.getNode().isArray()) {
 			throw new PolicyEvaluationException(String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), previousResult.getNode().getNodeType()));
 		}
@@ -52,33 +63,22 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	}
 
 	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		try {
+			return Flux.just(apply(previousResult));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
+	}
+
+	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
 		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
 		final List<Integer> nodeIndices = resolveIndex(previousResult.asJsonWithoutAnnotations());
 		for (Integer i : nodeIndices) {
 			list.add(previousResult.getNodes().get(i));
 		}
 		return new ArrayResultNode(list);
-	}
-
-	@Override
-	public Flux<ResultNode> reactiveApply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		try {
-			return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
-		}
-		catch (PolicyEvaluationException e) {
-			return Flux.error(e);
-		}
-	}
-
-	@Override
-	public Flux<ResultNode> reactiveApply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		try {
-			return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
-		}
-		catch (PolicyEvaluationException e) {
-			return Flux.error(e);
-		}
 	}
 
 	private List<Integer> resolveIndex(TreeNode value) throws PolicyEvaluationException {

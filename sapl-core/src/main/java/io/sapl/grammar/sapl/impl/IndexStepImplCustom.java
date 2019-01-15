@@ -16,14 +16,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
-import org.eclipse.emf.ecore.EObject;
 import reactor.core.publisher.Flux;
 
 public class IndexStepImplCustom extends io.sapl.grammar.sapl.impl.IndexStepImpl {
@@ -35,34 +37,24 @@ public class IndexStepImplCustom extends io.sapl.grammar.sapl.impl.IndexStepImpl
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
-        final JsonNode previousResultNode = previousResult.getNode();
-        if (!previousResultNode.isArray()) {
-			throw new PolicyEvaluationException(String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), previousResultNode.getNodeType()));
-		}
-
-        final int arrayLength = previousResultNode.size();
-        int index = computeAndValidateIndex(arrayLength);
-        return new JsonNodeWithParentArray(previousResultNode.get(index), previousResultNode, index);
-	}
-
-    @Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) throws PolicyEvaluationException {
-        final List<AbstractAnnotatedJsonNode> previousResultNodes = previousResult.getNodes();
-
-        final int arrayLength = previousResultNodes.size();
-        int index = computeAndValidateIndex(arrayLength);
-        return previousResultNodes.get(index);
-	}
-
-	@Override
-	public Flux<ResultNode> reactiveApply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
         try {
-            return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
+            return Flux.just(apply(previousResult));
         }
         catch (PolicyEvaluationException e) {
             return Flux.error(e);
         }
+	}
+
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
+		final JsonNode previousResultNode = previousResult.getNode();
+		if (!previousResultNode.isArray()) {
+			throw new PolicyEvaluationException(String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), previousResultNode.getNodeType()));
+		}
+
+		final int arrayLength = previousResultNode.size();
+		int index = computeAndValidateIndex(arrayLength);
+		return new JsonNodeWithParentArray(previousResultNode.get(index), previousResultNode, index);
 	}
 
     private int computeAndValidateIndex(int arrayLength) throws PolicyEvaluationException {
@@ -77,13 +69,21 @@ public class IndexStepImplCustom extends io.sapl.grammar.sapl.impl.IndexStepImpl
     }
 
 	@Override
-	public Flux<ResultNode> reactiveApply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
         try {
-            return Flux.just(apply(previousResult, ctx, isBody, relativeNode));
+            return Flux.just(apply(previousResult));
         }
         catch (PolicyEvaluationException e) {
             return Flux.error(e);
         }
+	}
+
+	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
+		final List<AbstractAnnotatedJsonNode> previousResultNodes = previousResult.getNodes();
+
+		final int arrayLength = previousResultNodes.size();
+		int index = computeAndValidateIndex(arrayLength);
+		return previousResultNodes.get(index);
 	}
 
 	@Override

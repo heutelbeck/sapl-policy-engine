@@ -78,7 +78,7 @@ public class HttpPolicyInformationPointTest {
 		AnnotationAttributeContext attributeCtx = new AnnotationAttributeContext();
 		attributeCtx.loadPolicyInformationPoint(pip);
 		Map<String, JsonNode> variables = new HashMap<>();
-		JsonNode returnedAttribute = attributeCtx.evaluate("http.post", jsonRequestSpec, variables);
+		JsonNode returnedAttribute = attributeCtx.evaluate("http.post", jsonRequestSpec, variables).blockFirst();
 		assertEquals("return value not matching", result, returnedAttribute);
 
 		PowerMockito.verifyStatic(RequestExecutor.class, times(1));

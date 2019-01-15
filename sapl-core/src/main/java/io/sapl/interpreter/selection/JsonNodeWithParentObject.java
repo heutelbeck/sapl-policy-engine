@@ -63,31 +63,16 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public void applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) throws PolicyEvaluationException {
-		applyFilterWithRelativeNode(function, arguments, each, ctx, isBody, parent);
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
+		return applyFilterWithRelativeNode(function, arguments, each, ctx, isBody, parent);
 	}
 
 	@Override
-	public Flux<Void> reactiveApplyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
-		return reactiveApplyFilterWithRelativeNode(function, arguments, each, ctx, isBody, parent);
-	}
-
-	@Override
-	public void applyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
+	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
 		if (each) {
-			applyFilterToEachItem(function, node, arguments, ctx, isBody);
+			return applyFilterToEachItem(function, node, arguments, ctx, isBody);
 		} else {
-			((ObjectNode) parent).set(attribute, applyFilterToNode(function, node, arguments, ctx, isBody, relativeNode));
-		}
-	}
-
-	@Override
-	public Flux<Void> reactiveApplyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		if (each) {
-			return reactiveApplyFilterToEachItem(function, node, arguments, ctx, isBody);
-		} else {
-			return reactiveApplyFilterToNode(function, node, arguments, ctx, isBody, relativeNode)
+			return applyFilterToNode(function, node, arguments, ctx, isBody, relativeNode)
 					.map(filteredNode -> {
 						((ObjectNode) parent).set(attribute, filteredNode);
 						return ResultNode.Void.INSTANCE;

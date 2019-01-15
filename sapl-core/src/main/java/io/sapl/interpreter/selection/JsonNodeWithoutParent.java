@@ -63,29 +63,14 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public void applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) throws PolicyEvaluationException {
-		applyFilterWithRelativeNode(function, arguments, each, ctx, isBody,null);
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
+		return applyFilterWithRelativeNode(function, arguments, each, ctx, isBody, null);
 	}
 
 	@Override
-	public Flux<Void> reactiveApplyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
-		return reactiveApplyFilterWithRelativeNode(function, arguments, each, ctx, isBody, null);
-	}
-
-	@Override
-	public void applyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
+	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
 		if (each) {
-			applyFilterToEachItem(function, node, arguments, ctx, isBody);
-		} else {
-			throw new PolicyEvaluationException(FILTER_ROOT_ELEMENT);
-		}
-	}
-
-	@Override
-	public Flux<Void> reactiveApplyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		if (each) {
-			return reactiveApplyFilterToEachItem(function, node, arguments, ctx, isBody);
+			return applyFilterToEachItem(function, node, arguments, ctx, isBody);
 		} else {
 			return Flux.error(new PolicyEvaluationException(FILTER_ROOT_ELEMENT));
 		}
