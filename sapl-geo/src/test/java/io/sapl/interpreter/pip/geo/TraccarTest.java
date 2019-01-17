@@ -42,12 +42,12 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
-import io.sapl.pip.http.RequestExecutor;
+import io.sapl.pip.http.HttpClientRequestExecutor;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(RequestExecutor.class)
+@PrepareForTest(HttpClientRequestExecutor.class)
 public class TraccarTest {
 
 	private static String positionsJson = "[{\"id\":16,\"attributes\":{\"batteryLevel\":66.0,\"distance\":1.0,"
@@ -88,7 +88,7 @@ public class TraccarTest {
 
 	@Before
 	public void init() throws IOException {
-		mockStatic(RequestExecutor.class);
+		mockStatic(HttpClientRequestExecutor.class);
 		trConn = new TraccarConnection(MAPPER.readValue(configJson, TraccarConfig.class));
 		trDevice = MAPPER.readValue(devicesJson, TraccarDevice[].class)[0];
 		trFences = MAPPER.readValue(geofencesJson, TraccarGeofence[].class);
@@ -105,7 +105,7 @@ public class TraccarTest {
 
 	@Test
 	public void getDeviceTest() throws AttributeException, IOException {
-		when(RequestExecutor.executeUriRequest(any(), anyString())).thenReturn(MAPPER.readTree(devicesJson));
+		when(HttpClientRequestExecutor.executeRequest(any(), anyString())).thenReturn(MAPPER.readTree(devicesJson));
 
 		assertEquals("Traccar devices not correctly obtained.", "TestDevice",
 				trConn.getTraccarDevice(DEVICE_ID).getName());
@@ -113,7 +113,7 @@ public class TraccarTest {
 
 	@Test
 	public void findDeviceNullArgumentTest() throws AttributeException {
-		when(RequestExecutor.executeUriRequest(any(), anyString())).thenReturn(null);
+		when(HttpClientRequestExecutor.executeRequest(any(), anyString())).thenReturn(null);
 
 		try {
 			trConn.getTraccarDevice(DEVICE_ID).getUniqueId();
@@ -126,7 +126,7 @@ public class TraccarTest {
 
 	@Test
 	public void getDeviceIdNotExistingTest() throws IOException, AttributeException {
-		when(RequestExecutor.executeUriRequest(any(), anyString())).thenReturn(MAPPER.readTree(devicesJson));
+		when(HttpClientRequestExecutor.executeRequest(any(), anyString())).thenReturn(MAPPER.readTree(devicesJson));
 
 		try {
 			trConn.getTraccarDevice("0");
@@ -139,7 +139,7 @@ public class TraccarTest {
 
 	@Test
 	public void getPositionTest() throws AttributeException, IOException {
-		when(RequestExecutor.executeUriRequest(any(), anyString())).thenReturn(MAPPER.readTree(positionsJson));
+		when(HttpClientRequestExecutor.executeRequest(any(), anyString())).thenReturn(MAPPER.readTree(positionsJson));
 
 		TraccarPosition expectedPosition = MAPPER.readValue(positionsJson, TraccarPosition[].class)[0];
 		assertEquals("Traccar position not correctly obtained.", expectedPosition, trConn.getTraccarPosition(trDevice));
@@ -148,7 +148,7 @@ public class TraccarTest {
 	@Test
 	public void getPositionExceptionTest() throws IOException {
 		try {
-			when(RequestExecutor.executeUriRequest(any(), anyString())).thenReturn(MAPPER.readTree("[]"));
+			when(HttpClientRequestExecutor.executeRequest(any(), anyString())).thenReturn(MAPPER.readTree("[]"));
 			trConn.getTraccarPosition(trDevice);
 
 			fail("No error message is thrown when zero positions are returned from server.");
@@ -160,7 +160,7 @@ public class TraccarTest {
 
 	@Test
 	public void getGeofencesTest() throws AttributeException, IOException {
-		when(RequestExecutor.executeUriRequest(any(), anyString()))
+		when(HttpClientRequestExecutor.executeRequest(any(), anyString()))
 				.thenReturn(MAPPER.convertValue(trFences, JsonNode.class));
 
 		assertArrayEquals("Traccar geofences not correctly obtained.", trFences, trConn.getTraccarGeofences(trDevice));

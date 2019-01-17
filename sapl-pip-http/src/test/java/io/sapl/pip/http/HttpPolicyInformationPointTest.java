@@ -43,21 +43,28 @@ import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(RequestExecutor.class)
+@PrepareForTest(HttpClientRequestExecutor.class)
 public class HttpPolicyInformationPointTest {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	private RequestSpecification saplPostRequest = new RequestSpecification();
 	private JsonNode jsonRequestSpec;
 	private JsonNode result;
+	private RequestSpecification saplPostRequest;
 
 	@Before
 	public void init() throws IOException, AttributeException {
-		String request = "{ \"url\" : \"http://jsonplaceholder.typicode.com/posts\", \"header\" : { \""
-				+ HttpHeaders.ACCEPT + "\" : \"application/json\", \"" + HttpHeaders.ACCEPT_CHARSET + "\" : \""
-				+ StandardCharsets.UTF_8 + "\" }, \"rawBody\" : \"hello world\" }";
+		String request =
+				"{ " +
+					"\"url\": \"http://jsonplaceholder.typicode.com/posts\", " +
+					"\"headers\": { " +
+						"\"" + HttpHeaders.ACCEPT + "\" : \"application/json\", " +
+						"\"" + HttpHeaders.ACCEPT_CHARSET + "\" : \"" + StandardCharsets.UTF_8 + "\" " +
+					"}, " +
+					"\"rawBody\" : \"hello world\" " +
+				"}";
+
 		jsonRequestSpec = MAPPER.readValue(request, JsonNode.class);
 		result = JSON.textNode("result");
 
@@ -65,39 +72,56 @@ public class HttpPolicyInformationPointTest {
 		headerProperties.put(HttpHeaders.ACCEPT, "application/json");
 		headerProperties.put(HttpHeaders.ACCEPT_CHARSET, StandardCharsets.UTF_8.toString());
 
+		saplPostRequest = new RequestSpecification();
 		saplPostRequest.setUrl(JSON.textNode("http://jsonplaceholder.typicode.com/posts"));
-		saplPostRequest.setHeader(headerProperties);
+		saplPostRequest.setHeaders(headerProperties);
 
-		PowerMockito.mockStatic(RequestExecutor.class);
-		when(RequestExecutor.executeUriRequest(any(), any())).thenReturn(result);
+		PowerMockito.mockStatic(HttpClientRequestExecutor.class);
+		when(HttpClientRequestExecutor.executeRequest(any(), any())).thenReturn(result);
 	}
 
 	@Test
-	public void postCustomRequest() throws AttributeException {
+	public void postRequest() throws AttributeException {
 		HttpPolicyInformationPoint pip = new HttpPolicyInformationPoint();
 		AnnotationAttributeContext attributeCtx = new AnnotationAttributeContext();
 		attributeCtx.loadPolicyInformationPoint(pip);
 		Map<String, JsonNode> variables = new HashMap<>();
 		JsonNode returnedAttribute = attributeCtx.evaluate("http.post", jsonRequestSpec, variables).blockFirst();
-		assertEquals("return value not matching", result, returnedAttribute);
 
-		PowerMockito.verifyStatic(RequestExecutor.class, times(1));
-		RequestExecutor.executeUriRequest(requestEq(saplPostRequest, RequestSpecification.HTTP_POST),
+		assertEquals("return value not matching", result, returnedAttribute);
+		PowerMockito.verifyStatic(HttpClientRequestExecutor.class, times(1));
+
+		HttpClientRequestExecutor.executeRequest(requestEq(saplPostRequest, RequestSpecification.HTTP_POST),
 				eq(RequestSpecification.HTTP_POST));
 	}
 
-	static RequestSpecification requestEq(RequestSpecification expected, String method) throws AttributeException {
+	private static RequestSpecification requestEq(RequestSpecification expected, String method) throws AttributeException {
 		return argThat(new HttpUriRequestMatcher(expected, method));
 	}
 
-	public static class HttpUriRequestMatcher implements ArgumentMatcher<RequestSpecification> {
+
+	private static class HttpUriRequestMatcher implements ArgumentMatcher<RequestSpecification> {
 
 		private final HttpUriRequest expected;
 		private final String method;
 
-		public HttpUriRequestMatcher(RequestSpecification saplRequest, String requestType) throws AttributeException {
-			expected = saplRequest.toHttpUriRequest(requestType);
+		HttpUriRequestMatcher(RequestSpecification saplRequest, String requestType) throws AttributeException {
+			expected = HttpClientRequestExecutor.HttpUriRequestFactory.buildHttpUriRequest(saplRequest, requestType);
 			method = requestType;
+		}
+
+		@Override
+		public boolean matches(RequestSpecification argument) {
+			try {
+				HttpUriRequest actual;
+				actual = HttpClientRequestExecutor.HttpUriRequestFactory.buildHttpUriRequest(argument, method);
+				return headerMatch(actual) && expected.getMethod().equals(actual.getMethod())
+						&& expected.getURI().equals(actual.getURI())
+						&& expected.getProtocolVersion().equals(actual.getProtocolVersion())
+						&& expected.getRequestLine().toString().equals(actual.getRequestLine().toString());
+			} catch (AttributeException e) {
+				throw new UnsupportedOperationException(e);
+			}
 		}
 
 		private boolean headerMatch(HttpUriRequest actual) {
@@ -126,21 +150,6 @@ public class HttpPolicyInformationPointTest {
 		private boolean headersMatch(Header h1, Header h2) {
 			// could be refined to check element equality too
 			return h1.getName().equals(h2.getName()) && h1.getValue().equals(h2.getValue());
-		}
-
-		@Override
-		public boolean matches(RequestSpecification argument) {
-			try {
-				HttpUriRequest actual;
-				actual = argument.toHttpUriRequest(method);
-				return headerMatch(actual) && expected.getMethod().equals(actual.getMethod())
-						&& expected.getURI().equals(actual.getURI())
-						&& expected.getProtocolVersion().equals(actual.getProtocolVersion())
-						&& expected.getRequestLine().toString().equals(actual.getRequestLine().toString());
-			} catch (AttributeException e) {
-				throw new UnsupportedOperationException(e);
-			}
-
 		}
 	}
 }

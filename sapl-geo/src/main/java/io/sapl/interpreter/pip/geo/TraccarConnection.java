@@ -36,7 +36,7 @@ import com.vividsolutions.jts.geom.Point;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.GeometryBuilder;
-import io.sapl.pip.http.RequestExecutor;
+import io.sapl.pip.http.HttpClientRequestExecutor;
 import io.sapl.pip.http.RequestSpecification;
 import lombok.Getter;
 
@@ -60,13 +60,13 @@ public class TraccarConnection {
 
 	public TraccarConnection(TraccarConfig conf) {
 		config = conf;
-		requestSpec.setHeader(getTraccarHTTPHeader());
+		requestSpec.setHeaders(getTraccarHTTPHeader());
 	}
 
 	public TraccarConnection(JsonNode conf) {
 		if (!AF_TEST.equals(conf.asText())) {
 			config = MAPPER.convertValue(conf, TraccarConfig.class);
-			requestSpec.setHeader(getTraccarHTTPHeader());
+			requestSpec.setHeaders(getTraccarHTTPHeader());
 		}
 	}
 
@@ -85,7 +85,7 @@ public class TraccarConnection {
 	public TraccarDevice getTraccarDevice(String uniqueID) throws AttributeException {
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_DEVICES, null)));
 		TraccarDevice[] devices = MAPPER.convertValue(
-				RequestExecutor.executeUriRequest(requestSpec, RequestSpecification.HTTP_GET), TraccarDevice[].class);
+				HttpClientRequestExecutor.executeRequest(requestSpec, RequestSpecification.HTTP_GET), TraccarDevice[].class);
 
 		return findDevice(devices, uniqueID);
 	}
@@ -100,7 +100,7 @@ public class TraccarConnection {
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_POSITIONS, httpGetArguments)));
 
 		TraccarPosition[] traccarPositions = MAPPER.convertValue(
-				RequestExecutor.executeUriRequest(requestSpec, RequestSpecification.HTTP_GET), TraccarPosition[].class);
+				HttpClientRequestExecutor.executeRequest(requestSpec, RequestSpecification.HTTP_GET), TraccarPosition[].class);
 		if (traccarPositions.length == 0) {
 			throw new AttributeException(UNABLE_TO_READ_FROM_SERVER);
 		}
@@ -116,7 +116,7 @@ public class TraccarConnection {
 
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_GEOFENCES, httpGetArguments)));
 
-		return MAPPER.convertValue(RequestExecutor.executeUriRequest(requestSpec, RequestSpecification.HTTP_GET),
+		return MAPPER.convertValue(HttpClientRequestExecutor.executeRequest(requestSpec, RequestSpecification.HTTP_GET),
 				TraccarGeofence[].class);
 	}
 
