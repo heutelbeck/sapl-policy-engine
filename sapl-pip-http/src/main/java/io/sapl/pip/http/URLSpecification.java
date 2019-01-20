@@ -15,16 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class URLSpecification {
 
-	private static final String COLON = ":";
-	private static final String DOUBLE_SLASH = "//";
-	private static final String AT = "@";
-	private static final String SLASH = "/";
-	private static final String QUESTIONMARK = "?";
-	private static final String EQUALS = "=";
-	private static final String AMPERSAND = "&";
-	private static final String HASH = "#";
-
-	private String scheme;
+    private String scheme;
 	private String user;
 	private String password;
 	private String host;
@@ -42,7 +33,7 @@ public class URLSpecification {
 	private static String getUser(URL url) {
 		final String userInfo = url.getUserInfo();
 		if (userInfo != null) {
-			final String[] userPassword = userInfo.split(COLON);
+			final String[] userPassword = userInfo.split(":");
 			if (userPassword.length > 0) {
 				return userPassword[0];
 			}
@@ -53,7 +44,7 @@ public class URLSpecification {
 	private static String getPassword(URL url) {
 		final String userInfo = url.getUserInfo();
 		if (userInfo != null) {
-			final String[] userPassword = userInfo.split(COLON);
+			final String[] userPassword = userInfo.split(":");
 			if (userPassword.length > 1) {
 				return userPassword[1];
 			}
@@ -69,10 +60,10 @@ public class URLSpecification {
 		final String query = url.getQuery();
 		if (query != null) {
 			final Map<String, String> queryParams = new HashMap<>();
-			final String[] nameValuePairs = query.split(AMPERSAND);
+			final String[] nameValuePairs = query.split("&");
 			for (String nameValuePair : nameValuePairs) {
-				final String[] nameValue = nameValuePair.split(EQUALS);
-				queryParams.put(nameValue[0].startsWith(QUESTIONMARK) ? nameValue[0].substring(1) : nameValue[0], nameValue.length > 1 ? nameValue[1] : "");
+				final String[] nameValue = nameValuePair.split("=");
+				queryParams.put(nameValue[0].startsWith("?") ? nameValue[0].substring(1) : nameValue[0], nameValue.length > 1 ? nameValue[1] : "");
 			}
 			return queryParams;
 		}
@@ -86,20 +77,20 @@ public class URLSpecification {
 	String baseUrl() {
 		final StringBuilder sb = new StringBuilder();
 		if (scheme != null) {
-			sb.append(scheme).append(COLON);
+			sb.append(scheme).append(':');
 		}
 		if (host != null) {
-			sb.append(DOUBLE_SLASH);
+			sb.append("//");
 			if (user != null) {
 				sb.append(user);
 				if (password != null) {
-					sb.append(COLON).append(password);
+					sb.append(':').append(password);
 				}
-				sb.append(AT);
+				sb.append('@');
 			}
 			sb.append(host);
 			if (port != null) {
-				sb.append(COLON).append(port);
+				sb.append(':').append(port);
 			}
 		}
 		return sb.toString();
@@ -108,24 +99,24 @@ public class URLSpecification {
 	String pathAndQueryString() {
 		final StringBuilder sb = new StringBuilder();
 		if (path != null) {
-			if (!path.startsWith(SLASH)) {
-				sb.append(SLASH);
+			if (!path.startsWith("/")) {
+				sb.append('/');
 			}
 			sb.append(path);
 		}
 		if (rawQuery != null) {
-			if (!rawQuery.startsWith(QUESTIONMARK)) {
-				sb.append(QUESTIONMARK);
+			if (!rawQuery.startsWith("?")) {
+				sb.append('?');
 			}
 			sb.append(rawQuery);
 		} else if (queryParameters != null) {
-			sb.append(QUESTIONMARK);
+			sb.append('?');
 			boolean first = true;
 			for (Entry<String, String> entry : queryParameters.entrySet()) {
 			    if (! first) {
-			        sb.append(AMPERSAND);
+			        sb.append('&');
                 }
-				sb.append(entry.getKey()).append(EQUALS).append(entry.getValue());
+				sb.append(entry.getKey()).append('=').append(entry.getValue());
 				first = false;
 			}
 		}
@@ -135,8 +126,8 @@ public class URLSpecification {
 	String fragment() {
 		final StringBuilder sb = new StringBuilder();
 		if (fragment != null) {
-			if (!fragment.startsWith(HASH)) {
-				sb.append(HASH);
+			if (!fragment.startsWith("#")) {
+				sb.append('#');
 			}
 			sb.append(fragment);
 		}
