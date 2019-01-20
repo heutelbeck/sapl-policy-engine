@@ -78,6 +78,17 @@ public class URLSpecificationTest {
     }
 
     @Test
+    public void pathAndQueryString_onSpecWithQueryParams_shouldReturnCorrectQueryString() {
+        final URLSpecification spec = new URLSpecification();
+        final Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("name", "foo");
+        queryParams.put("value", "bar");
+        spec.setQueryParameters(queryParams);
+
+        assertThat(spec.pathAndQueryString(), is("?name=foo&value=bar"));
+    }
+
+    @Test
     public void fragment_onFullSpec_shouldReturnHashAndFragment() {
         assertThat(fullSpec.fragment(), is("#anchor"));
     }

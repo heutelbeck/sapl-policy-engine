@@ -120,10 +120,13 @@ public class URLSpecification {
 			sb.append(rawQuery);
 		} else if (queryParameters != null) {
 			sb.append(QUESTIONMARK);
-			String delim = "";
+			boolean first = true;
 			for (Entry<String, String> entry : queryParameters.entrySet()) {
-				sb.append(entry.getKey()).append(EQUALS).append(entry.getValue()).append(delim);
-				delim = AMPERSAND;
+			    if (! first) {
+			        sb.append(AMPERSAND);
+                }
+				sb.append(entry.getKey()).append(EQUALS).append(entry.getValue());
+				first = false;
 			}
 		}
 		return sb.toString();
