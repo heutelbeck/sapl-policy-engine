@@ -145,7 +145,7 @@ class TemporalFunctionLibraryTest {
 			permit
 			    action == "read"
 			where
-			    standard.length(time.localDateTime("UTC".<clock.now>)) == 19;
+			    standard.length(time.localDateTime("UTC".<clock.now>)) in [16, 19];
 		'''
 
         val expectedResponse = Response.permit
@@ -161,7 +161,7 @@ class TemporalFunctionLibraryTest {
 			permit
 			    action == "read"
 			where
-			    standard.length(time.localTime("UTC".<clock.now>)) == 8;
+			    standard.length(time.localTime("UTC".<clock.now>)) in [5, 8];
 		'''
 
         val expectedResponse = Response.permit
