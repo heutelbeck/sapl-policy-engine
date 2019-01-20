@@ -3,6 +3,7 @@ package io.sapl.pip.http;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import lombok.AllArgsConstructor;
@@ -14,13 +15,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class URLSpecification {
 
-	private static final String HASH = "#";
-	private static final String AMPERSAND = "&";
-	private static final char EQUALS = '=';
-	private static final String QUESTIONMARK = "?";
-	private static final String SLASH = "/";
+	private static final String COLON = ":";
 	private static final String DOUBLE_SLASH = "//";
-	private static final char COLON = ':';
+	private static final String AT = "@";
+	private static final String SLASH = "/";
+	private static final String QUESTIONMARK = "?";
+	private static final String EQUALS = "=";
+	private static final String AMPERSAND = "&";
+	private static final String HASH = "#";
 
 	private String scheme;
 	private String user;
@@ -29,19 +31,19 @@ public class URLSpecification {
 	private Integer port;
 	private String path;
 	private String rawQuery;
-	private HashMap<String, String> queryParameters;
+	private Map<String, String> queryParameters;
 	private String fragment;
 
 	static URLSpecification from(String urlStr) throws MalformedURLException {
 		final URL url = new URL(urlStr);
-		return new URLSpecification(url.getProtocol(), getUser(url), getPassword(url), url.getHost(), url.getPort(), url.getPath(), url.getQuery(), null, url.getRef());
+		return new URLSpecification(url.getProtocol(), getUser(url), getPassword(url), url.getHost(), getPort(url), url.getPath(), url.getQuery(), getQueryParameters(url), url.getRef());
 	}
 
 	private static String getUser(URL url) {
 		final String userInfo = url.getUserInfo();
 		if (userInfo != null) {
-			final String[] userPassword = userInfo.split(":");
-			if (userPassword.length == 2) {
+			final String[] userPassword = userInfo.split(COLON);
+			if (userPassword.length > 0) {
 				return userPassword[0];
 			}
 		}
@@ -51,10 +53,28 @@ public class URLSpecification {
 	private static String getPassword(URL url) {
 		final String userInfo = url.getUserInfo();
 		if (userInfo != null) {
-			final String[] userPassword = userInfo.split(":");
-			if (userPassword.length == 2) {
+			final String[] userPassword = userInfo.split(COLON);
+			if (userPassword.length > 1) {
 				return userPassword[1];
 			}
+		}
+		return null;
+	}
+
+	private static Integer getPort(URL url) {
+		return url.getPort() > 0 ? url.getPort() : null;
+	}
+
+	private static Map<String, String> getQueryParameters(URL url) {
+		final String query = url.getQuery();
+		if (query != null) {
+			final Map<String, String> queryParams = new HashMap<>();
+			final String[] nameValuePairs = query.split(AMPERSAND);
+			for (String nameValuePair : nameValuePairs) {
+				final String[] nameValue = nameValuePair.split(EQUALS);
+				queryParams.put(nameValue[0].startsWith(QUESTIONMARK) ? nameValue[0].substring(1) : nameValue[0], nameValue.length > 1 ? nameValue[1] : "");
+			}
+			return queryParams;
 		}
 		return null;
 	}
@@ -75,7 +95,9 @@ public class URLSpecification {
 				if (password != null) {
 					sb.append(COLON).append(password);
 				}
+				sb.append(AT);
 			}
+			sb.append(host);
 			if (port != null) {
 				sb.append(COLON).append(port);
 			}
