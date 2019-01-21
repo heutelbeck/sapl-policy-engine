@@ -39,7 +39,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.8</java.version>
-		<xtextVersion>2.13.0</xtextVersion>
+		<xtextVersion>2.15.0</xtextVersion>
 		<version.license-maven-plugin>1.10</version.license-maven-plugin>
 		<version.maven-javadoc-plugin>2.10.3</version.maven-javadoc-plugin>
 		<version.maven-source-plugin>2.4</version.maven-source-plugin>
@@ -139,7 +139,8 @@
 						<testOutputDirectory>${basedir}/src/test/xtend-gen</testOutputDirectory>
 					</configuration>
 					<dependencies>
-						<!-- Workaround https://www.eclipse.org/forums/index.php/t/1093971/ https://github.com/eclipse/xtext/issues/1231 -->
+						<!-- Workaround https://www.eclipse.org/forums/index.php/t/1093971/
+							https://github.com/eclipse/xtext/issues/1231 -->
 						<dependency>
 							<groupId>org.eclipse.jdt</groupId>
 							<artifactId>org.eclipse.jdt.core</artifactId>
@@ -154,6 +155,13 @@
 							<groupId>org.eclipse.platform</groupId>
 							<artifactId>org.eclipse.equinox.common</artifactId>
 							<version>3.8.0</version>
+						</dependency>
+
+						<!-- Workaround for https://github.com/eclipse/xtext-xtend/issues/116 -->
+						<dependency>
+							<groupId>org.eclipse.jdt</groupId>
+							<artifactId>org.eclipse.jdt.compiler.apt</artifactId>
+							<version>1.2.100</version>
 						</dependency>
 					</dependencies>
 				</plugin>

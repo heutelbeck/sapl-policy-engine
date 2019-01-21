@@ -36,6 +36,9 @@ public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
 			throws PolicyEvaluationException {
 		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
+		if (left.isNull()) {
+			return JSON.booleanNode(false);
+		}
 		if (!left.isTextual()) {
 			throw new PolicyEvaluationException(String.format(REGEX_TYPE_MISMATCH, left.getNodeType()));
 		}
