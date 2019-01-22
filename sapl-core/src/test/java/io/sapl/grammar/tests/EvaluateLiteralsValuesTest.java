@@ -1,5 +1,6 @@
 package io.sapl.grammar.tests;
 
+import static io.sapl.grammar.tests.BasicValueHelper.basicValueFrom;
 import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
@@ -92,12 +93,12 @@ public class EvaluateLiteralsValuesTest {
 
 		Pair pair1 = factory.createPair();
 		pair1.setKey(PAIR1_KEY);
-		pair1.setValue(basicValueOf(factory.createNullLiteral()));
+		pair1.setValue(basicValueFrom(factory.createNullLiteral()));
 		saplObject.getMembers().add(pair1);
 
 		Pair pair2 = factory.createPair();
 		pair2.setKey(PAIR2_KEY);
-		pair2.setValue(basicValueOf(factory.createTrueLiteral()));
+		pair2.setValue(basicValueFrom(factory.createTrueLiteral()));
 		saplObject.getMembers().add(pair2);
 
 		JsonNode result = saplObject.evaluate(ctx, true, null);
@@ -121,9 +122,9 @@ public class EvaluateLiteralsValuesTest {
 	public void evaluateArray() throws PolicyEvaluationException {
 		Array saplArray = factory.createArray();
 
-		saplArray.getItems().add(basicValueOf(factory.createNullLiteral()));
-		saplArray.getItems().add(basicValueOf(factory.createTrueLiteral()));
-		saplArray.getItems().add(basicValueOf(factory.createFalseLiteral()));
+		saplArray.getItems().add(basicValueFrom(factory.createNullLiteral()));
+		saplArray.getItems().add(basicValueFrom(factory.createTrueLiteral()));
+		saplArray.getItems().add(basicValueFrom(factory.createFalseLiteral()));
 
 		JsonNode result = saplArray.evaluate(ctx, true, null);
 
@@ -133,12 +134,6 @@ public class EvaluateLiteralsValuesTest {
 		expectedResult.add(JSON.booleanNode(false));
 
 		assertEquals("Array should evaluate to Array", expectedResult, result);
-	}
-
-	private static BasicValue basicValueOf(Value value) {
-		BasicValue basicValue = factory.createBasicValue();
-		basicValue.setValue(value);
-		return basicValue;
 	}
 
 }
