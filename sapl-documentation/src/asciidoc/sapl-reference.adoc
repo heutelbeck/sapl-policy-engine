@@ -136,7 +136,7 @@ SAPL provides an embedded PDP including an embedded PRP with a file system polic
 <dependency>
 	<groupId>io.sapl</groupId>
 	<artifactId>sapl-pdp-embedded</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 </dependency>
 
 . In your application, create a new `EmbeddedPolicyDecisionPoint` (the constructor declares multiple Exceptions which must be handled). The argument `"file:C:/path/to/policies"` is a string specifying the directory which contains all policy sets and policies, as well as the configuration `pdp.json`.
@@ -1482,4 +1482,3 @@ The SAPL syntax is described by the following grammar provided in Extended Backu
 ----
 include::sapl-grammar.ebnf[tabsize=4]
 ----  
-   
