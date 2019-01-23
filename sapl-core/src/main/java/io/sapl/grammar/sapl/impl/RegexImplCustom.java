@@ -42,6 +42,9 @@ public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 		return Flux.combineLatest(leftResultFlux, rightResultFlux,
 				(leftResult, rightResult) -> {
 					try {
+						if (leftResult.isNull()) {
+							return JSON.booleanNode(false);
+						}
 						if (!leftResult.isTextual()) {
 							throw new PolicyEvaluationException(String.format(REGEX_TYPE_MISMATCH, leftResult.getNodeType()));
 						}

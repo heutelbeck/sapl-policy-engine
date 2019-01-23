@@ -1,5 +1,6 @@
 package io.sapl.grammar.tests;
 
+import static io.sapl.grammar.tests.BasicValueHelper.basicValueFrom;
 import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
@@ -13,12 +14,10 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.ExpressionStep;
 import io.sapl.grammar.sapl.NumberLiteral;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.StringLiteral;
-import io.sapl.grammar.sapl.Value;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -44,7 +43,7 @@ public class ApplyStepsExpressionTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.objectNode());
 
 		ExpressionStep step = factory.createExpressionStep();
-		step.setExpression(basicValueOf(factory.createTrueLiteral()));
+		step.setExpression(basicValueFrom(factory.createTrueLiteral()));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
 				.expectError(PolicyEvaluationException.class)
@@ -58,7 +57,7 @@ public class ApplyStepsExpressionTest {
 		ExpressionStep step = factory.createExpressionStep();
 		StringLiteral stringLiteral = factory.createStringLiteral();
 		stringLiteral.setString("key");
-		step.setExpression(basicValueOf(stringLiteral));
+		step.setExpression(basicValueFrom(stringLiteral));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
 				.expectError(PolicyEvaluationException.class)
@@ -72,7 +71,7 @@ public class ApplyStepsExpressionTest {
 		ExpressionStep step = factory.createExpressionStep();
 		StringLiteral stringLiteral = factory.createStringLiteral();
 		stringLiteral.setString("key");
-		step.setExpression(basicValueOf(stringLiteral));
+		step.setExpression(basicValueFrom(stringLiteral));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
 				.expectError(PolicyEvaluationException.class)
@@ -90,7 +89,7 @@ public class ApplyStepsExpressionTest {
 		ExpressionStep step = factory.createExpressionStep();
 		StringLiteral stringLiteral = factory.createStringLiteral();
 		stringLiteral.setString("key");
-		step.setExpression(basicValueOf(stringLiteral));
+		step.setExpression(basicValueFrom(stringLiteral));
 
 		previousResult.applyStep(step, ctx, true, null)
 				.take(1)
@@ -106,7 +105,7 @@ public class ApplyStepsExpressionTest {
 		ExpressionStep step = factory.createExpressionStep();
 		NumberLiteral numberLiteral = factory.createNumberLiteral();
 		numberLiteral.setNumber(BigDecimal.valueOf(0));
-		step.setExpression(basicValueOf(numberLiteral));
+		step.setExpression(basicValueFrom(numberLiteral));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
 				.expectError(PolicyEvaluationException.class)
@@ -124,7 +123,7 @@ public class ApplyStepsExpressionTest {
 		ExpressionStep step = factory.createExpressionStep();
 		NumberLiteral numberLiteral = factory.createNumberLiteral();
 		numberLiteral.setNumber(BigDecimal.valueOf(0));
-		step.setExpression(basicValueOf(numberLiteral));
+		step.setExpression(basicValueFrom(numberLiteral));
 
 		previousResult.applyStep(step, ctx, true, null)
 				.take(1)
@@ -142,7 +141,7 @@ public class ApplyStepsExpressionTest {
 		ExpressionStep step = factory.createExpressionStep();
 		NumberLiteral numberLiteral = factory.createNumberLiteral();
 		numberLiteral.setNumber(BigDecimal.valueOf(1));
-		step.setExpression(basicValueOf(numberLiteral));
+		step.setExpression(basicValueFrom(numberLiteral));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
 				.expectError(PolicyEvaluationException.class)
@@ -158,7 +157,7 @@ public class ApplyStepsExpressionTest {
 		ExpressionStep step = factory.createExpressionStep();
 		NumberLiteral numberLiteral = factory.createNumberLiteral();
 		numberLiteral.setNumber(BigDecimal.valueOf(1));
-		step.setExpression(basicValueOf(numberLiteral));
+		step.setExpression(basicValueFrom(numberLiteral));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
 				.expectError(PolicyEvaluationException.class)
@@ -174,7 +173,7 @@ public class ApplyStepsExpressionTest {
 		ExpressionStep step = factory.createExpressionStep();
 		NumberLiteral numberLiteral = factory.createNumberLiteral();
 		numberLiteral.setNumber(BigDecimal.valueOf(-1));
-		step.setExpression(basicValueOf(numberLiteral));
+		step.setExpression(basicValueFrom(numberLiteral));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
 				.expectError(PolicyEvaluationException.class)
@@ -193,18 +192,12 @@ public class ApplyStepsExpressionTest {
 		ExpressionStep step = factory.createExpressionStep();
 		NumberLiteral numberLiteral = factory.createNumberLiteral();
 		numberLiteral.setNumber(BigDecimal.valueOf(0));
-		step.setExpression(basicValueOf(numberLiteral));
+		step.setExpression(basicValueFrom(numberLiteral));
 
 		previousResult.applyStep(step, ctx, true, null)
 				.take(1)
 				.subscribe(result -> assertEquals("Expression step with expression evaluating to number applied to result array should return the corresponding array item",
 						expectedResult, result)
 				);
-	}
-
-	private static BasicValue basicValueOf(Value value) {
-		BasicValue basicValue = factory.createBasicValue();
-		basicValue.setValue(value);
-		return basicValue;
 	}
 }

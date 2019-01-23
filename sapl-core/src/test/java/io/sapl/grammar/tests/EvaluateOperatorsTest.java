@@ -1,6 +1,9 @@
 package io.sapl.grammar.tests;
 
+import static io.sapl.grammar.tests.BasicValueHelper.basicValueFrom;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -13,7 +16,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.And;
 import io.sapl.grammar.sapl.Array;
-import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.Div;
 import io.sapl.grammar.sapl.EagerAnd;
 import io.sapl.grammar.sapl.EagerOr;
@@ -34,7 +36,6 @@ import io.sapl.grammar.sapl.Regex;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.StringLiteral;
 import io.sapl.grammar.sapl.UnaryMinus;
-import io.sapl.grammar.sapl.Value;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -436,6 +437,35 @@ public class EvaluateOperatorsTest {
 						JSON.booleanNode(false), result)
 				);
 	}
+
+	@Test
+	public void evaluateEqualsNullLeftAndStringRightFalse() {
+		Equals equals = factory.createEquals();
+		equals.setLeft(basicValueFrom(factory.createNullLiteral()));
+		StringLiteral stringLiteral = factory.createStringLiteral();
+		stringLiteral.setString("");
+		equals.setRight(basicValueFrom(stringLiteral));
+
+		equals.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Null Equals String should evaluate to BooleanNode(false)",
+						JSON.booleanNode(false), result)
+				);
+	}
+
+	@Test
+	public void evaluateEqualsNullLeftAndNullRightTrue() {
+		Equals equals = factory.createEquals();
+		equals.setLeft(basicValueFrom(factory.createNullLiteral()));
+		equals.setRight(basicValueFrom(factory.createNullLiteral()));
+
+		equals.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Null Equals Null should evaluate to BooleanNode(true)",
+						JSON.booleanNode(true), result)
+				);
+	}
+
 
 	private Flux<JsonNode> moreEquals(BigDecimal leftNumber, BigDecimal rightNumber) {
 		MoreEquals moreEquals = factory.createMoreEquals();
@@ -927,6 +957,31 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test
+	public void evaluateElementOfNullLeftAndEmptyArrayFalse() {
+		ElementOf elementOf = factory.createElementOf();
+		elementOf.setLeft(basicValueFrom(factory.createNullLiteral()));
+		elementOf.setRight(basicValueFrom(factory.createArray()));
+
+		elementOf.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertFalse("Null ElementOf Array[] should evaluate to false", result.asBoolean()));
+	}
+
+	@Test
+	public void evaluateElementOfNullLeftAndArrayWithNullElementTrue() {
+		ElementOf elementOf = factory.createElementOf();
+		Array array = factory.createArray();
+		array.getItems().add(basicValueFrom(factory.createNullLiteral()));
+		elementOf.setLeft(basicValueFrom(factory.createNullLiteral()));
+		elementOf.setRight(basicValueFrom(array));
+
+		elementOf.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertTrue("Null ElementOf Array[null] should evaluate to true", result.asBoolean()));
+	}
+
+
+	@Test
 	public void evaluateRegExTrue() {
 		String value = "test";
 		String pattern = ".*";
@@ -988,6 +1043,19 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test
+	public void evaluateRegExLeftNull() {
+		Regex regex = factory.createRegex();
+		regex.setLeft(basicValueFrom(factory.createNullLiteral()));
+		StringLiteral stringLiteral = factory.createStringLiteral();
+		stringLiteral.setString("");
+		regex.setRight(basicValueFrom(stringLiteral));
+
+		regex.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertFalse("NullLeft should evaluate to false", result.asBoolean()));
+	}
+
+	@Test
 	public void evaluateRegExLeftWrongType() {
 		String pattern = ".*";
 
@@ -1020,11 +1088,5 @@ public class EvaluateOperatorsTest {
 		StepVerifier.create(regEx.evaluate(ctx, true, null))
 				.expectError(PolicyEvaluationException.class)
 				.verify();
-	}
-
-	private static BasicValue basicValueFrom(Value value) {
-		BasicValue basicValue = factory.createBasicValue();
-		basicValue.setValue(value);
-		return basicValue;
 	}
 }
