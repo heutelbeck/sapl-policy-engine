@@ -1,5 +1,6 @@
 package io.sapl.grammar.tests;
 
+import static io.sapl.grammar.tests.BasicValueHelper.basicValueFrom;
 import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
@@ -13,7 +14,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.And;
 import io.sapl.grammar.sapl.Array;
-import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.Div;
 import io.sapl.grammar.sapl.EagerAnd;
 import io.sapl.grammar.sapl.EagerOr;
@@ -34,7 +34,6 @@ import io.sapl.grammar.sapl.Regex;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.StringLiteral;
 import io.sapl.grammar.sapl.UnaryMinus;
-import io.sapl.grammar.sapl.Value;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
 
@@ -861,9 +860,4 @@ public class EvaluateOperatorsTest {
 		regEx.evaluate(ctx, true, null);
 	}
 
-	private static BasicValue basicValueFrom(Value value) {
-		BasicValue basicValue = factory.createBasicValue();
-		basicValue.setValue(value);
-		return basicValue;
-	}
 }

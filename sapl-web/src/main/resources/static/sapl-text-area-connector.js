@@ -11,7 +11,7 @@ window.io_sapl_grammar_web_SAPLTextArea = function() {
 	baseUrl : baseUrl,
 	paths : {
 	    "jquery" : "webjars/jquery/2.2.3/jquery.min",
-	    "xtext/xtext-codemirror" : "xtext/2.13.0/xtext-codemirror"
+	    "xtext/xtext-codemirror" : "xtext/2.16.0/xtext-codemirror"
 	},
 	packages : [ {
 	    name : "codemirror",
