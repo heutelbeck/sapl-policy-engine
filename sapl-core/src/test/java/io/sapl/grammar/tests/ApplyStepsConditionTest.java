@@ -1,5 +1,6 @@
 package io.sapl.grammar.tests;
 
+import static io.sapl.grammar.tests.BasicValueHelper.basicValueFrom;
 import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
@@ -21,7 +22,6 @@ import io.sapl.grammar.sapl.More;
 import io.sapl.grammar.sapl.NullLiteral;
 import io.sapl.grammar.sapl.NumberLiteral;
 import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.Value;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -46,7 +46,7 @@ public class ApplyStepsConditionTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
 
 		ConditionStep step = factory.createConditionStep();
-		step.setExpression(basicValueOf(factory.createTrueLiteral()));
+		step.setExpression(basicValueFrom(factory.createTrueLiteral()));
 
 		previousResult.applyStep(step, ctx, true, null);
 	}
@@ -134,7 +134,7 @@ public class ApplyStepsConditionTest {
 		expression.setLeft(factory.createBasicRelative());
 		NumberLiteral number = factory.createNumberLiteral();
 		number.setNumber(BigDecimal.valueOf(10));
-		expression.setRight(basicValueOf(number));
+		expression.setRight(basicValueFrom(number));
 		step.setExpression(expression);
 
 		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
@@ -160,7 +160,7 @@ public class ApplyStepsConditionTest {
 		expression.setLeft(factory.createBasicRelative());
 		NumberLiteral number = factory.createNumberLiteral();
 		number.setNumber(BigDecimal.valueOf(10));
-		expression.setRight(basicValueOf(number));
+		expression.setRight(basicValueFrom(number));
 		step.setExpression(expression);
 
 		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
@@ -186,7 +186,7 @@ public class ApplyStepsConditionTest {
 		expression.setLeft(factory.createBasicRelative());
 		NumberLiteral number = factory.createNumberLiteral();
 		number.setNumber(BigDecimal.valueOf(10));
-		expression.setRight(basicValueOf(number));
+		expression.setRight(basicValueFrom(number));
 		step.setExpression(expression);
 
 		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
@@ -195,11 +195,5 @@ public class ApplyStepsConditionTest {
 		assertEquals(
 				"Condition step applied to object node should return the attribute values for which the condition is true",
 				expectedResultSet, resultSet);
-	}
-
-	private static BasicValue basicValueOf(Value value) {
-		BasicValue basicValue = factory.createBasicValue();
-		basicValue.setValue(value);
-		return basicValue;
 	}
 }

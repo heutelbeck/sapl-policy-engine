@@ -379,6 +379,27 @@ public class EvaluateOperatorsTest {
 		assertEquals("Null Equals True should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
 	}
 
+	@Test
+	public void evaluateEqualsNullLeftAndStringRightFalse() throws PolicyEvaluationException {
+		Equals equals = factory.createEquals();
+		equals.setLeft(basicValueFrom(factory.createNullLiteral()));
+		equals.setRight(basicValueFrom(factory.createStringLiteral()));
+
+		JsonNode result = equals.evaluate(ctx, true, null);
+		assertEquals("Null Equals String should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+	}
+
+	@Test
+	public void evaluateEqualsNullLeftAndNullRightTrue() throws PolicyEvaluationException {
+		Equals equals = factory.createEquals();
+		equals.setLeft(basicValueFrom(factory.createNullLiteral()));
+		equals.setRight(basicValueFrom(factory.createNullLiteral()));
+
+		JsonNode result = equals.evaluate(ctx, true, null);
+		assertEquals("Null Equals Null should evaluate to BooleanNode(true)", JSON.booleanNode(true), result);
+	}
+
+
 	private JsonNode moreEquals(BigDecimal leftNumber, BigDecimal rightNumber) throws PolicyEvaluationException {
 		MoreEquals moreEquals = factory.createMoreEquals();
 
@@ -777,6 +798,31 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test
+	public void evaluateElementOfNullLeftAndEmptyArrayFalse() throws PolicyEvaluationException {
+		ElementOf elementOf = factory.createElementOf();
+		elementOf.setLeft(basicValueFrom(factory.createNullLiteral()));
+		elementOf.setRight(basicValueFrom(factory.createArray()));
+
+		JsonNode result = elementOf.evaluate(ctx, true, null);
+		assertEquals("Null ElementOf Array[] should evaluate to BooleanNode(false))",
+				JSON.booleanNode(false), result);
+	}
+
+	@Test
+	public void evaluateElementOfNullLeftAndArrayWithNullElementTrue() throws PolicyEvaluationException {
+		ElementOf elementOf = factory.createElementOf();
+		Array array = factory.createArray();
+		array.getItems().add(basicValueFrom(factory.createNullLiteral()));
+		elementOf.setLeft(basicValueFrom(factory.createNullLiteral()));
+		elementOf.setRight(basicValueFrom(array));
+
+		JsonNode result = elementOf.evaluate(ctx, true, null);
+		assertEquals("Null ElementOf Array[null] should evaluate to BooleanNode(true))",
+				JSON.booleanNode(true), result);
+	}
+
+
+	@Test
 	public void evaluateRegExTrue() throws PolicyEvaluationException {
 		String value = "test";
 		String pattern = ".*";
@@ -828,6 +874,17 @@ public class EvaluateOperatorsTest {
 
 		regEx.evaluate(ctx, true, null);
 	}
+
+	@Test
+	public void evaluateRegExLeftNull() throws PolicyEvaluationException {
+		Regex regex = factory.createRegex();
+		regex.setLeft(basicValueFrom(factory.createNullLiteral()));
+		regex.setRight(basicValueFrom(factory.createStringLiteral()));
+
+		JsonNode result = regex.evaluate(ctx, true, null);
+		assertEquals("NullLeft should evaluate to BooleanNode(false)", JSON.booleanNode(false), result);
+	}
+
 
 	@Test(expected = PolicyEvaluationException.class)
 	public void evaluateRegExLeftWrongType() throws PolicyEvaluationException {
