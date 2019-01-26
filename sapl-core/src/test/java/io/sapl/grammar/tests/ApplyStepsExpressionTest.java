@@ -28,6 +28,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class ApplyStepsExpressionTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
@@ -37,18 +38,20 @@ public class ApplyStepsExpressionTest {
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void expressionEvaluatesToBoolean() throws PolicyEvaluationException {
+	@Test
+	public void expressionEvaluatesToBoolean() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.objectNode());
 
 		ExpressionStep step = factory.createExpressionStep();
 		step.setExpression(basicValueFrom(factory.createTrueLiteral()));
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToResultArrayWithTextualResult() throws PolicyEvaluationException {
+	@Test
+	public void applyToResultArrayWithTextualResult() {
 		ResultNode previousResult = new ArrayResultNode(new ArrayList<>());
 
 		ExpressionStep step = factory.createExpressionStep();
@@ -56,11 +59,13 @@ public class ApplyStepsExpressionTest {
 		stringLiteral.setString("key");
 		step.setExpression(basicValueFrom(stringLiteral));
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToArrayNodeWithTextualResult() throws PolicyEvaluationException {
+	@Test
+	public void applyToArrayNodeWithTextualResult() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.arrayNode());
 
 		ExpressionStep step = factory.createExpressionStep();
@@ -68,11 +73,13 @@ public class ApplyStepsExpressionTest {
 		stringLiteral.setString("key");
 		step.setExpression(basicValueFrom(stringLiteral));
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void applyToObjectWithTextualResult() throws PolicyEvaluationException {
+	public void applyToObjectWithTextualResult() {
 		ObjectNode object = JSON.objectNode();
 		object.set("key", JSON.booleanNode(true));
 		ResultNode previousResult = new JsonNodeWithoutParent(object);
@@ -84,15 +91,15 @@ public class ApplyStepsExpressionTest {
 		stringLiteral.setString("key");
 		step.setExpression(basicValueFrom(stringLiteral));
 
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals(
-				"Expression step with expression evaluating to key should return the value of the corresponding attribute",
-				expectedResult, result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Expression step with expression evaluating to key should return the value of the corresponding attribute",
+						expectedResult, result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToObjectWithNumericResult() throws PolicyEvaluationException {
+	@Test
+	public void applyToObjectWithNumericResult() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.objectNode());
 
 		ExpressionStep step = factory.createExpressionStep();
@@ -100,11 +107,13 @@ public class ApplyStepsExpressionTest {
 		numberLiteral.setNumber(BigDecimal.valueOf(0));
 		step.setExpression(basicValueFrom(numberLiteral));
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void applyToArrayNodeWithNumericResultWhichExists() throws PolicyEvaluationException {
+	public void applyToArrayNodeWithNumericResultWhichExists() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.booleanNode(true));
 		ResultNode previousResult = new JsonNodeWithoutParent(array);
@@ -116,14 +125,15 @@ public class ApplyStepsExpressionTest {
 		numberLiteral.setNumber(BigDecimal.valueOf(0));
 		step.setExpression(basicValueFrom(numberLiteral));
 
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Expression step with expression evaluating to number should return the corresponding array item",
-				expectedResult, result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Expression step with expression evaluating to number should return the corresponding array item",
+						expectedResult, result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToArrayNodeWithNumericResultWhichNotExists() throws PolicyEvaluationException {
+	@Test
+	public void applyToArrayNodeWithNumericResultWhichNotExists() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.booleanNode(true));
 		ResultNode previousResult = new JsonNodeWithoutParent(array);
@@ -133,11 +143,13 @@ public class ApplyStepsExpressionTest {
 		numberLiteral.setNumber(BigDecimal.valueOf(1));
 		step.setExpression(basicValueFrom(numberLiteral));
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToResultArraWithNumericResultWhichNotExists() throws PolicyEvaluationException {
+	@Test
+	public void applyToResultArraWithNumericResultWhichNotExists() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
 		list.add(new JsonNodeWithParentArray(JSON.nullNode(), JSON.arrayNode(), 0));
 		ResultNode previousResult = new ArrayResultNode(list);
@@ -147,11 +159,13 @@ public class ApplyStepsExpressionTest {
 		numberLiteral.setNumber(BigDecimal.valueOf(1));
 		step.setExpression(basicValueFrom(numberLiteral));
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToResultArraWithNumericResultWhichNotExistsNegative() throws PolicyEvaluationException {
+	@Test
+	public void applyToResultArraWithNumericResultWhichNotExistsNegative() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
 		list.add(new JsonNodeWithParentArray(JSON.nullNode(), JSON.arrayNode(), 0));
 		ResultNode previousResult = new ArrayResultNode(list);
@@ -161,11 +175,13 @@ public class ApplyStepsExpressionTest {
 		numberLiteral.setNumber(BigDecimal.valueOf(-1));
 		step.setExpression(basicValueFrom(numberLiteral));
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void applyToResultArrayWithNumericResultWhichExists() throws PolicyEvaluationException {
+	public void applyToResultArrayWithNumericResultWhichExists() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
 		AbstractAnnotatedJsonNode annotatedNode = new JsonNodeWithParentArray(JSON.nullNode(), JSON.arrayNode(), 0);
 		list.add(annotatedNode);
@@ -178,10 +194,10 @@ public class ApplyStepsExpressionTest {
 		numberLiteral.setNumber(BigDecimal.valueOf(0));
 		step.setExpression(basicValueFrom(numberLiteral));
 
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals(
-				"Expression step with expression evaluating to number applied to result array should return the corresponding array item",
-				expectedResult, result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Expression step with expression evaluating to number applied to result array should return the corresponding array item",
+						expectedResult, result)
+				);
 	}
 }

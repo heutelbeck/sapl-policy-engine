@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 
 public class EagerOrImplCustom extends io.sapl.grammar.sapl.impl.EagerOrImpl {
 
@@ -28,15 +30,22 @@ public class EagerOrImplCustom extends io.sapl.grammar.sapl.impl.EagerOrImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-		JsonNode leftResult = getLeft().evaluate(ctx, isBody, relativeNode);
-		JsonNode rightResult = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
 
-		assertBoolean(leftResult);
-		assertBoolean(rightResult);
-
-		return JSON.booleanNode(rightResult.asBoolean() || leftResult.asBoolean());
+		return Flux.combineLatest(leftResultFlux, rightResultFlux,
+				(leftResult, rightResult) -> {
+					try {
+						assertBoolean(leftResult);
+						assertBoolean(rightResult);
+						return (JsonNode) JSON.booleanNode(rightResult.asBoolean() || leftResult.asBoolean());
+					}
+					catch (PolicyEvaluationException e) {
+						throw Exceptions.propagate(e);
+					}
+				})
+				.distinctUntilChanged();
 	}
 
 	@Override

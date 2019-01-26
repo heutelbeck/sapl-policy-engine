@@ -14,12 +14,15 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
@@ -28,6 +31,7 @@ import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.publisher.Flux;
 
 public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.ConditionStepImpl {
 
@@ -37,47 +41,74 @@ public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.Condition
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		JsonNode previousResultNode = previousResult.getNode();
-
-		if (previousResultNode.isArray()) {
-			for (int i = 0; i < previousResultNode.size(); i++) {
-				JsonNode result = getExpression().evaluate(ctx, isBody, previousResultNode.get(i));
-
-				if (result.isBoolean() && result.asBoolean()) {
-					resultList.add(new JsonNodeWithParentArray(previousResultNode.get(i), previousResultNode, i));
-				}
-			}
-		} else if (previousResultNode.isObject()) {
-			Iterator<String> it = previousResultNode.fieldNames();
-			while (it.hasNext()) {
-				String key = it.next();
-				JsonNode result = getExpression().evaluate(ctx, isBody, previousResultNode.get(key));
-
-				if (result.isBoolean() && result.asBoolean()) {
-					resultList.add(new JsonNodeWithParentObject(previousResultNode.get(key), previousResultNode, key));
-				}
-			}
-		} else {
-			throw new PolicyEvaluationException(
-					String.format(CONDITION_ACCESS_TYPE_MISMATCH, previousResult.getNode().getNodeType()));
-		}
-		return new ArrayResultNode(resultList);
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+        final JsonNode previousResultNode = previousResult.getNode();
+        if (previousResultNode.isArray()) {
+            final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(previousResultNode.size());
+            IntStream.range(0, previousResultNode.size()).forEach(idx -> {
+                itemFluxes.add(getExpression().evaluate(ctx, isBody, previousResultNode.get(idx)));
+            });
+            // the indices of the elements in the previousResultNode array correspond to the indices of the flux results, because combineLatest()
+            // preserves the order of the given list of fluxes in the results array passed to the combinator function
+            return Flux.combineLatest(itemFluxes, results -> {
+                IntStream.range(0, results.length).forEach(idx -> {
+                    final JsonNode result = (JsonNode) results[idx];
+                    if (result.isBoolean() && result.asBoolean()) {
+                        resultList.add(new JsonNodeWithParentArray(previousResultNode.get(idx), previousResultNode, idx));
+                    }
+                });
+                return new ArrayResultNode(resultList);
+            });
+        } else if (previousResultNode.isObject()) {
+            final List<String> fieldNames = new ArrayList<>();
+            final List<JsonNode> fieldValues = new ArrayList<>();
+            final List<Flux<JsonNode>> valueFluxes = new ArrayList<>();
+            final Iterator<String> it = previousResultNode.fieldNames();
+            while (it.hasNext()) {
+                final String fieldName = it.next();
+                final JsonNode fieldValue = previousResultNode.get(fieldName);
+                fieldNames.add(fieldName);
+                fieldValues.add(fieldValue);
+                valueFluxes.add(getExpression().evaluate(ctx, isBody, fieldValue));
+            }
+            // the indices of the elements in the fieldNames list and the fieldValues list correspond to the indices of the flux results,
+            // because combineLatest() preserves the order of the given list of fluxes in the results array passed to the combinator function
+            return Flux.combineLatest(valueFluxes, results -> {
+                IntStream.range(0, results.length).forEach(idx -> {
+                    final JsonNode result = (JsonNode) results[idx];
+                    if (result.isBoolean() && result.asBoolean()) {
+                        resultList.add(new JsonNodeWithParentObject(fieldValues.get(idx), previousResultNode, fieldNames.get(idx)));
+                    }
+                });
+                return new ArrayResultNode(resultList);
+            });
+        } else {
+            final JsonNodeType previousNodeType = previousResult.getNode().getNodeType();
+            return Flux.error(new PolicyEvaluationException(String.format(CONDITION_ACCESS_TYPE_MISMATCH, previousNodeType)));
+        }
 	}
 
 	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		for (AbstractAnnotatedJsonNode resultNode : previousResult) {
-			JsonNode result = getExpression().evaluate(ctx, isBody, resultNode.getNode());
-			if (result.isBoolean() && result.asBoolean()) {
-				resultList.add(resultNode);
-			}
-		}
-		return new ArrayResultNode(resultList);
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        final List<AbstractAnnotatedJsonNode> resultNodes = new ArrayList<>(previousResult.getNodes().size());
+        final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(previousResult.getNodes().size());
+        for (AbstractAnnotatedJsonNode resultNode : previousResult) {
+            resultNodes.add(resultNode);
+            itemFluxes.add(getExpression().evaluate(ctx, isBody, resultNode.getNode()));
+        }
+        final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+        // the indices of the elements in the resultNodes list correspond to the indices of the flux results, because combineLatest() preserves
+        // the order of the given list of fluxes in the results array passed to the combinator function
+        return Flux.combineLatest(itemFluxes, results -> {
+            IntStream.range(0, results.length).forEach(idx -> {
+                final JsonNode result = (JsonNode) results[idx];
+                if (result.isBoolean() && result.asBoolean()) {
+                    resultList.add(resultNodes.get(idx));
+                }
+            });
+            return new ArrayResultNode(resultList);
+        });
 	}
 
 	@Override

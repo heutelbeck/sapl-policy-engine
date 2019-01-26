@@ -12,6 +12,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
@@ -20,9 +22,9 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends io.sapl.grammar.sapl.impl.FilterExtendedImpl {
 
@@ -30,17 +32,26 @@ public class FilterExtendedImplCustom extends io.sapl.grammar.sapl.impl.FilterEx
 	private static final int INIT_PRIME_03 = 7;
 
 	@Override
-	public JsonNode apply(JsonNode unfilteredRootNode, EvaluationContext ctx, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-		JsonNode result = unfilteredRootNode.deepCopy();
-
-		for (FilterStatement statement : statements) {
-			String function = String.join(".", statement.getFsteps());
-			result = applyFilterStatement(result, function, statement.getArguments(), statement.getTarget().getSteps(),
-					statement.isEach(), ctx, relativeNode);
+	public Flux<JsonNode> apply(JsonNode unfilteredRootNode, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		final JsonNode result = unfilteredRootNode.deepCopy();
+		if (statements != null && ! statements.isEmpty()) {
+			final List<FluxProvider<JsonNode>> fluxProviders = new ArrayList<>(statements.size());
+			for (FilterStatement statement : statements) {
+                final String function = String.join(".", statement.getFsteps());
+				fluxProviders.add(node -> applyFilterStatement(node, function, statement.getArguments(), statement.getTarget().getSteps(),
+						statement.isEach(), ctx, isBody, relativeNode));
+			}
+			return cascadingSwitchMap(result, fluxProviders, 0);
+		} else {
+			return Flux.just(result);
 		}
+	}
 
-		return result;
+	private static Flux<JsonNode> cascadingSwitchMap(JsonNode input, List<FluxProvider<JsonNode>> fluxProviders, int idx) {
+		if (idx < fluxProviders.size()) {
+			return fluxProviders.get(idx).getFlux(input).switchMap(result -> cascadingSwitchMap(result, fluxProviders, idx + 1));
+		}
+		return Flux.just(input);
 	}
 
 	@Override

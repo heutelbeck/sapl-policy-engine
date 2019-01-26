@@ -22,63 +22,55 @@ import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 
 public class FilterComponentImplCustom extends io.sapl.grammar.sapl.impl.FilterComponentImpl {
 
 	protected static final String FILTER_REMOVE = "remove";
-	protected static final String SUBTEMPLATE_NO_ARRAY = "Subtemplate can only be applied to an array.";
-
 	protected static final String FILTER_REMOVE_ROOT = "Filter cannot remove the root of the tree the filter is applied to.";
-
-	protected static final String FILTER_EACH_NO_ARRAY = "Trying to filter each element of array, but got type %s.";
-	protected static final String FILTER_FUNCTION_EVALUATION = "Custom filter function '%s' could not be evaluated.";
 
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	/**
-	 * The method takes a JSON tree, performs a number of selection steps on this
-	 * tree and applies a filter function to the selected nodes. The root node of
-	 * the filtered tree is returned (which is the original root in case the root
-	 * node is not modified).
-	 *
-	 * @param rootNode
-	 *            the root node of the tree to be filtered
-	 * @param function
-	 *            the name of the filter function
-	 * @param arguments
-	 *            arguments to be passed to the function, as JSON array
-	 * @param steps
-	 *            the steps
-	 * @param each
-	 *            true if the selected node should be treated as an array and the
-	 *            filter function should be applied to each of its items
-	 * @param ctx
-	 *            the evaluation context
-	 * @param relativeNode
-	 *            the JSON node a relative expression would evaluate to (or null if
-	 *            relative expressions are not allowed)
-	 * @return the root node of the filtered tree
-	 * @throws PolicyEvaluationException
-	 *             in case an error occurs during the evaluation of if the filter
-	 *             function is remove
-	 */
-	protected JsonNode applyFilterStatement(JsonNode rootNode, String function, Arguments arguments, EList<Step> steps,
-			boolean each, EvaluationContext ctx, JsonNode relativeNode) throws PolicyEvaluationException {
-		ResultNode target = new JsonNodeWithoutParent(rootNode);
-		if (steps != null) {
-			for (Step step : steps) {
-				target = target.applyStep(step, ctx, true, relativeNode);
-			}
-		}
-
-		if (target.isNodeWithoutParent() && !each) {
-			return getFilteredRoot(target, function, arguments, each, ctx);
-		} else {
-			applyFilter(target, function, arguments, each, ctx);
-			return rootNode;
-		}
+    /**
+     * The method takes a JSON tree, performs a number of selection steps on this
+     * tree and applies a filter function to the selected nodes. A flux of root nodes
+     * of the filtered tree is returned (which are the original roots in case the root
+     * nodes are not modified).
+     *
+     * @param rootNode
+     *            the root node of the tree to be filtered
+     * @param function
+     *            the name of the filter function
+     * @param arguments
+     *            arguments to be passed to the function, as JSON array
+     * @param steps
+     *            the steps
+     * @param each
+     *            true if the selected node should be treated as an array and the
+     *            filter function should be applied to each of its items
+     * @param ctx
+     *            the evaluation context
+     * @param isBody
+     *            true if the expression occurs within the policy body (attribute
+     *            finder steps are only allowed if set to true)
+     * @param relativeNode
+     *            the JSON node a relative expression would evaluate to (or null if
+     *            relative expressions are not allowed)
+     * @return a Flux of root nodes of the filtered tree
+     */
+    protected Flux<JsonNode> applyFilterStatement(JsonNode rootNode, String function, Arguments arguments, EList<Step> steps,
+												  boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        return StepResolver.resolveSteps(rootNode, steps, ctx, isBody, relativeNode)
+                .switchMap(resultNode -> {
+                    if (resultNode.isNodeWithoutParent() && !each) {
+                        return getFilteredRoot(resultNode, function, arguments, ctx, isBody);
+                    } else {
+                        return applyFilter(resultNode, function, arguments, each, ctx, isBody)
+                                .map(voidType -> rootNode);
+                    }
+                });
 	}
 
 	/**
@@ -92,52 +84,57 @@ public class FilterComponentImplCustom extends io.sapl.grammar.sapl.impl.FilterC
 	 *            the name of the filter function
 	 * @param arguments
 	 *            arguments to be passed to the function
-	 * @param each
-	 *            true if the selected node should be treated as an array and the
-	 *            filter function should be applied to each of its items
 	 * @param ctx
 	 *            the evaluation context
-	 * @return the result which is returned by the filter function
-	 * @throws PolicyEvaluationException
-	 *             in case an error occurs during the evaluation of if the filter
-	 *             function is remove
+	 * @param isBody
+	 *            true if the expression occurs within the policy body (attribute
+	 *            finder steps are only allowed if set to true)
+	 * @return the stream of results returned by the reactive filter function
 	 */
-	protected static JsonNode getFilteredRoot(ResultNode target, String function, Arguments arguments, boolean each,
-			EvaluationContext ctx) throws PolicyEvaluationException {
+	protected static Flux<JsonNode> getFilteredRoot(ResultNode target, String function, Arguments arguments,
+													EvaluationContext ctx, boolean isBody) {
 		if (FILTER_REMOVE.equals(function)) {
-			throw new PolicyEvaluationException(FILTER_REMOVE_ROOT);
+			return Flux.error(new PolicyEvaluationException(FILTER_REMOVE_ROOT));
 		}
-
-		return AbstractAnnotatedJsonNode.applyFunctionToNode(function, target.asJsonWithoutAnnotations(), arguments,
-				ctx, null);
+		return AbstractAnnotatedJsonNode.applyFilterToNode(function, target.asJsonWithoutAnnotations(), arguments, ctx, isBody, null);
 	}
 
-	/**
-	 * Applies a filter function to a selected JSON node. The selected node is
-	 * changed in the tree, no value is returned. Thus, the caller must ensure that
-	 * the root node will be left unchanged.
-	 *
-	 * @param target
-	 *            the selected node to be filtered
-	 * @param function
-	 *            the name of the filter function
-	 * @param arguments
-	 *            arguments to be passed to the function
-	 * @param each
-	 *            true if the selected node should be treated as an array and the
-	 *            filter function should be applied to each of its items
-	 * @param ctx
-	 *            the evaluation context
-	 * @throws PolicyEvaluationException
-	 *             in case an error occurs during evaluation
+    /**
+     * Applies a filter function to a selected JSON node. The selected node is
+     * changed in the tree. The caller must ensure that the root node will be
+     * left unchanged.
+     *
+     * @param target
+     *            the selected node to be filtered
+     * @param function
+     *            the name of the filter function
+     * @param arguments
+     *            arguments to be passed to the function
+     * @param each
+     *            true if the selected node should be treated as an array and the
+     *            filter function should be applied to each of its items
+     * @param ctx
+     *            the evaluation context
+     * @param isBody
+     *            true if the expression occurs within the policy body (attribute
+     *            finder steps are only allowed if set to true)
+     * @return a flux of {@link ResultNode.Void} instances, each indicating a finished
+     *         application of the filter function
 	 */
-	protected static void applyFilter(ResultNode target, String function, Arguments arguments, boolean each,
-			EvaluationContext ctx) throws PolicyEvaluationException {
-		if (FILTER_REMOVE.equals(function)) {
-			target.removeFromTree(each);
-		} else {
-			target.applyFunction(function, arguments, each, ctx);
-		}
+	protected static Flux<ResultNode.Void> applyFilter(ResultNode target, String function, Arguments arguments, boolean each,
+													   EvaluationContext ctx, boolean isBody) {
+        if (FILTER_REMOVE.equals(function)) {
+            return Flux.defer(() -> {
+                        try {
+                            target.removeFromTree(each);
+                            return Flux.just(ResultNode.Void.INSTANCE);
+                        } catch (PolicyEvaluationException e) {
+                            throw Exceptions.propagate(e);
+                        }
+                    });
+        } else {
+            return target.applyFilter(function, arguments, each, ctx, isBody);
+        }
 	}
 
 }

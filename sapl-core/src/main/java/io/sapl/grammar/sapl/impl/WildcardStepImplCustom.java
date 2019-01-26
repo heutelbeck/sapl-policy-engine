@@ -27,6 +27,7 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.publisher.Flux;
 
 public class WildcardStepImplCustom extends io.sapl.grammar.sapl.impl.WildcardStepImpl {
 
@@ -36,29 +37,35 @@ public class WildcardStepImplCustom extends io.sapl.grammar.sapl.impl.WildcardSt
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		JsonNode previousResultNode = previousResult.getNode();
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		try {
+			return Flux.just(apply(previousResult));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
+	}
+
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
+		final JsonNode previousResultNode = previousResult.getNode();
 		if (previousResultNode.isArray()) {
 			return previousResult;
 		} else if (previousResultNode.isObject()) {
-			ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-			Iterator<String> iterator = previousResultNode.fieldNames();
+			final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+			final Iterator<String> iterator = previousResultNode.fieldNames();
 			while (iterator.hasNext()) {
-				String key = iterator.next();
+				final String key = iterator.next();
 				resultList.add(new JsonNodeWithParentObject(previousResultNode.get(key), previousResultNode, key));
 			}
 			return new ArrayResultNode(resultList);
 		} else {
-			throw new PolicyEvaluationException(
-					String.format(WILDCARD_ACCESS_TYPE_MISMATCH, previousResultNode.getNodeType()));
+			throw new PolicyEvaluationException(String.format(WILDCARD_ACCESS_TYPE_MISMATCH, previousResultNode.getNodeType()));
 		}
 	}
 
 	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		return previousResult;
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return Flux.just(previousResult);
 	}
 
 	@Override

@@ -27,6 +27,8 @@ import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 
 public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.ExpressionStepImpl {
 
@@ -37,51 +39,66 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
 	private static final int HASH_PRIME_02 = 19;
 	private static final int INIT_PRIME_01 = 3;
 
-	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		JsonNode result = getExpression().evaluate(ctx, isBody, relativeNode);
-
-		if (result.isNumber()) {
-			if (previousResult.getNode().isArray()) {
-				int index = result.asInt();
-				JsonNode node = previousResult.getNode();
-				if (!node.has(index)) {
-					throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
-				}
-				return new JsonNodeWithParentArray(node.get(index), node, index);
-			} else {
-				throw new PolicyEvaluationException(
-						String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
-			}
-		} else if (result.isTextual()) {
-			String attribute = result.asText();
-			JsonNode previousResultNode = previousResult.getNode();
-			if (!previousResultNode.has(attribute)) {
-				throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_KEY_NOT_FOUND, attribute));
-			}
-			return new JsonNodeWithParentObject(previousResultNode.get(attribute), previousResultNode, attribute);
-		} else {
-			throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
-		}
+    @Override
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        return getExpression().evaluate(ctx, isBody, relativeNode)
+                .map(expressionResult -> {
+                    try {
+                        return handleExpressionResultFor(previousResult, expressionResult);
+                    } catch (PolicyEvaluationException e) {
+                        throw Exceptions.propagate(e);
+                    }
+                });
 	}
 
-	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		JsonNode result = getExpression().evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations());
+    private ResultNode handleExpressionResultFor(AbstractAnnotatedJsonNode previousResult, JsonNode result) throws PolicyEvaluationException {
+        if (result.isNumber()) {
+            if (previousResult.getNode().isArray()) {
+                final int index = result.asInt();
+                final JsonNode previousResultNode = previousResult.getNode();
+                if (!previousResultNode.has(index)) {
+                    throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
+                }
+                return new JsonNodeWithParentArray(previousResultNode.get(index), previousResultNode, index);
+            } else {
+                throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+            }
+        } else if (result.isTextual()) {
+            final String attribute = result.asText();
+            final JsonNode previousResultNode = previousResult.getNode();
+            if (!previousResultNode.has(attribute)) {
+                throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_KEY_NOT_FOUND, attribute));
+            }
+            return new JsonNodeWithParentObject(previousResultNode.get(attribute), previousResultNode, attribute);
+        } else {
+            throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+        }
+    }
 
-		if (result.isNumber()) {
-			int index = result.asInt();
-			List<AbstractAnnotatedJsonNode> nodes = previousResult.getNodes();
-			if (index < 0 || index >= nodes.size()) {
-				throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
-			}
-			return nodes.get(index);
-		} else {
-			throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
-		}
+	@Override
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        return getExpression().evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations())
+                .map(expressionResult -> {
+                    try {
+                        return handleExpressionResultFor(previousResult, expressionResult);
+                    } catch (PolicyEvaluationException e) {
+                        throw Exceptions.propagate(e);
+                    }
+                });
 	}
+
+    private ResultNode handleExpressionResultFor(ArrayResultNode previousResult, JsonNode result) throws PolicyEvaluationException {
+        if (result.isNumber()) {
+            int index = result.asInt();
+            List<AbstractAnnotatedJsonNode> nodes = previousResult.getNodes();
+            if (index < 0 || index >= nodes.size()) {
+                throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
+            }
+            return nodes.get(index);
+        } else {
+            throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+        }
+    }
 
 	@Override
 	public int hash(Map<String, String> imports) {

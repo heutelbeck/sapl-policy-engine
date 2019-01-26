@@ -19,22 +19,29 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.publisher.Flux;
 
 public class EqualsImplCustom extends io.sapl.grammar.sapl.impl.EqualsImpl {
 
 	private static final int HASH_PRIME_02 = 19;
 	private static final int INIT_PRIME_01 = 3;
 
-	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
-		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
+    @Override
+    public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
 
-		return JSON.booleanNode(left.equals(right));
-	}
+		return Flux.combineLatest(leftResultFlux, rightResultFlux,
+				(leftResult, rightResult) -> {
+					if (leftResult.isNumber() && rightResult.isNumber()) {
+						return JSON.booleanNode(leftResult.decimalValue().compareTo(rightResult.decimalValue()) == 0);
+					} else {
+						return (JsonNode) JSON.booleanNode(leftResult.equals(rightResult));
+					}
+				})
+				.distinctUntilChanged();
+    }
 
 	@Override
 	public int hash(Map<String, String> imports) {

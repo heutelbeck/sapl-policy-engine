@@ -14,17 +14,21 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
 
-import lombok.RequiredArgsConstructor;
+import io.sapl.pep.BlockingSAPLAuthorizer;
+import io.sapl.pep.SAPLAuthorizer;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RequiredArgsConstructor
 public class PolicyEnforcementFilter extends GenericFilterBean {
 
 	private static final String SERVER = "localhost:8080";
 	private static final String PROTOCOL = "HTTP:";
 
-	private final SAPLAuthorizator sapl;
+	private final BlockingSAPLAuthorizer sapl;
+
+	public PolicyEnforcementFilter(SAPLAuthorizer sapl) {
+		this.sapl = new BlockingSAPLAuthorizer(sapl);
+	}
 
 	/*
 	 * (non-Javadoc)

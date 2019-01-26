@@ -12,27 +12,30 @@
  */
 package io.sapl.api.pdp;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
+@ToString
 public class Response {
+
 	Decision decision;
 
-	// Optional fields initialialized as Optional.empty to allow comparing with JSON
-	// marshalling/unmarshalling
-	// Withoud initialization, fields would be null after JSON
-	// marshalling/unmarshalling
+	// Optional fields initialized as Optional.empty to allow comparing with JSON marshalling/unmarshalling
+	// Without initialization, fields would be null after JSON marshalling/unmarshalling
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<JsonNode> resource = Optional.empty();
 
@@ -42,9 +45,13 @@ public class Response {
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<ArrayNode> advice = Optional.empty();
 
-	public static Response deny() {
-		return new Response(Decision.DENY, Optional.empty(), Optional.empty(), Optional.empty());
+	public static Response permit() {
+		return new Response(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty());
 	}
+
+    public static Response deny() {
+        return new Response(Decision.DENY, Optional.empty(), Optional.empty(), Optional.empty());
+    }
 
 	public static Response indeterminate() {
 		return new Response(Decision.INDETERMINATE, Optional.empty(), Optional.empty(), Optional.empty());
@@ -52,5 +59,51 @@ public class Response {
 
 	public static Response notApplicable() {
 		return new Response(Decision.NOT_APPLICABLE, Optional.empty(), Optional.empty(), Optional.empty());
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == this) {
+			return true;
+		}
+		if (o == null || o.getClass() != this.getClass()) {
+			return false;
+		}
+		final Response other = (Response) o;
+		if (! Objects.equals(this.getDecision(), other.getDecision())) {
+			return false;
+		}
+		if (! areEqual(this.getResource(), other.getResource())) {
+			return false;
+		}
+		if (! areEqual(this.getObligation(), other.getObligation())) {
+			return false;
+		}
+		return areEqual(this.getAdvice(), other.getAdvice());
+	}
+
+	private static boolean areEqual(Optional<?> thisOptional, Optional<?> otherOptional) {
+		if (! thisOptional.isPresent()) {
+			return ! otherOptional.isPresent();
+		}
+		if (! otherOptional.isPresent()) {
+			return false;
+		}
+		return thisOptional.get().equals(otherOptional.get());
+	}
+
+	@Override
+	public int hashCode() {
+		final int PRIME = 59;
+		int result = 1;
+		final Object thisDecision = this.getDecision();
+		result = result * PRIME + (thisDecision == null ? 43 : thisDecision.hashCode());
+		final Optional<JsonNode> thisResource = this.getResource();
+		result = result * PRIME + thisResource.map(Object::hashCode).orElse(43);
+		final Optional<ArrayNode> thisObligation = this.getObligation();
+		result = result * PRIME + thisObligation.map(Object::hashCode).orElse(43);
+		final Optional<ArrayNode> thisAdvice = this.getAdvice();
+		result = result * PRIME + thisAdvice.map(Object::hashCode).orElse(43);
+		return result;
 	}
 }

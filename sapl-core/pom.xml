@@ -12,8 +12,7 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>1.0.0</version>
-		<relativePath>../pom.xml</relativePath>
+		<version>2.0.0-SNAPSHOT</version>
 	</parent>
 	<name>SAPL Core</name>
 	<artifactId>sapl-core</artifactId>
@@ -239,6 +238,14 @@
 			<artifactId>org.eclipse.xtext.xbase</artifactId>
 			<version>${xtextVersion}</version>
 		</dependency>
+
+		<!-- remove as soon as version higher than 2.16.0 (${xtextVersion}) is available in repos accessed by the build -->
+		<dependency>
+			<groupId>org.eclipse.xtend</groupId>
+			<artifactId>org.eclipse.xtend.lib</artifactId>
+			<version>${xtextVersion}</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.xtext.generator</artifactId>
@@ -254,12 +261,26 @@
 			<artifactId>org.eclipse.xtext.testing</artifactId>
 			<version>${xtextVersion}</version>
 			<scope>test</scope>
+			<!-- remove as soon as version higher than 2.16.0 (${xtextVersion}) is available in repos accessed by the build -->
+			<exclusions>
+				<exclusion>
+					<groupId>org.eclipse.xtend</groupId>
+					<artifactId>org.eclipse.xtend.lib</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.xbase.testing</artifactId>
 			<version>${xtextVersion}</version>
 			<scope>test</scope>
+			<!-- remove as soon as version higher than 2.16.0 (${xtextVersion}) is available in repos accessed by the build -->
+			<exclusions>
+				<exclusion>
+					<groupId>org.eclipse.xtend</groupId>
+					<artifactId>org.eclipse.xtend.lib</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -287,6 +308,11 @@
 			<groupId>org.eclipse.platform</groupId>
 			<artifactId>org.eclipse.equinox.common</artifactId>
 			<version>3.8.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
 		</dependency>
 	</dependencies>
 	<repositories>

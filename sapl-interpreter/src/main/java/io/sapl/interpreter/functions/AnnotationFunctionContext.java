@@ -1,6 +1,5 @@
 package io.sapl.interpreter.functions;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Collection;
@@ -12,11 +11,9 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.interpreter.validation.IllegalParameterType;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -44,36 +41,38 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	@Override
 	public JsonNode evaluate(String function, ArrayNode parameters) throws FunctionException {
-		FunctionMetadata fun = functions.get(function);
-		if (fun == null) {
+		final FunctionMetadata metadata = functions.get(function);
+		if (metadata == null) {
 			throw new FunctionException(String.format(UNKNOWN_FUNCTION, function));
 		}
-		Object[] args;
-		Parameter[] funParams = fun.getFunction().getParameters();
+
+		final Object[] args;
+		final Parameter[] funParams = metadata.getFunction().getParameters();
 		try {
-			if (fun.getPararmeterCardinality() == -1) {
+			if (metadata.getPararmeterCardinality() == -1) {
 				args = new Object[1];
-				JsonNode[] arrayParam = new JsonNode[parameters.size()];
+				final JsonNode[] arrayParam = new JsonNode[parameters.size()];
 				for (int i = 0; i < parameters.size(); i++) {
-					arrayParam[i] = ParameterTypeValidator.validateType(parameters.get(i), funParams[0]);
+					final JsonNode parameter = parameters.get(i);
+					ParameterTypeValidator.validateType(parameter, funParams[0]);
+					arrayParam[i] = parameter;
 				}
 				args[0] = arrayParam;
-			} else if (fun.getPararmeterCardinality() == parameters.size()) {
+			} else if (metadata.getPararmeterCardinality() == parameters.size()) {
 				args = new Object[parameters.size()];
 				for (int i = 0; i < parameters.size(); i++) {
-					args[i] = ParameterTypeValidator.validateType(parameters.get(i), funParams[i]);
+					final JsonNode parameter = parameters.get(i);
+					ParameterTypeValidator.validateType(parameter, funParams[i]);
+					args[i] = parameter;
 				}
 			} else {
-				throw new FunctionException(
-						String.format(ILLEGAL_NUMBER_OF_PARAMETERS, fun.getPararmeterCardinality(), parameters.size()));
+				throw new FunctionException(String.format(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getPararmeterCardinality(), parameters.size()));
 			}
 
-			return (JsonNode) fun.getFunction().invoke(fun.getLibrary(), args);
-		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | ClassCastException
-				| IllegalParameterType e) {
+			return (JsonNode) metadata.getFunction().invoke(metadata.getLibrary(), args);
+		} catch (Exception e) {
 			throw new FunctionException(e);
 		}
-
 	}
 
 	@Override

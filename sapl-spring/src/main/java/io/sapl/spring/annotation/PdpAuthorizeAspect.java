@@ -6,13 +6,6 @@ import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.Response;
-import io.sapl.spring.SAPLAuthorizator;
-import io.sapl.spring.marshall.subject.AuthenticationSubject;
-import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -28,6 +21,16 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.Response;
+import io.sapl.pep.BlockingSAPLAuthorizer;
+import io.sapl.pep.SAPLAuthorizer;
+import io.sapl.spring.marshall.subject.AuthenticationSubject;
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 @Aspect
 public class PdpAuthorizeAspect {
@@ -36,16 +39,15 @@ public class PdpAuthorizeAspect {
 
 	private boolean tokenStoreInitialized;
 
-	private final SAPLAuthorizator sapl;
+	private final BlockingSAPLAuthorizer sapl;
 
 	@Autowired
 	private ApplicationContext applicationContext;
 
 	private TokenStore tokenStore;
 
-	public PdpAuthorizeAspect(SAPLAuthorizator sapl) {
-		super();
-		this.sapl = sapl;
+	public PdpAuthorizeAspect(SAPLAuthorizer sapl) {
+		this.sapl = new BlockingSAPLAuthorizer(sapl);
 	}
 
 	@Around("@annotation(pdpAuthorize) && execution(* *(..))")

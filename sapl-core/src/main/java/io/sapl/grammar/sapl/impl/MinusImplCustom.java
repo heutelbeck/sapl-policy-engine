@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 
 public class MinusImplCustom extends io.sapl.grammar.sapl.impl.MinusImpl {
 
@@ -28,15 +30,22 @@ public class MinusImplCustom extends io.sapl.grammar.sapl.impl.MinusImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
-		assertNumber(left);
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
 
-		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
-		assertNumber(right);
-
-		return JSON.numberNode(left.decimalValue().subtract(right.decimalValue()));
+		return Flux.combineLatest(leftResultFlux, rightResultFlux,
+				(leftResult, rightResult) -> {
+					try {
+						assertNumber(leftResult);
+						assertNumber(rightResult);
+						return (JsonNode) JSON.numberNode(leftResult.decimalValue().subtract(rightResult.decimalValue()));
+					}
+					catch (PolicyEvaluationException e) {
+						throw Exceptions.propagate(e);
+					}
+				})
+				.distinctUntilChanged();
 	}
 
 	@Override

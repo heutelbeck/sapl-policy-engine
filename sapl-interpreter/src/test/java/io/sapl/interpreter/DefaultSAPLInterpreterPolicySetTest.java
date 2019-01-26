@@ -19,152 +19,193 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.functions.FunctionException;
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
-import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import org.junit.Before;
+import org.junit.Test;
 
 public class DefaultSAPLInterpreterPolicySetTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
+	private Request request;
 	private AttributeContext attributeCtx;
 	private FunctionContext functionCtx;
 
 	@Before
-	public void init() throws FunctionException, AttributeException {
+	public void init() throws FunctionException {
+		request = new Request(null, null, null, null);
 		attributeCtx = new AnnotationAttributeContext();
 		functionCtx = new AnnotationFunctionContext();
 		functionCtx.loadLibrary(new FilterFunctionLibrary());
 	}
 
 	@Test
-	public void setPermit() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" deny-overrides" + " policy \"testp\" permit");
-		Response expectedResponse = new Response(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty());
-		assertEquals("simple policy set should evaluate to permit", expectedResponse, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES));
+	public void setPermit() {
+		String policySet = 
+				"set \"tests\" deny-overrides " +
+				"policy \"testp\" permit";
+		Response expected = Response.permit();
+		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("simple policy set should evaluate to permit", expected, actual);
 	}
 
 	@Test
-	public void setDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" deny-overrides" + " policy \"testp\" deny");
-		Response expectedResponse = Response.deny();
-		assertEquals("simple policy set should evaluate to deny", expectedResponse, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES));
+	public void setDeny() {
+		String policySet = 
+				"set \"tests\" deny-overrides " +
+				"policy \"testp\" deny";
+		Response expected = Response.deny();
+		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("simple policy set should evaluate to deny", expected, actual);
 	}
 
 	@Test
-	public void setNotApplicable() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" deny-overrides for true == false" + " policy \"testp\" deny");
-		Response expectedResponse = Response.notApplicable();
-		assertEquals("simple policy set should evaluate to not applicable", expectedResponse, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES));
+	public void setNotApplicable() {
+		String policySet = 
+				"set \"tests\" deny-overrides " +
+				"for true == false " +
+				"policy \"testp\" deny";
+		Response expected = Response.notApplicable();
+		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("simple policy set should evaluate to not applicable", expected, actual);
 	}
 
 	@Test
-	public void noApplicablePolicies() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" deny-overrides for true" + " policy \"testp\" deny true == false");
-		Response expectedResponse = Response.notApplicable();
-		assertEquals("set with no applicable policies should evaluate to not applicable", expectedResponse, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES));
+	public void noApplicablePolicies() {
+		String policySet = 
+				"set \"tests\" deny-overrides " +
+				"for true " +
+				"policy \"testp\" deny true == false";
+		Response expected = Response.notApplicable();
+		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("set with no applicable policies should evaluate to not applicable", expected, actual);
 	}
 
 	@Test
-	public void setIndeterminate() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" deny-overrides for \"a\" > 4" + " policy \"testp\" permit");
-		Response expectedResponse = Response.indeterminate();
-		assertEquals("simple policy set should evaluate to indeterminate", expectedResponse, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES));
+	public void setIndeterminate() {
+		String policySet = 
+				"set \"tests\" deny-overrides" +
+				"for \"a\" > 4 " +
+				"policy \"testp\" permit";
+		Response expected = Response.indeterminate();
+		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("simple policy set should evaluate to indeterminate", expected, actual);
 	}
 
 	@Test
-	public void denyOverridesPermitAndDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" deny-overrides" + " policy \"testp1\" permit" + " policy \"testp2\" deny");
-		Response expectedResponse = Response.deny();
-		assertEquals("algorithm should return deny if any policy evaluates to deny", expectedResponse, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES));
+	public void denyOverridesPermitAndDeny() {
+		String policySet = 
+				"set \"tests\" deny-overrides " +
+				"policy \"testp1\" permit " +
+				"policy \"testp2\" deny";
+		Response expected = Response.deny();
+		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("algorithm should return deny if any policy evaluates to deny", expected, actual);
 	}
 
 	@Test
-	public void denyOverridesPermitAndNotApplicableAndDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" deny-overrides" + " policy \"testp1\" permit"
-				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" deny");
-		Response expectedResponse = Response.deny();
-		assertEquals("algorithm should return deny if any policy evaluates to deny", expectedResponse, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES));
+	public void denyOverridesPermitAndNotApplicableAndDeny() {
+		String policySet = 
+				"set \"tests\" deny-overrides " +
+				"policy \"testp1\" permit " +
+				"policy \"testp2\" permit true == false " +
+				"policy \"testp3\" deny";
+		Response expected = Response.deny();
+		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("algorithm should return deny if any policy evaluates to deny", expected, actual);
 	}
 
 	@Test
-	public void denyOverridesPermitAndIntederminateAndDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" deny-overrides" + " policy \"testp1\" permit"
-				+ " policy \"testp2\" permit \"a\" < 5" + " policy \"testp3\" deny");
-		Response expectedResponse = Response.deny();
-		assertEquals("algorithm should return deny if any policy evaluates to deny", expectedResponse, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES));
+	public void denyOverridesPermitAndIntederminateAndDeny() {
+		String policySet = 
+				"set \"tests\" deny-overrides " +
+				"policy \"testp1\" permit " +
+				"policy \"testp2\" permit \"a\" < 5 " +
+				"policy \"testp3\" deny";
+		Response expected = Response.deny();
+		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("algorithm should return deny if any policy evaluates to deny", expected, actual);
 	}
 
 	@Test
-	public void importsInSetAvailableInPolicy() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("import filter.replace set \"tests\" deny-overrides"
-				+ " policy \"testp1\" permit transform true |- replace(false)");
-		assertEquals("imports for policy set must be available in policies",
-				Optional.of(JsonNodeFactory.instance.booleanNode(false)),
-				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).getResource());
+	public void importsInSetAvailableInPolicy() {
+		String policySet = 
+				"import filter.replace " +
+				"set \"tests\" deny-overrides " +
+				"policy \"testp1\" permit transform true |- replace(false)";
+		Optional<BooleanNode> expected = Optional.of(JsonNodeFactory.instance.booleanNode(false));
+		Optional<JsonNode> actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getResource();
+		assertEquals("imports for policy set must be available in policies", expected, actual);
 	}
 
 	@Test
-	public void importsDuplicatesByPolicySet() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("import filter.replace import filter.replace set \"tests\" deny-overrides"
-				+ " policy \"testp1\" permit where true;");
-		assertEquals("imports for policy set must not contain duplicates", Response.indeterminate(), INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES));
+	public void importsDuplicatesByPolicySet() {
+		String policySet = 
+				"import filter.replace " +
+				"import filter.replace " +
+				"set \"tests\" deny-overrides " +
+				"policy \"testp1\" permit where true;";
+		Response expected = Response.indeterminate();
+		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("imports for policy set must not contain duplicates", expected, actual);
 	}
 
 	@Test
-	public void variablesOnSetLevel() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" deny-overrides var var1 = true;" + " policy \"testp1\" permit var1 == true");
-		assertEquals("variables defined for policy set must be available in policies", Decision.PERMIT, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+	public void variablesOnSetLevel() {
+		String policySet = 
+				"set \"tests\" deny-overrides " +
+				"var var1 = true; " +
+				"policy \"testp1\" permit var1 == true";
+		Decision expected = Decision.PERMIT;
+		Decision actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision();
+		assertEquals("variables defined for policy set must be available in policies", expected, actual);
 	}
 
 	@Test
-	public void variablesOnSetLevelError() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" deny-overrides var var1 = true + null;" + " policy \"testp1\" permit");
-		assertEquals("error in policy set variable definition should lead to indeterminate", Response.indeterminate(),
-				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES));
+	public void variablesOnSetLevelError() {
+		String policySet = 
+				"set \"tests\" deny-overrides " +
+				"var var1 = true + null; " +
+				"policy \"testp1\" permit";
+		Response expected = Response.indeterminate();
+		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("error in policy set variable definition should lead to indeterminate", expected,
+				actual);
 	}
 
 	@Test
-	public void variablesOverwriteInPolicy() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" deny-overrides var var1 = true;"
-				+ " policy \"testp1\" permit where var var1 = 10; var1 == 10;"
-				+ " policy \"testp2\" deny where !(var1 == true);");
-		assertEquals("it should be possible to overwrite a variable in a policy", Decision.PERMIT, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+	public void variablesOverwriteInPolicy() {
+		String policySet = 
+				"set \"tests\" deny-overrides " +
+				"var var1 = true; " +
+				"policy \"testp1\" permit where var var1 = 10; var1 == 10; " +
+				"policy \"testp2\" deny where !(var1 == true);";
+		Decision expected = Decision.PERMIT;
+		Decision actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision();
+		assertEquals("it should be possible to overwrite a variable in a policy", expected, actual);
+	}
+
+	@Test
+	public void subjectAsVariable() {
+		String policySet = 
+				"set \"test\" deny-overrides " +
+				"var subject = null;  " +
+				"policy \"test\" permit";
+		Response expected = Response.indeterminate();
+		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("'subject' as variable name should evaluate to indeterminate", expected, actual);
 	}
 
 }

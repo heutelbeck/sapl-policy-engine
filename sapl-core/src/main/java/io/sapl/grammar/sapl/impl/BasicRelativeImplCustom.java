@@ -23,20 +23,21 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.publisher.Flux;
 
 public class BasicRelativeImplCustom extends io.sapl.grammar.sapl.impl.BasicRelativeImpl {
 
 	private static final String NOT_ALLOWED = "Relative expression is not allowed at this place.";
+
 	private static final int HASH_PRIME_06 = 37;
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-		if (relativeNode == null) {
-			throw new PolicyEvaluationException(NOT_ALLOWED);
-		}
-		return evaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, isBody, relativeNode);
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        if (relativeNode == null) {
+            return Flux.error(new PolicyEvaluationException(NOT_ALLOWED));
+        }
+        return evaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, isBody, relativeNode);
 	}
 
 	@Override

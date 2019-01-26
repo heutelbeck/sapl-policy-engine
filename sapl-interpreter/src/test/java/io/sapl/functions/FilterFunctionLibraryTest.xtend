@@ -186,7 +186,7 @@ class FilterFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
 			Optional.empty())
-		val response = INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+		val response = INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("builtin function blacken() not working as expected", response, equalTo(expectedResponse))
 	}
@@ -235,7 +235,7 @@ class FilterFunctionLibraryTest {
 
 		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
 			Optional.empty())
-		val response = INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+		val response = INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
 		assertThat("builtin function replace() not working as expected", response, equalTo(expectedResponse))
 	}

@@ -26,6 +26,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class ApplyStepsIndexUnionTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
@@ -35,19 +36,21 @@ public class ApplyStepsIndexUnionTest {
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToNonArray() throws PolicyEvaluationException {
+	@Test
+	public void applyToNonArray() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
 
 		IndexUnionStep step = factory.createIndexUnionStep();
 		step.getIndices().add(BigDecimal.valueOf(0));
 		step.getIndices().add(BigDecimal.valueOf(1));
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void applyToResultArray() throws PolicyEvaluationException {
+	public void applyToResultArray() {
 		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
 		AbstractAnnotatedJsonNode node1 = new JsonNodeWithParentObject(JSON.nullNode(), JSON.objectNode(), "key1");
 		AbstractAnnotatedJsonNode node2 = new JsonNodeWithParentObject(JSON.booleanNode(true), JSON.objectNode(),
@@ -68,15 +71,17 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(10));
 		step.getIndices().add(BigDecimal.valueOf(-10));
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Index union applied to result array should return items with corresponding attribute values",
-				expectedResultSet, resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Index union applied to result array should return items with corresponding attribute values",
+							expectedResultSet, resultSet);
+				});
 	}
 
 	@Test
-	public void applyToArrayNodePositive() throws PolicyEvaluationException {
+	public void applyToArrayNodePositive() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 		array.add(JSON.booleanNode(true));
@@ -93,15 +98,17 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(1));
 		step.getIndices().add(BigDecimal.valueOf(10));
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Index union applied to array node should return items with corresponding attribute values",
-				expectedResultSet, resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Index union applied to array node should return items with corresponding attribute values",
+							expectedResultSet, resultSet);
+				});
 	}
 
 	@Test
-	public void applyToArrayNodeNegative() throws PolicyEvaluationException {
+	public void applyToArrayNodeNegative() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 		array.add(JSON.booleanNode(true));
@@ -116,10 +123,12 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(-2));
 		step.getIndices().add(BigDecimal.valueOf(0));
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Index union applied to array node should return items with corresponding attribute values",
-				expectedResultSet, resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Index union applied to array node should return items with corresponding attribute values",
+							expectedResultSet, resultSet);
+				});
 	}
 }

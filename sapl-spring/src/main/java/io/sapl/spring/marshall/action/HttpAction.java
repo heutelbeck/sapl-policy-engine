@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import io.sapl.spring.marshall.Action;
+import io.sapl.api.pdp.marshall.Action;
 import lombok.Value;
 
 @Value

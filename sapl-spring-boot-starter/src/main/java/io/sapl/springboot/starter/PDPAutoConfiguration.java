@@ -13,25 +13,24 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.functions.FunctionException;
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.advice.AdviceHandlerService;
+import io.sapl.api.pdp.mapping.SaplMapper;
+import io.sapl.pep.pdp.mapping.SimpleSaplMapper;
+import io.sapl.api.pdp.obligation.Obligation;
+import io.sapl.api.pdp.obligation.ObligationHandler;
+import io.sapl.api.pdp.obligation.ObligationHandlerService;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
+import io.sapl.pep.SAPLAuthorizer;
+import io.sapl.pep.pdp.advice.SimpleAdviceHandlerService;
+import io.sapl.pep.pdp.obligation.SimpleObligationHandlerService;
 import io.sapl.spring.PIPProvider;
 import io.sapl.spring.PolicyEnforcementFilter;
-import io.sapl.spring.SAPLAuthorizator;
 import io.sapl.spring.SAPLPermissionEvaluator;
 import io.sapl.spring.annotation.PdpAuthorizeAspect;
-import io.sapl.spring.marshall.advice.AdviceHandlerService;
-import io.sapl.spring.marshall.advice.SimpleAdviceHandlerService;
-import io.sapl.spring.marshall.mapper.SaplMapper;
-import io.sapl.spring.marshall.mapper.SimpleSaplMapper;
-import io.sapl.spring.marshall.obligation.Obligation;
-import io.sapl.spring.marshall.obligation.ObligationHandler;
-import io.sapl.spring.marshall.obligation.ObligationHandlerService;
-import io.sapl.spring.marshall.obligation.SimpleObligationHandlerService;
 import io.sapl.springboot.starter.PDPProperties.Remote;
 import lombok.extern.slf4j.Slf4j;
 
@@ -90,8 +89,8 @@ import lombok.extern.slf4j.Slf4j;
  * <br/>
  * <br/>
  * <h2>The SaplAuthorizer</h2> If you do not define a Bean of type
- * {@link SAPLAuthorizator} on your own this will be done for you. The
- * SAPLAuthorizator-instance created by
+ * {@link SAPLAuthorizer} on your own this will be done for you. The
+ * SAPLAuthorizer-instance created by
  * {@link #createSAPLAuthorizer(PolicyDecisionPoint, ObligationHandlerService, AdviceHandlerService, SaplMapper)}
  * will use beans of the following types. All of these are provided with a
  * default implementation if and only if you do not define beans of the types on
@@ -123,7 +122,7 @@ import lombok.extern.slf4j.Slf4j;
  * <h2>The PolicyEnforcementFilter</h2> If activated through the following
  * property, a bean of type {@link PolicyEnforcementFilter} will be defined. You
  * can use it to extends the spring-security filterchain. See
- * {@link #policyEnforcementFilter(SAPLAuthorizator)} <br/>
+ * {@link #policyEnforcementFilter(SAPLAuthorizer)} <br/>
  * <code>
  * pdp.policyEnforcementFilter=true
  * </code> <br/>
@@ -132,7 +131,7 @@ import lombok.extern.slf4j.Slf4j;
  * <br/>
  * 
  * @see PDPProperties
- * @see SAPLAuthorizator
+ * @see SAPLAuthorizer
  */
 @Slf4j
 @Configuration
@@ -151,7 +150,7 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnProperty(name = "pdp.type", havingValue = "EMBEDDED")
 	public PolicyDecisionPoint pdpEmbedded(PIPProvider pipProvider)
-			throws PolicyEvaluationException, AttributeException, FunctionException, IOException {
+			throws AttributeException, FunctionException, IOException {
 		LOGGER.debug("creating embedded PDP with Bean name {} and policy path {}", BEAN_NAME_PDP_EMBEDDED,
 				pdpProperties.getEmbedded().getPolicyPath());
 
@@ -193,12 +192,12 @@ public class PDPAutoConfiguration {
 	/**
 	 * 
 	 * @param saplAuthorizer
-	 *            - the SAPLAuthorizator to be used by the Filter
+	 *            - the SAPLAuthorizer to be used by the Filter
 	 * @return a PolicyEnforcementFilter
 	 */
 	@Bean
 	@ConditionalOnProperty("pdp.policyEnforcementFilter")
-	public PolicyEnforcementFilter policyEnforcementFilter(SAPLAuthorizator saplAuthorizer) {
+	public PolicyEnforcementFilter policyEnforcementFilter(SAPLAuthorizer saplAuthorizer) {
 		LOGGER.debug("no Bean of type PolicyEnforcementFilter defined. Will create default Bean of {}",
 				PolicyEnforcementFilter.class);
 		return new PolicyEnforcementFilter(saplAuthorizer);
@@ -209,30 +208,30 @@ public class PDPAutoConfiguration {
 	 * @param pdp
 	 *            - a PolicyDecisionPoint instance
 	 * @param ohs
-	 *            - a ObligationHandlerService instance
+	 *            - an ObligationHandlerService instance
 	 * @param ahs
-	 *            - a AdviceHandlerService instance
+	 *            - an AdviceHandlerService instance
 	 * @param sm
 	 *            - a SaplMapper instance
-	 * @return a SAPLAuthorizator instance
+	 * @return a SAPLAuthorizer instance
 	 */
 	@Bean
 	@ConditionalOnMissingBean
-	public SAPLAuthorizator createSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationHandlerService ohs,
-			AdviceHandlerService ahs, SaplMapper sm) {
-		LOGGER.debug("no Bean of type SAPLAuthorizator  defined. Will create default Bean of {}", SAPLAuthorizator.class);
-		return new SAPLAuthorizator(pdp, ohs, ahs, sm);
+	public SAPLAuthorizer createSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationHandlerService ohs,
+											   AdviceHandlerService ahs, SaplMapper sm) {
+		LOGGER.debug("no Bean of type SAPLAuthorizer  defined. Will create default Bean of {}", SAPLAuthorizer.class);
+		return new SAPLAuthorizer(pdp, ohs, ahs, sm);
 	}
 
 	/**
 	 * 
 	 * @param saplAuthorizer
-	 *            - the SAPLAuthorizator to be used
+	 *            - the SAPLAuthorizer to be used
 	 * @return a SAPLPermissionEvaluator
 	 */
 	@Bean
 	@ConditionalOnMissingBean
-	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(SAPLAuthorizator saplAuthorizer) {
+	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(SAPLAuthorizer saplAuthorizer) {
 		LOGGER.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of {}",
 				SAPLPermissionEvaluator.class);
 		return new SAPLPermissionEvaluator(saplAuthorizer);
@@ -338,7 +337,7 @@ public class PDPAutoConfiguration {
 	}
 
 	@Bean
-	PdpAuthorizeAspect pdpAuthorizeAspect(SAPLAuthorizator sapl) {
+	PdpAuthorizeAspect pdpAuthorizeAspect(SAPLAuthorizer sapl) {
 		return new PdpAuthorizeAspect(sapl);
 	}
 }

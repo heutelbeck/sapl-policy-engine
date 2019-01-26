@@ -12,15 +12,20 @@
  */
 package io.sapl.functions;
 
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
@@ -33,7 +38,6 @@ public class TemporalFunctionLibrary {
 	public static final String NAME = "time";
 	public static final String DESCRIPTION = "This library contains temporal functions.";
 
-	private static final String NOW_DOC = "Returns the current time in UTC as an ISO 8601 string.";
 	private static final String BEFORE_DOC = "Given timeOne and timeTwo are strings representing UTC time in ISO 8601. The function returns true, if timeOne is before timeTwo.";
 	private static final String AFTER_DOC = "Assumes, that TIME_A and TIME_B are strings representing UTC time in ISO 8601. Returns true, if TIME_A is after TIME_B.";
 	private static final String BETWEEN_DOC = "between(TIME, TIME_A, TIME_B): Assumes, that TIME, TIME_A and TIME_B are strings representing UTC time in ISO 8601. Returns true, if TIME is between TIME_A and TIME_B.";
@@ -43,16 +47,16 @@ public class TemporalFunctionLibrary {
 	private static final String MINUSNANOS_DOC = "minusNanos(TIME, NANOS): Assumes, that TIME is a string representing UTC time in ISO 8601, and NANOS is an integer. Returns a new time by subtracting the given duration to TIME.";
 	private static final String MINUSMILLIS_DOC = "minusMillis(TIME, SECONDS): Assumes, that TIME is a string representing UTC time in ISO 8601, and MILLIS is an integer. Returns a new time by subtracting the given duration to TIME.";
 	private static final String MINUSSECONDS_DOC = "minusSeconds(TIME, SECONDS): Assumes, that TIME is a string representing UTC time in ISO 8601, and SECONDS is an integer. Returns a new time by subtracting the given duration to TIME.";
-	private static final String DAYOFWEEK_DOC = "Returns the day of the week for the given time.";
+	private static final String DAYOFWEEK_DOC = "Returns the day of the week for the given time. Assumes, that the time is a string representing UTC time in ISO 8601.";
+	private static final String LOCAL_DATE_TIME_DOC = "Returns the given date time converted to local date time as a string (without nano seconds). Assumes, that the given date time is a string representing UTC time in ISO 8601.";
+	private static final String LOCAL_TIME_DOC = "Returns the given date time converted to local time as a string (without nano seconds). Assumes, that the given date time is a string representing UTC time in ISO 8601.";
+	private static final String LOCAL_HOUR_DOC = "Returns the local hour of the given date time as a number. Assumes, that the given date time is a string representing UTC time in ISO 8601.";
+	private static final String LOCAL_MINUTE_DOC = "Returns the local minute of the given date time as a number. Assumes, that the given date time is a string representing UTC time in ISO 8601.";
+	private static final String LOCAL_SECOND_DOC = "Returns the (local) second of the given date time as a number. Assumes, that the given date time is a string representing UTC time in ISO 8601.";
 
 	private static final String PARAMETER_NOT_AN_ISO_8601_STRING = "Parameter not an ISO 8601 string";
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	@Function(docs = NOW_DOC)
-	public static JsonNode now() {
-		return JSON.textNode(Instant.now().toString());
-	}
 
 	@Function(docs = BEFORE_DOC)
 	public static JsonNode before(@Text JsonNode timeOne, @Text JsonNode timeTwo) throws FunctionException {
@@ -122,20 +126,49 @@ public class TemporalFunctionLibrary {
 
 	@Function(docs = DAYOFWEEK_DOC)
 	public static JsonNode dayOfWeekFrom(@Text JsonNode time) throws FunctionException {
-		return JSON.textNode(DayOfWeek.from(nodeToDateTime(time)).toString());
+		final Instant instant = nodeToInstant(time);
+		final OffsetDateTime utc = instant.atOffset(ZoneOffset.UTC);
+		return JSON.textNode(DayOfWeek.from(utc).toString());
+	}
+
+	@Function(docs = LOCAL_DATE_TIME_DOC)
+	public static JsonNode localDateTime(@Text JsonNode utcDateTime) throws FunctionException {
+        final Instant instant = nodeToInstant(utcDateTime);
+        final LocalDateTime localDateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
+        return JSON.textNode(localDateTime.truncatedTo(ChronoUnit.SECONDS).toString());
+    }
+
+    @Function(docs = LOCAL_TIME_DOC)
+    public static JsonNode localTime(@Text JsonNode utcDateTime) throws FunctionException {
+        final Instant instant = nodeToInstant(utcDateTime);
+        final LocalTime localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime();
+        return JSON.textNode(localTime.truncatedTo(ChronoUnit.SECONDS).toString());
+    }
+
+	@Function(docs = LOCAL_HOUR_DOC)
+	public static JsonNode localHour(@Text JsonNode utcDateTime) throws FunctionException {
+		final Instant instant = nodeToInstant(utcDateTime);
+		final LocalTime localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime();
+		return JSON.numberNode(BigDecimal.valueOf(localTime.getHour()));
+	}
+
+	@Function(docs = LOCAL_MINUTE_DOC)
+	public static JsonNode localMinute(@Text JsonNode utcDateTime) throws FunctionException {
+		final Instant instant = nodeToInstant(utcDateTime);
+		final LocalTime localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime();
+		return JSON.numberNode(BigDecimal.valueOf(localTime.getMinute()));
+	}
+
+	@Function(docs = LOCAL_SECOND_DOC)
+	public static JsonNode localSecond(@Text JsonNode utcDateTime) throws FunctionException {
+		final Instant instant = nodeToInstant(utcDateTime);
+		final LocalTime localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime();
+		return JSON.numberNode(BigDecimal.valueOf(localTime.getSecond()));
 	}
 
 	private static Instant nodeToInstant(JsonNode time) throws FunctionException {
 		try {
 			return Instant.parse(time.asText());
-		} catch (DateTimeParseException e) {
-			throw new FunctionException(PARAMETER_NOT_AN_ISO_8601_STRING, e);
-		}
-	}
-
-	private static LocalDateTime nodeToDateTime(JsonNode time) throws FunctionException {
-		try {
-			return LocalDateTime.parse(time.asText(), DateTimeFormatter.ISO_INSTANT.withZone(ZoneOffset.UTC));
 		} catch (DateTimeParseException e) {
 			throw new FunctionException(PARAMETER_NOT_AN_ISO_8601_STRING, e);
 		}

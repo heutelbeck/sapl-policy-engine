@@ -3,11 +3,9 @@ package io.sapl.prp.inmemory.simple;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Request;
@@ -27,10 +25,10 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 			Map<String, JsonNode> variables) {
 		boolean errorOccured = false;
 		List<SAPL> result = new ArrayList<>();
-		for (Entry<String, SAPL> entry : publishedDocuments.entrySet()) {
+		for (SAPL sapl : publishedDocuments.values()) {
 			try {
-				if (INTERPRETER.matches(request, entry.getValue(), functionCtx, variables)) {
-					result.add(entry.getValue());
+				if (INTERPRETER.matches(request, sapl, functionCtx, variables)) {
+					result.add(sapl);
 				}
 			} catch (PolicyEvaluationException e) {
 				errorOccured = true;

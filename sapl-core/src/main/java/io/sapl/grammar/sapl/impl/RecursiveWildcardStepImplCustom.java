@@ -28,28 +28,41 @@ import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.publisher.Flux;
 
 public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.RecursiveWildcardStepImpl {
 
-	private static final int HASH_PRIME_11 = 59;
-	private static final int INIT_PRIME_01 = 3;
 	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
 
+	private static final int HASH_PRIME_11 = 59;
+	private static final int INIT_PRIME_01 = 3;
+
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        try {
+            return Flux.just(apply(previousResult));
+        }
+        catch (PolicyEvaluationException e) {
+            return Flux.error(e);
+        }
+	}
+
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		if (!previousResult.getNode().isArray() && !previousResult.getNode().isObject()) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		resultList.addAll(resolveRecursive(previousResult.getNode()));
 		return new ArrayResultNode(resultList);
 	}
 
 	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return Flux.just(apply(previousResult));
+	}
+
+	private ResultNode apply(ArrayResultNode previousResult) {
+		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
 			resultList.add(child);
 			resultList.addAll(resolveRecursive(child.getNode()));
@@ -58,16 +71,16 @@ public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.R
 	}
 
 	private static ArrayList<AbstractAnnotatedJsonNode> resolveRecursive(JsonNode node) {
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		if (node.isArray()) {
 			for (int i = 0; i < node.size(); i++) {
 				resultList.add(new JsonNodeWithParentArray(node.get(i), node, i));
 				resultList.addAll(resolveRecursive(node.get(i)));
 			}
 		} else {
-			Iterator<String> it = node.fieldNames();
+			final Iterator<String> it = node.fieldNames();
 			while (it.hasNext()) {
-				String key = it.next();
+				final String key = it.next();
 				resultList.add(new JsonNodeWithParentObject(node.get(key), node, key));
 				resultList.addAll(resolveRecursive(node.get(key)));
 			}

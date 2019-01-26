@@ -21,30 +21,40 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 
 public class OrImplCustom extends io.sapl.grammar.sapl.impl.OrImpl {
 
-	private static final String LAZY_OR_OPERATOR_IN_TARGET = "Lazy OR operator is not allowed in the target";
+	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy OR operator is not allowed in the target";
 
 	private static final int HASH_PRIME_10 = 53;
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
 		if (!isBody) {
-			throw new PolicyEvaluationException(LAZY_OR_OPERATOR_IN_TARGET);
+			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
 
-		JsonNode leftResult = getLeft().evaluate(ctx, isBody, relativeNode);
-		assertBoolean(leftResult);
-		if (leftResult.asBoolean()) {
-			return JSON.booleanNode(true);
-		}
+		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
 
-		JsonNode rightResult = getRight().evaluate(ctx, isBody, relativeNode);
-		assertBoolean(rightResult);
-		return JSON.booleanNode(rightResult.asBoolean());
+		return Flux.combineLatest(leftResultFlux, rightResultFlux,
+				(leftResult, rightResult) -> {
+					try {
+						assertBoolean(leftResult);
+						if (leftResult.asBoolean()) {
+							return (JsonNode) JSON.booleanNode(true);
+						}
+						assertBoolean(rightResult);
+						return JSON.booleanNode(rightResult.asBoolean());
+					}
+					catch (PolicyEvaluationException e) {
+						throw Exceptions.propagate(e);
+					}
+				})
+				.distinctUntilChanged();
 	}
 
 	@Override

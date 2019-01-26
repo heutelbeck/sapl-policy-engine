@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 import java.util.Collection;
 import java.util.LinkedList;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -92,6 +93,7 @@ public class KMLTest {
 	}
 
 	@Test
+	@Ignore("Unit tests shouldn't depend on resources only accessible via the internet.")
 	public void httpImportTest() throws FunctionException, AttributeException {
 		KMLImport kml = new KMLImport("https://developers.google.com/kml/documentation/KML_Samples.kml");
 		assertTrue("Only an empty response object is created when retrieving KML-file from the web.",

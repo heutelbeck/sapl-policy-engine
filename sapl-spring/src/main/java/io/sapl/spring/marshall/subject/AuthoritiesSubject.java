@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
-import io.sapl.spring.marshall.Subject;
+import io.sapl.api.pdp.marshall.Subject;
 import lombok.Value;
 
 @Value

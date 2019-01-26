@@ -21,23 +21,27 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 
 public class UnaryMinusImplCustom extends io.sapl.grammar.sapl.impl.UnaryMinusImpl {
-
-	private static final String ARITHMETIC_NEGATION_TYPE_MISMATCH = "Type mismatch. Arithmetic negation expects number value, but got: '%s'.";
 
 	private static final int HASH_PRIME_13 = 67;
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-		JsonNode expressionResult = getExpression().evaluate(ctx, isBody, relativeNode);
-		if (!expressionResult.isNumber()) {
-			throw new PolicyEvaluationException(
-					String.format(ARITHMETIC_NEGATION_TYPE_MISMATCH, expressionResult.getNodeType()));
-		}
-		return JSON.numberNode(expressionResult.decimalValue().negate());
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return getExpression().evaluate(ctx, isBody, relativeNode)
+				.map(result -> {
+					try {
+						assertNumber(result);
+						return (JsonNode) JSON.numberNode(result.decimalValue().negate());
+					}
+					catch (PolicyEvaluationException e) {
+						throw Exceptions.propagate(e);
+					}
+				})
+				.distinctUntilChanged();
 	}
 
 	@Override

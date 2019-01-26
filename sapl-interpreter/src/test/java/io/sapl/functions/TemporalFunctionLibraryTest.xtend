@@ -16,8 +16,6 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
-import io.sapl.api.functions.FunctionException
-import io.sapl.api.pdp.Decision
 import io.sapl.api.pdp.Request
 import io.sapl.api.pdp.Response
 import io.sapl.interpreter.DefaultSAPLInterpreter
@@ -25,13 +23,13 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
 import io.sapl.interpreter.pip.AttributeContext
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.LocalDateTime
+import io.sapl.pip.ClockPolicyInformationPoint
+import java.time.DayOfWeek;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Collections
 import java.util.HashMap
 import java.util.Map
-import java.util.Optional
 import org.junit.Before
 import org.junit.Test
 
@@ -45,10 +43,7 @@ class TemporalFunctionLibraryTest {
 	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext()
 	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext()
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>())
-	static final TemporalFunctionLibrary LIBRARY = new TemporalFunctionLibrary()
 	static final JsonNodeFactory JSON = JsonNodeFactory.instance
-    static final Response PERMIT_EMPTY = new Response(Decision.PERMIT, Optional.empty, Optional.empty, Optional.empty)
-    static final Response NOT_APPLICABLE_EMPTY = new Response(Decision.NOT_APPLICABLE, Optional.empty, Optional.empty, Optional.empty)
 
     static final String request = '''
 		{
@@ -63,72 +58,166 @@ class TemporalFunctionLibraryTest {
 
 	@Before
 	def void init() {
-		FUNCTION_CTX.loadLibrary(LIBRARY)
+        FUNCTION_CTX.loadLibrary(new StandardFunctionLibrary())
+		FUNCTION_CTX.loadLibrary(new TemporalFunctionLibrary())
+        ATTRIBUTE_CTX.loadPolicyInformationPoint(new ClockPolicyInformationPoint())
         requestObject = MAPPER.readValue(request, Request)
 	}
 	
 	@Test
 	def void nowPlus10Seconds() {
-		val now = TemporalFunctionLibrary.now
-		val plus10 = TemporalFunctionLibrary.plusSeconds(now, TemporalFunctionLibraryTest.JSON.numberNode(10))
+        val zoneId = JSON.textNode("UTC")
+		val now = new ClockPolicyInformationPoint().now(zoneId, Collections.<String, JsonNode> emptyMap)
+		val plus10 = TemporalFunctionLibrary.plusSeconds(now, JSON.numberNode(10))
 
-		val expected = Instant.parse(now.asText).plusSeconds(10)
+		val expected = Instant.parse(now.asText).plusSeconds(10).toString
 
-		assertThat("plusSeconds function not working as expected", Instant.parse(plus10.asText), equalTo(expected))
+		assertThat("plusSeconds() not working as expected", plus10.asText, equalTo(expected))
 	}
 
 	@Test
 	def void dayOfWeekFrom() {
-		val dayOfWeek = TemporalFunctionLibrary.dayOfWeekFrom(JSON.textNode(Instant.now.toString)).asText
-		val expected = DayOfWeek.from(LocalDateTime.now).toString
+        val zoneId = JSON.textNode("UTC")
+        val now = new ClockPolicyInformationPoint().now(zoneId, Collections.<String, JsonNode> emptyMap)
+		val dayOfWeek = TemporalFunctionLibrary.dayOfWeekFrom(now)
+		val expected = DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)).toString
 
-		assertThat("dayOfWeekFrom function not working as expected", dayOfWeek, equalTo(expected))
+		assertThat("dayOfWeekFrom() not working as expected", dayOfWeek.asText, equalTo(expected))
 	}
 
     @Test
-    def void policyWithMatchingTemporalTarget() {
+    def void policyWithMatchingTemporalBody() {
         val policyDefinition = '''
 			policy "test"
 			permit
-			    action == "read" & time.before(time.now(), time.plusSeconds(time.now(), 10))
+			    action == "read"
+			where
+			    time.before("UTC".<clock.now>, time.plusSeconds("UTC".<clock.now>, 10));
 		'''
 
-        val expectedResponse = TemporalFunctionLibraryTest.PERMIT_EMPTY
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+        val expectedResponse = Response.permit
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("temporal functions not working as expected", response, equalTo(expectedResponse))
     }
 
     @Test
-    def void policyWithNonMatchingTemporalTarget() {
+    def void policyWithNonMatchingTemporalBody() {
         val policyDefinition = '''
 			policy "test"
 			permit
-			    action == "read" & time.after(time.now(), time.plusSeconds(time.now(), 10))
+			    action == "read"
+			where
+			    time.after("UTC".<clock.now>, time.plusSeconds("UTC".<clock.now>, 10));
 		'''
 
-        val expectedResponse = TemporalFunctionLibraryTest.NOT_APPLICABLE_EMPTY
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+        val expectedResponse = Response.notApplicable
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("temporal functions not working as expected", response, equalTo(expectedResponse))
     }
 
     @Test
-    def void policyWithDayOfWeekTarget() {
+    def void policyWithDayOfWeekBody() {
         val policyDefinition = '''
 			policy "test"
 			permit
-			    action == "read" & time.dayOfWeekFrom(time.now()) == "SUNDAY"
+			    action == "read"
+			where
+			    time.dayOfWeekFrom("UTC".<clock.now>) == "SUNDAY";
 		'''
 
         var Response expectedResponse
-        if (DayOfWeek.from(LocalDateTime.now()) == DayOfWeek.SUNDAY) {
-            expectedResponse = TemporalFunctionLibraryTest.PERMIT_EMPTY
+        if (DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)) == DayOfWeek.SUNDAY) {
+            expectedResponse = Response.permit
         } else {
-            expectedResponse = TemporalFunctionLibraryTest.NOT_APPLICABLE_EMPTY
+            expectedResponse = Response.notApplicable
         }
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("temporal functions not working as expected", response, equalTo(expectedResponse))
+        assertThat("dayOfWeek() not working as expected", response, equalTo(expectedResponse))
+    }
+
+    @Test
+    def void policyWithLocalDateTimeBody() {
+        val policyDefinition = '''
+			policy "test"
+			permit
+			    action == "read"
+			where
+			    standard.length(time.localDateTime("UTC".<clock.now>)) in [16, 19];
+		'''
+
+        val expectedResponse = Response.permit
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+
+        assertThat("localDateTime() not working as expected", response, equalTo(expectedResponse))
+    }
+
+    @Test
+    def void policyWithLocalTimeBody() {
+        val policyDefinition = '''
+			policy "test"
+			permit
+			    action == "read"
+			where
+			    standard.length(time.localTime("UTC".<clock.now>)) in [5, 8];
+		'''
+
+        val expectedResponse = Response.permit
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+
+        assertThat("localTime() not working as expected", response, equalTo(expectedResponse))
+    }
+
+    @Test
+    def void policyWithLocalHourBody() {
+        val policyDefinition = '''
+			policy "test"
+			permit
+			    action == "read"
+			where
+			    var hour = time.localHour("UTC".<clock.now>);
+			    hour >= 0 && hour <= 23;
+		'''
+
+        val expectedResponse = Response.permit
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+
+        assertThat("localHour() not working as expected", response, equalTo(expectedResponse))
+    }
+
+    @Test
+    def void policyWithLocalMinuteBody() {
+        val policyDefinition = '''
+			policy "test"
+			permit
+			    action == "read"
+			where
+			    var minute = time.localMinute("UTC".<clock.now>);
+			    minute >= 0 && minute <= 59;
+		'''
+
+        val expectedResponse = Response.permit
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+
+        assertThat("localMinute() not working as expected", response, equalTo(expectedResponse))
+    }
+
+    @Test
+    def void policyWithLocalSecondBody() {
+        val policyDefinition = '''
+			policy "test"
+			permit
+			    action == "read"
+			where
+			    var second = time.localSecond("UTC".<clock.now>);
+			    second >= 0 && second <= 59;
+		'''
+
+        val expectedResponse = Response.permit
+        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+
+        assertThat("localSecond() not working as expected", response, equalTo(expectedResponse))
     }
 }

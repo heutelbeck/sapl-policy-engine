@@ -60,7 +60,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return permit if the only policy evaluates to permit", Decision.PERMIT, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -69,7 +69,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return deny if the only policy evaluates to deny", Decision.DENY, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -78,7 +78,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return not applicable if the only policy target evaluates to not applicable",
 				Decision.NOT_APPLICABLE, INTERPRETER.evaluate(new Request(null, null, null, null), policySet,
-						attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+						attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -88,7 +88,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return not applicable if the only policy condition evaluates to not applicable",
 				Decision.NOT_APPLICABLE, INTERPRETER.evaluate(new Request(null, null, null, null), policySet,
-						attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+						attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -97,7 +97,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return indeterminate if the only target is indeterminate", Decision.INDETERMINATE,
 				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).getDecision());
+						SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -107,7 +107,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return indeterminate if the only condition is indeterminate", Decision.INDETERMINATE,
 				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).getDecision());
+						SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -117,7 +117,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return permit if the first policy evalautes to permit", Decision.PERMIT, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -127,7 +127,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return deny if the first applicable policy evaluates to deny", Decision.DENY, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -137,7 +137,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return permit even if two matching policies have transformation", Decision.PERMIT,
 				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).getDecision());
+						SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -147,7 +147,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return resource if the first policy evaluated to permit has transformation",
 				Optional.of(JSON.booleanNode(true)), INTERPRETER.evaluate(new Request(null, null, null, null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getResource());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getResource());
 	}
 
 	@Test
@@ -161,7 +161,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should collect obligation of first deny policy only", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getObligation());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligation());
 	}
 
 	@Test
@@ -175,7 +175,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should collect advice of first deny policy only", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getAdvice());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvice());
 	}
 
 	@Test
@@ -189,7 +189,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should collect obligation of first permit policy only", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getObligation());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligation());
 	}
 
 	@Test
@@ -203,7 +203,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should collect advice of first permit policy only", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getAdvice());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvice());
 	}
 
 }

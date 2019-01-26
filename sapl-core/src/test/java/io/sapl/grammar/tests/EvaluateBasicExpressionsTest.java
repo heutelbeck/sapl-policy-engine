@@ -8,7 +8,6 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -24,6 +23,7 @@ import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class EvaluateBasicExpressionsTest {
 	private static final String EXCEPTION = "EXCEPTION";
@@ -49,88 +49,99 @@ public class EvaluateBasicExpressionsTest {
 	}
 
 	@Test
-	public void evaluateBasicValue() throws PolicyEvaluationException {
+	public void evaluateBasicValue() {
 		BasicValue expression = factory.createBasicValue();
 		expression.setValue(factory.createNullLiteral());
 
-		JsonNode result = expression.evaluate(ctx, true, null);
-
-		assertEquals("BasicValueExpression with NullLiteral should evaluate to NullNode", JSON.nullNode(), result);
+		expression.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("BasicValueExpression with NullLiteral should evaluate to NullNode",
+						JSON.nullNode(), result)
+				);
 	}
 
 	@Test
-	public void evaluateBasicIdentifierExisting() throws PolicyEvaluationException {
+	public void evaluateBasicIdentifierExisting() {
 		BasicIdentifier expression = factory.createBasicIdentifier();
 		expression.setIdentifier(KEY);
 
-		JsonNode result = expression.evaluate(ctx, true, null);
-
-		assertEquals("BasicIdentifierExpression should return the corresponding variable value", JSON.booleanNode(true),
-				result);
+		expression.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("BasicIdentifierExpression should return the corresponding variable value",
+						JSON.booleanNode(true), result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateBasicIdentifierNonExisting() throws PolicyEvaluationException {
+	@Test
+	public void evaluateBasicIdentifierNonExisting() {
 		BasicIdentifier expression = factory.createBasicIdentifier();
 		expression.setIdentifier(KEY_ANOTHER);
 
-		expression.evaluate(ctx, true, null);
+		StepVerifier.create(expression.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void evaluateBasicRelative() throws PolicyEvaluationException {
+	public void evaluateBasicRelative() {
 		BasicRelative expression = factory.createBasicRelative();
 
-		JsonNode result = expression.evaluate(ctx, true, JSON.nullNode());
-
-		assertEquals("BasicRelativeExpression without selection steps should evaluate to relative node",
-				JSON.nullNode(), result);
-	}
-
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateBasicRelativeNotAllowed() throws PolicyEvaluationException {
-		BasicRelative expression = factory.createBasicRelative();
-		expression.evaluate(ctx, true, null);
+		expression.evaluate(ctx, true, JSON.nullNode())
+				.take(1)
+				.subscribe(result -> assertEquals("BasicRelativeExpression without selection steps should evaluate to relative node",
+						JSON.nullNode(), result)
+				);
 	}
 
 	@Test
-	public void evaluateBasicGroup() throws PolicyEvaluationException {
+	public void evaluateBasicRelativeNotAllowed() {
+		BasicRelative expression = factory.createBasicRelative();
+		StepVerifier.create(expression.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
+	}
+
+	@Test
+	public void evaluateBasicGroup() {
 		BasicGroup expression = factory.createBasicGroup();
 		BasicValue value = factory.createBasicValue();
 		value.setValue(factory.createNullLiteral());
 		expression.setExpression(value);
 
-		JsonNode result = expression.evaluate(ctx, true, null);
-
-		assertEquals("BasicGroupExpression should evaluate to the result of evaluating its expression", JSON.nullNode(),
-				result);
+		expression.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("BasicGroupExpression should evaluate to the result of evaluating its expression",
+						JSON.nullNode(), result)
+				);
 	}
 
 	@Test
-	public void evaluateBasicFunctionNoArgs1() throws PolicyEvaluationException {
+	public void evaluateBasicFunctionNoArgs1() {
 		BasicFunction expression = factory.createBasicFunction();
 		expression.getFsteps().add(KEY);
 
-		JsonNode result = expression.evaluate(ctx, true, null);
-
-		assertEquals("BasicFunctionExpression should evaluate to the result of evaluating the function",
-				JSON.textNode(KEY), result);
+		expression.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("BasicFunctionExpression should evaluate to the result of evaluating the function",
+						JSON.textNode(KEY), result)
+				);
 	}
 
 	@Test
-	public void evaluateBasicFunctionNoArgs2() throws PolicyEvaluationException {
+	public void evaluateBasicFunctionNoArgs2() {
 		BasicFunction expression = factory.createBasicFunction();
 		expression.setArguments(factory.createArguments());
 		expression.getFsteps().add(KEY);
 
-		JsonNode result = expression.evaluate(ctx, true, null);
-
-		assertEquals("BasicFunctionExpression should evaluate to the result of evaluating the function",
-				JSON.textNode(KEY), result);
+		expression.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("BasicFunctionExpression should evaluate to the result of evaluating the function",
+						JSON.textNode(KEY), result)
+				);
 	}
 
 	@Test
-	public void evaluateBasicFunctionOneArg() throws PolicyEvaluationException {
+	public void evaluateBasicFunctionOneArg() {
 		BasicFunction expression = factory.createBasicFunction();
 
 		Arguments arguments = factory.createArguments();
@@ -140,16 +151,18 @@ public class EvaluateBasicExpressionsTest {
 		expression.setArguments(arguments);
 		expression.getFsteps().add(PARAMETERS);
 
-		JsonNode result = expression.evaluate(ctx, true, null);
-
 		ArrayNode expectedResult = JSON.arrayNode();
 		expectedResult.add(JSON.nullNode());
-		assertEquals("BasicFunctionExpression should evaluate to the result of evaluating the function", expectedResult,
-				result);
+
+		expression.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("BasicFunctionExpression should evaluate to the result of evaluating the function",
+						expectedResult, result)
+				);
 	}
 
 	@Test
-	public void evaluateBasicFunctionTwoArgs() throws PolicyEvaluationException {
+	public void evaluateBasicFunctionTwoArgs() {
 		BasicFunction expression = factory.createBasicFunction();
 
 		Arguments arguments = factory.createArguments();
@@ -164,34 +177,39 @@ public class EvaluateBasicExpressionsTest {
 		expression.setArguments(arguments);
 		expression.getFsteps().add(PARAMETERS);
 
-		JsonNode result = expression.evaluate(ctx, true, null);
-
 		ArrayNode expectedResult = JSON.arrayNode();
 		expectedResult.add(JSON.nullNode());
 		expectedResult.add(JSON.nullNode());
-		assertEquals("BasicFunctionExpression should evaluate to the result of evaluating the function", expectedResult,
-				result);
+
+		expression.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("BasicFunctionExpression should evaluate to the result of evaluating the function",
+						expectedResult, result)
+				);
 	}
 
 	@Test
-	public void evaluateBasicFunctionImport() throws PolicyEvaluationException {
+	public void evaluateBasicFunctionImport() {
 		BasicFunction expression = factory.createBasicFunction();
 		expression.setArguments(factory.createArguments());
 		expression.getFsteps().add(SHORT);
 
-		JsonNode result = expression.evaluate(ctx, true, null);
-
-		assertEquals("BasicFunctionExpression should evaluate to the result of evaluating the function",
-				JSON.textNode(LONG), result);
+		expression.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("BasicFunctionExpression should evaluate to the result of evaluating the function",
+						JSON.textNode(LONG), result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void evaluateBasicFunctionException() throws PolicyEvaluationException {
+	@Test
+	public void evaluateBasicFunctionException() {
 		BasicFunction expression = factory.createBasicFunction();
 		expression.setArguments(factory.createArguments());
 		expression.getFsteps().add(EXCEPTION);
 
-		expression.evaluate(ctx, true, null);
+		StepVerifier.create(expression.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 }

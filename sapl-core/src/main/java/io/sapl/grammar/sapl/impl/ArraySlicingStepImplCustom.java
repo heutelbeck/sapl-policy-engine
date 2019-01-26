@@ -24,12 +24,12 @@ import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.grammar.sapl.ArraySlicingStep;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.publisher.Flux;
 
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
@@ -40,48 +40,64 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isArray()) {
-			throw new PolicyEvaluationException(
-					String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), previousResult.getNode().getNodeType()));
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		try {
+			return Flux.just(apply(previousResult));
 		}
-		ArrayList<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		List<Integer> nodeIndices = resolveIndex(previousResult.getNode(), this);
-		for (Integer i : nodeIndices) {
-			list.add(new JsonNodeWithParentArray(previousResult.getNode().get(i), previousResult.getNode(), i));
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
+	}
+
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
+		if (!previousResult.getNode().isArray()) {
+			throw new PolicyEvaluationException(String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), previousResult.getNode().getNodeType()));
+		}
+
+		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		final List<Integer> nodeIndices = resolveIndex(previousResult.getNode());
+		for (Integer idx : nodeIndices) {
+			list.add(new JsonNodeWithParentArray(previousResult.getNode().get(idx), previousResult.getNode(), idx));
 		}
 		return new ArrayResultNode(list);
 	}
 
 	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		ArrayList<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		List<Integer> nodeIndices = resolveIndex(previousResult.asJsonWithoutAnnotations(), this);
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		try {
+			return Flux.just(apply(previousResult));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
+	}
+
+	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
+		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		final List<Integer> nodeIndices = resolveIndex(previousResult.asJsonWithoutAnnotations());
 		for (Integer i : nodeIndices) {
 			list.add(previousResult.getNodes().get(i));
 		}
 		return new ArrayResultNode(list);
 	}
 
-	private static List<Integer> resolveIndex(TreeNode value, ArraySlicingStep indexStep)
-			throws PolicyEvaluationException {
-		BigDecimal step = indexStep.getStep() == null ? BigDecimal.ONE : indexStep.getStep();
+	private List<Integer> resolveIndex(TreeNode value) throws PolicyEvaluationException {
+		final BigDecimal step = getStep() == null ? BigDecimal.ONE : getStep();
 		if (step.compareTo(BigDecimal.ZERO) == 0) {
 			throw new PolicyEvaluationException(STEP_ZERO);
 		}
 
-		BigDecimal index = indexStep.getIndex() == null ? null : indexStep.getIndex();
+		BigDecimal index = getIndex();
 		if (index != null && index.compareTo(BigDecimal.ZERO) < 0) {
 			index = index.add(BigDecimal.valueOf(value.size()));
 		}
-		BigDecimal to = indexStep.getTo() == null ? null : indexStep.getTo();
+
+		BigDecimal to = getTo();
 		if (to != null && to.compareTo(BigDecimal.ZERO) < 0) {
 			to = to.add(BigDecimal.valueOf(value.size()));
 		}
 
-		List<Integer> returnIndices = new ArrayList<>();
+		final List<Integer> returnIndices = new ArrayList<>();
 		if (step.compareTo(BigDecimal.ZERO) > 0) {
 			index = index == null ? BigDecimal.ZERO : index;
 			to = to == null ? BigDecimal.valueOf(value.size()) : to;

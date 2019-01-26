@@ -31,7 +31,10 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.multirequest.IdentifiableResponse;
+import io.sapl.api.pdp.multirequest.MultiRequest;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
@@ -45,8 +48,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	private HttpHost httpHost;
 	private HttpClientContext clientContext;
 
-	public RemotePolicyDecisionPoint(final String hostName, final int port, final String applicationKey,
-			final String applicationSecret) {
+	public RemotePolicyDecisionPoint(String hostName, int port, String applicationKey, String applicationSecret) {
 		MAPPER.registerModule(new Jdk8Module());
 
 		httpHost = new HttpHost(hostName, port, HTTPS);
@@ -64,45 +66,57 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
-	public Response decide(Request request) {
-		HttpPost post = new HttpPost(AUTHORIZATION_REQUEST);
-		post.addHeader("content-type", APPLICATION_JSON_VALUE);
-		String body;
-		try {
-			body = MAPPER.writeValueAsString(request);
-		} catch (JsonProcessingException e) {
-			LOGGER.error("Marshalling request failed: {}", request, e);
-			return new Response(Decision.INDETERMINATE, null, null, null);
-		}
-		HttpEntity entity = new ByteArrayEntity(body.getBytes(StandardCharsets.UTF_8));
-		post.setEntity(entity);
-		Response response = null;
-		try {
-			response = executeHttpRequest(post);
-		} catch (IOException e) {
-			LOGGER.error("Request failed: {}", post, e);
-			return new Response(Decision.INDETERMINATE, null, null, null);
-		}
-		return response;
+	public Flux<Response> decide(Object subject, Object action, Object resource) {
+		return decide(subject, action, resource, null);
 	}
 
 	@Override
-	public Response decide(Object subject, Object action, Object resource, Object environment) {
-		Request request = new Request(MAPPER.convertValue(subject, JsonNode.class),
-				MAPPER.convertValue(action, JsonNode.class), MAPPER.convertValue(resource, JsonNode.class),
-				MAPPER.convertValue(environment, JsonNode.class));
+	public Flux<Response> decide(Object subject, Object action, Object resource, Object environment) {
+		final Request request = toRequest(subject, action, resource, environment);
 		return decide(request);
 	}
 
 	@Override
-	public Response decide(Object subject, Object action, Object resource) {
-		return decide(subject, action, resource, null);
+	public Flux<Response> decide(Request request) {
+		final Response response = blockingDecide(request); // must be replaced with a reactive http call
+		return Flux.just(response);
+	}
+
+	@Override
+	public Flux<IdentifiableResponse> decide(MultiRequest multiRequest) {
+		return null;
+	}
+
+	private static Request toRequest(Object subject, Object action, Object resource, Object environment) {
+		return new Request(
+				MAPPER.convertValue(subject, JsonNode.class),
+				MAPPER.convertValue(action, JsonNode.class),
+				MAPPER.convertValue(resource, JsonNode.class),
+				MAPPER.convertValue(environment, JsonNode.class)
+		);
+	}
+
+	private Response blockingDecide(Request request) {
+		HttpPost post = new HttpPost(AUTHORIZATION_REQUEST);
+		post.addHeader("content-type", APPLICATION_JSON_VALUE);
+		try {
+			String body = MAPPER.writeValueAsString(request);
+			HttpEntity entity = new ByteArrayEntity(body.getBytes(StandardCharsets.UTF_8));
+			post.setEntity(entity);
+			return executeHttpRequest(post);
+		} catch (JsonProcessingException e) {
+			LOGGER.error("Marshalling request failed: {}", request, e);
+			return new Response(Decision.INDETERMINATE, null, null, null);
+		} catch (IOException e) {
+			LOGGER.error("Request failed: {}", post, e);
+			return new Response(Decision.INDETERMINATE, null, null, null);
+		}
 	}
 
 	private Response executeHttpRequest(HttpRequest request) throws IOException {
 		Response response = null;
 		try (CloseableHttpClient httpClient = HttpClients.createDefault();
-				CloseableHttpResponse webResponse = httpClient.execute(httpHost, request, clientContext);) {
+			 CloseableHttpResponse webResponse = httpClient.execute(httpHost, request, clientContext);) {
 
 			int resultCode = webResponse.getStatusLine().getStatusCode();
 			if (resultCode != HttpStatus.SC_OK) {
@@ -128,4 +142,8 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		return response;
 	}
 
+	@Override
+	public void dispose() {
+		// ignored
+	}
 }

@@ -26,6 +26,7 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.publisher.Flux;
 
 public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 
@@ -36,9 +37,17 @@ public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		JsonNode previousResultNode = previousResult.getNode();
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		try {
+			return Flux.just(apply(previousResult));
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
+	}
+
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
+		final JsonNode previousResultNode = previousResult.getNode();
 
 		if (previousResultNode.isObject()) {
 			if (!previousResultNode.has(id)) {
@@ -48,19 +57,21 @@ public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 		} else if (previousResultNode.isArray()) {
 			return applyToJsonArray(previousResultNode);
 		} else {
-			throw new PolicyEvaluationException(
-					String.format(KEY_ACCESS_TYPE_MISMATCH, id, previousResultNode.getNodeType()));
+			throw new PolicyEvaluationException(String.format(KEY_ACCESS_TYPE_MISMATCH, id, previousResultNode.getNodeType()));
 		}
 	}
 
 	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return Flux.just(apply(previousResult));
+	}
+
+	private ResultNode apply(ArrayResultNode previousResult) {
 		return applyToJsonArray(previousResult.asJsonWithoutAnnotations());
 	}
 
 	private ArrayResultNode applyToJsonArray(Iterable<JsonNode> array) {
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 
 		for (JsonNode item : array) {
 			if (item.isObject() && item.has(id)) {

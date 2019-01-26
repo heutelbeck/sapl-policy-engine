@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -20,6 +19,7 @@ import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class EvaluateStepsFilterSubtemplateTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
@@ -30,7 +30,7 @@ public class EvaluateStepsFilterSubtemplateTest {
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
 	@Test
-	public void basicExpressionWithStep() throws PolicyEvaluationException {
+	public void basicExpressionWithStep() {
 		BasicValue nullExpression = factory.createBasicValue();
 		nullExpression.setValue(factory.createNullLiteral());
 
@@ -44,13 +44,15 @@ public class EvaluateStepsFilterSubtemplateTest {
 		step.setIndex(BigDecimal.ZERO);
 		expression.getSteps().add(step);
 
-		JsonNode result = expression.evaluate(ctx, true, null);
-
-		assertEquals("Index step applied to BasicValue should return correct result", JSON.nullNode(), result);
+		expression.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Index step applied to BasicValue should return correct result",
+						JSON.nullNode(), result)
+				);
 	}
 
 	@Test
-	public void basicExpressionWithFilter() throws PolicyEvaluationException {
+	public void basicExpressionWithFilter() {
 		BasicValue expression = factory.createBasicValue();
 		expression.setValue(factory.createNullLiteral());
 
@@ -58,13 +60,15 @@ public class EvaluateStepsFilterSubtemplateTest {
 		filter.getFsteps().add("EMPTY_STRING");
 		expression.setFilter(filter);
 
-		JsonNode result = expression.evaluate(ctx, true, null);
-
-		assertEquals("Filter applied to BasicValue should return correct result", JSON.textNode(""), result);
+		expression.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Filter applied to BasicValue should return correct result",
+						JSON.textNode(""), result)
+				);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void subtemplateNoArray() throws PolicyEvaluationException {
+	@Test
+	public void subtemplateNoArray() {
 		BasicValue expression = factory.createBasicValue();
 		expression.setValue(factory.createNullLiteral());
 
@@ -72,11 +76,13 @@ public class EvaluateStepsFilterSubtemplateTest {
 		subtemplate.setValue(factory.createNullLiteral());
 		expression.setSubtemplate(subtemplate);
 
-		expression.evaluate(ctx, true, null);
+		StepVerifier.create(expression.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void subtemplateArray() throws PolicyEvaluationException {
+	public void subtemplateArray() {
 		BasicValue expression = factory.createBasicValue();
 
 		BasicValue item1 = factory.createBasicValue();
@@ -98,8 +104,10 @@ public class EvaluateStepsFilterSubtemplateTest {
 		expectedResult.add(JSON.nullNode());
 		expectedResult.add(JSON.nullNode());
 
-		JsonNode result = expression.evaluate(ctx, true, null);
-
-		assertEquals("Subtemplate applied to array should return correct result", expectedResult, result);
+		expression.evaluate(ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Subtemplate applied to array should return correct result",
+						expectedResult, result)
+				);
 	}
 }

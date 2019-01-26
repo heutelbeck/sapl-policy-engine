@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 
 public class MoreEqualsImplCustom extends io.sapl.grammar.sapl.impl.MoreEqualsImpl {
 
@@ -28,18 +30,22 @@ public class MoreEqualsImplCustom extends io.sapl.grammar.sapl.impl.MoreEqualsIm
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-		final int zero = 0;
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
 
-		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
-		assertNumber(left);
-
-		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
-		assertNumber(right);
-
-		int result = left.decimalValue().compareTo(right.decimalValue());
-		return JSON.booleanNode(result >= zero);
+		return Flux.combineLatest(leftResultFlux, rightResultFlux,
+				(leftResult, rightResult) -> {
+					try {
+						assertNumber(leftResult);
+						assertNumber(rightResult);
+						return (JsonNode) JSON.booleanNode(leftResult.decimalValue().compareTo(rightResult.decimalValue()) >= 0);
+					}
+					catch (PolicyEvaluationException e) {
+						throw Exceptions.propagate(e);
+					}
+				})
+				.distinctUntilChanged();
 	}
 
 	@Override

@@ -34,6 +34,7 @@ import java.util.Map
 import java.util.Optional
 import org.junit.Before
 import org.junit.Test
+import reactor.core.publisher.Hooks
 
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.junit.Assert.assertThat
@@ -129,7 +130,7 @@ class SampleOurPuppetTest {
 		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 
 		assertThat("anonymizing patient data for annotators not working as expected",
-			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(expectedResponse));
 	}
 
@@ -195,7 +196,7 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("anonymizing patient data for doctors not working as expected",
-			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
 	}
 
@@ -302,7 +303,7 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("truncating detected situations for familymembers not working as expected",
-			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
 	}
 
@@ -399,7 +400,7 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("truncating detected situations for professional caregivers not working as expected",
-			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
 	}
 
@@ -492,8 +493,9 @@ class SampleOurPuppetTest {
 			}
 		''', JsonNode);
 
+		Hooks.onOperatorDebug()
 		assertThat("truncating detected situations for puppetintroducers not working as expected",
-			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES),
+			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
 			equalTo(new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
 	}
 }

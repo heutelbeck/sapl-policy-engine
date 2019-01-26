@@ -23,6 +23,7 @@ import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class ApplyStepsAttributeFinderTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
@@ -31,26 +32,29 @@ public class ApplyStepsAttributeFinderTest {
 	private static VariableContext variableCtx = new VariableContext();
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static Map<String, String> imports = new HashMap<>();
-	private static EvaluationContext ctx = new EvaluationContext(new MockAttributeContext(), functionCtx, variableCtx,
-			imports);
+	private static EvaluationContext ctx = new EvaluationContext(new MockAttributeContext(), functionCtx, variableCtx, imports);
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToTarget() throws PolicyEvaluationException {
+	@Test
+	public void applyToTarget() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
 		AttributeFinderStep step = factory.createAttributeFinderStep();
-		previousResult.applyStep(step, ctx, false, null);
-	}
-
-	@Test(expected = PolicyEvaluationException.class)
-	public void exceptionDuringEvaluation() throws PolicyEvaluationException {
-		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
-		AttributeFinderStep step = factory.createAttributeFinderStep();
-		step.getIdSteps().add("EXCEPTION");
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, false, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void applyWithImport() throws PolicyEvaluationException {
+	public void exceptionDuringEvaluation() {
+		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
+		AttributeFinderStep step = factory.createAttributeFinderStep();
+		step.getIdSteps().add("EXCEPTION");
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
+	}
+
+	@Test
+	public void applyWithImport() {
 		ctx.getImports().put("short", "ATTRIBUTE");
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
 
@@ -58,13 +62,15 @@ public class ApplyStepsAttributeFinderTest {
 
 		AttributeFinderStep step = factory.createAttributeFinderStep();
 		step.getIdSteps().add("short");
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Attribute finder step should take import mapping into account", expectedResult, result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Attribute finder step should take import mapping into account",
+						expectedResult, result)
+				);
 	}
 
 	@Test
-	public void applyWithoutImport() throws PolicyEvaluationException {
+	public void applyWithoutImport() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.booleanNode(true));
 
 		ResultNode expectedResult = new JsonNodeWithoutParent(JSON.booleanNode(true));
@@ -72,13 +78,15 @@ public class ApplyStepsAttributeFinderTest {
 		AttributeFinderStep step = factory.createAttributeFinderStep();
 		step.getIdSteps().add("one");
 		step.getIdSteps().add("two");
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Attribute finder step should take import mapping into account", expectedResult, result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Attribute finder step should take import mapping into account",
+						expectedResult, result)
+				);
 	}
 
 	@Test
-	public void applyToResultArray() throws PolicyEvaluationException {
+	public void applyToResultArray() {
 		AbstractAnnotatedJsonNode previousNode = new JsonNodeWithoutParent(JSON.booleanNode(true));
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
 		list.add(previousNode);
@@ -91,10 +99,11 @@ public class ApplyStepsAttributeFinderTest {
 		AttributeFinderStep step = factory.createAttributeFinderStep();
 		step.getIdSteps().add("one");
 		step.getIdSteps().add("two");
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Attribute finder step applied to result array should take import mapping into account",
-				expectedResult, result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Attribute finder step applied to result array should take import mapping into account",
+						expectedResult, result)
+				);
 	}
 
 }

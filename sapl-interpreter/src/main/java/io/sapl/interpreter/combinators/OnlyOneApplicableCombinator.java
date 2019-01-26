@@ -13,6 +13,7 @@ import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import reactor.core.publisher.Flux;
 
 public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyCombinator {
 
@@ -23,21 +24,22 @@ public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyC
 	}
 
 	@Override
-	public Response combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
-			Request request, AttributeContext attributeCtx, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables) {
+	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
+												   Request request, AttributeContext attributeCtx, FunctionContext functionCtx,
+												   Map<String, JsonNode> systemVariables) {
+
 		if (errorsInTarget || matchingSaplDocuments.size() > 1) {
-			return Response.indeterminate();
+			return Flux.just(Response.indeterminate());
 		} else if (matchingSaplDocuments.size() == 1) {
-			return interpreter.evaluateRules(request, matchingSaplDocuments.iterator().next(), attributeCtx,
-					functionCtx, systemVariables);
+			final SAPL matchingDocument = matchingSaplDocuments.iterator().next();
+			return interpreter.evaluateRules(request, matchingDocument, attributeCtx, functionCtx, systemVariables);
 		} else {
-			return Response.notApplicable();
+			return Flux.just(Response.notApplicable());
 		}
 	}
 
 	@Override
-	public Response combinePolicies(List<Policy> policies, Request request, AttributeContext attributeCtx,
+	public Flux<Response> combinePolicies(List<Policy> policies, Request request, AttributeContext attributeCtx,
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
 			Map<String, String> imports) {
 
@@ -46,20 +48,19 @@ public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyC
 			try {
 				if (interpreter.matches(request, policy, functionCtx, systemVariables, variables, imports)) {
 					if (matchingPolicy != null) {
-						return Response.indeterminate();
+						return Flux.just(Response.indeterminate());
 					}
 					matchingPolicy = policy;
 				}
 			} catch (PolicyEvaluationException e) {
-				return Response.indeterminate();
+				return Flux.just(Response.indeterminate());
 			}
 		}
 
 		if (matchingPolicy == null) {
-			return Response.notApplicable();
+			return Flux.just(Response.notApplicable());
 		}
 
-		return interpreter.evaluateRules(request, matchingPolicy, attributeCtx, functionCtx,
-				systemVariables, variables, imports);
+		return interpreter.evaluateRules(request, matchingPolicy, attributeCtx, functionCtx, systemVariables, variables, imports);
 	}
 }

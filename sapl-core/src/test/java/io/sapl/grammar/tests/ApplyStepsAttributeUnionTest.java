@@ -23,6 +23,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class ApplyStepsAttributeUnionTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
@@ -32,30 +33,34 @@ public class ApplyStepsAttributeUnionTest {
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToResultArray() throws PolicyEvaluationException {
+	@Test
+	public void applyToResultArray() {
 		ResultNode previousResult = new ArrayResultNode(new ArrayList<>());
 
 		AttributeUnionStep step = factory.createAttributeUnionStep();
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToNonObject() throws PolicyEvaluationException {
+	@Test
+	public void applyToNonObject() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
 
 		AttributeUnionStep step = factory.createAttributeUnionStep();
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void applyToEmptyObject() throws PolicyEvaluationException {
+	public void applyToEmptyObject() {
 		ObjectNode object = JSON.objectNode();
 		ResultNode previousResult = new JsonNodeWithoutParent(object);
 
@@ -65,14 +70,15 @@ public class ApplyStepsAttributeUnionTest {
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Attribute union applied to empty object should return empty result array", expectedResult,
-				result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Attribute union applied to empty object should return empty result array",
+						expectedResult, result)
+				);
 	}
 
 	@Test
-	public void applyToObject() throws PolicyEvaluationException {
+	public void applyToObject() {
 		ObjectNode object = JSON.objectNode();
 		object.set("key1", JSON.nullNode());
 		object.set("key2", JSON.booleanNode(true));
@@ -87,10 +93,14 @@ public class ApplyStepsAttributeUnionTest {
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Attribute union applied to object should return result array with corresponding attribute values",
+							expectedResultSet, resultSet);
+				});
 
-		assertEquals("Attribute union applied to object should return result array with corresponding attribute values",
-				expectedResultSet, resultSet);
+
 	}
 }

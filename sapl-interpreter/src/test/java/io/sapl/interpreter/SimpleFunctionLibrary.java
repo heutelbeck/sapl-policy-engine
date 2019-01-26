@@ -12,8 +12,6 @@
  */
 package io.sapl.interpreter;
 
-import java.time.Instant;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -29,17 +27,12 @@ public class SimpleFunctionLibrary {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Function
-	public JsonNode now() throws FunctionException {
-		return JSON.textNode(Instant.now().toString());
-	}
-
-	@Function
 	public JsonNode length(JsonNode parameter) throws FunctionException {
 		JsonNode result = null;
 		if (parameter.isArray()) {
 			result = JSON.numberNode((float) ((ArrayNode) parameter).size());
 		} else if (parameter.isTextual()) {
-			result = JSON.numberNode((float) ((TextNode) parameter).size());
+			result = JSON.numberNode((float) ((TextNode) parameter).asText().length());
 		} else {
 			throw new FunctionException(
 					"length() parameter must be a string or an array, found " + parameter.getNodeType() + ".");

@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.publisher.Flux;
 
 public class TrueLiteralImplCustom extends TrueLiteralImpl {
 
@@ -28,8 +29,8 @@ public class TrueLiteralImplCustom extends TrueLiteralImpl {
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		return JsonNodeFactory.instance.booleanNode(true);
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return Flux.just(JsonNodeFactory.instance.booleanNode(true));
 	}
 
 	@Override

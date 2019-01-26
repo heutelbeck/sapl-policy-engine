@@ -26,28 +26,41 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.publisher.Flux;
 
 public class RecursiveKeyStepImplCustom extends io.sapl.grammar.sapl.impl.RecursiveKeyStepImpl {
 
-	private static final int HASH_PRIME_09 = 47;
-	private static final int INIT_PRIME_01 = 3;
 	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
 
+	private static final int HASH_PRIME_09 = 47;
+	private static final int INIT_PRIME_01 = 3;
+
 	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+        try {
+            return Flux.just(apply(previousResult));
+        }
+        catch (PolicyEvaluationException e) {
+            return Flux.error(e);
+        }
+	}
+
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		if (!previousResult.getNode().isArray() && !previousResult.getNode().isObject()) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		resultList.addAll(resolveRecursive(previousResult.getNode()));
 		return new ArrayResultNode(resultList);
 	}
 
 	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return Flux.just(apply(previousResult));
+	}
+
+	private ResultNode apply(ArrayResultNode previousResult) {
+		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
 			resultList.addAll(resolveRecursive(child.getNode()));
 		}
@@ -55,7 +68,7 @@ public class RecursiveKeyStepImplCustom extends io.sapl.grammar.sapl.impl.Recurs
 	}
 
 	private ArrayList<AbstractAnnotatedJsonNode> resolveRecursive(JsonNode node) {
-		ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		if (node.has(id)) {
 			resultList.add(new JsonNodeWithParentObject(node.get(id), node, id));
 		}

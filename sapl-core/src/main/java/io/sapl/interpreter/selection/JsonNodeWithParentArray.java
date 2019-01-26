@@ -21,6 +21,7 @@ import io.sapl.interpreter.EvaluationContext;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.Value;
+import reactor.core.publisher.Flux;
 
 /**
  * Represents a JsonNode which is the item of an ArrayNode in the tree on which
@@ -62,18 +63,21 @@ public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public void applyFunction(String function, Arguments arguments, boolean each, EvaluationContext ctx)
-			throws PolicyEvaluationException {
-		applyFunctionWithRelativeNode(function, arguments, each, ctx, null);
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
+		return applyFilterWithRelativeNode(function, arguments, each, ctx, isBody, parent);
 	}
 
 	@Override
-	void applyFunctionWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx,
-			JsonNode relativeNode) throws PolicyEvaluationException {
+	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
 		if (each) {
-			applyFunctionToEachItem(function, node, arguments, ctx);
+			return applyFilterToEachItem(function, node, arguments, ctx, isBody);
 		} else {
-			((ArrayNode) parent).set(index, applyFunctionToNode(function, node, arguments, ctx, relativeNode));
+			return applyFilterToNode(function, node, arguments, ctx, isBody, relativeNode)
+					.map(filteredNode -> {
+						((ArrayNode) parent).set(index, filteredNode);
+						return ResultNode.Void.INSTANCE;
+					});
+
 		}
 	}
 

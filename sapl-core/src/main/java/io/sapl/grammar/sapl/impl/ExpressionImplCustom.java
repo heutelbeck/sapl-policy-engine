@@ -20,7 +20,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionImpl {
 
 	protected static final String ARITHMETIC_OPERATION_TYPE_MISMATCH = "Type mismatch. Arithmetic operation expects number values, but got: '%s'.";
-	protected static final String BOOLEAN_OPERATION_TYPE_MISMATCH = "Type mismatch. Boolean opration expects boolean values, but got: '%s'.";
+	protected static final String BOOLEAN_OPERATION_TYPE_MISMATCH = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
 
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 

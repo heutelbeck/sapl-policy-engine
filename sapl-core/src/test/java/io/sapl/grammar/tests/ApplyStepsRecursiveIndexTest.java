@@ -26,6 +26,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class ApplyStepsRecursiveIndexTest {
 	private static BigDecimal INDEX = BigDecimal.valueOf(1L);
@@ -37,18 +38,20 @@ public class ApplyStepsRecursiveIndexTest {
 	private static FunctionContext functionCtx = new MockFunctionContext();
 	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applyToNull() throws PolicyEvaluationException {
+	@Test
+	public void applyToNull() {
 		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
 
 		RecursiveIndexStep step = factory.createRecursiveIndexStep();
 		step.setIndex(INDEX);
 
-		previousResult.applyStep(step, ctx, true, null);
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
-	public void applyToSimpleArray() throws PolicyEvaluationException {
+	public void applyToSimpleArray() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 		array.add(JSON.booleanNode(true));
@@ -61,14 +64,15 @@ public class ApplyStepsRecursiveIndexTest {
 
 		RecursiveIndexStep step = factory.createRecursiveIndexStep();
 		step.setIndex(INDEX);
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Recursive index step applied to simple array should return result array with item",
-				expectedResult, result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Recursive index step applied to simple array should return result array with item",
+					expectedResult, result)
+				);
 	}
 
 	@Test
-	public void applyToDeeperStructure() throws PolicyEvaluationException {
+	public void applyToDeeperStructure() {
 		ObjectNode object = JSON.objectNode();
 
 		ArrayNode array1 = JSON.arrayNode();
@@ -94,14 +98,16 @@ public class ApplyStepsRecursiveIndexTest {
 		RecursiveIndexStep step = factory.createRecursiveIndexStep();
 		step.setIndex(INDEX);
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Recursive index step should return result array with items", expectedResultSet, resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Recursive index step should return result array with items", expectedResultSet, resultSet);
+				});
 	}
 
 	@Test
-	public void applyToResultArray() throws PolicyEvaluationException {
+	public void applyToResultArray() {
 		ArrayNode array1 = JSON.arrayNode();
 		array1.add(JSON.nullNode());
 		array1.add(JSON.booleanNode(true));
@@ -122,11 +128,13 @@ public class ApplyStepsRecursiveIndexTest {
 		RecursiveIndexStep step = factory.createRecursiveIndexStep();
 		step.setIndex(INDEX);
 
-		ArrayResultNode result = (ArrayResultNode) previousResult.applyStep(step, ctx, true, null);
-		Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(result.getNodes());
-
-		assertEquals("Recursive index step applied to result array should return result array with items",
-				expectedResultSet, resultSet);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> {
+					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+					assertEquals("Recursive index step applied to result array should return result array with items",
+							expectedResultSet, resultSet);
+				});
 	}
 
 }

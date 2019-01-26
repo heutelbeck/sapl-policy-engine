@@ -29,6 +29,7 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+import reactor.core.publisher.Flux;
 
 /**
  * Represents an array node in a selection result tree. Its items have to be
@@ -37,6 +38,7 @@ import lombok.Value;
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJsonNode> {
+
 	protected static final String FILTER_HELPER_ARRAY = "Cannot apply filter to helper array.";
 
 	List<AbstractAnnotatedJsonNode> nodes;
@@ -87,15 +89,17 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	}
 
 	@Override
-	public void applyFunction(String function, Arguments arguments, boolean each, EvaluationContext ctx)
-			throws PolicyEvaluationException {
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
 		if (each) {
-			for (AbstractAnnotatedJsonNode node : nodes) {
-				node.applyFunctionWithRelativeNode(function, arguments, false, ctx, node.getNode());
-			}
-		} else {
-			throw new PolicyEvaluationException(FILTER_HELPER_ARRAY);
-		}
+		    final List<Flux<Void>> appliedFilterFluxes = new ArrayList<>(nodes.size());
+            for (AbstractAnnotatedJsonNode node : nodes) {
+                appliedFilterFluxes.add(node.applyFilterWithRelativeNode(function, arguments, false, ctx, isBody, node.getParent()));
+            }
+            return Flux.combineLatest(appliedFilterFluxes,
+                    voidResults -> Void.INSTANCE);
+        } else {
+	        return Flux.error(new PolicyEvaluationException(FILTER_HELPER_ARRAY));
+        }
 	}
 
 	/**
@@ -137,8 +141,7 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	}
 
 	@Override
-	public ResultNode applyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
+	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
 		return step.apply(this, ctx, isBody, relativeNode);
 	}
 }

@@ -21,29 +21,35 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 
 public class ElementOfImplCustom extends io.sapl.grammar.sapl.impl.ElementOfImpl {
 
-	private static final String ELEMENTOF_TYPE_MISMATCH = "Type mismatch. 'in' expects an array value on the right side, but got: '%s'.";
+	private static final String ELEMENT_OF_TYPE_MISMATCH = "Type mismatch. 'in' expects an array value on the right side, but got: '%s'.";
 
 	private static final int HASH_PRIME_01 = 17;
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-
-		JsonNode right = getRight().evaluate(ctx, isBody, relativeNode);
-		if (!right.isArray()) {
-			throw new PolicyEvaluationException(String.format(ELEMENTOF_TYPE_MISMATCH, right.getNodeType()));
-		}
-		JsonNode left = getLeft().evaluate(ctx, isBody, relativeNode);
-		for (JsonNode node : right) {
-			if (left.equals(node)) {
-				return JSON.booleanNode(true);
-			}
-		}
-		return JSON.booleanNode(false);
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		final Flux<JsonNode> evaluatedLeftNodes = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<JsonNode> evaluatedRightNodes = getRight().evaluate(ctx, isBody, relativeNode);
+		return Flux.combineLatest(evaluatedLeftNodes, evaluatedRightNodes,
+				(leftNode, rightNode) -> {
+					if (!rightNode.isArray()) {
+						throw Exceptions.propagate(new PolicyEvaluationException(String.format(ELEMENT_OF_TYPE_MISMATCH, rightNode.getNodeType())));
+					}
+					for (JsonNode arrayItem : rightNode) {
+						if (leftNode.equals(arrayItem)) {
+							return (JsonNode) JSON.booleanNode(true);
+						} else if (leftNode.isNumber() && arrayItem.isNumber() && leftNode.decimalValue().compareTo(arrayItem.decimalValue()) == 0) {
+							return JSON.booleanNode(true);
+						}
+					}
+					return JSON.booleanNode(false);
+				})
+				.distinctUntilChanged();
 	}
 
 	@Override

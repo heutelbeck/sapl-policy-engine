@@ -21,12 +21,12 @@ import org.eclipse.emf.ecore.EObject;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.publisher.Flux;
 
 public class AttributeFinderStepImplCustom extends io.sapl.grammar.sapl.impl.AttributeFinderStepImpl {
 
@@ -36,35 +36,34 @@ public class AttributeFinderStepImplCustom extends io.sapl.grammar.sapl.impl.Att
 	private static final int HASH_PRIME_03 = 23;
 	private static final int INIT_PRIME_01 = 3;
 
-	@Override
-	public ResultNode apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		return applyToJson(previousResult.asJsonWithoutAnnotations(), ctx, isBody);
-	}
-
-	@Override
-	public ResultNode apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			JsonNode relativeNode) throws PolicyEvaluationException {
-		return applyToJson(previousResult.asJsonWithoutAnnotations(), ctx, isBody);
-	}
-
-	private ResultNode applyToJson(JsonNode previousResult, EvaluationContext ctx, boolean isBody)
-			throws PolicyEvaluationException {
+	private String getFullyQualifiedName(EvaluationContext ctx) {
 		String fullyQualifiedName = String.join(".", getIdSteps());
 		if (ctx.getImports().containsKey(fullyQualifiedName)) {
 			fullyQualifiedName = ctx.getImports().get(fullyQualifiedName);
 		}
+		return fullyQualifiedName;
+	}
 
+	@Override
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return applyToJson(previousResult.asJsonWithoutAnnotations(), ctx, isBody);
+	}
+
+	@Override
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return applyToJson(previousResult.asJsonWithoutAnnotations(), ctx, isBody);
+	}
+
+	private Flux<ResultNode> applyToJson(JsonNode previousResult, EvaluationContext ctx, boolean isBody) {
+		final String fullyQualifiedName = getFullyQualifiedName(ctx);
 		if (!isBody) {
-			throw new PolicyEvaluationException(String.format(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName));
+			return Flux.error(new PolicyEvaluationException(String.format(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName)));
 		}
 
-		try {
-			return new JsonNodeWithoutParent(ctx.getAttributeCtx().evaluate(fullyQualifiedName, previousResult,
-					ctx.getVariableCtx().getVariables()));
-		} catch (AttributeException e) {
-			throw new PolicyEvaluationException(String.format(ATTRIBUTE_RESOLUTION, fullyQualifiedName), e);
-		}
+		final Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
+		final Flux<JsonNode> jsonNodeFlux = ctx.getAttributeCtx().evaluate(fullyQualifiedName, previousResult, variables)
+				.onErrorResume(error -> Flux.error(new PolicyEvaluationException(String.format(ATTRIBUTE_RESOLUTION, fullyQualifiedName), error)));
+		return jsonNodeFlux.map(JsonNodeWithoutParent::new);
 	}
 
 	@Override

@@ -21,23 +21,28 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 
 public class NotImplCustom extends io.sapl.grammar.sapl.impl.NotImpl {
-
-	private static final String BOOLEAN_NEGATION_TYPE_MISMATCH = "Type mismatch. Boolean negation expects boolean value, but got: '%s'.";
 
 	private static final int HASH_PRIME_09 = 47;
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-		JsonNode expressionResult = expression.evaluate(ctx, isBody, relativeNode);
-		if (!expressionResult.isBoolean()) {
-			throw new PolicyEvaluationException(
-					String.format(BOOLEAN_NEGATION_TYPE_MISMATCH, expressionResult.getNodeType()));
-		}
-		return JSON.booleanNode(!expressionResult.asBoolean());
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		return expression.evaluate(ctx, isBody, relativeNode)
+				.map(result -> {
+					try {
+						assertBoolean(result);
+						return (JsonNode) JSON.booleanNode(!result.asBoolean());
+					}
+					catch (PolicyEvaluationException e) {
+						throw Exceptions.propagate(e);
+					}
+				})
+				.distinctUntilChanged();
+
 	}
 
 	@Override

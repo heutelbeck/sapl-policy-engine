@@ -20,9 +20,9 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.publisher.Flux;
 
 public class BasicGroupImplCustom extends io.sapl.grammar.sapl.impl.BasicGroupImpl {
 
@@ -30,10 +30,9 @@ public class BasicGroupImplCustom extends io.sapl.grammar.sapl.impl.BasicGroupIm
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public JsonNode evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode)
-			throws PolicyEvaluationException {
-		JsonNode resultBeforeSteps = getExpression().evaluate(ctx, isBody, relativeNode);
-		return evaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
+	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+		final Flux<JsonNode> evaluatedExpressions = getExpression().evaluate(ctx, isBody, relativeNode);
+		return evaluatedExpressions.switchMap(expression -> evaluateStepsFilterSubtemplate(expression, getSteps(), ctx, isBody, relativeNode));
 	}
 
 	@Override

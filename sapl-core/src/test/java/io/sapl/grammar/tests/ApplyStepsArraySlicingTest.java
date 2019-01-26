@@ -24,6 +24,8 @@ import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 public class ApplyStepsArraySlicingTest {
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
@@ -47,8 +49,185 @@ public class ApplyStepsArraySlicingTest {
 		resultArray = new ArrayResultNode(list);
 	}
 
-	private ResultNode applySlicingToArrayNode(Integer from, Integer to, Integer step)
-			throws PolicyEvaluationException {
+	@Test
+	public void applySlicingToNoArray() {
+		ArraySlicingStep slicingStep = factory.createArraySlicingStep();
+
+		JsonNodeWithoutParent node = new JsonNodeWithoutParent(JSON.objectNode());
+		StepVerifier.create(node.applyStep(slicingStep, ctx, false, null))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
+	}
+
+	@Test
+	public void applySlicingToArrayNode() {
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(1)), numberArray, 1));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(2)), numberArray, 2));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(3)), numberArray, 3));
+		ResultNode expectedResult = new ArrayResultNode(list);
+
+	 	applySlicingToArrayNode(1, 4, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Slicing applied to array node should return corresponding items",
+						expectedResult, result)
+				);
+	}
+
+	@Test
+	public void applySlicingToArrayNodeNegativeTo() {
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
+		ResultNode expectedResult = new ArrayResultNode(list);
+
+		applySlicingToArrayNode(7, -1, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Slicing applied to array node with negative to should return corresponding items",
+						expectedResult, result)
+				);
+	}
+
+	@Test
+	public void applySlicingToArrayNodeNegativeFrom() {
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
+		ResultNode expectedResult = new ArrayResultNode(list);
+
+		applySlicingToArrayNode(-3, 9, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Slicing applied to array node with negative from should return corresponding items",
+						expectedResult, result)
+				);
+	}
+
+	@Test
+	public void applySlicingToArrayWithFromGreaterThanTo() {
+		ResultNode expectedResult = new ArrayResultNode(new ArrayList<>());
+
+		applySlicingToArrayNode(4, 1, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Slicing applied to array node with from greater than to should return empty result array",
+						expectedResult, result)
+				);
+	}
+
+	@Test
+	public void applySlicingToArrayNodeWithoutTo() {
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(9)), numberArray, 9));
+		ResultNode expectedResult = new ArrayResultNode(list);
+
+		applySlicingToArrayNode(7, null, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Slicing applied to array node without to to should return corresponding items",
+						expectedResult, result)
+				);
+	}
+
+	@Test
+	public void applySlicingToArrayNodeWithoutFrom() {
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(0)), numberArray, 0));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(1)), numberArray, 1));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(2)), numberArray, 2));
+		ResultNode expectedResult = new ArrayResultNode(list);
+
+		applySlicingToArrayNode(null, 3, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Slicing applied to array node without from should return corresponding items",
+						expectedResult, result)
+				);
+	}
+
+	@Test
+	public void applySlicingToArrayNodeWithNegativeFrom() {
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(9)), numberArray, 9));
+		ResultNode expectedResult = new ArrayResultNode(list);
+
+		applySlicingToArrayNode(-3, null, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Slicing applied to array node with negative from from should return corresponding items",
+						expectedResult, result)
+				);
+	}
+
+	@Test
+	public void applySlicingToArrayNodeWithNegativeStep() {
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(9)), numberArray, 9));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(6)), numberArray, 6));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(5)), numberArray, 5));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(4)), numberArray, 4));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(3)), numberArray, 3));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(2)), numberArray, 2));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(1)), numberArray, 1));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(0)), numberArray, 0));
+		ResultNode expectedResult = new ArrayResultNode(list);
+
+		applySlicingToArrayNode(null, null, -1)
+				.take(1)
+				.subscribe(result -> assertEquals("Slicing applied to array node with negative step from should return corresponding items",
+						expectedResult, result)
+				);
+	}
+
+	@Test
+	public void applySlicingToArrayNodeWithNegativeStepAndNegativeFrom() {
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
+		ResultNode expectedResult = new ArrayResultNode(list);
+
+		applySlicingToArrayNode(-2, 6, -1)
+				.take(1)
+				.subscribe(result -> assertEquals("Slicing applied to array node with negative step from should return corresponding items",
+						expectedResult, result)
+				);
+	}
+
+	@Test
+	public void applySlicingToArrayNodeWithNegativeStepAndNegativeFromAndTo() {
+		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(6)), numberArray, 6));
+		ResultNode expectedResult = new ArrayResultNode(list);
+
+		applySlicingToArrayNode(-2, -5, -1)
+				.take(1)
+				.subscribe(result -> assertEquals("Slicing applied to array node with negative step from should return corresponding items",
+						expectedResult, result)
+				);
+	}
+
+	@Test
+	public void applySlicingToArrayWithNegativeStepAndToGreaterThanFrom() {
+		ResultNode expectedResult = new ArrayResultNode(new ArrayList<>());
+
+		applySlicingToArrayNode(1, 5, -1)
+				.take(1)
+				.subscribe(result -> assertEquals("Slicing applied to array node with negative step and to greater than from should return empty result array",
+						expectedResult, result)
+				);
+	}
+
+	@Test
+	public void applySlicingStepZero() {
+		StepVerifier.create(applySlicingToArrayNode(1, 5, 0))
+				.expectError(PolicyEvaluationException.class)
+				.verify();
+	}
+
+	private Flux<ResultNode> applySlicingToArrayNode(Integer from, Integer to, Integer step) {
 		ResultNode previousResult = new JsonNodeWithoutParent(numberArray);
 
 		ArraySlicingStep slicingStep = factory.createArraySlicingStep();
@@ -66,171 +245,8 @@ public class ApplyStepsArraySlicingTest {
 		return previousResult.applyStep(slicingStep, ctx, true, null);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void applySlicingToNoArray() throws PolicyEvaluationException {
-		ArraySlicingStep slicingStep = factory.createArraySlicingStep();
-
-		JsonNodeWithoutParent node = new JsonNodeWithoutParent(JSON.objectNode());
-		node.applyStep(slicingStep, ctx, false, null);
-	}
-
 	@Test
-	public void applySlicingToArrayNode() throws PolicyEvaluationException {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(1)), numberArray, 1));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(2)), numberArray, 2));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(3)), numberArray, 3));
-		ResultNode expectedResult = new ArrayResultNode(list);
-
-		ResultNode result = applySlicingToArrayNode(1, 4, null);
-
-		assertEquals("Slicing applied to array node should return corresponding items", expectedResult, result);
-	}
-
-	@Test
-	public void applySlicingToArrayNodeNegativeTo() throws PolicyEvaluationException {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
-		ResultNode expectedResult = new ArrayResultNode(list);
-
-		ResultNode result = applySlicingToArrayNode(7, -1, null);
-
-		assertEquals("Slicing applied to array node with negative to should return corresponding items", expectedResult,
-				result);
-	}
-
-	@Test
-	public void applySlicingToArrayNodeNegativeFrom() throws PolicyEvaluationException {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
-		ResultNode expectedResult = new ArrayResultNode(list);
-
-		ResultNode result = applySlicingToArrayNode(-3, 9, null);
-
-		assertEquals("Slicing applied to array node with negative from should return corresponding items",
-				expectedResult, result);
-	}
-
-	@Test
-	public void applySlicingToArrayWithFromGreaterThanTo() throws PolicyEvaluationException {
-		ResultNode expectedResult = new ArrayResultNode(new ArrayList<>());
-
-		ResultNode result = applySlicingToArrayNode(4, 1, null);
-
-		assertEquals("Slicing applied to array node with from greater than to should return empty result array",
-				expectedResult, result);
-	}
-
-	@Test
-	public void applySlicingToArrayNodeWithoutTo() throws PolicyEvaluationException {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(9)), numberArray, 9));
-		ResultNode expectedResult = new ArrayResultNode(list);
-
-		ResultNode result = applySlicingToArrayNode(7, null, null);
-
-		assertEquals("Slicing applied to array node without to to should return corresponding items", expectedResult,
-				result);
-	}
-
-	@Test
-	public void applySlicingToArrayNodeWithoutFrom() throws PolicyEvaluationException {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(0)), numberArray, 0));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(1)), numberArray, 1));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(2)), numberArray, 2));
-		ResultNode expectedResult = new ArrayResultNode(list);
-
-		ResultNode result = applySlicingToArrayNode(null, 3, null);
-
-		assertEquals("Slicing applied to array node without from should return corresponding items", expectedResult,
-				result);
-	}
-
-	@Test
-	public void applySlicingToArrayNodeWithNegativeFrom() throws PolicyEvaluationException {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(9)), numberArray, 9));
-		ResultNode expectedResult = new ArrayResultNode(list);
-
-		ResultNode result = applySlicingToArrayNode(-3, null, null);
-
-		assertEquals("Slicing applied to array node with negative from from should return corresponding items",
-				expectedResult, result);
-	}
-
-	@Test
-	public void applySlicingToArrayNodeWithNegativeStep() throws PolicyEvaluationException {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(9)), numberArray, 9));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(6)), numberArray, 6));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(5)), numberArray, 5));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(4)), numberArray, 4));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(3)), numberArray, 3));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(2)), numberArray, 2));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(1)), numberArray, 1));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(0)), numberArray, 0));
-		ResultNode expectedResult = new ArrayResultNode(list);
-
-		ResultNode result = applySlicingToArrayNode(null, null, -1);
-
-		assertEquals("Slicing applied to array node with negative step from should return corresponding items",
-				expectedResult, result);
-	}
-
-	@Test
-	public void applySlicingToArrayNodeWithNegativeStepAndNegativeFrom() throws PolicyEvaluationException {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
-		ResultNode expectedResult = new ArrayResultNode(list);
-
-		ResultNode result = applySlicingToArrayNode(-2, 6, -1);
-
-		assertEquals("Slicing applied to array node with negative step from should return corresponding items",
-				expectedResult, result);
-	}
-
-	@Test
-	public void applySlicingToArrayNodeWithNegativeStepAndNegativeFromAndTo() throws PolicyEvaluationException {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(7)), numberArray, 7));
-		list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(6)), numberArray, 6));
-		ResultNode expectedResult = new ArrayResultNode(list);
-
-		ResultNode result = applySlicingToArrayNode(-2, -5, -1);
-
-		assertEquals("Slicing applied to array node with negative step from should return corresponding items",
-				expectedResult, result);
-	}
-
-	@Test
-	public void applySlicingToArrayWithNegativeStepAndToGreaterThanFrom() throws PolicyEvaluationException {
-		ResultNode expectedResult = new ArrayResultNode(new ArrayList<>());
-
-		ResultNode result = applySlicingToArrayNode(1, 5, -1);
-
-		assertEquals(
-				"Slicing applied to array node with negative step and to greater than from should return empty result array",
-				expectedResult, result);
-	}
-
-	@Test(expected = PolicyEvaluationException.class)
-	public void applySlicingStepZero() throws PolicyEvaluationException {
-		applySlicingToArrayNode(1, 5, 0);
-	}
-
-	@Test
-	public void applySlicingToResultArray() throws PolicyEvaluationException {
+	public void applySlicingToResultArray() {
 		ResultNode previousResult = resultArray;
 
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
@@ -243,8 +259,10 @@ public class ApplyStepsArraySlicingTest {
 		step.setIndex(BigDecimal.valueOf(3));
 		step.setTo(BigDecimal.valueOf(6));
 
-		ResultNode result = previousResult.applyStep(step, ctx, true, null);
-
-		assertEquals("Slicing applied to result array should return the correct items", expectedResult, result);
+		previousResult.applyStep(step, ctx, true, null)
+				.take(1)
+				.subscribe(result -> assertEquals("Slicing applied to result array should return the correct items",
+						expectedResult, result)
+				);
 	}
 }

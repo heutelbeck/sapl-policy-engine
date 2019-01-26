@@ -1,9 +1,13 @@
 package io.sapl.api.prp;
 
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.pdp.Request;
 import io.sapl.interpreter.functions.FunctionContext;
 
-public interface InMemoryDocumentIndex extends PolicyRetrievalPoint {
+public interface InMemoryDocumentIndex {
 
 	void insert(String documentKey, String document) throws PolicyEvaluationException;
 
@@ -14,5 +18,8 @@ public interface InMemoryDocumentIndex extends PolicyRetrievalPoint {
 	void updateFunctionContext(FunctionContext functionCtx);
 
 	void setLiveMode();
+
+	PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
+										   Map<String, JsonNode> variables);
 
 }

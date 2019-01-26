@@ -60,7 +60,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return permit if the only policy evaluates to permit", Decision.PERMIT, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -69,7 +69,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return deny if the only policy evaluates to deny", Decision.DENY, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -79,7 +79,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return deny if the only policy target evaluates to not applicable", Decision.DENY,
 				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).getDecision());
+						SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -89,7 +89,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return deny if the only policy condition evaluates to not applicable", Decision.DENY,
 				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).getDecision());
+						SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -98,7 +98,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return deny if the only target is indeterminate", Decision.DENY, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -108,7 +108,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return deny if the only condition is indeterminate", Decision.DENY, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -118,7 +118,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return permit if any policy evaluates to permit", Decision.PERMIT, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -128,7 +128,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return deny if policies evaluate to deny and indeterminate", Decision.DENY, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -138,7 +138,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return permit if any policy evaluates to permit", Decision.PERMIT, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -149,7 +149,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return permit if any policy evaluates to permit", Decision.PERMIT, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -159,7 +159,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return deny if only indeterminate, deny and not applicable present", Decision.DENY,
 				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).getDecision());
+						SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -169,7 +169,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return deny if final decision would be deny and there is a transformation incertainty",
 				Decision.DENY, INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx,
-						functionCtx, SYSTEM_VARIABLES).getDecision());
+						functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -179,7 +179,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return permit if there is no transformation incertainty", Decision.PERMIT, INTERPRETER
 				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.getDecision());
+				.blockFirst().getDecision());
 	}
 
 	@Test
@@ -189,7 +189,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return resource if there is no transformation incertainty",
 				Optional.of(JSON.booleanNode(true)), INTERPRETER.evaluate(new Request(null, null, null, null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getResource());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getResource());
 	}
 
 	@Test
@@ -199,7 +199,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should return permit if there is no transformation incertainty", Decision.PERMIT,
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getDecision());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
 	@Test
@@ -216,7 +216,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should collect all deny obligation", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getObligation());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligation());
 	}
 
 	@Test
@@ -233,7 +233,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should collect all deny advice", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getAdvice());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvice());
 	}
 
 	@Test
@@ -250,7 +250,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should collect all permit obligation", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getObligation());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligation());
 	}
 
 	@Test
@@ -267,7 +267,7 @@ public class DenyUnlessPermitTest {
 
 		assertEquals("should collect all permit obligation", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).getAdvice());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvice());
 	}
 
 }

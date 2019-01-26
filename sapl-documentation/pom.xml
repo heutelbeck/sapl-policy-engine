@@ -13,8 +13,7 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>1.0.0</version>
-		<relativePath>../pom.xml</relativePath>
+		<version>2.0.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>sapl-documentation</artifactId>
