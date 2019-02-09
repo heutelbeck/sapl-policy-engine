@@ -3,7 +3,7 @@ package io.sapl.grammar.web;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
-import org.springframework.boot.web.servlet.filter.OrderedHttpPutFormContentFilter;
+import org.springframework.boot.web.servlet.filter.OrderedFormContentFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.HiddenHttpMethodFilter;
@@ -21,9 +21,9 @@ public class XtextServletConfiguration {
 	}
 
 	@Bean
-	public static FilterRegistrationBean<OrderedHttpPutFormContentFilter> registration1(
-			OrderedHttpPutFormContentFilter filter) {
-		FilterRegistrationBean<OrderedHttpPutFormContentFilter> registration = new FilterRegistrationBean<>(filter);
+	public static FilterRegistrationBean<OrderedFormContentFilter> registration1(
+			OrderedFormContentFilter filter) {
+		FilterRegistrationBean<OrderedFormContentFilter> registration = new FilterRegistrationBean<>(filter);
 		registration.setEnabled(false);
 		return registration;
 	}

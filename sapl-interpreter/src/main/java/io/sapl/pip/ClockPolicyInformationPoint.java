@@ -15,8 +15,10 @@ import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
+@Slf4j
 @NoArgsConstructor
 @PolicyInformationPoint(name = ClockPolicyInformationPoint.NAME, description = ClockPolicyInformationPoint.DESCRIPTION)
 public class ClockPolicyInformationPoint {

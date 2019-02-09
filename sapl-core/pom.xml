@@ -22,11 +22,12 @@
 		<name>Dominic Heutelbeck</name>
 	</organization>
 
-	<inceptionYear>2017</inceptionYear>
+	<inceptionYear>2019</inceptionYear>
 
 	<licenses>
 		<license>
 			<name>Apache 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0</url>
 		</license>
 	</licenses>
 
@@ -231,18 +232,11 @@
 		<dependency>
 			<groupId>org.eclipse.emf</groupId>
 			<artifactId>org.eclipse.emf.mwe2.launch</artifactId>
-			<version>2.9.1.201705291010</version>
+			<version>2.10.0.M2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.xbase</artifactId>
-			<version>${xtextVersion}</version>
-		</dependency>
-
-		<!-- remove as soon as version higher than 2.16.0 (${xtextVersion}) is available in repos accessed by the build -->
-		<dependency>
-			<groupId>org.eclipse.xtend</groupId>
-			<artifactId>org.eclipse.xtend.lib</artifactId>
 			<version>${xtextVersion}</version>
 		</dependency>
 
@@ -261,26 +255,12 @@
 			<artifactId>org.eclipse.xtext.testing</artifactId>
 			<version>${xtextVersion}</version>
 			<scope>test</scope>
-			<!-- remove as soon as version higher than 2.16.0 (${xtextVersion}) is available in repos accessed by the build -->
-			<exclusions>
-				<exclusion>
-					<groupId>org.eclipse.xtend</groupId>
-					<artifactId>org.eclipse.xtend.lib</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.xbase.testing</artifactId>
 			<version>${xtextVersion}</version>
 			<scope>test</scope>
-			<!-- remove as soon as version higher than 2.16.0 (${xtextVersion}) is available in repos accessed by the build -->
-			<exclusions>
-				<exclusion>
-					<groupId>org.eclipse.xtend</groupId>
-					<artifactId>org.eclipse.xtend.lib</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -309,7 +289,6 @@
 			<artifactId>org.eclipse.equinox.common</artifactId>
 			<version>3.8.0</version>
 		</dependency>
-
 		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>

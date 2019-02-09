@@ -15,19 +15,15 @@ package io.sapl.functions;
 import java.math.BigDecimal;
 import java.util.BitSet;
 
-import javax.measure.converter.UnitConverter;
-import javax.measure.quantity.Quantity;
-import javax.measure.unit.SI;
-import javax.measure.unit.Unit;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.MultiLineString;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiLineString;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
@@ -37,11 +33,13 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /*
  * Format always [Lat(y), Long(x)]
  */
 
+@Slf4j
 @NoArgsConstructor
 @FunctionLibrary(name = GeoFunctionLibrary.NAME, description = GeoFunctionLibrary.DESCRIPTION)
 public class GeoFunctionLibrary {
@@ -323,33 +321,37 @@ public class GeoFunctionLibrary {
 		return JSON.booleanNode(result);
 	}
 
-	@Function(docs = TOMETER_DOC)
-	public JsonNode toMeter(@Number JsonNode jsonValue, @Text JsonNode jsonUnit) throws FunctionException {
-		double convertedValue;
-		Unit<? extends Quantity> unitFrom = Unit.valueOf(jsonUnit.asText());
-
-		if (unitFrom.isCompatible(SI.METER)) {
-			UnitConverter unitConv = unitFrom.getConverterTo(SI.METER);
-			convertedValue = unitConv.convert(jsonValue.asDouble());
-		} else {
-			throw new FunctionException(String.format(UNIT_NOT_CONVERTIBLE, jsonUnit.asText(), "m"));
-		}
-		return JSON.numberNode(BigDecimal.valueOf(convertedValue));
-	}
-
-	@Function(docs = TOSQUAREMETER_DOC)
-	public JsonNode toSquareMeter(@Number JsonNode jsonValue, @Text JsonNode jsonUnit) throws FunctionException {
-		double convertedValue;
-		Unit<? extends Quantity> unitFrom = Unit.valueOf(jsonUnit.asText());
-
-		if (unitFrom.isCompatible(SI.SQUARE_METRE)) {
-			UnitConverter unitConv = unitFrom.getConverterTo(SI.SQUARE_METRE);
-			convertedValue = unitConv.convert(jsonValue.asDouble());
-		} else {
-			throw new FunctionException(String.format(UNIT_NOT_CONVERTIBLE, jsonUnit.asText(), "m^2"));
-		}
-		return JSON.numberNode(BigDecimal.valueOf(convertedValue));
-	}
+//	@Function(docs = TOMETER_DOC)
+//	public JsonNode toMeter(@Number JsonNode jsonValue, @Text JsonNode jsonUnit) throws FunctionException {
+//		double convertedValue;
+//		LOGGER.info("->>>>>>>>>>>>>>{} - {}", jsonValue, jsonUnit.asText());
+//		LOGGER.info("*****>{}<", Unit.valueOf("cm"));
+//		LOGGER.info("*****>{}<", Unit.valueOf("yd"));
+//		Unit<? extends Quantity> unitFrom = Unit.valueOf(jsonUnit.asText());
+//
+//		if (unitFrom.isCompatible(SI.METER)) {
+//			UnitConverter unitConv = unitFrom.getConverterTo(SI.METER);
+//			convertedValue = unitConv.convert(jsonValue.asDouble());
+//		} else {
+//			throw new FunctionException(String.format(UNIT_NOT_CONVERTIBLE, jsonUnit.asText(), "m"));
+//		}
+//		LOGGER.info("->>>>>>>>>>>>>>{}", convertedValue);
+//		return JSON.numberNode(BigDecimal.valueOf(convertedValue));
+//	}
+//
+//	@Function(docs = TOSQUAREMETER_DOC)
+//	public JsonNode toSquareMeter(@Number JsonNode jsonValue, @Text JsonNode jsonUnit) throws FunctionException {
+//		double convertedValue;
+//		Unit<? extends Quantity> unitFrom = Unit.valueOf(jsonUnit.asText());
+//
+//		if (unitFrom.isCompatible(SI.SQUARE_METRE)) {
+//			UnitConverter unitConv = unitFrom.getConverterTo(SI.SQUARE_METRE);
+//			convertedValue = unitConv.convert(jsonValue.asDouble());
+//		} else {
+//			throw new FunctionException(String.format(UNIT_NOT_CONVERTIBLE, jsonUnit.asText(), "m^2"));
+//		}
+//		return JSON.numberNode(BigDecimal.valueOf(convertedValue));
+//	}
 
 	@Function(docs = BAGSIZE_DOC)
 	public JsonNode bagSize(@JsonObject JsonNode jsonGeometry) throws FunctionException {

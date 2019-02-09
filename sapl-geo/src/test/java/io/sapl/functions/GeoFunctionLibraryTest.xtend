@@ -391,20 +391,20 @@ class GeoFunctionLibraryTest {
 			getDecision(policyDefinition), Decision.PERMIT);
 	}
 
-	@Test
-	def void unitConversionTest() throws PolicyEvaluationException {
-		val policyDefinition = '''
-			policy "unitConversionTest" 
-			permit
-			where
-			geo.toMeter(2, "yd") == 1.8288;
-			geo.toMeter(1000, "cm") == 10;
-			geo.toSquareMeter(1, "ft^2") == 0.09290304;
-			geo.toSquareMeter(2000, "in^2") == 1.29032;
-		''';
-		assertEquals("Unit conversions work not as expected", 
-			getDecision(policyDefinition), Decision.PERMIT);
-	}
+//	@Test
+//	def void unitConversionTest() throws PolicyEvaluationException {
+//		val policyDefinition = '''
+//			policy "unitConversionTest" 
+//			permit
+//			where
+//			geo.toMeter(2, "yd") == 1.8288;
+//			geo.toMeter(1000, "cm") == 10;
+//			geo.toSquareMeter(1, "ft^2") == 0.09290304;
+//			geo.toSquareMeter(2000, "in^2") == 1.29032;
+//		''';
+//		assertEquals("Unit conversions work not as expected", 
+//			getDecision(policyDefinition), Decision.PERMIT);
+//	}
 
 	@Test
 	def void conversionFromWrongUnitsTest() throws PolicyEvaluationException {

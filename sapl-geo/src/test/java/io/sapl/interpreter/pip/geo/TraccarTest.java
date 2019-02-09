@@ -30,6 +30,7 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import java.io.IOException;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -46,6 +47,7 @@ import io.sapl.pip.http.HttpClientRequestExecutor;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
+@Ignore
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(HttpClientRequestExecutor.class)
 public class TraccarTest {

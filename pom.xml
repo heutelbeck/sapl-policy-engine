@@ -27,7 +27,7 @@
 		<name>Dominic Heutelbeck</name>
 	</organization>
 
-	<inceptionYear>2017</inceptionYear>
+	<inceptionYear>2019</inceptionYear>
 
 	<licenses>
 		<license>
@@ -39,14 +39,14 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.8</java.version>
-		<xtextVersion>2.16.0</xtextVersion>
+		<xtextVersion>2.17.0.M2</xtextVersion>
 		<version.license-maven-plugin>1.10</version.license-maven-plugin>
-		<version.maven-javadoc-plugin>2.10.3</version.maven-javadoc-plugin>
-		<version.maven-source-plugin>2.4</version.maven-source-plugin>
+		<version.maven-javadoc-plugin>3.0.1</version.maven-javadoc-plugin>
+		<version.maven-source-plugin>3.0.1</version.maven-source-plugin>
 		<version.junit>4.12</version.junit>
-		<version.lombok>1.18.0</version.lombok>
-		<version.springboot>2.0.3.RELEASE</version.springboot>
-		<version.powermock>2.0.0-beta.5</version.powermock>
+		<version.lombok>1.18.4</version.lombok>
+		<version.springboot>2.1.2.RELEASE</version.springboot>
+		<version.powermock>2.0.0</version.powermock>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 	</properties>
@@ -125,7 +125,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.6.0</version>
+					<version>3.8.0</version>
 					<configuration>
 						<source>${maven.compiler.source}</source>
 						<target>${maven.compiler.target}</target>
@@ -270,14 +270,6 @@
 			<url>https://repo.spring.io/milestone</url>
 		</repository>
 		<repository>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-			<id>spring-snapshot</id>
-			<name>Spring Snapshot Repository</name>
-			<url>https://repo.spring.io/snapshot</url>
-		</repository>
-		<repository>
 			<id>vaadin-addons</id>
 			<url>http://maven.vaadin.com/vaadin-addons</url>
 		</repository>
@@ -290,10 +282,6 @@
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
-		</repository>
-		<repository>
-			<id>projectlombok.org</id>
-			<url>http://projectlombok.org/mavenrepo</url>
 		</repository>
 		<repository>
 			<snapshots>
@@ -319,7 +307,6 @@
 				<enabled>false</enabled>
 			</snapshots>
 		</repository>
-
 	</repositories>
 
 	<pluginRepositories>
