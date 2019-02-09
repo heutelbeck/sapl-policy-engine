@@ -1,0 +1,7 @@
+{
+	"algorithm": "DENY_UNLESS_PERMIT",
+	"variables": {},
+	"attributeFinders": ["patient", "clock", "http"],
+	"libraries": ["time"],
+	"prpImplementation": "INDEXED"
+}

@@ -1,12 +1,7 @@
-package io.sapl.pip.http;
-
-import static io.sapl.pip.http.RequestSpecification.HTTP_DELETE;
-import static io.sapl.pip.http.RequestSpecification.HTTP_GET;
-import static io.sapl.pip.http.RequestSpecification.HTTP_PATCH;
-import static io.sapl.pip.http.RequestSpecification.HTTP_POST;
-import static io.sapl.pip.http.RequestSpecification.HTTP_PUT;
+package io.sapl.webclient;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -24,19 +19,19 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.springframework.http.HttpMethod;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.pip.AttributeException;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class HttpClientRequestExecutor {
 
-	private static final String INVALID_HTTP_ACTION = "Requested action is invalid.";
+	private static final String UNSUPPORTED_HTTP_METHOD = "Requested HTTP method is not supported.";
 	private static final String BAD_URL_INFORMATION = "Bad URL information.";
 	private static final String NO_URL_PROVIDED = "No URL provided.";
 	private static final String JSON_BODY_PROCESSING_ERROR = "JSON body processing error.";
@@ -44,12 +39,10 @@ public class HttpClientRequestExecutor {
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	public static JsonNode executeRequest(RequestSpecification saplRequest, String requestType) throws AttributeException {
-		final HttpUriRequest request = HttpUriRequestFactory.buildHttpUriRequest(saplRequest, requestType);
+	public static JsonNode executeRequest(RequestSpecification saplRequest, HttpMethod httpMethod) throws IOException {
+		final HttpUriRequest request = HttpUriRequestFactory.buildHttpUriRequest(saplRequest, httpMethod);
 		try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
 			return getHttpResponseAndConvert(request, httpClient);
-		} catch (IOException e) {
-			throw new AttributeException(e);
 		}
 	}
 
@@ -64,7 +57,7 @@ public class HttpClientRequestExecutor {
 		}
 	}
 
-	private static String convertStreamToString(java.io.InputStream inputStream) {
+	private static String convertStreamToString(InputStream inputStream) {
 		try (Scanner s = new Scanner(inputStream, StandardCharsets.UTF_8.toString())) {
 			s.useDelimiter("\\A");
 			return s.hasNext() ? s.next() : "";
@@ -72,37 +65,43 @@ public class HttpClientRequestExecutor {
 	}
 
 
-	static class HttpUriRequestFactory {
+	public static class HttpUriRequestFactory {
 
-		static HttpUriRequest buildHttpUriRequest(RequestSpecification saplRequest, String requestType) throws AttributeException {
-			HttpUriRequest request;
-
+		public static HttpUriRequest buildHttpUriRequest(RequestSpecification saplRequest, HttpMethod httpMethod) throws IOException {
 			final String requestUrl = buildUrl(saplRequest);
-			if (HTTP_GET.equals(requestType)) {
-				request = new HttpGet(requestUrl);
-			} else if (HTTP_POST.equals(requestType)) {
-				request = new HttpPost(requestUrl);
-				HttpEntity entity = buildEntity(saplRequest);
-				if (entity != null) {
-					((HttpPost) request).setEntity(entity);
-				}
-			} else if (HTTP_PUT.equals(requestType)) {
-				request = new HttpPut(requestUrl);
-				HttpEntity entity = buildEntity(saplRequest);
 
-				if (entity != null) {
-					((HttpPut) request).setEntity(entity);
-				}
-			} else if (HTTP_PATCH.equals(requestType)) {
-				request = new HttpPatch(requestUrl);
-				HttpEntity entity = buildEntity(saplRequest);
-				if (entity != null) {
-					((HttpPatch) request).setEntity(entity);
-				}
-			} else if (HTTP_DELETE.equals(requestType)) {
-				request = new HttpDelete(requestUrl);
-			} else {
-				throw new AttributeException(INVALID_HTTP_ACTION);
+			HttpUriRequest request;
+			HttpEntity entity;
+			switch (httpMethod) {
+				case GET:
+					request = new HttpGet(requestUrl);
+					break;
+				case POST:
+					request = new HttpPost(requestUrl);
+					entity = buildEntity(saplRequest);
+					if (entity != null) {
+						((HttpPost) request).setEntity(entity);
+					}
+					break;
+				case PUT:
+					request = new HttpPut(requestUrl);
+					entity = buildEntity(saplRequest);
+					if (entity != null) {
+						((HttpPut) request).setEntity(entity);
+					}
+					break;
+				case DELETE:
+					request = new HttpDelete(requestUrl);
+					break;
+				case PATCH:
+					request = new HttpPatch(requestUrl);
+					entity = buildEntity(saplRequest);
+					if (entity != null) {
+						((HttpPatch) request).setEntity(entity);
+					}
+					break;
+				default:
+					throw new IOException(UNSUPPORTED_HTTP_METHOD);
 			}
 
 			if (saplRequest.getHeaders() != null) {
@@ -114,34 +113,34 @@ public class HttpClientRequestExecutor {
 			return request;
 		}
 
-		private static String buildUrl(RequestSpecification saplRequest) throws AttributeException {
+		private static String buildUrl(RequestSpecification saplRequest) throws IOException {
 			String result;
 
 			final JsonNode url = saplRequest.getUrl();
 			if (url == null) {
-				throw new AttributeException(NO_URL_PROVIDED);
+				throw new IOException(NO_URL_PROVIDED);
 			} else if (url.isTextual()) {
 				result = url.asText();
 			} else if (url.isObject()) {
 				try {
-					URLSpecification urlSpec = MAPPER.treeToValue(url, URLSpecification.class);
+					final URLSpecification urlSpec = MAPPER.treeToValue(url, URLSpecification.class);
 					result = urlSpec.asString();
 				} catch (JsonProcessingException e) {
-					throw new AttributeException(BAD_URL_INFORMATION, e);
+					throw new IOException(BAD_URL_INFORMATION, e);
 				}
 			} else {
-				throw new AttributeException(BAD_URL_INFORMATION);
+				throw new IOException(BAD_URL_INFORMATION);
 			}
 
 			return result;
 		}
 
-		private static HttpEntity buildEntity(RequestSpecification saplRequest) throws AttributeException {
+		private static HttpEntity buildEntity(RequestSpecification saplRequest) throws IOException {
 			if (saplRequest.getBody() != null) {
 				try {
 					return new StringEntity(MAPPER.writeValueAsString(saplRequest.getBody()));
 				} catch (UnsupportedEncodingException | JsonProcessingException e) {
-					throw new AttributeException(JSON_BODY_PROCESSING_ERROR, e);
+					throw new IOException(JSON_BODY_PROCESSING_ERROR, e);
 				}
 			} else if (saplRequest.getRawBody() != null) {
 				return new ByteArrayEntity(saplRequest.getRawBody().getBytes(StandardCharsets.UTF_8));

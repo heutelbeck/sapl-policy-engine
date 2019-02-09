@@ -169,11 +169,12 @@ public class PDPAutoConfiguration {
 		Remote remoteProps = pdpProperties.getRemote();
 		String host = remoteProps.getHost();
 		int port = remoteProps.getPort();
-		String key = remoteProps.getKey();
-		String secret = remoteProps.getSecret();
-		LOGGER.debug("creating remote PDP with Bean name {} and properties: \nhost {} \nport {} \nkey {} \nsecret {}",
-				BEAN_NAME_PDP_REMOTE, host, port, key, "*******");
-		return new RemotePolicyDecisionPoint(host, port, key, secret);
+//		String key = remoteProps.getKey();
+//		String secret = remoteProps.getSecret();
+//		LOGGER.debug("creating remote PDP with Bean name {} and properties: \nhost {} \nport {} \nkey {} \nsecret {}",
+//				BEAN_NAME_PDP_REMOTE, host, port, key, "*******");
+//		return new RemotePolicyDecisionPoint(host, port, key, secret);
+		return new RemotePolicyDecisionPoint(host, port);
 	}
 
 	/**

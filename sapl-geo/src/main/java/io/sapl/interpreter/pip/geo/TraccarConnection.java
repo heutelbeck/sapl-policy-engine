@@ -15,6 +15,9 @@
  */
 package io.sapl.interpreter.pip.geo;
 
+import static org.springframework.http.HttpMethod.GET;
+
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -36,8 +39,8 @@ import org.locationtech.jts.geom.Point;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.GeometryBuilder;
-import io.sapl.pip.http.HttpClientRequestExecutor;
-import io.sapl.pip.http.RequestSpecification;
+import io.sapl.webclient.HttpClientRequestExecutor;
+import io.sapl.webclient.RequestSpecification;
 import lombok.Getter;
 
 public class TraccarConnection {
@@ -84,10 +87,14 @@ public class TraccarConnection {
 
 	public TraccarDevice getTraccarDevice(String uniqueID) throws AttributeException {
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_DEVICES, null)));
-		TraccarDevice[] devices = MAPPER.convertValue(
-				HttpClientRequestExecutor.executeRequest(requestSpec, RequestSpecification.HTTP_GET), TraccarDevice[].class);
+		try {
+			final JsonNode response = HttpClientRequestExecutor.executeRequest(requestSpec, GET);
+			TraccarDevice[] devices = MAPPER.convertValue(response, TraccarDevice[].class);
+			return findDevice(devices, uniqueID);
+		} catch (IOException e) {
+			throw new AttributeException(e);
+		}
 
-		return findDevice(devices, uniqueID);
 	}
 
 	public TraccarPosition getTraccarPosition(TraccarDevice device) throws AttributeException {
@@ -99,15 +106,19 @@ public class TraccarConnection {
 
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_POSITIONS, httpGetArguments)));
 
-		TraccarPosition[] traccarPositions = MAPPER.convertValue(
-				HttpClientRequestExecutor.executeRequest(requestSpec, RequestSpecification.HTTP_GET), TraccarPosition[].class);
-		if (traccarPositions.length == 0) {
-			throw new AttributeException(UNABLE_TO_READ_FROM_SERVER);
-		}
+		try {
+			final JsonNode response = HttpClientRequestExecutor.executeRequest(requestSpec, GET);
+			TraccarPosition[] traccarPositions = MAPPER.convertValue(response, TraccarPosition[].class);
+			if (traccarPositions.length == 0) {
+				throw new AttributeException(UNABLE_TO_READ_FROM_SERVER);
+			}
 
-		// Highest ID is most current position
-		Arrays.sort(traccarPositions, TraccarPosition::compareDescending);
-		return traccarPositions[0];
+			// Highest ID is most current position
+			Arrays.sort(traccarPositions, TraccarPosition::compareDescending);
+			return traccarPositions[0];
+		} catch (IOException e) {
+			throw new AttributeException(e);
+		}
 	}
 
 	public TraccarGeofence[] getTraccarGeofences(TraccarDevice device) throws AttributeException {
@@ -116,8 +127,12 @@ public class TraccarConnection {
 
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_GEOFENCES, httpGetArguments)));
 
-		return MAPPER.convertValue(HttpClientRequestExecutor.executeRequest(requestSpec, RequestSpecification.HTTP_GET),
-				TraccarGeofence[].class);
+		try {
+			final JsonNode response = HttpClientRequestExecutor.executeRequest(requestSpec, GET);
+			return MAPPER.convertValue(response, TraccarGeofence[].class);
+		} catch (IOException e) {
+			throw new AttributeException(e);
+		}
 	}
 
 	protected static GeoPIPResponse buildGeoPIPesponse(TraccarDevice device, TraccarPosition position,

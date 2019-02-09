@@ -56,7 +56,7 @@
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-pdp-remote</artifactId>
+			<artifactId>sapl-pdp-client</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

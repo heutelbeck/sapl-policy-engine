@@ -34,14 +34,12 @@ public class GeoPolicyInformationPoint {
 	public static final String DESCRIPTION = "PIP for geographical data.";
 
 	@Attribute
-	public JsonNode traccar(JsonNode value, Map<String, JsonNode> variables)
-			throws AttributeException, FunctionException {
+	public JsonNode traccar(JsonNode value, Map<String, JsonNode> variables) throws AttributeException, FunctionException {
 		return new TraccarConnection(value).toGeoPIPResponse();
 	}
 
 	@Attribute
-	public JsonNode postgis(JsonNode value, Map<String, JsonNode> variables)
-			throws AttributeException, FunctionException {
+	public JsonNode postgis(JsonNode value, Map<String, JsonNode> variables) throws AttributeException, FunctionException {
 		return new PostGISConnection(value).toGeoPIPResponse();
 	}
 

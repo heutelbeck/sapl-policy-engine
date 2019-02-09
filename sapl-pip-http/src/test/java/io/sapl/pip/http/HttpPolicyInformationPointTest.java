@@ -18,6 +18,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpMethod.POST;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -33,6 +34,7 @@ import org.mockito.ArgumentMatcher;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+import org.springframework.http.HttpMethod;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,6 +43,8 @@ import com.google.common.net.HttpHeaders;
 
 import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.webclient.HttpClientRequestExecutor;
+import io.sapl.webclient.RequestSpecification;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(HttpClientRequestExecutor.class)
@@ -54,7 +58,7 @@ public class HttpPolicyInformationPointTest {
 	private RequestSpecification saplPostRequest;
 
 	@Before
-	public void init() throws IOException, AttributeException {
+	public void init() throws IOException {
 		String request =
 				"{ " +
 					"\"url\": \"http://jsonplaceholder.typicode.com/posts\", " +
@@ -77,11 +81,11 @@ public class HttpPolicyInformationPointTest {
 		saplPostRequest.setHeaders(headerProperties);
 
 		PowerMockito.mockStatic(HttpClientRequestExecutor.class);
-		when(HttpClientRequestExecutor.executeRequest(any(), any())).thenReturn(result);
+		when(HttpClientRequestExecutor.executeRequest(any(), eq(POST))).thenReturn(result);
 	}
 
 	@Test
-	public void postRequest() throws AttributeException {
+	public void postRequest() throws IOException, AttributeException {
 		HttpPolicyInformationPoint pip = new HttpPolicyInformationPoint();
 		AnnotationAttributeContext attributeCtx = new AnnotationAttributeContext();
 		attributeCtx.loadPolicyInformationPoint(pip);
@@ -91,35 +95,33 @@ public class HttpPolicyInformationPointTest {
 		assertEquals("return value not matching", result, returnedAttribute);
 		PowerMockito.verifyStatic(HttpClientRequestExecutor.class, times(1));
 
-		HttpClientRequestExecutor.executeRequest(requestEq(saplPostRequest, RequestSpecification.HTTP_POST),
-				eq(RequestSpecification.HTTP_POST));
+		HttpClientRequestExecutor.executeRequest(requestEq(saplPostRequest, POST), eq(POST));
 	}
 
-	private static RequestSpecification requestEq(RequestSpecification expected, String method) throws AttributeException {
-		return argThat(new HttpUriRequestMatcher(expected, method));
+	private static RequestSpecification requestEq(RequestSpecification expected, HttpMethod httpMethod) throws IOException {
+		return argThat(new HttpUriRequestMatcher(expected, httpMethod));
 	}
 
 
 	private static class HttpUriRequestMatcher implements ArgumentMatcher<RequestSpecification> {
 
 		private final HttpUriRequest expected;
-		private final String method;
+		private final HttpMethod method;
 
-		HttpUriRequestMatcher(RequestSpecification saplRequest, String requestType) throws AttributeException {
-			expected = HttpClientRequestExecutor.HttpUriRequestFactory.buildHttpUriRequest(saplRequest, requestType);
-			method = requestType;
+		HttpUriRequestMatcher(RequestSpecification saplRequest, HttpMethod httpMethod) throws IOException {
+			expected = HttpClientRequestExecutor.HttpUriRequestFactory.buildHttpUriRequest(saplRequest, httpMethod);
+			method = httpMethod;
 		}
 
 		@Override
 		public boolean matches(RequestSpecification argument) {
 			try {
-				HttpUriRequest actual;
-				actual = HttpClientRequestExecutor.HttpUriRequestFactory.buildHttpUriRequest(argument, method);
+				HttpUriRequest actual = HttpClientRequestExecutor.HttpUriRequestFactory.buildHttpUriRequest(argument, method);
 				return headerMatch(actual) && expected.getMethod().equals(actual.getMethod())
 						&& expected.getURI().equals(actual.getURI())
 						&& expected.getProtocolVersion().equals(actual.getProtocolVersion())
 						&& expected.getRequestLine().toString().equals(actual.getRequestLine().toString());
-			} catch (AttributeException e) {
+			} catch (IOException e) {
 				throw new UnsupportedOperationException(e);
 			}
 		}
