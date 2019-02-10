@@ -190,7 +190,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 		@NonNull
 		Method function;
 
-		@NonNull
 		boolean isReactive;
 	}
 

@@ -33,13 +33,11 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /*
  * Format always [Lat(y), Long(x)]
  */
 
-@Slf4j
 @NoArgsConstructor
 @FunctionLibrary(name = GeoFunctionLibrary.NAME, description = GeoFunctionLibrary.DESCRIPTION)
 public class GeoFunctionLibrary {
@@ -75,8 +73,8 @@ public class GeoFunctionLibrary {
 	private static final String ISSIMPLE_DOC = "isSimple(GEOMETRY): Returns true if the geometry has no anomalous geometric points (e.g. self interesection, self tangency,...).";
 	private static final String ISVALID_DOC = "isValid(GEOMETRY): Returns true if the geometry is topologically valid according to OGC specifications.";
 	private static final String ISCLOSED_DOC = "isClosed(GEOMETRY): Returns true if the geometry is either empty or from type (Multi)Point or a closed (Multi)LineString.";
-	private static final String TOMETER_DOC = "toMeter(VALUE, UNIT): Converts the given VALUE from [UNIT] to [m].";
-	private static final String TOSQUAREMETER_DOC = "toSquareMeter(VALUE, UNIT): Converts the given VALUE from [UNIT] to [m].";
+//	private static final String TOMETER_DOC = "toMeter(VALUE, UNIT): Converts the given VALUE from [UNIT] to [m].";
+//	private static final String TOSQUAREMETER_DOC = "toSquareMeter(VALUE, UNIT): Converts the given VALUE from [UNIT] to [m].";
 	private static final String ONEANDONLY_DOC = "oneAndOnly(GEOMETRYCOLLECTION): If GEOMETRYCOLLECTION only contains one element, this element will be returned. In all other cases an error will be thrown.";
 	private static final String BAGSIZE_DOC = "bagSize(GOEMETRYCOLLECTION): Returns the number of elements in the GEOMETRYCOLLECTION.";
 	private static final String GEOMETRYISIN_DOC = "geometryIsIn(GEOMETRY, GEOMETRYCOLLECTION): Tests if GEOMETRY is included in GEOMETRYCOLLECTION.";
@@ -88,7 +86,7 @@ public class GeoFunctionLibrary {
 	private static final String PROJECT_DOC = "project(GEOMETRY): Returns the projected geometry (or the geometry itself in case no projection is defined).";
 
 	private static final String INPUT_NOT_GEOCOLLECTION_WITH_ONLY_ONE_GEOM = "Input must be a GeometryCollection containing only one Geometry.";
-	private static final String UNIT_NOT_CONVERTIBLE = "Given unit '%s' is not convertible to '%s'.";
+//	private static final String UNIT_NOT_CONVERTIBLE = "Given unit '%s' is not convertible to '%s'.";
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Function(name = "equals", docs = EQUALS_DOC)

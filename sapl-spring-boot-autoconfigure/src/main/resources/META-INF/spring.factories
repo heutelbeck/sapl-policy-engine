@@ -1,0 +1,5 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  io.sapl.springboot.autoconfig.PDPAutoConfiguration,\
+  io.sapl.springboot.autoconfig.PolicyInformationPointsAutoConfiguration,\
+  io.sapl.springboot.autoconfig.FunctionLibrariesAutoConfiguration
+  

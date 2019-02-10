@@ -1,4 +1,4 @@
-package io.sapl.springboot.starter;
+package io.sapl.springboot.autoconfig;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;

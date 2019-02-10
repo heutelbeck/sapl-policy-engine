@@ -1,4 +1,4 @@
-package io.sapl.springboot.starter;
+package io.sapl.springboot.autoconfig;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -31,7 +31,7 @@ import io.sapl.spring.PIPProvider;
 import io.sapl.spring.PolicyEnforcementFilter;
 import io.sapl.spring.SAPLPermissionEvaluator;
 import io.sapl.spring.annotation.PdpAuthorizeAspect;
-import io.sapl.springboot.starter.PDPProperties.Remote;
+import io.sapl.springboot.autoconfig.PDPProperties.Remote;
 import lombok.extern.slf4j.Slf4j;
 
 /**

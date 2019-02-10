@@ -17,6 +17,7 @@
 		<geotools.version>20.2</geotools.version>
 		<geojson-jackson.version>1.8</geojson-jackson.version>
 		<asciidoc.version>1.5.7.1</asciidoc.version>
+		<version.powermock>2.0.0</version.powermock>
 	</properties>
 
 	<dependencies>
@@ -79,11 +80,6 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-	<!-- 	<dependency>
-			<groupId>org.jscience</groupId>
-			<artifactId>jscience</artifactId>
-			<version>4.3.1</version>
-		</dependency> -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
