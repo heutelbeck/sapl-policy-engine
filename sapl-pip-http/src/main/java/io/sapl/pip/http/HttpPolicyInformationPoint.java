@@ -19,7 +19,6 @@ import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
-import io.sapl.webclient.HttpClientRequestExecutor;
 import io.sapl.webclient.RequestSpecification;
 import io.sapl.webclient.WebClientRequestExecutor;
 import lombok.NoArgsConstructor;
@@ -42,9 +41,20 @@ public class HttpPolicyInformationPoint {
 
 	private static final String OBJECT_NO_HTTP_REQUEST_OBJECT_SPECIFICATION = "Object no HTTP request object specification.";
 
+	private WebClientRequestExecutor requestExecutor;
+
+	/**
+	 * For Unit tests only.
+	 *
+	 * @param requestExecutor the {@link WebClientRequestExecutor} mock
+	 */
+	HttpPolicyInformationPoint(WebClientRequestExecutor requestExecutor) {
+		this.requestExecutor = requestExecutor;
+	}
+
 	@Attribute(docs = GET_DOCS)
 	public JsonNode get(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
-		return executeSimpleRequest(value, GET);
+		return executeBlockingRequest(value, GET);
 	}
 
 	@Attribute(reactive = true, docs = REACTIVE_GET_DOCS)
@@ -54,7 +64,7 @@ public class HttpPolicyInformationPoint {
 
 	@Attribute(docs = POST_DOCS)
 	public JsonNode post(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
-		return executeSimpleRequest(value, POST);
+		return executeBlockingRequest(value, POST);
 	}
 
 	@Attribute(reactive = true, docs = REACTIVE_POST_DOCS)
@@ -64,23 +74,23 @@ public class HttpPolicyInformationPoint {
 
 	@Attribute(docs = PUT_DOCS)
 	public JsonNode put(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
-		return executeSimpleRequest(value, PUT);
+		return executeBlockingRequest(value, PUT);
 	}
 
 	@Attribute(docs = PATCH_DOCS)
 	public JsonNode patch(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
-		return executeSimpleRequest(value, PATCH);
+		return executeBlockingRequest(value, PATCH);
 	}
 
 	@Attribute(docs = DELETE_DOCS)
 	public JsonNode delete(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
-		return executeSimpleRequest(value, DELETE);
+		return executeBlockingRequest(value, DELETE);
 	}
 
-	private JsonNode executeSimpleRequest(@JsonObject @Text JsonNode value, HttpMethod httpMethod) throws AttributeException {
-		final RequestSpecification saplRequest = getRequestSpecification(value);
+	private JsonNode executeBlockingRequest(@JsonObject @Text JsonNode value, HttpMethod httpMethod) throws AttributeException {
 		try {
-			return HttpClientRequestExecutor.executeRequest(saplRequest, httpMethod);
+			final RequestSpecification saplRequest = getRequestSpecification(value);
+			return getRequestExecutor().executeBlockingRequest(saplRequest, httpMethod);
 		} catch (IOException e) {
 			throw new AttributeException(e);
 		}
@@ -89,7 +99,7 @@ public class HttpPolicyInformationPoint {
 	private Flux<JsonNode> executeReactiveRequest(@JsonObject @Text JsonNode value, HttpMethod httpMethod) {
 		try {
 			final RequestSpecification saplRequest = getRequestSpecification(value);
-			return new WebClientRequestExecutor().executeRequest(saplRequest, httpMethod)
+			return getRequestExecutor().executeReactiveRequest(saplRequest, httpMethod)
 					.onErrorMap(IOException.class, AttributeException::new);
 		} catch (AttributeException e) {
 			return Flux.error(e);
@@ -110,5 +120,9 @@ public class HttpPolicyInformationPoint {
 				throw new AttributeException(OBJECT_NO_HTTP_REQUEST_OBJECT_SPECIFICATION, e);
 			}
 		}
+	}
+
+	private WebClientRequestExecutor getRequestExecutor() {
+		return requestExecutor != null ? requestExecutor : new WebClientRequestExecutor();
 	}
 }

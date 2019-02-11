@@ -48,6 +48,7 @@
 		<version.lombok>1.18.4</version.lombok>
 		<version.springboot>2.1.2.RELEASE</version.springboot>
 		<version.powermock>2.0.0</version.powermock>
+		<version.mockito>2.23.4</version.mockito>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 	</properties>
@@ -90,6 +91,12 @@
 				<groupId>org.powermock</groupId>
 				<artifactId>powermock-api-mockito2</artifactId>
 				<version>${version.powermock}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-core</artifactId>
+				<version>${version.mockito}</version>
 				<scope>test</scope>
 			</dependency>
 			

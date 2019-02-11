@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
+@Deprecated // use WebClientRequestExecutor instead
 public class HttpClientRequestExecutor {
 
 	private static final String UNSUPPORTED_HTTP_METHOD = "Requested HTTP method is not supported.";

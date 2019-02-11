@@ -1,8 +1,11 @@
 package io.sapl.webclient;
 
 import static io.sapl.webclient.URLSpecification.HTTPS_SCHEME;
+import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.PATCH;
 import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.http.HttpMethod.PUT;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,6 +25,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ClientHttpConnector;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.BodyExtractors;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -31,6 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.tcp.SslProvider;
 import reactor.netty.tcp.TcpClient;
@@ -42,7 +48,7 @@ public class WebClientRequestExecutor {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	public Flux<JsonNode> executeRequest(RequestSpecification saplRequest, HttpMethod httpMethod) {
+	public Flux<JsonNode> executeReactiveRequest(RequestSpecification saplRequest, HttpMethod httpMethod) {
 		try {
 			final URLSpecification urlSpec = getURLSpecification(saplRequest);
 			final WebClient webClient = createWebClient(urlSpec.baseUrl());
@@ -70,7 +76,86 @@ public class WebClientRequestExecutor {
 		}
 	}
 
-	private WebClient createWebClient(String baseUrl) throws GeneralSecurityException, IOException {
+	public JsonNode executeBlockingRequest(RequestSpecification saplRequest, HttpMethod httpMethod) throws IOException {
+		final URLSpecification urlSpec = getURLSpecification(saplRequest);
+		final WebClient webClient = createWebClient(urlSpec.baseUrl());
+		if (httpMethod == GET) {
+			final ClientResponse response = webClient.get()
+					.uri(urlSpec.pathAndQueryString())
+					.accept(MediaType.APPLICATION_JSON)
+					.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
+					.exchange()
+					.block();
+			if (response.statusCode().is2xxSuccessful()) {
+				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
+				return body.block();
+			} else {
+				throw new IOException("HTTP GET request returned with status code " + response.statusCode().value());
+			}
+		} else if (httpMethod == POST) {
+			final ClientResponse response = webClient.post()
+					.uri(urlSpec.pathAndQueryString())
+					.contentType(MediaType.APPLICATION_JSON_UTF8)
+					.accept(MediaType.APPLICATION_JSON)
+					.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
+					.syncBody(getBody(saplRequest))
+					.exchange()
+					.block();
+			if (response.statusCode().is2xxSuccessful()) {
+				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
+				return body.block();
+			} else {
+				throw new IOException("HTTP POST request returned with status code " + response.statusCode().value());
+			}
+		} else if (httpMethod == PUT) {
+			final ClientResponse response = webClient.put()
+					.uri(urlSpec.pathAndQueryString())
+					.contentType(MediaType.APPLICATION_JSON_UTF8)
+					.accept(MediaType.APPLICATION_JSON)
+					.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
+					.syncBody(getBody(saplRequest))
+					.exchange()
+					.block();
+			if (response.statusCode().is2xxSuccessful()) {
+				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
+				return body.block();
+			} else {
+				throw new IOException("HTTP PUT request returned with status code " + response.statusCode().value());
+			}
+		} else if (httpMethod == DELETE) {
+			final ClientResponse response = webClient.delete()
+					.uri(urlSpec.pathAndQueryString())
+					.accept(MediaType.APPLICATION_JSON)
+					.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
+					.exchange()
+					.block();
+			if (response.statusCode().is2xxSuccessful()) {
+				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
+				return body.block();
+			} else {
+				throw new IOException("HTTP DELETE request returned with status code " + response.statusCode().value());
+			}
+		} else if (httpMethod == PATCH) {
+			final ClientResponse response = webClient.patch()
+					.uri(urlSpec.pathAndQueryString())
+					.contentType(MediaType.APPLICATION_JSON_UTF8)
+					.accept(MediaType.APPLICATION_JSON)
+					.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
+					.syncBody(getBody(saplRequest))
+					.exchange()
+					.block();
+			if (response.statusCode().is2xxSuccessful()) {
+				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
+				return body.block();
+			} else {
+				throw new IOException("HTTP PATCH request returned with status code " + response.statusCode().value());
+			}
+		} else {
+			throw new IOException("Unsupported request method " + httpMethod);
+		}
+	}
+
+	private WebClient createWebClient(String baseUrl) throws IOException {
 		if (baseUrl.startsWith(HTTPS_SCHEME)) {
 			final SslContext sslContext = createSslContext();
 			final SslProvider sslProvider = SslProvider.builder().sslContext(sslContext).build();
@@ -85,7 +170,7 @@ public class WebClientRequestExecutor {
 		return WebClient.create(baseUrl);
 	}
 
-	private SslContext createSslContext() throws GeneralSecurityException, IOException {
+	private SslContext createSslContext() throws IOException {
 		// return SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
 		try {
 			final KeyStore ks = KeyStore.getInstance("PKCS12");
@@ -105,6 +190,8 @@ public class WebClientRequestExecutor {
 			return SslContextBuilder.forClient().trustManager(trusted).build();
 		} catch (RuntimeException e) {
 			throw new SSLException(e.getCause() instanceof KeyStoreException ? e.getCause() : e);
+		} catch (GeneralSecurityException e) {
+			throw new IOException(e);
 		}
 	}
 

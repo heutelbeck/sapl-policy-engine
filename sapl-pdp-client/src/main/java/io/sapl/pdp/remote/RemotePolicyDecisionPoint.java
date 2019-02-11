@@ -98,7 +98,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	@Override
 	public Flux<Response> decide(Request request) {
 		final RequestSpecification saplRequest = getRequestSpecification(request);
-		return new WebClientRequestExecutor().executeRequest(saplRequest, POST)
+		return new WebClientRequestExecutor().executeReactiveRequest(saplRequest, POST)
 				.map(jsonNode -> MAPPER.convertValue(jsonNode, Response.class));
 	}
 
