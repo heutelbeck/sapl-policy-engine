@@ -1,0 +1,50 @@
+import io.sapl.pip.http.HttpPolicyInformationPoint as http
+
+set "readPolicies"
+deny-unless-permit
+for action in ["read", "readBlackenedHRN", "readRoomNumber"]
+
+
+policy "permit_everyone_read_non_sensitive_data"
+permit
+  action == "read"
+where
+  resource in ["name", "phoneNumber", "attendingDoctor", "attendingNurse"];
+
+
+policy "permit_doctor_and_nurse_read_diagnosis"
+permit
+  action == "read"
+where
+  "DOCTOR" in subject..authority || "NURSE" in subject..authority;
+  resource == "diagnosis";
+
+
+policy "permit_admin_and_doctor_read_HRN"
+permit
+  action == "read"
+where
+  "ADMIN" in subject..authority || "DOCTOR" in subject..authority;
+  resource == "HRN";
+
+
+policy "permit_nurse_read_blackened_hrn"
+permit
+  action == "readBlackenedHRN"
+where
+  "NURSE" in subject..authority;
+advice
+  {
+    "type" : "simpleLogging",
+    "message" : subject.name + " has read blackened HRN of " + resource.name
+  }
+transform
+  resource |- { @.healthRecordNumber : filter.blacken(1,0,"\u2588") }
+
+
+policy "permit_admin_and_relatives_read_room_number"
+permit
+  action == "readRoomNumber"
+where
+  var url = "http://localhost:8081/rest/patient/related/" + standard.numberToString(resource.id);
+  "ADMIN" in subject..authority || subject.name in url.<http.get>;

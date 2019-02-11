@@ -1,0 +1,17 @@
+set "generalPolicies"
+deny-unless-permit
+for action in ["get"]
+
+
+policy "permit_loading_homepage"
+permit
+    action == "get"
+where
+    resource == "home";
+
+
+policy "permit_loading_profiles"
+permit
+    action == "get"
+where
+    resource == "profiles";

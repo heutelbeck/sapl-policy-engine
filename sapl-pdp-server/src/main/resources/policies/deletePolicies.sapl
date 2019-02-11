@@ -1,0 +1,6 @@
+policy "permit_admin_delete_profile"
+permit
+    action == "delete"
+where
+  "ADMIN" in subject..authority;
+  resource == "profile";
