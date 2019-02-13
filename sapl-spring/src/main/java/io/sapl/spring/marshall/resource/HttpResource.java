@@ -10,19 +10,17 @@ import lombok.Value;
 @Value
 public class HttpResource implements Resource {
 
-	private static final Locale LOWER_CASING_LOCALE = Locale.GERMAN;
-
 	String uri;
 	String uriLowerCased;
 
 	public HttpResource(HttpServletRequest request) {
 		uri = request.getRequestURI();
-		uriLowerCased = uri.toLowerCase(LOWER_CASING_LOCALE);
+		uriLowerCased = uri.toLowerCase(Locale.getDefault());
 	}
 
 	public HttpResource(String uri) {
 		this.uri = uri;
-		uriLowerCased = uri.toLowerCase(LOWER_CASING_LOCALE);
+		uriLowerCased = uri.toLowerCase(Locale.getDefault());
 	}
 
 }

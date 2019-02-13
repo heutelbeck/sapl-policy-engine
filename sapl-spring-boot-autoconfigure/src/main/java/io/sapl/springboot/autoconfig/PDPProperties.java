@@ -30,7 +30,7 @@ public class PDPProperties {
 	@Setter
 	public static class Embedded {
 		private boolean active = true;
-		private String policyPath = "classpath:policies";
+		private String policyPath = "~/policies";
 
 	}
 

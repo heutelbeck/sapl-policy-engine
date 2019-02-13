@@ -30,12 +30,6 @@ public class PolicyEnforcementFilter extends GenericFilterBean {
 		this.sapl = new BlockingSAPLAuthorizer(sapl);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 *
-	 * @see io.sapl.mock.beans.SAPLGenericFilterBean#doFilter(javax.servlet.
-	 * ServletRequest, javax.servlet.ServletResponse, javax.servlet.FilterChain)
-	 */
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {

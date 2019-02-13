@@ -1,9 +1,11 @@
 package io.sapl.pdp.embedded;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pdp.multirequest.IdentifiableAction;
 import io.sapl.api.pdp.multirequest.IdentifiableResource;
@@ -16,38 +18,39 @@ import reactor.test.StepVerifier;
 
 public class EmbeddedPolicyDecisionPointTest {
 
-	private EmbeddedPolicyDecisionPoint pdp;
+	private PolicyDecisionPoint pdp;
 
 	@Before
 	public void setUp() throws Exception {
-		pdp = new EmbeddedPolicyDecisionPoint();
+		pdp = new EmbeddedPolicyDecisionPoint.Builder()
+				.withFilesystemPolicyRetrievalPoint("src/test/resources/policies")
+				.withPolicyInformationPoint(new TestPIP()).build();
+	}
+
+	@After
+	public void cleanUp() throws Exception {
+		pdp.dispose();
 	}
 
 	@Test
 	public void decide_withEmptyRequest_shouldReturnDeny() {
 		final Flux<Response> responseFlux = pdp.decide(null, null, null);
-		StepVerifier.create(responseFlux)
-				.expectNextMatches(response -> response.getDecision() == Decision.DENY)
-				.thenCancel()
-				.verify();
+		StepVerifier.create(responseFlux).expectNextMatches(response -> response.getDecision() == Decision.DENY)
+				.thenCancel().verify();
 	}
 
 	@Test
 	public void decide_withAllowedAction_shouldReturnPermit() {
-		final Flux<Response> responseFlux = pdp.decide("willi", "read", "something");
-		StepVerifier.create(responseFlux)
-				.expectNextMatches(response -> response.getDecision() == Decision.PERMIT)
-				.thenCancel()
-				.verify();
+		final Flux<Response> responseFlux = pdp.decide("willi", "read", "something").log();
+		StepVerifier.create(responseFlux).expectNextMatches(response -> response.getDecision() == Decision.PERMIT)
+				.thenCancel().verify();
 	}
 
 	@Test
 	public void decide_withForbiddenAction_shouldReturnDeny() {
 		final Flux<Response> responseFlux = pdp.decide("willi", "write", "something");
-		StepVerifier.create(responseFlux)
-				.expectNextMatches(response -> response.getDecision() == Decision.DENY)
-				.thenCancel()
-				.verify();
+		StepVerifier.create(responseFlux).expectNextMatches(response -> response.getDecision() == Decision.DENY)
+				.thenCancel().verify();
 	}
 
 	@Test
@@ -55,13 +58,9 @@ public class EmbeddedPolicyDecisionPointTest {
 		final MultiRequest multiRequest = new MultiRequest();
 
 		final Flux<IdentifiableResponse> flux = pdp.decide(multiRequest);
-		StepVerifier.create(flux)
-				.expectNextMatches(response ->
-						response.getRequestId() == null &&
-						response.getResponse().equals(Response.indeterminate())
-				)
-				.thenCancel()
-				.verify();
+		StepVerifier.create(flux).expectNextMatches(
+				response -> response.getRequestId() == null && response.getResponse().equals(Response.indeterminate()))
+				.thenCancel().verify();
 	}
 
 	@Test
@@ -73,13 +72,9 @@ public class EmbeddedPolicyDecisionPointTest {
 		multiRequest.addRequest("req", new RequestElements("sub", "act", "res"));
 
 		final Flux<IdentifiableResponse> flux = pdp.decide(multiRequest);
-		StepVerifier.create(flux)
-				.expectNextMatches(response ->
-						response.getRequestId().equals("req") &&
-						response.getResponse().equals(Response.permit())
-				)
-				.thenCancel()
-				.verify();
+		StepVerifier.create(flux).expectNextMatches(
+				response -> response.getRequestId().equals("req") && response.getResponse().equals(Response.permit()))
+				.thenCancel().verify();
 	}
 
 	@Test
@@ -93,28 +88,22 @@ public class EmbeddedPolicyDecisionPointTest {
 		multiRequest.addRequest("req2", new RequestElements("sub", "act2", "res"));
 
 		final Flux<IdentifiableResponse> flux = pdp.decide(multiRequest);
-		StepVerifier.create(flux)
-				.expectNextMatches(response -> {
-							if (response.getRequestId().equals("req1")) {
-								return response.getResponse().equals(Response.permit());
-							} else if (response.getRequestId().equals("req2")) {
-								return response.getResponse().equals(Response.deny());
-							} else {
-								throw new IllegalStateException("Invalid request id: " + response.getRequestId());
-							}
-						}
-				)
-				.expectNextMatches(response -> {
-							if (response.getRequestId().equals("req1")) {
-								return response.getResponse().equals(Response.permit());
-							} else if (response.getRequestId().equals("req2")) {
-								return response.getResponse().equals(Response.deny());
-							} else {
-								throw new IllegalStateException("Invalid request id: " + response.getRequestId());
-							}
-						}
-				)
-				.thenCancel()
-				.verify();
+		StepVerifier.create(flux).expectNextMatches(response -> {
+			if (response.getRequestId().equals("req1")) {
+				return response.getResponse().equals(Response.permit());
+			} else if (response.getRequestId().equals("req2")) {
+				return response.getResponse().equals(Response.deny());
+			} else {
+				throw new IllegalStateException("Invalid request id: " + response.getRequestId());
+			}
+		}).expectNextMatches(response -> {
+			if (response.getRequestId().equals("req1")) {
+				return response.getResponse().equals(Response.permit());
+			} else if (response.getRequestId().equals("req2")) {
+				return response.getResponse().equals(Response.deny());
+			} else {
+				throw new IllegalStateException("Invalid request id: " + response.getRequestId());
+			}
+		}).thenCancel().verify();
 	}
 }

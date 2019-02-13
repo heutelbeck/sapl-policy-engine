@@ -1,10 +1,12 @@
-package io.sapl.prp.embedded;
+package io.sapl.prp.filesystem;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 import org.junit.Test;
 
 import io.sapl.api.functions.FunctionException;
+import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
@@ -22,9 +24,10 @@ public class EmbeddedPRPTest {
 	}
 
 	@Test
-	public void testTest() throws IOException, AttributeException, FunctionException {
+	public void testTest() throws IOException, AttributeException, FunctionException, URISyntaxException {
 		// long startpdp = System.nanoTime();
-		EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
+		PolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint.Builder()
+				.withFilesystemPolicyRetrievalPoint("src/test/resources/policies").build();
 		// long endpdp = System.nanoTime();
 		// System.out.println("Measuring PDP and PRP initialization:");
 		// System.out.println("Start : " + startpdp);
@@ -33,7 +36,7 @@ public class EmbeddedPRPTest {
 		// System.out.println();
 
 		// long start = System.nanoTime();
-		int RUNS = 100;
+		int RUNS = 00;
 		for (int i = 0; i < RUNS; i++) {
 			final Flux<Response> responseFlux = pdp.decide("willi", "read", "something");
 			StepVerifier.create(responseFlux).expectNextCount(1).thenCancel().verify();

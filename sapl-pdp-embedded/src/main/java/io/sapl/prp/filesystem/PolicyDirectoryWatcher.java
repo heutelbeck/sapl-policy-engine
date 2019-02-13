@@ -1,4 +1,4 @@
-package io.sapl.prp.embedded;
+package io.sapl.prp.filesystem;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
@@ -15,11 +15,11 @@ import java.nio.file.WatchService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class DirectoryWatcher {
+class PolicyDirectoryWatcher {
 
     private Path watchedDir;
 
-    DirectoryWatcher(Path watchedDir) {
+    PolicyDirectoryWatcher(Path watchedDir) {
         this.watchedDir = watchedDir;
     }
 
@@ -35,6 +35,7 @@ class DirectoryWatcher {
             LOGGER.error(e.getMessage());
         } catch (InterruptedException e) {
             LOGGER.info("directory watcher thread has been interrupted");
+            Thread.currentThread().interrupt();
         }
         eventConsumer.onComplete();
     }

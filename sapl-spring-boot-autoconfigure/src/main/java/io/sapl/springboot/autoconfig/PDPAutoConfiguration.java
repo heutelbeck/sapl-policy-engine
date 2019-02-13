@@ -1,6 +1,7 @@
 package io.sapl.springboot.autoconfig;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 
@@ -16,7 +17,6 @@ import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.advice.AdviceHandlerService;
 import io.sapl.api.pdp.mapping.SaplMapper;
-import io.sapl.pep.pdp.mapping.SimpleSaplMapper;
 import io.sapl.api.pdp.obligation.Obligation;
 import io.sapl.api.pdp.obligation.ObligationHandler;
 import io.sapl.api.pdp.obligation.ObligationHandlerService;
@@ -26,6 +26,7 @@ import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import io.sapl.pep.SAPLAuthorizer;
 import io.sapl.pep.pdp.advice.SimpleAdviceHandlerService;
+import io.sapl.pep.pdp.mapping.SimpleSaplMapper;
 import io.sapl.pep.pdp.obligation.SimpleObligationHandlerService;
 import io.sapl.spring.PIPProvider;
 import io.sapl.spring.PolicyEnforcementFilter;
@@ -150,17 +151,22 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnProperty(name = "pdp.type", havingValue = "EMBEDDED")
 	public PolicyDecisionPoint pdpEmbedded(PIPProvider pipProvider)
-			throws AttributeException, FunctionException, IOException {
+			throws AttributeException, FunctionException, IOException, URISyntaxException {
 		LOGGER.debug("creating embedded PDP with Bean name {} and policy path {}", BEAN_NAME_PDP_EMBEDDED,
 				pdpProperties.getEmbedded().getPolicyPath());
 
-		EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint(pdpProperties.getEmbedded().getPolicyPath());
+		EmbeddedPolicyDecisionPoint.Builder builder = new EmbeddedPolicyDecisionPoint.Builder()
+				.withFilesystemPolicyRetrievalPoint(pdpProperties.getEmbedded().getPolicyPath());
 		LOGGER.debug("PIP-Provider has {} entries.", pipProvider.getPIPClasses().size());
 		for (Class<?> clazz : pipProvider.getPIPClasses()) {
-			LOGGER.debug("importAttributeFindersFromPackage: {}", clazz.getPackage().getName());
-			pdp.importAttributeFindersFromPackage(clazz.getPackage().getName());
+			LOGGER.debug("importAttributeFinder: {}", clazz.getName());
+			try {
+				builder.withPolicyInformationPoint(clazz.newInstance());
+			} catch (SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException e) {
+				throw new AttributeException(e);
+			}
 		}
-		return pdp;
+		return builder.build();
 	}
 
 	@Bean
@@ -191,8 +197,7 @@ public class PDPAutoConfiguration {
 
 	/**
 	 * 
-	 * @param saplAuthorizer
-	 *            - the SAPLAuthorizer to be used by the Filter
+	 * @param saplAuthorizer - the SAPLAuthorizer to be used by the Filter
 	 * @return a PolicyEnforcementFilter
 	 */
 	@Bean
@@ -205,28 +210,23 @@ public class PDPAutoConfiguration {
 
 	/**
 	 * 
-	 * @param pdp
-	 *            - a PolicyDecisionPoint instance
-	 * @param ohs
-	 *            - an ObligationHandlerService instance
-	 * @param ahs
-	 *            - an AdviceHandlerService instance
-	 * @param sm
-	 *            - a SaplMapper instance
+	 * @param pdp - a PolicyDecisionPoint instance
+	 * @param ohs - an ObligationHandlerService instance
+	 * @param ahs - an AdviceHandlerService instance
+	 * @param sm  - a SaplMapper instance
 	 * @return a SAPLAuthorizer instance
 	 */
 	@Bean
 	@ConditionalOnMissingBean
 	public SAPLAuthorizer createSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationHandlerService ohs,
-											   AdviceHandlerService ahs, SaplMapper sm) {
+			AdviceHandlerService ahs, SaplMapper sm) {
 		LOGGER.debug("no Bean of type SAPLAuthorizer  defined. Will create default Bean of {}", SAPLAuthorizer.class);
 		return new SAPLAuthorizer(pdp, ohs, ahs, sm);
 	}
 
 	/**
 	 * 
-	 * @param saplAuthorizer
-	 *            - the SAPLAuthorizer to be used
+	 * @param saplAuthorizer - the SAPLAuthorizer to be used
 	 * @return a SAPLPermissionEvaluator
 	 */
 	@Bean
@@ -284,10 +284,9 @@ public class PDPAutoConfiguration {
 	 * {@link ObligationHandler} to the Bean of type
 	 * {@link ObligationHandlerService}
 	 * 
-	 * @param obligationHandlers
-	 *            - List of all ObligationHandler-beans
-	 * @param ohs
-	 *            - ObligationHandlerService to register the handler with
+	 * @param obligationHandlers - List of all ObligationHandler-beans
+	 * @param ohs                - ObligationHandlerService to register the handler
+	 *                           with
 	 * @return a CommandLineRunner object
 	 * @see ObligationHandlerService#register(ObligationHandler)
 	 * @see #createDefaultObligationHandlerService()
