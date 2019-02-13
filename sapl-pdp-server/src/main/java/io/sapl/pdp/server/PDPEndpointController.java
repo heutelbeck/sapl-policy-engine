@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.multirequest.IdentifiableResponse;
+import io.sapl.api.pdp.multirequest.MultiRequest;
 import reactor.core.publisher.Flux;
 
 @RestController
@@ -21,6 +23,11 @@ public class PDPEndpointController {
 
     @PostMapping(value = "/decide", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
     public Flux<Response> decide(@RequestBody Request request) {
+        return pdp.decide(request);
+    }
+
+    @PostMapping(value = "/multi-decide", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
+    public Flux<IdentifiableResponse> decide(@RequestBody MultiRequest request) {
         return pdp.decide(request);
     }
 

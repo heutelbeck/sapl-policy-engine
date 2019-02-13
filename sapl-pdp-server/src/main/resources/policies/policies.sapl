@@ -1,5 +1,0 @@
-policy "permit_willi_read_something"
-permit action == "read"
-where
-  subject == "willi";
-  resource == "something";

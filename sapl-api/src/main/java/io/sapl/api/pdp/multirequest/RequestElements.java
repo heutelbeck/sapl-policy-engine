@@ -15,6 +15,7 @@ package io.sapl.api.pdp.multirequest;
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -27,6 +28,13 @@ public class RequestElements {
 	private String actionId;
 	private String resourceId;
 	private String environmentId;
+
+	public RequestElements() {
+		subjectId = null;
+		actionId = null;
+		resourceId = null;
+		environmentId = null;
+	}
 
 	public RequestElements(String subjectId, String actionId, String resourceId) {
 		this(subjectId, actionId, resourceId, null);
