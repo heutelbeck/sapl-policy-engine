@@ -18,7 +18,9 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.validation.Array;
+import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.JsonObject;
+import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 
 @FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION)
@@ -32,6 +34,11 @@ public class StandardFunctionLibrary {
 			+ "For OBJECT, it returns the number of keys in the OBJECT. "
 			+ "For NUMBER, BOOLEAN, or NULL, the function will return an error.";
 
+	private static final String NUMBER_TO_STRING_DOC = "numberToString(JSON_VALUE): For STRING it returns the input. "
+			+ "For NUMBER or BOOLEAN it returns a JSON node representing the value converted to a string. "
+			+ "For NULL it returns a JSON node representing the empty string. "
+			+ "For ARRAY or OBJECT the function will return an error.";
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Function(docs = LENGTH_DOC)
@@ -40,6 +47,19 @@ public class StandardFunctionLibrary {
 			return JSON.numberNode(parameter.textValue().length());
 		} else {
 			return JSON.numberNode(parameter.size());
+		}
+	}
+
+	@Function(docs = NUMBER_TO_STRING_DOC)
+	public static JsonNode numberToString(@Text @Number @Bool JsonNode parameter) {
+		if (parameter.isNumber()) {
+			return JSON.textNode(parameter.numberValue().toString());
+		} else if (parameter.isBoolean()) {
+			return JSON.textNode(String.valueOf(parameter.booleanValue()));
+		} else if (parameter.isNull()) {
+			return JSON.textNode("");
+		} else {
+			return parameter;
 		}
 	}
 

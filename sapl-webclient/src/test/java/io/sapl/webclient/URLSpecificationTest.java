@@ -1,4 +1,4 @@
-package io.sapl.pip.http;
+package io.sapl.webclient;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertNull;

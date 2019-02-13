@@ -1,4 +1,4 @@
-package io.sapl.pip.http;
+package io.sapl.webclient;
 
 import java.util.Map;
 
@@ -10,12 +10,6 @@ import lombok.Data;
 
 @Data
 public class RequestSpecification {
-
-	public static final String HTTP_GET = "get";
-	public static final String HTTP_POST = "post";
-	public static final String HTTP_PUT = "put";
-	public static final String HTTP_PATCH = "patch";
-	public static final String HTTP_DELETE = "delete";
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 

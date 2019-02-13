@@ -1,0 +1,6 @@
+policy "permit_admin_create_profile"
+permit
+    action == "create"
+where
+  "ADMIN" in subject..authority;
+  resource == "profile";

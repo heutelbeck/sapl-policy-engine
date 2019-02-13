@@ -14,25 +14,22 @@ package io.sapl.pip.http;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
+import static org.springframework.http.HttpMethod.POST;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.http.Header;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentMatcher;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.http.HttpMethod;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,21 +38,24 @@ import com.google.common.net.HttpHeaders;
 
 import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.webclient.RequestSpecification;
+import io.sapl.webclient.WebClientRequestExecutor;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(HttpClientRequestExecutor.class)
+@RunWith(MockitoJUnitRunner.class)
 public class HttpPolicyInformationPointTest {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	private JsonNode jsonRequestSpec;
+	private JsonNode actualRequestSpec;
 	private JsonNode result;
-	private RequestSpecification saplPostRequest;
+	private RequestSpecification expectedRequestSpec;
+
+	private WebClientRequestExecutor requestExecutor;
 
 	@Before
-	public void init() throws IOException, AttributeException {
-		String request =
+	public void init() throws IOException {
+		final String request =
 				"{ " +
 					"\"url\": \"http://jsonplaceholder.typicode.com/posts\", " +
 					"\"headers\": { " +
@@ -65,91 +65,31 @@ public class HttpPolicyInformationPointTest {
 					"\"rawBody\" : \"hello world\" " +
 				"}";
 
-		jsonRequestSpec = MAPPER.readValue(request, JsonNode.class);
+		actualRequestSpec = MAPPER.readValue(request, JsonNode.class);
 		result = JSON.textNode("result");
 
-		Map<String, String> headerProperties = new HashMap<>();
+		final Map<String, String> headerProperties = new HashMap<>();
 		headerProperties.put(HttpHeaders.ACCEPT, "application/json");
 		headerProperties.put(HttpHeaders.ACCEPT_CHARSET, StandardCharsets.UTF_8.toString());
 
-		saplPostRequest = new RequestSpecification();
-		saplPostRequest.setUrl(JSON.textNode("http://jsonplaceholder.typicode.com/posts"));
-		saplPostRequest.setHeaders(headerProperties);
+		expectedRequestSpec = new RequestSpecification();
+		expectedRequestSpec.setUrl(JSON.textNode("http://jsonplaceholder.typicode.com/posts"));
+		expectedRequestSpec.setHeaders(headerProperties);
+		expectedRequestSpec.setRawBody("hello world");
 
-		PowerMockito.mockStatic(HttpClientRequestExecutor.class);
-		when(HttpClientRequestExecutor.executeRequest(any(), any())).thenReturn(result);
+		requestExecutor = Mockito.spy(WebClientRequestExecutor.class);
+		doReturn(result).when(requestExecutor).executeBlockingRequest(any(RequestSpecification.class), any(HttpMethod.class));
 	}
 
 	@Test
-	public void postRequest() throws AttributeException {
-		HttpPolicyInformationPoint pip = new HttpPolicyInformationPoint();
-		AnnotationAttributeContext attributeCtx = new AnnotationAttributeContext();
+	public void postRequest() throws AttributeException, IOException {
+		final HttpPolicyInformationPoint pip = new HttpPolicyInformationPoint(requestExecutor);
+		final AnnotationAttributeContext attributeCtx = new AnnotationAttributeContext();
 		attributeCtx.loadPolicyInformationPoint(pip);
-		Map<String, JsonNode> variables = new HashMap<>();
-		JsonNode returnedAttribute = attributeCtx.evaluate("http.post", jsonRequestSpec, variables).blockFirst();
+		final Map<String, JsonNode> variables = new HashMap<>();
+		final JsonNode returnedAttribute = attributeCtx.evaluate("http.post", actualRequestSpec, variables).blockFirst();
 
 		assertEquals("return value not matching", result, returnedAttribute);
-		PowerMockito.verifyStatic(HttpClientRequestExecutor.class, times(1));
-
-		HttpClientRequestExecutor.executeRequest(requestEq(saplPostRequest, RequestSpecification.HTTP_POST),
-				eq(RequestSpecification.HTTP_POST));
-	}
-
-	private static RequestSpecification requestEq(RequestSpecification expected, String method) throws AttributeException {
-		return argThat(new HttpUriRequestMatcher(expected, method));
-	}
-
-
-	private static class HttpUriRequestMatcher implements ArgumentMatcher<RequestSpecification> {
-
-		private final HttpUriRequest expected;
-		private final String method;
-
-		HttpUriRequestMatcher(RequestSpecification saplRequest, String requestType) throws AttributeException {
-			expected = HttpClientRequestExecutor.HttpUriRequestFactory.buildHttpUriRequest(saplRequest, requestType);
-			method = requestType;
-		}
-
-		@Override
-		public boolean matches(RequestSpecification argument) {
-			try {
-				HttpUriRequest actual;
-				actual = HttpClientRequestExecutor.HttpUriRequestFactory.buildHttpUriRequest(argument, method);
-				return headerMatch(actual) && expected.getMethod().equals(actual.getMethod())
-						&& expected.getURI().equals(actual.getURI())
-						&& expected.getProtocolVersion().equals(actual.getProtocolVersion())
-						&& expected.getRequestLine().toString().equals(actual.getRequestLine().toString());
-			} catch (AttributeException e) {
-				throw new UnsupportedOperationException(e);
-			}
-		}
-
-		private boolean headerMatch(HttpUriRequest actual) {
-			if (expected.getAllHeaders().length != actual.getAllHeaders().length) {
-				return false;
-			}
-			for (Header h : actual.getAllHeaders()) {
-				if (!isExpectedHeader(h)) {
-					return false;
-				}
-			}
-			return true;
-		}
-
-		private boolean isExpectedHeader(Header header) {
-			boolean found = false;
-			for (Header h : expected.getAllHeaders()) {
-				if (headersMatch(h, header)) {
-					found = true;
-					break;
-				}
-			}
-			return found;
-		}
-
-		private boolean headersMatch(Header h1, Header h2) {
-			// could be refined to check element equality too
-			return h1.getName().equals(h2.getName()) && h1.getValue().equals(h2.getValue());
-		}
+		verify(requestExecutor).executeBlockingRequest(eq(expectedRequestSpec), eq(POST));
 	}
 }

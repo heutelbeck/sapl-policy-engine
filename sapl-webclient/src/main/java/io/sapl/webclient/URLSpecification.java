@@ -1,4 +1,4 @@
-package io.sapl.pip.http;
+package io.sapl.webclient;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -14,6 +14,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class URLSpecification {
+
+	public static final String HTTP_SCHEME = "http";
+	public static final String HTTPS_SCHEME = "https";
 
     private String scheme;
 	private String user;

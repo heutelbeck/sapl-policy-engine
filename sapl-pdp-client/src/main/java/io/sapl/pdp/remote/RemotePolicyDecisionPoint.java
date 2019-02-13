@@ -1,5 +1,8 @@
 package io.sapl.pdp.remote;
 
+import static io.sapl.webclient.URLSpecification.HTTPS_SCHEME;
+import static org.springframework.http.HttpMethod.POST;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
@@ -25,6 +28,8 @@ import org.apache.http.util.EntityUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import io.sapl.api.pdp.Decision;
@@ -33,6 +38,8 @@ import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import io.sapl.api.pdp.multirequest.MultiRequest;
+import io.sapl.webclient.RequestSpecification;
+import io.sapl.webclient.WebClientRequestExecutor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -41,17 +48,22 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	public static final String APPLICATION_JSON_VALUE = "application/json;charset=UTF-8";
 	public static final String AUTHORIZATION_REQUEST = "/api/authorizationRequests";
-	public static final String HTTPS = "https";
+
+	private static final String PDP_PATH = "/api/pdp/decide";
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private HttpHost httpHost;
 	private HttpClientContext clientContext;
 
-	public RemotePolicyDecisionPoint(String hostName, int port, String applicationKey, String applicationSecret) {
-		MAPPER.registerModule(new Jdk8Module());
+	private String hostName;
+	private int port;
 
-		httpHost = new HttpHost(hostName, port, HTTPS);
+	public RemotePolicyDecisionPoint(String hostName, int port, String applicationKey, String applicationSecret) {
+		this(hostName, port);
+
+		httpHost = new HttpHost(hostName, port, HTTPS_SCHEME);
 		CredentialsProvider credsProvider = new BasicCredentialsProvider();
 		credsProvider.setCredentials(new AuthScope(httpHost.getHostName(), httpHost.getPort()),
 				new UsernamePasswordCredentials(applicationKey, applicationSecret));
@@ -63,6 +75,13 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		clientContext = HttpClientContext.create();
 		clientContext.setCredentialsProvider(credsProvider);
 		clientContext.setAuthCache(authCache);
+	}
+
+	public RemotePolicyDecisionPoint(String hostName, int port) {
+		this.hostName = hostName;
+		this.port = port;
+
+		MAPPER.registerModule(new Jdk8Module());
 	}
 
 	@Override
@@ -78,8 +97,9 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Flux<Response> decide(Request request) {
-		final Response response = blockingDecide(request); // must be replaced with a reactive http call
-		return Flux.just(response);
+		final RequestSpecification saplRequest = getRequestSpecification(request);
+		return new WebClientRequestExecutor().executeReactiveRequest(saplRequest, POST)
+				.map(jsonNode -> MAPPER.convertValue(jsonNode, Response.class));
 	}
 
 	@Override
@@ -116,7 +136,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	private Response executeHttpRequest(HttpRequest request) throws IOException {
 		Response response = null;
 		try (CloseableHttpClient httpClient = HttpClients.createDefault();
-			 CloseableHttpResponse webResponse = httpClient.execute(httpHost, request, clientContext);) {
+			 CloseableHttpResponse webResponse = httpClient.execute(httpHost, request, clientContext)) {
 
 			int resultCode = webResponse.getStatusLine().getStatusCode();
 			if (resultCode != HttpStatus.SC_OK) {
@@ -140,6 +160,16 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 			}
 		}
 		return response;
+	}
+
+	private RequestSpecification getRequestSpecification(Request request) {
+		final String url = HTTPS_SCHEME + "://" + hostName + ":" + port + PDP_PATH;
+		final TextNode urlNode = JSON.textNode(url);
+		final JsonNode bodyNode = MAPPER.convertValue(request, JsonNode.class);
+		final RequestSpecification saplRequest = new RequestSpecification();
+		saplRequest.setUrl(urlNode);
+		saplRequest.setBody(bodyNode);
+		return saplRequest;
 	}
 
 	@Override
