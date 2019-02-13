@@ -2,18 +2,21 @@ package io.sapl.springboot.autoconfig;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.functions.FunctionException;
+import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.advice.AdviceHandlerService;
@@ -24,12 +27,12 @@ import io.sapl.api.pdp.obligation.ObligationHandlerService;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
+import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import io.sapl.pep.SAPLAuthorizer;
 import io.sapl.pep.pdp.advice.SimpleAdviceHandlerService;
 import io.sapl.pep.pdp.mapping.SimpleSaplMapper;
 import io.sapl.pep.pdp.obligation.SimpleObligationHandlerService;
-import io.sapl.spring.PIPProvider;
 import io.sapl.spring.PolicyEnforcementFilter;
 import io.sapl.spring.SAPLPermissionEvaluator;
 import io.sapl.spring.annotation.PdpAuthorizeAspect;
@@ -138,36 +141,66 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Configuration
 @EnableConfigurationProperties(PDPProperties.class)
+@AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
 public class PDPAutoConfiguration {
-
-	public static final String BEAN_NAME_PDP_REMOTE = "pdpRemote";
-
-	public static final String BEAN_NAME_PDP_EMBEDDED = "pdpEmbedded";
 
 	private static final String BEAN_NAME_OBLIGATION_HANDLER_DENY_ALL = "denyAllObligationHandler";
 
-	@Autowired
-	private PDPProperties pdpProperties;
+	private final PDPProperties pdpProperties;
+	private final Map<String, Object> policyInformationPoints;
+	private final Map<String, Object> functionLibraries;
+
+	public PDPAutoConfiguration(PDPProperties pdpProperties, ConfigurableApplicationContext applicationContext) {
+		this.pdpProperties = pdpProperties;
+		policyInformationPoints = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class);
+		functionLibraries = applicationContext.getBeansWithAnnotation(FunctionLibrary.class);
+	}
 
 	@Bean
-	@ConditionalOnProperty(name = "pdp.type", havingValue = "EMBEDDED")
-	public PolicyDecisionPoint pdpEmbedded(PIPProvider pipProvider)
+	@ConditionalOnProperty(name = "pdp.type", havingValue = "RESOURCES")
+	public PolicyDecisionPoint pdpResources()
 			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
-		LOGGER.debug("creating embedded PDP with Bean name {} and policy path {}", BEAN_NAME_PDP_EMBEDDED,
-				pdpProperties.getEmbedded().getPolicyPath());
+		LOGGER.info("creating embedded PDP sourcing access policies from bundled resources at: {}",
+				pdpProperties.getResources().getPoliciesPath());
+		LOGGER.info("props: {}", pdpProperties);
+		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder()
+				.withResourcePolicyRetrievalPoint(pdpProperties.getResources().getPoliciesPath());
+
+		return bindComponentsToPDP(builder).build();
+	}
+
+	@Bean
+	@ConditionalOnProperty(name = "pdp.type", havingValue = "FILESYSTEM")
+	public PolicyDecisionPoint pdpFilesystem()
+			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
+		LOGGER.info("creating embedded PDP sourcing and monitoring access policies from the filesystem: {}",
+				pdpProperties.getFilesystem().getPoliciesPath());
 
 		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder()
-				.withFilesystemPolicyRetrievalPoint(pdpProperties.getEmbedded().getPolicyPath());
-		LOGGER.debug("PIP-Provider has {} entries.", pipProvider.getPIPClasses().size());
-		for (Class<?> clazz : pipProvider.getPIPClasses()) {
-			LOGGER.debug("importAttributeFinder: {}", clazz.getName());
+				.withFilesystemPolicyRetrievalPoint(pdpProperties.getResources().getPoliciesPath());
+
+		return bindComponentsToPDP(builder).build();
+	}
+
+	private Builder bindComponentsToPDP(Builder builder) throws AttributeException {
+		for (Entry<String, Object> entry : policyInformationPoints.entrySet()) {
+			LOGGER.debug("binding PIP to PDP: {}", entry.getKey());
 			try {
-				builder.withPolicyInformationPoint(clazz.newInstance());
-			} catch (SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException e) {
+				builder.withPolicyInformationPoint(entry.getValue());
+			} catch (SecurityException | IllegalArgumentException | AttributeException e) {
 				throw new AttributeException(e);
 			}
 		}
-		return builder.build();
+		for (Entry<String, Object> entry : functionLibraries.entrySet()) {
+			LOGGER.debug("binding FunctionLibrary to PDP: {}", entry.getKey());
+			try {
+				builder.withFunctionLibrary(entry.getValue());
+			} catch (SecurityException | IllegalArgumentException | FunctionException e) {
+				throw new AttributeException(e);
+			}
+		}
+
+		return builder;
 	}
 
 	@Bean
@@ -176,25 +209,7 @@ public class PDPAutoConfiguration {
 		Remote remoteProps = pdpProperties.getRemote();
 		String host = remoteProps.getHost();
 		int port = remoteProps.getPort();
-//		String key = remoteProps.getKey();
-//		String secret = remoteProps.getSecret();
-//		LOGGER.debug("creating remote PDP with Bean name {} and properties: \nhost {} \nport {} \nkey {} \nsecret {}",
-//				BEAN_NAME_PDP_REMOTE, host, port, key, "*******");
-//		return new RemotePolicyDecisionPoint(host, port, key, secret);
 		return new RemotePolicyDecisionPoint(host, port);
-	}
-
-	/**
-	 * If no bean-definition of type {@link PIPProvider} exists, this method will
-	 * define a PIPProvide-bean that allways delivers an enmpty list.
-	 * 
-	 * @return a PIPProvider
-	 * @see PIPProvider
-	 */
-	@Bean
-	@ConditionalOnMissingBean
-	public PIPProvider processInformationPoints() {
-		return Collections::emptyList;
 	}
 
 	/**

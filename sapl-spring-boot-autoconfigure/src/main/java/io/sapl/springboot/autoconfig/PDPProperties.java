@@ -13,14 +13,16 @@ import lombok.Setter;
 public class PDPProperties {
 
 	public enum PDPType {
-		EMBEDDED, REMOTE;
+		RESOURCES, FILESYSTEM, REMOTE;
 	}
 
-	private PDPType type = PDPType.EMBEDDED;
+	private PDPType type = PDPType.RESOURCES;
 
 	private Remote remote = new Remote();
 
-	private Embedded embedded = new Embedded();
+	private Filesystem filesystem = new Filesystem();
+
+	private Resources resources = new Resources();
 
 	private boolean policyEnforcementFilter;
 
@@ -28,9 +30,15 @@ public class PDPProperties {
 
 	@Getter
 	@Setter
-	public static class Embedded {
-		private boolean active = true;
-		private String policyPath = "~/policies";
+	public static class Filesystem {
+		private String policiesPath = "~/policies";
+
+	}
+
+	@Getter
+	@Setter
+	public static class Resources {
+		private String policiesPath = "/policies";
 
 	}
 
@@ -39,7 +47,6 @@ public class PDPProperties {
 	public static class Remote {
 		private static final int DEFAULT_REMOTE_PORT = 8443;
 		private boolean active;
-		// private InetAddress remoteAddress;
 		private String host = "localhost";
 		private int port = DEFAULT_REMOTE_PORT;
 		private String key;
@@ -49,7 +56,6 @@ public class PDPProperties {
 	@Getter
 	@Setter
 	public static class ObligationHandler {
-
 		private boolean autoregister = true;
 	}
 }

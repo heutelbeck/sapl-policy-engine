@@ -26,7 +26,6 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -42,7 +41,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	private SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
 	public ResourcesPolicyRetrievalPoint() throws IOException, URISyntaxException, PolicyEvaluationException {
-		this(DEFAULT_PATH);
+		this(null);
 	}
 
 	public ResourcesPolicyRetrievalPoint(String policyPath)
@@ -55,12 +54,13 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		this(clazz, policyPath, null);
 	}
 
-	public ResourcesPolicyRetrievalPoint(Class<?> clazz, @NonNull String policyPath, FunctionContext functionCtx)
+	public ResourcesPolicyRetrievalPoint(Class<?> clazz, String policyPath, FunctionContext functionCtx)
 			throws IOException, URISyntaxException, PolicyEvaluationException {
+		if (policyPath == null) {
+			policyPath = DEFAULT_PATH;
+		}
 
-		
 		URL policyFolderUrl = clazz.getResource(policyPath);
-		LOGGER.info("url: {}", policyFolderUrl);
 
 		parsedDocIdx = functionCtx != null ? new FastParsedDocumentIndex(functionCtx) : new SimpleParsedDocumentIndex();
 
