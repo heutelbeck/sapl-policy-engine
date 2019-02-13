@@ -74,6 +74,6 @@ public class Config implements WebMvcConfigurer {
 
     @Bean
     public PolicyDecisionPoint pdp(@Value("${policy.path}") String policyPath) throws Exception {
-        return new EmbeddedPolicyDecisionPoint(policyPath);
+        return new EmbeddedPolicyDecisionPoint.Builder().withFilesystemPolicyRetrievalPoint(policyPath).build();
     }
 }
