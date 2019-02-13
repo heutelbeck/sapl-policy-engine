@@ -22,8 +22,7 @@ public class EmbeddedPolicyDecisionPointTest {
 
 	@Before
 	public void setUp() throws Exception {
-		pdp = new EmbeddedPolicyDecisionPoint.Builder()
-				.withFilesystemPolicyRetrievalPoint("src/test/resources/policies")
+		pdp = EmbeddedPolicyDecisionPoint.builder().withFilesystemPolicyRetrievalPoint("src/test/resources/policies")
 				.withPolicyInformationPoint(new TestPIP()).build();
 	}
 

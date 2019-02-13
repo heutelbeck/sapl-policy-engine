@@ -6,6 +6,7 @@ import java.net.URISyntaxException;
 import org.junit.Test;
 
 import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pip.AttributeException;
@@ -24,9 +25,9 @@ public class EmbeddedPRPTest {
 	}
 
 	@Test
-	public void testTest() throws IOException, AttributeException, FunctionException, URISyntaxException {
+	public void testTest() throws IOException, AttributeException, FunctionException, URISyntaxException, PolicyEvaluationException {
 		// long startpdp = System.nanoTime();
-		PolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint.Builder()
+		PolicyDecisionPoint pdp = EmbeddedPolicyDecisionPoint.builder()
 				.withFilesystemPolicyRetrievalPoint("src/test/resources/policies").build();
 		// long endpdp = System.nanoTime();
 		// System.out.println("Measuring PDP and PRP initialization:");

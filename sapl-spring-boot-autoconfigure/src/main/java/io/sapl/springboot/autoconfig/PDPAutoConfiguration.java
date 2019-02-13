@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.advice.AdviceHandlerService;
 import io.sapl.api.pdp.mapping.SaplMapper;
@@ -151,11 +152,11 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnProperty(name = "pdp.type", havingValue = "EMBEDDED")
 	public PolicyDecisionPoint pdpEmbedded(PIPProvider pipProvider)
-			throws AttributeException, FunctionException, IOException, URISyntaxException {
+			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
 		LOGGER.debug("creating embedded PDP with Bean name {} and policy path {}", BEAN_NAME_PDP_EMBEDDED,
 				pdpProperties.getEmbedded().getPolicyPath());
 
-		EmbeddedPolicyDecisionPoint.Builder builder = new EmbeddedPolicyDecisionPoint.Builder()
+		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder()
 				.withFilesystemPolicyRetrievalPoint(pdpProperties.getEmbedded().getPolicyPath());
 		LOGGER.debug("PIP-Provider has {} entries.", pipProvider.getPIPClasses().size());
 		for (Class<?> clazz : pipProvider.getPIPClasses()) {

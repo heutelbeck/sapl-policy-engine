@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.PolicyCombiningAlgorithm;
 import io.sapl.api.pdp.PolicyDecisionPoint;
@@ -42,6 +43,7 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.prp.filesystem.FilesystemPolicyRetrievalPoint;
+import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
@@ -62,7 +64,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
 		private PolicyCombiningAlgorithm algorithm;
 
-		public Builder() throws FunctionException, AttributeException {
+		private Builder() throws FunctionException, AttributeException {
 			pdp.functionCtx.loadLibrary(new FilterFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new SelectionFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new StandardFunctionLibrary());
@@ -85,19 +87,30 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			return this;
 		}
 
-		public Builder withResourcePolicyRetrievalPoint(String resourcePath) {
-			// TODO
+		public Builder withResourcePolicyRetrievalPoint()
+				throws IOException, URISyntaxException, PolicyEvaluationException {
+			pdp.prp = new ResourcesPolicyRetrievalPoint();
 			return this;
 		}
 
-		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder)
-				throws IOException, URISyntaxException {
+		public Builder withResourcePolicyRetrievalPoint(String resourcePath)
+				throws IOException, URISyntaxException, PolicyEvaluationException {
+			pdp.prp = new ResourcesPolicyRetrievalPoint(resourcePath);
+			return this;
+		}
+
+		public Builder withResourcePolicyRetrievalPoint(Class<?> clazz, String resourcePath)
+				throws IOException, URISyntaxException, PolicyEvaluationException {
+			pdp.prp = new ResourcesPolicyRetrievalPoint(clazz, resourcePath);
+			return this;
+		}
+
+		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder) {
 			pdp.prp = new FilesystemPolicyRetrievalPoint(policiesFolder);
 			return this;
 		}
 
-		public Builder withIndexedFilesystemPolicyRetrievalPoint(String policiesFolder)
-				throws IOException, URISyntaxException {
+		public Builder withIndexedFilesystemPolicyRetrievalPoint(String policiesFolder) {
 			pdp.prp = new FilesystemPolicyRetrievalPoint(policiesFolder, pdp.functionCtx);
 			return this;
 		}
@@ -107,9 +120,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			return this;
 		}
 
-		public PolicyDecisionPoint build() throws IOException, URISyntaxException {
+		public PolicyDecisionPoint build() throws IOException, URISyntaxException, PolicyEvaluationException {
 			if (pdp.prp == null) {
-				withFilesystemPolicyRetrievalPoint(DEFAULT_PATH);
+				withResourcePolicyRetrievalPoint();
 			}
 			if (algorithm == null) {
 				withCombiningAlgorithm(PolicyCombiningAlgorithm.DENY_UNLESS_PERMIT);
@@ -195,4 +208,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	public void dispose() {
 		prp.dispose();
 	}
+
+	public static Builder builder() throws FunctionException, AttributeException {
+		return new Builder();
+	}
+
 }

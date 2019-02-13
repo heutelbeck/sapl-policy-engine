@@ -2,7 +2,6 @@ package io.sapl.prp.filesystem;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,12 +46,11 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 	private ReentrantLock lock;
 
-	public FilesystemPolicyRetrievalPoint(String policyPath) throws IOException, URISyntaxException {
+	public FilesystemPolicyRetrievalPoint(String policyPath) {
 		this(policyPath, null);
 	}
 
-	public FilesystemPolicyRetrievalPoint(@NonNull String policyPath, FunctionContext functionCtx)
-			throws IOException, URISyntaxException {
+	public FilesystemPolicyRetrievalPoint(@NonNull String policyPath, FunctionContext functionCtx) {
 		this.path = policyPath;
 		if (path.startsWith("~" + File.separator)) {
 			path = System.getProperty("user.home") + path.substring(1);
@@ -91,6 +89,7 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 			DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path), POLICY_FILE_PATTERN);
 			try {
 				for (Path filePath : stream) {
+					LOGGER.info("load: {}",filePath);
 					final SAPL saplDocument = interpreter.parse(Files.newInputStream(filePath));
 					this.parsedDocIdx.put(filePath.toString(), saplDocument);
 				}
