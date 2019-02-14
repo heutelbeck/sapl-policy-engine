@@ -16,7 +16,7 @@ public class PolicyInformationPointsAutoConfiguration {
 	@ConditionalOnClass(io.sapl.pip.http.HttpPolicyInformationPoint.class)
 	public static class HTTPConfiguration {
 		@Bean
-		public HttpPolicyInformationPoint ttpPolicyInformationPoint() {
+		public HttpPolicyInformationPoint httpPolicyInformationPoint() {
 			LOGGER.info("HTTP PIP present. Loading.");
 			return new HttpPolicyInformationPoint();
 		}

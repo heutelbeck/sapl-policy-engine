@@ -52,8 +52,7 @@ import lombok.extern.slf4j.Slf4j;
  * provide properties you wish to use. c. f. <a href=
  * "https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html">Spring
  * Boot Documentation on config parameters</a>) <br/>
- * Do not forget to provide the minimal required files in your policy path! (at
- * least you need a <i>pdp.json</i> file) <br/>
+ * Do not forget to provide the minimal required files in your policy path! 
  * Example Snippet from .properties:<br/>
  * <code>
  * pdp.type=embedded
