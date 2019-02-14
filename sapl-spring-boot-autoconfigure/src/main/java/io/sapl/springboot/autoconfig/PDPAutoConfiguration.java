@@ -14,6 +14,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
@@ -29,6 +30,7 @@ import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
+import io.sapl.pep.BlockingSAPLAuthorizer;
 import io.sapl.pep.SAPLAuthorizer;
 import io.sapl.pep.pdp.advice.SimpleAdviceHandlerService;
 import io.sapl.pep.pdp.mapping.SimpleSaplMapper;
@@ -52,7 +54,7 @@ import lombok.extern.slf4j.Slf4j;
  * provide properties you wish to use. c. f. <a href=
  * "https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html">Spring
  * Boot Documentation on config parameters</a>) <br/>
- * Do not forget to provide the minimal required files in your policy path! 
+ * Do not forget to provide the minimal required files in your policy path!
  * Example Snippet from .properties:<br/>
  * <code>
  * pdp.type=embedded
@@ -143,8 +145,6 @@ import lombok.extern.slf4j.Slf4j;
 @AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
 public class PDPAutoConfiguration {
 
-	private static final String BEAN_NAME_OBLIGATION_HANDLER_DENY_ALL = "denyAllObligationHandler";
-
 	private final PDPProperties pdpProperties;
 	private final Map<String, Object> policyInformationPoints;
 	private final Map<String, Object> functionLibraries;
@@ -156,21 +156,31 @@ public class PDPAutoConfiguration {
 	}
 
 	@Bean
-	@ConditionalOnProperty(name = "pdp.type", havingValue = "RESOURCES")
-	public PolicyDecisionPoint pdpResources()
+	@ConditionalOnMissingBean
+	public PolicyDecisionPoint policyDecisionPoint()
+			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
+		switch (pdpProperties.getType()) {
+		case FILESYSTEM:
+			return filesystemPolicyDecisionPoint();
+		case REMOTE:
+			return remotePolicyDecisionPoint();
+		default:
+			return resourcesPolicyDecisionPoint();
+		}
+
+	}
+
+	private PolicyDecisionPoint resourcesPolicyDecisionPoint()
 			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
 		LOGGER.info("creating embedded PDP sourcing access policies from bundled resources at: {}",
 				pdpProperties.getResources().getPoliciesPath());
-		LOGGER.info("props: {}", pdpProperties);
 		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder()
 				.withResourcePolicyRetrievalPoint(pdpProperties.getResources().getPoliciesPath());
 
 		return bindComponentsToPDP(builder).build();
 	}
 
-	@Bean
-	@ConditionalOnProperty(name = "pdp.type", havingValue = "FILESYSTEM")
-	public PolicyDecisionPoint pdpFilesystem()
+	private PolicyDecisionPoint filesystemPolicyDecisionPoint()
 			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
 		LOGGER.info("creating embedded PDP sourcing and monitoring access policies from the filesystem: {}",
 				pdpProperties.getFilesystem().getPoliciesPath());
@@ -202,9 +212,7 @@ public class PDPAutoConfiguration {
 		return builder;
 	}
 
-	@Bean
-	@ConditionalOnProperty(name = "pdp.type", havingValue = "REMOTE")
-	public PolicyDecisionPoint pdpRemote() {
+	private PolicyDecisionPoint remotePolicyDecisionPoint() {
 		Remote remoteProps = pdpProperties.getRemote();
 		String host = remoteProps.getHost();
 		int port = remoteProps.getPort();
@@ -234,10 +242,25 @@ public class PDPAutoConfiguration {
 	 */
 	@Bean
 	@ConditionalOnMissingBean
-	public SAPLAuthorizer createSAPLAuthorizer(PolicyDecisionPoint pdp, ObligationHandlerService ohs,
+	public SAPLAuthorizer saplAuthorizer(PolicyDecisionPoint pdp, ObligationHandlerService ohs,
 			AdviceHandlerService ahs, SaplMapper sm) {
 		LOGGER.debug("no Bean of type SAPLAuthorizer  defined. Will create default Bean of {}", SAPLAuthorizer.class);
 		return new SAPLAuthorizer(pdp, ohs, ahs, sm);
+	}
+
+	/**
+	 * @param pdp - a PolicyDecisionPoint instance
+	 * @param ohs - an ObligationHandlerService instance
+	 * @param ahs - an AdviceHandlerService instance
+	 * @param sm  - a SaplMapper instance
+	 * @return a SAPLAuthorizer instance
+	 */
+	@Bean
+	@ConditionalOnMissingBean
+	public BlockingSAPLAuthorizer blockingSAPLAuthorizer(SAPLAuthorizer authorizer) {
+		LOGGER.debug("no Bean of type BlockingSAPLAuthorizer  defined. Will create default Bean of {}",
+				SAPLAuthorizer.class);
+		return new BlockingSAPLAuthorizer(authorizer);
 	}
 
 	/**
@@ -247,7 +270,7 @@ public class PDPAutoConfiguration {
 	 */
 	@Bean
 	@ConditionalOnMissingBean
-	public SAPLPermissionEvaluator createSAPLPermissionEvaluator(SAPLAuthorizer saplAuthorizer) {
+	public SAPLPermissionEvaluator saplPermissionEvaluator(SAPLAuthorizer saplAuthorizer) {
 		LOGGER.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of {}",
 				SAPLPermissionEvaluator.class);
 		return new SAPLPermissionEvaluator(saplAuthorizer);
@@ -261,7 +284,7 @@ public class PDPAutoConfiguration {
 	 */
 	@Bean
 	@ConditionalOnMissingBean
-	public SaplMapper createSaplMapper() {
+	public SaplMapper saplMapper() {
 		LOGGER.debug("no Bean of type SaplMapper defined. Will create default Bean of {}", SimpleSaplMapper.class);
 		return new SimpleSaplMapper();
 	}
@@ -274,7 +297,7 @@ public class PDPAutoConfiguration {
 	 */
 	@Bean
 	@ConditionalOnMissingBean
-	public ObligationHandlerService createDefaultObligationHandlerService() {
+	public ObligationHandlerService obligationHandlerService() {
 		LOGGER.debug("no Bean of type ObligationHandlerService defined. Will create default Bean of {}",
 				SimpleObligationHandlerService.class);
 		return new SimpleObligationHandlerService();
@@ -287,8 +310,9 @@ public class PDPAutoConfiguration {
 	 * @return an AdviceHandlerService
 	 */
 	@Bean
+	@Order(1)
 	@ConditionalOnMissingBean
-	public AdviceHandlerService createDefaultAdviceHandlerService() {
+	public AdviceHandlerService adviceHandlerService() {
 		LOGGER.debug("no Bean of type AdviceHandlerService defined. Will create default Bean of {}",
 				SimpleAdviceHandlerService.class);
 		return new SimpleAdviceHandlerService();
@@ -332,16 +356,14 @@ public class PDPAutoConfiguration {
 	 * 
 	 * @return an ObligationHandler implementation
 	 */
-	@Bean(BEAN_NAME_OBLIGATION_HANDLER_DENY_ALL)
+	@Bean
 	@ConditionalOnMissingBean
 	public ObligationHandler denyAllObligationHandler() {
 		return new ObligationHandler() {
-
 			@Override
 			public void handleObligation(Obligation obligation) {
 				LOGGER.warn(
-						"using denyAllObligationHandler. If you want to handle Obligations register your own und probably unregister this one (Bean name: {})",
-						BEAN_NAME_OBLIGATION_HANDLER_DENY_ALL);
+						"using denyAllObligationHandler. If you want to handle Obligations register your own und probably unregister this one.");
 			}
 
 			@Override

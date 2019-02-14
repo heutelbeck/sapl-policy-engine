@@ -3,11 +3,9 @@ package io.sapl.springboot.autoconfig;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
+@Data
 @Validated
 @ConfigurationProperties(prefix = "pdp")
 public class PDPProperties {
@@ -28,22 +26,19 @@ public class PDPProperties {
 
 	private ObligationHandler obligationsHandler = new ObligationHandler();
 
-	@Getter
-	@Setter
+	@Data
 	public static class Filesystem {
 		private String policiesPath = "~/policies";
 
 	}
 
-	@Getter
-	@Setter
+	@Data
 	public static class Resources {
 		private String policiesPath = "/policies";
 
 	}
 
-	@Getter
-	@Setter
+	@Data
 	public static class Remote {
 		private static final int DEFAULT_REMOTE_PORT = 8443;
 		private boolean active;
@@ -53,8 +48,7 @@ public class PDPProperties {
 		private String secret;
 	}
 
-	@Getter
-	@Setter
+	@Data
 	public static class ObligationHandler {
 		private boolean autoregister = true;
 	}
