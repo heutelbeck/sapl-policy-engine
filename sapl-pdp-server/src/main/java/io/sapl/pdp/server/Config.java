@@ -3,7 +3,6 @@ package io.sapl.pdp.server;
 import org.apache.catalina.Context;
 import org.apache.tomcat.util.descriptor.web.SecurityCollection;
 import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
@@ -13,9 +12,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 
 @Configuration
 @EnableWebMvc
@@ -72,8 +68,4 @@ public class Config implements WebMvcConfigurer {
 //        return connector;
 //    }
 
-    @Bean
-    public PolicyDecisionPoint pdp(@Value("${policy.path}") String policyPath) throws Exception {
-        return EmbeddedPolicyDecisionPoint.builder().withResourcePolicyRetrievalPoint(policyPath).build();
-    }
 }
