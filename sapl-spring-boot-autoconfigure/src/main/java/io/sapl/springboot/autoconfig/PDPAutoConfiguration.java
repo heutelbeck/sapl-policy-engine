@@ -186,7 +186,7 @@ public class PDPAutoConfiguration {
 				pdpProperties.getFilesystem().getPoliciesPath());
 
 		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder()
-				.withFilesystemPolicyRetrievalPoint(pdpProperties.getResources().getPoliciesPath());
+				.withFilesystemPolicyRetrievalPoint(pdpProperties.getFilesystem().getPoliciesPath());
 
 		return bindComponentsToPDP(builder).build();
 	}
