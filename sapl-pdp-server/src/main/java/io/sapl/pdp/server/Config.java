@@ -4,7 +4,7 @@ import org.apache.catalina.Context;
 import org.apache.tomcat.util.descriptor.web.SecurityCollection;
 import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
-import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
+import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.AsyncTaskExecutor;
@@ -33,7 +33,7 @@ public class Config implements WebMvcConfigurer {
     }
 
     @Bean
-    public ServletWebServerFactory servletContainer() {
+    public ConfigurableServletWebServerFactory servletContainer() {
         final TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory() {
 
             @Override
