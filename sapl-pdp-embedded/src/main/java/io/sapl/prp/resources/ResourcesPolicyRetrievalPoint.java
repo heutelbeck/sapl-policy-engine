@@ -61,6 +61,11 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		}
 
 		URL policyFolderUrl = clazz.getResource(policyPath);
+		
+		if (policyFolderUrl == null) {
+			throw new PolicyEvaluationException(
+					"Policy folder not found. Path:" + policyPath + " - URL: " + policyFolderUrl);
+		}
 
 		parsedDocIdx = functionCtx != null ? new FastParsedDocumentIndex(functionCtx) : new SimpleParsedDocumentIndex();
 
