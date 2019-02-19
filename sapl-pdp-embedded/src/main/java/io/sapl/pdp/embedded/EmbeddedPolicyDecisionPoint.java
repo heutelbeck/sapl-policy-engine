@@ -50,7 +50,6 @@ import reactor.core.scheduler.Schedulers;
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final String ALGORITHM_NOT_ALLOWED_FOR_PDP_LEVEL_COMBINATION = "algorithm not allowed for PDP level combination.";
 	public static final String DEFAULT_PATH = "~" + File.separator + "policies";
 
@@ -59,6 +58,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	private Map<String, JsonNode> variables = new HashMap<>();
 	private AttributeContext attributeCtx;
 	private FunctionContext functionCtx;
+	private ObjectMapper mapper = new ObjectMapper();
 
 	public static class Builder {
 		private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
@@ -79,6 +79,11 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		public Builder withFunctionLibrary(Object lib) throws FunctionException {
 			pdp.functionCtx.loadLibrary(lib);
+			return this;
+		}
+
+		public Builder withObjectMapper(ObjectMapper mapper) {
+			pdp.mapper = mapper;
 			return this;
 		}
 
@@ -160,9 +165,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		attributeCtx = new AnnotationAttributeContext();
 	}
 
-	private static Request toRequest(Object subject, Object action, Object resource, Object environment) {
-		return new Request(MAPPER.convertValue(subject, JsonNode.class), MAPPER.convertValue(action, JsonNode.class),
-				MAPPER.convertValue(resource, JsonNode.class), MAPPER.convertValue(environment, JsonNode.class));
+	private Request toRequest(Object subject, Object action, Object resource, Object environment) {
+		return new Request(mapper.convertValue(subject, JsonNode.class), mapper.convertValue(action, JsonNode.class),
+				mapper.convertValue(resource, JsonNode.class), mapper.convertValue(environment, JsonNode.class));
 	}
 
 	@Override

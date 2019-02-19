@@ -9,7 +9,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
@@ -37,24 +36,18 @@ public class PolicyEnforcementFilter extends GenericFilterBean {
 		HttpServletRequest req = (HttpServletRequest) request;
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		if (authentication != null) {
 
-			LOGGER.debug("Request to Policy Enforcement Filter: {} {}{} {}{}", authentication.toString(), SERVER,
-					req.getRequestURI(), PROTOCOL, req.getMethod());
+		LOGGER.trace("Request to Policy Enforcement Filter: {} {}{} {}{}", authentication.toString(), SERVER,
+				req.getRequestURI(), PROTOCOL, req.getMethod());
 
-			boolean permission = sapl.authorize(authentication, req, req);
-			LOGGER.debug("The response is: {}", permission);
+		boolean permission = sapl.authorize(authentication, req, req);
+		LOGGER.trace("The response is: {}", permission);
 
-			if (!permission) {
-				LOGGER.debug("User was not authorized for this action");
-				throw new AccessDeniedException("Current User may not perform this action.");
-			}
-
-		} else {
-			LOGGER.debug("unauthenticated User");
-			throw new AuthenticationCredentialsNotFoundException("Not authenticated");
-
+		if (!permission) {
+			LOGGER.trace("User was not authorized for this action");
+			throw new AccessDeniedException("Current User may not perform this action.");
 		}
+
 		chain.doFilter(req, response);
 	}
 

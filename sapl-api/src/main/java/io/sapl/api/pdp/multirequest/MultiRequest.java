@@ -12,8 +12,8 @@
  */
 package io.sapl.api.pdp.multirequest;
 
-import static java.util.Objects.requireNonNull;
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
+import static java.util.Objects.requireNonNull;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -22,9 +22,8 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.pdp.Request;
-import io.sapl.api.pdp.mapping.SaplMapper;
-import io.sapl.api.pdp.mapping.SaplRequestElement;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -134,32 +133,6 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 
 	public boolean hasRequests() {
 		return ! requests.isEmpty();
-	}
-
-	public void applySaplMapper(SaplMapper mapper) {
-		final Map<String, Object> tempSubjects = new HashMap<>(subjects.size());
-		for (Map.Entry<String, Object> entry : subjects.entrySet()) {
-			tempSubjects.put(entry.getKey(), mapper.map(entry.getValue(), SaplRequestElement.SUBJECT));
-		}
-		subjects = tempSubjects;
-
-		final Map<String, Object> tempActions = new HashMap<>(actions.size());
-		for (Map.Entry<String, Object> entry : actions.entrySet()) {
-			tempActions.put(entry.getKey(), mapper.map(entry.getValue(), SaplRequestElement.ACTION));
-		}
-		actions = tempActions;
-
-		final Map<String, Object> tempResources = new HashMap<>(resources.size());
-		for (Map.Entry<String, Object> entry : resources.entrySet()) {
-			tempResources.put(entry.getKey(), mapper.map(entry.getValue(), SaplRequestElement.RESOURCE));
-		}
-		resources = tempResources;
-
-		final Map<String, Object> tempEnvironments = new HashMap<>(environments.size());
-		for (Map.Entry<String, Object> entry : environments.entrySet()) {
-			tempEnvironments.put(entry.getKey(), mapper.map(entry.getValue(), SaplRequestElement.ENVIRONMENT));
-		}
-		environments = tempEnvironments;
 	}
 
 	@Override

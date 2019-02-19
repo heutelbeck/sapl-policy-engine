@@ -13,15 +13,17 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.advice.AdviceHandlerService;
-import io.sapl.api.pdp.mapping.SaplMapper;
 import io.sapl.api.pdp.obligation.Obligation;
 import io.sapl.api.pdp.obligation.ObligationHandler;
 import io.sapl.api.pdp.obligation.ObligationHandlerService;
@@ -33,11 +35,8 @@ import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import io.sapl.pep.BlockingSAPLAuthorizer;
 import io.sapl.pep.SAPLAuthorizer;
 import io.sapl.pep.pdp.advice.SimpleAdviceHandlerService;
-import io.sapl.pep.pdp.mapping.SimpleSaplMapper;
 import io.sapl.pep.pdp.obligation.SimpleObligationHandlerService;
 import io.sapl.spring.PolicyEnforcementFilter;
-import io.sapl.spring.SAPLPermissionEvaluator;
-import io.sapl.spring.annotation.PdpAuthorizeAspect;
 import io.sapl.springboot.autoconfig.PDPProperties.Remote;
 import lombok.extern.slf4j.Slf4j;
 
@@ -141,6 +140,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Configuration
+@ComponentScan("io.sapl.spring")
 @EnableConfigurationProperties(PDPProperties.class)
 @AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
 public class PDPAutoConfiguration {
@@ -148,9 +148,12 @@ public class PDPAutoConfiguration {
 	private final PDPProperties pdpProperties;
 	private final Map<String, Object> policyInformationPoints;
 	private final Map<String, Object> functionLibraries;
+	private final ObjectMapper mapper;
 
-	public PDPAutoConfiguration(PDPProperties pdpProperties, ConfigurableApplicationContext applicationContext) {
+	public PDPAutoConfiguration(PDPProperties pdpProperties, ConfigurableApplicationContext applicationContext,
+			ObjectMapper mapper) {
 		this.pdpProperties = pdpProperties;
+		this.mapper = mapper;
 		policyInformationPoints = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class);
 		functionLibraries = applicationContext.getBeansWithAnnotation(FunctionLibrary.class);
 	}
@@ -174,7 +177,7 @@ public class PDPAutoConfiguration {
 			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
 		LOGGER.info("creating embedded PDP sourcing access policies from bundled resources at: {}",
 				pdpProperties.getResources().getPoliciesPath());
-		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder()
+		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder().withObjectMapper(mapper)
 				.withResourcePolicyRetrievalPoint(pdpProperties.getResources().getPoliciesPath());
 
 		return bindComponentsToPDP(builder).build();
@@ -185,7 +188,7 @@ public class PDPAutoConfiguration {
 		LOGGER.info("creating embedded PDP sourcing and monitoring access policies from the filesystem: {}",
 				pdpProperties.getFilesystem().getPoliciesPath());
 
-		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder()
+		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder().withObjectMapper(mapper)
 				.withFilesystemPolicyRetrievalPoint(pdpProperties.getFilesystem().getPoliciesPath());
 
 		return bindComponentsToPDP(builder).build();
@@ -243,9 +246,9 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public SAPLAuthorizer saplAuthorizer(PolicyDecisionPoint pdp, ObligationHandlerService ohs,
-			AdviceHandlerService ahs, SaplMapper sm) {
+			AdviceHandlerService ahs) {
 		LOGGER.debug("no Bean of type SAPLAuthorizer  defined. Will create default Bean of {}", SAPLAuthorizer.class);
-		return new SAPLAuthorizer(pdp, ohs, ahs, sm);
+		return new SAPLAuthorizer(pdp, ohs, ahs);
 	}
 
 	/**
@@ -261,32 +264,6 @@ public class PDPAutoConfiguration {
 		LOGGER.debug("no Bean of type BlockingSAPLAuthorizer  defined. Will create default Bean of {}",
 				SAPLAuthorizer.class);
 		return new BlockingSAPLAuthorizer(authorizer);
-	}
-
-	/**
-	 * 
-	 * @param saplAuthorizer - the SAPLAuthorizer to be used
-	 * @return a SAPLPermissionEvaluator
-	 */
-	@Bean
-	@ConditionalOnMissingBean
-	public SAPLPermissionEvaluator saplPermissionEvaluator(SAPLAuthorizer saplAuthorizer) {
-		LOGGER.debug("no Bean of type SAPLPermissionEvaluator defined. Will create default Bean of {}",
-				SAPLPermissionEvaluator.class);
-		return new SAPLPermissionEvaluator(saplAuthorizer);
-	}
-
-	/**
-	 * If no other bean-definition of type {@link SaplMapper} is provided, then this
-	 * will provide a {@link SimpleSaplMapper}
-	 * 
-	 * @return an implementation of SaplMapper
-	 */
-	@Bean
-	@ConditionalOnMissingBean
-	public SaplMapper saplMapper() {
-		LOGGER.debug("no Bean of type SaplMapper defined. Will create default Bean of {}", SimpleSaplMapper.class);
-		return new SimpleSaplMapper();
 	}
 
 	/**
@@ -373,8 +350,4 @@ public class PDPAutoConfiguration {
 		};
 	}
 
-	@Bean
-	PdpAuthorizeAspect pdpAuthorizeAspect(SAPLAuthorizer sapl) {
-		return new PdpAuthorizeAspect(sapl);
-	}
 }
