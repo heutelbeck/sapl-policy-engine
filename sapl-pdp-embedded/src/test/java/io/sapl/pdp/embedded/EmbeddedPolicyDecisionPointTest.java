@@ -38,7 +38,7 @@ public class EmbeddedPolicyDecisionPointTest {
 	@Test
 	public void decide_withEmptyRequest_shouldReturnDeny() {
 		Request emptyRequest = new Request(JSON.nullNode(), JSON.nullNode(), JSON.nullNode(), JSON.nullNode());
-		final Flux<Response> responseFlux = pdp.decide(emptyRequest);
+		final Flux<Response> responseFlux = pdp.subscribe(emptyRequest);
 		StepVerifier.create(responseFlux).expectNextMatches(response -> response.getDecision() == Decision.DENY)
 				.thenCancel().verify();
 	}
@@ -47,7 +47,7 @@ public class EmbeddedPolicyDecisionPointTest {
 	public void decide_withAllowedAction_shouldReturnPermit() {
 		Request simpleRequest = new Request(JSON.textNode("willi"), JSON.textNode("read"), JSON.textNode("something"),
 				JSON.nullNode());
-		final Flux<Response> responseFlux = pdp.decide(simpleRequest).log();
+		final Flux<Response> responseFlux = pdp.subscribe(simpleRequest).log();
 		StepVerifier.create(responseFlux).expectNextMatches(response -> response.getDecision() == Decision.PERMIT)
 				.thenCancel().verify();
 	}
@@ -56,7 +56,7 @@ public class EmbeddedPolicyDecisionPointTest {
 	public void decide_withForbiddenAction_shouldReturnDeny() {
 		Request simpleRequest = new Request(JSON.textNode("willi"), JSON.textNode("write"), JSON.textNode("something"),
 				JSON.nullNode());
-		final Flux<Response> responseFlux = pdp.decide(simpleRequest).log();
+		final Flux<Response> responseFlux = pdp.subscribe(simpleRequest).log();
 		StepVerifier.create(responseFlux).expectNextMatches(response -> response.getDecision() == Decision.DENY)
 				.thenCancel().verify();
 	}
@@ -65,7 +65,7 @@ public class EmbeddedPolicyDecisionPointTest {
 	public void decide_withEmptyMultiRequest_shouldReturnIndeterminateResponse() {
 		final MultiRequest multiRequest = new MultiRequest();
 
-		final Flux<IdentifiableResponse> flux = pdp.decide(multiRequest);
+		final Flux<IdentifiableResponse> flux = pdp.subscribe(multiRequest);
 		StepVerifier.create(flux).expectNextMatches(
 				response -> response.getRequestId() == null && response.getResponse().equals(Response.indeterminate()))
 				.thenCancel().verify();
@@ -79,7 +79,7 @@ public class EmbeddedPolicyDecisionPointTest {
 		multiRequest.addResource(new IdentifiableResource("res", "something"));
 		multiRequest.addRequest("req", new RequestElements("sub", "act", "res"));
 
-		final Flux<IdentifiableResponse> flux = pdp.decide(multiRequest);
+		final Flux<IdentifiableResponse> flux = pdp.subscribe(multiRequest);
 		StepVerifier.create(flux).expectNextMatches(
 				response -> response.getRequestId().equals("req") && response.getResponse().equals(Response.permit()))
 				.thenCancel().verify();
@@ -95,7 +95,7 @@ public class EmbeddedPolicyDecisionPointTest {
 		multiRequest.addRequest("req1", new RequestElements("sub", "act1", "res"));
 		multiRequest.addRequest("req2", new RequestElements("sub", "act2", "res"));
 
-		final Flux<IdentifiableResponse> flux = pdp.decide(multiRequest);
+		final Flux<IdentifiableResponse> flux = pdp.subscribe(multiRequest);
 		StepVerifier.create(flux).expectNextMatches(response -> {
 			if (response.getRequestId().equals("req1")) {
 				return response.getResponse().equals(Response.permit());

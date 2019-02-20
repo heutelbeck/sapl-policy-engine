@@ -45,7 +45,7 @@ public class EmbeddedPRPTest {
 				JSON.nullNode());
 		int RUNS = 00;
 		for (int i = 0; i < RUNS; i++) {
-			final Flux<Response> responseFlux = pdp.decide(simpleRequest);
+			final Flux<Response> responseFlux = pdp.subscribe(simpleRequest);
 			StepVerifier.create(responseFlux).expectNextCount(1).thenCancel().verify();
 			// System.out.println("response: " + response.toString());
 		}

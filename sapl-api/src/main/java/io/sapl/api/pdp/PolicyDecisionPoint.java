@@ -3,6 +3,7 @@ package io.sapl.api.pdp;
 import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import io.sapl.api.pdp.multirequest.MultiRequest;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * The policy decision point is the component in the system, which will take a
@@ -26,10 +27,10 @@ public interface PolicyDecisionPoint {
 	 *         New responses are only added to the stream if they are
 	 *         different from the preceding response.
 	 */
-	Flux<Response> decide(Request request);
+	Flux<Response> subscribe(Request request);
 
     /**
-     * Multi-request variant of {@link #decide(Request)}.
+     * Multi-request variant of {@link #subscribe(Request)}.
 	 *
      * @param multiRequest
 	 *            the multi-request object containing the subjects, actions,
@@ -38,5 +39,9 @@ public interface PolicyDecisionPoint {
      * @return a {@link Flux} emitting responses for the given requests.
 	 *         Related responses and requests have the same id.
      */
-	Flux<IdentifiableResponse> decide(MultiRequest multiRequest);
+	Flux<IdentifiableResponse> subscribe(MultiRequest multiRequest);
+	
+	Mono<Response> decide(Request request);
+	Mono<IdentifiableResponse> decide(MultiRequest multiRequest);
+	
 }

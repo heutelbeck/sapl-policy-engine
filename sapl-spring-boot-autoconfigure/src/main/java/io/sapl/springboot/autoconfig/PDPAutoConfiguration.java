@@ -20,7 +20,9 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
@@ -241,4 +243,8 @@ public class PDPAutoConfiguration {
 		return new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
 	}
 
+	@Bean
+	public Module jdk8Module() {
+	  return new Jdk8Module();
+	}
 }

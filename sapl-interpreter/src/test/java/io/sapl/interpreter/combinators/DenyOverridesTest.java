@@ -224,7 +224,7 @@ public class DenyOverridesTest {
 
 		assertEquals("should collect all deny obligation", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligation());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligations());
 	}
 
 	@Test
@@ -241,7 +241,7 @@ public class DenyOverridesTest {
 
 		assertEquals("should collect all deny advice", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvice());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvices());
 	}
 
 	@Test
@@ -258,7 +258,7 @@ public class DenyOverridesTest {
 
 		assertEquals("should collect all permit obligation", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligation());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligations());
 	}
 
 	@Test
@@ -275,7 +275,7 @@ public class DenyOverridesTest {
 
 		assertEquals("should collect all permit advice", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvice());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvices());
 	}
 
 }

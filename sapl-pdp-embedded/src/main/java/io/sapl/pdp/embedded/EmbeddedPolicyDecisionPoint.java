@@ -44,6 +44,7 @@ import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.prp.filesystem.FilesystemPolicyRetrievalPoint;
 import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
@@ -159,7 +160,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
-	public Flux<Response> decide(Request request) {
+	public Flux<Response> subscribe(Request request) {
 		final Flux<PolicyRetrievalResult> retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
 		return retrievalResult.switchMap(result -> {
 			final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
@@ -170,12 +171,12 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
-	public Flux<IdentifiableResponse> decide(MultiRequest multiRequest) {
+	public Flux<IdentifiableResponse> subscribe(MultiRequest multiRequest) {
 		if (multiRequest.hasRequests()) {
 			final List<Flux<IdentifiableResponse>> requestIdResponsePairFluxes = new ArrayList<>();
 			for (IdentifiableRequest identifiableRequest : multiRequest) {
 				final Request request = identifiableRequest.getRequest();
-				final Flux<Response> responseFlux = decide(request);
+				final Flux<Response> responseFlux = subscribe(request);
 				final Flux<IdentifiableResponse> requestResponsePairFlux = responseFlux
 						.map(response -> new IdentifiableResponse(identifiableRequest.getId(), response))
 						.subscribeOn(Schedulers.newElastic("pdp"));
@@ -192,6 +193,16 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	public static Builder builder() throws FunctionException, AttributeException {
 		return new Builder();
+	}
+
+	@Override
+	public Mono<Response> decide(Request request) {
+		return subscribe(request).next();
+	}
+
+	@Override
+	public Mono<IdentifiableResponse> decide(MultiRequest multiRequest) {
+		return subscribe(multiRequest).next();
 	}
 
 }

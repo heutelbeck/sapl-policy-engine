@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SAPLPermissionEvaluator implements PermissionEvaluator {
+public class PermissionEvaluatorPEP implements PermissionEvaluator {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -32,7 +32,7 @@ public class SAPLPermissionEvaluator implements PermissionEvaluator {
 	@Override
 	public boolean hasPermission(Authentication authentication, Object targetDomainObject, Object permission) {
 		Response response = pdp.decide(new Request(mapper.valueToTree(authentication), mapper.valueToTree(permission),
-				mapper.valueToTree(targetDomainObject), null)).blockFirst();
+				mapper.valueToTree(targetDomainObject), null)).block();
 		if (response.getDecision() != Decision.PERMIT) {
 			LOGGER.trace("Access not permitted by policy decision point. Decision was: {}", response.getDecision());
 			return false;
@@ -54,10 +54,9 @@ public class SAPLPermissionEvaluator implements PermissionEvaluator {
 		ObjectNode target = JSON.objectNode();
 		target.set("id", mapper.valueToTree(targetId));
 		target.set("type", JSON.textNode(targetType));
-
 		Response response = pdp.decide(
 				new Request(mapper.valueToTree(authentication), mapper.valueToTree(permissionText), target, null))
-				.blockFirst();
+				.block();
 		if (response.getDecision() != Decision.PERMIT) {
 			LOGGER.trace("Access not permitted by policy decision point. Decision was: {}", response.getDecision());
 			return false;

@@ -38,8 +38,7 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-		// TODO switch to mono once available
-		Response decision = pdp.decide(buildRequest(authentication, req, req)).blockFirst();
+		Response decision = pdp.decide(buildRequest(authentication, req, req)).block();
 
 		LOGGER.trace("PDP decision: {}", decision);
 

@@ -23,8 +23,8 @@ public class ConstraintHandlerService {
 	private final List<ConstraintHandler> constraintHandlers;
 
 	public boolean obligationHandlersForObligationsAvailable(Response response) {
-		if (response.getObligation().isPresent()) {
-			for (JsonNode obligation : response.getObligation().get()) {
+		if (response.getObligations().isPresent()) {
+			for (JsonNode obligation : response.getObligations().get()) {
 				if (!atLeastOneHandlerForConstraintIsPresent(obligation)) {
 					LOGGER.warn("No obligation handler found for: {}", obligation);
 					return false;
@@ -35,8 +35,11 @@ public class ConstraintHandlerService {
 	}
 
 	public void handleObligations(Response response) {
-		if (response.getObligation().isPresent()) {
-			for (JsonNode obligation : response.getObligation().get()) {
+		if (!obligationHandlersForObligationsAvailable(response)) {
+			throw new AccessDeniedException("Obligation handlers missing.");
+		}
+		if (response.getObligations().isPresent()) {
+			for (JsonNode obligation : response.getObligations().get()) {
 				if (!handleConstraint(obligation)) {
 					LOGGER.warn(String.format("Failed to handle obligation: %s", obligation));
 					throw new AccessDeniedException(String.format("Failed to handle obligation: %s", obligation));
@@ -46,8 +49,8 @@ public class ConstraintHandlerService {
 	}
 
 	public void handleAdvices(Response response) {
-		if (response.getAdvice().isPresent()) {
-			for (JsonNode advice : response.getAdvice().get()) {
+		if (response.getAdvices().isPresent()) {
+			for (JsonNode advice : response.getAdvices().get()) {
 				if (!handleConstraint(advice)) {
 					LOGGER.warn("Failed to handle advice: {}", advice);
 				}

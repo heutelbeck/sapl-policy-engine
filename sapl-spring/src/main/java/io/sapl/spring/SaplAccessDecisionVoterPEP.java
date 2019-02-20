@@ -51,8 +51,7 @@ public class SaplAccessDecisionVoterPEP implements AccessDecisionVoter<Object> {
 			LOGGER.info(configAttribute.toString());
 		}
 
-		// TODO switch to mono once available
-		Response decision = pdp.decide(buildRequest(authentication, request, request)).blockFirst();
+		Response decision = pdp.decide(buildRequest(authentication, request, request)).block();
 
 		LOGGER.trace("PDP decision: {}", decision);
 

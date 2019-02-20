@@ -16,6 +16,7 @@ import io.sapl.api.pdp.multirequest.MultiRequest;
 import io.sapl.webclient.RequestSpecification;
 import io.sapl.webclient.WebClientRequestExecutor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
@@ -42,17 +43,27 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
-	public Flux<Response> decide(Request request) {
+	public Flux<Response> subscribe(Request request) {
 		final RequestSpecification saplRequest = getRequestSpecification(request);
 		return new WebClientRequestExecutor().executeReactiveRequest(saplRequest, POST)
 				.map(jsonNode -> mapper.convertValue(jsonNode, Response.class));
 	}
 
 	@Override
-	public Flux<IdentifiableResponse> decide(MultiRequest multiRequest) {
+	public Flux<IdentifiableResponse> subscribe(MultiRequest multiRequest) {
 		final RequestSpecification saplRequest = getRequestSpecification(multiRequest);
 		return new WebClientRequestExecutor().executeReactiveRequest(saplRequest, POST)
 				.map(jsonNode -> mapper.convertValue(jsonNode, IdentifiableResponse.class));
+	}
+
+	@Override
+	public Mono<Response> decide(Request request) {
+		return subscribe(request).next();
+	}
+
+	@Override
+	public Mono<IdentifiableResponse> decide(MultiRequest multiRequest) {
+		return subscribe(multiRequest).next();
 	}
 
 	private RequestSpecification getRequestSpecification(Request request) {

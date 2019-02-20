@@ -34,24 +34,26 @@ public class Response {
 
 	Decision decision;
 
-	// Optional fields initialized as Optional.empty to allow comparing with JSON marshalling/unmarshalling
-	// Without initialization, fields would be null after JSON marshalling/unmarshalling
+	// Optional fields initialized as Optional.empty to allow comparing with JSON
+	// marshalling/unmarshalling
+	// Without initialization, fields would be null after JSON
+	// marshalling/unmarshalling
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<JsonNode> resource = Optional.empty();
 
 	@JsonInclude(Include.NON_ABSENT)
-	Optional<ArrayNode> obligation = Optional.empty();
+	Optional<ArrayNode> obligations = Optional.empty();
 
 	@JsonInclude(Include.NON_ABSENT)
-	Optional<ArrayNode> advice = Optional.empty();
+	Optional<ArrayNode> advices = Optional.empty();
 
 	public static Response permit() {
 		return new Response(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty());
 	}
 
-    public static Response deny() {
-        return new Response(Decision.DENY, Optional.empty(), Optional.empty(), Optional.empty());
-    }
+	public static Response deny() {
+		return new Response(Decision.DENY, Optional.empty(), Optional.empty(), Optional.empty());
+	}
 
 	public static Response indeterminate() {
 		return new Response(Decision.INDETERMINATE, Optional.empty(), Optional.empty(), Optional.empty());
@@ -70,23 +72,23 @@ public class Response {
 			return false;
 		}
 		final Response other = (Response) o;
-		if (! Objects.equals(this.getDecision(), other.getDecision())) {
+		if (!Objects.equals(this.getDecision(), other.getDecision())) {
 			return false;
 		}
-		if (! areEqual(this.getResource(), other.getResource())) {
+		if (!areEqual(this.getResource(), other.getResource())) {
 			return false;
 		}
-		if (! areEqual(this.getObligation(), other.getObligation())) {
+		if (!areEqual(this.getObligations(), other.getObligations())) {
 			return false;
 		}
-		return areEqual(this.getAdvice(), other.getAdvice());
+		return areEqual(this.getAdvices(), other.getAdvices());
 	}
 
 	private static boolean areEqual(Optional<?> thisOptional, Optional<?> otherOptional) {
-		if (! thisOptional.isPresent()) {
-			return ! otherOptional.isPresent();
+		if (!thisOptional.isPresent()) {
+			return !otherOptional.isPresent();
 		}
-		if (! otherOptional.isPresent()) {
+		if (!otherOptional.isPresent()) {
 			return false;
 		}
 		return thisOptional.get().equals(otherOptional.get());
@@ -100,9 +102,9 @@ public class Response {
 		result = result * PRIME + (thisDecision == null ? 43 : thisDecision.hashCode());
 		final Optional<JsonNode> thisResource = this.getResource();
 		result = result * PRIME + thisResource.map(Object::hashCode).orElse(43);
-		final Optional<ArrayNode> thisObligation = this.getObligation();
+		final Optional<ArrayNode> thisObligation = this.getObligations();
 		result = result * PRIME + thisObligation.map(Object::hashCode).orElse(43);
-		final Optional<ArrayNode> thisAdvice = this.getAdvice();
+		final Optional<ArrayNode> thisAdvice = this.getAdvices();
 		result = result * PRIME + thisAdvice.map(Object::hashCode).orElse(43);
 		return result;
 	}

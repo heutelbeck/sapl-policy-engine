@@ -186,7 +186,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should collect deny obligation of only matching policy", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligation());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligations());
 	}
 
 	@Test
@@ -202,7 +202,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should collect deny advice of only matching policy", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvice());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvices());
 	}
 
 	@Test
@@ -218,7 +218,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should collect permit obligation of only matching policy", Optional.of(obligation),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligation());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligations());
 	}
 
 	@Test
@@ -234,7 +234,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should collect permit advice of only matching policy", Optional.of(advice),
 				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvice());
+						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvices());
 	}
 
 }

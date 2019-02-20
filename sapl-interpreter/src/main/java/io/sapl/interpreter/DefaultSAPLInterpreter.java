@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.inject.Injector;
 
 import io.sapl.api.interpreter.DocumentAnalysisResult;
@@ -360,8 +361,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		}).flatMap(response -> {
 			if (response.getDecision() == Decision.PERMIT) {
 				return evaluateTransformation(policy, evaluationCtx)
-						.map(resource -> new Response(response.getDecision(), resource, response.getObligation(),
-								response.getAdvice()));
+						.map(resource -> new Response(response.getDecision(), resource, response.getObligations(),
+								response.getAdvices()));
 			} else {
 				return Flux.just(response);
 			}
@@ -586,6 +587,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	private static void logRequest(Request request) {
 		if (LOGGER.isTraceEnabled()) {
 			ObjectMapper mapper = new ObjectMapper();
+		    mapper.registerModule(new Jdk8Module());
+
 			String req = null;
 			try {
 				req = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(mapper.valueToTree(request));
@@ -599,6 +602,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	private void logResponse(Response r) {
 		if (LOGGER.isTraceEnabled()) {
 			ObjectMapper mapper = new ObjectMapper();
+		    mapper.registerModule(new Jdk8Module());
+
 			String req = null;
 			try {
 				req = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(mapper.valueToTree(r));

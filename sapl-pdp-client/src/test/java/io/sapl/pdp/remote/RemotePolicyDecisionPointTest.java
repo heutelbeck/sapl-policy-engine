@@ -34,7 +34,7 @@ public class RemotePolicyDecisionPointTest {
 		final Request simpleRequest = new Request(JSON.textNode("willi"), JSON.textNode("test-read"),
 				JSON.textNode("something"), JSON.nullNode());
 		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint("localhost", 8443);
-		final Flux<Response> decideFlux = pdp.decide(simpleRequest);
+		final Flux<Response> decideFlux = pdp.subscribe(simpleRequest);
 		StepVerifier.create(decideFlux).expectNext(Response.permit()).thenCancel().verify();
 	}
 
@@ -53,7 +53,7 @@ public class RemotePolicyDecisionPointTest {
 		multiRequest.addRequest("requestId_2", new RequestElements(AUTHENTICATION_ID, READ_ID, "bloodPressureData"));
 
 		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint("localhost", 8443);
-		final Flux<IdentifiableResponse> decideFlux = pdp.decide(multiRequest);
+		final Flux<IdentifiableResponse> decideFlux = pdp.subscribe(multiRequest);
 		StepVerifier.create(decideFlux).expectNextMatches(response -> {
 			if (response.getRequestId().equals("requestId_1")) {
 				return response.getResponse().equals(Response.permit());

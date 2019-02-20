@@ -9,10 +9,10 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Aspect
-@Component
+@Configuration
 @RequiredArgsConstructor
 public class EnforcePoliciesAspectPEP {
 
@@ -42,6 +42,7 @@ public class EnforcePoliciesAspectPEP {
 	private final ObjectMapper mapper;
 //	private final Optional<TokenStore> tokenStore;
 
+	// @Around("@annotation(enforcePolicies) && execution(* *(..))")
 	@Around("@annotation(enforcePolicies) && execution(* *(..))")
 	public Object around(ProceedingJoinPoint pjp, EnforcePolicies enforcePolicies) throws Throwable {
 		LOGGER.trace("Authorizing access to: {}.{}.", pjp.getTarget().getClass().getSimpleName(),
@@ -57,16 +58,12 @@ public class EnforcePoliciesAspectPEP {
 					"The policy enforcement point is deployed after the methods execution. I.e., resultResource == true. Running method now.");
 			Object originalResult = pjp.proceed();
 
-			if (!JsonNode.class.isAssignableFrom(originalResult.getClass())) {
-				throw new AccessDeniedException(
-						"Only JsonNode results are supported in methods with resultResource. Access not permitted by policy decision point.");
-			}
+			JsonNode originalResultJson = mapper.valueToTree(originalResult);
 
 			LOGGER.trace("The methods return value is used as the resource in the authorization request: {}",
-					originalResult);
+					originalResultJson);
 
-			// TODO ... use the Mono interface once it is available instead of blockFirst
-			Response response = pdp.decide(buildRequest(subject, action, originalResult)).blockFirst();
+			Response response = pdp.decide(buildRequest(subject, action, originalResult)).block();
 
 			if (response.getDecision() != Decision.PERMIT) {
 				LOGGER.trace("Access not permitted by policy decision point. Decision was: {}", response.getDecision());
@@ -74,17 +71,29 @@ public class EnforcePoliciesAspectPEP {
 			}
 			constraintHandlers.handleObligations(response);
 			constraintHandlers.handleAdvices(response);
-			result = response.getResource().orElse((JsonNode) originalResult);
+
+			if (response.getResource().isPresent()) {
+				try {
+					result = mapper.treeToValue(response.getResource().get(), originalResult.getClass());
+				} catch (JsonProcessingException e) {
+					LOGGER.trace("Transformed result cannot be mapped to original class. {}",
+							response.getResource().get());
+					throw new AccessDeniedException("Access not permitted by policy enforcement point.");
+				}
+			} else {
+				result = originalResult;
+			}
+
 		} else {
 			Object resource = retrieveResource(enforcePolicies, pjp);
 
-			// TODO ... use the Mono interface once it is available instead of blockFirst
-			Response response = pdp.decide(buildRequest(subject, action, resource)).blockFirst();
+			Response response = pdp.decide(buildRequest(subject, action, resource)).block();
 
 			if (response.getDecision() != Decision.PERMIT) {
 				LOGGER.trace("Access not permitted by policy decision point. Decision was: {}", response.getDecision());
 				throw new AccessDeniedException("Access not permitted by policy decision point.");
 			}
+
 			constraintHandlers.handleObligations(response);
 			constraintHandlers.handleAdvices(response);
 			result = pjp.proceed();
