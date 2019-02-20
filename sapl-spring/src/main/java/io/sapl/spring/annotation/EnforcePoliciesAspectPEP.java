@@ -24,8 +24,10 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
-import io.sapl.pep.BlockingSAPLAuthorizer;
+import io.sapl.spring.ConstraintHandlerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,9 +35,10 @@ import lombok.extern.slf4j.Slf4j;
 @Aspect
 @Component
 @RequiredArgsConstructor
-public class EnforcePoliciesAspect {
+public class EnforcePoliciesAspectPEP {
 
-	private final BlockingSAPLAuthorizer sapl;
+	private final PolicyDecisionPoint pdp;
+	private final ConstraintHandlerService constraintHandlers;
 	private final ObjectMapper mapper;
 //	private final Optional<TokenStore> tokenStore;
 
@@ -62,23 +65,36 @@ public class EnforcePoliciesAspect {
 			LOGGER.trace("The methods return value is used as the resource in the authorization request: {}",
 					originalResult);
 
-			Response response = sapl.getResponse(subject, action, originalResult);
+			// TODO ... use the Mono interface once it is available instead of blockFirst
+			Response response = pdp.decide(buildRequest(subject, action, originalResult)).blockFirst();
+
 			if (response.getDecision() != Decision.PERMIT) {
 				LOGGER.trace("Access not permitted by policy decision point. Decision was: {}", response.getDecision());
 				throw new AccessDeniedException("Access not permitted by policy decision point.");
 			}
+			constraintHandlers.handleObligations(response);
+			constraintHandlers.handleAdvices(response);
 			result = response.getResource().orElse((JsonNode) originalResult);
 		} else {
 			Object resource = retrieveResource(enforcePolicies, pjp);
-			Response response = sapl.getResponse(subject, action, resource);
+
+			// TODO ... use the Mono interface once it is available instead of blockFirst
+			Response response = pdp.decide(buildRequest(subject, action, resource)).blockFirst();
+
 			if (response.getDecision() != Decision.PERMIT) {
 				LOGGER.trace("Access not permitted by policy decision point. Decision was: {}", response.getDecision());
 				throw new AccessDeniedException("Access not permitted by policy decision point.");
 			}
+			constraintHandlers.handleObligations(response);
+			constraintHandlers.handleAdvices(response);
 			result = pjp.proceed();
 		}
 
 		return result;
+	}
+
+	private Request buildRequest(Object subject, Object action, Object resource) {
+		return new Request(mapper.valueToTree(subject), mapper.valueToTree(action), mapper.valueToTree(resource), null);
 	}
 
 	private Object retrieveSubject(EnforcePolicies pdpAuthorize, ProceedingJoinPoint pjp) {

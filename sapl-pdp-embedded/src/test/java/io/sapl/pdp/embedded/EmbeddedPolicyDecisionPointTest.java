@@ -4,8 +4,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pdp.multirequest.IdentifiableAction;
 import io.sapl.api.pdp.multirequest.IdentifiableResource;
@@ -18,7 +20,9 @@ import reactor.test.StepVerifier;
 
 public class EmbeddedPolicyDecisionPointTest {
 
-	private PolicyDecisionPoint pdp;
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
+	private EmbeddedPolicyDecisionPoint pdp;
 
 	@Before
 	public void setUp() throws Exception {
@@ -33,21 +37,26 @@ public class EmbeddedPolicyDecisionPointTest {
 
 	@Test
 	public void decide_withEmptyRequest_shouldReturnDeny() {
-		final Flux<Response> responseFlux = pdp.decide(null, null, null);
+		Request emptyRequest = new Request(JSON.nullNode(), JSON.nullNode(), JSON.nullNode(), JSON.nullNode());
+		final Flux<Response> responseFlux = pdp.decide(emptyRequest);
 		StepVerifier.create(responseFlux).expectNextMatches(response -> response.getDecision() == Decision.DENY)
 				.thenCancel().verify();
 	}
 
 	@Test
 	public void decide_withAllowedAction_shouldReturnPermit() {
-		final Flux<Response> responseFlux = pdp.decide("willi", "read", "something").log();
+		Request simpleRequest = new Request(JSON.textNode("willi"), JSON.textNode("read"), JSON.textNode("something"),
+				JSON.nullNode());
+		final Flux<Response> responseFlux = pdp.decide(simpleRequest).log();
 		StepVerifier.create(responseFlux).expectNextMatches(response -> response.getDecision() == Decision.PERMIT)
 				.thenCancel().verify();
 	}
 
 	@Test
 	public void decide_withForbiddenAction_shouldReturnDeny() {
-		final Flux<Response> responseFlux = pdp.decide("willi", "write", "something");
+		Request simpleRequest = new Request(JSON.textNode("willi"), JSON.textNode("write"), JSON.textNode("something"),
+				JSON.nullNode());
+		final Flux<Response> responseFlux = pdp.decide(simpleRequest).log();
 		StepVerifier.create(responseFlux).expectNextMatches(response -> response.getDecision() == Decision.DENY)
 				.thenCancel().verify();
 	}

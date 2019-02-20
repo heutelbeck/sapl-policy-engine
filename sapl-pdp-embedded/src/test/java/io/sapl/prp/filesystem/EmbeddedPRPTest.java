@@ -5,9 +5,11 @@ import java.net.URISyntaxException;
 
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
@@ -15,6 +17,8 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 public class EmbeddedPRPTest {
+
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	public static double nanoToMs(double nanoseconds) {
 		return nanoseconds / 1000000.0D;
@@ -27,7 +31,7 @@ public class EmbeddedPRPTest {
 	@Test
 	public void testTest() throws IOException, AttributeException, FunctionException, URISyntaxException, PolicyEvaluationException {
 		// long startpdp = System.nanoTime();
-		PolicyDecisionPoint pdp = EmbeddedPolicyDecisionPoint.builder()
+		EmbeddedPolicyDecisionPoint pdp = EmbeddedPolicyDecisionPoint.builder()
 				.withFilesystemPolicyRetrievalPoint("src/test/resources/policies").build();
 		// long endpdp = System.nanoTime();
 		// System.out.println("Measuring PDP and PRP initialization:");
@@ -37,9 +41,11 @@ public class EmbeddedPRPTest {
 		// System.out.println();
 
 		// long start = System.nanoTime();
+		Request simpleRequest = new Request(JSON.textNode("willi"), JSON.textNode("read"), JSON.textNode("something"),
+				JSON.nullNode());
 		int RUNS = 00;
 		for (int i = 0; i < RUNS; i++) {
-			final Flux<Response> responseFlux = pdp.decide("willi", "read", "something");
+			final Flux<Response> responseFlux = pdp.decide(simpleRequest);
 			StepVerifier.create(responseFlux).expectNextCount(1).thenCancel().verify();
 			// System.out.println("response: " + response.toString());
 		}

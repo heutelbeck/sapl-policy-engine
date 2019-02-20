@@ -5,26 +5,29 @@ import java.util.Collection;
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.security.access.AccessDecisionVoter;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.FilterInvocation;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
-import io.sapl.pep.BlockingSAPLAuthorizer;
-import io.sapl.pep.SAPLAuthorizer;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SaplBasedVoter implements AccessDecisionVoter<Object> {
+@RequiredArgsConstructor
+public class SaplAccessDecisionVoterPEP implements AccessDecisionVoter<Object> {
 
 	private static final String LOGGER_FORMAT = "Decision from SAPLVoter is : {}";
 
-	private final BlockingSAPLAuthorizer sapl;
-
-	public SaplBasedVoter(SAPLAuthorizer sapl) {
-		this.sapl = new BlockingSAPLAuthorizer(sapl);
-	}
+	private final PolicyDecisionPoint pdp;
+	private final ConstraintHandlerService constraintHandlers;
+	private final ObjectMapper mapper;
 
 	@Override
 	public boolean supports(ConfigAttribute attribute) {
@@ -47,28 +50,41 @@ public class SaplBasedVoter implements AccessDecisionVoter<Object> {
 		for (ConfigAttribute configAttribute : arg2) {
 			LOGGER.info(configAttribute.toString());
 		}
-		Response response = sapl.getResponse(authentication, request, request);
 
-		if (response == null) {
-			throw new IllegalArgumentException();
+		// TODO switch to mono once available
+		Response decision = pdp.decide(buildRequest(authentication, request, request)).blockFirst();
+
+		LOGGER.trace("PDP decision: {}", decision);
+
+		try {
+			constraintHandlers.handleObligations(decision);
+		} catch (AccessDeniedException e) {
+			LOGGER.trace("Access denied in filter due to obligation failure");
+			return ACCESS_DENIED;
 		}
-		return mapDecisionToVoteResponse(response.getDecision());
+		constraintHandlers.handleAdvices(decision);
+
+		return mapDecisionToVoteResponse(decision.getDecision());
+	}
+
+	private Request buildRequest(Object subject, Object action, Object resource) {
+		return new Request(mapper.valueToTree(subject), mapper.valueToTree(action), mapper.valueToTree(resource), null);
 	}
 
 	private int mapDecisionToVoteResponse(Decision decision) {
 		int returnValue;
 		switch (decision) {
 		case PERMIT:
-			LOGGER.info(LOGGER_FORMAT, "ACCESS_GRANTED");
+			LOGGER.trace(LOGGER_FORMAT, "ACCESS_GRANTED");
 			returnValue = ACCESS_GRANTED;
 			break;
 		case DENY:
-			LOGGER.info(LOGGER_FORMAT, "ACCESS_DENIED");
+			LOGGER.trace(LOGGER_FORMAT, "ACCESS_DENIED");
 			returnValue = ACCESS_DENIED;
 			break;
 		case INDETERMINATE:
 		case NOT_APPLICABLE:
-			LOGGER.info(LOGGER_FORMAT, "ACCESS_ABSTAIN");
+			LOGGER.trace(LOGGER_FORMAT, "ACCESS_ABSTAIN");
 			returnValue = ACCESS_ABSTAIN;
 			break;
 		default:

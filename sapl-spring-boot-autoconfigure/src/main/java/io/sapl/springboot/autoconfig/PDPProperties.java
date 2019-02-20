@@ -24,8 +24,6 @@ public class PDPProperties {
 
 	private boolean policyEnforcementFilter;
 
-	private ObligationHandler obligationsHandler = new ObligationHandler();
-
 	@Data
 	public static class Filesystem {
 		private String policiesPath = "~/policies";
@@ -48,8 +46,4 @@ public class PDPProperties {
 		private String secret;
 	}
 
-	@Data
-	public static class ObligationHandler {
-		private boolean autoregister = true;
-	}
 }

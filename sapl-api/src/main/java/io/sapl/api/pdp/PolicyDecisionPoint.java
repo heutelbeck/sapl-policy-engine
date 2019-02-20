@@ -17,7 +17,7 @@ import reactor.core.publisher.Flux;
 public interface PolicyDecisionPoint {
 
 	/**
-	 * Takes a pre-built Request object and returns a {@link Flux} emitting
+	 * Takes a Request object and returns a {@link Flux} emitting
 	 * matching decision responses.
 	 *
 	 * @param request
@@ -27,43 +27,6 @@ public interface PolicyDecisionPoint {
 	 *         different from the preceding response.
 	 */
 	Flux<Response> decide(Request request);
-
-	/**
-	 * Takes POJOs representing subject, action, resource, and environment. These
-	 * objects are serialized to JSON and composed into a SAPL request. Returns a
-	 * {@link Flux} emitting matching decision responses.
-	 *
-	 * @param subject
-	 *            a POJO representing the subject
-	 * @param action
-	 *            a POJO representing the action
-	 * @param resource
-	 *            a POJO representing the resource
-	 * @param environment
-	 *            a POJO representing the environment
-	 * @return a {@link Flux} emitting the responses for the given request.
-	 *         New responses are only added to the stream if they are
-	 *         different from the preceding response.
-	 */
-	Flux<Response> decide(Object subject, Object action, Object resource, Object environment);
-
-	/**
-	 * Takes POJOs representing subject, action, and resource. These objects are
-	 * serialized to JSON and composed into a SAPL request with the environment
-	 * being {@code null}. Returns a {@link Flux} emitting matching decision
-	 * responses.
-	 *
-	 * @param subject
-	 *            a POJO representing the subject
-	 * @param action
-	 *            a POJO representing the action
-	 * @param resource
-	 *            a POJO representing the resource
-	 * @return a {@link Flux} emitting the responses for the given request.
-	 *         New responses are only added to the stream if they are
-	 *         different from the preceding response.
-	 */
-	Flux<Response> decide(Object subject, Object action, Object resource);
 
     /**
      * Multi-request variant of {@link #decide(Request)}.
@@ -76,12 +39,4 @@ public interface PolicyDecisionPoint {
 	 *         Related responses and requests have the same id.
      */
 	Flux<IdentifiableResponse> decide(MultiRequest multiRequest);
-
-	/**
-	 * When clients of a policy decision point no longer need it, they should call
-	 * {@code dispose()} to give it the chance to clean up resources like subscriptions,
-	 * threads, etc.
-	 */
-	void dispose();
-
 }

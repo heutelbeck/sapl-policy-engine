@@ -62,15 +62,14 @@
 		<module>sapl-pdp-embedded</module>
 		<module>sapl-pdp-client</module>
 		<module>sapl-pdp-server</module>
-		<module>sapl-pep</module>
 		<module>sapl-pip-http</module>
 		<module>sapl-documentation</module>
 		<module>sapl-geo</module>
 		<module>sapl-spring</module>
 		<module>sapl-spring-boot-autoconfigure</module>
 		<module>sapl-spring-boot-starter</module>
-        <module>sapl-webclient</module>
-    </modules>
+		<module>sapl-webclient</module>
+	</modules>
 
 	<dependencyManagement>
 		<dependencies>
@@ -99,7 +98,7 @@
 				<version>${version.mockito}</version>
 				<scope>test</scope>
 			</dependency>
-			
+
 			<!-- Spring-Boot -->
 			<dependency>
 				<groupId>org.springframework.boot</groupId>

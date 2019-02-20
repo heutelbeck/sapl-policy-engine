@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -58,7 +57,6 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	private Map<String, JsonNode> variables = new HashMap<>();
 	private AttributeContext attributeCtx;
 	private FunctionContext functionCtx;
-	private ObjectMapper mapper = new ObjectMapper();
 
 	public static class Builder {
 		private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
@@ -79,11 +77,6 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		public Builder withFunctionLibrary(Object lib) throws FunctionException {
 			pdp.functionCtx.loadLibrary(lib);
-			return this;
-		}
-
-		public Builder withObjectMapper(ObjectMapper mapper) {
-			pdp.mapper = mapper;
 			return this;
 		}
 
@@ -125,7 +118,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			return this;
 		}
 
-		public PolicyDecisionPoint build() throws IOException, URISyntaxException, PolicyEvaluationException {
+		public EmbeddedPolicyDecisionPoint build() throws IOException, URISyntaxException, PolicyEvaluationException {
 			if (pdp.prp == null) {
 				withResourcePolicyRetrievalPoint();
 			}
@@ -165,22 +158,6 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		attributeCtx = new AnnotationAttributeContext();
 	}
 
-	private Request toRequest(Object subject, Object action, Object resource, Object environment) {
-		return new Request(mapper.convertValue(subject, JsonNode.class), mapper.convertValue(action, JsonNode.class),
-				mapper.convertValue(resource, JsonNode.class), mapper.convertValue(environment, JsonNode.class));
-	}
-
-	@Override
-	public Flux<Response> decide(Object subject, Object action, Object resource) {
-		return decide(subject, action, resource, null);
-	}
-
-	@Override
-	public Flux<Response> decide(Object subject, Object action, Object resource, Object environment) {
-		final Request request = toRequest(subject, action, resource, environment);
-		return decide(request);
-	}
-
 	@Override
 	public Flux<Response> decide(Request request) {
 		final Flux<PolicyRetrievalResult> retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
@@ -209,7 +186,6 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		return Flux.just(IdentifiableResponse.indeterminate());
 	}
 
-	@Override
 	public void dispose() {
 		prp.dispose();
 	}
