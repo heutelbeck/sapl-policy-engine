@@ -35,6 +35,7 @@ import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import io.sapl.spring.ConstraintHandlerService;
 import io.sapl.spring.PolicyEnforcementFilterPEP;
+import io.sapl.spring.SaplAccessDecisionVoterPEP;
 import io.sapl.springboot.autoconfig.PDPProperties.Remote;
 import lombok.extern.slf4j.Slf4j;
 
@@ -245,6 +246,6 @@ public class PDPAutoConfiguration {
 
 	@Bean
 	public Module jdk8Module() {
-	  return new Jdk8Module();
+		return new Jdk8Module();
 	}
 }
