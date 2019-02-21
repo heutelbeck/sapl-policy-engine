@@ -170,13 +170,7 @@ public class EnforcePoliciesAspectPEP {
 			ObjectNode actionNode = mapper.createObjectNode();
 			Optional<HttpServletRequest> httpServletRequest = retrieveRequestObject();
 			if (httpServletRequest.isPresent()) {
-				try {
-					LOGGER.trace("The action is in the context of a HTTP request: {}",
-							mapper.writerWithDefaultPrettyPrinter()
-									.writeValueAsString(mapper.valueToTree(httpServletRequest.get())));
-				} catch (JsonProcessingException | IllegalArgumentException e) {
-					LOGGER.trace("could not print JSON object");
-				}
+				LOGGER.trace("The action is in the context of a HTTP request. Adding it to the action.");
 				actionNode.set("http", mapper.valueToTree(httpServletRequest.get()));
 			}
 			JsonNode signature = mapper.valueToTree(pjp.getSignature());
@@ -202,9 +196,8 @@ public class EnforcePoliciesAspectPEP {
 						"No specific resouce information found. Construct basic information from the runtime context");
 				ObjectNode resourceNode = mapper.createObjectNode();
 				Optional<HttpServletRequest> httpServletRequest = retrieveRequestObject();
-				if (httpServletRequest.isPresent()) {
-					LOGGER.trace("The action is in the context of a HTTP request: {}",
-							mapper.valueToTree(httpServletRequest.get()));
+				if (httpServletRequest.isPresent()) {			
+					LOGGER.trace("The action is in the context of a HTTP request. Adding it to the resource.");
 					resourceNode.set("http", mapper.valueToTree(httpServletRequest.get()));
 				}
 				JsonNode target = serializeTargetClassDescription(pjp.getTarget());

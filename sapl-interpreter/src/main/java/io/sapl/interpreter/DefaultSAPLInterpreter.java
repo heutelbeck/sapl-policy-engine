@@ -134,7 +134,6 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	private static Resource loadAsResource(String saplDefinition) throws PolicyEvaluationException {
 		final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
 		final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
-		LOGGER.trace("policy : {}", saplDefinition);
 
 		try (InputStream in = new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8))) {
 			resource.load(in, resourceSet.getLoadOptions());
@@ -216,7 +215,6 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	@Override
 	public Flux<Response> evaluate(Request request, SAPL saplDocument, AttributeContext attributeCtx,
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
-		logRequest(request);
 		try {
 			if (matches(request, saplDocument, functionCtx, systemVariables)) {
 				return evaluateRules(request, saplDocument, attributeCtx, functionCtx, systemVariables).map(r -> {
@@ -584,35 +582,18 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		return result;
 	}
 
-	private static void logRequest(Request request) {
-		if (LOGGER.isTraceEnabled()) {
-			ObjectMapper mapper = new ObjectMapper();
-		    mapper.registerModule(new Jdk8Module());
-
-			String req = null;
-			try {
-				req = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(mapper.valueToTree(request));
-			} catch (JsonProcessingException | IllegalArgumentException e) {
-				LOGGER.trace("Cannor transform request to JSON: {}", request);
-			}
-			LOGGER.trace("Authorization request:\n{}", req);
-		}
-	}
-
 	private void logResponse(Response r) {
 		if (LOGGER.isTraceEnabled()) {
 			ObjectMapper mapper = new ObjectMapper();
-		    mapper.registerModule(new Jdk8Module());
-
-			String req = null;
+			mapper.registerModule(new Jdk8Module());
+			String res = null;
 			try {
-				req = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(mapper.valueToTree(r));
+				res = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(mapper.valueToTree(r));
 			} catch (JsonProcessingException | IllegalArgumentException e) {
 				LOGGER.trace("Cannor transform request to JSON: {}", r);
 			}
-			LOGGER.trace("Authorization response:\n{}", req);
+			LOGGER.trace("Authorization response: ", res);
 		}
-
 	}
 
 }

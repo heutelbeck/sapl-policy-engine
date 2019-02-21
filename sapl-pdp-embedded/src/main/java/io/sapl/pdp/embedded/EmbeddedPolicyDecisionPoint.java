@@ -43,10 +43,12 @@ import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.prp.filesystem.FilesystemPolicyRetrievalPoint;
 import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+@Slf4j
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
@@ -197,7 +199,8 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Mono<Response> decide(Request request) {
-		return subscribe(request).next();
+		LOGGER.trace("PDP Request: {}",request);
+		return subscribe(request).log().next();
 	}
 
 	@Override

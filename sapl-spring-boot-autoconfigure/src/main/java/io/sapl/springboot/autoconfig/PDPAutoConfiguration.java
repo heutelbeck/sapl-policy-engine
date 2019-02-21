@@ -20,9 +20,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
@@ -35,7 +33,6 @@ import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import io.sapl.spring.ConstraintHandlerService;
 import io.sapl.spring.PolicyEnforcementFilterPEP;
-import io.sapl.spring.SaplAccessDecisionVoterPEP;
 import io.sapl.springboot.autoconfig.PDPProperties.Remote;
 import lombok.extern.slf4j.Slf4j;
 
@@ -244,8 +241,4 @@ public class PDPAutoConfiguration {
 		return new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
 	}
 
-	@Bean
-	public Module jdk8Module() {
-		return new Jdk8Module();
-	}
 }
