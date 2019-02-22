@@ -335,4 +335,10 @@
   <eClassifiers xsi:type="ecore:EDataType" name="ArrayResultNode" instanceClassName="io.sapl.interpreter.selection.ArrayResultNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="StringMap" instanceTypeName="java.util.Map&lt;java.lang.String, java.lang.String>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="AbstractAnnotatedJsonNode" instanceClassName="io.sapl.interpreter.selection.AbstractAnnotatedJsonNode"/>
+  <eClassifiers xsi:type="ecore:EClass" name="NotEquals" eSuperTypes="#//Expression">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="left" eType="#//Expression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="right" eType="#//Expression"
+        containment="true"/>
+  </eClassifiers>
 </ecore:EPackage>

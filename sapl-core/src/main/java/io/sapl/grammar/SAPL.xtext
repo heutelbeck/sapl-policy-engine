@@ -72,7 +72,7 @@ Multiplication returns Expression:
 	right=Comparison)* ;
 
 Comparison returns Expression:
-	Prefixed (({Equals.left=current} '==' | {Regex.left=current} '=~' | {Less.left=current} '<' |
+	Prefixed (({Equals.left=current} '==' | {NotEquals.left=current} '!=' | {Regex.left=current} '=~' | {Less.left=current} '<' |
 	{LessEquals.left=current} '<=' | {More.left=current} '>' | {MoreEquals.left=current} '>=' | {ElementOf.left=current} 'in') right=Prefixed)? ;
 
 Prefixed returns Expression:
