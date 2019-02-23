@@ -6,6 +6,7 @@ import static org.junit.Assert.assertEquals;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -44,21 +45,20 @@ public class ApplyStepsConditionTest {
 
 	@Test
 	public void applyToNullNode() {
-		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
 
 		ConditionStep step = factory.createConditionStep();
 		step.setExpression(basicValueFrom(factory.createTrueLiteral()));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void applyToObjectConditionNotBoolean() {
 		ObjectNode object = JSON.objectNode();
 		object.set("key", JSON.nullNode());
-		ResultNode previousResult = new JsonNodeWithoutParent(object);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(object));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
 
@@ -68,21 +68,18 @@ public class ApplyStepsConditionTest {
 		expression.setValue(nullLiteral);
 		step.setExpression(expression);
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-                .consumeNextWith(result -> {
-                    Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-                    assertEquals("Condition step with condition always evaluation to null should return empty array",
-                            expectedResultSet, resultSet);
-                })
-                .thenCancel()
-                .verify();
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null)).consumeNextWith(result -> {
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Condition step with condition always evaluation to null should return empty array",
+					expectedResultSet, resultSet);
+		}).thenCancel().verify();
 	}
 
 	@Test
 	public void applyToArrayConditionNotBoolean() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
-		ResultNode previousResult = new JsonNodeWithoutParent(array);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
 
@@ -92,21 +89,20 @@ public class ApplyStepsConditionTest {
 		expression.setValue(nullLiteral);
 		step.setExpression(expression);
 
-        StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-                .consumeNextWith(result -> {
-					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-					assertEquals("Condition step with condition always evaluation to null should return empty array",
-							expectedResultSet, resultSet);
-				})
-                .thenCancel()
-                .verify();
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, null)).consumeNextWith(result -> {
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Condition step with condition always evaluation to null should return empty array",
+					expectedResultSet, resultSet);
+		}).thenCancel().verify();
 	}
 
 	@Test
 	public void applyToResultArrayConditionNotBoolean() {
 		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
-		AbstractAnnotatedJsonNode node1 = new JsonNodeWithParentArray(JSON.numberNode(20), JSON.arrayNode(), 0);
-		AbstractAnnotatedJsonNode node2 = new JsonNodeWithParentArray(JSON.numberNode(5), JSON.arrayNode(), 0);
+		AbstractAnnotatedJsonNode node1 = new JsonNodeWithParentArray(Optional.of(JSON.numberNode(20)),
+				Optional.of(JSON.arrayNode()), 0);
+		AbstractAnnotatedJsonNode node2 = new JsonNodeWithParentArray(Optional.of(JSON.numberNode(5)),
+				Optional.of(JSON.arrayNode()), 0);
 		listIn.add(node1);
 		listIn.add(node2);
 		ResultNode previousResult = new ArrayResultNode(listIn);
@@ -119,21 +115,21 @@ public class ApplyStepsConditionTest {
 		expression.setValue(nullLiteral);
 		step.setExpression(expression);
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> {
-					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-					assertEquals("Condition step with condition always evaluation to null should return empty array",
-							expectedResultSet, resultSet);
-				});
+		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Condition step with condition always evaluation to null should return empty array",
+					expectedResultSet, resultSet);
+		});
 
 	}
 
 	@Test
 	public void applyToResultArray() {
 		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
-		AbstractAnnotatedJsonNode node1 = new JsonNodeWithParentArray(JSON.numberNode(20), JSON.arrayNode(), 0);
-		AbstractAnnotatedJsonNode node2 = new JsonNodeWithParentArray(JSON.numberNode(5), JSON.arrayNode(), 0);
+		AbstractAnnotatedJsonNode node1 = new JsonNodeWithParentArray(Optional.of(JSON.numberNode(20)),
+				Optional.of(JSON.arrayNode()), 0);
+		AbstractAnnotatedJsonNode node2 = new JsonNodeWithParentArray(Optional.of(JSON.numberNode(5)),
+				Optional.of(JSON.arrayNode()), 0);
 		listIn.add(node1);
 		listIn.add(node2);
 		ResultNode previousResult = new ArrayResultNode(listIn);
@@ -149,13 +145,12 @@ public class ApplyStepsConditionTest {
 		expression.setRight(basicValueFrom(number));
 		step.setExpression(expression);
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> {
-					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-					assertEquals("Condition step applied to result array should return the nodes for which the condition is true",
-							expectedResultSet, resultSet);
-				});
+		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals(
+					"Condition step applied to result array should return the nodes for which the condition is true",
+					expectedResultSet, resultSet);
+		});
 
 	}
 
@@ -164,10 +159,11 @@ public class ApplyStepsConditionTest {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.numberNode(20));
 		array.add(JSON.numberNode(5));
-		ResultNode previousResult = new JsonNodeWithoutParent(array);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		AbstractAnnotatedJsonNode node = new JsonNodeWithParentArray(JSON.numberNode(20), array, 0);
+		AbstractAnnotatedJsonNode node = new JsonNodeWithParentArray(Optional.of(JSON.numberNode(20)),
+				Optional.of(array), 0);
 		expectedResultSet.add(node);
 
 		ConditionStep step = factory.createConditionStep();
@@ -178,13 +174,11 @@ public class ApplyStepsConditionTest {
 		expression.setRight(basicValueFrom(number));
 		step.setExpression(expression);
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> {
-					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-					assertEquals("Condition step applied to array node should return the nodes for which the condition is true",
-							expectedResultSet, resultSet);
-				});
+		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Condition step applied to array node should return the nodes for which the condition is true",
+					expectedResultSet, resultSet);
+		});
 
 	}
 
@@ -193,10 +187,10 @@ public class ApplyStepsConditionTest {
 		ObjectNode object = JSON.objectNode();
 		object.set("key1", JSON.numberNode(20));
 		object.set("key2", JSON.numberNode(5));
-		ResultNode previousResult = new JsonNodeWithoutParent(object);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(object));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		AbstractAnnotatedJsonNode node = new JsonNodeWithParentObject(JSON.numberNode(20), object, "key1");
+		AbstractAnnotatedJsonNode node = new JsonNodeWithParentObject(Optional.of(JSON.numberNode(20)), Optional.of(object), "key1");
 		expectedResultSet.add(node);
 
 		ConditionStep step = factory.createConditionStep();
@@ -207,13 +201,12 @@ public class ApplyStepsConditionTest {
 		expression.setRight(basicValueFrom(number));
 		step.setExpression(expression);
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> {
-					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-					assertEquals("Condition step applied to object node should return the attribute values for which the condition is true",
-							expectedResultSet, resultSet);
-				});
+		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals(
+					"Condition step applied to object node should return the attribute values for which the condition is true",
+					expectedResultSet, resultSet);
+		});
 
 	}
 }

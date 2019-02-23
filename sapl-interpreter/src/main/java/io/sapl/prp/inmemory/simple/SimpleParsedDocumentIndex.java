@@ -25,7 +25,7 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 			Map<String, JsonNode> variables) {
 		boolean errorOccured = false;
 		List<SAPL> result = new ArrayList<>();
-		for (SAPL sapl : publishedDocuments.values()) {
+		for (SAPL sapl : publishedDocuments.values()) {			
 			try {
 				if (INTERPRETER.matches(request, sapl, functionCtx, variables)) {
 					result.add(sapl);

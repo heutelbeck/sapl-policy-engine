@@ -15,6 +15,7 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -30,9 +31,10 @@ public class BasicValueImplCustom extends io.sapl.grammar.sapl.impl.BasicValueIm
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		final Flux<JsonNode> evaluatedValue = getValue().evaluate(ctx, isBody, relativeNode);
-		return evaluatedValue.switchMap(value -> evaluateStepsFilterSubtemplate(value, getSteps(), ctx, isBody, relativeNode));
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> evaluatedValue = getValue().evaluate(ctx, isBody, relativeNode);
+		return evaluatedValue
+				.switchMap(value -> evaluateStepsFilterSubtemplate(value, getSteps(), ctx, isBody, relativeNode));
 	}
 
 	@Override

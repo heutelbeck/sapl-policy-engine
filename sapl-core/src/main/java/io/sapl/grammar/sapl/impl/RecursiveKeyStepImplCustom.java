@@ -13,8 +13,10 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -26,6 +28,7 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class RecursiveKeyStepImplCustom extends io.sapl.grammar.sapl.impl.RecursiveKeyStepImpl {
@@ -36,44 +39,47 @@ public class RecursiveKeyStepImplCustom extends io.sapl.grammar.sapl.impl.Recurs
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-        try {
-            return Flux.just(apply(previousResult));
-        }
-        catch (PolicyEvaluationException e) {
-            return Flux.error(e);
-        }
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
+		try {
+			return Flux.just(apply(previousResult));
+		} catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isArray() && !previousResult.getNode().isObject()) {
+		if (!previousResult.getNode().isPresent()
+				|| (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject())) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		resultList.addAll(resolveRecursive(previousResult.getNode()));
 		return new ArrayResultNode(resultList);
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return Flux.just(apply(previousResult));
 	}
 
 	private ResultNode apply(ArrayResultNode previousResult) {
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
 			resultList.addAll(resolveRecursive(child.getNode()));
 		}
 		return new ArrayResultNode(resultList);
 	}
 
-	private ArrayList<AbstractAnnotatedJsonNode> resolveRecursive(JsonNode node) {
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+	private List<AbstractAnnotatedJsonNode> resolveRecursive(Optional<JsonNode> optNode) {
+		JsonNode node = optNode.orElseThrow(() -> Exceptions.propagate(new PolicyEvaluationException(WRONG_TYPE)));
+		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		if (node.has(id)) {
-			resultList.add(new JsonNodeWithParentObject(node.get(id), node, id));
+			resultList.add(new JsonNodeWithParentObject(Optional.of(node.get(id)), Optional.of(node), id));
 		}
 		for (JsonNode child : node) {
-			resultList.addAll(resolveRecursive(child));
+			resultList.addAll(resolveRecursive(Optional.of(child)));
 		}
 		return resultList;
 	}

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -43,84 +44,80 @@ public class ApplyStepsIndexTest {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
 		for (int i = 0; i < 10; i++) {
 			numberArray.add(JSON.numberNode(BigDecimal.valueOf(i)));
-			list.add(new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(i)), numberArray, i));
+			list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(i))),
+					Optional.of(numberArray), i));
 		}
 		resultArray = new ArrayResultNode(list);
 	}
 
 	@Test
 	public void applyToNonArrayNode() {
-		ResultNode previousResult = new JsonNodeWithoutParent(JSON.objectNode());
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.objectNode()));
 
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(0));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void applyPositiveExistingToArrayNode() {
 		int index = 5;
 
-		ResultNode previousResult = new JsonNodeWithoutParent(numberArray);
-		ResultNode expectedResult = new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(index)), numberArray,
-				index);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(numberArray));
+		ResultNode expectedResult = new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(index))),
+				Optional.of(numberArray), index);
 
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
+		previousResult.applyStep(step, ctx, true, null).take(1)
 				.subscribe(result -> assertEquals("Index step applied to array node should return corresponding item",
-						expectedResult, result)
-				);
+						expectedResult, result));
 	}
 
 	@Test
 	public void applyPositiveNonExistingToArrayNode() {
 		int index = 12;
 
-		ResultNode previousResult = new JsonNodeWithoutParent(numberArray);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(numberArray));
 
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void applyNegativeExistingToArrayNode() {
 		int index = -2;
 
-		ResultNode previousResult = new JsonNodeWithoutParent(numberArray);
-		ResultNode expectedResult = new JsonNodeWithParentArray(JSON.numberNode(BigDecimal.valueOf(8)), numberArray, 8);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(numberArray));
+		ResultNode expectedResult = new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(8))),
+				Optional.of(numberArray), 8);
 
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Negative index step applied to array node should return corresponding item",
-						expectedResult, result)
-				);
+		previousResult.applyStep(step, ctx, true, null).take(1)
+				.subscribe(result -> assertEquals(
+						"Negative index step applied to array node should return corresponding item", expectedResult,
+						result));
 	}
 
 	@Test
 	public void applyNegativeNonExistingToArrayNode() {
 		int index = -12;
 
-		ResultNode previousResult = new JsonNodeWithoutParent(numberArray);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(numberArray));
 
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -133,11 +130,9 @@ public class ApplyStepsIndexTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
+		previousResult.applyStep(step, ctx, true, null).take(1)
 				.subscribe(result -> assertEquals("Index step applied to result array should return corresponding item",
-						expectedResult, result)
-				);
+						expectedResult, result));
 	}
 
 	@Test
@@ -150,8 +145,7 @@ public class ApplyStepsIndexTest {
 		step.setIndex(BigDecimal.valueOf(index));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -164,11 +158,10 @@ public class ApplyStepsIndexTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Negative index step applied to result array should return corresponding item",
-						expectedResult, result)
-				);
+		previousResult.applyStep(step, ctx, true, null).take(1)
+				.subscribe(result -> assertEquals(
+						"Negative index step applied to result array should return corresponding item", expectedResult,
+						result));
 	}
 
 	@Test
@@ -181,7 +174,6 @@ public class ApplyStepsIndexTest {
 		step.setIndex(BigDecimal.valueOf(index));
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 }

@@ -14,6 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -30,22 +31,20 @@ public class MoreEqualsImplCustom extends io.sapl.grammar.sapl.impl.MoreEqualsIm
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
+		return Flux.combineLatest(left, right, this::moreEquals).distinctUntilChanged();
+	}
 
-		return Flux.combineLatest(leftResultFlux, rightResultFlux,
-				(leftResult, rightResult) -> {
-					try {
-						assertNumber(leftResult);
-						assertNumber(rightResult);
-						return (JsonNode) JSON.booleanNode(leftResult.decimalValue().compareTo(rightResult.decimalValue()) >= 0);
-					}
-					catch (PolicyEvaluationException e) {
-						throw Exceptions.propagate(e);
-					}
-				})
-				.distinctUntilChanged();
+	private Optional<JsonNode> moreEquals(Optional<JsonNode> left, Optional<JsonNode> right) {
+		try {
+			assertNumber(left, right);
+			return Optional.of(
+					(JsonNode) JSON.booleanNode(left.get().decimalValue().compareTo(right.get().decimalValue()) >= 0));
+		} catch (PolicyEvaluationException e) {
+			throw Exceptions.propagate(e);
+		}
 	}
 
 	@Override

@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -40,7 +41,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 	}
 
 	@Override
-	public JsonNode evaluate(String function, ArrayNode parameters) throws FunctionException {
+	public Optional<JsonNode> evaluate(String function, ArrayNode parameters) throws FunctionException {
 		final FunctionMetadata metadata = functions.get(function);
 		if (metadata == null) {
 			throw new FunctionException(String.format(UNKNOWN_FUNCTION, function));
@@ -66,10 +67,11 @@ public class AnnotationFunctionContext implements FunctionContext {
 					args[i] = parameter;
 				}
 			} else {
-				throw new FunctionException(String.format(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getPararmeterCardinality(), parameters.size()));
+				throw new FunctionException(String.format(ILLEGAL_NUMBER_OF_PARAMETERS,
+						metadata.getPararmeterCardinality(), parameters.size()));
 			}
 
-			return (JsonNode) metadata.getFunction().invoke(metadata.getLibrary(), args);
+			return Optional.ofNullable((JsonNode) metadata.getFunction().invoke(metadata.getLibrary(), args));
 		} catch (Exception e) {
 			throw new FunctionException(e);
 		}

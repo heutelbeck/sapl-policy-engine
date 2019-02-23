@@ -15,6 +15,7 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -29,9 +30,11 @@ public class FilterSimpleImplCustom extends io.sapl.grammar.sapl.impl.FilterSimp
 	private static final int HASH_PRIME_07 = 41;
 
 	@Override
-	public Flux<JsonNode> apply(JsonNode unfilteredRootNode, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<Optional<JsonNode>> apply(Optional<JsonNode> unfilteredRootNode, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		final String function = String.join(".", fsteps);
-		return applyFilterStatement(unfilteredRootNode.deepCopy(), function, getArguments(), null, each, ctx, isBody, relativeNode);
+		return applyFilterStatement(Optional.of(unfilteredRootNode.get().deepCopy()), function, getArguments(), null,
+				each, ctx, isBody, relativeNode);
 	}
 
 	@Override

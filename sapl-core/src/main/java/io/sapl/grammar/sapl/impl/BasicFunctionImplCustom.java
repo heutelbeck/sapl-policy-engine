@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 import org.eclipse.emf.ecore.EObject;
@@ -34,42 +35,47 @@ import reactor.core.publisher.Flux;
 
 public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunctionImpl {
 
+	private static final String UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL = "undefined parameter value handed to function call";
 	private static final String FUNCTION_EVALUATION = "Function evaluation error. Function '%s' cannot be evaluated.";
 
 	private static final int HASH_PRIME_05 = 31;
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	@SuppressWarnings("unchecked")
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		final String joinedSteps = String.join(".", getFsteps());
 		final String fullyQualifiedName = ctx.getImports().getOrDefault(joinedSteps, joinedSteps);
 
-		if (getArguments() != null && ! getArguments().getArgs().isEmpty()) {
-			final List<Flux<JsonNode>> parameterFluxes = new ArrayList<>(getArguments().getArgs().size());
+		if (getArguments() != null && !getArguments().getArgs().isEmpty()) {
+			final List<Flux<Optional<JsonNode>>> parameterFluxes = new ArrayList<>(getArguments().getArgs().size());
 			for (Expression argument : getArguments().getArgs()) {
 				parameterFluxes.add(argument.evaluate(ctx, isBody, relativeNode));
 			}
-			return Flux.combineLatest(parameterFluxes,
-					paramNodes -> {
-						final ArrayNode argumentsArray = JSON.arrayNode();
-						for (Object paramNode : paramNodes) {
-							argumentsArray.add((JsonNode) paramNode);
-						}
-						try {
-							final JsonNode resultBeforeSteps = ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray);
-							return evaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
-						} catch (FunctionException e) {
-							throw Exceptions.propagate(new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, fullyQualifiedName), e));
-						}
-					})
-					.flatMap(Function.identity());
+			return Flux.combineLatest(parameterFluxes, paramNodes -> {
+				final ArrayNode argumentsArray = JSON.arrayNode();
+				for (Object paramNode : paramNodes) {
+					argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(() -> Exceptions.propagate(
+							new PolicyEvaluationException(UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL))));
+				}
+				try {
+					final Optional<JsonNode> resultBeforeSteps = ctx.getFunctionCtx().evaluate(fullyQualifiedName,
+							argumentsArray);
+					return evaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
+				} catch (FunctionException e) {
+					throw Exceptions.propagate(
+							new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, fullyQualifiedName), e));
+				}
+			}).flatMap(Function.identity());
 		} else {
 			try {
 				final ArrayNode argumentsArray = JSON.arrayNode();
-				final JsonNode resultBeforeSteps = ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray);
+				final Optional<JsonNode> resultBeforeSteps = ctx.getFunctionCtx().evaluate(fullyQualifiedName,
+						argumentsArray);
 				return evaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
 			} catch (FunctionException e) {
-				return Flux.error(new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, fullyQualifiedName), e));
+				return Flux.error(
+						new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, fullyQualifiedName), e));
 			}
 		}
 	}

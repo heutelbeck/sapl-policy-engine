@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -27,32 +28,33 @@ public class ResultNodeApplyStepTest {
 	@Test
 	public void applyStepArrayResult() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithoutParent(JSON.nullNode()));
+		list.add(new JsonNodeWithoutParent(Optional.of(JSON.nullNode())));
 		ResultNode resultNode = new ArrayResultNode(list);
 
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.ZERO);
 
-		ResultNode expectedResult = new JsonNodeWithoutParent(JSON.nullNode());
+		ResultNode expectedResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
 
-		resultNode.applyStep(step, ctx, false, null)
-				.take(1)
-				.subscribe(result -> assertEquals("applyStep on ArrayResultNode should return correct ResultNode", expectedResult, result));
+		resultNode.applyStep(step, ctx, false, null).take(1)
+				.subscribe(result -> assertEquals("applyStep on ArrayResultNode should return correct ResultNode",
+						expectedResult, result));
 	}
 
 	@Test
 	public void applyStepAnnotatedJsonNode() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
-		ResultNode resultNode = new JsonNodeWithoutParent(array);
+		ResultNode resultNode = new JsonNodeWithoutParent(Optional.of(array));
 
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.ZERO);
 
-		ResultNode expectedResult = new JsonNodeWithParentArray(JSON.nullNode(), array, 0);
+		ResultNode expectedResult = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array), 0);
 
-		resultNode.applyStep(step, ctx, false, null)
-				.take(1)
-				.subscribe(result -> assertEquals("applyStep on AbstractAnnotatedJsonNode should return correct ResultNode", expectedResult, result));
+		resultNode.applyStep(step, ctx, false, null).take(1)
+				.subscribe(result -> assertEquals(
+						"applyStep on AbstractAnnotatedJsonNode should return correct ResultNode", expectedResult,
+						result));
 	}
 }

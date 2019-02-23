@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -44,42 +45,39 @@ public class ApplyStepsKeyTest {
 
 		ObjectNode node = JSON.objectNode();
 		node.set(KEY, JSON.textNode(value));
-		ResultNode previousResult = new JsonNodeWithoutParent(node);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(node));
 
-		ResultNode expectedResult = new JsonNodeWithParentObject(JSON.textNode(value), node, KEY);
+		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.of(JSON.textNode(value)), Optional.of(node),
+				KEY);
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
+		previousResult.applyStep(step, ctx, true, null).take(1)
 				.subscribe(result -> assertEquals("Key step applied to object should return the value of the attribute",
-						expectedResult, result)
-				);
+						expectedResult, result));
 	}
 
 	@Test
 	public void applyToNullNode() {
-		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void applyToObjectWithoutKey() {
-		ResultNode previousResult = new JsonNodeWithoutParent(JSON.objectNode());
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.objectNode()));
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -87,18 +85,17 @@ public class ApplyStepsKeyTest {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 		array.add(JSON.booleanNode(true));
-		ResultNode previousResult = new JsonNodeWithoutParent(array);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
 
 		ResultNode expectedResult = new ArrayResultNode(new ArrayList<>());
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Key step applied to array node without objects should return empty ArrayResultNode",
-					expectedResult, result)
-				);
+		previousResult.applyStep(step, ctx, true, null).take(1)
+				.subscribe(result -> assertEquals(
+						"Key step applied to array node without objects should return empty ArrayResultNode",
+						expectedResult, result));
 	}
 
 	@Test
@@ -111,22 +108,21 @@ public class ApplyStepsKeyTest {
 		ObjectNode object = JSON.objectNode();
 		object.set(KEY, value);
 		array.add(object);
-		ResultNode previousResult = new JsonNodeWithoutParent(array);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
 
-		JsonNodeWithParentObject expectedResultNode = new JsonNodeWithParentObject(value, object, KEY);
+		JsonNodeWithParentObject expectedResultNode = new JsonNodeWithParentObject(Optional.of(value),
+				Optional.of(object), KEY);
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
 		expectedResultSet.add(expectedResultNode);
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> {
-					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-					assertEquals("Key step applied to array node should return ArrayResultNode with results",
-							expectedResultSet, resultSet);
-				});
+		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Key step applied to array node should return ArrayResultNode with results", expectedResultSet,
+					resultSet);
+		});
 	}
 
 	@Test
@@ -137,22 +133,20 @@ public class ApplyStepsKeyTest {
 		node.set(KEY, JSON.textNode(value));
 
 		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
-		listIn.add(new JsonNodeWithoutParent(node));
+		listIn.add(new JsonNodeWithoutParent(Optional.of(node)));
 		ResultNode previousResult = new ArrayResultNode(listIn);
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(JSON.textNode(value), node, KEY));
+		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.textNode(value)), Optional.of(node), KEY));
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> {
-					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-					assertEquals("Key step applied to ArrayResultNode should return an array with the correct values",
-							expectedResultSet, resultSet);
-				});
+		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Key step applied to ArrayResultNode should return an array with the correct values",
+					expectedResultSet, resultSet);
+		});
 
 	}
 

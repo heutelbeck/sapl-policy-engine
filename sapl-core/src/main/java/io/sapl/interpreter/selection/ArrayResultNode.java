@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -29,6 +30,7 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 /**
@@ -39,17 +41,19 @@ import reactor.core.publisher.Flux;
 @EqualsAndHashCode(callSuper = false)
 public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJsonNode> {
 
+	protected static final String UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT = "Undefined values cannot be added to results in JSON format.";
 	protected static final String FILTER_HELPER_ARRAY = "Cannot apply filter to helper array.";
 
 	List<AbstractAnnotatedJsonNode> nodes;
 
 	@Override
-	public JsonNode asJsonWithoutAnnotations() {
+	public Optional<JsonNode> asJsonWithoutAnnotations() {
 		ArrayNode returnNode = JsonNodeFactory.instance.arrayNode();
 		for (AbstractAnnotatedJsonNode node : nodes) {
-			returnNode.add(node.getNode());
+			returnNode.add(node.getNode().orElseThrow(() -> Exceptions.propagate(
+					new PolicyEvaluationException(UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT))));
 		}
-		return returnNode;
+		return Optional.of(returnNode);
 	}
 
 	@Override
@@ -89,17 +93,18 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	}
 
 	@Override
-	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx,
+			boolean isBody) {
 		if (each) {
-		    final List<Flux<Void>> appliedFilterFluxes = new ArrayList<>(nodes.size());
-            for (AbstractAnnotatedJsonNode node : nodes) {
-                appliedFilterFluxes.add(node.applyFilterWithRelativeNode(function, arguments, false, ctx, isBody, node.getParent()));
-            }
-            return Flux.combineLatest(appliedFilterFluxes,
-                    voidResults -> Void.INSTANCE);
-        } else {
-	        return Flux.error(new PolicyEvaluationException(FILTER_HELPER_ARRAY));
-        }
+			final List<Flux<Void>> appliedFilterFluxes = new ArrayList<>(nodes.size());
+			for (AbstractAnnotatedJsonNode node : nodes) {
+				appliedFilterFluxes.add(
+						node.applyFilterWithRelativeNode(function, arguments, false, ctx, isBody, node.getParent()));
+			}
+			return Flux.combineLatest(appliedFilterFluxes, voidResults -> Void.INSTANCE);
+		} else {
+			return Flux.error(new PolicyEvaluationException(FILTER_HELPER_ARRAY));
+		}
 	}
 
 	/**
@@ -109,8 +114,7 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	 * on the index. This ensures that removal of a node does not affect the index
 	 * of other nodes that are to be removed from the same array.
 	 *
-	 * @param nodes
-	 *            the annotated nodes to prepare
+	 * @param nodes the annotated nodes to prepare
 	 * @return a result array with the correct ordering of its children
 	 */
 	private static List<AbstractAnnotatedJsonNode> changeOrderForRemove(List<AbstractAnnotatedJsonNode> nodes) {
@@ -141,7 +145,7 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	}
 
 	@Override
-	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		return step.apply(this, ctx, isBody, relativeNode);
 	}
 }

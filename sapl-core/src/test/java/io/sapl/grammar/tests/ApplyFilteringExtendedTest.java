@@ -3,6 +3,7 @@ package io.sapl.grammar.tests;
 import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -43,9 +44,8 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add(REMOVE);
 		filter.getStatements().add(statement);
 
-		StepVerifier.create(filter.apply(root, ctx, false, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(filter.apply(Optional.of(root), ctx, false, null))
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -59,9 +59,8 @@ public class ApplyFilteringExtendedTest {
 		statement.setEach(true);
 		filter.getStatements().add(statement);
 
-		StepVerifier.create(filter.apply(root, ctx, false, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(filter.apply(Optional.of(root), ctx, false, null))
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -77,13 +76,11 @@ public class ApplyFilteringExtendedTest {
 		statement.setEach(true);
 		filter.getStatements().add(statement);
 
-		JsonNode expectedResult = JSON.arrayNode();
+		Optional<JsonNode> expectedResult = Optional.of(JSON.arrayNode());
 
-		filter.apply(root, ctx, false, null)
-				.take(1)
+		filter.apply(Optional.of(root), ctx, false, null).take(1)
 				.subscribe(result -> assertEquals("Function remove, no steps and each should return empty array",
-						expectedResult, result)
-				);
+						expectedResult, result));
 	}
 
 	@Test
@@ -98,13 +95,12 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add("EMPTY_STRING");
 		filter.getStatements().add(statement);
 
-		JsonNode expectedResult = JSON.textNode("");
+		Optional<JsonNode> expectedResult = Optional.of(JSON.textNode(""));
 
-		filter.apply(root, ctx, false, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Mock function EMPTY_STRING, no steps, no each should return empty string",
-						expectedResult, result)
-				);
+		filter.apply(Optional.of(root), ctx, false, null).take(1)
+				.subscribe(result -> assertEquals(
+						"Mock function EMPTY_STRING, no steps, no each should return empty string", expectedResult,
+						result));
 	}
 
 	@Test
@@ -124,11 +120,10 @@ public class ApplyFilteringExtendedTest {
 		expectedResult.add(JSON.textNode(""));
 		expectedResult.add(JSON.textNode(""));
 
-		filter.apply(root, ctx, false, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Mock function EMPTY_STRING, no steps, each should array with empty strings",
-						expectedResult, result)
-				);
+		filter.apply(Optional.of(root), ctx, false, null).take(1)
+				.subscribe(result -> assertEquals(
+						"Mock function EMPTY_STRING, no steps, each should array with empty strings",
+						Optional.of(expectedResult), result));
 	}
 
 	@Test
@@ -152,9 +147,8 @@ public class ApplyFilteringExtendedTest {
 
 		filter.getStatements().add(statement);
 
-		StepVerifier.create(filter.apply(root, ctx, false, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(filter.apply(Optional.of(root), ctx, false, null))
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -174,9 +168,8 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add(REMOVE);
 		filter.getStatements().add(statement);
 
-		StepVerifier.create(filter.apply(root, ctx, false, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(filter.apply(Optional.of(root), ctx, false, null))
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -196,9 +189,8 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add("EMPTY_STRING");
 		filter.getStatements().add(statement);
 
-		StepVerifier.create(filter.apply(root, ctx, false, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(filter.apply(Optional.of(root), ctx, false, null))
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -223,12 +215,9 @@ public class ApplyFilteringExtendedTest {
 		expectedResult.add(JSON.textNode(""));
 		expectedResult.add(JSON.booleanNode(true));
 
-		filter.apply(root, ctx, false, null)
-				.take(1)
-				.subscribe(result -> assertEquals(
-					"Mock function EMPTY_STRING applied to result array and each should replace selected elements by empty string",
-					expectedResult, result)
-				);
+		filter.apply(Optional.of(root), ctx, false, null).take(1).subscribe(result -> assertEquals(
+				"Mock function EMPTY_STRING applied to result array and each should replace selected elements by empty string",
+				Optional.of(expectedResult), result));
 	}
 
 	@Test
@@ -252,11 +241,9 @@ public class ApplyFilteringExtendedTest {
 		ArrayNode expectedResult = JSON.arrayNode();
 		expectedResult.add(JSON.booleanNode(true));
 
-		filter.apply(root, ctx, false, null)
-				.take(1)
+		filter.apply(Optional.of(root), ctx, false, null).take(1)
 				.subscribe(result -> assertEquals("Remove applied to result array and each should remove each element",
-						expectedResult, result)
-				);
+						Optional.of(expectedResult), result));
 	}
 
 }

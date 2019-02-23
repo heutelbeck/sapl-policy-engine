@@ -14,6 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -32,24 +33,34 @@ public class ElementOfImplCustom extends io.sapl.grammar.sapl.impl.ElementOfImpl
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		final Flux<JsonNode> evaluatedLeftNodes = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<JsonNode> evaluatedRightNodes = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(evaluatedLeftNodes, evaluatedRightNodes,
-				(leftNode, rightNode) -> {
-					if (!rightNode.isArray()) {
-						throw Exceptions.propagate(new PolicyEvaluationException(String.format(ELEMENT_OF_TYPE_MISMATCH, rightNode.getNodeType())));
-					}
-					for (JsonNode arrayItem : rightNode) {
-						if (leftNode.equals(arrayItem)) {
-							return (JsonNode) JSON.booleanNode(true);
-						} else if (leftNode.isNumber() && arrayItem.isNumber() && leftNode.decimalValue().compareTo(arrayItem.decimalValue()) == 0) {
-							return JSON.booleanNode(true);
-						}
-					}
-					return JSON.booleanNode(false);
-				})
-				.distinctUntilChanged();
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
+		return Flux.combineLatest(left, right, this::elementOf).distinctUntilChanged();
+	}
+
+	private Optional<JsonNode> elementOf(Optional<JsonNode> value, Optional<JsonNode> array) {
+		try {
+			if (!value.isPresent()) {
+				return Optional.of((JsonNode) JSON.booleanNode(false));
+			}
+			assertPresent(array);
+			if (!array.get().isArray()) {
+				throw Exceptions.propagate(new PolicyEvaluationException(
+						String.format(ELEMENT_OF_TYPE_MISMATCH, array.get().getNodeType())));
+			}
+			for (JsonNode arrayItem : array.get()) {
+				if (value.get().equals(arrayItem)) {
+					return Optional.of((JsonNode) JSON.booleanNode(true));
+				} else if (value.get().isNumber() && arrayItem.isNumber()
+						&& value.get().decimalValue().compareTo(arrayItem.decimalValue()) == 0) {
+					return Optional.of((JsonNode) JSON.booleanNode(true));
+				}
+			}
+			return Optional.of((JsonNode) JSON.booleanNode(false));
+		} catch (PolicyEvaluationException e) {
+			throw Exceptions.propagate(e);
+		}
 	}
 
 	@Override

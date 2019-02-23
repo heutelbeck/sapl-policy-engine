@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 import org.eclipse.emf.ecore.EObject;
@@ -35,19 +36,23 @@ public class ObjectImplCustom extends io.sapl.grammar.sapl.impl.ObjectImpl {
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		final List<String> keys = new ArrayList<>(getMembers().size());
-		final List<Flux<JsonNode>> valueFluxes = new ArrayList<>(getMembers().size());
+		final List<Flux<Optional<JsonNode>>> valueFluxes = new ArrayList<>(getMembers().size());
 		for (Pair member : getMembers()) {
 			keys.add(member.getKey());
 			valueFluxes.add(member.getValue().evaluate(ctx, isBody, relativeNode));
 		}
-		// the indices of the keys correspond to the indices of the values, because combineLatest() preserves the order
-		// of the given list of fluxes in the array of values passed to the combinator function
+		// the indices of the keys correspond to the indices of the values, because
+		// combineLatest() preserves the order
+		// of the given list of fluxes in the array of values passed to the combinator
+		// function
 		return Flux.combineLatest(valueFluxes, values -> {
 			final ObjectNode result = JsonNodeFactory.instance.objectNode();
-			IntStream.range(0, values.length).forEach(idx -> result.set(keys.get(idx), (JsonNode) values[idx]));
-			return result;
+			// omit undefined fields
+			IntStream.range(0, values.length).forEach(idx -> ((Optional<JsonNode>) values[idx])
+					.ifPresent(val -> result.set(keys.get(idx), (JsonNode) val)));
+			return Optional.of(result);
 		});
 	}
 

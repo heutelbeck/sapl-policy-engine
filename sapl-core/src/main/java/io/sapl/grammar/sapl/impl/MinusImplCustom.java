@@ -14,6 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -30,22 +31,19 @@ public class MinusImplCustom extends io.sapl.grammar.sapl.impl.MinusImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		return Flux.combineLatest(getLeft().evaluate(ctx, isBody, relativeNode),
+				getRight().evaluate(ctx, isBody, relativeNode), this::minus).distinctUntilChanged();
+	}
 
-		return Flux.combineLatest(leftResultFlux, rightResultFlux,
-				(leftResult, rightResult) -> {
-					try {
-						assertNumber(leftResult);
-						assertNumber(rightResult);
-						return (JsonNode) JSON.numberNode(leftResult.decimalValue().subtract(rightResult.decimalValue()));
-					}
-					catch (PolicyEvaluationException e) {
-						throw Exceptions.propagate(e);
-					}
-				})
-				.distinctUntilChanged();
+	private Optional<JsonNode> minus(Optional<JsonNode> left, Optional<JsonNode> right) {
+		try {
+			assertNumber(left, right);
+			return Optional.of((JsonNode) JSON
+					.numberNode(left.get().decimalValue().subtract(right.get().decimalValue())));
+		} catch (PolicyEvaluationException e) {
+			throw Exceptions.propagate(e);
+		}
 	}
 
 	@Override

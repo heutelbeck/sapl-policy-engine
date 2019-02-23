@@ -15,6 +15,7 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -36,33 +37,35 @@ public class RecursiveIndexStepImplCustom extends io.sapl.grammar.sapl.impl.Recu
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isArray() && !previousResult.getNode().isObject()) {
+		if (!previousResult.getNode().isPresent()
+				|| (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject())) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
 		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		resultList.addAll(resolveRecursive(previousResult.getNode()));
+		resultList.addAll(resolveRecursive(previousResult.getNode().get()));
 		return new ArrayResultNode(resultList);
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return Flux.just(apply(previousResult));
 	}
 
 	private ResultNode apply(ArrayResultNode previousResult) {
 		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode target : previousResult) {
-			resultList.addAll(resolveRecursive(target.getNode()));
+			resultList.addAll(resolveRecursive(target.getNode().get()));
 		}
 		return new ArrayResultNode(resultList);
 	}
@@ -70,8 +73,9 @@ public class RecursiveIndexStepImplCustom extends io.sapl.grammar.sapl.impl.Recu
 	private ArrayList<AbstractAnnotatedJsonNode> resolveRecursive(JsonNode node) {
 		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		int intIndex = index.intValue();
+
 		if (node.isArray() && node.has(intIndex)) {
-			resultList.add(new JsonNodeWithParentArray(node.get(intIndex), node, intIndex));
+			resultList.add(new JsonNodeWithParentArray(Optional.of(node.get(intIndex)), Optional.of(node), intIndex));
 		}
 		for (JsonNode child : node) {
 			resultList.addAll(resolveRecursive(child));

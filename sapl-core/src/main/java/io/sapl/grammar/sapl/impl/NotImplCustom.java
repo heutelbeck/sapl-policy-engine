@@ -14,6 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -30,19 +31,17 @@ public class NotImplCustom extends io.sapl.grammar.sapl.impl.NotImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		return expression.evaluate(ctx, isBody, relativeNode)
-				.map(result -> {
-					try {
-						assertBoolean(result);
-						return (JsonNode) JSON.booleanNode(!result.asBoolean());
-					}
-					catch (PolicyEvaluationException e) {
-						throw Exceptions.propagate(e);
-					}
-				})
-				.distinctUntilChanged();
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		return expression.evaluate(ctx, isBody, relativeNode).map(this::not).distinctUntilChanged();
+	}
 
+	private Optional<JsonNode> not(Optional<JsonNode> value) {
+		try {
+			assertBoolean(value);
+			return Optional.of((JsonNode) JSON.booleanNode(!value.get().asBoolean()));
+		} catch (PolicyEvaluationException e) {
+			throw Exceptions.propagate(e);
+		}
 	}
 
 	@Override

@@ -2,6 +2,7 @@ package io.sapl.grammar.tests;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -14,13 +15,13 @@ import io.sapl.interpreter.functions.LibraryDocumentation;
 public class MockFunctionContext implements FunctionContext {
 
 	@Override
-	public JsonNode evaluate(String function, ArrayNode parameters) throws FunctionException {
+	public Optional<JsonNode> evaluate(String function, ArrayNode parameters) throws FunctionException {
 		if ("EXCEPTION".equals(function)) {
 			throw new FunctionException();
 		} else if ("PARAMETERS".equals(function)) {
-			return parameters;
+			return Optional.of(parameters);
 		} else {
-			return JsonNodeFactory.instance.textNode(function);
+			return Optional.of(JsonNodeFactory.instance.textNode(function));
 		}
 	}
 

@@ -14,6 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -29,8 +30,8 @@ public class FalseLiteralImplCustom extends FalseLiteralImpl {
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		return Flux.just(JsonNodeFactory.instance.booleanNode(false));
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		return Flux.just(Optional.of(JsonNodeFactory.instance.booleanNode(false)));
 	}
 
 	@Override

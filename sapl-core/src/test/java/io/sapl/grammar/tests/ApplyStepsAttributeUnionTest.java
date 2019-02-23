@@ -3,6 +3,7 @@ package io.sapl.grammar.tests;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -42,27 +43,25 @@ public class ApplyStepsAttributeUnionTest {
 		step.getAttributes().add("key2");
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void applyToNonObject() {
-		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
 
 		AttributeUnionStep step = factory.createAttributeUnionStep();
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void applyToEmptyObject() {
 		ObjectNode object = JSON.objectNode();
-		ResultNode previousResult = new JsonNodeWithoutParent(object);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(object));
 
 		ResultNode expectedResult = new ArrayResultNode(new ArrayList<>());
 
@@ -70,11 +69,10 @@ public class ApplyStepsAttributeUnionTest {
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Attribute union applied to empty object should return empty result array",
-						expectedResult, result)
-				);
+		previousResult.applyStep(step, ctx, true, null).take(1)
+				.subscribe(result -> assertEquals(
+						"Attribute union applied to empty object should return empty result array", expectedResult,
+						result));
 	}
 
 	@Test
@@ -83,24 +81,22 @@ public class ApplyStepsAttributeUnionTest {
 		object.set("key1", JSON.nullNode());
 		object.set("key2", JSON.booleanNode(true));
 		object.set("key3", JSON.booleanNode(false));
-		ResultNode previousResult = new JsonNodeWithoutParent(object);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(object));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(JSON.nullNode(), object, "key1"));
-		expectedResultSet.add(new JsonNodeWithParentObject(JSON.booleanNode(true), object, "key2"));
+		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), Optional.of(object), "key1"));
+		expectedResultSet
+				.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(true)), Optional.of(object), "key2"));
 
 		AttributeUnionStep step = factory.createAttributeUnionStep();
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> {
-					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-					assertEquals("Attribute union applied to object should return result array with corresponding attribute values",
-							expectedResultSet, resultSet);
-				});
-
-
+		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals(
+					"Attribute union applied to object should return result array with corresponding attribute values",
+					expectedResultSet, resultSet);
+		});
 	}
 }

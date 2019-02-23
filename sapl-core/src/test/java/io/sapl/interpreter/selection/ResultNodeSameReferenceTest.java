@@ -3,19 +3,23 @@ package io.sapl.interpreter.selection;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Optional;
+
+import org.junit.Test;
+
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import org.junit.Test;
 
 public class ResultNodeSameReferenceTest {
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Test(expected = PolicyEvaluationException.class)
 	public void sameReferenceWithoutParent() throws PolicyEvaluationException {
-		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithoutParent(JSON.nullNode());
-		AbstractAnnotatedJsonNode other = new JsonNodeWithoutParent(JSON.nullNode());
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
+		AbstractAnnotatedJsonNode other = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
 		resultNode.sameReference(other);
 	}
 
@@ -24,8 +28,10 @@ public class ResultNodeSameReferenceTest {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 
-		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), array, 0);
-		AbstractAnnotatedJsonNode other = new JsonNodeWithParentArray(JSON.nullNode(), array, 0);
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
+				Optional.of(array), 0);
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array),
+				0);
 
 		assertTrue("sameReference on JsonNodeWithParentArray should return true if reference is the same",
 				resultNode.sameReference(other));
@@ -39,8 +45,10 @@ public class ResultNodeSameReferenceTest {
 		ArrayNode array2 = JSON.arrayNode();
 		array2.add(JSON.nullNode());
 
-		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), array1, 0);
-		AbstractAnnotatedJsonNode other = new JsonNodeWithParentArray(JSON.nullNode(), array2, 0);
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
+				Optional.of(array1), 0);
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array2),
+				0);
 
 		assertFalse("sameReference on JsonNodeWithParentArray should return false if parent reference is not the same",
 				resultNode.sameReference(other));
@@ -52,8 +60,10 @@ public class ResultNodeSameReferenceTest {
 		array1.add(JSON.nullNode());
 		array1.add(JSON.nullNode());
 
-		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), array1, 0);
-		AbstractAnnotatedJsonNode other = new JsonNodeWithParentArray(JSON.nullNode(), array1, 1);
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
+				Optional.of(array1), 0);
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array1),
+				1);
 
 		assertFalse("sameReference on JsonNodeWithParentArray should return false if index is not the same",
 				resultNode.sameReference(other));
@@ -67,8 +77,10 @@ public class ResultNodeSameReferenceTest {
 		ObjectNode object = JSON.objectNode();
 		object.set("key", JSON.nullNode());
 
-		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentArray(JSON.nullNode(), array, 0);
-		AbstractAnnotatedJsonNode other = new JsonNodeWithParentObject(JSON.nullNode(), object, "key");
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
+				Optional.of(array), 0);
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
+				Optional.of(object), "key");
 
 		assertFalse("sameReference on JsonNodeWithParentArray should return false if other has different type",
 				resultNode.sameReference(other));
@@ -79,8 +91,10 @@ public class ResultNodeSameReferenceTest {
 		ObjectNode object = JSON.objectNode();
 		object.set("key", JSON.nullNode());
 
-		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentObject(JSON.nullNode(), object, "key");
-		AbstractAnnotatedJsonNode other = new JsonNodeWithParentObject(JSON.nullNode(), object, "key");
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
+				Optional.of(object), "key");
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
+				Optional.of(object), "key");
 
 		assertTrue("sameReference on JsonNodeWithParentObject should return true if reference is the same",
 				resultNode.sameReference(other));
@@ -94,8 +108,10 @@ public class ResultNodeSameReferenceTest {
 		ObjectNode object2 = JSON.objectNode();
 		object2.set("key", JSON.nullNode());
 
-		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentObject(JSON.nullNode(), object1, "key");
-		AbstractAnnotatedJsonNode other = new JsonNodeWithParentObject(JSON.nullNode(), object2, "key");
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
+				Optional.of(object1), "key");
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
+				Optional.of(object2), "key");
 
 		assertFalse("sameReference on JsonNodeWithParentObject should return false if parent reference is not the same",
 				resultNode.sameReference(other));
@@ -107,8 +123,10 @@ public class ResultNodeSameReferenceTest {
 		object.set("key1", JSON.nullNode());
 		object.set("key2", JSON.nullNode());
 
-		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentObject(JSON.nullNode(), object, "key1");
-		AbstractAnnotatedJsonNode other = new JsonNodeWithParentObject(JSON.nullNode(), object, "key2");
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
+				Optional.of(object), "key1");
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
+				Optional.of(object), "key2");
 
 		assertFalse("sameReference on JsonNodeWithParentObject should return false if keys are not equal",
 				resultNode.sameReference(other));
@@ -122,8 +140,10 @@ public class ResultNodeSameReferenceTest {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 
-		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentObject(JSON.nullNode(), object, "key");
-		AbstractAnnotatedJsonNode other = new JsonNodeWithParentArray(JSON.nullNode(), array, 0);
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
+				Optional.of(object), "key");
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array),
+				0);
 
 		assertFalse("sameReference on JsonNodeWithParentObject should return false if other has different type",
 				resultNode.sameReference(other));

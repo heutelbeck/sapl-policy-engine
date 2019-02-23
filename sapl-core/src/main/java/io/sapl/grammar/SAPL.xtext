@@ -114,7 +114,7 @@ Subscript returns Step:
 	{AttributeUnionStep} attributes+=STRING ',' attributes+=STRING (',' attributes+=STRING)* ;
 
 Value:
-	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral ;
+	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral | UndefinedLiteral ;
 
 Object returns Value:
 	{Object} '{' (members+=Pair (',' members+=Pair)*)? '}' ;
@@ -131,6 +131,9 @@ BooleanLiteral returns Value:
 
 NullLiteral returns Value:
 	{NullLiteral} 'null' ;
+
+UndefinedLiteral returns Value:
+	{UndefinedLiteral} 'undefined' ;
 
 StringLiteral returns Value:
 	{StringLiteral} string=STRING ;

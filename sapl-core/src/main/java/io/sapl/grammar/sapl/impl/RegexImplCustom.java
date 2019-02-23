@@ -14,6 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -35,33 +36,35 @@ public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
+		return Flux.combineLatest(left, right, this::matchRegexp).distinctUntilChanged();
+	}
 
-		return Flux.combineLatest(leftResultFlux, rightResultFlux,
-				(leftResult, rightResult) -> {
-					try {
-						if (leftResult.isNull()) {
-							return JSON.booleanNode(false);
-						}
-						if (!leftResult.isTextual()) {
-							throw new PolicyEvaluationException(String.format(REGEX_TYPE_MISMATCH, leftResult.getNodeType()));
-						}
-						if (!rightResult.isTextual()) {
-							throw new PolicyEvaluationException(String.format(REGEX_TYPE_MISMATCH, rightResult.getNodeType()));
-						}
-						try {
-							return (JsonNode) JSON.booleanNode(Pattern.matches(rightResult.asText(), leftResult.asText()));
-						} catch (PatternSyntaxException e) {
-							throw new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, rightResult.asText()), e);
-						}
-					}
-					catch (PolicyEvaluationException e) {
-						throw Exceptions.propagate(e);
-					}
-				})
-				.distinctUntilChanged();
+	private Optional<JsonNode> matchRegexp(Optional<JsonNode> value, Optional<JsonNode> regexp) {
+		try {
+			if (!regexp.isPresent()) {
+				throw new PolicyEvaluationException(String.format(REGEX_TYPE_MISMATCH, "undefined"));
+			}
+			if (!value.isPresent() || value.get().isNull()) {
+				return Optional.of((JsonNode) JSON.booleanNode(false));
+			}
+			return regexpMatchTextNodes(value, regexp);
+		} catch (PolicyEvaluationException e) {
+			throw Exceptions.propagate(e);
+		}
+	}
+
+	private Optional<JsonNode> regexpMatchTextNodes(Optional<JsonNode> optLeftResult, Optional<JsonNode> optRightResult)
+			throws PolicyEvaluationException {
+		assertTextual(optLeftResult, optRightResult);
+		try {
+			return Optional.of((JsonNode) JSON
+					.booleanNode(Pattern.matches(optRightResult.get().asText(), optLeftResult.get().asText())));
+		} catch (PatternSyntaxException e) {
+			throw new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, optRightResult.get().asText()), e);
+		}
 	}
 
 	@Override

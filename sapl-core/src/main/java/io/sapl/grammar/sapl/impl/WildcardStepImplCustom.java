@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -37,34 +38,40 @@ public class WildcardStepImplCustom extends io.sapl.grammar.sapl.impl.WildcardSt
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		final JsonNode previousResultNode = previousResult.getNode();
-		if (previousResultNode.isArray()) {
+		final Optional<JsonNode> previousResultNode = previousResult.getNode();
+		if (!previousResultNode.isPresent()) {
+			throw new PolicyEvaluationException(String.format(WILDCARD_ACCESS_TYPE_MISMATCH, "undefined"));
+		}
+		if (previousResultNode.get().isArray()) {
 			return previousResult;
-		} else if (previousResultNode.isObject()) {
+		} else if (previousResultNode.get().isObject()) {
 			final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-			final Iterator<String> iterator = previousResultNode.fieldNames();
+			final Iterator<String> iterator = previousResultNode.get().fieldNames();
 			while (iterator.hasNext()) {
 				final String key = iterator.next();
-				resultList.add(new JsonNodeWithParentObject(previousResultNode.get(key), previousResultNode, key));
+				resultList.add(new JsonNodeWithParentObject(Optional.of(previousResultNode.get().get(key)),
+						previousResultNode, key));
 			}
 			return new ArrayResultNode(resultList);
 		} else {
-			throw new PolicyEvaluationException(String.format(WILDCARD_ACCESS_TYPE_MISMATCH, previousResultNode.getNodeType()));
+			throw new PolicyEvaluationException(
+					String.format(WILDCARD_ACCESS_TYPE_MISMATCH, previousResultNode.get().getNodeType()));
 		}
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return Flux.just(previousResult);
 	}
 

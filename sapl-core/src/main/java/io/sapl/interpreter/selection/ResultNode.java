@@ -12,6 +12,8 @@
  */
 package io.sapl.interpreter.selection;
 
+import java.util.Optional;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -44,7 +46,7 @@ public interface ResultNode {
 	 *
 	 * @return the root JsonNode
 	 */
-	JsonNode asJsonWithoutAnnotations();
+	Optional<JsonNode> asJsonWithoutAnnotations();
 
 	/**
 	 * Checks if the node is a result array (which can contain multiple
@@ -125,5 +127,5 @@ public interface ResultNode {
 	 *            the node a relative expression evaluates to
 	 * @return a {@link Flux} of result nodes resulting from application of the step
 	 */
-	Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody, JsonNode relativeNode);
+	Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode);
 }

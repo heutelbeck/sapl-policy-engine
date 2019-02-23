@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.emf.ecore.EObject;
@@ -41,17 +42,17 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		final JsonNode previousResultNode = previousResult.getNode();
+		final JsonNode previousResultNode = previousResult.getNode().get();
 		if (!previousResultNode.isArray()) {
 			throw new PolicyEvaluationException(UNION_TYPE_MISMATCH);
 		}
@@ -62,7 +63,8 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (int index : indices) {
 			if (previousResultNode.has(index)) {
-				resultList.add(new JsonNodeWithParentArray(previousResultNode.get(index), previousResultNode, index));
+				resultList.add(new JsonNodeWithParentArray(Optional.of(previousResultNode.get(index)),
+						previousResult.getNode(), index));
 			}
 		}
 		return new ArrayResultNode(resultList);
@@ -73,8 +75,7 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 		for (BigDecimal index : getIndices()) {
 			if (index.intValue() < 0) {
 				indices.add(arrayLength + index.intValue());
-			}
-			else {
+			} else {
 				indices.add(index.intValue());
 			}
 		}
@@ -82,7 +83,8 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return Flux.just(apply(previousResult));
 	}
 

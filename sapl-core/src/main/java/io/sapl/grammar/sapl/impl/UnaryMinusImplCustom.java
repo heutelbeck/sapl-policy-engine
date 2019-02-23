@@ -14,6 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -30,18 +31,17 @@ public class UnaryMinusImplCustom extends io.sapl.grammar.sapl.impl.UnaryMinusIm
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		return getExpression().evaluate(ctx, isBody, relativeNode)
-				.map(result -> {
-					try {
-						assertNumber(result);
-						return (JsonNode) JSON.numberNode(result.decimalValue().negate());
-					}
-					catch (PolicyEvaluationException e) {
-						throw Exceptions.propagate(e);
-					}
-				})
-				.distinctUntilChanged();
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		return getExpression().evaluate(ctx, isBody, relativeNode).map(this::negate).distinctUntilChanged();
+	}
+
+	private Optional<JsonNode> negate(Optional<JsonNode> value) {
+		try {
+			assertNumber(value);
+			return (Optional<JsonNode>) Optional.of((JsonNode) JSON.numberNode(value.get().decimalValue().negate()));
+		} catch (PolicyEvaluationException e) {
+			throw Exceptions.propagate(e);
+		}
 	}
 
 	@Override

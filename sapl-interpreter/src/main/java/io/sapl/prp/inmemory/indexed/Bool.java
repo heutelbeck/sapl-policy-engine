@@ -2,6 +2,7 @@ package io.sapl.prp.inmemory.indexed;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Preconditions;
@@ -72,11 +73,11 @@ public class Bool {
 		if (!isConstantExpression) {
 			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
 			try {
-				JsonNode result = expression.evaluate(ctx, false, null).blockFirst();
-				if (result.isBoolean()) {
-					return result.asBoolean();
+				Optional<JsonNode> result = expression.evaluate(ctx, false, null).blockFirst();
+				if (result.isPresent() && result.get().isBoolean()) {
+					return result.get().asBoolean();
 				}
-				throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, result.getNodeType()));
+				throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, result));
 			} catch (RuntimeException e) {
 				throw new PolicyEvaluationException(Exceptions.unwrap(e));
 			}

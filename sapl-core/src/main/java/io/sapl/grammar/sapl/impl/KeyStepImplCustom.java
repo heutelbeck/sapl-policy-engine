@@ -15,6 +15,7 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -37,37 +38,40 @@ public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		final JsonNode previousResultNode = previousResult.getNode();
+		final JsonNode previousResultNode = previousResult.getNode()
+				.orElseThrow(() -> new PolicyEvaluationException("Cannot descend on undefined value"));
 
 		if (previousResultNode.isObject()) {
 			if (!previousResultNode.has(id)) {
 				throw new PolicyEvaluationException(String.format(KEY_ACCESS_NOT_FOUND, id));
 			}
-			return new JsonNodeWithParentObject(previousResultNode.get(id), previousResultNode, id);
+			return new JsonNodeWithParentObject(Optional.of(previousResultNode.get(id)), previousResult.getNode(), id);
 		} else if (previousResultNode.isArray()) {
 			return applyToJsonArray(previousResultNode);
 		} else {
-			throw new PolicyEvaluationException(String.format(KEY_ACCESS_TYPE_MISMATCH, id, previousResultNode.getNodeType()));
+			throw new PolicyEvaluationException(
+					String.format(KEY_ACCESS_TYPE_MISMATCH, id, previousResultNode.getNodeType()));
 		}
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return Flux.just(apply(previousResult));
 	}
 
 	private ResultNode apply(ArrayResultNode previousResult) {
-		return applyToJsonArray(previousResult.asJsonWithoutAnnotations());
+		return applyToJsonArray(previousResult.asJsonWithoutAnnotations().get());
 	}
 
 	private ArrayResultNode applyToJsonArray(Iterable<JsonNode> array) {
@@ -75,7 +79,7 @@ public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 
 		for (JsonNode item : array) {
 			if (item.isObject() && item.has(id)) {
-				resultList.add(new JsonNodeWithParentObject(item.get(id), item, id));
+				resultList.add(new JsonNodeWithParentObject(Optional.of(item.get(id)), Optional.of(item), id));
 			}
 		}
 		return new ArrayResultNode(resultList);

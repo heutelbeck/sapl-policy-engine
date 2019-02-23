@@ -2,6 +2,8 @@ package io.sapl.grammar.tests;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Optional;
+
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -37,9 +39,8 @@ public class ApplyFilteringSimpleTest {
 		FilterSimple filter = factory.createFilterSimple();
 		filter.getFsteps().add(REMOVE);
 
-		StepVerifier.create(filter.apply(root, ctx, false, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(filter.apply(Optional.of(root), ctx, false, null))
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -50,9 +51,8 @@ public class ApplyFilteringSimpleTest {
 		filter.getFsteps().add(REMOVE);
 		filter.setEach(true);
 
-		StepVerifier.create(filter.apply(root, ctx, false, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(filter.apply(Optional.of(root), ctx, false, null))
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -66,11 +66,9 @@ public class ApplyFilteringSimpleTest {
 
 		JsonNode expectedResult = JSON.arrayNode();
 
-		filter.apply(root, ctx, false, null)
-				.take(1)
+		filter.apply(Optional.of(root), ctx, false, null).take(1)
 				.subscribe(result -> assertEquals("Remove applied to array with each should return empty array",
-						expectedResult, result)
-				);
+						Optional.of(expectedResult), result));
 	}
 
 	@Test
@@ -82,11 +80,10 @@ public class ApplyFilteringSimpleTest {
 
 		JsonNode expectedResult = JSON.textNode("");
 
-		filter.apply(root, ctx, false, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Mock function EMPTY_STRING applied to array without each should return empty string",
-					expectedResult, result)
-				);
+		filter.apply(Optional.of(root), ctx, false, null).take(1)
+				.subscribe(result -> assertEquals(
+						"Mock function EMPTY_STRING applied to array without each should return empty string",
+						Optional.of(expectedResult), result));
 	}
 
 	@Test
@@ -108,11 +105,10 @@ public class ApplyFilteringSimpleTest {
 		expectedResult.add(JSON.textNode(""));
 		expectedResult.add(JSON.textNode(""));
 
-		filter.apply(root, ctx, false, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Mock function EMPTY_STRING applied to array with each should return array with empty strings",
-					expectedResult, result)
-				);
+		filter.apply(Optional.of(root), ctx, false, null).take(1)
+				.subscribe(result -> assertEquals(
+						"Mock function EMPTY_STRING applied to array with each should return array with empty strings",
+						Optional.of(expectedResult), result));
 	}
 
 }

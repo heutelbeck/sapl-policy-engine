@@ -77,6 +77,10 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
+	private static final String CANNOT_ASSIGN_UNDEFINED_TO_A_VAL = "Cannot assign undefined to a val.";
+	private static final String ADVICE_EVALUATED_TO_UNDEFINED_VALUE = "Advice evaluated to undefined value";
+	private static final String OBLIGATION_EVALUATED_TO_UNDEFINED_VALUE = "Obligation evaluated to undefined value.";
+
 	@FunctionalInterface
 	interface FluxProvider<T> {
 		Flux<T> getFlux();
@@ -159,22 +163,29 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	public boolean matches(Request request, PolicyElement policyElement, FunctionContext functionCtx,
 			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables, Map<String, String> imports)
 			throws PolicyEvaluationException {
-
+		LOGGER.trace("match policyElement: {}", policyElement.getSaplName());
+		LOGGER.trace("for request : {}", request);
 		final Expression targetExpression = policyElement.getTargetExpression();
 		if (targetExpression == null) {
+			LOGGER.trace("target expr == null!");
 			return true;
 		} else {
+			LOGGER.trace("target expr: {}",targetExpression.getClass().getCanonicalName());
+
 			final EvaluationContext evaluationCtx = createEvaluationContext(request, functionCtx, systemVariables,
 					variables, imports);
 			try {
-				final JsonNode expressionResult = targetExpression.evaluate(evaluationCtx, false, null).blockFirst();
-				if (expressionResult.isBoolean()) {
-					return expressionResult.asBoolean();
+				final Optional<JsonNode> expressionResult = targetExpression.evaluate(evaluationCtx, false, null)
+						.blockFirst();
+				LOGGER.trace("Result of match: {}", expressionResult );
+				if (expressionResult.isPresent() && expressionResult.get().isBoolean()) {
+					return expressionResult.get().asBoolean();
 				} else {
-					throw new PolicyEvaluationException(
-							String.format(CONDITION_NOT_BOOLEAN, expressionResult.getNodeType()));
+					throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, expressionResult));
 				}
 			} catch (RuntimeException fluxError) {
+				LOGGER.trace("ERROR: {}", fluxError.getMessage() );
+
 				final Throwable originalError = Exceptions.unwrap(fluxError);
 				if (originalError instanceof PolicyEvaluationException) {
 					throw (PolicyEvaluationException) originalError;
@@ -303,8 +314,11 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			Map<String, JsonNode> variables) {
 		return valueDefinition.getEval().evaluate(evaluationCtx, true, null).map(evaluatedValue -> {
 			try {
-				evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue);
-				variables.put(valueDefinition.getName(), evaluatedValue);
+				if (!evaluatedValue.isPresent()) {
+					throw new PolicyEvaluationException(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL);
+				}
+				evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
+				variables.put(valueDefinition.getName(), evaluatedValue.get());
 				return Void.INSTANCE;
 			} catch (PolicyEvaluationException e) {
 				LOGGER.error(e.getMessage(), e);
@@ -359,8 +373,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		}).flatMap(response -> {
 			if (response.getDecision() == Decision.PERMIT) {
 				return evaluateTransformation(policy, evaluationCtx)
-						.map(resource -> new Response(response.getDecision(), resource, response.getObligations(),
-								response.getAdvices()));
+						.map(resource -> new Response(response.getDecision(), resource.orElse(Optional.empty()),
+								response.getObligations(), response.getAdvices()));
 			} else {
 				return Flux.just(response);
 			}
@@ -407,7 +421,10 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			EvaluationContext evaluationCtx) {
 		return valueDefinition.getEval().evaluate(evaluationCtx, true, null).map(evaluatedValue -> {
 			try {
-				evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue);
+				if (!evaluatedValue.isPresent()) {
+					throw new PolicyEvaluationException(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL);
+				}
+				evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
 				return true;
 			} catch (PolicyEvaluationException e) {
 				LOGGER.error(e.getMessage(), e);
@@ -418,11 +435,11 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static Flux<Boolean> evaluateCondition(Condition condition, EvaluationContext evaluationCtx) {
 		return condition.getExpression().evaluate(evaluationCtx, true, null).map(statementResult -> {
-			if (statementResult.isBoolean()) {
-				return statementResult.asBoolean();
+			if (statementResult.isPresent() && statementResult.get().isBoolean()) {
+				return statementResult.get().asBoolean();
 			} else {
-				throw Exceptions.propagate(new PolicyEvaluationException(
-						String.format(STATEMENT_NOT_BOOLEAN, statementResult.getNodeType())));
+				throw Exceptions.propagate(
+						new PolicyEvaluationException(String.format(STATEMENT_NOT_BOOLEAN, statementResult)));
 			}
 		}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
 	}
@@ -432,8 +449,12 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		if (policy.getObligation() != null) {
 			final ArrayNode obligationArr = JSON.arrayNode();
 			try {
-				final JsonNode obligation = policy.getObligation().evaluate(evaluationCtx, true, null).blockFirst();
-				obligationArr.add(obligation);
+				final Optional<JsonNode> obligation = policy.getObligation().evaluate(evaluationCtx, true, null)
+						.blockFirst();
+				if (!obligation.isPresent()) {
+					throw new PolicyEvaluationException(OBLIGATION_EVALUATED_TO_UNDEFINED_VALUE);
+				}
+				obligationArr.add(obligation.get());
 				return Optional.of(obligationArr);
 			} catch (RuntimeException fluxError) {
 				LOGGER.error(OBLIGATION_ADVICE_ERROR, fluxError);
@@ -452,8 +473,11 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		if (policy.getAdvice() != null) {
 			final ArrayNode adviceArr = JSON.arrayNode();
 			try {
-				final JsonNode advice = policy.getAdvice().evaluate(evaluationCtx, true, null).blockFirst();
-				adviceArr.add(advice);
+				final Optional<JsonNode> advice = policy.getAdvice().evaluate(evaluationCtx, true, null).blockFirst();
+				if (!advice.isPresent()) {
+					throw new PolicyEvaluationException(ADVICE_EVALUATED_TO_UNDEFINED_VALUE);
+				}
+				adviceArr.add(advice.get());
 				return Optional.of(adviceArr);
 			} catch (RuntimeException fluxError) {
 				LOGGER.error(OBLIGATION_ADVICE_ERROR, fluxError);
@@ -467,7 +491,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		return Optional.empty();
 	}
 
-	private static Flux<Optional<JsonNode>> evaluateTransformation(Policy policy, EvaluationContext evaluationCtx) {
+	private static Flux<Optional<Optional<JsonNode>>> evaluateTransformation(Policy policy,
+			EvaluationContext evaluationCtx) {
 		if (policy.getTransformation() != null) {
 			return policy.getTransformation().evaluate(evaluationCtx, true, null).map(Optional::of)
 					.doOnError(error -> LOGGER.error(TRANSFORMATION_ERROR, error));

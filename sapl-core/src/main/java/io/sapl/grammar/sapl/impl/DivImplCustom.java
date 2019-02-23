@@ -14,6 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -30,22 +31,21 @@ public class DivImplCustom extends io.sapl.grammar.sapl.impl.DivImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
 
-		return Flux.combineLatest(leftResultFlux, rightResultFlux,
-				(leftResult, rightResult) -> {
-					try {
-						assertNumber(leftResult);
-						assertNumber(rightResult);
-						return (JsonNode) JSON.numberNode(leftResult.decimalValue().divide(rightResult.decimalValue()));
-					}
-					catch (PolicyEvaluationException e) {
-						throw Exceptions.propagate(e);
-					}
-				})
-				.distinctUntilChanged();
+		return Flux.combineLatest(leftResultFlux, rightResultFlux, this::divide).distinctUntilChanged();
+	}
+
+	private Optional<JsonNode> divide(Optional<JsonNode> divident, Optional<JsonNode> divisor) {
+		try {
+			assertNumber(divident, divisor);
+			return Optional
+					.of((JsonNode) JSON.numberNode(divident.get().decimalValue().divide(divisor.get().decimalValue())));
+		} catch (PolicyEvaluationException e) {
+			throw Exceptions.propagate(e);
+		}
 	}
 
 	@Override

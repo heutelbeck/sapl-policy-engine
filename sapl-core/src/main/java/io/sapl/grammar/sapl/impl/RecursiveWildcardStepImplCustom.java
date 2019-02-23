@@ -14,8 +14,10 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -28,9 +30,12 @@ import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.RecursiveWildcardStepImpl {
+
+	private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE = "Cannot descent on an undefined value.";
 
 	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
 
@@ -38,31 +43,33 @@ public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.R
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-        try {
-            return Flux.just(apply(previousResult));
-        }
-        catch (PolicyEvaluationException e) {
-            return Flux.error(e);
-        }
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
+		try {
+			return Flux.just(apply(previousResult));
+		} catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isArray() && !previousResult.getNode().isObject()) {
+		if (!previousResult.getNode().isPresent()
+				|| (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject())) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		resultList.addAll(resolveRecursive(previousResult.getNode()));
 		return new ArrayResultNode(resultList);
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return Flux.just(apply(previousResult));
 	}
 
 	private ResultNode apply(ArrayResultNode previousResult) {
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
 			resultList.add(child);
 			resultList.addAll(resolveRecursive(child.getNode()));
@@ -70,19 +77,21 @@ public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.R
 		return new ArrayResultNode(resultList);
 	}
 
-	private static ArrayList<AbstractAnnotatedJsonNode> resolveRecursive(JsonNode node) {
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+	private static List<AbstractAnnotatedJsonNode> resolveRecursive(Optional<JsonNode> optNode) {
+		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+		JsonNode node = optNode.orElseThrow(
+				() -> Exceptions.propagate(new PolicyEvaluationException(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE)));
 		if (node.isArray()) {
 			for (int i = 0; i < node.size(); i++) {
-				resultList.add(new JsonNodeWithParentArray(node.get(i), node, i));
-				resultList.addAll(resolveRecursive(node.get(i)));
+				resultList.add(new JsonNodeWithParentArray(Optional.of(node.get(i)), Optional.of(node), i));
+				resultList.addAll(resolveRecursive(Optional.of(node.get(i))));
 			}
 		} else {
 			final Iterator<String> it = node.fieldNames();
 			while (it.hasNext()) {
 				final String key = it.next();
-				resultList.add(new JsonNodeWithParentObject(node.get(key), node, key));
-				resultList.addAll(resolveRecursive(node.get(key)));
+				resultList.add(new JsonNodeWithParentObject(Optional.of(node.get(key)), optNode, key));
+				resultList.addAll(resolveRecursive(Optional.of(node.get(key))));
 			}
 		}
 		return resultList;

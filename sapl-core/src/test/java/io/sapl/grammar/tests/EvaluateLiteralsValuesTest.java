@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -35,29 +36,25 @@ public class EvaluateLiteralsValuesTest {
 	@Test
 	public void evaluateNullLiteral() {
 		Value value = factory.createNullLiteral();
-		value.evaluate(ctx, true, null)
-				.take(1)
-				.subscribe(result -> assertEquals("NullLiteral should evaluate to NullNode", JSON.nullNode(), result));
+		value.evaluate(ctx, true, null).take(1)
+				.subscribe(result -> assertEquals("NullLiteral should evaluate to NullNode",
+						Optional.of(JSON.nullNode()), result));
 	}
 
 	@Test
 	public void evaluateTrueLiteral() {
 		Value value = factory.createTrueLiteral();
-		value.evaluate(ctx, true, null)
-				.take(1)
+		value.evaluate(ctx, true, null).take(1)
 				.subscribe(result -> assertEquals("TrueLiteral should evaluate to BooleanNode(true)",
-						JSON.booleanNode(true), result)
-				);
+						Optional.of(JSON.booleanNode(true)), result));
 	}
 
 	@Test
 	public void evaluateFalseLiteral() {
 		Value value = factory.createFalseLiteral();
-		value.evaluate(ctx, true, null)
-				.take(1)
+		value.evaluate(ctx, true, null).take(1)
 				.subscribe(result -> assertEquals("FalseLiteral should evaluate to BooleanNode(false)",
-						JSON.booleanNode(false), result)
-				);
+						Optional.of(JSON.booleanNode(false)), result));
 	}
 
 	@Test
@@ -65,11 +62,8 @@ public class EvaluateLiteralsValuesTest {
 		StringLiteral literal = factory.createStringLiteral();
 		literal.setString(TEST_STRING);
 
-		literal.evaluate(ctx, true, null)
-				.take(1)
-				.subscribe(result -> assertEquals("String should evaluate to TextNode",
-						JSON.textNode(TEST_STRING), result)
-				);
+		literal.evaluate(ctx, true, null).take(1).subscribe(result -> assertEquals("String should evaluate to TextNode",
+				Optional.of(JSON.textNode(TEST_STRING)), result));
 	}
 
 	@Test
@@ -77,21 +71,16 @@ public class EvaluateLiteralsValuesTest {
 		NumberLiteral literal = factory.createNumberLiteral();
 		literal.setNumber(TEST_NUMBER);
 
-		literal.evaluate(ctx, true, null)
-				.take(1)
+		literal.evaluate(ctx, true, null).take(1)
 				.subscribe(result -> assertEquals("NumberLiteral should evaluate to ValueNode",
-						JSON.numberNode(TEST_NUMBER), result)
-				);
+						Optional.of(JSON.numberNode(TEST_NUMBER)), result));
 	}
 
 	@Test
 	public void evaluateEmptyObject() {
 		io.sapl.grammar.sapl.Object saplObject = factory.createObject();
-		saplObject.evaluate(ctx, true, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Empty Object should evaluate to ObjectNode",
-						JSON.objectNode(), result)
-				);
+		saplObject.evaluate(ctx, true, null).take(1).subscribe(
+				result -> assertEquals("Empty Object should evaluate to ObjectNode", JSON.objectNode(), result));
 	}
 
 	@Test
@@ -112,17 +101,15 @@ public class EvaluateLiteralsValuesTest {
 		expectedResult.set(PAIR1_KEY, JSON.nullNode());
 		expectedResult.set(PAIR2_KEY, JSON.booleanNode(true));
 
-		saplObject.evaluate(ctx, true, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Object should evaluate to ObjectNode", expectedResult, result));
+		saplObject.evaluate(ctx, true, null).take(1).subscribe(
+				result -> assertEquals("Object should evaluate to ObjectNode", Optional.of(expectedResult), result));
 	}
 
 	@Test
 	public void evaluateEmptyArray() {
 		Array saplArray = factory.createArray();
-		saplArray.evaluate(ctx, true, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Empty Array should evaluate to ArrayNode", JSON.arrayNode(), result));
+		saplArray.evaluate(ctx, true, null).take(1).subscribe(
+				result -> assertEquals("Empty Array should evaluate to ArrayNode", JSON.arrayNode(), result));
 	}
 
 	@Test
@@ -138,9 +125,8 @@ public class EvaluateLiteralsValuesTest {
 		expectedResult.add(JSON.booleanNode(true));
 		expectedResult.add(JSON.booleanNode(false));
 
-		saplArray.evaluate(ctx, true, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Array should evaluate to Array", expectedResult, result));
+		saplArray.evaluate(ctx, true, null).take(1).subscribe(
+				result -> assertEquals("Array should evaluate to Array", Optional.of(expectedResult), result));
 	}
 
 }

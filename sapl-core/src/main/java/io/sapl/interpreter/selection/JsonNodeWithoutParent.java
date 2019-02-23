@@ -12,6 +12,8 @@
  */
 package io.sapl.interpreter.selection;
 
+import java.util.Optional;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -34,7 +36,7 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 	private static final String REFERENCE_CANNOT_BE_COMPARED = "Reference of a JsonNodeWithoutParent cannot be compared.";
 	private static final String FILTER_ROOT_ELEMENT = "The root element cannot be filtered.";
 
-	public JsonNodeWithoutParent(JsonNode node) {
+	public JsonNodeWithoutParent(Optional<JsonNode> node) {
 		super(node);
 	}
 
@@ -63,12 +65,14 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx,
+			boolean isBody) {
 		return applyFilterWithRelativeNode(function, arguments, each, ctx, isBody, null);
 	}
 
 	@Override
-	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
+			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (each) {
 			return applyFilterToEachItem(function, node, arguments, ctx, isBody);
 		} else {

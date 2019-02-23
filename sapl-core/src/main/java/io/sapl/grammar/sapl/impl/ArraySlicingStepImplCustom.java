@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -29,6 +30,7 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
@@ -40,41 +42,44 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isArray()) {
-			throw new PolicyEvaluationException(String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), previousResult.getNode().getNodeType()));
+		if (!previousResult.getNode().isPresent() || !previousResult.getNode().get().isArray()) {
+			throw new PolicyEvaluationException(String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(),
+					previousResult.getNode().isPresent() ? previousResult.getNode().get().getNodeType() : "undefined"));
 		}
 
 		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		final List<Integer> nodeIndices = resolveIndex(previousResult.getNode());
+		final List<Integer> nodeIndices = resolveIndex(previousResult.getNode().get());
 		for (Integer idx : nodeIndices) {
-			list.add(new JsonNodeWithParentArray(previousResult.getNode().get(idx), previousResult.getNode(), idx));
+			list.add(new JsonNodeWithParentArray(Optional.of(previousResult.getNode().get().get(idx)),
+					previousResult.getNode(), idx));
 		}
 		return new ArrayResultNode(list);
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
 	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
 		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		final List<Integer> nodeIndices = resolveIndex(previousResult.asJsonWithoutAnnotations());
+		final List<Integer> nodeIndices = resolveIndex(previousResult.asJsonWithoutAnnotations()
+				.orElseThrow(() -> Exceptions.propagate(new PolicyEvaluationException("undefined value"))));
 		for (Integer i : nodeIndices) {
 			list.add(previousResult.getNodes().get(i));
 		}

@@ -14,6 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -32,29 +33,26 @@ public class OrImplCustom extends io.sapl.grammar.sapl.impl.OrImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (!isBody) {
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
+		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
+		return Flux.combineLatest(left, right, this::or).distinctUntilChanged();
+	}
 
-		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
-
-		return Flux.combineLatest(leftResultFlux, rightResultFlux,
-				(leftResult, rightResult) -> {
-					try {
-						assertBoolean(leftResult);
-						if (leftResult.asBoolean()) {
-							return (JsonNode) JSON.booleanNode(true);
-						}
-						assertBoolean(rightResult);
-						return JSON.booleanNode(rightResult.asBoolean());
-					}
-					catch (PolicyEvaluationException e) {
-						throw Exceptions.propagate(e);
-					}
-				})
-				.distinctUntilChanged();
+	private Optional<JsonNode> or(Optional<JsonNode> left, Optional<JsonNode> right) {
+		try {
+			assertBoolean(left);
+			if (left.get().asBoolean()) {
+				return Optional.of((JsonNode) JSON.booleanNode(true));
+			}
+			assertBoolean(right);
+			return Optional.of((JsonNode) JSON.booleanNode(right.get().asBoolean()));
+		} catch (PolicyEvaluationException e) {
+			throw Exceptions.propagate(e);
+		}
 	}
 
 	@Override

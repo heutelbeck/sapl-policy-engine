@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Decision;
@@ -34,7 +35,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
 			return Flux.just(Response.deny());
 		}
-
+		
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
 			responseFluxes.add(interpreter.evaluate(request, document, attributeCtx, functionCtx, systemVariables));

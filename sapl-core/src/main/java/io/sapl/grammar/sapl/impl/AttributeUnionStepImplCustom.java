@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.emf.ecore.EObject;
@@ -41,17 +42,18 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-        try {
-            return Flux.just(apply(previousResult));
-        }
-        catch (PolicyEvaluationException e) {
-            return Flux.error(e);
-        }
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
+		try {
+			return Flux.just(apply(previousResult));
+		} catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		final JsonNode previousResultNode = previousResult.getNode();
+		final JsonNode previousResultNode = previousResult.getNode()
+				.orElseThrow(() -> new PolicyEvaluationException(UNION_TYPE_MISMATCH));
 		if (!previousResultNode.isObject()) {
 			throw new PolicyEvaluationException(UNION_TYPE_MISMATCH);
 		}
@@ -63,15 +65,17 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 		while (iterator.hasNext()) {
 			final String key = iterator.next();
 			if (attributes.contains(key)) {
-				resultList.add(new JsonNodeWithParentObject(previousResultNode.get(key), previousResultNode, key));
+				resultList.add(new JsonNodeWithParentObject(Optional.of(previousResultNode.get(key)),
+						previousResult.getNode(), key));
 			}
 		}
 		return new ArrayResultNode(resultList);
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-        return Flux.error(new PolicyEvaluationException(UNION_TYPE_MISMATCH));
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
+		return Flux.error(new PolicyEvaluationException(UNION_TYPE_MISMATCH));
 	}
 
 	@Override

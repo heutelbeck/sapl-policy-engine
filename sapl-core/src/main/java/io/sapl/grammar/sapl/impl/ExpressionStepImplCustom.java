@@ -15,6 +15,7 @@ package io.sapl.grammar.sapl.impl;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -33,72 +34,82 @@ import reactor.core.publisher.Flux;
 public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.ExpressionStepImpl {
 
 	private static final String EXPRESSION_ACCESS_INDEX_NOT_FOUND = "Index not found. Failed to access item with index '%s' after expression evaluation.";
-	private static final String EXPRESSION_ACCESS_KEY_NOT_FOUND = "Key not found. Failed to access JSON key '%s' after expression evaluation.";
 	private static final String EXPRESSION_ACCESS_TYPE_MISMATCH = "Type mismatch. Expression evaluates to '%s' which can not be used.";
 
 	private static final int HASH_PRIME_02 = 19;
 	private static final int INIT_PRIME_01 = 3;
 
-    @Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-        return getExpression().evaluate(ctx, isBody, relativeNode)
-                .map(expressionResult -> {
-                    try {
-                        return handleExpressionResultFor(previousResult, expressionResult);
-                    } catch (PolicyEvaluationException e) {
-                        throw Exceptions.propagate(e);
-                    }
-                });
+	@Override
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
+		return getExpression().evaluate(ctx, isBody, relativeNode).map(expressionResult -> {
+			try {
+				return handleExpressionResultFor(previousResult, expressionResult);
+			} catch (PolicyEvaluationException e) {
+				throw Exceptions.propagate(e);
+			}
+		});
 	}
 
-    private ResultNode handleExpressionResultFor(AbstractAnnotatedJsonNode previousResult, JsonNode result) throws PolicyEvaluationException {
-        if (result.isNumber()) {
-            if (previousResult.getNode().isArray()) {
-                final int index = result.asInt();
-                final JsonNode previousResultNode = previousResult.getNode();
-                if (!previousResultNode.has(index)) {
-                    throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
-                }
-                return new JsonNodeWithParentArray(previousResultNode.get(index), previousResultNode, index);
-            } else {
-                throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
-            }
-        } else if (result.isTextual()) {
-            final String attribute = result.asText();
-            final JsonNode previousResultNode = previousResult.getNode();
-            if (!previousResultNode.has(attribute)) {
-                throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_KEY_NOT_FOUND, attribute));
-            }
-            return new JsonNodeWithParentObject(previousResultNode.get(attribute), previousResultNode, attribute);
-        } else {
-            throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
-        }
-    }
+	private ResultNode handleExpressionResultFor(AbstractAnnotatedJsonNode previousResult, Optional<JsonNode> optResult)
+			throws PolicyEvaluationException {
+		JsonNode result = optResult
+				.orElseThrow(() -> Exceptions.propagate(new PolicyEvaluationException("undefined value")));
+		if (result.isNumber()) {
+			if (previousResult.getNode().isPresent() && previousResult.getNode().get().isArray()) {
+				final int index = result.asInt();
+				final Optional<JsonNode> previousResultNode = previousResult.getNode();
+				if (previousResultNode.isPresent() && !previousResultNode.get().has(index)) {
+					throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
+				}
+				return new JsonNodeWithParentArray(Optional.of(previousResultNode.get().get(index)), previousResultNode,
+						index);
+			} else {
+				throw new PolicyEvaluationException(
+						String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+			}
+		} else if (result.isTextual()) {
+			final String attribute = result.asText();
+			final Optional<JsonNode> previousResultNode = previousResult.getNode();
+			if (previousResultNode.get().has(attribute)) {
+				return new JsonNodeWithParentObject(Optional.of(previousResultNode.get().get(attribute)),
+						previousResultNode, attribute);
+			}
+			return new JsonNodeWithParentObject(Optional.of(previousResultNode.get().get(attribute)),
+					previousResultNode, attribute);
+		} else {
+			throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+		}
+	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-        return getExpression().evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations())
-                .map(expressionResult -> {
-                    try {
-                        return handleExpressionResultFor(previousResult, expressionResult);
-                    } catch (PolicyEvaluationException e) {
-                        throw Exceptions.propagate(e);
-                    }
-                });
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
+		return getExpression().evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations())
+				.map(expressionResult -> {
+					try {
+						// TODO: can we handle undefined meaningfully here ?
+						return handleExpressionResultFor(previousResult, expressionResult.orElseThrow(() -> Exceptions
+								.propagate(new PolicyEvaluationException("undefined value during step evaluation."))));
+					} catch (PolicyEvaluationException e) {
+						throw Exceptions.propagate(e);
+					}
+				});
 	}
 
-    private ResultNode handleExpressionResultFor(ArrayResultNode previousResult, JsonNode result) throws PolicyEvaluationException {
-        if (result.isNumber()) {
-            int index = result.asInt();
-            List<AbstractAnnotatedJsonNode> nodes = previousResult.getNodes();
-            if (index < 0 || index >= nodes.size()) {
-                throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
-            }
-            return nodes.get(index);
-        } else {
-            throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
-        }
-    }
+	private ResultNode handleExpressionResultFor(ArrayResultNode previousResult, JsonNode result)
+			throws PolicyEvaluationException {
+		if (result.isNumber()) {
+			int index = result.asInt();
+			List<AbstractAnnotatedJsonNode> nodes = previousResult.getNodes();
+			if (index < 0 || index >= nodes.size()) {
+				throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
+			}
+			return nodes.get(index);
+		} else {
+			throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+		}
+	}
 
 	@Override
 	public int hash(Map<String, String> imports) {

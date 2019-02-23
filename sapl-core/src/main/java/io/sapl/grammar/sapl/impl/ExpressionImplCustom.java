@@ -12,6 +12,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.Optional;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -19,20 +21,50 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 
 public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionImpl {
 
+	protected static final String UNDEFINED = "undefined";
 	protected static final String ARITHMETIC_OPERATION_TYPE_MISMATCH = "Type mismatch. Arithmetic operation expects number values, but got: '%s'.";
 	protected static final String BOOLEAN_OPERATION_TYPE_MISMATCH = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
+	protected static final String TEXT_OPERATION_TYPE_MISMATCH = "Type mismatch. Text operation expects text values, but got: '%s'.";
+	protected static final String UNDEFINED_MISMATCH = "Type mismatch. Defined parameters expected, but got 'undefined'.";
 
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	protected static void assertNumber(JsonNode node) throws PolicyEvaluationException {
-		if (!node.isNumber()) {
-			throw new PolicyEvaluationException(String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH, node.getNodeType()));
+	@SafeVarargs
+	protected static void assertNumber(Optional<JsonNode>... nodes) throws PolicyEvaluationException {
+		for (Optional<JsonNode> node : nodes) {
+			if (!node.isPresent() || !node.get().isNumber()) {
+				throw new PolicyEvaluationException(String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH,
+						node.isPresent() ? node.get().getNodeType() : UNDEFINED));
+			}
 		}
 	}
 
-	protected static void assertBoolean(JsonNode node) throws PolicyEvaluationException {
-		if (!node.isBoolean()) {
-			throw new PolicyEvaluationException(String.format(BOOLEAN_OPERATION_TYPE_MISMATCH, node.getNodeType()));
+	@SafeVarargs
+	protected static void assertBoolean(Optional<JsonNode>... nodes) throws PolicyEvaluationException {
+		for (Optional<JsonNode> node : nodes) {
+			if (!node.isPresent() || !node.get().isBoolean()) {
+				throw new PolicyEvaluationException(String.format(BOOLEAN_OPERATION_TYPE_MISMATCH,
+						node.isPresent() ? node.get().getNodeType() : UNDEFINED));
+			}
+		}
+	}
+
+	@SafeVarargs
+	protected static void assertTextual(Optional<JsonNode>... nodes) throws PolicyEvaluationException {
+		for (Optional<JsonNode> node : nodes) {
+			if (!node.isPresent() || !node.get().isTextual()) {
+				throw new PolicyEvaluationException(String.format(TEXT_OPERATION_TYPE_MISMATCH,
+						node.isPresent() ? node.get().getNodeType() : UNDEFINED));
+			}
+		}
+	}
+
+	@SafeVarargs
+	protected static void assertPresent(Optional<JsonNode>... nodes) throws PolicyEvaluationException {
+		for (Optional<JsonNode> node : nodes) {
+			if (!node.isPresent()) {
+				throw new PolicyEvaluationException(UNDEFINED_MISMATCH);
+			}
 		}
 	}
 

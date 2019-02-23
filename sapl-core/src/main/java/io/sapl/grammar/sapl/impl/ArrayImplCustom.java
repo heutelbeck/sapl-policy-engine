@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -24,28 +25,34 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class ArrayImplCustom extends io.sapl.grammar.sapl.impl.ArrayImpl {
 
+	private static final String CANNOT_ADD_UNDEFINED_VALUE_TO_A_JSON_ARRAY = "Cannot add undefined value to a JSON array.";
 	private static final int HASH_PRIME_06 = 37;
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(getItems().size());
-        for (Expression item : getItems()) {
-            itemFluxes.add(item.evaluate(ctx, isBody, relativeNode));
-        }
-        return Flux.combineLatest(itemFluxes, results -> {
-            final ArrayNode resultArr = JsonNodeFactory.instance.arrayNode(results.length);
-            for (Object result : results) {
-                resultArr.add((JsonNode) result);
-            }
-            return resultArr;
-        });
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final List<Flux<Optional<JsonNode>>> itemFluxes = new ArrayList<>(getItems().size());
+		for (Expression item : getItems()) {
+			itemFluxes.add(item.evaluate(ctx, isBody, relativeNode));
+		}
+		return Flux.combineLatest(itemFluxes, results -> {
+			final ArrayNode resultArr = JsonNodeFactory.instance.arrayNode();
+			for (Object result : results) {
+				@SuppressWarnings("unchecked")
+				Optional<JsonNode> r = (Optional<JsonNode>) result;
+				resultArr.add((JsonNode) r.orElseThrow(() -> Exceptions
+						.propagate(new PolicyEvaluationException(CANNOT_ADD_UNDEFINED_VALUE_TO_A_JSON_ARRAY))));
+			}
+			return Optional.of(resultArr);
+		});
 	}
 
 	@Override

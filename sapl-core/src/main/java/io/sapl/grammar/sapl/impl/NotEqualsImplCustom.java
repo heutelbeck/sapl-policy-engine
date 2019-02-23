@@ -14,6 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -28,17 +29,25 @@ public class NotEqualsImplCustom extends io.sapl.grammar.sapl.impl.NotEqualsImpl
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
+		return Flux.combineLatest(left, right, this::notEqual).distinctUntilChanged();
+	}
 
-		return Flux.combineLatest(leftResultFlux, rightResultFlux, (leftResult, rightResult) -> {
-			if (leftResult.isNumber() && rightResult.isNumber()) {
-				return JSON.booleanNode(!(leftResult.decimalValue().compareTo(rightResult.decimalValue()) == 0));
-			} else {
-				return (JsonNode) JSON.booleanNode(!leftResult.equals(rightResult));
-			}
-		}).distinctUntilChanged();
+	private Optional<JsonNode> notEqual(Optional<JsonNode> left, Optional<JsonNode> right) {
+		if (!left.isPresent() && !right.isPresent()) {
+			return Optional.of((JsonNode) JSON.booleanNode(false));
+		}
+		if (!left.isPresent() || !right.isPresent()) {
+			return Optional.of((JsonNode) JSON.booleanNode(true));
+		}
+		if (left.get().isNumber() && right.get().isNumber()) {
+			return Optional.of(
+					(JsonNode) JSON.booleanNode(left.get().decimalValue().compareTo(right.get().decimalValue()) != 0));
+		} else {
+			return Optional.of((JsonNode) JSON.booleanNode(!left.get().equals(right.get())));
+		}
 	}
 
 	@Override

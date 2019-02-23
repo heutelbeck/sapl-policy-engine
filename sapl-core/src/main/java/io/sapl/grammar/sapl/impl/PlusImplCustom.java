@@ -14,6 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -32,29 +33,29 @@ public class PlusImplCustom extends io.sapl.grammar.sapl.impl.PlusImpl {
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
-	public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
+		return Flux.combineLatest(left, right, this::plus).distinctUntilChanged();
+	}
 
-		return Flux.combineLatest(leftResultFlux, rightResultFlux,
-				(leftResult, rightResult) -> {
-					try {
-						if (leftResult.isTextual()) {
-							if (!rightResult.isTextual()) {
-								throw new PolicyEvaluationException(String.format(STRING_CONCATENATION_TYPE_MISMATCH, rightResult.getNodeType()));
-							}
-							return JSON.textNode(leftResult.asText().concat(rightResult.asText()));
-						} else {
-							assertNumber(leftResult);
-							assertNumber(rightResult);
-							return (JsonNode) JSON.numberNode(leftResult.decimalValue().add(rightResult.decimalValue()));
-						}
-					}
-					catch (PolicyEvaluationException e) {
-						throw Exceptions.propagate(e);
-					}
-				})
-				.distinctUntilChanged();
+	private Optional<JsonNode> plus(Optional<JsonNode> left, Optional<JsonNode> right) {
+		try {
+			assertPresent(left, right);
+			if (left.get().isTextual()) {
+				if (!right.get().isTextual()) {
+					throw new PolicyEvaluationException(
+							String.format(STRING_CONCATENATION_TYPE_MISMATCH, right.get().getNodeType()));
+				}
+				return Optional.of((JsonNode) JSON.textNode(left.get().asText().concat(right.get().asText())));
+			} else {
+				assertNumber(left, right);
+				return Optional
+						.of((JsonNode) JSON.numberNode(left.get().decimalValue().add(right.get().decimalValue())));
+			}
+		} catch (PolicyEvaluationException e) {
+			throw Exceptions.propagate(e);
+		}
 	}
 
 	@Override

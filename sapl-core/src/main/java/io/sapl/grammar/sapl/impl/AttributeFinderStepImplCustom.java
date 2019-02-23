@@ -15,6 +15,7 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -26,12 +27,14 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class AttributeFinderStepImplCustom extends io.sapl.grammar.sapl.impl.AttributeFinderStepImpl {
 
 	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attribute '%s' is not allowed in target.";
 	private static final String ATTRIBUTE_RESOLUTION = "Attribute resolution error. Attribute '%s' cannot be resolved.";
+	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
 
 	private static final int HASH_PRIME_03 = 23;
 	private static final int INIT_PRIME_01 = 3;
@@ -45,25 +48,33 @@ public class AttributeFinderStepImplCustom extends io.sapl.grammar.sapl.impl.Att
 	}
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return applyToJson(previousResult.asJsonWithoutAnnotations(), ctx, isBody);
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return applyToJson(previousResult.asJsonWithoutAnnotations(), ctx, isBody);
 	}
 
-	private Flux<ResultNode> applyToJson(JsonNode previousResult, EvaluationContext ctx, boolean isBody) {
+	private Flux<ResultNode> applyToJson(Optional<JsonNode> previousResult, EvaluationContext ctx, boolean isBody) {
 		final String fullyQualifiedName = getFullyQualifiedName(ctx);
 		if (!isBody) {
-			return Flux.error(new PolicyEvaluationException(String.format(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName)));
+			return Flux.error(
+					new PolicyEvaluationException(String.format(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName)));
 		}
 
 		final Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
-		final Flux<JsonNode> jsonNodeFlux = ctx.getAttributeCtx().evaluate(fullyQualifiedName, previousResult, variables)
-				.onErrorResume(error -> Flux.error(new PolicyEvaluationException(String.format(ATTRIBUTE_RESOLUTION, fullyQualifiedName), error)));
-		return jsonNodeFlux.map(JsonNodeWithoutParent::new);
+		final Flux<JsonNode> jsonNodeFlux = ctx.getAttributeCtx()
+				.evaluate(fullyQualifiedName,
+						previousResult.orElseThrow(
+								() -> Exceptions.propagate(new PolicyEvaluationException(UNDEFINED_VALUE))),
+						variables)
+				.onErrorResume(error -> Flux.error(
+						new PolicyEvaluationException(String.format(ATTRIBUTE_RESOLUTION, fullyQualifiedName), error)));
+		return jsonNodeFlux.map(Optional::of).map(JsonNodeWithoutParent::new);
 	}
 
 	@Override

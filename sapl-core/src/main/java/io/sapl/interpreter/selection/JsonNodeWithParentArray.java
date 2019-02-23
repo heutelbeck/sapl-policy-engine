@@ -12,6 +12,8 @@
  */
 package io.sapl.interpreter.selection;
 
+import java.util.Optional;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
@@ -33,7 +35,7 @@ import reactor.core.publisher.Flux;
 public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 	private int index;
 
-	public JsonNodeWithParentArray(JsonNode node, JsonNode parent, int index) {
+	public JsonNodeWithParentArray(Optional<JsonNode> node, Optional<JsonNode> parent, int index) {
 		super(node, parent);
 		this.index = index;
 	}
@@ -58,25 +60,26 @@ public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 		if (each) {
 			removeEachItem(node);
 		} else {
-			((ArrayNode) parent).remove(index);
+			((ArrayNode) parent.get()).remove(index);
 		}
 	}
 
 	@Override
-	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx,
+			boolean isBody) {
 		return applyFilterWithRelativeNode(function, arguments, each, ctx, isBody, parent);
 	}
 
 	@Override
-	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
+			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (each) {
 			return applyFilterToEachItem(function, node, arguments, ctx, isBody);
 		} else {
-			return applyFilterToNode(function, node, arguments, ctx, isBody, relativeNode)
-					.map(filteredNode -> {
-						((ArrayNode) parent).set(index, filteredNode);
-						return ResultNode.Void.INSTANCE;
-					});
+			return applyFilterToNode(function, node, arguments, ctx, isBody, relativeNode).map(filteredNode -> {
+				((ArrayNode) parent.get()).set(index, filteredNode.get());
+				return ResultNode.Void.INSTANCE;
+			});
 
 		}
 	}

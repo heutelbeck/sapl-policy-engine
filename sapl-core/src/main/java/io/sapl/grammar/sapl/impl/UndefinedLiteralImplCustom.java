@@ -19,19 +19,18 @@ import java.util.Optional;
 import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
-public class NullLiteralImplCustom extends io.sapl.grammar.sapl.impl.NullLiteralImpl {
+public class UndefinedLiteralImplCustom extends io.sapl.grammar.sapl.impl.UndefinedLiteralImpl {
 
 	private static final int HASH_PRIME_10 = 53;
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return Flux.just(Optional.of(JsonNodeFactory.instance.nullNode()));
+		return Flux.just(Optional.empty());
 	}
 
 	@Override

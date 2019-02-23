@@ -14,6 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -27,21 +28,25 @@ public class EqualsImplCustom extends io.sapl.grammar.sapl.impl.EqualsImpl {
 	private static final int HASH_PRIME_02 = 19;
 	private static final int INIT_PRIME_01 = 3;
 
-    @Override
-    public Flux<JsonNode> evaluate(EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
-		final Flux<JsonNode> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<JsonNode> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
-
-		return Flux.combineLatest(leftResultFlux, rightResultFlux,
-				(leftResult, rightResult) -> {
-					if (leftResult.isNumber() && rightResult.isNumber()) {
-						return JSON.booleanNode(leftResult.decimalValue().compareTo(rightResult.decimalValue()) == 0);
-					} else {
-						return (JsonNode) JSON.booleanNode(leftResult.equals(rightResult));
-					}
-				})
-				.distinctUntilChanged();
-    }
+	@Override
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
+		return Flux.combineLatest(leftResultFlux, rightResultFlux, (leftResult, rightResult) -> {
+			if (!leftResult.isPresent() && !rightResult.isPresent()) {
+				return Optional.of((JsonNode) JSON.booleanNode(true));
+			}
+			if (!leftResult.isPresent() || !rightResult.isPresent()) {
+				return Optional.of((JsonNode) JSON.booleanNode(false));
+			}
+			if (leftResult.get().isNumber() && rightResult.get().isNumber()) {
+				return Optional.of((JsonNode) JSON
+						.booleanNode(leftResult.get().decimalValue().compareTo(rightResult.get().decimalValue()) == 0));
+			} else {
+				return Optional.of((JsonNode) JSON.booleanNode(leftResult.get().equals(rightResult.get())));
+			}
+		}).distinctUntilChanged();
+	}
 
 	@Override
 	public int hash(Map<String, String> imports) {

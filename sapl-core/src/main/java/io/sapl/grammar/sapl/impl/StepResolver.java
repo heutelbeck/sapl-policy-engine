@@ -2,6 +2,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.eclipse.emf.common.util.EList;
 
@@ -36,7 +37,7 @@ public class StepResolver {
      * @return a flux of result tree root nodes (either an annotated JsonNode or an
      *         array)
      */
-    public static Flux<ResultNode> resolveSteps(JsonNode rootNode, EList<Step> steps, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+    public static Flux<ResultNode> resolveSteps(Optional<JsonNode> rootNode, EList<Step> steps, EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
         // this implementation must be able to handle expressions like "input".<first.attr>.<second.attr>.<third.attr>... correctly
         final ResultNode result = new JsonNodeWithoutParent(rootNode);
         if (steps != null && ! steps.isEmpty()) {

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -37,13 +38,12 @@ public class ApplyStepsWildcardTest {
 
 	@Test
 	public void applyToNullNode() {
-		ResultNode previousResult = new JsonNodeWithoutParent(JSON.nullNode());
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
 
 		WildcardStep step = factory.createWildcardStep();
 
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class)
-				.verify();
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -53,34 +53,31 @@ public class ApplyStepsWildcardTest {
 		array.add(JSON.booleanNode(true));
 		array.add(JSON.booleanNode(false));
 
-		ResultNode previousResult = new JsonNodeWithoutParent(array);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
 
-		ResultNode expectedResult = new JsonNodeWithoutParent(array);
+		ResultNode expectedResult = new JsonNodeWithoutParent(Optional.of(array));
 
 		WildcardStep step = factory.createWildcardStep();
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
+		previousResult.applyStep(step, ctx, true, null).take(1)
 				.subscribe(result -> assertEquals("Wildcard step applied to an array node should return the array",
-						expectedResult, result)
-				);
+						expectedResult, result));
 	}
 
 	@Test
 	public void applyToResultArray() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithoutParent(JSON.arrayNode()));
-		list.add(new JsonNodeWithoutParent(JSON.nullNode()));
+		list.add(new JsonNodeWithoutParent(Optional.of(JSON.arrayNode())));
+		list.add(new JsonNodeWithoutParent(Optional.of(JSON.nullNode())));
 
 		ResultNode previousResult = new ArrayResultNode(list);
 
 		ResultNode expectedResult = previousResult;
 
 		WildcardStep step = factory.createWildcardStep();
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> assertEquals("Wildcard step applied to a result array node should return the result array", 
-						expectedResult, result)
-				);
+		previousResult.applyStep(step, ctx, true, null).take(1)
+				.subscribe(result -> assertEquals(
+						"Wildcard step applied to a result array node should return the result array", expectedResult,
+						result));
 	}
 
 	@Test
@@ -90,21 +87,19 @@ public class ApplyStepsWildcardTest {
 		object.set("key2", JSON.booleanNode(true));
 		object.set("key3", JSON.booleanNode(false));
 
-		ResultNode previousResult = new JsonNodeWithoutParent(object);
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(object));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(JSON.nullNode(), object, "key1"));
-		expectedResultSet.add(new JsonNodeWithParentObject(JSON.booleanNode(true), object, "key2"));
-		expectedResultSet.add(new JsonNodeWithParentObject(JSON.booleanNode(false), object, "key3"));
+		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), Optional.of(object), "key1"));
+		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(true)), Optional.of(object), "key2"));
+		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(false)), Optional.of(object), "key3"));
 
 		WildcardStep step = factory.createWildcardStep();
 
-		previousResult.applyStep(step, ctx, true, null)
-				.take(1)
-				.subscribe(result -> {
-					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-					assertEquals("Wildcard step applied to an object should return all attribute values",
-							expectedResultSet, resultSet);
-				});
+		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Wildcard step applied to an object should return all attribute values", expectedResultSet,
+					resultSet);
+		});
 	}
 }

@@ -12,6 +12,8 @@
  */
 package io.sapl.interpreter.selection;
 
+import java.util.Optional;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -33,7 +35,7 @@ import reactor.core.publisher.Flux;
 public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 	private String attribute;
 
-	public JsonNodeWithParentObject(JsonNode node, JsonNode parent, String attribute) {
+	public JsonNodeWithParentObject(Optional<JsonNode> node, Optional<JsonNode> parent, String attribute) {
 		super(node, parent);
 		this.attribute = attribute;
 	}
@@ -58,26 +60,26 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 		if (each) {
 			removeEachItem(node);
 		} else {
-			((ObjectNode) parent).remove(attribute);
+			((ObjectNode) parent.get()).remove(attribute);
 		}
 	}
 
 	@Override
-	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx,
+			boolean isBody) {
 		return applyFilterWithRelativeNode(function, arguments, each, ctx, isBody, parent);
 	}
 
 	@Override
-	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody, JsonNode relativeNode) {
+	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
+			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (each) {
 			return applyFilterToEachItem(function, node, arguments, ctx, isBody);
 		} else {
-			return applyFilterToNode(function, node, arguments, ctx, isBody, relativeNode)
-					.map(filteredNode -> {
-						((ObjectNode) parent).set(attribute, filteredNode);
-						return ResultNode.Void.INSTANCE;
-					});
-
+			return applyFilterToNode(function, node, arguments, ctx, isBody, relativeNode).map(filteredNode -> {
+				((ObjectNode) parent.get()).set(attribute, filteredNode.get());
+				return ResultNode.Void.INSTANCE;
+			});
 		}
 	}
 
@@ -86,4 +88,5 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 		return other.isNodeWithParentObject() && other.getParent() == getParent()
 				&& getAttribute().equals(((JsonNodeWithParentObject) other).getAttribute());
 	}
+
 }
