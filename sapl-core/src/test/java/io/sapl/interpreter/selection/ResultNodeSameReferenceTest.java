@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -27,11 +28,9 @@ public class ResultNodeSameReferenceTest {
 	public void sameReferenceWithParentArrayTrue() throws PolicyEvaluationException {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
-
-		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
-				Optional.of(array), 0);
-		AbstractAnnotatedJsonNode other = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array),
-				0);
+		Optional<JsonNode> arr = Optional.of(array);
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), arr, 0);
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), arr, 0);
 
 		assertTrue("sameReference on JsonNodeWithParentArray should return true if reference is the same",
 				resultNode.sameReference(other));
@@ -91,10 +90,10 @@ public class ResultNodeSameReferenceTest {
 		ObjectNode object = JSON.objectNode();
 		object.set("key", JSON.nullNode());
 
-		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
-				Optional.of(object), "key");
-		AbstractAnnotatedJsonNode other = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
-				Optional.of(object), "key");
+		Optional<JsonNode> obj = Optional.of(object);
+
+		AbstractAnnotatedJsonNode resultNode = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), obj, "key");
+		AbstractAnnotatedJsonNode other = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), obj, "key");
 
 		assertTrue("sameReference on JsonNodeWithParentObject should return true if reference is the same",
 				resultNode.sameReference(other));

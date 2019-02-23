@@ -95,7 +95,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	protected static Flux<Void> applyFilterToEachItem(String function, Optional<JsonNode> parentNode,
 			Arguments arguments, EvaluationContext ctx, boolean isBody) {
 		if (!parentNode.isPresent() || !parentNode.get().isArray()) {
-			throw Exceptions.propagate(new PolicyEvaluationException(String.format(FILTER_EACH_NO_ARRAY,
+			return Flux.error(new PolicyEvaluationException(String.format(FILTER_EACH_NO_ARRAY,
 					parentNode.isPresent() ? parentNode.get().getNodeType() : "undefined")));
 		}
 

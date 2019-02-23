@@ -35,6 +35,7 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
 
 	private static final String EXPRESSION_ACCESS_INDEX_NOT_FOUND = "Index not found. Failed to access item with index '%s' after expression evaluation.";
 	private static final String EXPRESSION_ACCESS_TYPE_MISMATCH = "Type mismatch. Expression evaluates to '%s' which can not be used.";
+	private static final String EXPRESSION_ACCESS_KEY_NOT_FOUND = "Key not found. Failed to access JSON key '%s' after expression evaluation.";
 
 	private static final int HASH_PRIME_02 = 19;
 	private static final int INIT_PRIME_01 = 3;
@@ -71,9 +72,8 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
 		} else if (result.isTextual()) {
 			final String attribute = result.asText();
 			final Optional<JsonNode> previousResultNode = previousResult.getNode();
-			if (previousResultNode.get().has(attribute)) {
-				return new JsonNodeWithParentObject(Optional.of(previousResultNode.get().get(attribute)),
-						previousResultNode, attribute);
+			if (!previousResultNode.get().has(attribute)) {
+				throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_KEY_NOT_FOUND, attribute));
 			}
 			return new JsonNodeWithParentObject(Optional.of(previousResultNode.get().get(attribute)),
 					previousResultNode, attribute);
@@ -88,7 +88,6 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
 		return getExpression().evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations())
 				.map(expressionResult -> {
 					try {
-						// TODO: can we handle undefined meaningfully here ?
 						return handleExpressionResultFor(previousResult, expressionResult.orElseThrow(() -> Exceptions
 								.propagate(new PolicyEvaluationException("undefined value during step evaluation."))));
 					} catch (PolicyEvaluationException e) {
