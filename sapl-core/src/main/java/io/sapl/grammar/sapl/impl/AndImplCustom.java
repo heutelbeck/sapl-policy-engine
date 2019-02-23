@@ -25,6 +25,9 @@ import io.sapl.interpreter.EvaluationContext;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the lazy boolean AND '&&' operator.
+ */
 public class AndImplCustom extends io.sapl.grammar.sapl.impl.AndImpl {
 
 	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy AND operator is not allowed in the target";
@@ -35,6 +38,8 @@ public class AndImplCustom extends io.sapl.grammar.sapl.impl.AndImpl {
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (!isBody) {
+			// due to the constraints in indexing policy documents, lazy evaluation is not
+			// allowed in target expressions.
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
 		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);

@@ -49,6 +49,7 @@ public class RecursiveKeyStepImplCustom extends io.sapl.grammar.sapl.impl.Recurs
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
+		System.out.println("RecursiveKeyStepImplCustom.apply->" + previousResult);
 		if (!previousResult.getNode().isPresent()
 				|| (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject())) {
 			throw new PolicyEvaluationException(WRONG_TYPE);

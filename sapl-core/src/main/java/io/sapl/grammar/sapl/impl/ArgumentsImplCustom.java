@@ -20,6 +20,15 @@ import org.eclipse.emf.ecore.EObject;
 
 import io.sapl.grammar.sapl.Expression;
 
+/**
+ * This class contains a collection of arguments to be passed to function calls.
+ *
+ * Grammar:
+ * 
+ * Arguments:
+ *	{Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
+ *
+ */
 public class ArgumentsImplCustom extends io.sapl.grammar.sapl.impl.ArgumentsImpl {
 
 	private static final int HASH_PRIME_02 = 19;

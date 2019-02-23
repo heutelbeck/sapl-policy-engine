@@ -23,11 +23,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements a constant value of 'undefined'. The value of 'undefined' is
+ * represented by Optional.empty().
+ * 
+ * UndefinedLiteral returns Value: {UndefinedLiteral} 'undefined' ;
+ */
 public class UndefinedLiteralImplCustom extends io.sapl.grammar.sapl.impl.UndefinedLiteralImpl {
 
 	private static final int HASH_PRIME_10 = 53;
 	private static final int INIT_PRIME_02 = 5;
 
+	/* 
+	 * A FLux only containing the 'undefined' value, i.e. Optional.empty();
+	 */
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		return Flux.just(Optional.empty());

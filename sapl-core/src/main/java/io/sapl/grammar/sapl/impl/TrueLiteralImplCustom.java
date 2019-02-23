@@ -24,11 +24,20 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the boolean value 'true'.
+ * 
+ * BooleanLiteral returns Value: {TrueLiteral} 'true' | {FalseLiteral} 'false' ;
+ * 
+ */
 public class TrueLiteralImplCustom extends TrueLiteralImpl {
 
 	private static final int HASH_PRIME_05 = 31;
 	private static final int INIT_PRIME_02 = 5;
 
+	/*
+	 * Returns a constant value of false.
+	 */
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		return Flux.just(Optional.of(JsonNodeFactory.instance.booleanNode(true)));

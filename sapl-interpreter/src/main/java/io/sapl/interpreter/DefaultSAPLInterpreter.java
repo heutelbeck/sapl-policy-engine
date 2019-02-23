@@ -184,7 +184,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 					throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, expressionResult));
 				}
 			} catch (RuntimeException fluxError) {
-				LOGGER.trace("ERROR: {}", fluxError.getMessage() );
+				LOGGER.trace("ERROR: {}", fluxError.getMessage(), fluxError );
 
 				final Throwable originalError = Exceptions.unwrap(fluxError);
 				if (originalError instanceof PolicyEvaluationException) {
