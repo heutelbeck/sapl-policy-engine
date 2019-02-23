@@ -64,13 +64,13 @@ public class SelectionFunctionLibrary {
 	private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
 
 	@Function(docs = APPLY_DOC)
-	public static Optional<JsonNode> apply(@JsonObject JsonNode structure, @Text JsonNode expression)
-			throws FunctionException {
+	public static JsonNode apply(@JsonObject JsonNode structure, @Text JsonNode expression) throws FunctionException {
 		BasicRelative relativeExpression = parseRelative(expression.asText());
+		Optional<JsonNode> oStruct = Optional.of(structure);
 		try {
 			final ResultNode result = StepResolver
-					.resolveSteps(Optional.of(structure), relativeExpression.getSteps(), null, false, Optional.of(structure)).blockFirst();
-			return result.asJsonWithoutAnnotations();
+					.resolveSteps(oStruct, relativeExpression.getSteps(), null, false, oStruct).blockFirst();
+			return result.asJsonWithoutAnnotations().orElseThrow(() -> new FunctionException("undefined result"));
 		} catch (RuntimeException e) {
 			throw new FunctionException(Exceptions.unwrap(e));
 		}
@@ -79,9 +79,10 @@ public class SelectionFunctionLibrary {
 	@Function(docs = COUNT_DOC)
 	public static JsonNode count(@JsonObject JsonNode structure, @Text JsonNode expression) throws FunctionException {
 		BasicRelative relativeExpression = parseRelative(expression.asText());
+		Optional<JsonNode> oStruct = Optional.of(structure);
 		try {
 			final ResultNode result = StepResolver
-					.resolveSteps(Optional.of(structure), relativeExpression.getSteps(), null, false, Optional.of(structure)).blockFirst();
+					.resolveSteps(oStruct, relativeExpression.getSteps(), null, false, oStruct).blockFirst();
 			if (result.isResultArray()) {
 				return JSON.numberNode(((ArrayResultNode) result).getNodes().size());
 			} else {
@@ -98,12 +99,12 @@ public class SelectionFunctionLibrary {
 			throws FunctionException {
 		BasicRelative haystackExpression = parseRelative(haystack.asText());
 		BasicRelative needleExpression = parseRelative(needle.asText());
-
+		Optional<JsonNode> oStruct = Optional.of(structure);
 		try {
 			ResultNode haystackResult = StepResolver
-					.resolveSteps(Optional.of(structure), haystackExpression.getSteps(), null, false, Optional.of(structure)).blockFirst();
+					.resolveSteps(oStruct, haystackExpression.getSteps(), null, false, oStruct).blockFirst();
 			ResultNode needleResult = StepResolver
-					.resolveSteps(Optional.of(structure), needleExpression.getSteps(), null, false, Optional.of(structure)).blockFirst();
+					.resolveSteps(oStruct, needleExpression.getSteps(), null, false, oStruct).blockFirst();
 
 			if (haystackResult.isNodeWithoutParent()) {
 				return JSON.booleanNode(true);
@@ -130,12 +131,13 @@ public class SelectionFunctionLibrary {
 			throws FunctionException {
 		BasicRelative firstExpression = parseRelative(second.asText());
 		BasicRelative secondExpression = parseRelative(first.asText());
+		Optional<JsonNode> oStruct = Optional.of(structure);
 
 		try {
 			ResultNode firstResult = StepResolver
-					.resolveSteps(Optional.of(structure), firstExpression.getSteps(), null, false, Optional.of(structure)).blockFirst();
+					.resolveSteps(oStruct, firstExpression.getSteps(), null, false, oStruct).blockFirst();
 			ResultNode secondResult = StepResolver
-					.resolveSteps(Optional.of(structure), secondExpression.getSteps(), null, false, Optional.of(structure)).blockFirst();
+					.resolveSteps(oStruct, secondExpression.getSteps(), null, false, oStruct).blockFirst();
 
 			if (firstResult.isNodeWithoutParent() && secondResult.isNodeWithoutParent()) {
 				return JSON.booleanNode(true);
@@ -189,26 +191,23 @@ public class SelectionFunctionLibrary {
 		if (needleResult.sameReference(haystackResult)) {
 			return true;
 		} else if (needleResult.getParent() != null) {
-			return recursiveCheck(needleResult.getParent(), haystackResult.getNode());
+			return recursiveCheck(needleResult.getParent().get(), haystackResult.getNode().get());
 		}
 		return false;
 	}
 
-	private static boolean recursiveCheck(Optional<JsonNode> needleParent, Optional<JsonNode> haystack) {
+	private static boolean recursiveCheck(JsonNode needleParent, JsonNode haystack) {
 		if (needleParent == haystack) {
 			return true;
 		}
-		if (!haystack.isPresent() || !needleParent.isPresent()) {
-			return false;
-		}
-		if (haystack.get().isArray()) {
-			for (JsonNode node : (ArrayNode) haystack.get()) {
-				if (recursiveCheck(needleParent, Optional.of(node)))
+		if (haystack.isArray()) {
+			for (JsonNode node : (ArrayNode) haystack) {
+				if (recursiveCheck(needleParent, node))
 					return true;
 			}
-		} else if (haystack.get().isObject()) {
-			for (JsonNode node : (ObjectNode) haystack.get()) {
-				if (recursiveCheck(needleParent, Optional.of(node)))
+		} else if (haystack.isObject()) {
+			for (JsonNode node : (ObjectNode) haystack) {
+				if (recursiveCheck(needleParent, node))
 					return true;
 			}
 		}
