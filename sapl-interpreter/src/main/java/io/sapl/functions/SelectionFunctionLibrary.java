@@ -69,7 +69,7 @@ public class SelectionFunctionLibrary {
 		BasicRelative relativeExpression = parseRelative(expression.asText());
 		try {
 			final ResultNode result = StepResolver
-					.resolveSteps(structure, relativeExpression.getSteps(), null, false, structure).blockFirst();
+					.resolveSteps(Optional.of(structure), relativeExpression.getSteps(), null, false, Optional.of(structure)).blockFirst();
 			return result.asJsonWithoutAnnotations();
 		} catch (RuntimeException e) {
 			throw new FunctionException(Exceptions.unwrap(e));
@@ -81,7 +81,7 @@ public class SelectionFunctionLibrary {
 		BasicRelative relativeExpression = parseRelative(expression.asText());
 		try {
 			final ResultNode result = StepResolver
-					.resolveSteps(structure, relativeExpression.getSteps(), null, false, structure).blockFirst();
+					.resolveSteps(Optional.of(structure), relativeExpression.getSteps(), null, false, Optional.of(structure)).blockFirst();
 			if (result.isResultArray()) {
 				return JSON.numberNode(((ArrayResultNode) result).getNodes().size());
 			} else {
@@ -101,9 +101,9 @@ public class SelectionFunctionLibrary {
 
 		try {
 			ResultNode haystackResult = StepResolver
-					.resolveSteps(structure, haystackExpression.getSteps(), null, false, structure).blockFirst();
+					.resolveSteps(Optional.of(structure), haystackExpression.getSteps(), null, false, Optional.of(structure)).blockFirst();
 			ResultNode needleResult = StepResolver
-					.resolveSteps(structure, needleExpression.getSteps(), null, false, structure).blockFirst();
+					.resolveSteps(Optional.of(structure), needleExpression.getSteps(), null, false, Optional.of(structure)).blockFirst();
 
 			if (haystackResult.isNodeWithoutParent()) {
 				return JSON.booleanNode(true);
@@ -133,9 +133,9 @@ public class SelectionFunctionLibrary {
 
 		try {
 			ResultNode firstResult = StepResolver
-					.resolveSteps(structure, firstExpression.getSteps(), null, false, structure).blockFirst();
+					.resolveSteps(Optional.of(structure), firstExpression.getSteps(), null, false, Optional.of(structure)).blockFirst();
 			ResultNode secondResult = StepResolver
-					.resolveSteps(structure, secondExpression.getSteps(), null, false, structure).blockFirst();
+					.resolveSteps(Optional.of(structure), secondExpression.getSteps(), null, false, Optional.of(structure)).blockFirst();
 
 			if (firstResult.isNodeWithoutParent() && secondResult.isNodeWithoutParent()) {
 				return JSON.booleanNode(true);
