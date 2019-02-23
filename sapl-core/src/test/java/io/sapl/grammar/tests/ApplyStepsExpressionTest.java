@@ -65,15 +65,18 @@ public class ApplyStepsExpressionTest {
 
 	@Test
 	public void applyToArrayNodeWithTextualResult() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.arrayNode()));
-
+		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(Optional.of(JSON.arrayNode()));
 		ExpressionStep step = factory.createExpressionStep();
 		StringLiteral stringLiteral = factory.createStringLiteral();
 		stringLiteral.setString("key");
 		step.setExpression(basicValueFrom(stringLiteral));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class).verify();
+		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(),
+				stringLiteral.getString());
+
+		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> assertEquals(
+				"Accessing key on text should yield undefined.",
+				expectedResult, result));
 	}
 
 	@Test

@@ -71,13 +71,15 @@ public class ApplyStepsKeyTest {
 
 	@Test
 	public void applyToObjectWithoutKey() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.objectNode()));
+		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(Optional.of(JSON.objectNode()));
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class).verify();
+		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), KEY);
+
+		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(
+				result -> assertEquals("Accessing empty object should yield undefined.", expectedResult, result));
 	}
 
 	@Test

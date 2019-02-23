@@ -32,20 +32,23 @@ public class EqualsImplCustom extends io.sapl.grammar.sapl.impl.EqualsImpl {
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		final Flux<Optional<JsonNode>> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
 		final Flux<Optional<JsonNode>> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(leftResultFlux, rightResultFlux, (leftResult, rightResult) -> {
-			if (!leftResult.isPresent() && !rightResult.isPresent()) {
-				return Optional.of((JsonNode) JSON.booleanNode(true));
-			}
-			if (!leftResult.isPresent() || !rightResult.isPresent()) {
-				return Optional.of((JsonNode) JSON.booleanNode(false));
-			}
-			if (leftResult.get().isNumber() && rightResult.get().isNumber()) {
-				return Optional.of((JsonNode) JSON
-						.booleanNode(leftResult.get().decimalValue().compareTo(rightResult.get().decimalValue()) == 0));
-			} else {
-				return Optional.of((JsonNode) JSON.booleanNode(leftResult.get().equals(rightResult.get())));
-			}
-		}).distinctUntilChanged();
+		return Flux.combineLatest(leftResultFlux, rightResultFlux, this::equals).distinctUntilChanged();
+	}
+
+	private Optional<JsonNode> equals(Optional<JsonNode> leftResult, Optional<JsonNode> rightResult) {
+		System.out.println("---<" + leftResult + " == " + rightResult);
+		if (!leftResult.isPresent() && !rightResult.isPresent()) {
+			return Optional.of((JsonNode) JSON.booleanNode(true));
+		}
+		if (!leftResult.isPresent() || !rightResult.isPresent()) {
+			return Optional.of((JsonNode) JSON.booleanNode(false));
+		}
+		if (leftResult.get().isNumber() && rightResult.get().isNumber()) {
+			return Optional.of((JsonNode) JSON
+					.booleanNode(leftResult.get().decimalValue().compareTo(rightResult.get().decimalValue()) == 0));
+		} else {
+			return Optional.of((JsonNode) JSON.booleanNode(leftResult.get().equals(rightResult.get())));
+		}
 	}
 
 	@Override

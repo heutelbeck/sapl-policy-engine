@@ -41,8 +41,10 @@ import io.sapl.grammar.services.SAPLGrammarAccess;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.ResultNode;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 
+@Slf4j
 @FunctionLibrary(name = SelectionFunctionLibrary.NAME, description = SelectionFunctionLibrary.DESCRIPTION)
 public class SelectionFunctionLibrary {
 
@@ -98,22 +100,31 @@ public class SelectionFunctionLibrary {
 	public static JsonNode match(@JsonObject JsonNode structure, @Text JsonNode needle, @Text JsonNode haystack)
 			throws FunctionException {
 		BasicRelative haystackExpression = parseRelative(haystack.asText());
+		LOGGER.info("haysteckExpr: {}", haystackExpression);
 		BasicRelative needleExpression = parseRelative(needle.asText());
+		LOGGER.info("needleExpr: {}", haystackExpression);
 		Optional<JsonNode> oStruct = Optional.of(structure);
+		LOGGER.info("structure: {}", oStruct.get());
+
 		try {
 			ResultNode haystackResult = StepResolver
 					.resolveSteps(oStruct, haystackExpression.getSteps(), null, false, oStruct).blockFirst();
+			LOGGER.info("haystackResult: {}", haystackResult);
 			ResultNode needleResult = StepResolver
 					.resolveSteps(oStruct, needleExpression.getSteps(), null, false, oStruct).blockFirst();
+			LOGGER.info("needleResult  : {}", needleResult);
 
 			if (haystackResult.isNodeWithoutParent()) {
+				LOGGER.info("haystackResult isNodeWithoutParent -> true");
 				return JSON.booleanNode(true);
 			} else if (needleResult.isNodeWithoutParent()) {
+				LOGGER.info("needleResult isNodeWithoutParent -> false");
 				return JSON.booleanNode(false);
 			} else if (!needleResult.isResultArray()) {
+				LOGGER.info("needleResult isResultArray -> inStructure");
 				return JSON.booleanNode(inStructure((AbstractAnnotatedJsonNode) needleResult, haystackResult));
 			}
-
+			LOGGER.info("needleResult isResultArray -> inStructure");
 			for (AbstractAnnotatedJsonNode node : (ArrayResultNode) needleResult) {
 				if (!inStructure(node, haystackResult))
 					return JSON.booleanNode(false);
