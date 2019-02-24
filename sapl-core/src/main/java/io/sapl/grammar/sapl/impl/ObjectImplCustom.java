@@ -36,6 +36,7 @@ public class ObjectImplCustom extends io.sapl.grammar.sapl.impl.ObjectImpl {
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		final List<String> keys = new ArrayList<>(getMembers().size());
 		final List<Flux<Optional<JsonNode>>> valueFluxes = new ArrayList<>(getMembers().size());
@@ -44,9 +45,8 @@ public class ObjectImplCustom extends io.sapl.grammar.sapl.impl.ObjectImpl {
 			valueFluxes.add(member.getValue().evaluate(ctx, isBody, relativeNode));
 		}
 		// the indices of the keys correspond to the indices of the values, because
-		// combineLatest() preserves the order
-		// of the given list of fluxes in the array of values passed to the combinator
-		// function
+		// combineLatest() preserves the order of the given list of fluxes in the array
+		// of values passed to the combinator function
 		return Flux.combineLatest(valueFluxes, values -> {
 			final ObjectNode result = JsonNodeFactory.instance.objectNode();
 			// omit undefined fields

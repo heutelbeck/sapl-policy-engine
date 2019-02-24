@@ -18,6 +18,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -25,10 +26,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 /**
@@ -41,7 +40,6 @@ import reactor.core.publisher.Flux;
  */
 public class ArrayImplCustom extends io.sapl.grammar.sapl.impl.ArrayImpl {
 
-	private static final String CANNOT_ADD_UNDEFINED_VALUE_TO_A_JSON_ARRAY = "Cannot add undefined value to a JSON array.";
 	private static final int HASH_PRIME_06 = 37;
 	private static final int INIT_PRIME_02 = 5;
 
@@ -59,30 +57,28 @@ public class ArrayImplCustom extends io.sapl.grammar.sapl.impl.ArrayImpl {
 	 */
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final List<Flux<Optional<JsonNode>>> itemFluxes = new ArrayList<>(getItems().size());
+		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(getItems().size());
 		for (Expression item : getItems()) {
-			itemFluxes.add(item.evaluate(ctx, isBody, relativeNode));
+			itemFluxes.add(item.evaluate(ctx, isBody, relativeNode).flatMap(Value::toJsonNode));
 		}
-		return Flux.combineLatest(itemFluxes, this::collectValuesToArrayNode);
-
+		return Flux.combineLatest(itemFluxes, Function.identity()).map(this::collectValuesToArrayNode)
+				.map(Optional::of);
 	}
 
 	/**
 	 * Collects a concrete evaluation of all expressions in the array into a single
 	 * Array. We do not allow for returning 'undefined'/Optional.empty() as fields
-	 * in the array. At runtime, this is primarily a constraint due to toe usage of
+	 * in the array. At runtime, this is primarily a constraint due to to usage of
 	 * Jackson JsonNodes which do not have a concept of 'undefined'. Also as we want
 	 * to return valid JSON values 'undefined' may not occur anywhere.
 	 */
-	private Optional<JsonNode> collectValuesToArrayNode(Object[] results) {
+	private JsonNode collectValuesToArrayNode(Object[] values) {
 		final ArrayNode resultArr = JsonNodeFactory.instance.arrayNode();
-		for (Object result : results) {
-			@SuppressWarnings("unchecked")
-			Optional<JsonNode> r = (Optional<JsonNode>) result;
-			resultArr.add(r.orElseThrow(() -> Exceptions
-					.propagate(new PolicyEvaluationException(CANNOT_ADD_UNDEFINED_VALUE_TO_A_JSON_ARRAY))));
+		for (Object untypedValue : values) {
+			JsonNode value = (JsonNode) untypedValue;
+			resultArr.add(value);
 		}
-		return Optional.of(resultArr);
+		return resultArr;
 	}
 
 	@Override

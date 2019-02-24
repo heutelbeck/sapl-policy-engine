@@ -19,9 +19,12 @@ import java.util.Optional;
 import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 /**
  * Implements the evaluation of the array operation. It checks if a value is
@@ -34,31 +37,25 @@ public class ElementOfImplCustom extends io.sapl.grammar.sapl.impl.ElementOfImpl
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> value = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> array = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(value, array, this::elementOf).distinctUntilChanged();
+		final Flux<JsonNode> value = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toJsonNode);
+		final Flux<ArrayNode> array = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toArrayNode);
+		return Flux.combineLatest(value, array, Tuples::of).map(this::elementOf).distinctUntilChanged();
 	}
 
 	/**
-	 * Checks if the value is contained in the array
-	 * 'undefined' is never contained in any array.
+	 * Checks if the value is contained in the array 'undefined' is never contained
+	 * in any array.
 	 * 
 	 * @param value an arbritary value
 	 * @param array an Array
 	 * @return true if value contained in array
 	 */
-	private Optional<JsonNode> elementOf(Optional<JsonNode> value, Optional<JsonNode> array) {
-		if (!value.isPresent()) {
-			return Optional.of((JsonNode) JSON.booleanNode(false));
-		}
-		assertArray(array);
-		for (JsonNode arrayItem : array.get()) {
-			if (value.get().equals(arrayItem)) {
-				return Value.ofTrue();
-			} else if (value.get().isNumber() && arrayItem.isNumber()
-					&& value.get().decimalValue().compareTo(arrayItem.decimalValue()) == 0) {
-				// numerically equivalent numbers may be noted differently in JSON.
-				// This equality is checked for here.
+	private Optional<JsonNode> elementOf(Tuple2<JsonNode, ArrayNode> tuple) {
+		for (JsonNode arrayItem : tuple.getT2()) {
+			// numerically equivalent numbers may be noted differently in JSON.
+			// This equality is checked for here as well.
+			if (tuple.getT1().equals(arrayItem) || (tuple.getT1().isNumber() && arrayItem.isNumber()
+					&& tuple.getT1().decimalValue().compareTo(arrayItem.decimalValue()) == 0)) {
 				return Value.ofTrue();
 			}
 		}

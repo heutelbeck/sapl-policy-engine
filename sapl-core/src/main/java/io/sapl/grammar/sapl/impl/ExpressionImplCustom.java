@@ -12,13 +12,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import reactor.core.Exceptions;
 
 public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionImpl {
 
@@ -31,34 +25,5 @@ public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionIm
 	protected static final String UNDEFINED_MISMATCH = "Type mismatch. Defined parameters expected, but got 'undefined'.";
 
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	@SafeVarargs
-	protected static void assertObject(Optional<JsonNode>... nodes) {
-		for (Optional<JsonNode> node : nodes) {
-			if (!node.isPresent() || !node.get().isObject()) {
-				throw Exceptions.propagate(new PolicyEvaluationException(
-						String.format(OBJECT_OPERATION_TYPE_MISMATCH, Value.typeOf(node))));
-			}
-		}
-	}
-
-	@SafeVarargs
-	protected static void assertArray(Optional<JsonNode>... nodes) {
-		for (Optional<JsonNode> node : nodes) {
-			if (!node.isPresent() || !node.get().isArray()) {
-				throw Exceptions.propagate(new PolicyEvaluationException(
-						String.format(ARRAY_OPERATION_TYPE_MISMATCH, Value.typeOf(node))));
-			}
-		}
-	}
-
-	@SafeVarargs
-	protected static void assertDefined(Optional<JsonNode>... nodes) {
-		for (Optional<JsonNode> node : nodes) {
-			if (!node.isPresent()) {
-				throw Exceptions.propagate(new PolicyEvaluationException(UNDEFINED_MISMATCH));
-			}
-		}
-	}
 
 }

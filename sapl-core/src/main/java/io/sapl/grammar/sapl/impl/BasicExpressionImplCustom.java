@@ -15,6 +15,7 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import org.eclipse.emf.common.util.EList;
 
@@ -26,7 +27,6 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class BasicExpressionImplCustom extends io.sapl.grammar.sapl.impl.BasicExpressionImpl {
@@ -81,7 +81,9 @@ public class BasicExpressionImplCustom extends io.sapl.grammar.sapl.impl.BasicEx
 	 */
 	private Flux<Optional<JsonNode>> evaluateSubtemplate(Optional<JsonNode> preliminaryResult, EvaluationContext ctx,
 			boolean isBody) {
-		assertArray(preliminaryResult);
+		if (!preliminaryResult.isPresent() || !preliminaryResult.get().isArray()) {
+			return Flux.error(new PolicyEvaluationException("Type mismatch. Expected an array."));
+		}
 
 		final ArrayNode arrayNode = (ArrayNode) preliminaryResult.get();
 		final List<Flux<Optional<JsonNode>>> fluxes = new ArrayList<>(arrayNode.size());
@@ -89,14 +91,19 @@ public class BasicExpressionImplCustom extends io.sapl.grammar.sapl.impl.BasicEx
 			final JsonNode childNode = arrayNode.get(i);
 			fluxes.add(subtemplate.evaluate(ctx, isBody, Optional.of(childNode)));
 		}
-		return Flux.combineLatest(fluxes, replacements -> {
-			for (int i = 0; i < arrayNode.size(); i++) {
-				@SuppressWarnings("unchecked")
-				JsonNode value = ((Optional<JsonNode>) replacements[i]).orElseThrow(() -> Exceptions
-						.propagate(new PolicyEvaluationException("undefined cannot be added to JSON array")));
-				arrayNode.set(i, (JsonNode) value);
+		return Flux.combineLatest(fluxes, Function.identity())
+				.flatMap(replacements -> replace(replacements, arrayNode));
+	}
+
+	private Flux<Optional<JsonNode>> replace(Object[] replacements, ArrayNode arrayNode) {
+		for (int i = 0; i < arrayNode.size(); i++) {
+			@SuppressWarnings("unchecked")
+			Optional<JsonNode> value = ((Optional<JsonNode>) replacements[i]);
+			if (!value.isPresent()) {
+				return Flux.error(new PolicyEvaluationException("undefined cannot be added to JSON array"));
 			}
-			return Optional.of(arrayNode);
-		});
+			arrayNode.set(i, value.get());
+		}
+		return Flux.just(Optional.of(arrayNode));
 	}
 }

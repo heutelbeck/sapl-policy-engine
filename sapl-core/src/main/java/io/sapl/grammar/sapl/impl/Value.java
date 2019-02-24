@@ -4,7 +4,9 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import lombok.experimental.UtilityClass;
@@ -86,6 +88,22 @@ public class Value {
 			return Flux.error(new PolicyEvaluationException("Undefined value error."));
 		}
 		return Flux.just(node.get());
+	}
+
+	public static Flux<ArrayNode> toArrayNode(Optional<JsonNode> node) {
+		if (!node.isPresent() || !node.get().isArray()) {
+			return Flux.error(new PolicyEvaluationException(
+					String.format("Type mismatch. Expected an array, but got %s.", typeOf(node))));
+		}
+		return Flux.just((ArrayNode) node.get());
+	}
+
+	public static Flux<ObjectNode> toObjectNode(Optional<JsonNode> node) {
+		if (!node.isPresent() || !node.get().isObject()) {
+			return Flux.error(new PolicyEvaluationException(
+					String.format("Type mismatch. Expected an object, but got %s.", typeOf(node))));
+		}
+		return Flux.just((ObjectNode) node.get());
 	}
 
 	public static Flux<String> toString(Optional<JsonNode> node) {
