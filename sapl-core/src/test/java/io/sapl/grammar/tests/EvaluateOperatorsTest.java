@@ -132,17 +132,10 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		and.setRight(basicValueFrom(num));
 
-		StepVerifier.create(and.evaluate(ctx, true, null)).expectError(PolicyEvaluationException.class).verify();
-
-		// FIXME: Felix Sigrist. This is due to the fact that the evaluation now is
-		// consequently eager. The previous version omitted the final type checking, but
-		// not the evaluation of the underlying expression.
-
-		// and.evaluate(ctx, true, null).take(1)
-		// .subscribe(result -> assertEquals(
-		// "False And wrong datatype should evaluate to BooleanNode(false) (lazy
-		// evaluation)",
-		// Optional.of(JSON.booleanNode(false)), result));
+		and.evaluate(ctx, true, null).take(1)
+				.subscribe(result -> assertEquals(
+						"False And wrong datatype should evaluate to BooleanNode(false) (lazy evaluation)",
+						Optional.of(JSON.booleanNode(false)), result));
 	}
 
 	@Test
@@ -294,17 +287,10 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		or.setRight(basicValueFrom(num));
 
-		StepVerifier.create(or.evaluate(ctx, true, null)).expectError(PolicyEvaluationException.class).verify();
-
-		// FIXME: Felix Sigrist. This is due to the fact that the evaluation now is
-		// consequently eager. The previous version omitted the final type checking, but
-		// not the evaluation of the underlying expression.
-
-		// or.evaluate(ctx, true, null).take(1)
-		// .subscribe(result -> assertEquals(
-		// "True Or wrong datatype should evaluate to BooleanNode(true) (lazy
-		// evaluation)",
-		// Optional.of(JSON.booleanNode(true)), result));
+		or.evaluate(ctx, true, null).take(1)
+				.subscribe(result -> assertEquals(
+						"True Or wrong datatype should evaluate to BooleanNode(true) (lazy evaluation)",
+						Optional.of(JSON.booleanNode(true)), result));
 	}
 
 	@Test
