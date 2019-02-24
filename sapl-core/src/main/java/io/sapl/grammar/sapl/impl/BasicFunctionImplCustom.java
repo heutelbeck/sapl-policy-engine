@@ -26,11 +26,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.functions.FunctionException;
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 /**
@@ -44,7 +42,6 @@ import reactor.core.publisher.Flux;
 public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunctionImpl {
 
 	private static final String UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL = "undefined parameter value handed to function call";
-	private static final String FUNCTION_EVALUATION = "Function evaluation error. Function '%s' cannot be evaluated.";
 
 	private static final int HASH_PRIME_05 = 31;
 	private static final int INIT_PRIME_02 = 5;
@@ -52,27 +49,23 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (getArguments() != null && !getArguments().getArgs().isEmpty()) {
-			// first create a List of FLuxes contianing the Fluxes of argument assignments
+			// first create a List of FLuxes containing the Fluxes of argument assignments
 			// by subscribing to the individual expressions.
-			final List<Flux<Optional<JsonNode>>> parameterFluxes = new ArrayList<>(getArguments().getArgs().size());
+			final List<Flux<Optional<JsonNode>>> arguments = new ArrayList<>(getArguments().getArgs().size());
 			for (Expression argument : getArguments().getArgs()) {
-				parameterFluxes.add(argument.evaluate(ctx, isBody, relativeNode));
+				arguments.add(argument.evaluate(ctx, isBody, relativeNode));
 			}
 			// evaluate function for append the function evaluation to each value assignment
 			// of the parameters
-			return Flux.combineLatest(parameterFluxes, paramNodes -> evaluateFunction(paramNodes, ctx))
+			return Flux.combineLatest(arguments, Function.identity())
+					.flatMap(parameters -> evaluateFunction(parameters, ctx))
 					.map(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, isBody, relativeNode))
 					.flatMap(Function.identity());
 		} else {
-			try {
-				final ArrayNode argumentsArray = JSON.arrayNode();
-				final Optional<JsonNode> resultBeforeSteps = ctx.getFunctionCtx().evaluate(functionName(ctx),
-						argumentsArray);
-				return evaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
-			} catch (FunctionException e) {
-				return Flux
-						.error(new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, functionName(ctx)), e));
-			}
+			// No need to subscribe to parameters. Just evaluate and apply steps.
+			return evaluateFunction(null, ctx)
+					.map(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, isBody, relativeNode))
+					.flatMap(Function.identity());
 		}
 	}
 
@@ -82,17 +75,21 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 	}
 
 	@SuppressWarnings("unchecked")
-	private Optional<JsonNode> evaluateFunction(Object[] parameters, EvaluationContext ctx) {
+	private Flux<Optional<JsonNode>> evaluateFunction(Object[] parameters, EvaluationContext ctx) {
 		final ArrayNode argumentsArray = JSON.arrayNode();
-		for (Object paramNode : parameters) {
-			argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(() -> Exceptions
-					.propagate(new PolicyEvaluationException(UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL))));
-		}
 		try {
-			return ctx.getFunctionCtx().evaluate(functionName(ctx), argumentsArray);
+			for (Object paramNode : parameters) {
+				// TODO: consider to adjust function library interfaces to:
+				// - accept fluxes
+				// - accept undefined
+				// - return Mono/Flux
+				// Functions currently still operate in the 1.0.0 engine mindset.
+				argumentsArray.add(((Optional<JsonNode>) paramNode)
+						.orElseThrow(() -> new FunctionException(UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL)));
+			}
+			return Flux.just(ctx.getFunctionCtx().evaluate(functionName(ctx), argumentsArray));
 		} catch (FunctionException e) {
-			throw Exceptions
-					.propagate(new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, functionName(ctx)), e));
+			return Flux.error(e);
 		}
 	}
 
