@@ -30,7 +30,7 @@ public class StringLiteralImplCustom extends io.sapl.grammar.sapl.impl.StringLit
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return Value.textFlux(getString());
+		return Value.fluxOf(getString());
 	}
 
 	@Override

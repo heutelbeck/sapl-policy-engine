@@ -39,7 +39,7 @@ public class TrueLiteralImplCustom extends TrueLiteralImpl {
 	 */
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return Value.trueFlux();
+		return Value.fluxOfTrue();
 	}
 
 	@Override

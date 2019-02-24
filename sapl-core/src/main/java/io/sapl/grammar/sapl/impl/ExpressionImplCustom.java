@@ -33,42 +33,11 @@ public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionIm
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@SafeVarargs
-	protected static void assertNumber(Optional<JsonNode>... nodes) {
-		for (Optional<JsonNode> node : nodes) {
-			if (!node.isPresent() || !node.get().isNumber()) {
-				throw Exceptions
-						.propagate(new PolicyEvaluationException(String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH,
-								node.isPresent() ? node.get().getNodeType() : UNDEFINED)));
-			}
-		}
-	}
-
-	@SafeVarargs
-	protected static void assertBoolean(Optional<JsonNode>... nodes) {
-		for (Optional<JsonNode> node : nodes) {
-			if (!node.isPresent() || !node.get().isBoolean()) {
-				throw Exceptions.propagate(new PolicyEvaluationException(String.format(BOOLEAN_OPERATION_TYPE_MISMATCH,
-						node.isPresent() ? node.get().getNodeType() : UNDEFINED)));
-			}
-		}
-	}
-
-	@SafeVarargs
-	protected static void assertTextual(Optional<JsonNode>... nodes) {
-		for (Optional<JsonNode> node : nodes) {
-			if (!node.isPresent() || !node.get().isTextual()) {
-				throw Exceptions.propagate(new PolicyEvaluationException(String.format(TEXT_OPERATION_TYPE_MISMATCH,
-						node.isPresent() ? node.get().getNodeType() : UNDEFINED)));
-			}
-		}
-	}
-
-	@SafeVarargs
 	protected static void assertObject(Optional<JsonNode>... nodes) {
 		for (Optional<JsonNode> node : nodes) {
 			if (!node.isPresent() || !node.get().isObject()) {
-				throw Exceptions.propagate(new PolicyEvaluationException(String.format(OBJECT_OPERATION_TYPE_MISMATCH,
-						node.isPresent() ? node.get().getNodeType() : UNDEFINED)));
+				throw Exceptions.propagate(new PolicyEvaluationException(
+						String.format(OBJECT_OPERATION_TYPE_MISMATCH, Value.typeOf(node))));
 			}
 		}
 	}
@@ -77,8 +46,8 @@ public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionIm
 	protected static void assertArray(Optional<JsonNode>... nodes) {
 		for (Optional<JsonNode> node : nodes) {
 			if (!node.isPresent() || !node.get().isArray()) {
-				throw Exceptions.propagate(new PolicyEvaluationException(String.format(ARRAY_OPERATION_TYPE_MISMATCH,
-						node.isPresent() ? node.get().getNodeType() : UNDEFINED)));
+				throw Exceptions.propagate(new PolicyEvaluationException(
+						String.format(ARRAY_OPERATION_TYPE_MISMATCH, Value.typeOf(node))));
 			}
 		}
 	}

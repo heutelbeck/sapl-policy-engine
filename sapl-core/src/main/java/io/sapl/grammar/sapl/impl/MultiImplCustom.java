@@ -12,6 +12,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,14 +31,9 @@ public class MultiImplCustom extends io.sapl.grammar.sapl.impl.MultiImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(left, right, this::multiply).distinctUntilChanged();
-	}
-
-	private Optional<JsonNode> multiply(Optional<JsonNode> left, Optional<JsonNode> right) {
-		assertNumber(left, right);
-		return Value.num(left.get().decimalValue().multiply(right.get().decimalValue()));
+		final Flux<BigDecimal> divident = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
+		final Flux<BigDecimal> divisor = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
+		return Flux.combineLatest(divident, divisor, BigDecimal::multiply).map(Value::of).distinctUntilChanged();
 	}
 
 	@Override

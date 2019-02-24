@@ -24,8 +24,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 
@@ -36,26 +37,16 @@ public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(left, right, this::matchRegexp).distinctUntilChanged();
+		final Flux<String> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toString);
+		final Flux<String> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toString);
+		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().flatMap(this::matchRegexp);
 	}
 
-	private Optional<JsonNode> matchRegexp(Optional<JsonNode> value, Optional<JsonNode> regexp) {
-		assertDefined(regexp);
-		if (!value.isPresent() || value.get().isNull()) {
-			return Value.falseValue();
-		}
-		return regexpMatch(value, regexp);
-	}
-
-	private Optional<JsonNode> regexpMatch(Optional<JsonNode> value, Optional<JsonNode> regexp) {
-		assertTextual(value, regexp);
+	private Flux<Optional<JsonNode>> matchRegexp(Tuple2<String, String> tuple) {
 		try {
-			return Value.bool(Pattern.matches(regexp.get().asText(), value.get().asText()));
+			return Value.fluxOf(Pattern.matches(tuple.getT2(), tuple.getT1()));
 		} catch (PatternSyntaxException e) {
-			throw Exceptions.propagate(
-					new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, regexp.get().asText()), e));
+			return Flux.error(new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, tuple.getT2()), e));
 		}
 	}
 

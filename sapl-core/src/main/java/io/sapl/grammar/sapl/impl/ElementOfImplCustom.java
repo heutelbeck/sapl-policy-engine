@@ -54,15 +54,15 @@ public class ElementOfImplCustom extends io.sapl.grammar.sapl.impl.ElementOfImpl
 		assertArray(array);
 		for (JsonNode arrayItem : array.get()) {
 			if (value.get().equals(arrayItem)) {
-				return Value.trueValue();
+				return Value.ofTrue();
 			} else if (value.get().isNumber() && arrayItem.isNumber()
 					&& value.get().decimalValue().compareTo(arrayItem.decimalValue()) == 0) {
 				// numerically equivalent numbers may be noted differently in JSON.
 				// This equality is checked for here.
-				return Value.trueValue();
+				return Value.ofTrue();
 			}
 		}
-		return Value.falseValue();
+		return Value.ofFalse();
 	}
 
 	@Override

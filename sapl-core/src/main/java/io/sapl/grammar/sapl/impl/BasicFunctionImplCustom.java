@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
@@ -78,18 +79,20 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 	private Flux<Optional<JsonNode>> evaluateFunction(Object[] parameters, EvaluationContext ctx) {
 		final ArrayNode argumentsArray = JSON.arrayNode();
 		try {
-			for (Object paramNode : parameters) {
-				// TODO: consider to adjust function library interfaces to:
-				// - accept fluxes
-				// - accept undefined
-				// - return Mono/Flux
-				// Functions currently still operate in the 1.0.0 engine mindset.
-				argumentsArray.add(((Optional<JsonNode>) paramNode)
-						.orElseThrow(() -> new FunctionException(UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL)));
+			if (parameters != null) {
+				for (Object paramNode : parameters) {
+					// TODO: consider to adjust function library interfaces to:
+					// - accept fluxes
+					// - accept undefined
+					// - return Mono/Flux
+					// Functions currently still operate in the 1.0.0 engine mindset.
+					argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(
+							() -> new FunctionException(UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL)));
+				}
 			}
 			return Flux.just(ctx.getFunctionCtx().evaluate(functionName(ctx), argumentsArray));
 		} catch (FunctionException e) {
-			return Flux.error(e);
+			return Flux.error(new PolicyEvaluationException(e));
 		}
 	}
 

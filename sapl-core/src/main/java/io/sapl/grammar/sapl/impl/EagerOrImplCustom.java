@@ -39,19 +39,9 @@ public class EagerOrImplCustom extends io.sapl.grammar.sapl.impl.EagerOrImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(leftResultFlux, rightResultFlux, this::eagerOr).distinctUntilChanged();
-	}
-
-	/**
-	 * @param left  must be a boolean
-	 * @param right must be a boolean
-	 * @return logical OR of left and right
-	 */
-	private Optional<JsonNode> eagerOr(Optional<JsonNode> left, Optional<JsonNode> right) {
-		assertBoolean(left, right);
-		return Value.bool(right.get().asBoolean() || left.get().asBoolean());
+		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+		return Flux.combineLatest(left, right, Boolean::logicalOr).map(Value::of).distinctUntilChanged();
 	}
 
 	@Override

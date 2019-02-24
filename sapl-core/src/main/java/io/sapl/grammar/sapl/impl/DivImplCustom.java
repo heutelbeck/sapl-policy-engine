@@ -12,6 +12,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -37,21 +38,9 @@ public class DivImplCustom extends io.sapl.grammar.sapl.impl.DivImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> divident = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> divisor = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(divident, divisor, this::divide).distinctUntilChanged();
-	}
-
-	/**
-	 * @param divident The divident of the division as a Flux of values. Must be
-	 *                 well-defined numerical values.
-	 * @param divisor  The divisor of the division as a Flux of values. Must be
-	 *                 well-defined numerical values.
-	 * @return A Flux of resulting quotients.
-	 */
-	private Optional<JsonNode> divide(Optional<JsonNode> divident, Optional<JsonNode> divisor) {
-		assertNumber(divident, divisor);
-		return Value.num(divident.get().decimalValue().divide(divisor.get().decimalValue()));
+		final Flux<BigDecimal> divident = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
+		final Flux<BigDecimal> divisor = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
+		return Flux.combineLatest(divident, divisor, BigDecimal::divide).map(Value::of).distinctUntilChanged();
 	}
 
 	@Override

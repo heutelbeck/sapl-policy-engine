@@ -55,19 +55,19 @@ public class EqualsImplCustom extends io.sapl.grammar.sapl.impl.EqualsImpl {
 	private Optional<JsonNode> equals(Optional<JsonNode> left, Optional<JsonNode> right) {
 		// if both values are undefined, they are equal
 		if (!left.isPresent() && !right.isPresent()) {
-			return Value.trueValue();
+			return Value.ofTrue();
 		}
 		// only one value is undefined the two values are not equal
 		if (!left.isPresent() || !right.isPresent()) {
-			return Value.falseValue();
+			return Value.ofFalse();
 		}
 		// if both values are numbers do a numerical comparison, as they may be
 		// represented differently in JSON
 		if (left.get().isNumber() && right.get().isNumber()) {
-			return Value.bool(left.get().decimalValue().compareTo(right.get().decimalValue()) == 0);
+			return Value.of(left.get().decimalValue().compareTo(right.get().decimalValue()) == 0);
 		} else {
 			// else do a deep comparison
-			return Value.bool(left.get().equals(right.get()));
+			return Value.of(left.get().equals(right.get()));
 		}
 	}
 

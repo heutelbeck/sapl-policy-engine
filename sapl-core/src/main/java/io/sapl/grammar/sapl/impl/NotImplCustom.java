@@ -30,12 +30,8 @@ public class NotImplCustom extends io.sapl.grammar.sapl.impl.NotImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return expression.evaluate(ctx, isBody, relativeNode).map(this::not).distinctUntilChanged();
-	}
-
-	private Optional<JsonNode> not(Optional<JsonNode> value) {
-		assertBoolean(value);
-		return Value.bool(!value.get().asBoolean());
+		return expression.evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean).map(bool -> !bool)
+				.map(Value::of).distinctUntilChanged();
 	}
 
 	@Override

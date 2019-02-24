@@ -12,6 +12,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,12 +31,8 @@ public class UnaryMinusImplCustom extends io.sapl.grammar.sapl.impl.UnaryMinusIm
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return getExpression().evaluate(ctx, isBody, relativeNode).map(this::negate).distinctUntilChanged();
-	}
-
-	private Optional<JsonNode> negate(Optional<JsonNode> value) {
-		assertNumber(value);
-		return Value.num(value.get().decimalValue().negate());
+		return getExpression().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal).map(BigDecimal::negate)
+				.map(Value::of).distinctUntilChanged();
 	}
 
 	@Override

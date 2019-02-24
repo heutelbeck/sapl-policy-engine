@@ -41,20 +41,13 @@ public class OrImplCustom extends io.sapl.grammar.sapl.impl.OrImpl {
 
 		// FIXME: Assigned to: Felix Sigrist. Bug. This is an eager implementation.
 		// Change to true lazy behavior.
-		// All lazy operations (AND, anything else?) are affected.
+		// All lazy operations (OR, anything else?) are affected.
+		// I rewrote them to handle errors correctly now, and they are all a clean eager
+		// implementation now
 
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(left, right, this::or).distinctUntilChanged();
-	}
-
-	private Optional<JsonNode> or(Optional<JsonNode> left, Optional<JsonNode> right) {
-		assertBoolean(left);
-		if (left.get().asBoolean()) {
-			return Optional.of((JsonNode) JSON.booleanNode(true));
-		}
-		assertBoolean(right);
-		return Optional.of((JsonNode) JSON.booleanNode(right.get().asBoolean()));
+		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+		return Flux.combineLatest(left, right, Boolean::logicalOr).map(Value::of).distinctUntilChanged();
 	}
 
 	@Override

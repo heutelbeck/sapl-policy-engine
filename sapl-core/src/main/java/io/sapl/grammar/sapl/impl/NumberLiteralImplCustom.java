@@ -30,7 +30,7 @@ public class NumberLiteralImplCustom extends io.sapl.grammar.sapl.impl.NumberLit
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return Value.numFlux(getNumber());
+		return Value.fluxOf(getNumber());
 	}
 
 	@Override

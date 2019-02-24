@@ -22,8 +22,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 public class PlusImplCustom extends io.sapl.grammar.sapl.impl.PlusImpl {
 
@@ -34,23 +35,27 @@ public class PlusImplCustom extends io.sapl.grammar.sapl.impl.PlusImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(left, right, this::plus).distinctUntilChanged();
+		final Flux<JsonNode> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toJsonNode);
+		final Flux<JsonNode> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toJsonNode);
+		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().flatMap(this::plus);
 	}
 
-	private Optional<JsonNode> plus(Optional<JsonNode> left, Optional<JsonNode> right) {
-		assertDefined(left, right);
-		if (left.get().isTextual()) {
-			if (!right.get().isTextual()) {
-				throw Exceptions.propagate(new PolicyEvaluationException(
-						String.format(STRING_CONCATENATION_TYPE_MISMATCH, right.get().getNodeType())));
+	private Flux<Optional<JsonNode>> plus(Tuple2<JsonNode, JsonNode> tuple) {
+		JsonNode left = tuple.getT1();
+		JsonNode right = tuple.getT2();
+		if (left.isTextual()) {
+			if (!right.isTextual()) {
+				return Flux.error(new PolicyEvaluationException(
+						String.format(STRING_CONCATENATION_TYPE_MISMATCH, right.getNodeType())));
 			}
-			return Value.text(left.get().asText().concat(right.get().asText()));
-		} else {
-			assertNumber(left, right);
-			return Value.num(left.get().decimalValue().add(right.get().decimalValue()));
+			return Value.fluxOf(left.asText().concat(right.asText()));
 		}
+		if (!left.isNumber() || !right.isNumber()) {
+			return Flux.error(new PolicyEvaluationException(
+					String.format("Type mismatch error. Expected two numbers for addition, but got (%s + %s).",
+							right.getNodeType(), left.getNodeType())));
+		}
+		return Value.fluxOf(left.decimalValue().add(right.decimalValue()));
 	}
 
 	@Override

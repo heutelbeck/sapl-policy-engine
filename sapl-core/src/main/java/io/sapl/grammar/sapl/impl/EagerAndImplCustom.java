@@ -37,19 +37,9 @@ public class EagerAndImplCustom extends io.sapl.grammar.sapl.impl.EagerAndImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(left, right, this::and).distinctUntilChanged();
-	}
-
-	/**
-	 * @param left  must be a boolean
-	 * @param right must be a boolean
-	 * @return logical AND of left and right
-	 */
-	private Optional<JsonNode> and(Optional<JsonNode> left, Optional<JsonNode> right) {
-		assertBoolean(left, right);
-		return Value.bool(right.get().asBoolean() && left.get().asBoolean());
+		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+		return Flux.combineLatest(left, right, Boolean::logicalAnd).map(Value::of).distinctUntilChanged();
 	}
 
 	@Override

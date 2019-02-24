@@ -12,6 +12,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,14 +31,13 @@ public class MoreEqualsImplCustom extends io.sapl.grammar.sapl.impl.MoreEqualsIm
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(left, right, this::moreEquals).distinctUntilChanged();
+		final Flux<BigDecimal> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
+		final Flux<BigDecimal> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
+		return Flux.combineLatest(left, right, this::moreOrEqual).map(Value::of).distinctUntilChanged();
 	}
 
-	private Optional<JsonNode> moreEquals(Optional<JsonNode> left, Optional<JsonNode> right) {
-		assertNumber(left, right);
-		return Value.bool(left.get().decimalValue().compareTo(right.get().decimalValue()) >= 0);
+	private Boolean moreOrEqual(BigDecimal left, BigDecimal right) {
+		return left.compareTo(right) >= 0;
 	}
 
 	@Override
