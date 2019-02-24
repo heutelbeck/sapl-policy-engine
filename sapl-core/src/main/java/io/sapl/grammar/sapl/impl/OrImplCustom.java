@@ -39,15 +39,13 @@ public class OrImplCustom extends io.sapl.grammar.sapl.impl.OrImpl {
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
 
-		// FIXME: Assigned to: Felix Sigrist. Bug. This is an eager implementation.
-		// Change to true lazy behavior.
-		// All lazy operations (OR, anything else?) are affected.
-		// I rewrote them to handle errors correctly now, and they are all a clean eager
-		// implementation now
-
 		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
-		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
-		return Flux.combineLatest(left, right, Boolean::logicalOr).map(Value::of).distinctUntilChanged();
+		return left.switchMap(leftResult -> {
+			if (Boolean.FALSE.equals(leftResult)) {
+				return getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+			}
+			return Flux.just(Boolean.TRUE);
+		}).map(Value::of).distinctUntilChanged();
 	}
 
 	@Override

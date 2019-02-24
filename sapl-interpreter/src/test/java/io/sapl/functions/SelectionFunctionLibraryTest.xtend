@@ -202,7 +202,7 @@ class SelectionFunctionLibraryTest {
 		val policyDefinition = '''
 			policy "test" 
 			permit where
-				var _selector = "@.records[-2]";
+				var _selector = "@.records[-1]";
 				selection.match(resource._content, _selector, "@.records[?(@.value>250)]");
 		''';
 
