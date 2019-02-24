@@ -33,6 +33,14 @@ import io.sapl.interpreter.EvaluationContext;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the evaluation of functions.
+ * 
+ * Basic returns BasicExpression: {BasicGroup} '(' expression=Expression ')'
+ * steps+=Step* | {BasicValue} value=Value steps+=Step* | {BasicFunction}
+ * fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step* |
+ * {BasicIdentifier} identifier=ID steps+=Step* | BasicRelative;
+ */
 public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunctionImpl {
 
 	private static final String UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL = "undefined parameter value handed to function call";
@@ -42,41 +50,49 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 	private static final int INIT_PRIME_02 = 5;
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final String joinedSteps = String.join(".", getFsteps());
-		final String fullyQualifiedName = ctx.getImports().getOrDefault(joinedSteps, joinedSteps);
-
 		if (getArguments() != null && !getArguments().getArgs().isEmpty()) {
+			// first create a List of FLuxes contianing the Fluxes of argument assignments
+			// by subscribing to the individual expressions.
 			final List<Flux<Optional<JsonNode>>> parameterFluxes = new ArrayList<>(getArguments().getArgs().size());
 			for (Expression argument : getArguments().getArgs()) {
 				parameterFluxes.add(argument.evaluate(ctx, isBody, relativeNode));
 			}
-			return Flux.combineLatest(parameterFluxes, paramNodes -> {
-				final ArrayNode argumentsArray = JSON.arrayNode();
-				for (Object paramNode : paramNodes) {
-					argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(() -> Exceptions.propagate(
-							new PolicyEvaluationException(UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL))));
-				}
-				try {
-					final Optional<JsonNode> resultBeforeSteps = ctx.getFunctionCtx().evaluate(fullyQualifiedName,
-							argumentsArray);
-					return evaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
-				} catch (FunctionException e) {
-					throw Exceptions.propagate(
-							new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, fullyQualifiedName), e));
-				}
-			}).flatMap(Function.identity());
+			// evaluate function for append the function evaluation to each value assignment
+			// of the parameters
+			return Flux.combineLatest(parameterFluxes, paramNodes -> evaluateFunction(paramNodes, ctx))
+					.map(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, isBody, relativeNode))
+					.flatMap(Function.identity());
 		} else {
 			try {
 				final ArrayNode argumentsArray = JSON.arrayNode();
-				final Optional<JsonNode> resultBeforeSteps = ctx.getFunctionCtx().evaluate(fullyQualifiedName,
+				final Optional<JsonNode> resultBeforeSteps = ctx.getFunctionCtx().evaluate(functionName(ctx),
 						argumentsArray);
 				return evaluateStepsFilterSubtemplate(resultBeforeSteps, getSteps(), ctx, isBody, relativeNode);
 			} catch (FunctionException e) {
-				return Flux.error(
-						new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, fullyQualifiedName), e));
+				return Flux
+						.error(new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, functionName(ctx)), e));
 			}
+		}
+	}
+
+	private String functionName(EvaluationContext ctx) {
+		String joinedSteps = String.join(".", getFsteps());
+		return ctx.getImports().getOrDefault(joinedSteps, joinedSteps);
+	}
+
+	@SuppressWarnings("unchecked")
+	private Optional<JsonNode> evaluateFunction(Object[] parameters, EvaluationContext ctx) {
+		final ArrayNode argumentsArray = JSON.arrayNode();
+		for (Object paramNode : parameters) {
+			argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(() -> Exceptions
+					.propagate(new PolicyEvaluationException(UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL))));
+		}
+		try {
+			return ctx.getFunctionCtx().evaluate(functionName(ctx), argumentsArray);
+		} catch (FunctionException e) {
+			throw Exceptions
+					.propagate(new PolicyEvaluationException(String.format(FUNCTION_EVALUATION, functionName(ctx)), e));
 		}
 	}
 

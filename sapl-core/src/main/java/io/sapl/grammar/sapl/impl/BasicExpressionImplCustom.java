@@ -31,8 +31,6 @@ import reactor.core.publisher.Flux;
 
 public class BasicExpressionImplCustom extends io.sapl.grammar.sapl.impl.BasicExpressionImpl {
 
-	private static final String SUBTEMPLATE_NO_ARRAY = "Subtemplate can only be applied to an array.";
-
 	/**
 	 * Method which is supposed to be inherited by the various subclasses of
 	 * BasicExpression and used in their {@code reactiveEvaluate} method.
@@ -83,9 +81,7 @@ public class BasicExpressionImplCustom extends io.sapl.grammar.sapl.impl.BasicEx
 	 */
 	private Flux<Optional<JsonNode>> evaluateSubtemplate(Optional<JsonNode> preliminaryResult, EvaluationContext ctx,
 			boolean isBody) {
-		if (!preliminaryResult.isPresent() || !preliminaryResult.get().isArray()) {
-			return Flux.error(new PolicyEvaluationException(SUBTEMPLATE_NO_ARRAY));
-		}
+		assertArray(preliminaryResult);
 
 		final ArrayNode arrayNode = (ArrayNode) preliminaryResult.get();
 		final List<Flux<Optional<JsonNode>>> fluxes = new ArrayList<>(arrayNode.size());
