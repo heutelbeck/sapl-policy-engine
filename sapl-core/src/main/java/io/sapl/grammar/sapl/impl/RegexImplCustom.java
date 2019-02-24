@@ -46,17 +46,16 @@ public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 		if (!value.isPresent() || value.get().isNull()) {
 			return Value.falseValue();
 		}
-		return regexpMatchTextNodes(value, regexp);
+		return regexpMatch(value, regexp);
 	}
 
-	private Optional<JsonNode> regexpMatchTextNodes(Optional<JsonNode> optLeftResult,
-			Optional<JsonNode> optRightResult) {
-		assertTextual(optLeftResult, optRightResult);
+	private Optional<JsonNode> regexpMatch(Optional<JsonNode> value, Optional<JsonNode> regexp) {
+		assertTextual(value, regexp);
 		try {
-			return Value.bool(Pattern.matches(optRightResult.get().asText(), optLeftResult.get().asText()));
+			return Value.bool(Pattern.matches(regexp.get().asText(), value.get().asText()));
 		} catch (PatternSyntaxException e) {
 			throw Exceptions.propagate(
-					new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, optRightResult.get().asText()), e));
+					new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, regexp.get().asText()), e));
 		}
 	}
 

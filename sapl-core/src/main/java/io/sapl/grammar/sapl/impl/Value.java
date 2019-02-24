@@ -38,7 +38,7 @@ public class Value {
 	}
 
 	public static Optional<JsonNode> falseValue() {
-		return Optional.of(JSON.booleanNode(true));
+		return Optional.of(JSON.booleanNode(false));
 	}
 
 	public static Flux<Optional<JsonNode>> falseFlux() {
