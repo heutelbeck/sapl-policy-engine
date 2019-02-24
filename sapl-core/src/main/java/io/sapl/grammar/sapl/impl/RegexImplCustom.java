@@ -37,14 +37,21 @@ public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<String> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toString);
+		final Flux<JsonNode> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toJsonNode);
 		final Flux<String> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toString);
 		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().flatMap(this::matchRegexp);
 	}
 
-	private Flux<Optional<JsonNode>> matchRegexp(Tuple2<String, String> tuple) {
+	private Flux<Optional<JsonNode>> matchRegexp(Tuple2<JsonNode, String> tuple) {
+		if (tuple.getT1().isNull()) {
+			return Value.fluxOfFalse();
+		}
+		if (!tuple.getT1().isTextual()) {
+			return Flux.error(new PolicyEvaluationException(
+					String.format("Type mismatch. Expected String or null. Got: %s", tuple.getT2())));
+		}
 		try {
-			return Value.fluxOf(Pattern.matches(tuple.getT2(), tuple.getT1()));
+			return Value.fluxOf(Pattern.matches(tuple.getT2(), tuple.getT1().asText()));
 		} catch (PatternSyntaxException e) {
 			return Flux.error(new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, tuple.getT2()), e));
 		}
