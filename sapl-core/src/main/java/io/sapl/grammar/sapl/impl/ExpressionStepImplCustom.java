@@ -28,7 +28,6 @@ import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.ExpressionStepImpl {
@@ -42,19 +41,18 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
-		return getExpression().evaluate(ctx, isBody, relativeNode).map(expressionResult -> {
+		return getExpression().evaluate(ctx, isBody, relativeNode).flatMap(expressionResult -> {
 			try {
-				return handleExpressionResultFor(previousResult, expressionResult);
+				return Flux.just(handleExpressionResultFor(previousResult, expressionResult));
 			} catch (PolicyEvaluationException e) {
-				throw Exceptions.propagate(e);
+				return Flux.error(e);
 			}
 		});
 	}
 
 	private ResultNode handleExpressionResultFor(AbstractAnnotatedJsonNode previousResult, Optional<JsonNode> optResult)
 			throws PolicyEvaluationException {
-		JsonNode result = optResult
-				.orElseThrow(() -> Exceptions.propagate(new PolicyEvaluationException("undefined value")));
+		JsonNode result = optResult.orElseThrow(() -> new PolicyEvaluationException("undefined value"));
 		if (result.isNumber()) {
 			if (previousResult.getNode().isPresent() && previousResult.getNode().get().isArray()) {
 				final int index = result.asInt();
@@ -85,27 +83,22 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
 		return getExpression().evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations())
-				.map(expressionResult -> {
-					try {
-						return handleExpressionResultFor(previousResult, expressionResult.orElseThrow(() -> Exceptions
-								.propagate(new PolicyEvaluationException("undefined value during step evaluation."))));
-					} catch (PolicyEvaluationException e) {
-						throw Exceptions.propagate(e);
-					}
-				});
+				.flatMap(Value::toJsonNode)
+				.flatMap(expressionResult -> handleExpressionResultFor(previousResult, expressionResult));
 	}
 
-	private ResultNode handleExpressionResultFor(ArrayResultNode previousResult, JsonNode result)
-			throws PolicyEvaluationException {
+	private Flux<ResultNode> handleExpressionResultFor(ArrayResultNode previousResult, JsonNode result) {
 		if (result.isNumber()) {
 			int index = result.asInt();
 			List<AbstractAnnotatedJsonNode> nodes = previousResult.getNodes();
 			if (index < 0 || index >= nodes.size()) {
-				throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
+				return Flux
+						.error(new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index)));
 			}
-			return nodes.get(index);
+			return Flux.just(nodes.get(index));
 		} else {
-			throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+			return Flux.error(new PolicyEvaluationException(
+					String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType())));
 		}
 	}
 

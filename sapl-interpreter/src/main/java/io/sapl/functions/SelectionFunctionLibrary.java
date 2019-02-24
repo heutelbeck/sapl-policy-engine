@@ -37,6 +37,7 @@ import io.sapl.api.validation.Text;
 import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.BasicRelative;
 import io.sapl.grammar.sapl.impl.StepResolver;
+import io.sapl.grammar.sapl.impl.Value;
 import io.sapl.grammar.services.SAPLGrammarAccess;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
@@ -143,22 +144,30 @@ public class SelectionFunctionLibrary {
 		BasicRelative firstExpression = parseRelative(second.asText());
 		BasicRelative secondExpression = parseRelative(first.asText());
 		Optional<JsonNode> oStruct = Optional.of(structure);
-
+		
 		try {
 			ResultNode firstResult = StepResolver
 					.resolveSteps(oStruct, firstExpression.getSteps(), null, false, oStruct).blockFirst();
 			ResultNode secondResult = StepResolver
 					.resolveSteps(oStruct, secondExpression.getSteps(), null, false, oStruct).blockFirst();
 
+			LOGGER.info("firstResult: {}", firstResult.asJsonWithoutAnnotations().get());
+			LOGGER.info("secondResult: {}", firstResult.asJsonWithoutAnnotations().get());
+
+			
 			if (firstResult.isNodeWithoutParent() && secondResult.isNodeWithoutParent()) {
+				LOGGER.info("A");
 				return JSON.booleanNode(true);
 			} else if (!firstResult.isResultArray() && !secondResult.isResultArray()) {
+				LOGGER.info("B");
 				return JSON.booleanNode(((AbstractAnnotatedJsonNode) firstResult)
 						.sameReference((AbstractAnnotatedJsonNode) secondResult));
 			} else if (firstResult.isResultArray() && secondResult.isResultArray()) {
+				LOGGER.info("C");
 				return JSON.booleanNode(allNodesInList((ArrayResultNode) firstResult, (ArrayResultNode) secondResult)
 						&& allNodesInList((ArrayResultNode) secondResult, (ArrayResultNode) firstResult));
 			} else {
+				LOGGER.info("D");
 				return JSON.booleanNode(false);
 			}
 		} catch (PolicyEvaluationException e) {

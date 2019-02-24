@@ -23,7 +23,6 @@ import java.util.stream.IntStream;
 import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
@@ -53,19 +52,16 @@ public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.Condition
 			return Flux.error(new PolicyEvaluationException("undefined value during conditional step evaluation."));
 		}
 		if (previousResultNode.get().isArray()) {
-			final List<Flux<Optional<JsonNode>>> itemFluxes = new ArrayList<>(previousResultNode.get().size());
-			IntStream.range(0, previousResultNode.get().size()).forEach(idx -> {
-				itemFluxes.add(getExpression().evaluate(ctx, isBody, Optional.of(previousResultNode.get().get(idx))));
-			});
+			final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(previousResultNode.get().size());
+			IntStream.range(0, previousResultNode.get().size()).forEach(idx -> itemFluxes.add(getExpression()
+					.evaluate(ctx, isBody, Optional.of(previousResultNode.get().get(idx))).flatMap(Value::toJsonNode)));
 			// the indices of the elements in the previousResultNode array correspond to the
 			// indices of the flux results, because combineLatest()
 			// preserves the order of the given list of fluxes in the results array passed
 			// to the combinator function
 			return Flux.combineLatest(itemFluxes, results -> {
 				IntStream.range(0, results.length).forEach(idx -> {
-					@SuppressWarnings("unchecked")
-					final JsonNode result = ((Optional<JsonNode>) results[idx]).orElseThrow(() -> Exceptions
-							.propagate(new PolicyEvaluationException(UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS)));
+					final JsonNode result = (JsonNode) results[idx];
 					if (result.isBoolean() && result.asBoolean()) {
 						resultList.add(new JsonNodeWithParentArray(Optional.of(previousResultNode.get().get(idx)),
 								previousResultNode, idx));
@@ -76,14 +72,15 @@ public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.Condition
 		} else if (previousResultNode.get().isObject()) {
 			final List<String> fieldNames = new ArrayList<>();
 			final List<JsonNode> fieldValues = new ArrayList<>();
-			final List<Flux<Optional<JsonNode>>> valueFluxes = new ArrayList<>();
+			final List<Flux<JsonNode>> valueFluxes = new ArrayList<>();
 			final Iterator<String> it = previousResultNode.get().fieldNames();
 			while (it.hasNext()) {
 				final String fieldName = it.next();
 				final JsonNode fieldValue = previousResultNode.get().get(fieldName);
 				fieldNames.add(fieldName);
 				fieldValues.add(fieldValue);
-				valueFluxes.add(getExpression().evaluate(ctx, isBody, Optional.of(fieldValue)));
+				valueFluxes
+						.add(getExpression().evaluate(ctx, isBody, Optional.of(fieldValue)).flatMap(Value::toJsonNode));
 			}
 			// the indices of the elements in the fieldNames list and the fieldValues list
 			// correspond to the indices of the flux results,
@@ -91,9 +88,7 @@ public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.Condition
 			// the results array passed to the combinator function
 			return Flux.combineLatest(valueFluxes, results -> {
 				IntStream.range(0, results.length).forEach(idx -> {
-					@SuppressWarnings("unchecked")
-					final JsonNode result = ((Optional<JsonNode>) results[idx]).orElseThrow(() -> Exceptions
-							.propagate(new PolicyEvaluationException(UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS)));
+					final JsonNode result = (JsonNode) results[idx];
 					if (result.isBoolean() && result.asBoolean()) {
 						resultList.add(new JsonNodeWithParentObject(Optional.of(fieldValues.get(idx)),
 								previousResultNode, fieldNames.get(idx)));
@@ -102,9 +97,8 @@ public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.Condition
 				return new ArrayResultNode(resultList);
 			});
 		} else {
-			final JsonNodeType previousNodeType = previousResult.getNode().get().getNodeType();
-			return Flux.error(
-					new PolicyEvaluationException(String.format(CONDITION_ACCESS_TYPE_MISMATCH, previousNodeType)));
+			return Flux.error(new PolicyEvaluationException(
+					String.format(CONDITION_ACCESS_TYPE_MISMATCH, Value.typeOf(previousResult.getNode()))));
 		}
 	}
 

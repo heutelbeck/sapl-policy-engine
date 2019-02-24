@@ -30,7 +30,6 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
@@ -79,7 +78,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
 		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
 		final List<Integer> nodeIndices = resolveIndex(previousResult.asJsonWithoutAnnotations()
-				.orElseThrow(() -> Exceptions.propagate(new PolicyEvaluationException("undefined value"))));
+				.orElseThrow(() -> new PolicyEvaluationException("undefined value")));
 		for (Integer i : nodeIndices) {
 			list.add(previousResult.getNodes().get(i));
 		}

@@ -25,7 +25,6 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ResultNode;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class FilterComponentImplCustom extends io.sapl.grammar.sapl.impl.FilterComponentImpl {
@@ -113,7 +112,7 @@ public class FilterComponentImplCustom extends io.sapl.grammar.sapl.impl.FilterC
 					target.removeFromTree(each);
 					return Flux.just(ResultNode.Void.INSTANCE);
 				} catch (PolicyEvaluationException e) {
-					throw Exceptions.propagate(e);
+					return Flux.error(e);
 				}
 			});
 		} else {

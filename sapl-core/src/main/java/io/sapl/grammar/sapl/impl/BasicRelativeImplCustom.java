@@ -28,7 +28,7 @@ import reactor.core.publisher.Flux;
 
 public class BasicRelativeImplCustom extends io.sapl.grammar.sapl.impl.BasicRelativeImpl {
 
-	private static final String NOT_ALLOWED = "Relative expression is not allowed at this place.";
+	private static final String NOT_ALLOWED = "Relative expression is not allowed at this place. There was no relative node defined. Was: %s";
 
 	private static final int HASH_PRIME_06 = 37;
 	private static final int INIT_PRIME_02 = 5;
@@ -36,7 +36,7 @@ public class BasicRelativeImplCustom extends io.sapl.grammar.sapl.impl.BasicRela
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (relativeNode == null) {
-			return Flux.error(new PolicyEvaluationException(NOT_ALLOWED));
+			return Flux.error(new PolicyEvaluationException(String.format(NOT_ALLOWED, relativeNode)));
 		}
 		return evaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, isBody, relativeNode);
 	}
