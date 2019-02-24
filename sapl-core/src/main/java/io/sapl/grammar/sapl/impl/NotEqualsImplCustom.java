@@ -37,16 +37,15 @@ public class NotEqualsImplCustom extends io.sapl.grammar.sapl.impl.NotEqualsImpl
 
 	private Optional<JsonNode> notEqual(Optional<JsonNode> left, Optional<JsonNode> right) {
 		if (!left.isPresent() && !right.isPresent()) {
-			return Optional.of((JsonNode) JSON.booleanNode(false));
+			return Value.falseValue();
 		}
 		if (!left.isPresent() || !right.isPresent()) {
-			return Optional.of((JsonNode) JSON.booleanNode(true));
+			return Value.trueValue();
 		}
 		if (left.get().isNumber() && right.get().isNumber()) {
-			return Optional.of(
-					(JsonNode) JSON.booleanNode(left.get().decimalValue().compareTo(right.get().decimalValue()) != 0));
+			return Value.bool(left.get().decimalValue().compareTo(right.get().decimalValue()) != 0);
 		} else {
-			return Optional.of((JsonNode) JSON.booleanNode(!left.get().equals(right.get())));
+			return Value.bool(!left.get().equals(right.get()));
 		}
 	}
 

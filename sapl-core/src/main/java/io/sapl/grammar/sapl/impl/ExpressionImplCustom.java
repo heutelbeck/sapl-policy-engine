@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import reactor.core.Exceptions;
 
 public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionImpl {
 
@@ -25,45 +26,68 @@ public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionIm
 	protected static final String ARITHMETIC_OPERATION_TYPE_MISMATCH = "Type mismatch. Arithmetic operation expects number values, but got: '%s'.";
 	protected static final String BOOLEAN_OPERATION_TYPE_MISMATCH = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
 	protected static final String TEXT_OPERATION_TYPE_MISMATCH = "Type mismatch. Text operation expects text values, but got: '%s'.";
+	protected static final String ARRAY_OPERATION_TYPE_MISMATCH = "Type mismatch. Array operation expects Array values, but got: '%s'.";
+	protected static final String OBJECT_OPERATION_TYPE_MISMATCH = "Type mismatch. Object operation expects Opbject values, but got: '%s'.";
 	protected static final String UNDEFINED_MISMATCH = "Type mismatch. Defined parameters expected, but got 'undefined'.";
 
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@SafeVarargs
-	protected static void assertNumber(Optional<JsonNode>... nodes) throws PolicyEvaluationException {
+	protected static void assertNumber(Optional<JsonNode>... nodes) {
 		for (Optional<JsonNode> node : nodes) {
 			if (!node.isPresent() || !node.get().isNumber()) {
-				throw new PolicyEvaluationException(String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH,
-						node.isPresent() ? node.get().getNodeType() : UNDEFINED));
+				throw Exceptions
+						.propagate(new PolicyEvaluationException(String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH,
+								node.isPresent() ? node.get().getNodeType() : UNDEFINED)));
 			}
 		}
 	}
 
 	@SafeVarargs
-	protected static void assertBoolean(Optional<JsonNode>... nodes) throws PolicyEvaluationException {
+	protected static void assertBoolean(Optional<JsonNode>... nodes) {
 		for (Optional<JsonNode> node : nodes) {
 			if (!node.isPresent() || !node.get().isBoolean()) {
-				throw new PolicyEvaluationException(String.format(BOOLEAN_OPERATION_TYPE_MISMATCH,
-						node.isPresent() ? node.get().getNodeType() : UNDEFINED));
+				throw Exceptions.propagate(new PolicyEvaluationException(String.format(BOOLEAN_OPERATION_TYPE_MISMATCH,
+						node.isPresent() ? node.get().getNodeType() : UNDEFINED)));
 			}
 		}
 	}
 
 	@SafeVarargs
-	protected static void assertTextual(Optional<JsonNode>... nodes) throws PolicyEvaluationException {
+	protected static void assertTextual(Optional<JsonNode>... nodes) {
 		for (Optional<JsonNode> node : nodes) {
 			if (!node.isPresent() || !node.get().isTextual()) {
-				throw new PolicyEvaluationException(String.format(TEXT_OPERATION_TYPE_MISMATCH,
-						node.isPresent() ? node.get().getNodeType() : UNDEFINED));
+				throw Exceptions.propagate(new PolicyEvaluationException(String.format(TEXT_OPERATION_TYPE_MISMATCH,
+						node.isPresent() ? node.get().getNodeType() : UNDEFINED)));
 			}
 		}
 	}
 
 	@SafeVarargs
-	protected static void assertPresent(Optional<JsonNode>... nodes) throws PolicyEvaluationException {
+	protected static void assertObject(Optional<JsonNode>... nodes) {
+		for (Optional<JsonNode> node : nodes) {
+			if (!node.isPresent() || !node.get().isObject()) {
+				throw Exceptions.propagate(new PolicyEvaluationException(String.format(OBJECT_OPERATION_TYPE_MISMATCH,
+						node.isPresent() ? node.get().getNodeType() : UNDEFINED)));
+			}
+		}
+	}
+
+	@SafeVarargs
+	protected static void assertArray(Optional<JsonNode>... nodes) {
+		for (Optional<JsonNode> node : nodes) {
+			if (!node.isPresent() || !node.get().isArray()) {
+				throw Exceptions.propagate(new PolicyEvaluationException(String.format(ARRAY_OPERATION_TYPE_MISMATCH,
+						node.isPresent() ? node.get().getNodeType() : UNDEFINED)));
+			}
+		}
+	}
+
+	@SafeVarargs
+	protected static void assertDefined(Optional<JsonNode>... nodes) {
 		for (Optional<JsonNode> node : nodes) {
 			if (!node.isPresent()) {
-				throw new PolicyEvaluationException(UNDEFINED_MISMATCH);
+				throw Exceptions.propagate(new PolicyEvaluationException(UNDEFINED_MISMATCH));
 			}
 		}
 	}

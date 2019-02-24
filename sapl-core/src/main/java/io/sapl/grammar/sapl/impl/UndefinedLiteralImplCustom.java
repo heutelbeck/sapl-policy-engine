@@ -34,12 +34,12 @@ public class UndefinedLiteralImplCustom extends io.sapl.grammar.sapl.impl.Undefi
 	private static final int HASH_PRIME_10 = 53;
 	private static final int INIT_PRIME_02 = 5;
 
-	/* 
+	/*
 	 * A FLux only containing the 'undefined' value, i.e. Optional.empty();
 	 */
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return Flux.just(Optional.empty());
+		return Value.undefinedFlux();
 	}
 
 	@Override

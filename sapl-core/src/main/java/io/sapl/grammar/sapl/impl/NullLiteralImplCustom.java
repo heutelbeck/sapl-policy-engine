@@ -19,7 +19,6 @@ import java.util.Optional;
 import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -31,7 +30,7 @@ public class NullLiteralImplCustom extends io.sapl.grammar.sapl.impl.NullLiteral
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return Flux.just(Optional.of(JsonNodeFactory.instance.nullNode()));
+		return Value.nullFlux();
 	}
 
 	@Override

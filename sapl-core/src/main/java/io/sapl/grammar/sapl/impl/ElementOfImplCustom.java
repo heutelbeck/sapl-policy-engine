@@ -20,47 +20,49 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the evaluation of the array operation. It checks if a value is
+ * contained in an array.
+ */
 public class ElementOfImplCustom extends io.sapl.grammar.sapl.impl.ElementOfImpl {
-
-	private static final String ELEMENT_OF_TYPE_MISMATCH = "Type mismatch. 'in' expects an array value on the right side, but got: '%s'.";
 
 	private static final int HASH_PRIME_01 = 17;
 	private static final int INIT_PRIME_01 = 3;
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(left, right, this::elementOf).distinctUntilChanged();
+		final Flux<Optional<JsonNode>> value = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> array = getRight().evaluate(ctx, isBody, relativeNode);
+		return Flux.combineLatest(value, array, this::elementOf).distinctUntilChanged();
 	}
 
+	/**
+	 * Checks if the value is contained in the array
+	 * 'undefined' is never contained in any array.
+	 * 
+	 * @param value an arbritary value
+	 * @param array an Array
+	 * @return true if value contained in array
+	 */
 	private Optional<JsonNode> elementOf(Optional<JsonNode> value, Optional<JsonNode> array) {
-		try {
-			if (!value.isPresent()) {
-				return Optional.of((JsonNode) JSON.booleanNode(false));
-			}
-			assertPresent(array);
-			if (!array.get().isArray()) {
-				throw Exceptions.propagate(new PolicyEvaluationException(
-						String.format(ELEMENT_OF_TYPE_MISMATCH, array.get().getNodeType())));
-			}
-			for (JsonNode arrayItem : array.get()) {
-				if (value.get().equals(arrayItem)) {
-					return Optional.of((JsonNode) JSON.booleanNode(true));
-				} else if (value.get().isNumber() && arrayItem.isNumber()
-						&& value.get().decimalValue().compareTo(arrayItem.decimalValue()) == 0) {
-					return Optional.of((JsonNode) JSON.booleanNode(true));
-				}
-			}
+		if (!value.isPresent()) {
 			return Optional.of((JsonNode) JSON.booleanNode(false));
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
 		}
+		assertArray(array);
+		for (JsonNode arrayItem : array.get()) {
+			if (value.get().equals(arrayItem)) {
+				return Value.trueValue();
+			} else if (value.get().isNumber() && arrayItem.isNumber()
+					&& value.get().decimalValue().compareTo(arrayItem.decimalValue()) == 0) {
+				// numerically equivalent numbers may be noted differently in JSON.
+				// This equality is checked for here.
+				return Value.trueValue();
+			}
+		}
+		return Value.falseValue();
 	}
 
 	@Override

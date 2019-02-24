@@ -20,9 +20,7 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class UnaryMinusImplCustom extends io.sapl.grammar.sapl.impl.UnaryMinusImpl {
@@ -36,12 +34,8 @@ public class UnaryMinusImplCustom extends io.sapl.grammar.sapl.impl.UnaryMinusIm
 	}
 
 	private Optional<JsonNode> negate(Optional<JsonNode> value) {
-		try {
-			assertNumber(value);
-			return (Optional<JsonNode>) Optional.of((JsonNode) JSON.numberNode(value.get().decimalValue().negate()));
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
-		}
+		assertNumber(value);
+		return Value.num(value.get().decimalValue().negate());
 	}
 
 	@Override

@@ -20,9 +20,7 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class LessEqualsImplCustom extends io.sapl.grammar.sapl.impl.LessEqualsImpl {
@@ -38,13 +36,8 @@ public class LessEqualsImplCustom extends io.sapl.grammar.sapl.impl.LessEqualsIm
 	}
 
 	private Optional<JsonNode> lessOrEqual(Optional<JsonNode> left, Optional<JsonNode> right) {
-		try {
-			assertNumber(left, right);
-			return Optional.of(
-					(JsonNode) JSON.booleanNode(left.get().decimalValue().compareTo(right.get().decimalValue()) <= 0));
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
-		}
+		assertNumber(left, right);
+		return Value.bool(left.get().decimalValue().compareTo(right.get().decimalValue()) <= 0);
 	}
 
 	@Override

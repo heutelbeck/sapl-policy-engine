@@ -20,9 +20,7 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class MultiImplCustom extends io.sapl.grammar.sapl.impl.MultiImpl {
@@ -38,13 +36,8 @@ public class MultiImplCustom extends io.sapl.grammar.sapl.impl.MultiImpl {
 	}
 
 	private Optional<JsonNode> multiply(Optional<JsonNode> left, Optional<JsonNode> right) {
-		try {
-			assertNumber(left, right);
-			return Optional
-					.of((JsonNode) JSON.numberNode(left.get().decimalValue().multiply(right.get().decimalValue())));
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
-		}
+		assertNumber(left, right);
+		return Value.num(left.get().decimalValue().multiply(right.get().decimalValue()));
 	}
 
 	@Override

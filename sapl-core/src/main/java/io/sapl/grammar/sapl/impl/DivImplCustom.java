@@ -20,11 +20,16 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the numerical division operator, written as '/' in Expressions.
+ * 
+ * Multiplication returns Expression: Comparison (({Multi.left=current} '*' |
+ * {Div.left=current} '/' | {And.left=current} '&&' | '&'
+ * {EagerAnd.left=current}) right=Comparison)* ;
+ */
 public class DivImplCustom extends io.sapl.grammar.sapl.impl.DivImpl {
 
 	private static final int HASH_PRIME_14 = 71;
@@ -32,20 +37,21 @@ public class DivImplCustom extends io.sapl.grammar.sapl.impl.DivImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
-
-		return Flux.combineLatest(leftResultFlux, rightResultFlux, this::divide).distinctUntilChanged();
+		final Flux<Optional<JsonNode>> divident = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> divisor = getRight().evaluate(ctx, isBody, relativeNode);
+		return Flux.combineLatest(divident, divisor, this::divide).distinctUntilChanged();
 	}
 
+	/**
+	 * @param divident The divident of the division as a Flux of values. Must be
+	 *                 well-defined numerical values.
+	 * @param divisor  The divisor of the division as a Flux of values. Must be
+	 *                 well-defined numerical values.
+	 * @return A Flux of resulting quotients.
+	 */
 	private Optional<JsonNode> divide(Optional<JsonNode> divident, Optional<JsonNode> divisor) {
-		try {
-			assertNumber(divident, divisor);
-			return Optional
-					.of((JsonNode) JSON.numberNode(divident.get().decimalValue().divide(divisor.get().decimalValue())));
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
-		}
+		assertNumber(divident, divisor);
+		return Value.num(divident.get().decimalValue().divide(divisor.get().decimalValue()));
 	}
 
 	@Override

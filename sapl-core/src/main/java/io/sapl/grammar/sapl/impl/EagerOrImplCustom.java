@@ -20,10 +20,17 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
+
+/**
+ * Implements the eager logical OR operation, noted as '|' in the grammar.
+ * 
+ * Addition returns Expression: Multiplication (({Plus.left=current} '+' |
+ * {Minus.left=current} '-' | {Or.left=current} '||' | '|'
+ * {EagerOr.left=current}) right=Multiplication)* ;
+ * 
+ */
 
 public class EagerOrImplCustom extends io.sapl.grammar.sapl.impl.EagerOrImpl {
 
@@ -37,13 +44,14 @@ public class EagerOrImplCustom extends io.sapl.grammar.sapl.impl.EagerOrImpl {
 		return Flux.combineLatest(leftResultFlux, rightResultFlux, this::eagerOr).distinctUntilChanged();
 	}
 
+	/**
+	 * @param left  must be a boolean
+	 * @param right must be a boolean
+	 * @return logical OR of left and right
+	 */
 	private Optional<JsonNode> eagerOr(Optional<JsonNode> left, Optional<JsonNode> right) {
-		try {
-			assertBoolean(left, right);
-			return Optional.of((JsonNode) JSON.booleanNode(right.get().asBoolean() || left.get().asBoolean()));
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
-		}
+		assertBoolean(left, right);
+		return Value.bool(right.get().asBoolean() || left.get().asBoolean());
 	}
 
 	@Override

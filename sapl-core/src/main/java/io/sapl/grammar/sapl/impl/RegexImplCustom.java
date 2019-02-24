@@ -29,7 +29,6 @@ import reactor.core.publisher.Flux;
 
 public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 
-	private static final String REGEX_TYPE_MISMATCH = "Type mismatch. Matching regular expressions expects string values, but got: '%s'.";
 	private static final String REGEX_SYNTAX_ERROR = "Syntax error in regular expression '%s'.";
 
 	private static final int HASH_PRIME_13 = 67;
@@ -43,27 +42,21 @@ public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
 	}
 
 	private Optional<JsonNode> matchRegexp(Optional<JsonNode> value, Optional<JsonNode> regexp) {
-		try {
-			if (!regexp.isPresent()) {
-				throw new PolicyEvaluationException(String.format(REGEX_TYPE_MISMATCH, "undefined"));
-			}
-			if (!value.isPresent() || value.get().isNull()) {
-				return Optional.of((JsonNode) JSON.booleanNode(false));
-			}
-			return regexpMatchTextNodes(value, regexp);
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
+		assertDefined(regexp);
+		if (!value.isPresent() || value.get().isNull()) {
+			return Value.falseValue();
 		}
+		return regexpMatchTextNodes(value, regexp);
 	}
 
-	private Optional<JsonNode> regexpMatchTextNodes(Optional<JsonNode> optLeftResult, Optional<JsonNode> optRightResult)
-			throws PolicyEvaluationException {
+	private Optional<JsonNode> regexpMatchTextNodes(Optional<JsonNode> optLeftResult,
+			Optional<JsonNode> optRightResult) {
 		assertTextual(optLeftResult, optRightResult);
 		try {
-			return Optional.of((JsonNode) JSON
-					.booleanNode(Pattern.matches(optRightResult.get().asText(), optLeftResult.get().asText())));
+			return Value.bool(Pattern.matches(optRightResult.get().asText(), optLeftResult.get().asText()));
 		} catch (PatternSyntaxException e) {
-			throw new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, optRightResult.get().asText()), e);
+			throw Exceptions.propagate(
+					new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, optRightResult.get().asText()), e));
 		}
 	}
 

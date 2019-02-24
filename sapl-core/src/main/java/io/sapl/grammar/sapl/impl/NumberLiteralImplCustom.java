@@ -19,7 +19,6 @@ import java.util.Optional;
 import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -31,7 +30,7 @@ public class NumberLiteralImplCustom extends io.sapl.grammar.sapl.impl.NumberLit
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return Flux.just(Optional.of(JsonNodeFactory.instance.numberNode(getNumber())));
+		return Value.numFlux(getNumber());
 	}
 
 	@Override

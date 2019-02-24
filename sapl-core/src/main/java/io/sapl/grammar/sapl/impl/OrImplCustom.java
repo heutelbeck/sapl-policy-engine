@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class OrImplCustom extends io.sapl.grammar.sapl.impl.OrImpl {
@@ -35,24 +34,27 @@ public class OrImplCustom extends io.sapl.grammar.sapl.impl.OrImpl {
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (!isBody) {
+			// due to the constraints in indexing policy documents, lazy evaluation is not
+			// allowed in target expressions.
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
+
+		// FIXME: Assigned to: Felix Sigrist. Bug. This is an eager implementation.
+		// Change to true lazy behavior.
+		// All lazy operations (AND, anything else?) are affected.
+
 		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
 		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
 		return Flux.combineLatest(left, right, this::or).distinctUntilChanged();
 	}
 
 	private Optional<JsonNode> or(Optional<JsonNode> left, Optional<JsonNode> right) {
-		try {
-			assertBoolean(left);
-			if (left.get().asBoolean()) {
-				return Optional.of((JsonNode) JSON.booleanNode(true));
-			}
-			assertBoolean(right);
-			return Optional.of((JsonNode) JSON.booleanNode(right.get().asBoolean()));
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
+		assertBoolean(left);
+		if (left.get().asBoolean()) {
+			return Optional.of((JsonNode) JSON.booleanNode(true));
 		}
+		assertBoolean(right);
+		return Optional.of((JsonNode) JSON.booleanNode(right.get().asBoolean()));
 	}
 
 	@Override

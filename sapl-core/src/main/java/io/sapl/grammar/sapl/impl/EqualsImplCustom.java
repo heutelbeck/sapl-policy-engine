@@ -23,6 +23,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
+/**
+ * Checks for equality of two values.
+ * 
+ * Comparison returns Expression: Prefixed (({Equals.left=current} '==' |
+ * {NotEquals.left=current} '!=' | {Regex.left=current} '=~' |
+ * {Less.left=current} '<' | {LessEquals.left=current} '<=' |
+ * {More.left=current} '>' | {MoreEquals.left=current} '>=' |
+ * {ElementOf.left=current} 'in') right=Prefixed)? ;
+ * 
+ */
 public class EqualsImplCustom extends io.sapl.grammar.sapl.impl.EqualsImpl {
 
 	private static final int HASH_PRIME_02 = 19;
@@ -30,24 +40,34 @@ public class EqualsImplCustom extends io.sapl.grammar.sapl.impl.EqualsImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> leftResultFlux = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> rightResultFlux = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(leftResultFlux, rightResultFlux, this::equals).distinctUntilChanged();
+		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
+		return Flux.combineLatest(left, right, this::equals).distinctUntilChanged();
 	}
 
-	private Optional<JsonNode> equals(Optional<JsonNode> leftResult, Optional<JsonNode> rightResult) {
-		System.out.println("---<" + leftResult + " == " + rightResult);
-		if (!leftResult.isPresent() && !rightResult.isPresent()) {
-			return Optional.of((JsonNode) JSON.booleanNode(true));
+	/**
+	 * Compares two values
+	 * 
+	 * @param left  a value
+	 * @param right a value
+	 * @return true if both values are equal
+	 */
+	private Optional<JsonNode> equals(Optional<JsonNode> left, Optional<JsonNode> right) {
+		// if both values are undefined, they are equal
+		if (!left.isPresent() && !right.isPresent()) {
+			return Value.trueValue();
 		}
-		if (!leftResult.isPresent() || !rightResult.isPresent()) {
-			return Optional.of((JsonNode) JSON.booleanNode(false));
+		// only one value is undefined the two values are not equal
+		if (!left.isPresent() || !right.isPresent()) {
+			return Value.falseValue();
 		}
-		if (leftResult.get().isNumber() && rightResult.get().isNumber()) {
-			return Optional.of((JsonNode) JSON
-					.booleanNode(leftResult.get().decimalValue().compareTo(rightResult.get().decimalValue()) == 0));
+		// if both values are numbers do a numerical comparison, as they may be
+		// represented differently in JSON
+		if (left.get().isNumber() && right.get().isNumber()) {
+			return Value.bool(left.get().decimalValue().compareTo(right.get().decimalValue()) == 0);
 		} else {
-			return Optional.of((JsonNode) JSON.booleanNode(leftResult.get().equals(rightResult.get())));
+			// else do a deep comparison
+			return Value.bool(left.get().equals(right.get()));
 		}
 	}
 

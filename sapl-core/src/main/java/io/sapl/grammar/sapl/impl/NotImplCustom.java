@@ -20,9 +20,7 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class NotImplCustom extends io.sapl.grammar.sapl.impl.NotImpl {
@@ -36,12 +34,8 @@ public class NotImplCustom extends io.sapl.grammar.sapl.impl.NotImpl {
 	}
 
 	private Optional<JsonNode> not(Optional<JsonNode> value) {
-		try {
-			assertBoolean(value);
-			return Optional.of((JsonNode) JSON.booleanNode(!value.get().asBoolean()));
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
-		}
+		assertBoolean(value);
+		return Value.bool(!value.get().asBoolean());
 	}
 
 	@Override

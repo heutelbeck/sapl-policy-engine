@@ -20,9 +20,7 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class MinusImplCustom extends io.sapl.grammar.sapl.impl.MinusImpl {
@@ -33,17 +31,12 @@ public class MinusImplCustom extends io.sapl.grammar.sapl.impl.MinusImpl {
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		return Flux.combineLatest(getLeft().evaluate(ctx, isBody, relativeNode),
-				getRight().evaluate(ctx, isBody, relativeNode), this::minus).distinctUntilChanged();
+				getRight().evaluate(ctx, isBody, relativeNode), this::subtract).distinctUntilChanged();
 	}
 
-	private Optional<JsonNode> minus(Optional<JsonNode> left, Optional<JsonNode> right) {
-		try {
-			assertNumber(left, right);
-			return Optional.of((JsonNode) JSON
-					.numberNode(left.get().decimalValue().subtract(right.get().decimalValue())));
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
-		}
+	private Optional<JsonNode> subtract(Optional<JsonNode> left, Optional<JsonNode> right) {
+		assertNumber(left, right);
+		return Value.num(left.get().decimalValue().subtract(right.get().decimalValue()));
 	}
 
 	@Override

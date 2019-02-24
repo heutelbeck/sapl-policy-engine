@@ -20,11 +20,16 @@ import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the eager boolean AND operator, written as '&' in Expressions.
+ * 
+ * Multiplication returns Expression: Comparison (({Multi.left=current} '*' |
+ * {Div.left=current} '/' | {And.left=current} '&&' | '&'
+ * {EagerAnd.left=current}) right=Comparison)* ;
+ */
 public class EagerAndImplCustom extends io.sapl.grammar.sapl.impl.EagerAndImpl {
 
 	private static final int HASH_PRIME_04 = 29;
@@ -34,16 +39,17 @@ public class EagerAndImplCustom extends io.sapl.grammar.sapl.impl.EagerAndImpl {
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
 		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(left, right, this::eagerAnd).distinctUntilChanged();
+		return Flux.combineLatest(left, right, this::and).distinctUntilChanged();
 	}
 
-	private Optional<JsonNode> eagerAnd(Optional<JsonNode> left, Optional<JsonNode> right) {
-		try {
-			assertBoolean(left, right);
-			return Optional.of((JsonNode) JSON.booleanNode(right.get().asBoolean() && left.get().asBoolean()));
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
-		}
+	/**
+	 * @param left  must be a boolean
+	 * @param right must be a boolean
+	 * @return logical AND of left and right
+	 */
+	private Optional<JsonNode> and(Optional<JsonNode> left, Optional<JsonNode> right) {
+		assertBoolean(left, right);
+		return Value.bool(right.get().asBoolean() && left.get().asBoolean());
 	}
 
 	@Override

@@ -22,11 +22,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the lazy boolean AND '&&' operator.
+ * Implements the lazy boolean AND operator, written as '&&' in Expressions.
+ * 
+ * Multiplication returns Expression: Comparison (({Multi.left=current} '*' |
+ * {Div.left=current} '/' | {And.left=current} '&&' | '&'
+ * {EagerAnd.left=current}) right=Comparison)* ;
  */
 public class AndImplCustom extends io.sapl.grammar.sapl.impl.AndImpl {
 
@@ -42,22 +45,28 @@ public class AndImplCustom extends io.sapl.grammar.sapl.impl.AndImpl {
 			// allowed in target expressions.
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
+
+		// FIXME: Assigned to: Felix Sigrist. Bug. This is an eager implementation.
+		// Change to true lazy behavior. 
+		// All lazy operations (OR, anything else?) are affected.
+
 		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
 		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
 		return Flux.combineLatest(left, right, this::and).distinctUntilChanged();
 	}
 
+	/**
+	 * @param left  must be a boolean
+	 * @param right must be a boolean
+	 * @return logical AND of left and right
+	 */
 	private Optional<JsonNode> and(Optional<JsonNode> left, Optional<JsonNode> right) {
-		try {
-			assertBoolean(left);
-			if (!left.get().asBoolean()) {
-				return Optional.of((JsonNode) JSON.booleanNode(false));
-			}
-			assertBoolean(right);
-			return Optional.of((JsonNode) JSON.booleanNode(right.get().asBoolean()));
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
+		assertBoolean(left);
+		if (!left.get().asBoolean()) {
+			return Value.falseValue();
 		}
+		assertBoolean(right);
+		return Optional.of((JsonNode) JSON.booleanNode(right.get().asBoolean()));
 	}
 
 	@Override

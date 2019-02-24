@@ -40,21 +40,16 @@ public class PlusImplCustom extends io.sapl.grammar.sapl.impl.PlusImpl {
 	}
 
 	private Optional<JsonNode> plus(Optional<JsonNode> left, Optional<JsonNode> right) {
-		try {
-			assertPresent(left, right);
-			if (left.get().isTextual()) {
-				if (!right.get().isTextual()) {
-					throw new PolicyEvaluationException(
-							String.format(STRING_CONCATENATION_TYPE_MISMATCH, right.get().getNodeType()));
-				}
-				return Optional.of((JsonNode) JSON.textNode(left.get().asText().concat(right.get().asText())));
-			} else {
-				assertNumber(left, right);
-				return Optional
-						.of((JsonNode) JSON.numberNode(left.get().decimalValue().add(right.get().decimalValue())));
+		assertDefined(left, right);
+		if (left.get().isTextual()) {
+			if (!right.get().isTextual()) {
+				throw Exceptions.propagate(new PolicyEvaluationException(
+						String.format(STRING_CONCATENATION_TYPE_MISMATCH, right.get().getNodeType())));
 			}
-		} catch (PolicyEvaluationException e) {
-			throw Exceptions.propagate(e);
+			return Value.text(left.get().asText().concat(right.get().asText()));
+		} else {
+			assertNumber(left, right);
+			return Value.num(left.get().decimalValue().add(right.get().decimalValue()));
 		}
 	}
 
