@@ -37,7 +37,7 @@ public class MoreImplCustom extends io.sapl.grammar.sapl.impl.MoreImpl {
 	}
 
 	private Boolean moreThan(BigDecimal left, BigDecimal right) {
-		return left.compareTo(right) < 0;
+		return left.compareTo(right) > 0;
 	}
 
 	@Override

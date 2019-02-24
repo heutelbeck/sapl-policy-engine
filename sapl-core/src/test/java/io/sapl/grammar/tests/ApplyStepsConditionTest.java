@@ -10,6 +10,7 @@ import java.util.Optional;
 
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -159,12 +160,14 @@ public class ApplyStepsConditionTest {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.numberNode(20));
 		array.add(JSON.numberNode(5));
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
+		
+		Optional<JsonNode> oArray = Optional.of(array);
+		ResultNode previousResult = new JsonNodeWithoutParent(oArray); // o([20, 5])
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
 		AbstractAnnotatedJsonNode node = new JsonNodeWithParentArray(Optional.of(JSON.numberNode(20)),
-				Optional.of(array), 0);
-		expectedResultSet.add(node);
+				oArray, 0);  // o(20) with patent o([20, 5])
+		expectedResultSet.add(node); // expected = [ o(20) ]
 
 		ConditionStep step = factory.createConditionStep();
 		More expression = factory.createMore();
@@ -172,8 +175,10 @@ public class ApplyStepsConditionTest {
 		NumberLiteral number = factory.createNumberLiteral();
 		number.setNumber(BigDecimal.valueOf(10));
 		expression.setRight(basicValueFrom(number));
-		step.setExpression(expression);
+		step.setExpression(expression); // conditional step: [@>10]
 
+		// [20, 5][@>10] should be [20]
+		
 		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Condition step applied to array node should return the nodes for which the condition is true",
