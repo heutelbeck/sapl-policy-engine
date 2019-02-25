@@ -65,10 +65,15 @@ public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.R
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
-		return Flux.just(apply(previousResult));
+		try {
+			ResultNode result = apply(previousResult);
+			return Flux.just(result);
+		} catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
 	}
 
-	private ResultNode apply(ArrayResultNode previousResult) {
+	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
 			resultList.add(child);
@@ -77,10 +82,10 @@ public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.R
 		return new ArrayResultNode(resultList);
 	}
 
-	private static List<AbstractAnnotatedJsonNode> resolveRecursive(Optional<JsonNode> optNode) {
+	private static List<AbstractAnnotatedJsonNode> resolveRecursive(Optional<JsonNode> optNode)
+			throws PolicyEvaluationException {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		JsonNode node = optNode.orElseThrow(
-				() -> Exceptions.propagate(new PolicyEvaluationException(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE)));
+		JsonNode node = optNode.orElseThrow(() -> new PolicyEvaluationException(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE));
 		if (node.isArray()) {
 			for (int i = 0; i < node.size(); i++) {
 				resultList.add(new JsonNodeWithParentArray(Optional.of(node.get(i)), Optional.of(node), i));

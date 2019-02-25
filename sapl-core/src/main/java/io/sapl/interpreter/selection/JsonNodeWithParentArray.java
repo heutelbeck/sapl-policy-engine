@@ -86,8 +86,7 @@ public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 
 	@Override
 	public boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException {
-		return other.isNodeWithParentArray()
-				&& other.getParent().isPresent() && getParent().isPresent()
+		return other.isNodeWithParentArray() && other.getParent().isPresent() && getParent().isPresent()
 				&& other.getParent().get() == getParent().get()
 				&& ((JsonNodeWithParentArray) other).getIndex() == getIndex();
 	}

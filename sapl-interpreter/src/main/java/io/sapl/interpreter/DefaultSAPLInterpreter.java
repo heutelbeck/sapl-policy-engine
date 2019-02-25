@@ -170,22 +170,21 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			LOGGER.trace("target expr == null!");
 			return true;
 		} else {
-			LOGGER.trace("target expr: {}",targetExpression.getClass().getCanonicalName());
+			LOGGER.trace("target expr: {}", targetExpression.getClass().getCanonicalName());
 
 			final EvaluationContext evaluationCtx = createEvaluationContext(request, functionCtx, systemVariables,
 					variables, imports);
 			try {
-				final Optional<JsonNode> expressionResult = targetExpression.evaluate(evaluationCtx, false, null)
-						.blockFirst();
-				LOGGER.trace("Result of match: {}", expressionResult );
+				final Optional<JsonNode> expressionResult = targetExpression
+						.evaluate(evaluationCtx, false, Optional.empty()).blockFirst();
+				LOGGER.trace("Result of match: {}", expressionResult);
 				if (expressionResult.isPresent() && expressionResult.get().isBoolean()) {
 					return expressionResult.get().asBoolean();
 				} else {
 					throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, expressionResult));
 				}
 			} catch (RuntimeException fluxError) {
-				LOGGER.trace("ERROR: {}", fluxError.getMessage(), fluxError );
-
+				LOGGER.trace("ERROR: {}", fluxError.getMessage());
 				final Throwable originalError = Exceptions.unwrap(fluxError);
 				if (originalError instanceof PolicyEvaluationException) {
 					throw (PolicyEvaluationException) originalError;

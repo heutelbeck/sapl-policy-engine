@@ -25,8 +25,7 @@ import io.sapl.grammar.sapl.Expression;
  *
  * Grammar:
  * 
- * Arguments:
- *	{Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
+ * Arguments: {Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
  *
  */
 public class ArgumentsImplCustom extends io.sapl.grammar.sapl.impl.ArgumentsImpl {

@@ -116,6 +116,9 @@ public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.Condition
 		// of the flux results, because combineLatest() preserves
 		// the order of the given list of fluxes in the results array passed to the
 		// combinator function
+		
+		// FIXME propoagate
+		
 		return Flux.combineLatest(itemFluxes, results -> {
 			IntStream.range(0, results.length).forEach(idx -> {
 				@SuppressWarnings("unchecked")

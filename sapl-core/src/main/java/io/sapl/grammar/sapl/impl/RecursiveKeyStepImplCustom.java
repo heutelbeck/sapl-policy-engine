@@ -27,8 +27,8 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
+import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class RecursiveKeyStepImplCustom extends io.sapl.grammar.sapl.impl.RecursiveKeyStepImpl {
@@ -51,7 +51,7 @@ public class RecursiveKeyStepImplCustom extends io.sapl.grammar.sapl.impl.Recurs
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		if (!previousResult.getNode().isPresent()
 				|| (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject())) {
-			throw new PolicyEvaluationException(WRONG_TYPE);
+			return new JsonNodeWithoutParent(Optional.empty());
 		}
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		resultList.addAll(resolveRecursive(previousResult.getNode()));
@@ -61,10 +61,15 @@ public class RecursiveKeyStepImplCustom extends io.sapl.grammar.sapl.impl.Recurs
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
-		return Flux.just(apply(previousResult));
+		try {
+			ResultNode result = apply(previousResult);
+			return Flux.just(result);
+		} catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
 	}
 
-	private ResultNode apply(ArrayResultNode previousResult) {
+	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
 			resultList.addAll(resolveRecursive(child.getNode()));
@@ -72,8 +77,9 @@ public class RecursiveKeyStepImplCustom extends io.sapl.grammar.sapl.impl.Recurs
 		return new ArrayResultNode(resultList);
 	}
 
-	private List<AbstractAnnotatedJsonNode> resolveRecursive(Optional<JsonNode> optNode) {
-		JsonNode node = optNode.orElseThrow(() -> Exceptions.propagate(new PolicyEvaluationException(WRONG_TYPE)));
+	private List<AbstractAnnotatedJsonNode> resolveRecursive(Optional<JsonNode> optNode)
+			throws PolicyEvaluationException {
+		JsonNode node = optNode.orElseThrow(() -> new PolicyEvaluationException(WRONG_TYPE));
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		if (node.has(id)) {
 			resultList.add(new JsonNodeWithParentObject(Optional.of(node.get(id)), Optional.of(node), id));

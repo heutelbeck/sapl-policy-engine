@@ -26,6 +26,7 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
+import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
@@ -47,9 +48,10 @@ public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		final JsonNode previousResultNode = previousResult.getNode()
-				.orElseThrow(() -> new PolicyEvaluationException("Cannot descend on undefined value"));
-
+		if (!previousResult.getNode().isPresent()) {
+			return new JsonNodeWithoutParent(Optional.empty());
+		}
+		final JsonNode previousResultNode = previousResult.getNode().get();
 		if (previousResultNode.isObject()) {
 			if (!previousResultNode.has(id)) {
 				return new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), id);

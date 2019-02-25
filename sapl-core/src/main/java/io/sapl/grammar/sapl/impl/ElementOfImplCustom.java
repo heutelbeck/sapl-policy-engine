@@ -38,7 +38,7 @@ public class ElementOfImplCustom extends io.sapl.grammar.sapl.impl.ElementOfImpl
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		final Flux<JsonNode> value = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toJsonNode);
-		final Flux<ArrayNode> array = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toArrayNode);
+		final Flux<Optional<JsonNode>> array = getRight().evaluate(ctx, isBody, relativeNode);
 		return Flux.combineLatest(value, array, Tuples::of).map(this::elementOf).distinctUntilChanged();
 	}
 
@@ -50,8 +50,12 @@ public class ElementOfImplCustom extends io.sapl.grammar.sapl.impl.ElementOfImpl
 	 * @param array an Array
 	 * @return true if value contained in array
 	 */
-	private Optional<JsonNode> elementOf(Tuple2<JsonNode, ArrayNode> tuple) {
-		for (JsonNode arrayItem : tuple.getT2()) {
+	private Optional<JsonNode> elementOf(Tuple2<JsonNode, Optional<JsonNode>> tuple) {
+		if (!tuple.getT2().isPresent() || !tuple.getT2().get().isArray()) {
+			return Value.ofFalse();
+		}
+		ArrayNode array = (ArrayNode) tuple.getT2().get();
+		for (JsonNode arrayItem : array) {
 			// numerically equivalent numbers may be noted differently in JSON.
 			// This equality is checked for here as well.
 			if (tuple.getT1().equals(arrayItem) || (tuple.getT1().isNumber() && arrayItem.isNumber()

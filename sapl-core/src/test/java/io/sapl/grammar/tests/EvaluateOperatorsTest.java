@@ -815,7 +815,9 @@ public class EvaluateOperatorsTest {
 		elementOf.setLeft(basicValueFrom(lhs));
 		elementOf.setRight(basicValueFrom(rhs));
 
-		StepVerifier.create(elementOf.evaluate(ctx, true, null)).expectError(PolicyEvaluationException.class).verify();
+		elementOf.evaluate(ctx, true, null).take(1)
+				.subscribe(result -> assertEquals("\"A\" ElementOf Array\"B\" should evaluate to BooleanNode(false)",
+						Optional.of(JSON.booleanNode(false)), result));
 	}
 
 	@Test

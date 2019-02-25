@@ -35,7 +35,7 @@ public class FalseLiteralImplCustom extends FalseLiteralImpl {
 	private static final int HASH_PRIME_05 = 31;
 	private static final int INIT_PRIME_02 = 5;
 
-	/* 
+	/*
 	 * Returns a constant value of false.
 	 */
 	@Override

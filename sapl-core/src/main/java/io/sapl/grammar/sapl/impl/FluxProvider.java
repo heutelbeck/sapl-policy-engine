@@ -4,5 +4,5 @@ import reactor.core.publisher.Flux;
 
 @FunctionalInterface
 interface FluxProvider<T> {
-    Flux<T> getFlux(T input);
+	Flux<T> getFlux(T input);
 }

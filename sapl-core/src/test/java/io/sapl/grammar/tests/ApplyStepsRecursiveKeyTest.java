@@ -14,7 +14,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.RecursiveKeyStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
@@ -26,7 +25,6 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
-import reactor.test.StepVerifier;
 
 public class ApplyStepsRecursiveKeyTest {
 	private static String KEY = "key";
@@ -45,8 +43,10 @@ public class ApplyStepsRecursiveKeyTest {
 		RecursiveKeyStep step = factory.createRecursiveKeyStep();
 		step.setId(KEY);
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class).verify();
+		ResultNode expectedResult = new JsonNodeWithoutParent(Optional.empty());
+
+		previousResult.applyStep(step, ctx, true, null).take(1)
+				.subscribe(result -> assertEquals("key of undefined is undefined", expectedResult, result));
 	}
 
 	@Test
