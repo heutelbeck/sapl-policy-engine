@@ -32,8 +32,6 @@ import reactor.core.publisher.Flux;
 
 public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 
-	private static final String KEY_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing a JSON key '%s' expects object value, but got: '%s'.";
-
 	private static final int HASH_PRIME_05 = 31;
 	private static final int INIT_PRIME_01 = 3;
 
@@ -62,8 +60,7 @@ public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 		} else if (previousResultNode.isTextual()) {
 			return new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), id);
 		} else {
-			throw new PolicyEvaluationException(
-					String.format(KEY_ACCESS_TYPE_MISMATCH, id, previousResultNode.getNodeType()));
+			return new JsonNodeWithoutParent(Optional.empty());
 		}
 	}
 
