@@ -43,7 +43,8 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 		for (SAPL document : matchingSaplDocuments) {
 			LOGGER.trace("| |-- Evaluate: {} ({})", document.getPolicyElement().getSaplName(),
 					document.getPolicyElement().getClass().getName());
-			responseFluxes.add(interpreter.evaluate(request, document, attributeCtx, functionCtx, systemVariables));
+			// do not first check match again. directly evaluate the rules
+			responseFluxes.add(interpreter.evaluateRules(request, document, attributeCtx, functionCtx, systemVariables));
 		}
 
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator();
