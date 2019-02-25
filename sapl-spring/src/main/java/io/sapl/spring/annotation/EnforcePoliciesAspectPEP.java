@@ -56,14 +56,29 @@ public class EnforcePoliciesAspectPEP {
 		if (enforcePolicies.resultResource()) {
 			LOGGER.trace(
 					"The policy enforcement point is deployed after the methods execution. I.e., resultResource == true. Running method now.");
-			Object originalResult = pjp.proceed();
+			Object sourceResult = pjp.proceed();
 
-			JsonNode originalResultJson = mapper.valueToTree(originalResult);
+			JsonNode originalResultJson = null;
+			boolean wasOptional = false;
+			boolean optionalWasPresent = false;
+			Class<?> targetClass = null;
+
+			if (Optional.class.isAssignableFrom(sourceResult.getClass())) {
+				wasOptional = true;
+				optionalWasPresent = ((Optional<?>) sourceResult).isPresent();
+				if (optionalWasPresent) {
+					targetClass = ((Optional<?>) sourceResult).get().getClass();
+					originalResultJson = mapper.valueToTree(((Optional<?>) sourceResult).get());
+				}
+			} else {
+				targetClass = sourceResult.getClass();
+				originalResultJson = mapper.valueToTree(sourceResult);
+			}
 
 			LOGGER.trace("The methods return value is used as the resource in the authorization request: {}",
 					originalResultJson);
 
-			Response response = pdp.decide(buildRequest(subject, action, originalResult)).block();
+			Response response = pdp.decide(buildRequest(subject, action, originalResultJson)).block();
 
 			if (response.getDecision() != Decision.PERMIT) {
 				LOGGER.trace("Access not permitted by policy decision point. Decision was: {}", response.getDecision());
@@ -74,14 +89,21 @@ public class EnforcePoliciesAspectPEP {
 
 			if (response.getResource().isPresent()) {
 				try {
-					result = mapper.treeToValue(response.getResource().get(), originalResult.getClass());
+					if (targetClass != null) {
+						result = mapper.treeToValue(response.getResource().get(), targetClass);
+					} else {
+						result = mapper.treeToValue(response.getResource().get(), JsonNode.class);
+					}
+					if (wasOptional) {
+						result = Optional.of(result);
+					}
 				} catch (JsonProcessingException e) {
 					LOGGER.trace("Transformed result cannot be mapped to original class. {}",
 							response.getResource().get());
 					throw new AccessDeniedException("Access not permitted by policy enforcement point.");
 				}
 			} else {
-				result = originalResult;
+				result = sourceResult;
 			}
 
 		} else {
@@ -196,7 +218,7 @@ public class EnforcePoliciesAspectPEP {
 						"No specific resouce information found. Construct basic information from the runtime context");
 				ObjectNode resourceNode = mapper.createObjectNode();
 				Optional<HttpServletRequest> httpServletRequest = retrieveRequestObject();
-				if (httpServletRequest.isPresent()) {			
+				if (httpServletRequest.isPresent()) {
 					LOGGER.trace("The action is in the context of a HTTP request. Adding it to the resource.");
 					resourceNode.set("http", mapper.valueToTree(httpServletRequest.get()));
 				}
