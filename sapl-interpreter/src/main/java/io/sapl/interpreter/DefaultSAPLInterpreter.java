@@ -185,6 +185,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 				}
 			} catch (RuntimeException fluxError) {
 				LOGGER.trace("ERROR: {}", fluxError.getMessage());
+				fluxError.printStackTrace();
 				final Throwable originalError = Exceptions.unwrap(fluxError);
 				if (originalError instanceof PolicyEvaluationException) {
 					throw (PolicyEvaluationException) originalError;

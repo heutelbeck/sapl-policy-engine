@@ -969,6 +969,18 @@ public class EvaluateOperatorsTest {
 	}
 
 	@Test
+	public void evaluateRegExLeftUndefined() {
+		Regex regex = factory.createRegex();
+		regex.setLeft(basicValueFrom(factory.createUndefinedLiteral()));
+		StringLiteral stringLiteral = factory.createStringLiteral();
+		stringLiteral.setString("");
+		regex.setRight(basicValueFrom(stringLiteral));
+
+		regex.evaluate(ctx, true, null).take(1)
+				.subscribe(result -> assertFalse("Undefined left should evaluate to false", result.get().asBoolean()));
+	}
+
+	@Test
 	public void evaluateRegExLeftWrongType() {
 		String pattern = ".*";
 
@@ -981,7 +993,9 @@ public class EvaluateOperatorsTest {
 		regEx.setLeft(basicValueFrom(left));
 		regEx.setRight(basicValueFrom(right));
 
-		StepVerifier.create(regEx.evaluate(ctx, true, null)).expectError(PolicyEvaluationException.class).verify();
+
+		regEx.evaluate(ctx, true, null).take(1)
+				.subscribe(result -> assertFalse("Null numver should evaluate to false", result.get().asBoolean()));		
 	}
 
 	@Test
