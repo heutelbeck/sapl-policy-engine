@@ -61,6 +61,60 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	private AttributeContext attributeCtx;
 	private FunctionContext functionCtx;
 
+	private EmbeddedPolicyDecisionPoint() {
+		functionCtx = new AnnotationFunctionContext();
+		attributeCtx = new AnnotationAttributeContext();
+	}
+
+	@Override
+	public Flux<Response> subscribe(Request request) {
+		LOGGER.trace("|---------------------------");
+		LOGGER.trace("|-- PDP Request: {}", request);
+		final Flux<PolicyRetrievalResult> retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
+		return retrievalResult.switchMap(result -> {
+			final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
+			final boolean errorsInTarget = result.isErrorsInTarget();
+			LOGGER.trace("|-- Combine documents of request: {}", request);
+			return combinator.combineMatchingDocuments(matchingDocuments, errorsInTarget, request, attributeCtx,
+					functionCtx, variables);
+		}).distinctUntilChanged();
+	}
+
+	@Override
+	public Flux<IdentifiableResponse> subscribe(MultiRequest multiRequest) {
+		if (multiRequest.hasRequests()) {
+			final List<Flux<IdentifiableResponse>> requestIdResponsePairFluxes = new ArrayList<>();
+			for (IdentifiableRequest identifiableRequest : multiRequest) {
+				final Request request = identifiableRequest.getRequest();
+				final Flux<Response> responseFlux = subscribe(request);
+				final Flux<IdentifiableResponse> requestResponsePairFlux = responseFlux
+						.map(response -> new IdentifiableResponse(identifiableRequest.getId(), response))
+						.subscribeOn(Schedulers.newElastic("pdp"));
+				requestIdResponsePairFluxes.add(requestResponsePairFlux);
+			}
+			return Flux.merge(requestIdResponsePairFluxes);
+		}
+		return Flux.just(IdentifiableResponse.indeterminate());
+	}
+
+	public void dispose() {
+		prp.dispose();
+	}
+
+	public static Builder builder() throws FunctionException, AttributeException {
+		return new Builder();
+	}
+
+	@Override
+	public Mono<Response> decide(Request request) {
+		return subscribe(request).next();
+	}
+
+	@Override
+	public Mono<IdentifiableResponse> decide(MultiRequest multiRequest) {
+		return subscribe(multiRequest).next();
+	}
+
 	public static class Builder {
 		private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
 		private PolicyCombiningAlgorithm algorithm;
@@ -155,57 +209,4 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		}
 
 	}
-
-	private EmbeddedPolicyDecisionPoint() {
-		functionCtx = new AnnotationFunctionContext();
-		attributeCtx = new AnnotationAttributeContext();
-	}
-
-	@Override
-	public Flux<Response> subscribe(Request request) {
-		final Flux<PolicyRetrievalResult> retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
-		return retrievalResult.switchMap(result -> {
-			final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
-			final boolean errorsInTarget = result.isErrorsInTarget();
-			return combinator.combineMatchingDocuments(matchingDocuments, errorsInTarget, request, attributeCtx,
-					functionCtx, variables);
-		}).distinctUntilChanged();
-	}
-
-	@Override
-	public Flux<IdentifiableResponse> subscribe(MultiRequest multiRequest) {
-		if (multiRequest.hasRequests()) {
-			final List<Flux<IdentifiableResponse>> requestIdResponsePairFluxes = new ArrayList<>();
-			for (IdentifiableRequest identifiableRequest : multiRequest) {
-				final Request request = identifiableRequest.getRequest();
-				final Flux<Response> responseFlux = subscribe(request);
-				final Flux<IdentifiableResponse> requestResponsePairFlux = responseFlux
-						.map(response -> new IdentifiableResponse(identifiableRequest.getId(), response))
-						.subscribeOn(Schedulers.newElastic("pdp"));
-				requestIdResponsePairFluxes.add(requestResponsePairFlux);
-			}
-			return Flux.merge(requestIdResponsePairFluxes);
-		}
-		return Flux.just(IdentifiableResponse.indeterminate());
-	}
-
-	public void dispose() {
-		prp.dispose();
-	}
-
-	public static Builder builder() throws FunctionException, AttributeException {
-		return new Builder();
-	}
-
-	@Override
-	public Mono<Response> decide(Request request) {
-		LOGGER.trace("PDP Request: {}",request);
-		return subscribe(request).log().next();
-	}
-
-	@Override
-	public Mono<IdentifiableResponse> decide(MultiRequest multiRequest) {
-		return subscribe(multiRequest).next();
-	}
-
 }

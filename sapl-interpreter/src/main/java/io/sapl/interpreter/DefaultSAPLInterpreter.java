@@ -29,12 +29,9 @@ import org.eclipse.emf.common.util.WrappedException;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.inject.Injector;
 
 import io.sapl.api.interpreter.DocumentAnalysisResult;
@@ -163,29 +160,33 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	public boolean matches(Request request, PolicyElement policyElement, FunctionContext functionCtx,
 			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables, Map<String, String> imports)
 			throws PolicyEvaluationException {
-		LOGGER.trace("match policyElement: {}", policyElement.getSaplName());
-		LOGGER.trace("for request : {}", request);
+		LOGGER.trace("| | |-- Interpreter test match '{}' with {}", policyElement.getSaplName(), request);
 		final Expression targetExpression = policyElement.getTargetExpression();
 		if (targetExpression == null) {
-			LOGGER.trace("target expr == null!");
+			LOGGER.trace("| | | |-- MATCH (no target expression, matches all)");
+			LOGGER.trace("| | |");
 			return true;
 		} else {
-			LOGGER.trace("target expr: {}", targetExpression.getClass().getCanonicalName());
-
 			final EvaluationContext evaluationCtx = createEvaluationContext(request, functionCtx, systemVariables,
 					variables, imports);
 			try {
 				final Optional<JsonNode> expressionResult = targetExpression
 						.evaluate(evaluationCtx, false, Optional.empty()).blockFirst();
-				LOGGER.trace("Result of match: {}", expressionResult);
 				if (expressionResult.isPresent() && expressionResult.get().isBoolean()) {
+					LOGGER.trace("| | | |-- {}", expressionResult.get().asBoolean() ? "MATCH" : "NO MATCH");
+					LOGGER.trace("| | |");
 					return expressionResult.get().asBoolean();
 				} else {
+					LOGGER.trace("| | | |-- ERROR in target expression did not evaluate to boolean. Was: {}",
+							expressionResult);
+					LOGGER.trace("| | |");
 					throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, expressionResult));
 				}
 			} catch (RuntimeException fluxError) {
-				LOGGER.trace("ERROR: {}", fluxError.getMessage());
-				fluxError.printStackTrace();
+				LOGGER.trace("| | | |-- ERROR during target expression evaluation: {} ", fluxError.getMessage());
+				LOGGER.trace("| | | |-- trace: ", fluxError);
+				LOGGER.trace("| | |");
+
 				final Throwable originalError = Exceptions.unwrap(fluxError);
 				if (originalError instanceof PolicyEvaluationException) {
 					throw (PolicyEvaluationException) originalError;
@@ -226,18 +227,22 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	@Override
 	public Flux<Response> evaluate(Request request, SAPL saplDocument, AttributeContext attributeCtx,
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
+		LOGGER.trace("| | |-- Interpreter Evaluate: {} ({})", saplDocument.getPolicyElement().getSaplName(),
+				saplDocument.getPolicyElement().getClass().getName());
 		try {
 			if (matches(request, saplDocument, functionCtx, systemVariables)) {
 				return evaluateRules(request, saplDocument, attributeCtx, functionCtx, systemVariables).map(r -> {
-					logResponse(r);
+					logResponse(r, saplDocument);
 					return r;
 				});
 			} else {
-				LOGGER.trace(NO_TARGET_MATCH);
+				LOGGER.trace("| | |-- NOT_APPLICABLE. Cause: " + NO_TARGET_MATCH);
+				LOGGER.trace("| |");
 				return Flux.just(Response.notApplicable());
 			}
 		} catch (PolicyEvaluationException e) {
-			LOGGER.error(POLICY_EVALUATION_FAILED, e.getMessage());
+			LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED, e.getMessage());
+			LOGGER.trace("| |");
 			return Flux.just(Response.indeterminate());
 		}
 	}
@@ -607,18 +612,10 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		return result;
 	}
 
-	private void logResponse(Response r) {
-		if (LOGGER.isTraceEnabled()) {
-			ObjectMapper mapper = new ObjectMapper();
-			mapper.registerModule(new Jdk8Module());
-			String res = null;
-			try {
-				res = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(mapper.valueToTree(r));
-			} catch (JsonProcessingException | IllegalArgumentException e) {
-				LOGGER.trace("Cannor transform request to JSON: {}", r);
-			}
-			LOGGER.trace("Authorization response: ", res);
-		}
+	private void logResponse(Response r, SAPL saplDocument) {
+		LOGGER.trace("| | |-- {}. Document: {} Cause: {}", r.getDecision(),
+				saplDocument.getPolicyElement().getSaplName(), r);
+		LOGGER.trace("| |");
 	}
 
 }

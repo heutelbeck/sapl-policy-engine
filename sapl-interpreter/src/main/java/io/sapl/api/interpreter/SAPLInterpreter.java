@@ -29,8 +29,7 @@ public interface SAPLInterpreter {
 	/**
 	 * Method which analyzes a String containing a SAPL document.
 	 *
-	 * @param saplDefinition
-	 *            the String containing the SAPL document
+	 * @param saplDefinition the String containing the SAPL document
 	 * @return the document analysis result
 	 */
 	DocumentAnalysisResult analyze(String saplDefinition);
@@ -39,12 +38,11 @@ public interface SAPLInterpreter {
 	 * Method which applies the SAPL parser to a String containing a SAPL document
 	 * and generates the matching parse-tree.
 	 *
-	 * @param saplDefinition
-	 *            a String containing a SAPL document
+	 * @param saplDefinition a String containing a SAPL document
 	 * @return A parse tree of the document
-	 * @throws PolicyEvaluationException
-	 *             in case an error occurs during parsing. This may be either a
-	 *             syntax error or an IO error.
+	 * @throws PolicyEvaluationException in case an error occurs during parsing.
+	 *                                   This may be either a syntax error or an IO
+	 *                                   error.
 	 */
 	SAPL parse(String saplDefinition) throws PolicyEvaluationException;
 
@@ -52,12 +50,11 @@ public interface SAPLInterpreter {
 	 * Method which applies the SAPL parser to an InputStream containing a SAPL
 	 * document and generates the matching parse-tree.
 	 *
-	 * @param saplInputStream
-	 *            an InputStream containing a SAPL document
+	 * @param saplInputStream an InputStream containing a SAPL document
 	 * @return A parse tree of the document
-	 * @throws PolicyEvaluationException
-	 *             in case an error occurs during parsing. This may be either a
-	 *             syntax error or an IO error.
+	 * @throws PolicyEvaluationException in case an error occurs during parsing.
+	 *                                   This may be either a syntax error or an IO
+	 *                                   error.
 	 */
 	SAPL parse(InputStream saplInputStream) throws PolicyEvaluationException;
 
@@ -66,21 +63,16 @@ public interface SAPLInterpreter {
 	 * against a Request object within a given attribute context and function
 	 * context and returns a {@link Flux} of {@link Response} objects.
 	 *
-	 * @param request
-	 *            the Request object
-	 * @param saplDocument
-	 *            the SAPL document
-	 * @param attributeCtx
-	 *            the attribute context
-	 * @param functionCtx
-	 *            the function context
-	 * @param systemVariables
-	 *            the system variables, a Map between the variable name and its
-	 *            value
+	 * @param request         the Request object
+	 * @param saplDocument    the SAPL document
+	 * @param attributeCtx    the attribute context
+	 * @param functionCtx     the function context
+	 * @param systemVariables the system variables, a Map between the variable name
+	 *                        and its value
 	 * @return A {@link Flux} of {@link Response} objects.
 	 */
-	Flux<Response> evaluate(Request request, SAPL saplDocument, AttributeContext attributeCtx, FunctionContext functionCtx,
-							Map<String, JsonNode> systemVariables);
+	Flux<Response> evaluate(Request request, SAPL saplDocument, AttributeContext attributeCtx,
+			FunctionContext functionCtx, Map<String, JsonNode> systemVariables);
 
 	/**
 	 * Method which evaluates a String containing a SAPL document (containing a
@@ -88,17 +80,12 @@ public interface SAPLInterpreter {
 	 * context and function context and returns a {@link Flux} of {@link Response}
 	 * objects.
 	 *
-	 * @param request
-	 *            the Request object
-	 * @param saplDefinition
-	 *            the String containing the SAPL document
-	 * @param attributeCtx
-	 *            the attribute context
-	 * @param functionCtx
-	 *            the function context
-	 * @param systemVariables
-	 *            the system variables, a Map between the variable name and its
-	 *            value
+	 * @param request         the Request object
+	 * @param saplDefinition  the String containing the SAPL document
+	 * @param attributeCtx    the attribute context
+	 * @param functionCtx     the function context
+	 * @param systemVariables the system variables, a Map between the variable name
+	 *                        and its value
 	 * @return A {@link Flux} of {@link Response} objects.
 	 */
 	Flux<Response> evaluate(Request request, String saplDefinition, AttributeContext attributeCtx,
@@ -109,17 +96,12 @@ public interface SAPLInterpreter {
 	 * or a policy) against a Request object within a given attribute context and
 	 * function context and returns a {@link Flux} of {@link Response} objects.
 	 *
-	 * @param request
-	 *            the Request object
-	 * @param saplDocument
-	 *            the SAPL document
-	 * @param attributeCtx
-	 *            the attribute context
-	 * @param functionCtx
-	 *            the function context
-	 * @param systemVariables
-	 *            the system variables, a Map between the variable name and its
-	 *            value
+	 * @param request         the Request object
+	 * @param saplDocument    the SAPL document
+	 * @param attributeCtx    the attribute context
+	 * @param functionCtx     the function context
+	 * @param systemVariables the system variables, a Map between the variable name
+	 *                        and its value
 	 * @return A {@link Flux} of {@link Response} objects.
 	 */
 	Flux<Response> evaluateRules(Request request, SAPL saplDocument, AttributeContext attributeCtx,
@@ -127,27 +109,20 @@ public interface SAPLInterpreter {
 
 	/**
 	 * Method which evaluates a SAPL policy element (policy set or policy) against a
-	 * Request object within a given AttributeContext and FunctionContext and returns
-	 * a {@link Flux} of {@link Response} objects.. An import Map and custom variables
-	 * can be provided.
+	 * Request object within a given AttributeContext and FunctionContext and
+	 * returns a {@link Flux} of {@link Response} objects.. An import Map and custom
+	 * variables can be provided.
 	 *
-	 * @param request
-	 *            the Request object
-	 * @param policyElement
-	 *            the policy element
-	 * @param attributeCtx
-	 *            the attribute context
-	 * @param functionCtx
-	 *            the function context
-	 * @param systemVariables
-	 *            the system variables, a Map between the variable name and its
-	 *            value
-	 * @param variables
-	 *            the custom variables, a Map between the variable name and its
-	 *            value
-	 * @param imports
-	 *            the imports Map, a Map between short names (String) and fully
-	 *            qualified names (String)
+	 * @param request         the Request object
+	 * @param policyElement   the policy element
+	 * @param attributeCtx    the attribute context
+	 * @param functionCtx     the function context
+	 * @param systemVariables the system variables, a Map between the variable name
+	 *                        and its value
+	 * @param variables       the custom variables, a Map between the variable name
+	 *                        and its value
+	 * @param imports         the imports Map, a Map between short names (String)
+	 *                        and fully qualified names (String)
 	 * @return A {@link Flux} of {@link Response} objects.
 	 */
 	Flux<Response> evaluateRules(Request request, PolicyElement policyElement, AttributeContext attributeCtx,
@@ -160,18 +135,14 @@ public interface SAPLInterpreter {
 	 *
 	 * No custom variables are provided and imports are extracted from the document.
 	 *
-	 * @param request
-	 *            the Request to check against
-	 * @param saplDocument
-	 *            the SAPL document
-	 * @param functionCtx
-	 *            the function context, as functions can be used in the target
-	 *            expression
-	 * @param systemVariables
-	 *            the system variables
+	 * @param request         the Request to check against
+	 * @param saplDocument    the SAPL document
+	 * @param functionCtx     the function context, as functions can be used in the
+	 *                        target expression
+	 * @param systemVariables the system variables
 	 * @return true if the target expression evaluates to true, otherwise false
-	 * @throws PolicyEvaluationException
-	 *             in case there is an error while evaluating the target expression
+	 * @throws PolicyEvaluationException in case there is an error while evaluating
+	 *                                   the target expression
 	 */
 	boolean matches(Request request, SAPL saplDocument, FunctionContext functionCtx,
 			Map<String, JsonNode> systemVariables) throws PolicyEvaluationException;
@@ -182,23 +153,18 @@ public interface SAPLInterpreter {
 	 *
 	 * An import mapping and custom variables can be provided.
 	 *
-	 * @param request
-	 *            the Request to check against
-	 * @param policyElement
-	 *            the policy element (policy set or policy) to be checked
-	 * @param functionCtx
-	 *            the function context, as functions can be used in the target
-	 *            expression
-	 * @param systemVariables
-	 *            the system variables
-	 * @param variables
-	 *            other variables
-	 * @param imports
-	 *            the imports Map, a Map between short names (String) and fully
-	 *            qualified names (String)
+	 * @param request         the Request to check against
+	 * @param policyElement   the policy element (policy set or policy) to be
+	 *                        checked
+	 * @param functionCtx     the function context, as functions can be used in the
+	 *                        target expression
+	 * @param systemVariables the system variables
+	 * @param variables       other variables
+	 * @param imports         the imports Map, a Map between short names (String)
+	 *                        and fully qualified names (String)
 	 * @return true if the target expression evaluates to true, otherwise false
-	 * @throws PolicyEvaluationException
-	 *             in case there is an error while evaluating the target expression
+	 * @throws PolicyEvaluationException in case there is an error while evaluating
+	 *                                   the target expression
 	 */
 	boolean matches(Request request, PolicyElement policyElement, FunctionContext functionCtx,
 			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables, Map<String, String> imports)
@@ -209,15 +175,12 @@ public interface SAPLInterpreter {
 	 * between simple function names (String) and fully qualified names (String)
 	 * depending on the functions available in the function context.
 	 *
-	 * @param saplDocument
-	 *            the SAPL document
-	 * @param functionCtx
-	 *            the function context
+	 * @param saplDocument the SAPL document
+	 * @param functionCtx  the function context
 	 * @return the Map from simple function names (String) to fully qualified names
 	 *         (String)
-	 * @throws PolicyEvaluationException
-	 *             in case there is an error while evaluating the import statements
-	 *             and creating the Map
+	 * @throws PolicyEvaluationException in case there is an error while evaluating
+	 *                                   the import statements and creating the Map
 	 */
 	Map<String, String> fetchFunctionImports(SAPL saplDocument, FunctionContext functionCtx)
 			throws PolicyEvaluationException;

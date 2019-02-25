@@ -61,7 +61,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		}
 
 		URL policyFolderUrl = clazz.getResource(policyPath);
-		
+
 		if (policyFolderUrl == null) {
 			throw new PolicyEvaluationException(
 					"Policy folder not found. Path:" + policyPath + " - URL: " + policyFolderUrl);
@@ -102,7 +102,21 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	@Override
 	public Flux<PolicyRetrievalResult> retrievePolicies(Request request, FunctionContext functionCtx,
 			Map<String, JsonNode> variables) {
-		return Flux.just(parsedDocIdx.retrievePolicies(request, functionCtx, variables));
+		return Flux.just(parsedDocIdx.retrievePolicies(request, functionCtx, variables)).map(this::logMatching);
+	}
+
+	private PolicyRetrievalResult logMatching(PolicyRetrievalResult result) {
+		if (result.getMatchingDocuments().isEmpty()) {
+			LOGGER.trace("|-- Matching documents: NONE");
+		} else {
+			LOGGER.trace("|-- Matching documents:");
+			for (SAPL doc : result.getMatchingDocuments()) {
+				LOGGER.trace("| |-- * {} ({})", doc.getPolicyElement().getSaplName(), doc.getPolicyElement().getClass().getName());
+			}
+		}
+		LOGGER.trace("|");
+
+		return result;
 	}
 
 	@Override

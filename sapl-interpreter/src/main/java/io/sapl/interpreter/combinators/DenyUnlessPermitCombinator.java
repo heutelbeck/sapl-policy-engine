@@ -17,8 +17,10 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.combinators.ObligationAdviceCollector.Type;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
+@Slf4j
 public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCombinator {
 
 	private SAPLInterpreter interpreter;
@@ -29,29 +31,34 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 
 	@Override
 	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
-												   Request request, AttributeContext attributeCtx, FunctionContext functionCtx,
-												   Map<String, JsonNode> systemVariables) {
-
+			Request request, AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables) {
+		LOGGER.trace("|-- Combining matching documents");
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
+			LOGGER.trace("| |-- No matches. Default to DENY");
 			return Flux.just(Response.deny());
 		}
-		
+
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
+			LOGGER.trace("| |-- Evaluate: {} ({})", document.getPolicyElement().getSaplName(),
+					document.getPolicyElement().getClass().getName());
 			responseFluxes.add(interpreter.evaluate(request, document, attributeCtx, functionCtx, systemVariables));
 		}
 
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator();
 		return Flux.combineLatest(responseFluxes, responses -> {
 			responseAccumulator.addSingleResponses(responses);
+			LOGGER.trace("| |-- {} Combined Response: {}", responseAccumulator.getCombinedResponse().getDecision(),
+					responseAccumulator.getCombinedResponse());
 			return responseAccumulator.getCombinedResponse();
 		}).distinctUntilChanged();
 	}
 
 	@Override
 	public Flux<Response> combinePolicies(List<Policy> policies, Request request, AttributeContext attributeCtx,
-										  FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
-										  Map<String, String> imports) {
+			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
+			Map<String, String> imports) {
 
 		final List<Policy> matchingPolicies = new ArrayList<>();
 		for (Policy policy : policies) {
@@ -70,7 +77,8 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
-			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx, functionCtx, systemVariables, variables, imports));
+			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx, functionCtx, systemVariables,
+					variables, imports));
 		}
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator();
 		return Flux.combineLatest(responseFluxes, responses -> {
@@ -78,7 +86,6 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 			return responseAccumulator.getCombinedResponse();
 		}).distinctUntilChanged();
 	}
-
 
 	private static class ResponseAccumulator {
 
