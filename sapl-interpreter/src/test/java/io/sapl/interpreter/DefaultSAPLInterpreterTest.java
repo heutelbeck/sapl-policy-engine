@@ -294,7 +294,7 @@ public class DefaultSAPLInterpreterTest {
 
 	@Test
 	public void transformationError() {
-		final String policyDefinition = "policy \"test\" permit transform null + true";
+		final String policyDefinition = "policy \"test\" permit transform null * true";
 		final Response expected = Response.indeterminate();
 		final Response actual = INTERPRETER
 				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();

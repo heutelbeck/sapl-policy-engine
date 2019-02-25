@@ -177,7 +177,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void variablesOnSetLevelError() {
 		String policySet = 
 				"set \"tests\" deny-overrides " +
-				"var var1 = true + null; " +
+				"var var1 = true / null; " +
 				"policy \"testp1\" permit";
 		Response expected = Response.indeterminate();
 		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();

@@ -774,7 +774,10 @@ public class EvaluateOperatorsTest {
 		plus.setLeft(basicValueFrom(lhs));
 		plus.setRight(basicValueFrom(rhs));
 
-		StepVerifier.create(plus.evaluate(ctx, true, null)).expectError(PolicyEvaluationException.class).verify();
+		plus.evaluate(ctx, true, null).take(1)
+				.subscribe(result -> assertEquals(
+						"Plus on Strings + number should evaluate to TextNode with concatenated strings",
+						Optional.of(JSON.textNode("part a &1")), result));
 	}
 
 	@Test
@@ -787,7 +790,10 @@ public class EvaluateOperatorsTest {
 		plus.setLeft(basicValueFrom(lhs));
 		plus.setRight(basicValueFrom(rhs));
 
-		StepVerifier.create(plus.evaluate(ctx, true, null)).expectError(PolicyEvaluationException.class).verify();
+		plus.evaluate(ctx, true, null).take(1)
+				.subscribe(result -> assertEquals(
+						"Plus on Strings + number should evaluate to TextNode with concatenated strings",
+						Optional.of(JSON.textNode("1part a &")), result));
 	}
 
 	@Test
@@ -993,9 +999,8 @@ public class EvaluateOperatorsTest {
 		regEx.setLeft(basicValueFrom(left));
 		regEx.setRight(basicValueFrom(right));
 
-
 		regEx.evaluate(ctx, true, null).take(1)
-				.subscribe(result -> assertFalse("Null numver should evaluate to false", result.get().asBoolean()));		
+				.subscribe(result -> assertFalse("Null numver should evaluate to false", result.get().asBoolean()));
 	}
 
 	@Test
