@@ -86,6 +86,13 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 					// - accept undefined
 					// - return Mono/Flux
 					// Functions currently still operate in the 1.0.0 engine mindset.
+					// But:
+					// - functions are always local (never remote)
+					// - they never produce a flux of results by their own, only if their arguments are fluxes
+					// - therefore they can be used in target expressions, where fluxes of results don't make sense
+					//   (and never occur because attribute finders, the only source of result fluxes, are not allowed
+					//   in target expressions)
+					// That's why the function library interface was intentionally left non reactive
 					argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(
 							() -> new FunctionException(UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL)));
 				}
