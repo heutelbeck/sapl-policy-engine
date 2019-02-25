@@ -171,6 +171,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 			for (Expression argument : arguments.getArgs()) {
 				parameterFluxes.add(argument.evaluate(ctx, isBody, relativeNode));
 			}
+
 			return Flux.combineLatest(parameterFluxes, paramNodes -> {
 				final ArrayNode argumentsArray = JsonNodeFactory.instance.arrayNode();
 				argumentsArray.add(node.orElseThrow((() -> Exceptions.propagate(

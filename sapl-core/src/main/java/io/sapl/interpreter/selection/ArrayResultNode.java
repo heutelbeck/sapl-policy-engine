@@ -50,8 +50,8 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	public Optional<JsonNode> asJsonWithoutAnnotations() {
 		ArrayNode returnNode = JsonNodeFactory.instance.arrayNode();
 		for (AbstractAnnotatedJsonNode node : nodes) {
-			returnNode.add(node.getNode().orElseThrow(() -> Exceptions.propagate(
-					new PolicyEvaluationException(UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT))));
+			// undefined values are ignored in results
+			node.getNode().ifPresent(returnNode::add);
 		}
 		return Optional.of(returnNode);
 	}
@@ -145,7 +145,8 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	}
 
 	@Override
-	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return step.apply(this, ctx, isBody, relativeNode);
 	}
 }

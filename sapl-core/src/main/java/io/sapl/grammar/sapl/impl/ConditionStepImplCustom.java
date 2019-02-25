@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import org.eclipse.emf.ecore.EObject;
@@ -31,7 +32,6 @@ import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.ConditionStepImpl {
@@ -116,19 +116,19 @@ public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.Condition
 		// of the flux results, because combineLatest() preserves
 		// the order of the given list of fluxes in the results array passed to the
 		// combinator function
-		
-		// FIXME propoagate
-		
-		return Flux.combineLatest(itemFluxes, results -> {
-			IntStream.range(0, results.length).forEach(idx -> {
+		return Flux.combineLatest(itemFluxes, Function.identity()).flatMap(results -> {
+			for (int idx = 0; idx < results.length; idx++) {
 				@SuppressWarnings("unchecked")
-				final JsonNode result = ((Optional<JsonNode>) results[idx]).orElseThrow(() -> Exceptions
-						.propagate(new PolicyEvaluationException(UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS)));
+				Optional<JsonNode> oResult = ((Optional<JsonNode>) results[idx]);
+				if (!oResult.isPresent()) {
+					return Flux.error(new PolicyEvaluationException(UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS));
+				}
+				final JsonNode result = oResult.get();
 				if (result.isBoolean() && result.asBoolean()) {
 					resultList.add(resultNodes.get(idx));
 				}
-			});
-			return new ArrayResultNode(resultList);
+			}
+			return Flux.just((ResultNode) new ArrayResultNode(resultList));
 		});
 	}
 
