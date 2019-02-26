@@ -224,7 +224,9 @@ public class PDPAutoConfiguration {
 		Remote remoteProps = pdpProperties.getRemote();
 		String host = remoteProps.getHost();
 		int port = remoteProps.getPort();
-		return new RemotePolicyDecisionPoint(host, port);
+		String key = remoteProps.getKey();
+		String secret = remoteProps.getSecret();
+		return new RemotePolicyDecisionPoint(host, port, key, secret);
 	}
 
 	/**

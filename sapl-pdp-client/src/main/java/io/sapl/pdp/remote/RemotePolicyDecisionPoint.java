@@ -1,7 +1,11 @@
 package io.sapl.pdp.remote;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static io.sapl.webclient.URLSpecification.HTTPS_SCHEME;
 import static org.springframework.http.HttpMethod.POST;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.util.Base64Utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,20 +29,20 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private String host;
-	private int port;
 	private ObjectMapper mapper;
 
-	public RemotePolicyDecisionPoint(String host, int port) {
-		this.host = host;
-		this.port = port;
-		mapper = new ObjectMapper();
-		mapper.registerModule(new Jdk8Module());
+	private String host;
+	private int port;
+	private String basicAuthHeader;
+
+	public RemotePolicyDecisionPoint(String host, int port, String clientKey, String clientSecret) {
+		this(host, port, clientKey, clientSecret, new ObjectMapper().registerModule(new Jdk8Module()));
 	}
 
-	public RemotePolicyDecisionPoint(String host, int port, ObjectMapper mapper) {
+	public RemotePolicyDecisionPoint(String host, int port, String clientKey, String clientSecret, ObjectMapper mapper) {
 		this.host = host;
 		this.port = port;
+		this.basicAuthHeader = "Basic " + Base64Utils.encodeToString((clientKey + ":" + clientSecret).getBytes(UTF_8));
 		this.mapper = mapper;
 	}
 
@@ -78,6 +82,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		final String url = HTTPS_SCHEME + "://" + host + ":" + port + urlPath;
 		final RequestSpecification saplRequest = new RequestSpecification();
 		saplRequest.setUrl(JSON.textNode(url));
+		saplRequest.addHeader(HttpHeaders.AUTHORIZATION, basicAuthHeader);
 		saplRequest.setBody(mapper.convertValue(request, JsonNode.class));
 		return saplRequest;
 	}
