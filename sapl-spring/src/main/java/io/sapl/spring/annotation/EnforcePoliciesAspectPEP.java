@@ -20,6 +20,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -42,7 +43,6 @@ public class EnforcePoliciesAspectPEP {
 	private final ObjectMapper mapper;
 //	private final Optional<TokenStore> tokenStore;
 
-	// @Around("@annotation(enforcePolicies) && execution(* *(..))")
 	@Around("@annotation(enforcePolicies) && execution(* *(..))")
 	public Object around(ProceedingJoinPoint pjp, EnforcePolicies enforcePolicies) throws Throwable {
 		LOGGER.trace("Authorizing access to: {}.{}.", pjp.getTarget().getClass().getSimpleName(),
@@ -77,8 +77,10 @@ public class EnforcePoliciesAspectPEP {
 
 			LOGGER.trace("The methods return value is used as the resource in the authorization request: {}",
 					originalResultJson);
-
+			Request request = buildRequest(subject, action, originalResultJson);
 			Response response = pdp.decide(buildRequest(subject, action, originalResultJson)).block();
+			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(), request.getSubject(), request.getEnvironment());
+			LOGGER.debug("RESPONSE : {} - {}",response.getDecision(),response);
 
 			if (response.getDecision() != Decision.PERMIT) {
 				LOGGER.trace("Access not permitted by policy decision point. Decision was: {}", response.getDecision());
@@ -108,8 +110,10 @@ public class EnforcePoliciesAspectPEP {
 
 		} else {
 			Object resource = retrieveResource(enforcePolicies, pjp);
-
-			Response response = pdp.decide(buildRequest(subject, action, resource)).block();
+			Request request = buildRequest(subject, action,resource);
+			Response response = pdp.decide(request).block();
+			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(), request.getSubject(), request.getEnvironment());
+			LOGGER.debug("RESPONSE : {} - {}",response.getDecision(),response);
 
 			if (response.getDecision() != Decision.PERMIT) {
 				LOGGER.trace("Access not permitted by policy decision point. Decision was: {}", response.getDecision());
@@ -198,6 +202,19 @@ public class EnforcePoliciesAspectPEP {
 			JsonNode signature = mapper.valueToTree(pjp.getSignature());
 			LOGGER.trace("The action is enforced in java around: {}", signature);
 			actionNode.set("java", signature);
+
+			LOGGER.trace("Collect call arguments. Unserializable -> null");
+			ArrayNode array = JsonNodeFactory.instance.arrayNode();
+			for (Object o : pjp.getArgs()) {
+				try {
+					JsonNode json = mapper.valueToTree(o);
+					array.add(json);
+				} catch (IllegalArgumentException e) {
+					array.add(JsonNodeFactory.instance.nullNode());
+				}
+			}
+			actionNode.set("arguments", array);
+
 			action = actionNode;
 		} else {
 			LOGGER.trace("The action is explicitly defined by the developer in the annotation: {}.",

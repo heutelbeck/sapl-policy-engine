@@ -23,12 +23,13 @@ public class PolicyEnforcementPoint {
 		Request request = new Request(mapper.valueToTree(subject), mapper.valueToTree(action),
 				mapper.valueToTree(resource), mapper.valueToTree(environment));
 		Response response = pdp.decide(request).block();
+		LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(), request.getSubject(), request.getEnvironment());
+		LOGGER.debug("RESPONSE : {} - {}",response.getDecision(),response);
+
 		if (response.getDecision() != Decision.PERMIT) {
-			LOGGER.trace("Access not permitted by policy decision point. Decision was: {}", response.getDecision());
 			return false;
 		}
 		if (!constraintHandlers.obligationHandlersForObligationsAvailable(response)) {
-			LOGGER.trace("Access not permitted by policy enforcement point. Obligations cannot be fulfilled.");
 			return false;
 		}
 		constraintHandlers.handleObligations(response);
