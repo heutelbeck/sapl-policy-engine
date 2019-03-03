@@ -32,6 +32,8 @@ import reactor.core.publisher.Flux;
 
 public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 
+	private static final String KEY_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing a JSON key '%s' is not possible on a null node.";
+
 	private static final int HASH_PRIME_05 = 31;
 	private static final int INIT_PRIME_01 = 3;
 
@@ -59,6 +61,8 @@ public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 			return applyToJsonArray(previousResultNode);
 		} else if (previousResultNode.isTextual()) {
 			return new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), id);
+		} else if (previousResultNode.isNull()) {
+			throw new PolicyEvaluationException(String.format(KEY_ACCESS_TYPE_MISMATCH, id));
 		} else {
 			return new JsonNodeWithoutParent(Optional.empty());
 		}
