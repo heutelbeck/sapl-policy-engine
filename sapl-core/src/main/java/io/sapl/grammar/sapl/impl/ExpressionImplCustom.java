@@ -21,7 +21,7 @@ public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionIm
 	protected static final String BOOLEAN_OPERATION_TYPE_MISMATCH = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
 	protected static final String TEXT_OPERATION_TYPE_MISMATCH = "Type mismatch. Text operation expects text values, but got: '%s'.";
 	protected static final String ARRAY_OPERATION_TYPE_MISMATCH = "Type mismatch. Array operation expects Array values, but got: '%s'.";
-	protected static final String OBJECT_OPERATION_TYPE_MISMATCH = "Type mismatch. Object operation expects Opbject values, but got: '%s'.";
+	protected static final String OBJECT_OPERATION_TYPE_MISMATCH = "Type mismatch. Object operation expects Object values, but got: '%s'.";
 	protected static final String UNDEFINED_MISMATCH = "Type mismatch. Defined parameters expected, but got 'undefined'.";
 
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
