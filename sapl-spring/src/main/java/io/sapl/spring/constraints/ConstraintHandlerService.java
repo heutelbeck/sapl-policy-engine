@@ -1,4 +1,4 @@
-package io.sapl.spring;
+package io.sapl.spring.constraints;
 
 import java.util.List;
 

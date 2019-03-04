@@ -47,7 +47,7 @@ public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		if (!previousResult.getNode().isPresent()) {
-			return new JsonNodeWithoutParent(Optional.empty());
+			return new JsonNodeWithParentObject(Optional.empty(),previousResult.getNode(), id);
 		}
 		final JsonNode previousResultNode = previousResult.getNode().get();
 		if (previousResultNode.isObject()) {

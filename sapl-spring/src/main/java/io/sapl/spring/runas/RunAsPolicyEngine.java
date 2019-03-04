@@ -1,4 +1,4 @@
-package io.sapl.api.pip;
+package io.sapl.spring.runas;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
@@ -7,12 +7,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Inherited
-@Target(ElementType.TYPE)
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface PolicyInformationPoint {
-
-	String name() default "";
-
-	String description() default "";
-
+public @interface RunAsPolicyEngine {
 }

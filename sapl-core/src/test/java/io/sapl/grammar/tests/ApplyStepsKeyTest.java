@@ -15,10 +15,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.KeyStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
+import io.sapl.grammar.sapl.impl.Value;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
@@ -27,8 +27,9 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
-import reactor.test.StepVerifier;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ApplyStepsKeyTest {
 	private static final String KEY = "key";
 
@@ -60,13 +61,18 @@ public class ApplyStepsKeyTest {
 
 	@Test
 	public void applyToNullNode() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
+		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(Value.undefined());
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
-				.expectError(PolicyEvaluationException.class).verify();
+		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), KEY);
+
+		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+			LOGGER.info("expected: {}", expectedResult);
+			LOGGER.info("result: {}", result);
+			assertEquals("Accessing null object should yield undefined.", expectedResult, result);
+		});
 	}
 
 	@Test

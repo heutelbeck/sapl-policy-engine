@@ -31,9 +31,10 @@ import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
-import io.sapl.spring.ConstraintHandlerService;
+import io.sapl.spring.PDPProperties;
 import io.sapl.spring.PolicyEnforcementFilterPEP;
-import io.sapl.springboot.autoconfig.PDPProperties.Remote;
+import io.sapl.spring.PDPProperties.Remote;
+import io.sapl.spring.constraints.ConstraintHandlerService;
 import lombok.extern.slf4j.Slf4j;
 
 /**

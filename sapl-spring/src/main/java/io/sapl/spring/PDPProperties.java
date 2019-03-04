@@ -1,4 +1,4 @@
-package io.sapl.springboot.autoconfig;
+package io.sapl.spring;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -24,6 +24,8 @@ public class PDPProperties {
 
 	private boolean policyEnforcementFilter;
 
+	private String policyEngineAuthority = "ROLE_POLICY_ENGINE";
+	
 	@Data
 	public static class Filesystem {
 		private String policiesPath = "~/policies";
