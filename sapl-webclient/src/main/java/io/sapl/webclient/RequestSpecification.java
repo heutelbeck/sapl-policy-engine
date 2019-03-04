@@ -1,5 +1,6 @@
 package io.sapl.webclient;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,6 +21,13 @@ public class RequestSpecification {
 
 	public static RequestSpecification from(JsonNode value) throws JsonProcessingException {
 		return MAPPER.treeToValue(value, RequestSpecification.class);
+	}
+
+	public void addHeader(String name, String value) {
+		if (headers == null) {
+			headers = new HashMap<>();
+		}
+		headers.put(name, value);
 	}
 
 }

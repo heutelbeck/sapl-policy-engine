@@ -43,12 +43,10 @@ public class ElementOfImplCustom extends io.sapl.grammar.sapl.impl.ElementOfImpl
 	}
 
 	/**
-	 * Checks if the value is contained in the array 'undefined' is never contained
-	 * in any array.
+	 * Checks if the value is contained in the array. 'undefined' is never contained in any array.
 	 * 
-	 * @param value an arbritary value
-	 * @param array an Array
-	 * @return true if value contained in array
+	 * @param tuple a tuple containing the value (T1) and the array (T2)
+	 * @return true if the value is contained in the array
 	 */
 	private Optional<JsonNode> elementOf(Tuple2<Optional<JsonNode>, Optional<JsonNode>> tuple) {
 		if (!tuple.getT1().isPresent() || !tuple.getT2().isPresent() || !tuple.getT2().get().isArray()) {

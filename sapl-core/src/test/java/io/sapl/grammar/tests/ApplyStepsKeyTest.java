@@ -27,9 +27,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import io.sapl.interpreter.variables.VariableContext;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class ApplyStepsKeyTest {
 	private static final String KEY = "key";
 
@@ -54,7 +52,7 @@ public class ApplyStepsKeyTest {
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, null).take(1)
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals("Key step applied to object should return the value of the attribute",
 						expectedResult, result));
 	}
@@ -67,12 +65,8 @@ public class ApplyStepsKeyTest {
 		step.setId(KEY);
 
 		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), KEY);
-
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
-			LOGGER.info("expected: {}", expectedResult);
-			LOGGER.info("result: {}", result);
-			assertEquals("Accessing null object should yield undefined.", expectedResult, result);
-		});
+		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(
+				result -> assertEquals("Accessing null object should yield undefined.", expectedResult, result));
 	}
 
 	@Test
@@ -84,7 +78,7 @@ public class ApplyStepsKeyTest {
 
 		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), KEY);
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(
 				result -> assertEquals("Accessing empty object should yield undefined.", expectedResult, result));
 	}
 
@@ -100,7 +94,7 @@ public class ApplyStepsKeyTest {
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, null).take(1)
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Key step applied to array node without objects should return empty ArrayResultNode",
 						expectedResult, result));
@@ -126,7 +120,7 @@ public class ApplyStepsKeyTest {
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Key step applied to array node should return ArrayResultNode with results", expectedResultSet,
 					resultSet);
@@ -150,7 +144,7 @@ public class ApplyStepsKeyTest {
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Key step applied to ArrayResultNode should return an array with the correct values",
 					expectedResultSet, resultSet);

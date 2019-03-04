@@ -27,13 +27,19 @@ import reactor.test.StepVerifier;
 
 @Ignore // To run these tests, make sure the PDPServerApplication has been started
 public class RemotePolicyDecisionPointTest {
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
+	private final String host = "localhost";
+	private final int port = 8443;
+	private final String clientKey = "YJidgyT2mfdkbmL";
+	private final String clientSecret = "Fa4zvYQdiwHZVXh";
 
 	@Test
 	public void sendSingleRequest() {
 		final Request simpleRequest = new Request(JSON.textNode("willi"), JSON.textNode("test-read"),
 				JSON.textNode("something"), JSON.nullNode());
-		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint("localhost", 8443);
+		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
 		final Flux<Response> decideFlux = pdp.subscribe(simpleRequest);
 		StepVerifier.create(decideFlux).expectNext(Response.permit()).thenCancel().verify();
 	}
@@ -52,7 +58,7 @@ public class RemotePolicyDecisionPointTest {
 		multiRequest.addRequest("requestId_1", new RequestElements(AUTHENTICATION_ID, READ_ID, "heartBeatData"));
 		multiRequest.addRequest("requestId_2", new RequestElements(AUTHENTICATION_ID, READ_ID, "bloodPressureData"));
 
-		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint("localhost", 8443);
+		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
 		final Flux<IdentifiableResponse> decideFlux = pdp.subscribe(multiRequest);
 		StepVerifier.create(decideFlux).expectNextMatches(response -> {
 			if (response.getRequestId().equals("requestId_1")) {
