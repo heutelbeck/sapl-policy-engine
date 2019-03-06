@@ -35,9 +35,6 @@ public class AttributeFinderStepImplCustom extends io.sapl.grammar.sapl.impl.Att
 	private static final String ATTRIBUTE_RESOLUTION = "Attribute resolution error. Attribute '%s' cannot be resolved.";
 	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
 
-	private static final int HASH_PRIME_03 = 23;
-	private static final int INIT_PRIME_01 = 3;
-
 	private String getFullyQualifiedName(EvaluationContext ctx) {
 		String fullyQualifiedName = String.join(".", getIdSteps());
 		if (ctx.getImports().containsKey(fullyQualifiedName)) {
@@ -76,10 +73,10 @@ public class AttributeFinderStepImplCustom extends io.sapl.grammar.sapl.impl.Att
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_01;
-		hash = HASH_PRIME_03 * hash + Objects.hashCode(getClass().getTypeName());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
 		for (String idStep : getIdSteps()) {
-			hash = HASH_PRIME_03 * hash + Objects.hashCode(idStep);
+			hash = 37 * hash + Objects.hashCode(idStep);
 		}
 		return hash;
 	}

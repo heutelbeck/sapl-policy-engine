@@ -44,9 +44,6 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 
 	private static final String UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL = "undefined parameter value handed to function call";
 
-	private static final int HASH_PRIME_05 = 31;
-	private static final int INIT_PRIME_02 = 5;
-
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (getArguments() != null && !getArguments().getArgs().isEmpty()) {
@@ -105,19 +102,19 @@ public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunc
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_02;
-		hash = HASH_PRIME_05 * hash + ((getArguments() == null) ? 0 : getArguments().hash(imports));
-		hash = HASH_PRIME_05 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_05 * hash + ((getFilter() == null) ? 0 : getFilter().hash(imports));
+		int hash = 17;
+		hash = 37 * hash + ((getArguments() == null) ? 0 : getArguments().hash(imports));
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
+		hash = 37 * hash + ((getFilter() == null) ? 0 : getFilter().hash(imports));
 		String identifier = String.join(".", getFsteps());
 		if (imports != null && imports.containsKey(identifier)) {
 			identifier = imports.get(identifier);
 		}
-		hash = HASH_PRIME_05 * hash + Objects.hashCode(identifier);
+		hash = 37 * hash + Objects.hashCode(identifier);
 		for (Step step : getSteps()) {
-			hash = HASH_PRIME_05 * hash + ((step == null) ? 0 : step.hash(imports));
+			hash = 37 * hash + ((step == null) ? 0 : step.hash(imports));
 		}
-		hash = HASH_PRIME_05 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
+		hash = 37 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
 		return hash;
 	}
 

@@ -13,11 +13,7 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.math.BigDecimal;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -26,34 +22,10 @@ import reactor.core.publisher.Flux;
 
 public class UnaryMinusImplCustom extends io.sapl.grammar.sapl.impl.UnaryMinusImpl {
 
-	private static final int HASH_PRIME_13 = 67;
-	private static final int INIT_PRIME_01 = 3;
-
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		return getExpression().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal).map(BigDecimal::negate)
 				.map(Value::of).distinctUntilChanged();
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_01;
-		hash = HASH_PRIME_13 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_13 * hash + getExpression().hash(imports);
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final NotImplCustom otherImpl = (NotImplCustom) other;
-		return (getExpression() == null) ? (getExpression() == otherImpl.getExpression())
-				: getExpression().isEqualTo(otherImpl.getExpression(), otherImports, imports);
 	}
 
 }

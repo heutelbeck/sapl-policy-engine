@@ -25,9 +25,6 @@ import reactor.core.publisher.Flux;
 
 public class StringLiteralImplCustom extends io.sapl.grammar.sapl.impl.StringLiteralImpl {
 
-	private static final int HASH_PRIME_09 = 47;
-	private static final int INIT_PRIME_02 = 5;
-
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		return Value.fluxOf(getString());
@@ -35,9 +32,9 @@ public class StringLiteralImplCustom extends io.sapl.grammar.sapl.impl.StringLit
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_02;
-		hash = HASH_PRIME_09 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_09 * hash + Objects.hashCode(getString());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
+		hash = 37 * hash + Objects.hashCode(getString());
 		return hash;
 	}
 

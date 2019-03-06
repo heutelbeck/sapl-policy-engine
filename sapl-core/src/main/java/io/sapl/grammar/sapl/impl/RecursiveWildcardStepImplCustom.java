@@ -30,7 +30,6 @@ import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.RecursiveWildcardStepImpl {
@@ -38,9 +37,6 @@ public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.R
 	private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE = "Cannot descent on an undefined value.";
 
 	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
-
-	private static final int HASH_PRIME_11 = 59;
-	private static final int INIT_PRIME_01 = 3;
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
@@ -104,8 +100,8 @@ public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.R
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_01;
-		hash = HASH_PRIME_11 * hash + Objects.hashCode(getClass().getTypeName());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
 		return hash;
 	}
 

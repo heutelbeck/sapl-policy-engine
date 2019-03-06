@@ -37,9 +37,6 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	private static final String STEP_ZERO = "Step must not be zero.";
 	private static final String INDEX_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing an JSON array index [%s] expects array value, but got: '%s'.";
 
-	private static final int HASH_PRIME_07 = 41;
-	private static final int INIT_PRIME_01 = 3;
-
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
@@ -124,11 +121,11 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_01;
-		hash = HASH_PRIME_07 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_07 * hash + Objects.hashCode(getIndex());
-		hash = HASH_PRIME_07 * hash + Objects.hashCode(getStep());
-		hash = HASH_PRIME_07 * hash + Objects.hashCode(getTo());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
+		hash = 37 * hash + Objects.hashCode(getIndex());
+		hash = 37 * hash + Objects.hashCode(getStep());
+		hash = 37 * hash + Objects.hashCode(getTo());
 		return hash;
 	}
 

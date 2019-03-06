@@ -26,9 +26,6 @@ import reactor.core.publisher.Flux;
 
 public class FilterSimpleImplCustom extends io.sapl.grammar.sapl.impl.FilterSimpleImpl {
 
-	private static final int INIT_PRIME_03 = 7;
-	private static final int HASH_PRIME_07 = 41;
-
 	@Override
 	public Flux<Optional<JsonNode>> apply(Optional<JsonNode> unfilteredRootNode, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
@@ -39,13 +36,13 @@ public class FilterSimpleImplCustom extends io.sapl.grammar.sapl.impl.FilterSimp
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_03;
-		hash = HASH_PRIME_07 * hash + ((getArguments() == null) ? 0 : getArguments().hash(imports));
-		hash = HASH_PRIME_07 * hash + Objects.hashCode(getClass().getTypeName());
+		int hash = 37;
+		hash = 17 * hash + ((getArguments() == null) ? 0 : getArguments().hash(imports));
+		hash = 17 * hash + Objects.hashCode(getClass().getTypeName());
 		for (String fStep : getFsteps()) {
-			hash = HASH_PRIME_07 * hash + Objects.hashCode(fStep);
+			hash = 17 * hash + Objects.hashCode(fStep);
 		}
-		hash = HASH_PRIME_07 * hash + Objects.hashCode(isEach());
+		hash = 17 * hash + Objects.hashCode(isEach());
 		return hash;
 	}
 

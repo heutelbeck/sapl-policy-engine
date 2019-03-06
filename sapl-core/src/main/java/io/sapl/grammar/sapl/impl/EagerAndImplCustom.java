@@ -12,11 +12,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -32,40 +28,11 @@ import reactor.core.publisher.Flux;
  */
 public class EagerAndImplCustom extends io.sapl.grammar.sapl.impl.EagerAndImpl {
 
-	private static final int HASH_PRIME_04 = 29;
-	private static final int INIT_PRIME_01 = 3;
-
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
 		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
 		return Flux.combineLatest(left, right, Boolean::logicalAnd).map(Value::of).distinctUntilChanged();
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_01;
-		hash = HASH_PRIME_04 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_04 * hash + ((getLeft() == null) ? 0 : getLeft().hash(imports));
-		hash = HASH_PRIME_04 * hash + ((getRight() == null) ? 0 : getRight().hash(imports));
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final EagerAndImplCustom otherImpl = (EagerAndImplCustom) other;
-		if ((getLeft() == null) ? (getLeft() != otherImpl.getLeft())
-				: !getLeft().isEqualTo(otherImpl.getLeft(), otherImports, imports)) {
-			return false;
-		}
-		return (getRight() == null) ? (getRight() == otherImpl.getRight())
-				: getRight().isEqualTo(otherImpl.getRight(), otherImports, imports);
 	}
 
 }

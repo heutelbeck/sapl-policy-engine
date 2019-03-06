@@ -40,9 +40,6 @@ public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.Condition
 
 	private static final String CONDITION_ACCESS_TYPE_MISMATCH = "Type mismatch. Condition access is only possible for array or object, but got '%s'.";
 
-	private static final int HASH_PRIME_10 = 53;
-	private static final int INIT_PRIME_01 = 3;
-
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
@@ -134,9 +131,9 @@ public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.Condition
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_01;
-		hash = HASH_PRIME_10 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_10 * hash + ((getExpression() == null) ? 0 : getExpression().hash(imports));
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
+		hash = 37 * hash + ((getExpression() == null) ? 0 : getExpression().hash(imports));
 		return hash;
 	}
 

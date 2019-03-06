@@ -20,19 +20,16 @@ import org.eclipse.emf.ecore.EObject;
 
 public class FilterStatementImplCustom extends io.sapl.grammar.sapl.impl.FilterStatementImpl {
 
-	private static final int HASH_PRIME_06 = 37;
-	private static final int INIT_PRIME_03 = 7;
-
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_03;
-		hash = HASH_PRIME_06 * hash + ((getArguments() == null) ? 0 : getArguments().hash(imports));
-		hash = HASH_PRIME_06 * hash + ((getTarget() == null) ? 0 : getTarget().hash(imports));
-		hash = HASH_PRIME_06 * hash + Objects.hashCode(getClass().getTypeName());
+		int hash = 17;
+		hash = 37 * hash + ((getArguments() == null) ? 0 : getArguments().hash(imports));
+		hash = 37 * hash + ((getTarget() == null) ? 0 : getTarget().hash(imports));
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
 		for (String fStep : getFsteps()) {
-			hash = HASH_PRIME_06 * hash + Objects.hashCode(fStep);
+			hash = 37 * hash + Objects.hashCode(fStep);
 		}
-		hash = HASH_PRIME_06 * hash + Objects.hashCode(isEach());
+		hash = 37 * hash + Objects.hashCode(isEach());
 		return hash;
 	}
 

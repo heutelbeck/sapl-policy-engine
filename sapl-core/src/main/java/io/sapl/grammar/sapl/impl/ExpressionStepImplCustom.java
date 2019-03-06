@@ -35,9 +35,6 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
 	private static final String EXPRESSION_ACCESS_INDEX_NOT_FOUND = "Index not found. Failed to access item with index '%s' after expression evaluation.";
 	private static final String EXPRESSION_ACCESS_TYPE_MISMATCH = "Type mismatch. Expression evaluates to '%s' which can not be used.";
 
-	private static final int HASH_PRIME_02 = 19;
-	private static final int INIT_PRIME_01 = 3;
-
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
@@ -104,9 +101,9 @@ public class ExpressionStepImplCustom extends io.sapl.grammar.sapl.impl.Expressi
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_01;
-		hash = HASH_PRIME_02 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_02 * hash + ((getExpression() == null) ? 0 : getExpression().hash(imports));
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
+		hash = 37 * hash + ((getExpression() == null) ? 0 : getExpression().hash(imports));
 		return hash;
 	}
 

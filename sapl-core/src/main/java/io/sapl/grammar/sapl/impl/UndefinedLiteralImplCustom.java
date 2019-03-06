@@ -31,9 +31,6 @@ import reactor.core.publisher.Flux;
  */
 public class UndefinedLiteralImplCustom extends io.sapl.grammar.sapl.impl.UndefinedLiteralImpl {
 
-	private static final int HASH_PRIME_10 = 53;
-	private static final int INIT_PRIME_02 = 5;
-
 	/**
 	 * A FLux only containing the 'undefined' value, i.e. Optional.empty();
 	 */
@@ -44,8 +41,8 @@ public class UndefinedLiteralImplCustom extends io.sapl.grammar.sapl.impl.Undefi
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_02;
-		hash = HASH_PRIME_10 * hash + Objects.hashCode(getClass().getTypeName());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
 		return hash;
 	}
 

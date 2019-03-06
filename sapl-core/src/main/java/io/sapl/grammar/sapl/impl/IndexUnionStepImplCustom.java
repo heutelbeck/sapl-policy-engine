@@ -38,9 +38,6 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 
 	private static final String UNION_TYPE_MISMATCH = "Type mismatch.";
 
-	private static final int HASH_PRIME_03 = 23;
-	private static final int INIT_PRIME_01 = 3;
-
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
@@ -105,10 +102,10 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_01;
-		hash = HASH_PRIME_03 * hash + Objects.hashCode(getClass().getTypeName());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
 		for (BigDecimal indice : getIndices()) {
-			hash = HASH_PRIME_03 * hash + Objects.hashCode(indice);
+			hash = 37 * hash + Objects.hashCode(indice);
 		}
 		return hash;
 	}

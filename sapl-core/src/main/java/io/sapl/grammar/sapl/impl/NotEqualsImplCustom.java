@@ -12,11 +12,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -24,9 +20,6 @@ import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 public class NotEqualsImplCustom extends io.sapl.grammar.sapl.impl.NotEqualsImpl {
-
-	private static final int HASH_PRIME_02 = 19;
-	private static final int INIT_PRIME_01 = 3;
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
@@ -47,32 +40,6 @@ public class NotEqualsImplCustom extends io.sapl.grammar.sapl.impl.NotEqualsImpl
 		} else {
 			return Value.of(!left.get().equals(right.get()));
 		}
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_01;
-		hash = HASH_PRIME_02 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_02 * hash + ((getLeft() == null) ? 0 : getLeft().hash(imports));
-		hash = HASH_PRIME_02 * hash + ((getRight() == null) ? 0 : getRight().hash(imports));
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final NotEqualsImplCustom otherImpl = (NotEqualsImplCustom) other;
-		if ((getLeft() == null) ? (getLeft() != otherImpl.getLeft())
-				: !getLeft().isEqualTo(otherImpl.getLeft(), otherImports, imports)) {
-			return false;
-		}
-		return (getRight() == null) ? (getRight() == otherImpl.getRight())
-				: getRight().isEqualTo(otherImpl.getRight(), otherImports, imports);
 	}
 
 }

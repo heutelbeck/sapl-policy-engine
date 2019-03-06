@@ -34,9 +34,6 @@ public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 
 	private static final String KEY_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing a JSON key '%s' is not possible on a null node.";
 
-	private static final int HASH_PRIME_05 = 31;
-	private static final int INIT_PRIME_01 = 3;
-
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
@@ -91,9 +88,9 @@ public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_01;
-		hash = HASH_PRIME_05 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_05 * hash + Objects.hashCode(getId());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
+		hash = 37 * hash + Objects.hashCode(getId());
 		return hash;
 	}
 

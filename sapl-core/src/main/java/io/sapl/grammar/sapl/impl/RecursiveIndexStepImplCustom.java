@@ -33,9 +33,6 @@ public class RecursiveIndexStepImplCustom extends io.sapl.grammar.sapl.impl.Recu
 
 	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
 
-	private static final int HASH_PRIME_06 = 37;
-	private static final int INIT_PRIME_01 = 3;
-
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
@@ -85,9 +82,9 @@ public class RecursiveIndexStepImplCustom extends io.sapl.grammar.sapl.impl.Recu
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_01;
-		hash = HASH_PRIME_06 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_06 * hash + Objects.hashCode(getIndex());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
+		hash = 37 * hash + Objects.hashCode(getIndex());
 		return hash;
 	}
 

@@ -40,9 +40,6 @@ import reactor.core.publisher.Flux;
  */
 public class ArrayImplCustom extends io.sapl.grammar.sapl.impl.ArrayImpl {
 
-	private static final int HASH_PRIME_06 = 37;
-	private static final int INIT_PRIME_02 = 5;
-
 	/**
 	 * 
 	 * The semantics of evaluation an array is as follows:
@@ -83,10 +80,10 @@ public class ArrayImplCustom extends io.sapl.grammar.sapl.impl.ArrayImpl {
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_02;
-		hash = HASH_PRIME_06 * hash + Objects.hashCode(getClass().getTypeName());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
 		for (Expression expression : getItems()) {
-			hash = HASH_PRIME_06 * hash + ((expression == null) ? 0 : expression.hash(imports));
+			hash = 37 * hash + ((expression == null) ? 0 : expression.hash(imports));
 		}
 		return hash;
 	}

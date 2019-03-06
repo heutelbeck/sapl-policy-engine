@@ -27,9 +27,6 @@ import reactor.core.publisher.Flux;
 
 public class BasicValueImplCustom extends io.sapl.grammar.sapl.impl.BasicValueImpl {
 
-	private static final int HASH_PRIME_03 = 23;
-	private static final int INIT_PRIME_02 = 5;
-
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		final Flux<Optional<JsonNode>> evaluatedValue = getValue().evaluate(ctx, isBody, relativeNode);
@@ -39,14 +36,14 @@ public class BasicValueImplCustom extends io.sapl.grammar.sapl.impl.BasicValueIm
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_02;
-		hash = HASH_PRIME_03 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_03 * hash + ((getFilter() == null) ? 0 : getFilter().hash(imports));
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
+		hash = 37 * hash + ((getFilter() == null) ? 0 : getFilter().hash(imports));
 		for (Step step : getSteps()) {
-			hash = HASH_PRIME_03 * hash + ((step == null) ? 0 : step.hash(imports));
+			hash = 37 * hash + ((step == null) ? 0 : step.hash(imports));
 		}
-		hash = HASH_PRIME_03 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
-		hash = HASH_PRIME_03 * hash + ((getValue() == null) ? 0 : getValue().hash(imports));
+		hash = 37 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
+		hash = 37 * hash + ((getValue() == null) ? 0 : getValue().hash(imports));
 		return hash;
 	}
 

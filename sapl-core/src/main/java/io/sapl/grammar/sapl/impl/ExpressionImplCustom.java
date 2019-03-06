@@ -14,7 +14,7 @@ package io.sapl.grammar.sapl.impl;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-public class ExpressionImplCustom extends io.sapl.grammar.sapl.impl.ExpressionImpl {
+public class ExpressionImplCustom extends ExpressionImpl {
 
 	protected static final String UNDEFINED = "undefined";
 	protected static final String ARITHMETIC_OPERATION_TYPE_MISMATCH = "Type mismatch. Arithmetic operation expects number values, but got: '%s'.";

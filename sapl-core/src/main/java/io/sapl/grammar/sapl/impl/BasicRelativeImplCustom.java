@@ -30,9 +30,6 @@ public class BasicRelativeImplCustom extends io.sapl.grammar.sapl.impl.BasicRela
 
 	private static final String NOT_ALLOWED = "Relative expression is not allowed at this place. There was no relative node defined. Was: %s";
 
-	private static final int HASH_PRIME_06 = 37;
-	private static final int INIT_PRIME_02 = 5;
-
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (relativeNode == null) {
@@ -43,13 +40,13 @@ public class BasicRelativeImplCustom extends io.sapl.grammar.sapl.impl.BasicRela
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_02;
-		hash = HASH_PRIME_06 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_06 * hash + ((getFilter() == null) ? 0 : getFilter().hash(imports));
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
+		hash = 37 * hash + ((getFilter() == null) ? 0 : getFilter().hash(imports));
 		for (Step step : getSteps()) {
-			hash = HASH_PRIME_06 * hash + ((step == null) ? 0 : step.hash(imports));
+			hash = 37 * hash + ((step == null) ? 0 : step.hash(imports));
 		}
-		hash = HASH_PRIME_06 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
+		hash = 37 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
 		return hash;
 	}
 

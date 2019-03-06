@@ -32,9 +32,6 @@ import reactor.core.publisher.Flux;
 
 public class ObjectImplCustom extends io.sapl.grammar.sapl.impl.ObjectImpl {
 
-	private static final int HASH_PRIME_14 = 71;
-	private static final int INIT_PRIME_02 = 5;
-
 	@Override
 	@SuppressWarnings("unchecked")
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
@@ -58,10 +55,10 @@ public class ObjectImplCustom extends io.sapl.grammar.sapl.impl.ObjectImpl {
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_02;
-		hash = HASH_PRIME_14 * hash + Objects.hashCode(getClass().getTypeName());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
 		for (Pair pair : getMembers()) {
-			hash = HASH_PRIME_14 * hash + (Objects.hashCode(pair.getKey())
+			hash = 37 * hash + (Objects.hashCode(pair.getKey())
 					^ ((pair.getValue() == null) ? 0 : pair.getValue().hash(imports)));
 		}
 		return hash;

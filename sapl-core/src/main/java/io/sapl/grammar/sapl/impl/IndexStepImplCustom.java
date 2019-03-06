@@ -34,9 +34,6 @@ public class IndexStepImplCustom extends io.sapl.grammar.sapl.impl.IndexStepImpl
 	private static final String INDEX_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing a JSON array index [%s] expects array value, but got: '%s'.";
 	private static final String INDEX_ACCESS_NOT_FOUND = "Index not found. Failed to access index [%s].";
 
-	private static final int HASH_PRIME_07 = 41;
-	private static final int INIT_PRIME_01 = 3;
-
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
@@ -90,9 +87,9 @@ public class IndexStepImplCustom extends io.sapl.grammar.sapl.impl.IndexStepImpl
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_01;
-		hash = HASH_PRIME_07 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_07 * hash + Objects.hashCode(getIndex());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
+		hash = 37 * hash + Objects.hashCode(getIndex());
 		return hash;
 	}
 

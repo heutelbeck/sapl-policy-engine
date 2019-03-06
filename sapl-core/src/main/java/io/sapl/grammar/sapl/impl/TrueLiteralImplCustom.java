@@ -31,9 +31,6 @@ import reactor.core.publisher.Flux;
  */
 public class TrueLiteralImplCustom extends TrueLiteralImpl {
 
-	private static final int HASH_PRIME_05 = 31;
-	private static final int INIT_PRIME_02 = 5;
-
 	/*
 	 * Returns a constant value of false.
 	 */
@@ -44,8 +41,8 @@ public class TrueLiteralImplCustom extends TrueLiteralImpl {
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_02;
-		hash = HASH_PRIME_05 * hash + Objects.hashCode(getClass().getTypeName());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
 		return hash;
 	}
 

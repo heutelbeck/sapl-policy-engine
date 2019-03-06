@@ -30,9 +30,6 @@ public class BasicIdentifierImplCustom extends io.sapl.grammar.sapl.impl.BasicId
 
 	private static final String UNBOUND_VARIABLE = "Evaluation error. Variable '%s' is not defined.";
 
-	private static final int HASH_PRIME_04 = 29;
-	private static final int INIT_PRIME_02 = 5;
-
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (!ctx.getVariableCtx().exists(getIdentifier())) {
@@ -49,14 +46,14 @@ public class BasicIdentifierImplCustom extends io.sapl.grammar.sapl.impl.BasicId
 
 	@Override
 	public int hash(Map<String, String> imports) {
-		int hash = INIT_PRIME_02;
-		hash = HASH_PRIME_04 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = HASH_PRIME_04 * hash + ((getFilter() == null) ? 0 : getFilter().hash(imports));
-		hash = HASH_PRIME_04 * hash + Objects.hashCode(getIdentifier());
+		int hash = 17;
+		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
+		hash = 37 * hash + ((getFilter() == null) ? 0 : getFilter().hash(imports));
+		hash = 37 * hash + Objects.hashCode(getIdentifier());
 		for (Step step : getSteps()) {
-			hash = HASH_PRIME_04 * hash + ((step == null) ? 0 : step.hash(imports));
+			hash = 37 * hash + ((step == null) ? 0 : step.hash(imports));
 		}
-		hash = HASH_PRIME_04 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
+		hash = 37 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
 		return hash;
 	}
 
