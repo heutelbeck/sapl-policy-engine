@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 @Validated
 @ConfigurationProperties(prefix = "pdp")
-public class PDPProperties {
+public class SAPLProperties {
 
 	public enum PDPType {
 		RESOURCES, FILESYSTEM, REMOTE;
@@ -25,7 +25,7 @@ public class PDPProperties {
 	private boolean policyEnforcementFilter;
 
 	private String policyEngineAuthority = "ROLE_POLICY_ENGINE";
-	
+
 	@Data
 	public static class Filesystem {
 		private String policiesPath = "~/policies";

@@ -12,13 +12,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import io.sapl.spring.PDPProperties;
+import io.sapl.spring.SAPLProperties;
 
 public class PolicyEngineRunAsManager extends RunAsManagerImpl {
 
-	private final PDPProperties pdpProperites;
+	private final SAPLProperties pdpProperites;
 
-	public PolicyEngineRunAsManager(PDPProperties pdpProperites) {
+	public PolicyEngineRunAsManager(SAPLProperties pdpProperites) {
 		super();
 		this.pdpProperites = pdpProperites;
 	}

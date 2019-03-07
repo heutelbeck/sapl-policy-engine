@@ -31,9 +31,9 @@ import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
-import io.sapl.spring.PDPProperties;
+import io.sapl.spring.SAPLProperties;
 import io.sapl.spring.PolicyEnforcementFilterPEP;
-import io.sapl.spring.PDPProperties.Remote;
+import io.sapl.spring.SAPLProperties.Remote;
 import io.sapl.spring.constraints.ConstraintHandlerService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -41,7 +41,7 @@ import lombok.extern.slf4j.Slf4j;
  * This automatic configuration will provide you several beans to deal with SAPL
  * by default. <br/>
  * If you do not change it, the default configuration (see
- * {@link PDPProperties}) will configure an {@link EmbeddedPolicyDecisionPoint}
+ * {@link SAPLProperties}) will configure an {@link EmbeddedPolicyDecisionPoint}
  * for you. <br/>
  * <br/>
  * <h2>Configure an EmbeddedPolicyDecisionPoint</h2> To have a bean instance of
@@ -132,21 +132,21 @@ import lombok.extern.slf4j.Slf4j;
  * <br/>
  * <br/>
  * 
- * @see PDPProperties
+ * @see SAPLProperties
  * @see AdviceHandlerService
  */
 @Slf4j
 @Configuration
 @ComponentScan("io.sapl.spring")
-@EnableConfigurationProperties(PDPProperties.class)
+@EnableConfigurationProperties(SAPLProperties.class)
 @AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
 public class PDPAutoConfiguration {
 
-	private final PDPProperties pdpProperties;
+	private final SAPLProperties pdpProperties;
 	private final Map<String, Object> policyInformationPoints;
 	private final Map<String, Object> functionLibraries;
 
-	public PDPAutoConfiguration(PDPProperties pdpProperties, ConfigurableApplicationContext applicationContext,
+	public PDPAutoConfiguration(SAPLProperties pdpProperties, ConfigurableApplicationContext applicationContext,
 			ObjectMapper mapper) {
 		this.pdpProperties = pdpProperties;
 		policyInformationPoints = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class);
