@@ -34,98 +34,163 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the conditional subscript of an array (or object), written as '[?(Condition)]'.
+ *
+ * [?(Condition)] returns an array containing all array items (or attribute values) for which Condition evaluates to true.
+ * Can be applied to both an array (then it checks each item) and an object (then it checks each attribute value).
+ * Condition must be an expression, in which relative expressions starting with @ can be used.
+ * @ evaluates to the current array item or attribute value for which the condition is evaluated and can be followed
+ * by further selection steps.
+ *
+ * As attributes have no order, the sorting of the result array of a condition step applied to an object is not specified.
+ *
+ * Example:
+ * Applied to the array [1, 2, 3, 4, 5], the selection step [?(@ > 2)] returns the array [3, 4, 5]
+ * (containing all values that are greater than 2).
+ *
+ * Grammar:
+ * Step:
+ * 	... |
+ * 	'[' Subscript ']' |
+ * 	...
+ *
+ * Subscript returns Step:
+ *    ... |
+ *    {ConditionStep} '?' '(' expression=Expression ')' |
+ *    ...
+ */
 public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.ConditionStepImpl {
 
-	private static final String UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS = "undefined cannot be added to JSON array results.";
+	private static final String UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS = "'undefined' cannot be added to JSON array results.";
 
 	private static final String CONDITION_ACCESS_TYPE_MISMATCH = "Type mismatch. Condition access is only possible for array or object, but got '%s'.";
 
+	/**
+	 * Applies the conditional subscript to an abstract annotated JsonNode, which can either be an array or an object.
+	 *
+	 * @param previousResult the array or object
+	 * @param ctx the evaluation context
+	 * @param isBody a flag indicating whether the expression is part of a policy body
+	 * @param relativeNode the relative node (not needed here)
+	 * @return a flux of ArrayResultNodes containing the elements/attribute values of the original array/object
+	 *         for which the condition expression evaluates to true
+	 */
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
-		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		final Optional<JsonNode> previousResultNode = previousResult.getNode();
-		if (!previousResultNode.isPresent()) {
+		final Optional<JsonNode> optPreviousResultNode = previousResult.getNode();
+		if (!optPreviousResultNode.isPresent()) {
 			return Flux.error(new PolicyEvaluationException("undefined value during conditional step evaluation."));
 		}
-		if (previousResultNode.get().isArray()) {
-			final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(previousResultNode.get().size());
-			IntStream.range(0, previousResultNode.get().size()).forEach(idx -> itemFluxes.add(getExpression()
-					.evaluate(ctx, isBody, Optional.of(previousResultNode.get().get(idx))).flatMap(Value::toJsonNode)));
-			// the indices of the elements in the previousResultNode array correspond to the
-			// indices of the flux results, because combineLatest()
-			// preserves the order of the given list of fluxes in the results array passed
-			// to the combinator function
-			return Flux.combineLatest(itemFluxes, results -> {
-				IntStream.range(0, results.length).forEach(idx -> {
-					final JsonNode result = (JsonNode) results[idx];
-					if (result.isBoolean() && result.asBoolean()) {
-						resultList.add(new JsonNodeWithParentArray(Optional.of(previousResultNode.get().get(idx)),
-								previousResultNode, idx));
-					}
-				});
-				return new ArrayResultNode(resultList);
-			});
-		} else if (previousResultNode.get().isObject()) {
-			final List<String> fieldNames = new ArrayList<>();
-			final List<JsonNode> fieldValues = new ArrayList<>();
-			final List<Flux<JsonNode>> valueFluxes = new ArrayList<>();
-			final Iterator<String> it = previousResultNode.get().fieldNames();
-			while (it.hasNext()) {
-				final String fieldName = it.next();
-				final JsonNode fieldValue = previousResultNode.get().get(fieldName);
-				fieldNames.add(fieldName);
-				fieldValues.add(fieldValue);
-				valueFluxes
-						.add(getExpression().evaluate(ctx, isBody, Optional.of(fieldValue)).flatMap(Value::toJsonNode));
-			}
-			// the indices of the elements in the fieldNames list and the fieldValues list
-			// correspond to the indices of the flux results,
-			// because combineLatest() preserves the order of the given list of fluxes in
-			// the results array passed to the combinator function
-			return Flux.combineLatest(valueFluxes, results -> {
-				IntStream.range(0, results.length).forEach(idx -> {
-					final JsonNode result = (JsonNode) results[idx];
-					if (result.isBoolean() && result.asBoolean()) {
-						resultList.add(new JsonNodeWithParentObject(Optional.of(fieldValues.get(idx)),
-								previousResultNode, fieldNames.get(idx)));
-					}
-				});
-				return new ArrayResultNode(resultList);
-			});
+		final JsonNode previousResultNode = optPreviousResultNode.get();
+		if (previousResultNode.isArray()) {
+			return handleArrayNode(ctx, isBody, previousResultNode);
+		} else if (previousResultNode.isObject()) {
+			return handleObjectNode(ctx, isBody, previousResultNode);
 		} else {
 			return Flux.error(new PolicyEvaluationException(
 					String.format(CONDITION_ACCESS_TYPE_MISMATCH, Value.typeOf(previousResult.getNode()))));
 		}
 	}
 
+	private Flux<ResultNode> handleArrayNode(EvaluationContext ctx, boolean isBody, JsonNode arrayNode) {
+		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(arrayNode.size());
+		IntStream.range(0, arrayNode.size()).forEach(idx -> itemFluxes.add(getExpression()
+				.evaluate(ctx, isBody, Optional.of(arrayNode.get(idx))).flatMap(Value::toJsonNode)));
+		// the indices of the elements in the arrayNode correspond to the indices of the flux results,
+		// because combineLatest() preserves the order of the given list of fluxes in the results array
+		// passed to the combinator function
+		return Flux.combineLatest(itemFluxes, results -> {
+			final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+			// iterate over all condition results and collect the array elements related to a result
+			// representing true
+			IntStream.range(0, results.length).forEach(idx -> {
+				final JsonNode result = (JsonNode) results[idx];
+				if (result.isBoolean() && result.asBoolean()) {
+					resultList.add(new JsonNodeWithParentArray(Optional.of(arrayNode.get(idx)),
+							Optional.of(arrayNode), idx));
+				}
+			});
+			return new ArrayResultNode(resultList);
+		});
+	}
+
+	private Flux<ResultNode> handleObjectNode(EvaluationContext ctx, boolean isBody, JsonNode objectNode) {
+		// create three parallel lists collecting the field names and field values of the object
+		// and the fluxes providing the evaluated conditions for the field values
+		final List<String> fieldNames = new ArrayList<>();
+		final List<JsonNode> fieldValues = new ArrayList<>();
+		final List<Flux<JsonNode>> valueFluxes = new ArrayList<>();
+		final Iterator<String> it = objectNode.fieldNames();
+		while (it.hasNext()) {
+			final String fieldName = it.next();
+			final JsonNode fieldValue = objectNode.get(fieldName);
+			fieldNames.add(fieldName);
+			fieldValues.add(fieldValue);
+			valueFluxes.add(
+					getExpression().evaluate(ctx, isBody, Optional.of(fieldValue)).flatMap(Value::toJsonNode)
+			);
+		}
+		// the indices of the elements in the fieldNames list and the fieldValues list
+		// correspond to the indices of the flux results, because combineLatest() preserves
+		// the order of the given list of fluxes in the results array passed to the combinator function
+		return Flux.combineLatest(valueFluxes, results -> {
+			final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+			// iterate over all condition results and collect the field values related to a result
+			// representing true
+			IntStream.range(0, results.length).forEach(idx -> {
+				final JsonNode result = (JsonNode) results[idx];
+				if (result.isBoolean() && result.asBoolean()) {
+					resultList.add(new JsonNodeWithParentObject(Optional.of(fieldValues.get(idx)),
+							Optional.of(objectNode), fieldNames.get(idx)));
+				}
+			});
+			return new ArrayResultNode(resultList);
+		});
+	}
+
+	/**
+	 * Applies the conditional subscript to an array.
+	 *
+	 * @param previousResult the array
+	 * @param ctx the evaluation context
+	 * @param isBody a flag indicating whether the expression is part of a policy body
+	 * @param relativeNode the relative node (not needed here)
+	 * @return a flux of ArrayResultNodes containing the elements of the original array for which the
+	 *         condition expression evaluates to true
+	 */
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
-		final List<AbstractAnnotatedJsonNode> resultNodes = new ArrayList<>(previousResult.getNodes().size());
-		final List<Flux<Optional<JsonNode>>> itemFluxes = new ArrayList<>(previousResult.getNodes().size());
-		for (AbstractAnnotatedJsonNode resultNode : previousResult) {
-			resultNodes.add(resultNode);
-			itemFluxes.add(getExpression().evaluate(ctx, isBody, resultNode.getNode()));
+		// create two parallel lists collecting the elements of the array
+		// and the fluxes providing the evaluated conditions for these elements
+		final List<AbstractAnnotatedJsonNode> arrayElements = new ArrayList<>(previousResult.getNodes().size());
+		final List<Flux<Optional<JsonNode>>> conditionResultFluxes = new ArrayList<>(previousResult.getNodes().size());
+		for (AbstractAnnotatedJsonNode arrayElement : previousResult) {
+			arrayElements.add(arrayElement);
+			conditionResultFluxes.add(getExpression().evaluate(ctx, isBody, arrayElement.getNode()));
 		}
-		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		// the indices of the elements in the resultNodes list correspond to the indices
-		// of the flux results, because combineLatest() preserves
-		// the order of the given list of fluxes in the results array passed to the
-		// combinator function
-		return Flux.combineLatest(itemFluxes, Function.identity()).flatMap(results -> {
+
+		// the indices of the elements in the arrayElements list correspond to the indices
+		// of the flux results, because combineLatest() preserves the order of the given
+		// list of fluxes in the results array passed to the combinator function
+		return Flux.combineLatest(conditionResultFluxes, Function.identity()).flatMap(results -> {
+			final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+			// iterate over all condition results and collect the array elements related to a result
+			// representing true
 			for (int idx = 0; idx < results.length; idx++) {
 				@SuppressWarnings("unchecked")
-				Optional<JsonNode> oResult = ((Optional<JsonNode>) results[idx]);
-				if (!oResult.isPresent()) {
+				Optional<JsonNode> optionalResult = ((Optional<JsonNode>) results[idx]);
+				if (!optionalResult.isPresent()) {
 					return Flux.error(new PolicyEvaluationException(UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS));
 				}
-				final JsonNode result = oResult.get();
+				final JsonNode result = optionalResult.get();
 				if (result.isBoolean() && result.asBoolean()) {
-					resultList.add(resultNodes.get(idx));
+					resultList.add(arrayElements.get(idx));
 				}
 			}
-			return Flux.just((ResultNode) new ArrayResultNode(resultList));
+			return Flux.just(new ArrayResultNode(resultList));
 		});
 	}
 
