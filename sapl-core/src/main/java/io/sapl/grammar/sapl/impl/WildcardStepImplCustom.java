@@ -30,7 +30,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
-public class WildcardStepImplCustom extends io.sapl.grammar.sapl.impl.WildcardStepImpl {
+public class WildcardStepImplCustom extends WildcardStepImpl {
 
 	private static final String WILDCARD_ACCESS_TYPE_MISMATCH = "Type mismatch. Wildcard access expects object or array, but got: '%s'.";
 

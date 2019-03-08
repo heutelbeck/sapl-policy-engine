@@ -20,7 +20,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
-public class OrImplCustom extends io.sapl.grammar.sapl.impl.OrImpl {
+public class OrImplCustom extends OrImpl {
 
 	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy OR operator is not allowed in the target";
 

@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
-public class LessEqualsImplCustom extends io.sapl.grammar.sapl.impl.LessEqualsImpl {
+public class LessEqualsImplCustom extends LessEqualsImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {

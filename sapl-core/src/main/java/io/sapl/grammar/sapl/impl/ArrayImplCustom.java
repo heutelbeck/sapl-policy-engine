@@ -31,26 +31,22 @@ import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 /**
- * 
  * Implementation of an array in SAPL.
  * 
  * Grammar: Array returns Value: {Array} '[' (items+=Expression (','
  * items+=Expression)*)? ']' ;
- *
  */
-public class ArrayImplCustom extends io.sapl.grammar.sapl.impl.ArrayImpl {
+public class ArrayImplCustom extends ArrayImpl {
 
 	/**
+	 * The semantics of evaluating an array is as follows:
 	 * 
-	 * The semantics of evaluation an array is as follows:
+	 * An array may contain a list of expressions. To get the values of the
+	 * individual expressions, these have to be recursively evaluated.
 	 * 
-	 * An Array may contains a list of expressions. To get to the values of the
-	 * individual expressions, these have to be recursively be evaluate.
-	 * 
-	 * As a Flux this means to subscribe to all expression result Fluxes and to
-	 * coblineLatest into a new Array each time one of the expression Fluxes emits a
+	 * Returning a Flux this means to subscribe to all expression result Fluxes and to
+	 * combineLatest into a new array each time one of the expression Fluxes emits a
 	 * new value.
-	 * 
 	 */
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {

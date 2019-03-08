@@ -28,7 +28,7 @@ import io.sapl.grammar.sapl.Expression;
  * Arguments: {Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
  *
  */
-public class ArgumentsImplCustom extends io.sapl.grammar.sapl.impl.ArgumentsImpl {
+public class ArgumentsImplCustom extends ArgumentsImpl {
 
 	@Override
 	public int hash(Map<String, String> imports) {

@@ -31,7 +31,7 @@ import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
-public class RecursiveKeyStepImplCustom extends io.sapl.grammar.sapl.impl.RecursiveKeyStepImpl {
+public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
 	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
 

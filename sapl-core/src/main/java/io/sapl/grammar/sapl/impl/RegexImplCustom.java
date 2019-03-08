@@ -24,7 +24,7 @@ import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
-public class RegexImplCustom extends io.sapl.grammar.sapl.impl.RegexImpl {
+public class RegexImplCustom extends RegexImpl {
 
 	private static final String REGEX_SYNTAX_ERROR = "Syntax error in regular expression '%s'.";
 

@@ -26,7 +26,7 @@ import reactor.core.publisher.Flux;
  * {Div.left=current} '/' | {And.left=current} '&&' | '&'
  * {EagerAnd.left=current}) right=Comparison)* ;
  */
-public class EagerAndImplCustom extends io.sapl.grammar.sapl.impl.EagerAndImpl {
+public class EagerAndImplCustom extends EagerAndImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {

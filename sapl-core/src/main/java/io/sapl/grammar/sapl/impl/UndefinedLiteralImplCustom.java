@@ -29,7 +29,7 @@ import reactor.core.publisher.Flux;
  * 
  * UndefinedLiteral returns Value: {UndefinedLiteral} 'undefined' ;
  */
-public class UndefinedLiteralImplCustom extends io.sapl.grammar.sapl.impl.UndefinedLiteralImpl {
+public class UndefinedLiteralImplCustom extends UndefinedLiteralImpl {
 
 	/**
 	 * A FLux only containing the 'undefined' value, i.e. Optional.empty();

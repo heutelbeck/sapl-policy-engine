@@ -29,7 +29,7 @@ import reactor.core.publisher.Flux;
  * {ElementOf.left=current} 'in') right=Prefixed)? ;
  * 
  */
-public class EqualsImplCustom extends io.sapl.grammar.sapl.impl.EqualsImpl {
+public class EqualsImplCustom extends EqualsImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {

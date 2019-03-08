@@ -28,7 +28,7 @@ import reactor.core.publisher.Flux;
  * 
  */
 
-public class EagerOrImplCustom extends io.sapl.grammar.sapl.impl.EagerOrImpl {
+public class EagerOrImplCustom extends EagerOrImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {

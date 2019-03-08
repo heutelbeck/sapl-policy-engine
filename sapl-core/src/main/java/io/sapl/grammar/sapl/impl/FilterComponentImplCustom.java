@@ -27,7 +27,7 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
-public class FilterComponentImplCustom extends io.sapl.grammar.sapl.impl.FilterComponentImpl {
+public class FilterComponentImplCustom extends FilterComponentImpl {
 
 	protected static final String FILTER_REMOVE = "remove";
 	protected static final String FILTER_REMOVE_ROOT = "Filter cannot remove the root of the tree the filter is applied to.";

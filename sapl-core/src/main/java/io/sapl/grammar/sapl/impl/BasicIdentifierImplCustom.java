@@ -26,7 +26,7 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
-public class BasicIdentifierImplCustom extends io.sapl.grammar.sapl.impl.BasicIdentifierImpl {
+public class BasicIdentifierImplCustom extends BasicIdentifierImpl {
 
 	private static final String UNBOUND_VARIABLE = "Evaluation error. Variable '%s' is not defined.";
 

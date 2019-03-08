@@ -27,7 +27,7 @@ import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
-public class FilterExtendedImplCustom extends io.sapl.grammar.sapl.impl.FilterExtendedImpl {
+public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> apply(Optional<JsonNode> unfilteredRootNode, EvaluationContext ctx, boolean isBody,

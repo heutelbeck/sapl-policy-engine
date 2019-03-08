@@ -40,7 +40,7 @@ import reactor.core.publisher.Flux;
  * fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step* |
  * {BasicIdentifier} identifier=ID steps+=Step* | BasicRelative;
  */
-public class BasicFunctionImplCustom extends io.sapl.grammar.sapl.impl.BasicFunctionImpl {
+public class BasicFunctionImplCustom extends BasicFunctionImpl {
 
 	private static final String UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL = "undefined parameter value handed to function call";
 

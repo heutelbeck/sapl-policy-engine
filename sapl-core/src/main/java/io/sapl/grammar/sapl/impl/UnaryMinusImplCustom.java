@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
-public class UnaryMinusImplCustom extends io.sapl.grammar.sapl.impl.UnaryMinusImpl {
+public class UnaryMinusImplCustom extends UnaryMinusImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {

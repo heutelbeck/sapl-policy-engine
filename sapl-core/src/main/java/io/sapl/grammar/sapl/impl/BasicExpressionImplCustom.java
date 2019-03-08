@@ -29,7 +29,7 @@ import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
-public class BasicExpressionImplCustom extends io.sapl.grammar.sapl.impl.BasicExpressionImpl {
+public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
 	/**
 	 * Method which is supposed to be inherited by the various subclasses of

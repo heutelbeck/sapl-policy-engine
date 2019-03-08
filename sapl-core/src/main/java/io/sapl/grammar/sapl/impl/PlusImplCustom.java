@@ -21,7 +21,7 @@ import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
-public class PlusImplCustom extends io.sapl.grammar.sapl.impl.PlusImpl {
+public class PlusImplCustom extends PlusImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {

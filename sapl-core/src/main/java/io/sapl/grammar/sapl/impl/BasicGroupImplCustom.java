@@ -25,7 +25,7 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
-public class BasicGroupImplCustom extends io.sapl.grammar.sapl.impl.BasicGroupImpl {
+public class BasicGroupImplCustom extends BasicGroupImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {

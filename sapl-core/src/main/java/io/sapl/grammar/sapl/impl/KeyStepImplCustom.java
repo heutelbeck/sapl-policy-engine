@@ -30,7 +30,7 @@ import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
-public class KeyStepImplCustom extends io.sapl.grammar.sapl.impl.KeyStepImpl {
+public class KeyStepImplCustom extends KeyStepImpl {
 
 	private static final String KEY_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing a JSON key '%s' is not possible on a null node.";
 

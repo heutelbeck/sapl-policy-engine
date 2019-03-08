@@ -18,7 +18,7 @@ import java.util.Objects;
 
 import org.eclipse.emf.ecore.EObject;
 
-public class FilterStatementImplCustom extends io.sapl.grammar.sapl.impl.FilterStatementImpl {
+public class FilterStatementImplCustom extends FilterStatementImpl {
 
 	@Override
 	public int hash(Map<String, String> imports) {

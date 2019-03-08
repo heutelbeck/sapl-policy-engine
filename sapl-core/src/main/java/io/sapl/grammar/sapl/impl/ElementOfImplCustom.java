@@ -26,7 +26,7 @@ import reactor.util.function.Tuples;
  * Implements the evaluation of the array operation. It checks if a value is
  * contained in an array.
  */
-public class ElementOfImplCustom extends io.sapl.grammar.sapl.impl.ElementOfImpl {
+public class ElementOfImplCustom extends ElementOfImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {

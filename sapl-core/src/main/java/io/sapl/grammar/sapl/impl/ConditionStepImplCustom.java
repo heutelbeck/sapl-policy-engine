@@ -60,7 +60,7 @@ import reactor.core.publisher.Flux;
  *    {ConditionStep} '?' '(' expression=Expression ')' |
  *    ...
  */
-public class ConditionStepImplCustom extends io.sapl.grammar.sapl.impl.ConditionStepImpl {
+public class ConditionStepImplCustom extends ConditionStepImpl {
 
 	private static final String UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS = "'undefined' cannot be added to JSON array results.";
 

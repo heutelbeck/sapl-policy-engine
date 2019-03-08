@@ -29,7 +29,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
-public class IndexStepImplCustom extends io.sapl.grammar.sapl.impl.IndexStepImpl {
+public class IndexStepImplCustom extends IndexStepImpl {
 
 	private static final String INDEX_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing a JSON array index [%s] expects array value, but got: '%s'.";
 	private static final String INDEX_ACCESS_NOT_FOUND = "Index not found. Failed to access index [%s].";

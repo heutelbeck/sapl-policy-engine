@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
-public class StringLiteralImplCustom extends io.sapl.grammar.sapl.impl.StringLiteralImpl {
+public class StringLiteralImplCustom extends StringLiteralImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {

@@ -41,6 +41,7 @@ public class AndImplCustom extends AndImpl {
 
 		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
 		return left.switchMap(leftResult -> {
+			// Lazy evaluation of the right expression
 			if (Boolean.TRUE.equals(leftResult)) {
 				return getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
 			}
@@ -49,3 +50,4 @@ public class AndImplCustom extends AndImpl {
 	}
 
 }
+

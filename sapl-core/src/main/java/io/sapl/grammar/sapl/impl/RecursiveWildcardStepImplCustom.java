@@ -32,7 +32,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
-public class RecursiveWildcardStepImplCustom extends io.sapl.grammar.sapl.impl.RecursiveWildcardStepImpl {
+public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 
 	private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE = "Cannot descent on an undefined value.";
 

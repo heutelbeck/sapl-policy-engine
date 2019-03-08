@@ -29,7 +29,7 @@ import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
-public class RecursiveIndexStepImplCustom extends io.sapl.grammar.sapl.impl.RecursiveIndexStepImpl {
+public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
 	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
 

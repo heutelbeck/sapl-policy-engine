@@ -26,7 +26,7 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
-public class BasicRelativeImplCustom extends io.sapl.grammar.sapl.impl.BasicRelativeImpl {
+public class BasicRelativeImplCustom extends BasicRelativeImpl {
 
 	private static final String NOT_ALLOWED = "Relative expression is not allowed at this place. There was no relative node defined. Was: %s";
 

@@ -30,7 +30,7 @@ import io.sapl.grammar.sapl.Pair;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
-public class ObjectImplCustom extends io.sapl.grammar.sapl.impl.ObjectImpl {
+public class ObjectImplCustom extends ObjectImpl {
 
 	@Override
 	@SuppressWarnings("unchecked")

@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
-public class FilterSimpleImplCustom extends io.sapl.grammar.sapl.impl.FilterSimpleImpl {
+public class FilterSimpleImplCustom extends FilterSimpleImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> apply(Optional<JsonNode> unfilteredRootNode, EvaluationContext ctx, boolean isBody,

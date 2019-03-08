@@ -29,7 +29,7 @@ import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
-public class AttributeFinderStepImplCustom extends io.sapl.grammar.sapl.impl.AttributeFinderStepImpl {
+public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
 	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attribute '%s' is not allowed in target.";
 	private static final String ATTRIBUTE_RESOLUTION = "Attribute resolution error. Attribute '%s' cannot be resolved.";
