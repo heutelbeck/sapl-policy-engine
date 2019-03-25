@@ -1,4 +1,4 @@
-package io.sapl.spring.method;
+package io.sapl.spring.method.pre;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.aop.framework.AopInfrastructureBean;
@@ -22,5 +22,5 @@ public interface PreInvocationEnforcementAdvice extends AopInfrastructureBean {
 	 * @return true if authorized and obligations fulfilled, false otherwise
 	 */
 	boolean before(Authentication authentication, MethodInvocation mi,
-			PreInvocationEnforcementAttribute preInvocationEnforcementAttribute);
+			PolicyBasedPreInvocationEnforcementAttribute preInvocationEnforcementAttribute);
 }

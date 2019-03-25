@@ -24,8 +24,9 @@ public class PolicyEnforcementPoint {
 		Request request = new Request(mapper.valueToTree(subject), mapper.valueToTree(action),
 				mapper.valueToTree(resource), mapper.valueToTree(environment));
 		Response response = pdp.decide(request).block();
-		LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(), request.getSubject(), request.getEnvironment());
-		LOGGER.debug("RESPONSE : {} - {}",response.getDecision(),response);
+		LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(),
+				request.getSubject(), request.getEnvironment());
+		LOGGER.debug("RESPONSE : {} - {}", response.getDecision(), response);
 
 		if (response.getDecision() != Decision.PERMIT) {
 			return false;

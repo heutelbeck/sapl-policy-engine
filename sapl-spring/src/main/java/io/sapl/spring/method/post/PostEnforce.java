@@ -1,4 +1,4 @@
-package io.sapl.spring.method;
+package io.sapl.spring.method.post;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -8,14 +8,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * The @PreEnforce annotation establishes a policy enforcement point (PEP)
- * before the invocation of the annotated method.
+ * The @PostEnforce annotation establishes a policy enforcement point (PEP)
+ * after the invocation of the annotated method, and alters the return value if
+ * indicated by the policy decision point (PDP).
  */
 @Inherited
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.TYPE })
-public @interface PreEnforce {
+public @interface PostEnforce {
 	String subject() default "";
 
 	String action() default "";

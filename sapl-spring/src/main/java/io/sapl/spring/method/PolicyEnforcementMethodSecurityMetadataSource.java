@@ -11,6 +11,10 @@ import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.access.method.AbstractMethodSecurityMetadataSource;
 import org.springframework.util.ClassUtils;
 
+import io.sapl.spring.method.post.PostEnforce;
+import io.sapl.spring.method.post.PostInvocationEnforcementAttribute;
+import io.sapl.spring.method.pre.PreEnforce;
+import io.sapl.spring.method.pre.PreInvocationEnforcementAttribute;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -23,13 +27,14 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		return null;
 	}
 
+	@Override
 	public Collection<ConfigAttribute> getAttributes(Method method, Class<?> targetClass) {
 		if (method.getDeclaringClass() == Object.class) {
 			return Collections.emptyList();
 		}
 
 		logger.trace("Looking for Pre/Post enforcement annotations for method '" + method.getName()
-				+ "' on target class '" + targetClass + "'");
+		+ "' on target class '" + targetClass + "'");
 		PreEnforce preEnforce = findAnnotation(method, targetClass, PreEnforce.class);
 
 		if (preEnforce != null) {
@@ -39,7 +44,6 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		if (postEnforce != null) {
 			logger.trace("Found @PostEnforce: " + postEnforce);
 		}
-
 		if (preEnforce == null && postEnforce == null) {
 			// There is no meta-data so return
 			logger.trace("No expression annotations found");

@@ -1,26 +1,35 @@
 package io.sapl.spring.serialization;
 
-import java.io.IOException;
+import static java.lang.reflect.Modifier.isAbstract;
+import static java.lang.reflect.Modifier.isFinal;
+import static java.lang.reflect.Modifier.isInterface;
+import static java.lang.reflect.Modifier.isNative;
+import static java.lang.reflect.Modifier.isPrivate;
+import static java.lang.reflect.Modifier.isProtected;
+import static java.lang.reflect.Modifier.isPublic;
+import static java.lang.reflect.Modifier.isStatic;
+import static java.lang.reflect.Modifier.isStrict;
+import static java.lang.reflect.Modifier.isSynchronized;
+import static java.lang.reflect.Modifier.isTransient;
+import static java.lang.reflect.Modifier.isVolatile;
 
-import org.aspectj.lang.Signature;
+import java.io.IOException;
+import java.lang.reflect.Method;
+
 import org.springframework.boot.jackson.JsonComponent;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import static java.lang.reflect.Modifier.*;
 
 @JsonComponent
-public class SignatureSerializer extends JsonSerializer<Signature> {
+public class MethodSerializer extends JsonSerializer<Method> {
 
 	@Override
-	public void serialize(Signature value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+	public void serialize(Method value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
 		gen.writeStartObject();
-		gen.writeStringField("sig", value.toString());
-		gen.writeStringField("shortSig", value.toShortString());
-		gen.writeStringField("longSig", value.toLongString());
 		gen.writeStringField("name", value.getName());
-		gen.writeStringField("declaringTypeName", value.getDeclaringTypeName());
+		gen.writeStringField("declaringTypeName", value.getDeclaringClass().getTypeName());
 		gen.writeArrayFieldStart("modifiers");
 		int mod = value.getModifiers();
 		if (isAbstract(mod)) {

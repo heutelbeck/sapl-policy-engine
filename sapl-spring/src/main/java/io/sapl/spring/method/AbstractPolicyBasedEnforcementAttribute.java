@@ -1,32 +1,31 @@
 package io.sapl.spring.method;
 
 import org.springframework.expression.Expression;
-import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.security.access.ConfigAttribute;
 
 import lombok.Getter;
 
 @Getter
-public abstract class AbstractExpressionBasedEnforcementAttribute implements ConfigAttribute {
+public abstract class AbstractPolicyBasedEnforcementAttribute implements ConfigAttribute {
 
-	private final static SpelExpressionParser PARSER = new SpelExpressionParser();
+	private static final SpelExpressionParser PARSER = new SpelExpressionParser();
 
 	private final Expression subjectExpression;
 	private final Expression actionExpression;
 	private final Expression resourceExpression;
 	private final Expression environmentExpression;
 
-	AbstractExpressionBasedEnforcementAttribute(String subjectExpression, String actionExpression,
-			String resourceExpression, String environmentExpression) throws ParseException {
+	protected AbstractPolicyBasedEnforcementAttribute(String subjectExpression, String actionExpression,
+			String resourceExpression, String environmentExpression) {
 		this.subjectExpression = subjectExpression == null ? null : PARSER.parseExpression(subjectExpression);
 		this.actionExpression = actionExpression == null ? null : PARSER.parseExpression(actionExpression);
 		this.resourceExpression = resourceExpression == null ? null : PARSER.parseExpression(resourceExpression);
 		this.environmentExpression = environmentExpression == null ? null : PARSER.parseExpression(subjectExpression);
 	}
 
-	AbstractExpressionBasedEnforcementAttribute(Expression subjectExpression, Expression actionExpression,
-			Expression resourceExpression, Expression environmentExpression) throws ParseException {
+	protected AbstractPolicyBasedEnforcementAttribute(Expression subjectExpression, Expression actionExpression,
+			Expression resourceExpression, Expression environmentExpression) {
 		this.subjectExpression = subjectExpression;
 		this.actionExpression = actionExpression;
 		this.resourceExpression = resourceExpression;
@@ -41,7 +40,7 @@ public abstract class AbstractExpressionBasedEnforcementAttribute implements Con
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		sb.append("[enforcee: subject='")
+		sb.append("[enforce: subject='")
 				.append(subjectExpression == null ? "null" : subjectExpression.getExpressionString());
 		sb.append("', action='").append(actionExpression == null ? "null" : actionExpression.getExpressionString());
 		sb.append("', resource='")

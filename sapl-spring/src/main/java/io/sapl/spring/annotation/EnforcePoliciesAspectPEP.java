@@ -79,8 +79,9 @@ public class EnforcePoliciesAspectPEP {
 					originalResultJson);
 			Request request = buildRequest(subject, action, originalResultJson);
 			Response response = pdp.decide(buildRequest(subject, action, originalResultJson)).block();
-			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(), request.getSubject(), request.getEnvironment());
-			LOGGER.debug("RESPONSE : {} - {}",response.getDecision(),response);
+			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(),
+					request.getSubject(), request.getEnvironment());
+			LOGGER.debug("RESPONSE : {} - {}", response.getDecision(), response);
 
 			if (response.getDecision() != Decision.PERMIT) {
 				LOGGER.trace("Access not permitted by policy decision point. Decision was: {}", response.getDecision());
@@ -110,10 +111,11 @@ public class EnforcePoliciesAspectPEP {
 
 		} else {
 			Object resource = retrieveResource(enforcePolicies, pjp);
-			Request request = buildRequest(subject, action,resource);
+			Request request = buildRequest(subject, action, resource);
 			Response response = pdp.decide(request).block();
-			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(), request.getSubject(), request.getEnvironment());
-			LOGGER.debug("RESPONSE : {} - {}",response.getDecision(),response);
+			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(),
+					request.getSubject(), request.getEnvironment());
+			LOGGER.debug("RESPONSE : {} - {}", response.getDecision(), response);
 
 			if (response.getDecision() != Decision.PERMIT) {
 				LOGGER.trace("Access not permitted by policy decision point. Decision was: {}", response.getDecision());

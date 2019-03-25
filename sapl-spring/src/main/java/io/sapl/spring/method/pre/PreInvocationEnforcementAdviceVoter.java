@@ -1,4 +1,4 @@
-package io.sapl.spring.method;
+package io.sapl.spring.method.pre;
 
 import java.util.Collection;
 
@@ -8,6 +8,8 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
+
+import io.sapl.spring.method.post.PolicyBasedPostInvocationEnforcementAttribute;
 
 public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<MethodInvocation> {
 	protected final Log logger = LogFactory.getLog(getClass());
@@ -20,7 +22,7 @@ public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<
 
 	public boolean supports(ConfigAttribute attribute) {
 		logger.info("Got asked if I support: " + attribute);
-		return attribute instanceof PreInvocationEnforcementAttribute;
+		return attribute instanceof PolicyBasedPostInvocationEnforcementAttribute;
 	}
 
 	public boolean supports(Class<?> clazz) {
@@ -31,9 +33,9 @@ public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<
 		logger.info("voting->auth      : " + authentication);
 		logger.info("voting->method    : " + method);
 		for (ConfigAttribute a : attributes) {
-			logger.info("voting->attribute : " + a + " ... "+a.getClass().getName());
+			logger.info("voting->attribute : " + a + " ... " + a.getClass().getName());
 		}
-		PreInvocationEnforcementAttribute preAttr = findPreInvocationEnforcementAttribute(attributes);
+		PolicyBasedPreInvocationEnforcementAttribute preAttr = findPreInvocationEnforcementAttribute(attributes);
 
 		if (preAttr == null) {
 			// No matching attribute found => abstain
@@ -45,11 +47,11 @@ public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<
 		return permitted ? ACCESS_GRANTED : ACCESS_DENIED;
 	}
 
-	private PreInvocationEnforcementAttribute findPreInvocationEnforcementAttribute(
+	private PolicyBasedPreInvocationEnforcementAttribute findPreInvocationEnforcementAttribute(
 			Collection<ConfigAttribute> config) {
 		for (ConfigAttribute attribute : config) {
-			if (attribute instanceof PreInvocationEnforcementAttribute) {
-				return (PreInvocationEnforcementAttribute) attribute;
+			if (attribute instanceof PolicyBasedPostInvocationEnforcementAttribute) {
+				return (PolicyBasedPreInvocationEnforcementAttribute) attribute;
 			}
 		}
 		return null;
