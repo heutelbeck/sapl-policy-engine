@@ -35,7 +35,7 @@ import lombok.NoArgsConstructor;
  * </ul>
  *
  * All of these objects are expected to be Jackson JsonNodes representing an
- * arbitrary JSON object.<
+ * arbitrary JSON object.
  */
 @Data
 @NoArgsConstructor
