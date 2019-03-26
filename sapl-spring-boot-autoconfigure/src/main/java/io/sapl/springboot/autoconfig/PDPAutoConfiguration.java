@@ -126,7 +126,7 @@ import lombok.extern.slf4j.Slf4j;
  * You can use it to extends the spring-security filterchain. See
  * {@link #policyEnforcementFilter(AdviceHandlerService)} <br/>
  * <code>
- * pdp.policyEnforcementFilter=true
+ * io.sapl.policyEnforcementFilter=true
  * </code> <br/>
  * 
  * <br/>
@@ -236,7 +236,7 @@ public class PDPAutoConfiguration {
 	 * @return a PolicyEnforcementFilter
 	 */
 	@Bean
-	@ConditionalOnProperty("pdp.policyEnforcementFilter")
+	@ConditionalOnProperty("io.sapl.policyEnforcementFilter")
 	public PolicyEnforcementFilterPEP policyEnforcementFilter(PolicyDecisionPoint pdp,
 			ConstraintHandlerService constraintHandlers, ObjectMapper mapper) {
 		LOGGER.debug("no Bean of type PolicyEnforcementFilter defined. Will create default Bean of {}",
