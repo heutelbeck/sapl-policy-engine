@@ -32,7 +32,7 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		if (method.getDeclaringClass() == Object.class) {
 			return Collections.emptyList();
 		}
-		logger.trace("XXXXXXXXXXXXXX inspecting: "+targetClass.getSimpleName());
+		//logger.trace("XXXXXXXXXXXXXX inspecting: "+targetClass.getSimpleName()+"."+method.getName());
 		ArrayList<ConfigAttribute> attrs = new ArrayList<>(2);
 
 		PreEnforce preEnforce = findAnnotation(method, targetClass, PreEnforce.class);
