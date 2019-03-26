@@ -9,8 +9,6 @@ import org.springframework.security.access.AfterInvocationProvider;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
-import io.sapl.spring.method.pre.PreInvocationEnforcementAttribute;
-
 public class PostInvocationEnforcementProvider implements AfterInvocationProvider {
 	protected final Log logger = LogFactory.getLog(getClass());
 
@@ -23,22 +21,12 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 	@Override
 	public boolean supports(ConfigAttribute attribute) {
 		logger.info("Got asked if I support: " + attribute);
-		return attribute instanceof PreInvocationEnforcementAttribute;
+		return attribute instanceof PostInvocationEnforcementAttribute;
 	}
 
 	@Override
 	public boolean supports(Class<?> clazz) {
 		return true;
-	}
-
-	private PolicyBasedPostInvocationEnforcementAttribute findPostInvocationEnforcementAttribute(
-			Collection<ConfigAttribute> config) {
-		for (ConfigAttribute attribute : config) {
-			if (attribute instanceof PolicyBasedPostInvocationEnforcementAttribute) {
-				return (PolicyBasedPostInvocationEnforcementAttribute) attribute;
-			}
-		}
-		return null;
 	}
 
 	@Override
@@ -49,6 +37,21 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 			logger.info("post->attribute : " + a + " ... " + a.getClass().getName());
 		}
 		PolicyBasedPostInvocationEnforcementAttribute pia = findPostInvocationEnforcementAttribute(attributes);
-		return postAdvice.after(authentication, (MethodInvocation) object, pia, returnedObject);
+		if (pia == null) {
+			return returnedObject;
+		} else {
+			return postAdvice.after(authentication, (MethodInvocation) object, pia, returnedObject);
+		}
+	}
+
+	private PolicyBasedPostInvocationEnforcementAttribute findPostInvocationEnforcementAttribute(
+			Collection<ConfigAttribute> config) {
+		for (ConfigAttribute attribute : config) {
+			if (supports(attribute)) {
+				logger.info("found post adttribute: " + attribute + " - " + attribute.getClass().getSimpleName());
+				return (PolicyBasedPostInvocationEnforcementAttribute) attribute;
+			}
+		}
+		return null;
 	}
 }

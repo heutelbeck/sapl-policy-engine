@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBasedInvocationEnforcementAdvice
-implements PostInvocationEnforcementAdvice {
+		implements PostInvocationEnforcementAdvice {
 
 	public PolicyBasedPostInvocationEnforcementAdvice(PolicyDecisionPoint pdp,
 			ConstraintHandlerService constraintHandlers, ObjectMapper mapper) {
@@ -32,20 +32,19 @@ implements PostInvocationEnforcementAdvice {
 			PolicyBasedPostInvocationEnforcementAttribute pia, Object returnedObject) {
 		EvaluationContext ctx = expressionHandler.createEvaluationContext(authentication, mi);
 
-		PolicyBasedPostInvocationEnforcementAttribute attr = pia;
-
-		Object subject = retrieveSubjet(authentication, attr, ctx);
-		Object action = retrieveAction(mi, attr, ctx);
-		Object resource = retrieveResource(mi, attr, ctx);
-		Object environment = retrieveEnvironment(attr, ctx);
+		Object subject = retrieveSubjet(authentication, pia, ctx);
+		Object action = retrieveAction(mi, pia, ctx);
+		Object resource = retrieveResource(mi, pia, ctx);
+		Object environment = retrieveEnvironment(pia, ctx);
 
 		Request request = new Request(mapper.valueToTree(subject), mapper.valueToTree(action),
 				mapper.valueToTree(resource), mapper.valueToTree(environment));
 
 		Response response = pdp.decide(request).block();
 
-		LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(),
-				request.getSubject(), request.getEnvironment());
+		LOGGER.debug("ATTRIBUTE: {} - {}", pia, pia.getClass());
+		LOGGER.debug("REQUEST  :\n - ACTION={}\n - RESOURCE={}\n - SUBJ={}\n - ENV={}", request.getAction(),
+				request.getResource(), request.getSubject(), request.getEnvironment());
 		LOGGER.debug("RESPONSE : {} - {}", response.getDecision(), response);
 
 		if (!response.getDecision().equals(Decision.PERMIT)) {

@@ -100,8 +100,8 @@ public class AbstractPolicyBasedInvocationEnforcementAdvice {
 		final RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
 		final HttpServletRequest httpRequest = requestAttributes != null
 				? ((ServletRequestAttributes) requestAttributes).getRequest()
-						: null;
-				return Optional.ofNullable(httpRequest);
+				: null;
+		return Optional.ofNullable(httpRequest);
 	}
 
 	protected Object retrieveAction(MethodInvocation mi, AbstractPolicyBasedEnforcementAttribute attr,
@@ -126,7 +126,7 @@ public class AbstractPolicyBasedInvocationEnforcementAdvice {
 			actionNode.set("http", mapper.valueToTree(httpServletRequest.get()));
 		}
 		LOGGER.trace("The action is enforced in at inbvocation: {}", mi);
-		actionNode.set("java", mapper.valueToTree(mi));
+		actionNode.set("java", mapper.valueToTree(mi.getMethod()));
 
 		LOGGER.trace("Collect call arguments. Unserializable -> null");
 		ArrayNode array = JsonNodeFactory.instance.arrayNode();

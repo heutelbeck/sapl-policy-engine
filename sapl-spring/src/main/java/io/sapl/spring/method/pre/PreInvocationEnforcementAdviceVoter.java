@@ -49,8 +49,11 @@ public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<
 
 	private PolicyBasedPreInvocationEnforcementAttribute findPreInvocationEnforcementAttribute(
 			Collection<ConfigAttribute> config) {
+		logger.info("Inspecting attributes:");
 		for (ConfigAttribute attribute : config) {
-			if (attribute instanceof PolicyBasedPostInvocationEnforcementAttribute) {
+			logger.info(" - " + attribute);
+			if (attribute instanceof PolicyBasedPreInvocationEnforcementAttribute) {
+				logger.info("is PreEnforce");
 				return (PolicyBasedPreInvocationEnforcementAttribute) attribute;
 			}
 		}

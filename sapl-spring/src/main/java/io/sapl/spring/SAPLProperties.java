@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 @Validated
-@ConfigurationProperties(prefix = "pdp")
+@ConfigurationProperties(prefix = "io.sapl")
 public class SAPLProperties {
 
 	public enum PDPType {

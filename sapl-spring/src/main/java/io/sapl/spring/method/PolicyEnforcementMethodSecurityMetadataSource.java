@@ -32,48 +32,37 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		if (method.getDeclaringClass() == Object.class) {
 			return Collections.emptyList();
 		}
+		logger.trace("XXXXXXXXXXXXXX inspecting: "+targetClass.getSimpleName());
+		ArrayList<ConfigAttribute> attrs = new ArrayList<>(2);
 
-		logger.trace("Looking for Pre/Post enforcement annotations for method '" + method.getName()
-		+ "' on target class '" + targetClass + "'");
 		PreEnforce preEnforce = findAnnotation(method, targetClass, PreEnforce.class);
 
 		if (preEnforce != null) {
 			logger.trace("Found @PreEnforce: " + preEnforce);
+			logger.trace(" - on method '" + method.getName() + "' on target class '" + targetClass + "'");
+			String preEnforceSubject = preEnforce == null ? null : preEnforce.subject();
+			String preEnforceAction = preEnforce == null ? null : preEnforce.action();
+			String preEnforceResource = preEnforce == null ? null : preEnforce.resource();
+			String preEnforceEnvironment = preEnforce == null ? null : preEnforce.environment();
+			PreInvocationEnforcementAttribute pre = attributeFactory.createPreInvocationAttribute(preEnforceSubject,
+					preEnforceAction, preEnforceResource, preEnforceEnvironment);
+			if (pre != null) {
+				attrs.add(pre);
+			}
 		}
 		PostEnforce postEnforce = findAnnotation(method, targetClass, PostEnforce.class);
 		if (postEnforce != null) {
 			logger.trace("Found @PostEnforce: " + postEnforce);
-		}
-		if (preEnforce == null && postEnforce == null) {
-			// There is no meta-data so return
-			logger.trace("No expression annotations found");
-			return Collections.emptyList();
-		}
-
-		String preEnforceSubject = preEnforce == null ? null : preEnforce.subject();
-		String preEnforceAction = preEnforce == null ? null : preEnforce.action();
-		String preEnforceResource = preEnforce == null ? null : preEnforce.resource();
-		String preEnforceEnvironment = preEnforce == null ? null : preEnforce.environment();
-
-		String postEnforceSubject = postEnforce == null ? null : postEnforce.subject();
-		String postEnforceAction = postEnforce == null ? null : postEnforce.action();
-		String postEnforceResource = postEnforce == null ? null : postEnforce.resource();
-		String postEnforceEnvironment = postEnforce == null ? null : postEnforce.environment();
-
-		ArrayList<ConfigAttribute> attrs = new ArrayList<>(2);
-
-		PreInvocationEnforcementAttribute pre = attributeFactory.createPreInvocationAttribute(preEnforceSubject,
-				preEnforceAction, postEnforceResource, postEnforceEnvironment);
-
-		if (pre != null) {
-			attrs.add(pre);
-		}
-
-		PostInvocationEnforcementAttribute post = attributeFactory.createPostInvocationAttribute(postEnforceSubject,
-				postEnforceAction, preEnforceResource, preEnforceEnvironment);
-
-		if (post != null) {
-			attrs.add(post);
+			logger.trace(" - on method '" + method.getName() + "' on target class '" + targetClass + "'");
+			String postEnforceSubject = postEnforce == null ? null : postEnforce.subject();
+			String postEnforceAction = postEnforce == null ? null : postEnforce.action();
+			String postEnforceResource = postEnforce == null ? null : postEnforce.resource();
+			String postEnforceEnvironment = postEnforce == null ? null : postEnforce.environment();
+			PostInvocationEnforcementAttribute post = attributeFactory.createPostInvocationAttribute(postEnforceSubject,
+					postEnforceAction, postEnforceResource, postEnforceEnvironment);
+			if (post != null) {
+				attrs.add(post);
+			}
 		}
 
 		attrs.trimToSize();
