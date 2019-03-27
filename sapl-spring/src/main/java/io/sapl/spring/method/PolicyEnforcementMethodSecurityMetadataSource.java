@@ -48,7 +48,7 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 					preEnforceAction, preEnforceResource, preEnforceEnvironment);
 			attrs.add(pre);
 		}
-		
+
 		PostEnforce postEnforce = findAnnotation(method, targetClass, PostEnforce.class);
 		if (postEnforce != null) {
 			LOGGER.trace("@PostEnforce on {}.{}: ", targetClass.getSimpleName(), method.getName(), postEnforce);
@@ -62,7 +62,7 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		}
 
 		attrs.trimToSize();
-		
+
 		return attrs;
 	}
 
@@ -79,7 +79,6 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		A annotation = AnnotationUtils.findAnnotation(specificMethod, annotationClass);
 
 		if (annotation != null) {
-			logger.debug(annotation + " found on specific method: " + specificMethod);
 			return annotation;
 		}
 
@@ -88,7 +87,6 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 			annotation = AnnotationUtils.findAnnotation(method, annotationClass);
 
 			if (annotation != null) {
-				logger.debug(annotation + " found on: " + method);
 				return annotation;
 			}
 		}
@@ -98,7 +96,6 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		annotation = AnnotationUtils.findAnnotation(specificMethod.getDeclaringClass(), annotationClass);
 
 		if (annotation != null) {
-			logger.debug(annotation + " found on: " + specificMethod.getDeclaringClass().getName());
 			return annotation;
 		}
 

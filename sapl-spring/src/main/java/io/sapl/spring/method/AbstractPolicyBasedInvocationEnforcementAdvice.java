@@ -6,6 +6,7 @@ import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 
 import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
@@ -32,18 +33,34 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @RequiredArgsConstructor
-public class AbstractPolicyBasedInvocationEnforcementAdvice {
+public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	protected MethodSecurityExpressionHandler expressionHandler = new DefaultMethodSecurityExpressionHandler();
 
-	protected final PolicyDecisionPoint pdp;
-	protected final ConstraintHandlerService constraintHandlers;
-	protected final ObjectMapper mapper;
+	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
+	protected final ObjectFactory<ConstraintHandlerService> constraintHandlerFactory;
+	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
+
+	protected PolicyDecisionPoint pdp;
+	protected ConstraintHandlerService constraintHandlers;
+	protected ObjectMapper mapper;
 
 	public void setExpressionHandler(MethodSecurityExpressionHandler expressionHandler) {
 		this.expressionHandler = expressionHandler;
+	}
+
+	protected void lazyLoadDepdendencies() {
+		if (pdp == null) {
+			pdp = pdpFactory.getObject();
+		}
+		if (constraintHandlers == null) {
+			constraintHandlers = constraintHandlerFactory.getObject();
+		}
+		if (mapper == null) {
+			mapper = objectMapperFactory.getObject();
+		}
 	}
 
 	protected Object retrieveEnvironment(AbstractPolicyBasedEnforcementAttribute attr, EvaluationContext ctx) {

@@ -1,6 +1,7 @@
 package io.sapl.spring.method.pre;
 
 import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -22,14 +23,20 @@ import lombok.extern.slf4j.Slf4j;
 public class PolicyBasedPreInvocationEnforcementAdvice extends AbstractPolicyBasedInvocationEnforcementAdvice
 		implements PreInvocationEnforcementAdvice {
 
-	public PolicyBasedPreInvocationEnforcementAdvice(PolicyDecisionPoint pdp,
-			ConstraintHandlerService constraintHandlers, ObjectMapper mapper) {
-		super(pdp, constraintHandlers, mapper);
+	public PolicyBasedPreInvocationEnforcementAdvice(ObjectFactory<PolicyDecisionPoint> pdpFactory,
+			ObjectFactory<ConstraintHandlerService> constraintHandlerFactory,
+			ObjectFactory<ObjectMapper> objectMapperFactory) {
+		super(pdpFactory, constraintHandlerFactory, objectMapperFactory);
 	}
 
 	@Override
 	public boolean before(Authentication authentication, MethodInvocation mi,
 			PolicyBasedPreInvocationEnforcementAttribute attr) {
+		// Lazy loading to decouple infrastructure initialization from domain
+		// initialization.
+		// Else, beans may become not eligible for BeanPostProcessors
+		lazyLoadDepdendencies();
+
 		EvaluationContext ctx = expressionHandler.createEvaluationContext(authentication, mi);
 
 		Object subject = retrieveSubjet(authentication, attr, ctx);
