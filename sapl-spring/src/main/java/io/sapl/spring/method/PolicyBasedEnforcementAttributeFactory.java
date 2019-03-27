@@ -60,7 +60,7 @@ public class PolicyBasedEnforcementAttributeFactory implements PolicyEnforcement
 	/**
 	 * Delay the lookup of the {@link ExpressionParser} to prevent SEC-2136
 	 *
-	 * @return
+	 * @return the parser
 	 */
 	private ExpressionParser getParser() {
 		if (parser != null) {

@@ -47,7 +47,7 @@ public class PolicyBasedPreInvocationEnforcementAdvice extends AbstractPolicyBas
 		LOGGER.debug("RESPONSE : {} - {}", response.getDecision(), response);
 
 		if (response.getResource().isPresent()) {
-			LOGGER.warn("Cannot handle resource in response in @PreEnforce.");
+			LOGGER.warn("Cannot handle a response declaring a new resource in @PreEnforce. Deny access!");
 			return false;
 		}
 		if (!response.getDecision().equals(Decision.PERMIT)) {

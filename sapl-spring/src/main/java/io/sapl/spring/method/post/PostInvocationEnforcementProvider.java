@@ -20,7 +20,6 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 
 	@Override
 	public boolean supports(ConfigAttribute attribute) {
-		logger.info("Got asked if I support: " + attribute);
 		return attribute instanceof PostInvocationEnforcementAttribute;
 	}
 
@@ -32,10 +31,6 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 	@Override
 	public Object decide(Authentication authentication, Object object, Collection<ConfigAttribute> attributes,
 			Object returnedObject) {
-		logger.info("post->auth      : " + authentication);
-		for (ConfigAttribute a : attributes) {
-			logger.info("post->attribute : " + a + " ... " + a.getClass().getName());
-		}
 		PolicyBasedPostInvocationEnforcementAttribute pia = findPostInvocationEnforcementAttribute(attributes);
 		if (pia == null) {
 			return returnedObject;
@@ -48,7 +43,6 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 			Collection<ConfigAttribute> config) {
 		for (ConfigAttribute attribute : config) {
 			if (supports(attribute)) {
-				logger.info("found post adttribute: " + attribute + " - " + attribute.getClass().getSimpleName());
 				return (PolicyBasedPostInvocationEnforcementAttribute) attribute;
 			}
 		}

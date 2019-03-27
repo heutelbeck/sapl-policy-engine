@@ -16,7 +16,9 @@ import io.sapl.spring.method.post.PostInvocationEnforcementAttribute;
 import io.sapl.spring.method.pre.PreEnforce;
 import io.sapl.spring.method.pre.PreInvocationEnforcementAttribute;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMethodSecurityMetadataSource {
 
@@ -32,41 +34,35 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		if (method.getDeclaringClass() == Object.class) {
 			return Collections.emptyList();
 		}
-		//logger.trace("XXXXXXXXXXXXXX inspecting: "+targetClass.getSimpleName()+"."+method.getName());
+
 		ArrayList<ConfigAttribute> attrs = new ArrayList<>(2);
 
 		PreEnforce preEnforce = findAnnotation(method, targetClass, PreEnforce.class);
-
 		if (preEnforce != null) {
-			logger.trace("Found @PreEnforce: " + preEnforce);
-			logger.trace(" - on method '" + method.getName() + "' on target class '" + targetClass + "'");
+			LOGGER.trace("@PreEnforce on {}.{}: ", targetClass.getSimpleName(), method.getName(), preEnforce);
 			String preEnforceSubject = preEnforce == null ? null : preEnforce.subject();
 			String preEnforceAction = preEnforce == null ? null : preEnforce.action();
 			String preEnforceResource = preEnforce == null ? null : preEnforce.resource();
 			String preEnforceEnvironment = preEnforce == null ? null : preEnforce.environment();
 			PreInvocationEnforcementAttribute pre = attributeFactory.createPreInvocationAttribute(preEnforceSubject,
 					preEnforceAction, preEnforceResource, preEnforceEnvironment);
-			if (pre != null) {
-				attrs.add(pre);
-			}
+			attrs.add(pre);
 		}
+		
 		PostEnforce postEnforce = findAnnotation(method, targetClass, PostEnforce.class);
 		if (postEnforce != null) {
-			logger.trace("Found @PostEnforce: " + postEnforce);
-			logger.trace(" - on method '" + method.getName() + "' on target class '" + targetClass + "'");
+			LOGGER.trace("@PostEnforce on {}.{}: ", targetClass.getSimpleName(), method.getName(), postEnforce);
 			String postEnforceSubject = postEnforce == null ? null : postEnforce.subject();
 			String postEnforceAction = postEnforce == null ? null : postEnforce.action();
 			String postEnforceResource = postEnforce == null ? null : postEnforce.resource();
 			String postEnforceEnvironment = postEnforce == null ? null : postEnforce.environment();
 			PostInvocationEnforcementAttribute post = attributeFactory.createPostInvocationAttribute(postEnforceSubject,
 					postEnforceAction, postEnforceResource, postEnforceEnvironment);
-			if (post != null) {
-				attrs.add(post);
-			}
+			attrs.add(post);
 		}
 
 		attrs.trimToSize();
-
+		
 		return attrs;
 	}
 

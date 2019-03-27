@@ -16,7 +16,7 @@ import io.sapl.spring.method.AbstractPolicyBasedInvocationEnforcementAdvice;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Method pre-invocation handling based on a SAPL policy decision point.
+ * Method post-invocation handling based on a SAPL policy decision point.
  */
 @Slf4j
 public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBasedInvocationEnforcementAdvice

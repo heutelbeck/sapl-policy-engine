@@ -51,7 +51,7 @@ public class AbstractPolicyBasedInvocationEnforcementAdvice {
 			return null;
 		} else {
 			JsonNode exprResult = evaluateToJson(attr.getEnvironmentExpression(), ctx);
-			LOGGER.info("Environment defined by expression: {}", exprResult);
+			LOGGER.trace("Environment defined by expression: {}", exprResult);
 			return exprResult;
 		}
 	}
@@ -61,12 +61,12 @@ public class AbstractPolicyBasedInvocationEnforcementAdvice {
 		if (attr.getSubjectExpression() == null) {
 			// no explicit subject declared => use the authentication object to indicate the
 			// subject
-			LOGGER.info("Subject defined by authentication.");
+			LOGGER.trace("Subject defined by authentication.");
 			return authentication;
 		} else {
 			// subject declared by expression
 			JsonNode exprResult = evaluateToJson(attr.getSubjectExpression(), ctx);
-			LOGGER.info("Subject defined by expression: {}", exprResult);
+			LOGGER.trace("Subject defined by expression: {}", exprResult);
 			return exprResult;
 		}
 	}
@@ -108,12 +108,12 @@ public class AbstractPolicyBasedInvocationEnforcementAdvice {
 			EvaluationContext ctx) {
 		if (attr.getActionExpression() == null) {
 			// no explicit action declared => derive action from MethodInvocation
-			LOGGER.info("Action defined by invocation.");
+			LOGGER.trace("Action defined by invocation.");
 			return retrieveAction(mi);
 		} else {
 			// action declared by expression
 			JsonNode exprResult = evaluateToJson(attr.getActionExpression(), ctx);
-			LOGGER.info("Action defined by expression: {}", exprResult);
+			LOGGER.trace("Action defined by expression: {}", exprResult);
 			return exprResult;
 		}
 	}
@@ -146,26 +146,26 @@ public class AbstractPolicyBasedInvocationEnforcementAdvice {
 			EvaluationContext ctx) {
 		if (attr.getResourceExpression() == null) {
 			// no explicit action declared => derive action from MethodInvocation
-			LOGGER.info("Resource defined by invocation.");
+			LOGGER.trace("Resource defined by invocation.");
 			return retrieveResource(mi);
 		} else {
 			// declared by expression
 			JsonNode exprResult = evaluateToJson(attr.getResourceExpression(), ctx);
-			LOGGER.info("Resource defined by expression: {}", exprResult);
+			LOGGER.trace("Resource defined by expression: {}", exprResult);
 			return exprResult;
 		}
 	}
 
 	protected Object retrieveResource(MethodInvocation mi) {
-		LOGGER.info("No specific resouce information found. Construct basic information from the runtime context");
+		LOGGER.trace("No specific resouce information found. Construct basic information from the runtime context");
 		ObjectNode resourceNode = mapper.createObjectNode();
 		Optional<HttpServletRequest> httpServletRequest = retrieveRequestObject();
 		if (httpServletRequest.isPresent()) {
-			LOGGER.info("The action is in the context of a HTTP request. Adding it to the resource.");
+			LOGGER.trace("The action is in the context of a HTTP request. Adding it to the resource.");
 			resourceNode.set("http", mapper.valueToTree(httpServletRequest.get()));
 		}
 		JsonNode target = serializeTargetClassDescription(mi.getThis().getClass());
-		LOGGER.info("The target of access is: {}", target);
+		LOGGER.trace("The target of access is: {}", target);
 		resourceNode.set("targetClass", target);
 		return resourceNode;
 	}

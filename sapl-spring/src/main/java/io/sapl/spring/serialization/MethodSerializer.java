@@ -29,6 +29,7 @@ public class MethodSerializer extends JsonSerializer<Method> {
 	public void serialize(Method value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
 		gen.writeStartObject();
 		gen.writeStringField("name", value.getName());
+		gen.writeStringField("shortSig", value.getDeclaringClass().getSimpleName() + "." + value.getName() + "(..)");
 		gen.writeStringField("declaringTypeName", value.getDeclaringClass().getTypeName());
 		gen.writeArrayFieldStart("modifiers");
 		int mod = value.getModifiers();

@@ -3,8 +3,6 @@ package io.sapl.spring.method.pre;
 import java.util.Collection;
 
 import org.aopalliance.intercept.MethodInvocation;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
@@ -12,8 +10,6 @@ import org.springframework.security.core.Authentication;
 import io.sapl.spring.method.post.PolicyBasedPostInvocationEnforcementAttribute;
 
 public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<MethodInvocation> {
-	protected final Log logger = LogFactory.getLog(getClass());
-
 	private final PreInvocationEnforcementAdvice preAdvice;
 
 	public PreInvocationEnforcementAdviceVoter(PreInvocationEnforcementAdvice pre) {
@@ -21,7 +17,6 @@ public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<
 	}
 
 	public boolean supports(ConfigAttribute attribute) {
-		logger.info("Got asked if I support: " + attribute);
 		return attribute instanceof PolicyBasedPostInvocationEnforcementAttribute;
 	}
 
@@ -30,11 +25,6 @@ public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<
 	}
 
 	public int vote(Authentication authentication, MethodInvocation method, Collection<ConfigAttribute> attributes) {
-		logger.info("voting->auth      : " + authentication);
-		logger.info("voting->method    : " + method);
-		for (ConfigAttribute a : attributes) {
-			logger.info("voting->attribute : " + a + " ... " + a.getClass().getName());
-		}
 		PolicyBasedPreInvocationEnforcementAttribute preAttr = findPreInvocationEnforcementAttribute(attributes);
 
 		if (preAttr == null) {
@@ -49,11 +39,8 @@ public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<
 
 	private PolicyBasedPreInvocationEnforcementAttribute findPreInvocationEnforcementAttribute(
 			Collection<ConfigAttribute> config) {
-		logger.info("Inspecting attributes:");
 		for (ConfigAttribute attribute : config) {
-			logger.info(" - " + attribute);
 			if (attribute instanceof PolicyBasedPreInvocationEnforcementAttribute) {
-				logger.info("is PreEnforce");
 				return (PolicyBasedPreInvocationEnforcementAttribute) attribute;
 			}
 		}
