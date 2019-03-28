@@ -12,6 +12,7 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
@@ -145,8 +146,9 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	@Override
 	public Collection<String> functionsInLibrary(String libraryName) {
-		if (libraries.containsKey(libraryName)) {
-			return libraries.get(libraryName);
+		Collection<String> libs = libraries.get(libraryName);
+		if (libs != null) {
+			return libs;
 		} else {
 			return new HashSet<>();
 		}

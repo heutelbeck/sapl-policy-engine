@@ -37,7 +37,6 @@ import io.sapl.api.validation.Text;
 import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.BasicRelative;
 import io.sapl.grammar.sapl.impl.StepResolver;
-import io.sapl.grammar.sapl.impl.Value;
 import io.sapl.grammar.services.SAPLGrammarAccess;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
@@ -127,8 +126,9 @@ public class SelectionFunctionLibrary {
 			}
 			LOGGER.info("needleResult isResultArray -> inStructure");
 			for (AbstractAnnotatedJsonNode node : (ArrayResultNode) needleResult) {
-				if (!inStructure(node, haystackResult))
+				if (!inStructure(node, haystackResult)) {
 					return JSON.booleanNode(false);
+				}
 			}
 			return JSON.booleanNode(true);
 		} catch (PolicyEvaluationException e) {
@@ -144,7 +144,7 @@ public class SelectionFunctionLibrary {
 		BasicRelative firstExpression = parseRelative(second.asText());
 		BasicRelative secondExpression = parseRelative(first.asText());
 		Optional<JsonNode> oStruct = Optional.of(structure);
-		
+
 		try {
 			ResultNode firstResult = StepResolver
 					.resolveSteps(oStruct, firstExpression.getSteps(), null, false, oStruct).blockFirst();
@@ -154,7 +154,6 @@ public class SelectionFunctionLibrary {
 			LOGGER.info("firstResult: {}", firstResult.asJsonWithoutAnnotations().get());
 			LOGGER.info("secondResult: {}", firstResult.asJsonWithoutAnnotations().get());
 
-			
 			if (firstResult.isNodeWithoutParent() && secondResult.isNodeWithoutParent()) {
 				LOGGER.info("A");
 				return JSON.booleanNode(true);
@@ -187,8 +186,9 @@ public class SelectionFunctionLibrary {
 					break;
 				}
 			}
-			if (!found)
+			if (!found) {
 				return false;
+			}
 		}
 		return true;
 	}
@@ -199,8 +199,9 @@ public class SelectionFunctionLibrary {
 			return inNode(needleResult, (AbstractAnnotatedJsonNode) haystackResult);
 		} else {
 			for (AbstractAnnotatedJsonNode haystackNode : (ArrayResultNode) haystackResult) {
-				if (inNode(needleResult, haystackNode))
+				if (inNode(needleResult, haystackNode)) {
 					return true;
+				}
 			}
 			return false;
 		}
@@ -210,7 +211,7 @@ public class SelectionFunctionLibrary {
 			throws PolicyEvaluationException {
 		if (needleResult.sameReference(haystackResult)) {
 			return true;
-		} else if (needleResult.getParent() != null) {
+		} else if (needleResult.getParent().isPresent()) {
 			return recursiveCheck(needleResult.getParent().get(), haystackResult.getNode().get());
 		}
 		return false;
@@ -222,13 +223,15 @@ public class SelectionFunctionLibrary {
 		}
 		if (haystack.isArray()) {
 			for (JsonNode node : (ArrayNode) haystack) {
-				if (recursiveCheck(needleParent, node))
+				if (recursiveCheck(needleParent, node)) {
 					return true;
+				}
 			}
 		} else if (haystack.isObject()) {
 			for (JsonNode node : (ObjectNode) haystack) {
-				if (recursiveCheck(needleParent, node))
+				if (recursiveCheck(needleParent, node)) {
 					return true;
+				}
 			}
 		}
 		return false;

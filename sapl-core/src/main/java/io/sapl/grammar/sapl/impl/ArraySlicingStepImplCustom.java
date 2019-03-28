@@ -53,8 +53,8 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 					previousResult.getNode().isPresent() ? previousResult.getNode().get().getNodeType() : "undefined"));
 		}
 
-		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
 		final List<Integer> nodeIndices = resolveIndex(previousResult.getNode().get());
+		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>(nodeIndices.size());
 		for (Integer idx : nodeIndices) {
 			list.add(new JsonNodeWithParentArray(Optional.of(previousResult.getNode().get().get(idx)),
 					previousResult.getNode(), idx));
@@ -73,9 +73,9 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	}
 
 	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
-		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
 		final List<Integer> nodeIndices = resolveIndex(previousResult.asJsonWithoutAnnotations()
 				.orElseThrow(() -> new PolicyEvaluationException("undefined value")));
+		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>(nodeIndices.size());
 		for (Integer i : nodeIndices) {
 			list.add(previousResult.getNodes().get(i));
 		}

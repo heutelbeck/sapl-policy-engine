@@ -27,14 +27,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.geotools.geometry.jts.JTSFactoryFinder;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
@@ -49,7 +49,7 @@ public class TraccarConnection {
 	private static final String TRACCAR_DEVICES = "devices";
 	private static final String TRACCAR_GEOFENCES = "geofences";
 	private static final String EMPTY_STRING = "";
-	private static final String QUESTIONMARK = "?";
+	private static final char QUESTIONMARK = '?';
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	protected static final String UNABLE_TO_READ_FROM_SERVER = "Unable to make connection or retrieve data from tracking server.";

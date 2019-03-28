@@ -35,8 +35,8 @@ public class PlusImplCustom extends PlusImpl {
 				&& tuple.getT2().get().isNumber()) {
 			return Value.fluxOf(tuple.getT1().get().decimalValue().add(tuple.getT2().get().decimalValue()));
 		}
-		String left = tuple.getT1().orElse(JSON.textNode("undefined")).asText();
-		String right = tuple.getT2().orElse(JSON.textNode("undefined")).asText();
+		String left = tuple.getT1().orElseGet(() -> JSON.textNode("undefined")).asText();
+		String right = tuple.getT2().orElseGet(() -> JSON.textNode("undefined")).asText();
 		return Value.fluxOf(left.concat(right));
 	}
 

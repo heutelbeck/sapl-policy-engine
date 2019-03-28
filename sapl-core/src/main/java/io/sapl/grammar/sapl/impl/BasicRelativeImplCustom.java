@@ -42,11 +42,11 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
 	public int hash(Map<String, String> imports) {
 		int hash = 17;
 		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = 37 * hash + ((getFilter() == null) ? 0 : getFilter().hash(imports));
+		hash = 37 * hash + (getFilter() == null ? 0 : getFilter().hash(imports));
 		for (Step step : getSteps()) {
-			hash = 37 * hash + ((step == null) ? 0 : step.hash(imports));
+			hash = 37 * hash + (step == null ? 0 : step.hash(imports));
 		}
-		hash = 37 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
+		hash = 37 * hash + (getSubtemplate() == null ? 0 : getSubtemplate().hash(imports));
 		return hash;
 	}
 
@@ -59,11 +59,11 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
 			return false;
 		}
 		final BasicRelativeImplCustom otherImpl = (BasicRelativeImplCustom) other;
-		if ((getFilter() == null) ? (getFilter() != otherImpl.getFilter())
+		if (getFilter() == null ? getFilter() != otherImpl.getFilter()
 				: !getFilter().isEqualTo(otherImpl.getFilter(), otherImports, imports)) {
 			return false;
 		}
-		if ((getSubtemplate() == null) ? (getSubtemplate() != otherImpl.getSubtemplate())
+		if (getSubtemplate() == null ? getSubtemplate() != otherImpl.getSubtemplate()
 				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports, imports)) {
 			return false;
 		}

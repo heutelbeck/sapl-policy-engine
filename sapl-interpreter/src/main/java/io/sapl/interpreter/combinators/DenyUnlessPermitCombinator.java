@@ -44,15 +44,17 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 			LOGGER.trace("| |-- Evaluate: {} ({})", document.getPolicyElement().getSaplName(),
 					document.getPolicyElement().getClass().getName());
 			// do not first check match again. directly evaluate the rules
-			responseFluxes.add(interpreter.evaluateRules(request, document, attributeCtx, functionCtx, systemVariables));
+			responseFluxes
+					.add(interpreter.evaluateRules(request, document, attributeCtx, functionCtx, systemVariables));
 		}
 
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator();
 		return Flux.combineLatest(responseFluxes, responses -> {
 			responseAccumulator.addSingleResponses(responses);
+			Response result = responseAccumulator.getCombinedResponse();
 			LOGGER.trace("| |-- {} Combined Response: {}", responseAccumulator.getCombinedResponse().getDecision(),
-					responseAccumulator.getCombinedResponse());
-			return responseAccumulator.getCombinedResponse();
+					result);
+			return result;
 		}).distinctUntilChanged();
 	}
 

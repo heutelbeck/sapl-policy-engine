@@ -187,8 +187,9 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	@Override
 	public Collection<String> findersInLibrary(String pipName) {
-		if (attributeNamesByPipName.containsKey(pipName)) {
-			return attributeNamesByPipName.get(pipName);
+		Collection<String> pips = attributeNamesByPipName.get(pipName);
+		if (pips != null) {
+			return pips;
 		} else {
 			return new HashSet<>();
 		}

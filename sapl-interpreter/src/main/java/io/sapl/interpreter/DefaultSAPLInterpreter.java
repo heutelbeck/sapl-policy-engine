@@ -377,8 +377,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			}
 		}).flatMap(response -> {
 			if (response.getDecision() == Decision.PERMIT) {
-				return evaluateTransformation(policy, evaluationCtx)
-						.map(resource -> new Response(response.getDecision(), resource.orElse(Optional.empty()),
+				return evaluateTransformation(policy, evaluationCtx).map(
+						resource -> new Response(response.getDecision(), resource.orElseGet(() -> Optional.empty()),
 								response.getObligations(), response.getAdvices()));
 			} else {
 				return Flux.just(response);
@@ -430,7 +430,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 					throw new PolicyEvaluationException(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL);
 				}
 				evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
-				return true;
+				return Boolean.TRUE;
 			} catch (PolicyEvaluationException e) {
 				LOGGER.error(e.getMessage(), e);
 				throw Exceptions.propagate(e);

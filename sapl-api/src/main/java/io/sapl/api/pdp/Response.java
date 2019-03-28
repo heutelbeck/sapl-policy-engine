@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -72,16 +73,16 @@ public class Response {
 			return false;
 		}
 		final Response other = (Response) o;
-		if (!Objects.equals(this.getDecision(), other.getDecision())) {
+		if (!Objects.equals(getDecision(), other.getDecision())) {
 			return false;
 		}
-		if (!areEqual(this.getResource(), other.getResource())) {
+		if (!areEqual(getResource(), other.getResource())) {
 			return false;
 		}
-		if (!areEqual(this.getObligations(), other.getObligations())) {
+		if (!areEqual(getObligations(), other.getObligations())) {
 			return false;
 		}
-		return areEqual(this.getAdvices(), other.getAdvices());
+		return areEqual(getAdvices(), other.getAdvices());
 	}
 
 	private static boolean areEqual(Optional<?> thisOptional, Optional<?> otherOptional) {
@@ -98,14 +99,14 @@ public class Response {
 	public int hashCode() {
 		final int PRIME = 59;
 		int result = 1;
-		final Object thisDecision = this.getDecision();
+		final Object thisDecision = getDecision();
 		result = result * PRIME + (thisDecision == null ? 43 : thisDecision.hashCode());
-		final Optional<JsonNode> thisResource = this.getResource();
-		result = result * PRIME + thisResource.map(Object::hashCode).orElse(43);
-		final Optional<ArrayNode> thisObligation = this.getObligations();
-		result = result * PRIME + thisObligation.map(Object::hashCode).orElse(43);
-		final Optional<ArrayNode> thisAdvice = this.getAdvices();
-		result = result * PRIME + thisAdvice.map(Object::hashCode).orElse(43);
+		final Optional<JsonNode> thisResource = getResource();
+		result = result * PRIME + thisResource.map(Object::hashCode).orElseGet(() -> 43);
+		final Optional<ArrayNode> thisObligation = getObligations();
+		result = result * PRIME + thisObligation.map(Object::hashCode).orElseGet(() -> 43);
+		final Optional<ArrayNode> thisAdvice = getAdvices();
+		result = result * PRIME + thisAdvice.map(Object::hashCode).orElseGet(() -> 43);
 		return result;
 	}
 }

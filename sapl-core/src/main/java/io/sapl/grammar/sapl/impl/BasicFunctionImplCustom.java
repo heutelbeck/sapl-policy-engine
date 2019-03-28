@@ -34,7 +34,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implements the evaluation of functions.
- * 
+ *
  * Basic returns BasicExpression: {BasicGroup} '(' expression=Expression ')'
  * steps+=Step* | {BasicValue} value=Value steps+=Step* | {BasicFunction}
  * fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step* |
@@ -85,10 +85,13 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 					// Functions currently still operate in the 1.0.0 engine mindset.
 					// But:
 					// - functions are always local (never remote)
-					// - they never produce a flux of results by their own, only if their arguments are fluxes
-					// - therefore they can be used in target expressions, where fluxes of results don't make sense
-					//   (and never occur because attribute finders, the only source of result fluxes, are not allowed
-					//   in target expressions)
+					// - they never produce a flux of results by their own, only if their arguments
+					// are fluxes
+					// - therefore they can be used in target expressions, where fluxes of results
+					// don't make sense
+					// (and never occur because attribute finders, the only source of result fluxes,
+					// are not allowed
+					// in target expressions)
 					// That's why the function library interface was intentionally left non reactive
 					argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(
 							() -> new FunctionException(UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL)));
@@ -103,18 +106,21 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 	@Override
 	public int hash(Map<String, String> imports) {
 		int hash = 17;
-		hash = 37 * hash + ((getArguments() == null) ? 0 : getArguments().hash(imports));
+		hash = 37 * hash + (getArguments() == null ? 0 : getArguments().hash(imports));
 		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = 37 * hash + ((getFilter() == null) ? 0 : getFilter().hash(imports));
+		hash = 37 * hash + (getFilter() == null ? 0 : getFilter().hash(imports));
 		String identifier = String.join(".", getFsteps());
-		if (imports != null && imports.containsKey(identifier)) {
-			identifier = imports.get(identifier);
+		if (imports != null) {
+			String imp = imports.get(identifier);
+			if (imp != null) {
+				identifier = imp;
+			}
 		}
 		hash = 37 * hash + Objects.hashCode(identifier);
 		for (Step step : getSteps()) {
-			hash = 37 * hash + ((step == null) ? 0 : step.hash(imports));
+			hash = 37 * hash + (step == null ? 0 : step.hash(imports));
 		}
-		hash = 37 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
+		hash = 37 * hash + (getSubtemplate() == null ? 0 : getSubtemplate().hash(imports));
 		return hash;
 	}
 
@@ -127,29 +133,35 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 			return false;
 		}
 		final BasicFunctionImplCustom otherImpl = (BasicFunctionImplCustom) other;
-		if ((getArguments() == null) ? (getArguments() != otherImpl.getArguments())
+		if (getArguments() == null ? getArguments() != otherImpl.getArguments()
 				: !getArguments().isEqualTo(otherImpl.getArguments(), otherImports, imports)) {
 			return false;
 		}
-		if ((getFilter() == null) ? (getFilter() != otherImpl.getFilter())
+		if (getFilter() == null ? getFilter() != otherImpl.getFilter()
 				: !getFilter().isEqualTo(otherImpl.getFilter(), otherImports, imports)) {
 			return false;
 		}
-		if ((getFsteps() == null) != (otherImpl.getFsteps() == null)) {
+		if (getFsteps() == null != (otherImpl.getFsteps() == null)) {
 			return false;
 		}
 		String lhIdentifier = String.join(".", getFsteps());
-		if (imports != null && imports.containsKey(lhIdentifier)) {
-			lhIdentifier = imports.get(lhIdentifier);
+		if (imports != null) {
+			String imp = imports.get(lhIdentifier);
+			if (imp != null) {
+				lhIdentifier = imp;
+			}
 		}
 		String rhIdentifier = String.join(".", otherImpl.getFsteps());
-		if (otherImports != null && otherImports.containsKey(rhIdentifier)) {
-			rhIdentifier = otherImports.get(rhIdentifier);
+		if (otherImports != null) {
+			String imp = otherImports.get(rhIdentifier);
+			if (imp != null) {
+				rhIdentifier = otherImports.get(rhIdentifier);
+			}
 		}
 		if (!Objects.equals(lhIdentifier, rhIdentifier)) {
 			return false;
 		}
-		if ((getSubtemplate() == null) ? (getSubtemplate() != otherImpl.getSubtemplate())
+		if (getSubtemplate() == null ? getSubtemplate() != otherImpl.getSubtemplate()
 				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports, imports)) {
 			return false;
 		}

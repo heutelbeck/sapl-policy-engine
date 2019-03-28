@@ -39,8 +39,7 @@ public class RequestUtility {
 			final String requestId = identifiableDecision.getRequestId();
 			final Decision decision = identifiableDecision.getDecision();
 			multiDecision.setDecisionForRequestWithId(requestId, decision);
-			if (keys.contains(requestId)) {
-				keys.remove(requestId);
+			if (keys.remove(requestId)) {
 				cdl.countDown();
 			}
 		}, error -> {

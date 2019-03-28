@@ -24,9 +24,9 @@ public class PostGISConfig {
 	private static final String SQL_FLIP = "ST_FlipCoordinates(";
 	private static final String SQL_TRANSFORM = "ST_Transform(";
 	private static final String SQL_AND = " AND ";
-	private static final String SLASH = "/";
-	private static final String QM = "?";
-	private static final String AMP = "&";
+	private static final char SLASH = '/';
+	private static final char QM = '?';
+	private static final char AMP = '&';
 	private static final String SEQ = "<=";
 	private static final String GEQ = ">=";
 	private static final char COLON = ':';
