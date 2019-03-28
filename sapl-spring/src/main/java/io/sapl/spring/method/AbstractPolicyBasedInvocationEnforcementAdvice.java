@@ -89,6 +89,15 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 	}
 
 	protected JsonNode evaluateToJson(Expression expr, EvaluationContext ctx) {
+		LOGGER.info("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
+		LOGGER.info("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
+		LOGGER.info("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
+
+		LOGGER.info("Expression: {} = {}", expr.getExpressionString(), expr.getValue(ctx));
+
+		LOGGER.info("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
+		LOGGER.info("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
+		LOGGER.info("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
 		try {
 			return mapper.valueToTree(expr.getValue(ctx));
 		} catch (EvaluationException e) {

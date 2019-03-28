@@ -33,8 +33,7 @@ public class PolicyBasedPreInvocationEnforcementAdvice extends AbstractPolicyBas
 	public boolean before(Authentication authentication, MethodInvocation mi,
 			PolicyBasedPreInvocationEnforcementAttribute attr) {
 		// Lazy loading to decouple infrastructure initialization from domain
-		// initialization.
-		// Else, beans may become not eligible for BeanPostProcessors
+		// initialization. Else, beans may become non eligible for BeanPostProcessors
 		lazyLoadDepdendencies();
 
 		EvaluationContext ctx = expressionHandler.createEvaluationContext(authentication, mi);
