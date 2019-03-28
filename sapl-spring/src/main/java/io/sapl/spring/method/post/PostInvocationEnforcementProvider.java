@@ -3,15 +3,14 @@ package io.sapl.spring.method.post;
 import java.util.Collection;
 
 import org.aopalliance.intercept.MethodInvocation;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.security.access.AfterInvocationProvider;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
-public class PostInvocationEnforcementProvider implements AfterInvocationProvider {
-	protected final Log logger = LogFactory.getLog(getClass());
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
+public class PostInvocationEnforcementProvider implements AfterInvocationProvider {
 	private final PostInvocationEnforcementAdvice postAdvice;
 
 	public PostInvocationEnforcementProvider(PostInvocationEnforcementAdvice postAdvice) {
@@ -20,18 +19,22 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 
 	@Override
 	public boolean supports(ConfigAttribute attribute) {
+		LOGGER.info("do I support {}: {} ({})", attribute, attribute instanceof PostInvocationEnforcementAttribute,
+				attribute.getClass().getSimpleName());
 		return attribute instanceof PostInvocationEnforcementAttribute;
 	}
 
 	@Override
 	public boolean supports(Class<?> clazz) {
-		return true;
+		return clazz.isAssignableFrom(MethodInvocation.class);
 	}
 
 	@Override
 	public Object decide(Authentication authentication, Object object, Collection<ConfigAttribute> attributes,
 			Object returnedObject) {
+		LOGGER.info("XXXXXXXXXXX deceide !");
 		PolicyBasedPostInvocationEnforcementAttribute pia = findPostInvocationEnforcementAttribute(attributes);
+		LOGGER.info("XXXXXXXXXXX PIA {}", pia);
 		if (pia == null) {
 			return returnedObject;
 		} else {

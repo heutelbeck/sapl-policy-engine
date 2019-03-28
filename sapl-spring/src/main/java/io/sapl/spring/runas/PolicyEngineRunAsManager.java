@@ -36,7 +36,7 @@ public class PolicyEngineRunAsManager extends RunAsManagerImpl {
 		}
 
 		GrantedAuthority runAsAuthority = new SimpleGrantedAuthority(pdpProperites.getPolicyEngineAuthority());
-		List<GrantedAuthority> newAuthorities = new ArrayList<GrantedAuthority>();
+		List<GrantedAuthority> newAuthorities = new ArrayList<>();
 		newAuthorities.addAll(authentication.getAuthorities());
 		newAuthorities.add(runAsAuthority);
 

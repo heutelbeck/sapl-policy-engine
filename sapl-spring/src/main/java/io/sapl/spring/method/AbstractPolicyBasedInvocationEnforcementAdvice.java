@@ -143,7 +143,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 			actionNode.set("http", mapper.valueToTree(httpServletRequest.get()));
 		}
 		LOGGER.trace("The action is enforced in at inbvocation: {}", mi);
-		actionNode.set("java", mapper.valueToTree(mi.getMethod()));
+		actionNode.set("java", mapper.valueToTree(mi));
 
 		LOGGER.trace("Collect call arguments. Unserializable -> null");
 		ArrayNode array = JsonNodeFactory.instance.arrayNode();

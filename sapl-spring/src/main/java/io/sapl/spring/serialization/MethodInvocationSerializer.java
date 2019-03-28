@@ -14,8 +14,8 @@ import static java.lang.reflect.Modifier.isTransient;
 import static java.lang.reflect.Modifier.isVolatile;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 
+import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.boot.jackson.JsonComponent;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -23,16 +23,18 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 
 @JsonComponent
-public class MethodSerializer extends JsonSerializer<Method> {
+public class MethodInvocationSerializer extends JsonSerializer<MethodInvocation> {
 
 	@Override
-	public void serialize(Method value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+	public void serialize(MethodInvocation value, JsonGenerator gen, SerializerProvider serializers)
+			throws IOException {
 		gen.writeStartObject();
-		gen.writeStringField("name", value.getName());
-		gen.writeStringField("shortSig", value.getDeclaringClass().getSimpleName() + "." + value.getName() + "(..)");
-		gen.writeStringField("declaringTypeName", value.getDeclaringClass().getTypeName());
+		gen.writeStringField("name", value.getMethod().getName());
+		gen.writeStringField("shortSig",
+				value.getMethod().getDeclaringClass().getSimpleName() + "." + value.getMethod().getName() + "(..)");
+		gen.writeStringField("declaringTypeName", value.getMethod().getDeclaringClass().getTypeName());
 		gen.writeArrayFieldStart("modifiers");
-		int mod = value.getModifiers();
+		int mod = value.getMethod().getModifiers();
 		if (isAbstract(mod)) {
 			gen.writeString("abstract");
 		}
@@ -69,7 +71,34 @@ public class MethodSerializer extends JsonSerializer<Method> {
 		if (isVolatile(mod)) {
 			gen.writeString("volatile");
 		}
+
 		gen.writeEndArray();
+		gen.writeArrayFieldStart("instanceof");
+		writeClassHierarchy(gen, value.getThis().getClass());
+		gen.writeEndArray();
+
+		gen.writeEndObject();
+	}
+
+	private void writeInterfaces(JsonGenerator gen, Class<?> clazz) throws IOException {
+		for (Class<?> i : clazz.getInterfaces()) {
+			writeClassHierarchy(gen, i);
+		}
+	}
+
+	private void writeClassHierarchy(JsonGenerator gen, Class<?> clazz) throws IOException {
+		do {
+			writeClass(gen, clazz);
+			writeInterfaces(gen, clazz);
+			clazz = clazz.getSuperclass();
+		} while (clazz != null);
+	}
+
+	private void writeClass(JsonGenerator gen, Class<?> clazz) throws IOException {
+		gen.writeStartObject();
+		gen.writeStringField("name", clazz.getName());
+		gen.writeStringField("simpleName", clazz.getSimpleName());
+		gen.writeStringField("canonicalName", clazz.getCanonicalName());
 		gen.writeEndObject();
 	}
 

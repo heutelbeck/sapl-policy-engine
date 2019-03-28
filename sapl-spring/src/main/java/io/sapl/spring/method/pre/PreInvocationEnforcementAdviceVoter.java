@@ -7,23 +7,24 @@ import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
-import io.sapl.spring.method.post.PolicyBasedPostInvocationEnforcementAttribute;
-
 public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<MethodInvocation> {
 	private final PreInvocationEnforcementAdvice preAdvice;
 
 	public PreInvocationEnforcementAdviceVoter(PreInvocationEnforcementAdvice pre) {
-		this.preAdvice = pre;
+		preAdvice = pre;
 	}
 
+	@Override
 	public boolean supports(ConfigAttribute attribute) {
-		return attribute instanceof PolicyBasedPostInvocationEnforcementAttribute;
+		return attribute instanceof PolicyBasedPreInvocationEnforcementAttribute;
 	}
 
+	@Override
 	public boolean supports(Class<?> clazz) {
 		return MethodInvocation.class.isAssignableFrom(clazz);
 	}
 
+	@Override
 	public int vote(Authentication authentication, MethodInvocation method, Collection<ConfigAttribute> attributes) {
 		PolicyBasedPreInvocationEnforcementAttribute preAttr = findPreInvocationEnforcementAttribute(attributes);
 
