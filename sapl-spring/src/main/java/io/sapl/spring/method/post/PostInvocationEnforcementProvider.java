@@ -7,9 +7,6 @@ import org.springframework.security.access.AfterInvocationProvider;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 public class PostInvocationEnforcementProvider implements AfterInvocationProvider {
 	private final PostInvocationEnforcementAdvice postAdvice;
 
@@ -19,8 +16,6 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 
 	@Override
 	public boolean supports(ConfigAttribute attribute) {
-		LOGGER.info("do I support {}: {} ({})", attribute, attribute instanceof PostInvocationEnforcementAttribute,
-				attribute.getClass().getSimpleName());
 		return attribute instanceof PostInvocationEnforcementAttribute;
 	}
 
@@ -32,9 +27,7 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 	@Override
 	public Object decide(Authentication authentication, Object object, Collection<ConfigAttribute> attributes,
 			Object returnedObject) {
-		LOGGER.info("XXXXXXXXXXX deceide !");
 		PolicyBasedPostInvocationEnforcementAttribute pia = findPostInvocationEnforcementAttribute(attributes);
-		LOGGER.info("XXXXXXXXXXX PIA {}", pia);
 		if (pia == null) {
 			return returnedObject;
 		} else {

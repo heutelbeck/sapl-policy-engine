@@ -10,6 +10,10 @@ import io.sapl.spring.method.post.PostInvocationEnforcementAttribute;
 import io.sapl.spring.method.pre.PolicyBasedPreInvocationEnforcementAttribute;
 import io.sapl.spring.method.pre.PreInvocationEnforcementAttribute;
 
+/**
+ * This factory is used to create the ConfigAttributes for SAPL method security.
+ *
+ */
 public class PolicyBasedEnforcementAttributeFactory implements PolicyEnforcementAttributeFactory {
 	private final Object parserLock = new Object();
 	private ExpressionParser parser;

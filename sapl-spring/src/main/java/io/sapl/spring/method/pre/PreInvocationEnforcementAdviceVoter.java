@@ -7,9 +7,6 @@ import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<MethodInvocation> {
 	private final PreInvocationEnforcementAdvice preAdvice;
 
@@ -19,13 +16,11 @@ public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<
 
 	@Override
 	public boolean supports(ConfigAttribute attribute) {
-		LOGGER.info("do I support ? {}", attribute instanceof PolicyBasedPreInvocationEnforcementAttribute);
 		return attribute instanceof PolicyBasedPreInvocationEnforcementAttribute;
 	}
 
 	@Override
 	public boolean supports(Class<?> clazz) {
-		LOGGER.info("sup? {}", clazz.getSimpleName());
 		return MethodInvocation.class.isAssignableFrom(clazz);
 	}
 
@@ -40,10 +35,7 @@ public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<
 
 		boolean permitted = preAdvice.before(authentication, method, preAttr);
 
-		int vote = permitted ? ACCESS_GRANTED : ACCESS_DENIED;
-
-		LOGGER.info("Voting: {}", vote);
-		return vote;
+		return permitted ? ACCESS_GRANTED : ACCESS_DENIED;
 	}
 
 	private PolicyBasedPreInvocationEnforcementAttribute findPreInvocationEnforcementAttribute(

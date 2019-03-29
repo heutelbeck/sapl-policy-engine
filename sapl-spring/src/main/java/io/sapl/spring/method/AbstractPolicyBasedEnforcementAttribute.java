@@ -4,9 +4,15 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.security.access.ConfigAttribute;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
+/**
+ * Superclass for the SAPL ConfigAttributes, taking care of initializing SePL
+ * expression upon instantiation.
+ */
 @Getter
+@EqualsAndHashCode
 public abstract class AbstractPolicyBasedEnforcementAttribute implements ConfigAttribute {
 
 	private static final SpelExpressionParser PARSER = new SpelExpressionParser();
@@ -32,15 +38,25 @@ public abstract class AbstractPolicyBasedEnforcementAttribute implements ConfigA
 		this.environmentExpression = environmentExpression;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 *
+	 * @see org.springframework.security.access.ConfigAttribute#getAttribute()
+	 */
 	@Override
 	public String getAttribute() {
 		return null;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 *
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		sb.append("[enforce: subject='")
+		sb.append('[').append(getClass().getSimpleName()).append(": subject='")
 				.append(subjectExpression == null ? "null" : subjectExpression.getExpressionString());
 		sb.append("', action='").append(actionExpression == null ? "null" : actionExpression.getExpressionString());
 		sb.append("', resource='")

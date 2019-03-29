@@ -26,12 +26,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintHandlerService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
- * Base logic for PreEnforce and PostEnforce advice classes
+ * Base logic for PreEnforce and PostEnforce advice classes. This class contains
+ * the logic for SePL expression evaluation and retrieving request information
+ * from the application context or method invocation.
  */
-@Slf4j
 @RequiredArgsConstructor
 public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 
@@ -51,6 +51,11 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		this.expressionHandler = expressionHandler;
 	}
 
+	/**
+	 * Lazy loading of decouples security infrastructure from domain logic in
+	 * initialization. This avoids beans to become not eligible for Bean post
+	 * processing.
+	 */
 	protected void lazyLoadDepdendencies() {
 		if (pdp == null) {
 			pdp = pdpFactory.getObject();
@@ -68,7 +73,6 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 			return null;
 		} else {
 			JsonNode exprResult = evaluateToJson(attr.getEnvironmentExpression(), ctx);
-			LOGGER.trace("Environment defined by expression: {}", exprResult);
 			return exprResult;
 		}
 	}
@@ -78,26 +82,15 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		if (attr.getSubjectExpression() == null) {
 			// no explicit subject declared => use the authentication object to indicate the
 			// subject
-			LOGGER.trace("Subject defined by authentication.");
 			return authentication;
 		} else {
 			// subject declared by expression
 			JsonNode exprResult = evaluateToJson(attr.getSubjectExpression(), ctx);
-			LOGGER.trace("Subject defined by expression: {}", exprResult);
 			return exprResult;
 		}
 	}
 
 	protected JsonNode evaluateToJson(Expression expr, EvaluationContext ctx) {
-		LOGGER.info("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
-		LOGGER.info("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
-		LOGGER.info("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
-
-		LOGGER.info("Expression: {} = {}", expr.getExpressionString(), expr.getValue(ctx));
-
-		LOGGER.info("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
-		LOGGER.info("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
-		LOGGER.info("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
 		try {
 			return mapper.valueToTree(expr.getValue(ctx));
 		} catch (EvaluationException e) {
@@ -134,12 +127,10 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 			EvaluationContext ctx) {
 		if (attr.getActionExpression() == null) {
 			// no explicit action declared => derive action from MethodInvocation
-			LOGGER.trace("Action defined by invocation.");
 			return retrieveAction(mi);
 		} else {
 			// action declared by expression
 			JsonNode exprResult = evaluateToJson(attr.getActionExpression(), ctx);
-			LOGGER.trace("Action defined by expression: {}", exprResult);
 			return exprResult;
 		}
 	}
@@ -148,13 +139,11 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		ObjectNode actionNode = mapper.createObjectNode();
 		Optional<HttpServletRequest> httpServletRequest = retrieveRequestObject();
 		if (httpServletRequest.isPresent()) {
-			LOGGER.trace("The action is in the context of a HTTP request. Adding it to the action.");
 			actionNode.set("http", mapper.valueToTree(httpServletRequest.get()));
 		}
-		LOGGER.trace("The action is enforced in at inbvocation: {}", mi);
 		actionNode.set("java", mapper.valueToTree(mi));
 
-		LOGGER.trace("Collect call arguments. Unserializable -> null");
+		// Collect call arguments. not serializable => null
 		ArrayNode array = JsonNodeFactory.instance.arrayNode();
 		for (Object o : mi.getArguments()) {
 			try {
@@ -172,26 +161,24 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 			EvaluationContext ctx) {
 		if (attr.getResourceExpression() == null) {
 			// no explicit action declared => derive action from MethodInvocation
-			LOGGER.trace("Resource defined by invocation.");
 			return retrieveResource(mi);
 		} else {
 			// declared by expression
 			JsonNode exprResult = evaluateToJson(attr.getResourceExpression(), ctx);
-			LOGGER.trace("Resource defined by expression: {}", exprResult);
 			return exprResult;
 		}
 	}
 
 	protected Object retrieveResource(MethodInvocation mi) {
-		LOGGER.trace("No specific resouce information found. Construct basic information from the runtime context");
+		// No specific resource information found. Construct basic information from the
+		// runtime context
 		ObjectNode resourceNode = mapper.createObjectNode();
 		Optional<HttpServletRequest> httpServletRequest = retrieveRequestObject();
 		if (httpServletRequest.isPresent()) {
-			LOGGER.trace("The action is in the context of a HTTP request. Adding it to the resource.");
+			// The action is in the context of a HTTP request. Adding it to the resource.
 			resourceNode.set("http", mapper.valueToTree(httpServletRequest.get()));
 		}
 		JsonNode target = serializeTargetClassDescription(mi.getThis().getClass());
-		LOGGER.trace("The target of access is: {}", target);
 		resourceNode.set("targetClass", target);
 		return resourceNode;
 	}

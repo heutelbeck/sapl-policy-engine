@@ -10,7 +10,8 @@ import java.lang.annotation.Target;
 /**
  * The @PostEnforce annotation establishes a policy enforcement point (PEP)
  * after the invocation of the annotated method, and alters the return value if
- * indicated by the policy decision point (PDP).
+ * indicated by the policy decision point (PDP), if possible with regards to the
+ * structure of the returned JSON object.
  */
 @Inherited
 @Documented

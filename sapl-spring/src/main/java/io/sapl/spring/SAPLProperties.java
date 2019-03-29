@@ -35,7 +35,6 @@ public class SAPLProperties {
 	@Data
 	public static class Resources {
 		private String policiesPath = "/policies";
-
 	}
 
 	@Data

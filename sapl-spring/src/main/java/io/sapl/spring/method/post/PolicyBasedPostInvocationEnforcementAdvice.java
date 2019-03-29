@@ -86,7 +86,8 @@ public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBa
 			} catch (JsonProcessingException e) {
 				LOGGER.trace("Transformed result cannot be mapped to expected return type. {}",
 						response.getResource().get());
-				throw new AccessDeniedException("Access not permitted by policy enforcement point.");
+				throw new AccessDeniedException(
+						"Returned resource of response cannot be mapped back to return value. Access not permitted by policy enforcement point.");
 			}
 		} else {
 			return returnedObject;
