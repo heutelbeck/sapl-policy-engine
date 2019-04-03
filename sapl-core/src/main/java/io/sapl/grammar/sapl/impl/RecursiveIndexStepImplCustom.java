@@ -48,9 +48,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 				|| (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject())) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		resultList.addAll(resolveRecursive(previousResult.getNode().get()));
-		return new ArrayResultNode(resultList);
+		return new ArrayResultNode(resolveRecursive(previousResult.getNode().get()));
 	}
 
 	@Override

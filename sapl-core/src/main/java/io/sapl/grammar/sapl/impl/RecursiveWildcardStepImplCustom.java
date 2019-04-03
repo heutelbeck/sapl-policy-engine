@@ -53,17 +53,14 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 				|| (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject())) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
-		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		resultList.addAll(resolveRecursive(previousResult.getNode()));
-		return new ArrayResultNode(resultList);
+		return new ArrayResultNode(resolveRecursive(previousResult.getNode().get()));
 	}
 
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
 		try {
-			ResultNode result = apply(previousResult);
-			return Flux.just(result);
+			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
@@ -72,27 +69,29 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
-			resultList.add(child);
-			resultList.addAll(resolveRecursive(child.getNode()));
+			if (child.getNode().isPresent()) {
+				resultList.add(child);
+				resultList.addAll(resolveRecursive(child.getNode().get()));
+			} else {
+				throw new PolicyEvaluationException(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE);
+			}
 		}
 		return new ArrayResultNode(resultList);
 	}
 
-	private static List<AbstractAnnotatedJsonNode> resolveRecursive(Optional<JsonNode> optNode)
-			throws PolicyEvaluationException {
+	private static List<AbstractAnnotatedJsonNode> resolveRecursive(JsonNode node) {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		JsonNode node = optNode.orElseThrow(() -> new PolicyEvaluationException(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE));
 		if (node.isArray()) {
 			for (int i = 0; i < node.size(); i++) {
 				resultList.add(new JsonNodeWithParentArray(Optional.of(node.get(i)), Optional.of(node), i));
-				resultList.addAll(resolveRecursive(Optional.of(node.get(i))));
+				resultList.addAll(resolveRecursive(node.get(i)));
 			}
 		} else {
 			final Iterator<String> it = node.fieldNames();
 			while (it.hasNext()) {
 				final String key = it.next();
-				resultList.add(new JsonNodeWithParentObject(Optional.of(node.get(key)), optNode, key));
-				resultList.addAll(resolveRecursive(Optional.of(node.get(key))));
+				resultList.add(new JsonNodeWithParentObject(Optional.of(node.get(key)), Optional.of(node), key));
+				resultList.addAll(resolveRecursive(node.get(key)));
 			}
 		}
 		return resultList;
