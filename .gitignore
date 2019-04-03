@@ -6,6 +6,7 @@ target/
 .project
 .apt_generated/
 .settings/
+.metadata/
 events/
 .factorypath
 **/xtend-gen/
