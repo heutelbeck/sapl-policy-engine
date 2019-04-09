@@ -16,11 +16,11 @@ import io.sapl.spring.SAPLProperties;
 
 public class PolicyEngineRunAsManager extends RunAsManagerImpl {
 
-	private final SAPLProperties pdpProperites;
+	private final SAPLProperties pdpProperties;
 
-	public PolicyEngineRunAsManager(SAPLProperties pdpProperites) {
+	public PolicyEngineRunAsManager(SAPLProperties pdpProperties) {
 		super();
-		this.pdpProperites = pdpProperites;
+		this.pdpProperties = pdpProperties;
 	}
 
 	@Override
@@ -31,11 +31,11 @@ public class PolicyEngineRunAsManager extends RunAsManagerImpl {
 			return super.buildRunAs(authentication, object, attributes);
 		}
 
-		if (pdpProperites.getPolicyEngineAuthority() == null || pdpProperites.getPolicyEngineAuthority().isEmpty()) {
+		if (pdpProperties.getPolicyEngineAuthority() == null || pdpProperties.getPolicyEngineAuthority().isEmpty()) {
 			return null;
 		}
 
-		GrantedAuthority runAsAuthority = new SimpleGrantedAuthority(pdpProperites.getPolicyEngineAuthority());
+		GrantedAuthority runAsAuthority = new SimpleGrantedAuthority(pdpProperties.getPolicyEngineAuthority());
 		List<GrantedAuthority> newAuthorities = new ArrayList<>();
 		newAuthorities.addAll(authentication.getAuthorities());
 		newAuthorities.add(runAsAuthority);

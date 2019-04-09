@@ -22,5 +22,5 @@ public interface PreInvocationEnforcementAdvice extends AopInfrastructureBean {
 	 * @return true if authorized and obligations fulfilled, false otherwise
 	 */
 	boolean before(Authentication authentication, MethodInvocation mi,
-			PolicyBasedPreInvocationEnforcementAttribute preInvocationEnforcementAttribute);
+			PolicyBasedPreInvocationEnforcementAttribute preInvocationAttribute);
 }

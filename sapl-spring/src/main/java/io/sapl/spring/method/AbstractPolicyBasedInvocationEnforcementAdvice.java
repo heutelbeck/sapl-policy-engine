@@ -29,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Base logic for PreEnforce and PostEnforce advice classes. This class contains
- * the logic for SePL expression evaluation and retrieving request information
+ * the logic for SpEL expression evaluation and retrieving request information
  * from the application context or method invocation.
  */
 @RequiredArgsConstructor
@@ -68,15 +68,6 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		}
 	}
 
-	protected Object retrieveEnvironment(AbstractPolicyBasedEnforcementAttribute attr, EvaluationContext ctx) {
-		if (attr.getEnvironmentExpression() == null) {
-			return null;
-		} else {
-			JsonNode exprResult = evaluateToJson(attr.getEnvironmentExpression(), ctx);
-			return exprResult;
-		}
-	}
-
 	protected Object retrieveSubjet(Authentication authentication, AbstractPolicyBasedEnforcementAttribute attr,
 			EvaluationContext ctx) {
 		if (attr.getSubjectExpression() == null) {
@@ -109,7 +100,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 	protected static JsonNode serializeTargetClassDescription(Class<?> clazz) {
 		ObjectNode result = JSON.objectNode();
 		result.set("name", JSON.textNode(clazz.getName()));
-		result.set("canonicaName", JSON.textNode(clazz.getCanonicalName()));
+		result.set("canonicalName", JSON.textNode(clazz.getCanonicalName()));
 		result.set("typeName", JSON.textNode(clazz.getTypeName()));
 		result.set("simpleName", JSON.textNode(clazz.getSimpleName()));
 		return result;
@@ -181,6 +172,15 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		JsonNode target = serializeTargetClassDescription(mi.getThis().getClass());
 		resourceNode.set("targetClass", target);
 		return resourceNode;
+	}
+
+	protected Object retrieveEnvironment(AbstractPolicyBasedEnforcementAttribute attr, EvaluationContext ctx) {
+		if (attr.getEnvironmentExpression() == null) {
+			return null;
+		} else {
+			JsonNode exprResult = evaluateToJson(attr.getEnvironmentExpression(), ctx);
+			return exprResult;
+		}
 	}
 
 }
