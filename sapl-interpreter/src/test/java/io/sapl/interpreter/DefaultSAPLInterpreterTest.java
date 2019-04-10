@@ -21,12 +21,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.junit.Before;
+import org.junit.Test;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
+
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.DocumentAnalysisResult;
 import io.sapl.api.interpreter.DocumentType;
@@ -39,9 +43,6 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.TestPIP;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
 
 public class DefaultSAPLInterpreterTest {
 
@@ -109,9 +110,8 @@ public class DefaultSAPLInterpreterTest {
 	}
 
 	@Test
-	@Ignore
 	public void permitAll() {
-		final String policyDefinition = "policy \"test\" permit transform [\"foo\", \"bar\"] |- {each @.<sapl.pip.test.echo> : simple.length}";
+		final String policyDefinition = "policy \"test\" permit";
 		final Response expected = Response.permit();
 		final Response actual = INTERPRETER
 				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
@@ -280,6 +280,16 @@ public class DefaultSAPLInterpreterTest {
 				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("function call on each array item passing relative arguments not evaluated as expected", expected,
 				actual);
+	}
+
+	@Test
+	public void filterExtended() throws IOException {
+		final String policyDefinition = "policy \"test\" permit transform [\"foo\", \"bars\"] |- {each @.<sapl.pip.test.echo> : simple.length}";
+		final Response expected = Response.permit();
+		expected.setResource(Optional.of(MAPPER.readTree("[3, 4]")));
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("permit all did not evaluate to permit", expected, actual);
 	}
 
 	@Test
