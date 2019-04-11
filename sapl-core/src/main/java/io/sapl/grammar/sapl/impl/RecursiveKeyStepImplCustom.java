@@ -33,7 +33,7 @@ import reactor.core.publisher.Flux;
 
 public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
-	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
+	private static final String UNDEFINED_ARRAY_ELEMENT = "JSON does not support undefined array elements.";
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
@@ -65,7 +65,8 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 			if (child.getNode().isPresent()) {
 				resultList.addAll(resolveRecursive(child.getNode().get()));
 			} else {
-				throw new PolicyEvaluationException(WRONG_TYPE);
+				// this case should never happen, because undefined values cannot be added to an array
+				throw new PolicyEvaluationException(UNDEFINED_ARRAY_ELEMENT);
 			}
 		}
 		return new ArrayResultNode(resultList);

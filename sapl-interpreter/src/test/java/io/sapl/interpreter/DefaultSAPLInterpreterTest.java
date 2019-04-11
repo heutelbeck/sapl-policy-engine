@@ -51,8 +51,9 @@ public class DefaultSAPLInterpreterTest {
 			+ "\"roles\"  : [ \"USER\", \"ACCOUNTANT\" ], " + "\"groups\" : [ \"OPERATORS\", \"DEVELOPERS\" ] " + " }"
 			+ " }," + "\"action\" : { " + "\"verb\" : \"withdraw_funds\", " + "\"parameters\" : [ 200.00 ]" + "},"
 			+ "\"resource\" : { " + "\"url\" : \"http://api.bank.com/accounts/12345\"," + "\"id\" : \"9012\","
-			+ "\"textarray\" : [ \"one\", \"two\" ],"
-			+ "\"objectarray\" : [ {\"id\" : \"1\", \"name\" : \"one\"}, {\"id\" : \"2\", \"name\" : \"two\"} ] " + "},"
+			+ "\"emptyArray\" : [],"
+			+ "\"textArray\" : [ \"one\", \"two\" ],"
+			+ "\"objectArray\" : [ {\"id\" : \"1\", \"name\" : \"one\"}, {\"id\" : \"2\", \"name\" : \"two\"} ] " + "},"
 			+ "\"environment\" : { " + "\"ipAddress\" : \"10.10.10.254\"," + "\"year\" : 2016" + "}" + " }";
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -260,6 +261,249 @@ public class DefaultSAPLInterpreterTest {
 		final Response actual = INTERPRETER
 				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("function call error should lead to indeterminate", expected, actual);
+	}
+
+	@Test
+	public void keyStepOnUndefined() {
+		final String policyDefinition = "policy \"test\" permit where undefined.key == undefined;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("key step on undefined did not evaluate to undefined", expected, actual);
+	}
+
+	@Test
+	public void recursiveKeyStepOnUndefined() {
+		final String policyDefinition = "policy \"test\" permit where undefined..key == undefined;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive key step on undefined did not evaluate to undefined", expected, actual);
+	}
+
+	@Test
+	public void keyStepOnString() {
+		final String policyDefinition = "policy \"test\" permit where \"foo\".key == undefined;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("key step on string did not evaluate to undefined", expected, actual);
+	}
+
+	@Test
+	public void recursiveKeyStepOnString() {
+		final String policyDefinition = "policy \"test\" permit where \"foo\"..key == undefined;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive key step on string did not evaluate to undefined", expected, actual);
+	}
+
+	@Test
+	public void keyStepWithUnknownKey() {
+		final String policyDefinition = "policy \"test\" permit where {\"attr\": 1}.key == undefined;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("key step with unknown key did not evaluate to undefined", expected, actual);
+	}
+
+	@Test
+	public void recursiveKeyStepWithUnknownKey() {
+		final String policyDefinition = "policy \"test\" permit where {\"attr\": 1}..key == resource.emptyArray;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive key step with unknown key did not evaluate to the empty array", expected, actual);
+	}
+
+	@Test
+	public void keyStepWithKnownKey() {
+		final String policyDefinition = "policy \"test\" permit where {\"key\": 1}.key == 1;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("key step with known key did not evaluate to the value", expected, actual);
+	}
+
+	@Test
+	public void recursiveKeyStepWithKnownKey() {
+		final String policyDefinition = "policy \"test\" permit where {\"key\": 1}..key == [1];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive key step with known key did not evaluate to an array containing the value", expected, actual);
+	}
+
+	@Test
+	public void keyStepWithKnownKeyInChildObject() {
+		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}.key == undefined;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("key step with known key in child object did not evaluate to undefined", expected, actual);
+	}
+
+	@Test
+	public void recursiveKeyStepWithKnownKeyInChildObject() {
+		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}..key == [1];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive key step with known key in child object did not evaluate to an array containing the value", expected, actual);
+	}
+
+	@Test
+	public void keyStepWithKnownKeyInParentAndChildObject() {
+		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": 1}}.key == {\"key\": 1};";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("key step with known key in parent and child object did not evaluate to child object", expected, actual);
+	}
+
+	@Test
+	public void recursiveKeyStepWithKnownKeyInParentAndChildObject() {
+		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": 1}}..key == [{\"key\": 1}, 1];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive key step with known key in parent and child object did not evaluate to an array containing the values", expected, actual);
+	}
+
+	@Test
+	public void recursiveKeyStepComplex() {
+		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": [{\"key\": 1}, {\"key\": 2}]}}..key == [{\"key\": [{\"key\": 1}, {\"key\": 2}]}, [{\"key\": 1}, {\"key\": 2}], 1, 2];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive key step on complex object did not evaluate as expected", expected, actual);
+	}
+
+	@Test
+	public void indexStepOnUndefined() {
+		final String policyDefinition = "policy \"test\" permit where var error = undefined[0]; true == true;";
+		final Response expected = Response.indeterminate();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("index step on undefined did not throw an exception", expected, actual);
+	}
+
+	@Test
+	public void recursiveIndexStepOnUndefined() {
+		final String policyDefinition = "policy \"test\" permit where var error = undefined..[0]; true == true;";
+		final Response expected = Response.indeterminate();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive index step on undefined did not throw an exception", expected, actual);
+	}
+
+	@Test
+	public void indexStepOnString() {
+		final String policyDefinition = "policy \"test\" permit where var error = \"foo\"[0]; true == true;";
+		final Response expected = Response.indeterminate();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("index step on string did not throw an exception", expected, actual);
+	}
+
+	@Test
+	public void recursiveIndexStepOnString() {
+		final String policyDefinition = "policy \"test\" permit where var error = \"foo\"..[0]; true == true;";
+		final Response expected = Response.indeterminate();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive index step on string did not throw an exception", expected, actual);
+	}
+
+	@Test
+	public void indexStepOnArrayWithUndefined() {
+		final String policyDefinition = "policy \"test\" permit where var error = [undefined][0]; true == true;";
+		final Response expected = Response.indeterminate();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("index step on array with undefined did not throw an exception", expected, actual);
+	}
+
+	@Test
+	public void recursiveIndexStepOnArrayWithUndefined() {
+		final String policyDefinition = "policy \"test\" permit where var error = [undefined]..[0]; true == true;";
+		final Response expected = Response.indeterminate();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive index step on array with undefined did not throw an exception", expected, actual);
+	}
+
+	@Test
+	public void indexStepOnArrayWithIndexOutOfBounds() {
+		final String policyDefinition = "policy \"test\" permit where var error = [0,1][2]; true == true;";
+		final Response expected = Response.indeterminate();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("index step on array with index out of bounds did not throw an exception", expected, actual);
+	}
+
+	@Test
+	public void recursiveIndexStepOnArrayWithIndexOutOfBounds() {
+		final String policyDefinition = "policy \"test\" permit where [0,1]..[2] == resource.emptyArray;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive index step on array with index out of bounds did not throw an exception", expected, actual);
+	}
+
+	@Test
+	public void indexStepOnArrayWithValidIndex() {
+		final String policyDefinition = "policy \"test\" permit where [0,1][1] == 1;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("index step on array with valid index did not evaluate to array element", expected, actual);
+	}
+
+	@Test
+	public void recursiveIndexStepOnArrayWithValidIndex() {
+		final String policyDefinition = "policy \"test\" permit where [0,1]..[1] == [1];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive index step on array with valid index did not evaluate to array containing the correct element", expected, actual);
+	}
+
+	@Test
+	public void recursiveIndexStepOnArrayWithChildArray1() {
+		final String policyDefinition = "policy \"test\" permit where [[0,1], 2]..[1] == [2, 1];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive index step on array with child array (1) did not evaluate as expected", expected, actual);
+	}
+
+	@Test
+	public void recursiveIndexStepOnArrayWithChildArray2() {
+		final String policyDefinition = "policy \"test\" permit where [0, [0,1]]..[1] == [[0,1], 1];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive index step on array with child array (2) did not evaluate as expected", expected, actual);
+	}
+
+	@Test
+	public void recursiveIndexStepOnArrayWithChildArray3() {
+		final String policyDefinition = "policy \"test\" permit where [0, [0, 1, 2]]..[2] == [2];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive index step on array with child array (3) did not evaluate as expected", expected, actual);
+	}
+
+	@Test
+	public void recursiveIndexStepComplex() {
+		final String policyDefinition = "policy \"test\" permit where [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2]]..[2] == [2, 5];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive index step on complex array did not evaluate as expected", expected, actual);
 	}
 
 	@Test
