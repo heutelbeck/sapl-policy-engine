@@ -53,6 +53,7 @@ public class DefaultSAPLInterpreterTest {
 			+ "\"resource\" : { " + "\"url\" : \"http://api.bank.com/accounts/12345\"," + "\"id\" : \"9012\","
 			+ "\"emptyArray\" : [],"
 			+ "\"textArray\" : [ \"one\", \"two\" ],"
+			+ "\"emptyObject\" : {},"
 			+ "\"objectArray\" : [ {\"id\" : \"1\", \"name\" : \"one\"}, {\"id\" : \"2\", \"name\" : \"two\"} ] " + "},"
 			+ "\"environment\" : { " + "\"ipAddress\" : \"10.10.10.254\"," + "\"year\" : 2016" + "}" + " }";
 
@@ -504,6 +505,159 @@ public class DefaultSAPLInterpreterTest {
 		final Response actual = INTERPRETER
 				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("recursive index step on complex array did not evaluate as expected", expected, actual);
+	}
+
+	@Test
+	public void wildcardStepOnUndefined() {
+		final String policyDefinition = "policy \"test\" permit where var error = undefined.*; true == true;";
+		final Response expected = Response.indeterminate();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("wildcard step on undefined did not throw an exception", expected, actual);
+	}
+
+	@Test
+	public void recursiveWildcardStepOnUndefined() {
+		final String policyDefinition = "policy \"test\" permit where var error = undefined..*; true == true;";
+		final Response expected = Response.indeterminate();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive wildcard step on undefined did not throw an exception", expected, actual);
+	}
+
+	@Test
+	public void wildcardStepOnString() {
+		final String policyDefinition = "policy \"test\" permit where var error = \"foo\".*; true == true;";
+		final Response expected = Response.indeterminate();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("wildcard step on string did not throw an exception", expected, actual);
+	}
+
+	@Test
+	public void recursiveWildcardStepOnString() {
+		final String policyDefinition = "policy \"test\" permit where var error = \"foo\"..*; true == true;";
+		final Response expected = Response.indeterminate();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive wildcard step on string did not throw an exception", expected, actual);
+	}
+
+	@Test
+	public void wildcardStepOnEmptyObject() {
+		final String policyDefinition = "policy \"test\" permit where resource.emptyObject.* == resource.emptyArray;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("wildcard step on empty object did not evaluate to the empty array", expected, actual);
+	}
+
+	@Test
+	public void recursiveWildcardStepOnEmptyObject() {
+		final String policyDefinition = "policy \"test\" permit where resource.emptyObject..* == resource.emptyArray;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive wildcard step on empty object did not evaluate to the empty array", expected, actual);
+	}
+
+	@Test
+	public void wildcardStepOnEmptyArray() {
+		final String policyDefinition = "policy \"test\" permit where resource.emptyArray.* == resource.emptyArray;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("wildcard step on empty array did not evaluate to the empty array", expected, actual);
+	}
+
+	@Test
+	public void recursiveWildcardStepOnEmptyArray() {
+		final String policyDefinition = "policy \"test\" permit where resource.emptyArray..* == resource.emptyArray;";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive wildcard step on empty array did not evaluate to the empty array", expected, actual);
+	}
+
+	@Test
+	public void wildcardStepOnSimpleObject() {
+		final String policyDefinition = "policy \"test\" permit where {\"key\": 1, \"attr\": 2}.* == [1, 2];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("wildcard step on simple object did not evaluate to array of values", expected, actual);
+	}
+
+	@Test
+	public void recursiveWildcardStepOnSimpleObject() {
+		final String policyDefinition = "policy \"test\" permit where {\"key\": 1, \"attr\": 2}..* == [1, 2];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive wildcard step on simple object did not evaluate to array of values", expected, actual);
+	}
+
+	@Test
+	public void wildcardStepOnSimpleArray() {
+		final String policyDefinition = "policy \"test\" permit where [1, 2].* == [1, 2];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("wildcard step on simple array did not evaluate to same array", expected, actual);
+	}
+
+	@Test
+	public void recursiveWildcardStepOnSimpleArray() {
+		final String policyDefinition = "policy \"test\" permit where [1, 2]..* == [1, 2];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive wildcard step on simple array did not evaluate to array of elements", expected, actual);
+	}
+
+	@Test
+	public void wildcardStepOnHierarchicalObject() {
+		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}.* == [{\"key\": 1}];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("wildcard step on hierarchical object did not evaluate to array of top level values", expected, actual);
+	}
+
+	@Test
+	public void recursiveWildcardStepOnHierarchicalObject() {
+		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}..* == [{\"key\": 1}, 1];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive wildcard step on hierarchical object did not evaluate to array of all values", expected, actual);
+	}
+
+	@Test
+	public void wildcardStepOnHierarchicalArray() {
+		final String policyDefinition = "policy \"test\" permit where [0, [1, 2]].* == [0, [1, 2]];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("wildcard step on hierarchical array did not evaluate to same array", expected, actual);
+	}
+
+	@Test
+	public void recursiveWildcardStepOnHierarchicalArray() {
+		final String policyDefinition = "policy \"test\" permit where [0, [1, 2]]..* == [0, [1, 2], 1, 2];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("recursive wildcard step on hierarchical array did not evaluate as expected", expected, actual);
+	}
+
+	@Test
+	public void recursiveWildcardStepComplex() {
+		final String policyDefinition = "policy \"test\" permit where [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2], 6]..* == [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2], {\"text\": 1, \"arr\": [3, 4, 5]}, 1, [3, 4, 5], 3, 4, 5, 1, 2, 6];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("complex recursive wildcard step did not evaluate as expected", expected, actual);
 	}
 
 	@Test

@@ -49,8 +49,9 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isPresent()
-				|| (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject())) {
+		if (!previousResult.getNode().isPresent()) {
+			throw new PolicyEvaluationException(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE);
+		} else if (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject()) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
 		return new ArrayResultNode(resolveRecursive(previousResult.getNode().get()));
