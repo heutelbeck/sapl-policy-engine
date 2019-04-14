@@ -80,7 +80,7 @@ public class EvaluateLiteralsValuesTest {
 	public void evaluateEmptyObject() {
 		io.sapl.grammar.sapl.Object saplObject = factory.createObject();
 		saplObject.evaluate(ctx, true, null).take(1).subscribe(
-				result -> assertEquals("Empty Object should evaluate to ObjectNode", JSON.objectNode(), result));
+				result -> assertEquals("Empty Object should evaluate to ObjectNode", Optional.of(JSON.objectNode()), result));
 	}
 
 	@Test
@@ -109,7 +109,7 @@ public class EvaluateLiteralsValuesTest {
 	public void evaluateEmptyArray() {
 		Array saplArray = factory.createArray();
 		saplArray.evaluate(ctx, true, null).take(1).subscribe(
-				result -> assertEquals("Empty Array should evaluate to ArrayNode", JSON.arrayNode(), result));
+				result -> assertEquals("Empty Array should evaluate to ArrayNode", Optional.of(JSON.arrayNode()), result));
 	}
 
 	@Test

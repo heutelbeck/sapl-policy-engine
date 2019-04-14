@@ -24,9 +24,9 @@ public class MultiImplCustom extends MultiImpl {
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<BigDecimal> divident = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
-		final Flux<BigDecimal> divisor = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
-		return Flux.combineLatest(divident, divisor, BigDecimal::multiply).map(Value::of).distinctUntilChanged();
+		final Flux<BigDecimal> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
+		final Flux<BigDecimal> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
+		return Flux.combineLatest(left, right, BigDecimal::multiply).map(Value::of).distinctUntilChanged();
 	}
 
 }

@@ -30,7 +30,6 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 /**
@@ -96,12 +95,16 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx,
 			boolean isBody) {
 		if (each) {
-			final List<Flux<Void>> appliedFilterFluxes = new ArrayList<>(nodes.size());
-			for (AbstractAnnotatedJsonNode node : nodes) {
-				appliedFilterFluxes.add(
-						node.applyFilterWithRelativeNode(function, arguments, false, ctx, isBody, node.getParent()));
+			if (!nodes.isEmpty()) {
+				final List<Flux<Void>> appliedFilterFluxes = new ArrayList<>(nodes.size());
+				for (AbstractAnnotatedJsonNode node : nodes) {
+					appliedFilterFluxes.add(
+							node.applyFilterWithRelativeNode(function, arguments, false, ctx, isBody, node.getParent()));
+				}
+				return Flux.combineLatest(appliedFilterFluxes, voidResults -> Void.INSTANCE);
+			} else {
+				return Flux.just(Void.INSTANCE);
 			}
-			return Flux.combineLatest(appliedFilterFluxes, voidResults -> Void.INSTANCE);
 		} else {
 			return Flux.error(new PolicyEvaluationException(FILTER_HELPER_ARRAY));
 		}

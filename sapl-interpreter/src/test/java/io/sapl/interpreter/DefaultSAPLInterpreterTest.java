@@ -163,6 +163,24 @@ public class DefaultSAPLInterpreterTest {
 	}
 
 	@Test
+	public void processParsedEmptyArray() {
+		final String policyDefinition = "policy \"test\" permit resource.emptyArray == []";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("a parsed empty array cannot be processed", expected, actual);
+	}
+
+	@Test
+	public void processParsedEmptyObject() {
+		final String policyDefinition = "policy \"test\" permit resource.emptyObject == {}";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("a parsed empty object cannot be processed", expected, actual);
+	}
+
+	@Test
 	public void evaluateWorkingBodyTrue() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where true;";
 		final Response expected = Response.permit();
@@ -311,7 +329,7 @@ public class DefaultSAPLInterpreterTest {
 
 	@Test
 	public void recursiveKeyStepWithUnknownKey() {
-		final String policyDefinition = "policy \"test\" permit where {\"attr\": 1}..key == resource.emptyArray;";
+		final String policyDefinition = "policy \"test\" permit where {\"attr\": 1}..key == [];";
 		final Response expected = Response.permit();
 		final Response actual = INTERPRETER
 				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
@@ -446,7 +464,7 @@ public class DefaultSAPLInterpreterTest {
 
 	@Test
 	public void recursiveIndexStepOnArrayWithIndexOutOfBounds() {
-		final String policyDefinition = "policy \"test\" permit where [0,1]..[2] == resource.emptyArray;";
+		final String policyDefinition = "policy \"test\" permit where [0,1]..[2] == [];";
 		final Response expected = Response.permit();
 		final Response actual = INTERPRETER
 				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
@@ -545,7 +563,7 @@ public class DefaultSAPLInterpreterTest {
 
 	@Test
 	public void wildcardStepOnEmptyObject() {
-		final String policyDefinition = "policy \"test\" permit where resource.emptyObject.* == resource.emptyArray;";
+		final String policyDefinition = "policy \"test\" permit where {}.* == [];";
 		final Response expected = Response.permit();
 		final Response actual = INTERPRETER
 				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
@@ -554,7 +572,7 @@ public class DefaultSAPLInterpreterTest {
 
 	@Test
 	public void recursiveWildcardStepOnEmptyObject() {
-		final String policyDefinition = "policy \"test\" permit where resource.emptyObject..* == resource.emptyArray;";
+		final String policyDefinition = "policy \"test\" permit where {}..* == [];";
 		final Response expected = Response.permit();
 		final Response actual = INTERPRETER
 				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
@@ -563,7 +581,7 @@ public class DefaultSAPLInterpreterTest {
 
 	@Test
 	public void wildcardStepOnEmptyArray() {
-		final String policyDefinition = "policy \"test\" permit where resource.emptyArray.* == resource.emptyArray;";
+		final String policyDefinition = "policy \"test\" permit where [].* == [];";
 		final Response expected = Response.permit();
 		final Response actual = INTERPRETER
 				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
@@ -572,7 +590,7 @@ public class DefaultSAPLInterpreterTest {
 
 	@Test
 	public void recursiveWildcardStepOnEmptyArray() {
-		final String policyDefinition = "policy \"test\" permit where resource.emptyArray..* == resource.emptyArray;";
+		final String policyDefinition = "policy \"test\" permit where []..* == [];";
 		final Response expected = Response.permit();
 		final Response actual = INTERPRETER
 				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
@@ -661,6 +679,24 @@ public class DefaultSAPLInterpreterTest {
 	}
 
 	@Test
+	public void conditionStepOnEmptyArray() {
+		final String policyDefinition = "policy \"test\" permit where [][?(@ == undefined)] == [];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("condition step on empty array did not evaluate to empty array", expected, actual);
+	}
+
+	@Test
+	public void conditionStepOnEmptyObject() {
+		final String policyDefinition = "policy \"test\" permit where {}[?(@ == undefined)] == [];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("condition step on empty object did not evaluate to empty array", expected, actual);
+	}
+
+	@Test
 	public void functionCallOnObjectNodeWithRelativeArguments() {
 		final String policyDefinition = "import simple.append policy \"test\" permit where {\"name\": \"Ben\", \"origin\": \"Berlin\"} |- {@.name : append(\" from \", @.origin), @.origin : remove} == {\"name\": \"Ben from Berlin\"};";
 		final Response expected = Response.permit();
@@ -688,6 +724,15 @@ public class DefaultSAPLInterpreterTest {
 		final Response actual = INTERPRETER
 				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("permit all did not evaluate to permit", expected, actual);
+	}
+
+	@Test
+	public void subtemplateOnEmptyArray() {
+		final String policyDefinition = "policy \"test\" permit where [] :: { \"name\": \"foo\" } == [];";
+		final Response expected = Response.permit();
+		final Response actual = INTERPRETER
+				.evaluate(requestObject, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		assertEquals("subtemplate on empty array did not evaluate to empty array", expected, actual);
 	}
 
 	@Test
