@@ -47,38 +47,50 @@ public class PermitOverridesTest {
 
 	private AttributeContext attributeCtx;
 	private FunctionContext functionCtx;
+	private Request emptyRequest;
 
 	@Before
 	public void init() throws FunctionException, AttributeException {
 		attributeCtx = new AnnotationAttributeContext();
 		functionCtx = new AnnotationFunctionContext();
+		emptyRequest = new Request(null, null, null, null);
 	}
 
 	@Test
 	public void permit() throws PolicyEvaluationException {
 		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides" + " policy \"testp\" permit");
 
-		assertEquals("should return permit if the only policy evaluates to permit", Decision.PERMIT, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getDecision());
+		INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).take(1)
+				.subscribe(response -> {
+					final Decision expected = Decision.PERMIT;
+					final Decision actual = response.getDecision();
+					assertEquals("should return permit if the only policy evaluates to permit", expected, actual);
+				});
 	}
 
 	@Test
 	public void deny() throws PolicyEvaluationException {
 		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides" + " policy \"testp\" deny");
 
-		assertEquals("should return deny if the only policy evaluates to deny", Decision.DENY, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getDecision());
+		INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).take(1)
+				.subscribe(response -> {
+					final Decision expected = Decision.DENY;
+					final Decision actual = response.getDecision();
+					assertEquals("should return deny if the only policy evaluates to deny", expected, actual);
+				});
 	}
 
 	@Test
 	public void notApplicableTarget() throws PolicyEvaluationException {
 		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides" + " policy \"testp\" deny true == false");
 
-		assertEquals("should return not applicable if the only policy target evaluates to not applicable",
-				Decision.NOT_APPLICABLE, INTERPRETER.evaluate(new Request(null, null, null, null), policySet,
-						attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
+		INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).take(1)
+				.subscribe(response -> {
+					final Decision expected = Decision.NOT_APPLICABLE;
+					final Decision actual = response.getDecision();
+					assertEquals("should return not applicable if the only policy target evaluates to not applicable",
+							expected, actual);
+				});
 	}
 
 	@Test
@@ -86,9 +98,13 @@ public class PermitOverridesTest {
 		SAPL policySet = INTERPRETER
 				.parse("set \"tests\" permit-overrides" + " policy \"testp\" deny where true == false;");
 
-		assertEquals("should return not applicable if the only policy condition evaluates to not applicable",
-				Decision.NOT_APPLICABLE, INTERPRETER.evaluate(new Request(null, null, null, null), policySet,
-						attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
+		INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).take(1)
+				.subscribe(response -> {
+					final Decision expected = Decision.NOT_APPLICABLE;
+					final Decision actual = response.getDecision();
+					assertEquals("should return not applicable if the only policy condition evaluates to not applicable",
+							expected, actual);
+				});
 	}
 
 	@Test
@@ -96,7 +112,7 @@ public class PermitOverridesTest {
 		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides" + " policy \"testp\" permit \"a\" < 5");
 
 		assertEquals("should return indeterminate if the only target is indeterminate", Decision.INDETERMINATE,
-				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
+				INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
 						SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
@@ -106,7 +122,7 @@ public class PermitOverridesTest {
 				.parse("set \"tests\" permit-overrides" + " policy \"testp\" permit where \"a\" < 5;");
 
 		assertEquals("should return indeterminate if the only condition is indeterminate", Decision.INDETERMINATE,
-				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
+				INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
 						SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
@@ -116,7 +132,7 @@ public class PermitOverridesTest {
 				.parse("set \"tests\" permit-overrides" + " policy \"testp1\" permit" + " policy \"testp2\" deny");
 
 		assertEquals("should return permit if any policy evaluates to permit", Decision.PERMIT, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+				.evaluate(emptyRequest, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst().getDecision());
 	}
 
@@ -126,7 +142,7 @@ public class PermitOverridesTest {
 				+ " policy \"testp2\" permit where \"a\" > 5;");
 
 		assertEquals("should return permit if any policy evaluates to permit", Decision.PERMIT, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+				.evaluate(emptyRequest, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst().getDecision());
 	}
 
@@ -136,7 +152,7 @@ public class PermitOverridesTest {
 				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" permit");
 
 		assertEquals("should return permit if any policy evaluates to permit", Decision.PERMIT, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+				.evaluate(emptyRequest, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst().getDecision());
 	}
 
@@ -147,7 +163,7 @@ public class PermitOverridesTest {
 				+ " policy \"testp5\" permit");
 
 		assertEquals("should return permit if any policy evaluates to permit", Decision.PERMIT, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+				.evaluate(emptyRequest, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst().getDecision());
 	}
 
@@ -157,7 +173,7 @@ public class PermitOverridesTest {
 				+ " policy \"testp2\" permit \"a\" < 5" + " policy \"testp3\" permit true == false");
 
 		assertEquals("should return indeterminate if only indeterminate, deny and not applicable present",
-				Decision.INDETERMINATE, INTERPRETER.evaluate(new Request(null, null, null, null), policySet,
+				Decision.INDETERMINATE, INTERPRETER.evaluate(emptyRequest, policySet,
 						attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
@@ -167,7 +183,7 @@ public class PermitOverridesTest {
 				+ " policy \"testp2\" permit true == false");
 
 		assertEquals("should return deny if only deny and not applicable present", Decision.DENY, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+				.evaluate(emptyRequest, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst().getDecision());
 	}
 
@@ -178,7 +194,7 @@ public class PermitOverridesTest {
 
 		assertEquals(
 				"should return indeterminate if final decision would be permit and there is a transformation incertainty",
-				Decision.INDETERMINATE, INTERPRETER.evaluate(new Request(null, null, null, null), policySet,
+				Decision.INDETERMINATE, INTERPRETER.evaluate(emptyRequest, policySet,
 						attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
@@ -188,7 +204,7 @@ public class PermitOverridesTest {
 				+ " policy \"testp2\" permit false transform true" + " policy \"testp3\" deny");
 
 		assertEquals("should return deny if final decision would be deny and there is a transformation incertainty",
-				Decision.DENY, INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx,
+				Decision.DENY, INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx,
 						functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
 	}
 
@@ -198,7 +214,7 @@ public class PermitOverridesTest {
 				.parse("set \"tests\" permit-overrides" + " policy \"testp\" permit transform true");
 
 		assertEquals("should return permit if there is no transformation incertainty", Decision.PERMIT, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+				.evaluate(emptyRequest, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst().getDecision());
 	}
 
@@ -208,7 +224,7 @@ public class PermitOverridesTest {
 				.parse("set \"tests\" permit-overrides" + " policy \"testp\" permit transform true");
 
 		assertEquals("should return resource if there is no transformation incertainty",
-				Optional.of(JSON.booleanNode(true)), INTERPRETER.evaluate(new Request(null, null, null, null),
+				Optional.of(JSON.booleanNode(true)), INTERPRETER.evaluate(emptyRequest,
 						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getResource());
 	}
 
