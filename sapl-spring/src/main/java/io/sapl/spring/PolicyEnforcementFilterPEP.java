@@ -39,16 +39,17 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-		Response decision = pdp.decide(buildRequest(authentication, req, req)).block();
+		Response saplResponse = pdp.decide(buildRequest(authentication, req, req)).blockFirst();
 
-		LOGGER.trace("PDP decision: {}", decision);
+		LOGGER.trace("PDP response: {}", saplResponse);
 
-		if (decision.getDecision() != Decision.PERMIT) {
-			LOGGER.trace("User was not authorized for this action. Decision was: {}", decision.getDecision());
+		if (saplResponse == null || saplResponse.getDecision() != Decision.PERMIT) {
+			LOGGER.trace("User was not authorized for this action. Decision was: {}",
+					saplResponse == null ? "null" : saplResponse.getDecision());
 			throw new AccessDeniedException("Current User may not perform this action.");
 		}
-		constraintHandlers.handleObligations(decision);
-		constraintHandlers.handleAdvices(decision);
+		constraintHandlers.handleObligations(saplResponse);
+		constraintHandlers.handleAdvices(saplResponse);
 		chain.doFilter(req, response);
 	}
 

@@ -11,6 +11,7 @@ import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import io.sapl.api.pdp.multirequest.MultiRequest;
+import io.sapl.api.pdp.multirequest.MultiResponse;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
@@ -23,12 +24,17 @@ public class PDPEndpointController {
 
     @PostMapping(value = "/decide", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
     public Flux<Response> decide(@RequestBody Request request) {
-        return pdp.subscribe(request);
+        return pdp.decide(request);
     }
 
     @PostMapping(value = "/multi-decide", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
     public Flux<IdentifiableResponse> decide(@RequestBody MultiRequest request) {
-        return pdp.subscribe(request);
+        return pdp.decide(request);
+    }
+
+    @PostMapping(value = "/multi-decide-all", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
+    public Flux<MultiResponse> decideAll(@RequestBody MultiRequest request) {
+        return pdp.decideAll(request);
     }
 
 }

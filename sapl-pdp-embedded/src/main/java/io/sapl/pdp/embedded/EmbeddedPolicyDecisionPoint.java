@@ -21,6 +21,7 @@ import io.sapl.api.pdp.Response;
 import io.sapl.api.pdp.multirequest.IdentifiableRequest;
 import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import io.sapl.api.pdp.multirequest.MultiRequest;
+import io.sapl.api.pdp.multirequest.MultiResponse;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
@@ -45,7 +46,6 @@ import io.sapl.prp.filesystem.FilesystemPolicyRetrievalPoint;
 import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
@@ -67,7 +67,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
-	public Flux<Response> subscribe(Request request) {
+	public Flux<Response> decide(Request request) {
 		LOGGER.trace("|---------------------------");
 		LOGGER.trace("|-- PDP Request: {}", request);
 		final Flux<PolicyRetrievalResult> retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
@@ -81,12 +81,12 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
-	public Flux<IdentifiableResponse> subscribe(MultiRequest multiRequest) {
+	public Flux<IdentifiableResponse> decide(MultiRequest multiRequest) {
 		if (multiRequest.hasRequests()) {
 			final List<Flux<IdentifiableResponse>> requestIdResponsePairFluxes = new ArrayList<>();
 			for (IdentifiableRequest identifiableRequest : multiRequest) {
 				final Request request = identifiableRequest.getRequest();
-				final Flux<Response> responseFlux = subscribe(request);
+				final Flux<Response> responseFlux = decide(request);
 				final Flux<IdentifiableResponse> requestResponsePairFlux = responseFlux
 						.map(response -> new IdentifiableResponse(identifiableRequest.getId(), response))
 						.subscribeOn(Schedulers.newElastic("pdp"));
@@ -97,22 +97,39 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		return Flux.just(IdentifiableResponse.indeterminate());
 	}
 
+	@Override
+	public Flux<MultiResponse> decideAll(MultiRequest multiRequest) {
+		if (multiRequest.hasRequests()) {
+			final List<Flux<IdentifiableResponse>> requestIdResponsePairFluxes = new ArrayList<>();
+			for (IdentifiableRequest identifiableRequest : multiRequest) {
+				final String requestId = identifiableRequest.getId();
+				final Request request = identifiableRequest.getRequest();
+				final Flux<Response> responseFlux = decide(request);
+				final Flux<IdentifiableResponse> identifiableResponseFlux = responseFlux
+						.map(response -> new IdentifiableResponse(requestId, response));
+				requestIdResponsePairFluxes.add(identifiableResponseFlux);
+			}
+			return Flux.combineLatest(requestIdResponsePairFluxes, this::collectResponses);
+		}
+		return Flux.just(MultiResponse.indeterminate());
+	}
+
+	private MultiResponse collectResponses(Object[] values) {
+		final MultiResponse multiResponse = new MultiResponse();
+		for (Object value : values) {
+			IdentifiableResponse ir = (IdentifiableResponse) value;
+			multiResponse.setResponseForRequestWithId(ir.getRequestId(), ir.getResponse());
+		}
+		return multiResponse;
+	}
+
 	public void dispose() {
 		prp.dispose();
 	}
 
+
 	public static Builder builder() throws FunctionException, AttributeException {
 		return new Builder();
-	}
-
-	@Override
-	public Mono<Response> decide(Request request) {
-		return subscribe(request).next();
-	}
-
-	@Override
-	public Mono<IdentifiableResponse> decide(MultiRequest multiRequest) {
-		return subscribe(multiRequest).next();
 	}
 
 	public static class Builder {

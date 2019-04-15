@@ -44,12 +44,12 @@ public class PolicyEnforcementPoint {
 	public boolean enforce(Object subject, Object action, Object resource, Object environment) {
 		Request request = new Request(mapper.valueToTree(subject), mapper.valueToTree(action),
 				mapper.valueToTree(resource), mapper.valueToTree(environment));
-		Response response = pdp.decide(request).block();
+		Response response = pdp.decide(request).blockFirst();
 		LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(),
 				request.getSubject(), request.getEnvironment());
-		LOGGER.debug("RESPONSE : {} - {}", response.getDecision(), response);
+		LOGGER.debug("RESPONSE : {} - {}", response == null ? "null" : response.getDecision(), response);
 
-		if (response.getDecision() != Decision.PERMIT) {
+		if (response == null || response.getDecision() != Decision.PERMIT) {
 			return false;
 		}
 
@@ -105,12 +105,12 @@ public class PolicyEnforcementPoint {
 	public Optional<JsonNode> filterEnforce(Object subject, Object action, Object resource, Object environment) {
 		Request request = new Request(mapper.valueToTree(subject), mapper.valueToTree(action),
 				mapper.valueToTree(resource), mapper.valueToTree(environment));
-		Response response = pdp.decide(request).block();
+		Response response = pdp.decide(request).blockFirst();
 		LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(),
 				request.getSubject(), request.getEnvironment());
-		LOGGER.debug("RESPONSE : {} - {}", response.getDecision(), response);
+		LOGGER.debug("RESPONSE : {} - {}", response == null ? "null" : response.getDecision(), response);
 
-		if (response.getDecision() != Decision.PERMIT) {
+		if (response == null || response.getDecision() != Decision.PERMIT) {
 			throw new AccessDeniedException("Access not permitted by policy enforcement point.");
 		}
 

@@ -46,17 +46,17 @@ public class PolicyBasedPreInvocationEnforcementAdvice extends AbstractPolicyBas
 		Request request = new Request(mapper.valueToTree(subject), mapper.valueToTree(action),
 				mapper.valueToTree(resource), mapper.valueToTree(environment));
 
-		Response response = pdp.decide(request).block();
+		Response response = pdp.decide(request).blockFirst();
 
 		LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(),
 				request.getSubject(), request.getEnvironment());
-		LOGGER.debug("RESPONSE : {} - {}", response.getDecision(), response);
+		LOGGER.debug("RESPONSE : {} - {}", response == null ? "null" : response.getDecision(), response);
 
-		if (response.getResource().isPresent()) {
+		if (response != null && response.getResource().isPresent()) {
 			LOGGER.warn("Cannot handle a response declaring a new resource in @PreEnforce. Deny access!");
 			return false;
 		}
-		if (!response.getDecision().equals(Decision.PERMIT)) {
+		if (response == null || response.getDecision() != Decision.PERMIT) {
 			return false;
 		}
 

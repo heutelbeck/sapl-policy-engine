@@ -61,14 +61,14 @@ public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBa
 		Request request = new Request(mapper.valueToTree(subject), mapper.valueToTree(action),
 				mapper.valueToTree(resource), mapper.valueToTree(environment));
 
-		Response response = pdp.decide(request).block();
+		Response response = pdp.decide(request).blockFirst();
 
 		LOGGER.debug("ATTRIBUTE: {} - {}", pia, pia.getClass());
 		LOGGER.debug("REQUEST  :\n - ACTION={}\n - RESOURCE={}\n - SUBJ={}\n - ENV={}", request.getAction(),
 				request.getResource(), request.getSubject(), request.getEnvironment());
-		LOGGER.debug("RESPONSE : {} - {}", response.getDecision(), response);
+		LOGGER.debug("RESPONSE : {} - {}", response == null ? "null" : response.getDecision(), response);
 
-		if (!response.getDecision().equals(Decision.PERMIT)) {
+		if (response == null || response.getDecision() != Decision.PERMIT) {
 			throw new AccessDeniedException("Access denied by policy decision point.");
 		}
 
