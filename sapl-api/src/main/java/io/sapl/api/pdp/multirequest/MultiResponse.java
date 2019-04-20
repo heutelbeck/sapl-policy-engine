@@ -105,4 +105,19 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
         }
         return result;
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("MultiResponse {");
+        for (IdentifiableResponse response : this) {
+            sb.append("\n\t[")
+                    .append("REQ-ID: ").append(response.getRequestId()).append(" | ")
+                    .append("DECISION: ").append(response.getResponse().getDecision()).append(" | ")
+                    .append("RESOURCE: ").append(response.getResponse().getResource()).append(" | ")
+                    .append("OBLIGATIONS: ").append(response.getResponse().getObligations()).append(" | ")
+                    .append("ADVICE: ").append(response.getResponse().getAdvices()).append("]");
+        }
+        sb.append("\n}");
+        return sb.toString();
+    }
 }

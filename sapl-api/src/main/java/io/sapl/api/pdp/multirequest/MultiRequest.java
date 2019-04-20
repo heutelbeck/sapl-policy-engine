@@ -12,15 +12,14 @@
  */
 package io.sapl.api.pdp.multirequest;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 import static java.util.Objects.requireNonNull;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.Request;
@@ -159,12 +158,27 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 		};
 	}
 
+	@Override
+	public String toString() {
+		final StringBuilder sb = new StringBuilder("MultiRequest {");
+		for (IdentifiableRequest request : this) {
+			sb.append("\n\t[")
+					.append("REQ-ID: ").append(request.getId()).append(" | ")
+					.append("SUBJECT: ").append(request.getRequest().getSubject()).append(" | ")
+					.append("ACTION: ").append(request.getRequest().getAction()).append(" | ")
+					.append("RESOURCE: ").append(request.getRequest().getResource()).append(" | ")
+					.append("ENVIRONMENT: ").append(request.getRequest().getEnvironment()).append("]");
+		}
+		sb.append("\n}");
+		return sb.toString();
+	}
+
 	private static Request toRequest(Object subject, Object action, Object resource, Object environment) {
 		return new Request(
-				MAPPER.convertValue(subject, JsonNode.class),
-				MAPPER.convertValue(action, JsonNode.class),
-				MAPPER.convertValue(resource, JsonNode.class),
-				MAPPER.convertValue(environment, JsonNode.class)
+				MAPPER.valueToTree(subject),
+				MAPPER.valueToTree(action),
+				MAPPER.valueToTree(resource),
+				MAPPER.valueToTree(environment)
 		);
 	}
 }

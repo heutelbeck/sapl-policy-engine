@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
+import io.sapl.api.pdp.Disposable;
 import io.sapl.api.pdp.PolicyCombiningAlgorithm;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
@@ -49,7 +50,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
-public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
+public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposable {
 
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 	private static final String ALGORITHM_NOT_ALLOWED_FOR_PDP_LEVEL_COMBINATION = "algorithm not allowed for PDP level combination.";
@@ -100,16 +101,16 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	@Override
 	public Flux<MultiResponse> decideAll(MultiRequest multiRequest) {
 		if (multiRequest.hasRequests()) {
-			final List<Flux<IdentifiableResponse>> requestIdResponsePairFluxes = new ArrayList<>();
+			final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = new ArrayList<>();
 			for (IdentifiableRequest identifiableRequest : multiRequest) {
 				final String requestId = identifiableRequest.getId();
 				final Request request = identifiableRequest.getRequest();
 				final Flux<Response> responseFlux = decide(request);
 				final Flux<IdentifiableResponse> identifiableResponseFlux = responseFlux
 						.map(response -> new IdentifiableResponse(requestId, response));
-				requestIdResponsePairFluxes.add(identifiableResponseFlux);
+				identifiableResponseFluxes.add(identifiableResponseFlux);
 			}
-			return Flux.combineLatest(requestIdResponsePairFluxes, this::collectResponses);
+			return Flux.combineLatest(identifiableResponseFluxes, this::collectResponses);
 		}
 		return Flux.just(MultiResponse.indeterminate());
 	}
@@ -123,8 +124,11 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		return multiResponse;
 	}
 
+	@Override
 	public void dispose() {
-		prp.dispose();
+		if (prp instanceof Disposable) {
+			((Disposable) prp).dispose();
+		}
 	}
 
 
