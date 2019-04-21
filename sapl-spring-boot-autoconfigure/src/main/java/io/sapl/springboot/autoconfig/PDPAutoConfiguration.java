@@ -108,8 +108,7 @@ public class PDPAutoConfiguration {
 	private final Map<String, Object> policyInformationPoints;
 	private final Map<String, Object> functionLibraries;
 
-	public PDPAutoConfiguration(SAPLProperties pdpProperties, ConfigurableApplicationContext applicationContext,
-			ObjectMapper mapper) {
+	public PDPAutoConfiguration(SAPLProperties pdpProperties, ConfigurableApplicationContext applicationContext) {
 		this.pdpProperties = pdpProperties;
 		policyInformationPoints = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class);
 		functionLibraries = applicationContext.getBeansWithAnnotation(FunctionLibrary.class);
