@@ -2,7 +2,6 @@ package io.sapl.springboot.autoconfig;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -31,8 +30,8 @@ import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
-import io.sapl.spring.SAPLProperties;
 import io.sapl.spring.PolicyEnforcementFilterPEP;
+import io.sapl.spring.SAPLProperties;
 import io.sapl.spring.SAPLProperties.Remote;
 import io.sapl.spring.constraints.ConstraintHandlerService;
 import lombok.extern.slf4j.Slf4j;
@@ -47,93 +46,56 @@ import lombok.extern.slf4j.Slf4j;
  * <h2>Configure an EmbeddedPolicyDecisionPoint</h2> To have a bean instance of
  * an {@link EmbeddedPolicyDecisionPoint} just activate it in your
  * <i>application.properties</i>-file (or whatever spring supported way to
- * provide properties you wish to use. c. f. <a href=
+ * provide properties you wish to use. c.f. <a href=
  * "https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html">Spring
  * Boot Documentation on config parameters</a>) <br/>
  * Do not forget to provide the minimal required files in your policy path!
  * Example Snippet from .properties:<br/>
  * <code>
- * pdp.type=embedded
+ * io.sapl.type=embedded
  * <br/>
- * pdp.embedded.policyPath=classpath:path/to/policies
- * </code> <br/>
- *
- *
+ * io.sapl.embedded.policy-path=classpath:path/to/policies
+ * </code>
+ * <br/>
+ * <br/>
  * <h2>Configure a RemotePolicyDecisionPoint</h2> To have a bean instance of a
  * {@link RemotePolicyDecisionPoint} just activate it in your
  * <i>application.properties</i>-file (or whatever spring supported way to
- * provide properties you wish to use. <br/>
- * c. f. <a href=
+ * provide properties you wish to use.
+ * <br/>
+ * c.f. <a href=
  * "https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html">Spring
- * Boot Documentation on config parameters</a>) <br/>
- * Example Snippet from .properties:<br/>
+ * Boot Documentation on config parameters</a>)
+ * <br/>
+ * Example Snippet from .properties:
+ * <br/>
  * <code>
- * pdp.type=remote<br/>
- * pdp.remote.host=myhost.example.io<br/>
- * pdp.remote.port=8443<br/>
- * pdp.remote.secret=password<br/>
- * pdp.remote.key=username
- * </code> <br/>
+ * io.sapl.type=remote<br/>
+ * io.sapl.remote.host=myhost.example.io<br/>
+ * io.sapl.remote.port=8443<br/>
+ * io.sapl.remote.key=username<br/>
+ * io.sapl.remote.secret=password
+ * </code>
+ * <br/>
  * Provide the host without a protocol. It will always be assumed to be
- * https<br/>
+ * https
  * <br/>
  * <br/>
  * <h2>Using a policy information point</h2> If your EmbeddedPolicyDecisionPoint
- * shall use one or more PolicyInformationPoints, you can achieve this by
- * providing a bean of type {@link PIPProvider}. This bean must provide a
- * collection of all classes that instances you want to use as
- * PolicyInformationPoints. They need to implement the
- * {@link PolicyInformationPoint}-interface.<br/>
+ * shall use one or more PolicyInformationPoints, you can achieve this by ...
+ * ... instances you want to use as PolicyInformationPoints need to implement the
+ * {@link PolicyInformationPoint}-interface.
  * <br/>
- * If you do not define a bean of this type, this starter will provide a simple
- * implementation of {@link PIPProvider} that always returns an empty list.
- * 
- * <br/>
- * <br/>
- * <h2>The SaplAuthorizer</h2> If you do not define a Bean of type
- * {@link AdviceHandlerService} on your own this will be done for you. The
- * SAPLAuthorizer-instance created by
- * {@link #createSAPLAuthorizer(PolicyDecisionPoint, ObligationHandlerService, AdviceHandlerService, SaplMapper)}
- * will use beans of the following types. All of these are provided with a
- * default implementation if and only if you do not define beans of the types on
- * your own. <br/>
- * <ul>
- * <li>{@link PolicyDecisionPoint}: the embbeded- or remote-PDP you choosed to
- * use (see above)</li>
- * <li>{@link ObligationHandlerService}: see
- * {@link #createDefaultObligationHandlerService()}</li>
- * <li>{@link AdviceHandlerService}: see
- * {@link #createDefaultAdviceHandlerService()}</li>
- * <li>{@link SaplMapper}: see {@link #createSaplMapper()}</li>
- * </ul>
- * <br/>
- * <br/>
- * <h2>Registration of ObligationHandlers</h2> At startup all beans of type
- * {@link ObligationHandler} will be registered with your
- * {@link ObligationHandlerService}. See
- * {@link #registerObligationHandlers(List, ObligationHandlerService)} <br/>
- * This behavior can not be overridden. But you can make this method do nothing
- * with the following property set to false. That way you can handle the
- * ObligationHandler-registration completely on your own. <br/>
- * <code>pdp.obligationsHandler.autoregister=false</code> <br/>
- * <br/>
- * <h2>The default ObligationHandler</h2> If and only if you do not provide any
- * bean-definition of type {@link ObligationHandler} one bean will be defined by
- * {@link #denyAllObligationHandler()}. <br/>
  * <br/>
  * <h2>The PolicyEnforcementFilter</h2> If activated through the following
  * property, a bean of type {@link PolicyEnforcementFilterPEP} will be defined.
  * You can use it to extends the spring-security filterchain. See
- * {@link #policyEnforcementFilter(AdviceHandlerService)} <br/>
+ * {@link #policyEnforcementFilter(PolicyDecisionPoint, ConstraintHandlerService, ObjectMapper)}<br/>
  * <code>
  * io.sapl.policyEnforcementFilter=true
  * </code> <br/>
  * 
- * <br/>
- * <br/>
- * 
  * @see SAPLProperties
- * @see AdviceHandlerService
  */
 @Slf4j
 @Configuration
@@ -230,11 +192,6 @@ public class PDPAutoConfiguration {
 		return new RemotePolicyDecisionPoint(host, port, key, secret);
 	}
 
-	/**
-	 * 
-	 * @param saplAuthorizer - the SAPLAuthorizer to be used by the Filter
-	 * @return a PolicyEnforcementFilter
-	 */
 	@Bean
 	@ConditionalOnProperty("io.sapl.policyEnforcementFilter")
 	public PolicyEnforcementFilterPEP policyEnforcementFilter(PolicyDecisionPoint pdp,
