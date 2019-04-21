@@ -9,12 +9,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
-import io.sapl.api.pdp.multirequest.IdentifiableAction;
-import io.sapl.api.pdp.multirequest.IdentifiableResource;
 import io.sapl.api.pdp.multirequest.IdentifiableResponse;
-import io.sapl.api.pdp.multirequest.IdentifiableSubject;
 import io.sapl.api.pdp.multirequest.MultiRequest;
-import io.sapl.api.pdp.multirequest.RequestElements;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -73,11 +69,8 @@ public class EmbeddedPolicyDecisionPointTest {
 
 	@Test
 	public void decide_withMultiRequest_shouldReturnResponse() {
-		final MultiRequest multiRequest = new MultiRequest();
-		multiRequest.addSubject(new IdentifiableSubject("sub", "willi"));
-		multiRequest.addAction(new IdentifiableAction("act", "read"));
-		multiRequest.addResource(new IdentifiableResource("res", "something"));
-		multiRequest.addRequest("req", new RequestElements("sub", "act", "res"));
+		final MultiRequest multiRequest = new MultiRequest()
+				.addRequest("req", "willi", "read", "something");
 
 		final Flux<IdentifiableResponse> flux = pdp.decide(multiRequest);
 		StepVerifier.create(flux).expectNextMatches(
@@ -87,13 +80,9 @@ public class EmbeddedPolicyDecisionPointTest {
 
 	@Test
 	public void decide_withMultiRequestContainingTwoRequests_shouldReturnTwoResponses() {
-		final MultiRequest multiRequest = new MultiRequest();
-		multiRequest.addSubject(new IdentifiableSubject("sub", "willi"));
-		multiRequest.addAction(new IdentifiableAction("act1", "read"));
-		multiRequest.addAction(new IdentifiableAction("act2", "write"));
-		multiRequest.addResource(new IdentifiableResource("res", "something"));
-		multiRequest.addRequest("req1", new RequestElements("sub", "act1", "res"));
-		multiRequest.addRequest("req2", new RequestElements("sub", "act2", "res"));
+		final MultiRequest multiRequest = new MultiRequest()
+				.addRequest("req1", "willi", "read", "something")
+				.addRequest("req2", "willi", "write", "something");
 
 		final Flux<IdentifiableResponse> flux = pdp.decide(multiRequest);
 		StepVerifier.create(flux).expectNextMatches(response -> {

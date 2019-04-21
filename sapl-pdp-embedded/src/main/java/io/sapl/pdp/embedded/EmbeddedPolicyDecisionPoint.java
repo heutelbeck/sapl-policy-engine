@@ -89,7 +89,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 				final Request request = identifiableRequest.getRequest();
 				final Flux<Response> responseFlux = decide(request);
 				final Flux<IdentifiableResponse> requestResponsePairFlux = responseFlux
-						.map(response -> new IdentifiableResponse(identifiableRequest.getId(), response))
+						.map(response -> new IdentifiableResponse(identifiableRequest.getRequestId(), response))
 						.subscribeOn(Schedulers.newElastic("pdp"));
 				requestIdResponsePairFluxes.add(requestResponsePairFlux);
 			}
@@ -103,7 +103,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 		if (multiRequest.hasRequests()) {
 			final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = new ArrayList<>();
 			for (IdentifiableRequest identifiableRequest : multiRequest) {
-				final String requestId = identifiableRequest.getId();
+				final String requestId = identifiableRequest.getRequestId();
 				final Request request = identifiableRequest.getRequest();
 				final Flux<Response> responseFlux = decide(request);
 				final Flux<IdentifiableResponse> identifiableResponseFlux = responseFlux

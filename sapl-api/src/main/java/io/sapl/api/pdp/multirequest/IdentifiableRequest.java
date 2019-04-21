@@ -8,16 +8,16 @@ import lombok.ToString;
 
 @Getter
 @ToString
-public class IdentifiableRequest implements Identifiable {
+public class IdentifiableRequest {
 
-    private String id;
+    private String requestId;
     private Request request;
 
-    public IdentifiableRequest(String id, Request request) {
-        requireNonNull(id, "id must not be null");
+    public IdentifiableRequest(String requestId, Request request) {
+        requireNonNull(requestId, "requestId must not be null");
         requireNonNull(request, "request must not be null");
 
-        this.id = id;
+        this.requestId = requestId;
         this.request = request;
     }
 

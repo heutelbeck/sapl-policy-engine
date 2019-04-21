@@ -1,8 +1,5 @@
 package io.sapl.pdp.remote;
 
-import static io.sapl.api.pdp.multirequest.IdentifiableAction.READ_ID;
-import static io.sapl.api.pdp.multirequest.IdentifiableSubject.AUTHENTICATION_ID;
-
 import java.util.Collection;
 import java.util.Collections;
 
@@ -17,15 +14,16 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
-import io.sapl.api.pdp.multirequest.IdentifiableAction;
 import io.sapl.api.pdp.multirequest.IdentifiableResponse;
-import io.sapl.api.pdp.multirequest.IdentifiableSubject;
 import io.sapl.api.pdp.multirequest.MultiRequest;
-import io.sapl.api.pdp.multirequest.RequestElements;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-@Ignore // To run these tests, make sure the PDPServerApplication has been started
+/**
+ * To run these tests, save src/test/resources/policies/test_policies.sapl under ~/sapl/policies/
+ * and start the PDPServerApplication (in sapl-pdp-server).
+ */
+@Ignore
 public class RemotePolicyDecisionPointTest {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -50,13 +48,9 @@ public class RemotePolicyDecisionPointTest {
 				.singletonList(new SimpleGrantedAuthority("TESTER"));
 		final Authentication authentication = new UsernamePasswordAuthenticationToken("Reactor", null, authorities);
 
-		final MultiRequest multiRequest = new MultiRequest();
-		multiRequest.addSubject(new IdentifiableSubject(AUTHENTICATION_ID, authentication));
-		multiRequest.addAction(new IdentifiableAction(READ_ID, "test-read"));
-		multiRequest.addResource("heartBeatData");
-		multiRequest.addResource("bloodPressureData");
-		multiRequest.addRequest("requestId_1", new RequestElements(AUTHENTICATION_ID, READ_ID, "heartBeatData"));
-		multiRequest.addRequest("requestId_2", new RequestElements(AUTHENTICATION_ID, READ_ID, "bloodPressureData"));
+		final MultiRequest multiRequest = new MultiRequest()
+				.addRequest("requestId_1", authentication, "test-read", "heartBeatData")
+				.addRequest("requestId_2", authentication, "test-read", "bloodPressureData");
 
 		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
 		final Flux<IdentifiableResponse> decideFlux = pdp.decide(multiRequest);
