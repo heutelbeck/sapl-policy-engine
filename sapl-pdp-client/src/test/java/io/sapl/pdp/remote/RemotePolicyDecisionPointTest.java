@@ -12,10 +12,12 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import io.sapl.api.pdp.multirequest.MultiRequest;
+import io.sapl.api.pdp.multirequest.MultiResponse;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -43,7 +45,7 @@ public class RemotePolicyDecisionPointTest {
 	}
 
 	@Test
-	public void sendMultiRequest() {
+	public void sendMultiRequestReceiveSeparately() {
 		final Collection<GrantedAuthority> authorities = Collections
 				.singletonList(new SimpleGrantedAuthority("TESTER"));
 		final Authentication authentication = new UsernamePasswordAuthenticationToken("Reactor", null, authorities);
@@ -71,5 +73,23 @@ public class RemotePolicyDecisionPointTest {
 				throw new IllegalStateException("Invalid request id: " + response.getRequestId());
 			}
 		}).thenCancel().verify();
+	}
+
+	@Test
+	public void sendMultiRequestReceiveAll() {
+		final Collection<GrantedAuthority> authorities = Collections
+				.singletonList(new SimpleGrantedAuthority("TESTER"));
+		final Authentication authentication = new UsernamePasswordAuthenticationToken("Reactor", null, authorities);
+
+		final MultiRequest multiRequest = new MultiRequest()
+				.addRequest("requestId_1", authentication, "test-read", "heartBeatData")
+				.addRequest("requestId_2", authentication, "test-read", "bloodPressureData");
+
+		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
+		final Flux<MultiResponse> multiResponseFlux = pdp.decideAll(multiRequest);
+		StepVerifier.create(multiResponseFlux).expectNextMatches(response ->
+				response.isAccessPermittedForRequestWithId("requestId_1") &&
+				response.getDecisionForRequestWithId("requestId_2") == Decision.DENY)
+		.thenCancel().verify();
 	}
 }
