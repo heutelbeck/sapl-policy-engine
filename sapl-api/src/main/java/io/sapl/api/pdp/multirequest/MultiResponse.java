@@ -13,7 +13,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
+import lombok.Value;
 
+@Value
 public class MultiResponse implements Iterable<IdentifiableResponse> {
 
     @JsonInclude(NON_EMPTY)

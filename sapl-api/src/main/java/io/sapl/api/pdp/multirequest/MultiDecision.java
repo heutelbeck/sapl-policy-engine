@@ -9,7 +9,9 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.sapl.api.pdp.Decision;
+import lombok.Value;
 
+@Value
 public class MultiDecision {
 
     @JsonInclude(NON_EMPTY)
