@@ -118,9 +118,4 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 		return result;
 	}
-
-	@Override
-	public void dispose() {
-		// NOP
-	}
 }

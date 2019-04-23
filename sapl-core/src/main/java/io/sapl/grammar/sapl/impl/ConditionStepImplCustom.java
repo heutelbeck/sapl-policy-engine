@@ -98,6 +98,10 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(arrayNode.size());
 		IntStream.range(0, arrayNode.size()).forEach(idx -> itemFluxes.add(getExpression()
 				.evaluate(ctx, isBody, Optional.of(arrayNode.get(idx))).flatMap(Value::toJsonNode)));
+		// handle the empty array
+		if (itemFluxes.isEmpty()) {
+			return Flux.just(new ArrayResultNode(new ArrayList<>()));
+		}
 		// the indices of the elements in the arrayNode correspond to the indices of the flux results,
 		// because combineLatest() preserves the order of the given list of fluxes in the results array
 		// passed to the combinator function
@@ -131,6 +135,10 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			valueFluxes.add(
 					getExpression().evaluate(ctx, isBody, Optional.of(fieldValue)).flatMap(Value::toJsonNode)
 			);
+		}
+		// handle the empty object
+		if (valueFluxes.isEmpty()) {
+			return Flux.just(new ArrayResultNode(new ArrayList<>()));
 		}
 		// the indices of the elements in the fieldNames list and the fieldValues list
 		// correspond to the indices of the flux results, because combineLatest() preserves
@@ -171,7 +179,10 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			arrayElements.add(arrayElement);
 			conditionResultFluxes.add(getExpression().evaluate(ctx, isBody, arrayElement.getNode()));
 		}
-
+		// handle the empty array
+		if (conditionResultFluxes.isEmpty()) {
+			return Flux.just(new ArrayResultNode(new ArrayList<>()));
+		}
 		// the indices of the elements in the arrayElements list correspond to the indices
 		// of the flux results, because combineLatest() preserves the order of the given
 		// list of fluxes in the results array passed to the combinator function

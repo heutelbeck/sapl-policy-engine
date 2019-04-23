@@ -24,19 +24,15 @@ import lombok.Value;
 @JsonInclude(NON_EMPTY)
 public class RequestElements {
 
-	private String subjectId;
-	private String actionId;
-	private String resourceId;
-	private String environmentId;
+	private Integer subjectId;
+	private Integer actionId;
+	private Integer resourceId;
+	private Integer environmentId;
 
 	public RequestElements() {
 		subjectId = null;
 		actionId = null;
 		resourceId = null;
 		environmentId = null;
-	}
-
-	public RequestElements(String subjectId, String actionId, String resourceId) {
-		this(subjectId, actionId, resourceId, null);
 	}
 }

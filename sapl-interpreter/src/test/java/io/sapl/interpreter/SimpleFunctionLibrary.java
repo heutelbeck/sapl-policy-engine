@@ -13,9 +13,7 @@
 package io.sapl.interpreter;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.TextNode;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
@@ -30,9 +28,9 @@ public class SimpleFunctionLibrary {
 	public JsonNode length(JsonNode parameter) throws FunctionException {
 		JsonNode result = null;
 		if (parameter.isArray()) {
-			result = JSON.numberNode((float) ((ArrayNode) parameter).size());
+			result = JSON.numberNode(parameter.size());
 		} else if (parameter.isTextual()) {
-			result = JSON.numberNode((float) ((TextNode) parameter).asText().length());
+			result = JSON.numberNode(parameter.asText().length());
 		} else {
 			throw new FunctionException(
 					"length() parameter must be a string or an array, found " + parameter.getNodeType() + ".");

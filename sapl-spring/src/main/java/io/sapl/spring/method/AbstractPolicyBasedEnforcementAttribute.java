@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 /**
- * Superclass for the SAPL ConfigAttributes, taking care of initializing SePL
+ * Superclass for the SAPL ConfigAttributes, taking care of initializing SpEL
  * expression upon instantiation.
  */
 @Getter

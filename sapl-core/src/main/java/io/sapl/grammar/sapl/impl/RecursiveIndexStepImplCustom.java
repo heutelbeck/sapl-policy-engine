@@ -31,7 +31,11 @@ import reactor.core.publisher.Flux;
 
 public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
+	private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE = "Cannot descent on an undefined value.";
+
 	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
+
+	private static final String UNDEFINED_ARRAY_ELEMENT = "JSON does not support undefined array elements.";
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
@@ -44,25 +48,33 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isPresent()
-				|| (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject())) {
+		if (!previousResult.getNode().isPresent()) {
+			throw new PolicyEvaluationException(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE);
+		} else if (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject()) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		resultList.addAll(resolveRecursive(previousResult.getNode().get()));
-		return new ArrayResultNode(resultList);
+		return new ArrayResultNode(resolveRecursive(previousResult.getNode().get()));
 	}
 
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
-		return Flux.just(apply(previousResult));
+		try {
+			return Flux.just(apply(previousResult));
+		} catch (PolicyEvaluationException e) {
+			return Flux.error(e);
+		}
 	}
 
-	private ResultNode apply(ArrayResultNode previousResult) {
+	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
 		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode target : previousResult) {
-			resultList.addAll(resolveRecursive(target.getNode().get()));
+			if (target.getNode().isPresent()) {
+				resultList.addAll(resolveRecursive(target.getNode().get()));
+			} else {
+				// this case should never happen, because undefined values cannot be added to an array
+				throw new PolicyEvaluationException(UNDEFINED_ARRAY_ELEMENT);
+			}
 		}
 		return new ArrayResultNode(resultList);
 	}

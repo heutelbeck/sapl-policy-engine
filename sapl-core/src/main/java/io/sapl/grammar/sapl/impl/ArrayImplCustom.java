@@ -54,6 +54,10 @@ public class ArrayImplCustom extends ArrayImpl {
 		for (Expression item : getItems()) {
 			itemFluxes.add(item.evaluate(ctx, isBody, relativeNode).flatMap(Value::toJsonNode));
 		}
+		// handle the empty array
+		if (itemFluxes.isEmpty()) {
+			return Flux.just(Optional.of(JsonNodeFactory.instance.arrayNode()));
+		}
 		return Flux.combineLatest(itemFluxes, Function.identity()).map(this::collectValuesToArrayNode)
 				.map(Optional::of);
 	}

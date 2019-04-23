@@ -91,6 +91,10 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 			final JsonNode childNode = arrayNode.get(i);
 			fluxes.add(subtemplate.evaluate(ctx, isBody, Optional.of(childNode)));
 		}
+		// handle the empty array
+		if (fluxes.isEmpty()) {
+			return Flux.just(Optional.of(arrayNode));
+		}
 		return Flux.combineLatest(fluxes, Function.identity())
 				.flatMap(replacements -> replace(replacements, arrayNode));
 	}

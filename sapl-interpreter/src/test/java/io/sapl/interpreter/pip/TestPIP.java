@@ -26,7 +26,7 @@ public class TestPIP {
 	@Attribute
 	public JsonNode echo(JsonNode value, Map<String, JsonNode> variables) {
 		logVars(variables);
-		return value.deepCopy();
+		return value;
 	}
 
 	private void logVars(Map<String, JsonNode> variables) {

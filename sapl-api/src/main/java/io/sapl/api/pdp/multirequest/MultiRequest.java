@@ -12,123 +12,84 @@
  */
 package io.sapl.api.pdp.multirequest;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 import static java.util.Objects.requireNonNull;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import io.sapl.api.pdp.Request;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Value;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
+@Value
 @JsonInclude(NON_EMPTY)
 public class MultiRequest implements Iterable<IdentifiableRequest> {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
+	static {
+		final Jdk8Module jdk8Module = new Jdk8Module();
+		//jdk8Module.configureAbsentsAsNulls(true);
+		MAPPER.registerModule(jdk8Module);
+	}
 
-	private Map<String, Object> subjects = new HashMap<>();
-	private Map<String, Object> actions = new HashMap<>();
-	private Map<String, Object> resources = new HashMap<>();
-	private Map<String, Object> environments = new HashMap<>();
+	private ArrayList<Object> subjects = new ArrayList<>();
+	private ArrayList<Object> actions = new ArrayList<>();
+	private ArrayList<Object> resources = new ArrayList<>();
+	private ArrayList<Object> environments = new ArrayList<>();
+
 	private Map<String, RequestElements> requests = new HashMap<>();
 
-	public void addSubject(IdentifiableSubject identifiableSubject) {
-		requireNonNull(identifiableSubject, "subject must not be null");
-		this.subjects.put(identifiableSubject.getId(), identifiableSubject.getSubject());
+	/**
+	 * Convenience method to add a request without environment data.
+	 * Call {@link #addRequest(String, Object, Object, Object) addRequest(requestId, subject, action, resource, null)}.
+	 *
+	 * @param requestId the id identifying the request to be added.
+	 * @param subject the subject of the request to be added.
+	 * @param action the action of the request to be added.
+	 * @param resource the resource of the request to be added.
+	 * @return this {@code MultiRequest} instance to support chaining of multiple calls to {@code addRequest}.
+	 */
+	public MultiRequest addRequest(String requestId, Object subject, Object action, Object resource) {
+		return addRequest(requestId, subject, action, resource, null);
 	}
 
 	/**
-	 * Convenience method to add a string subject using its value as its ID.
+	 * Adds the request defined by the given subject, action, resource and environment.
+	 * The given {@code requestId} is associated with the according response to allow the
+	 * recipient of the PDP responses to correlate request-response pairs.
 	 *
-	 * @param subject the string subject to be added.
+	 * @param requestId the id identifying the request to be added.
+	 * @param subject the subject of the request to be added.
+	 * @param action the action of the request to be added.
+	 * @param resource the resource of the request to be added.
+	 * @param environment the environment of the request to be added.
+	 * @return this {@code MultiRequest} instance to support chaining of multiple calls to {@code addRequest}.
 	 */
-	public void addSubject(String subject) {
-		addSubject(new IdentifiableSubject(subject, subject));
-	}
-
-	public void addAction(IdentifiableAction identifiableAction) {
-		requireNonNull(identifiableAction, "action must not be null");
-		this.actions.put(identifiableAction.getId(), identifiableAction.getAction());
-	}
-
-	/**
-	 * Convenience method to add a string action using its value as its ID.
-	 *
-	 * @param action the string action to be added.
-	 */
-	public void addAction(String action) {
-		addAction(new IdentifiableAction(action, action));
-	}
-
-	public void addResource(IdentifiableResource identifiableResource) {
-		requireNonNull(identifiableResource, "resource must not be null");
-		this.resources.put(identifiableResource.getId(), identifiableResource.getResource());
-	}
-
-	/**
-	 * Convenience method to add a string resource using its value as its ID.
-	 *
-	 * @param resource the string resource to be added.
-	 */
-	public void addResource(String resource) {
-		addResource(new IdentifiableResource(resource, resource));
-	}
-
-	public void addEnvironment(IdentifiableEnvironment identifiableEnvironment) {
-		requireNonNull(identifiableEnvironment, "environment must not be null");
-		this.environments.put(identifiableEnvironment.getId(), identifiableEnvironment.getEnvironment());
-	}
-
-	/**
-	 * Convenience method to add a string environment using its value as its ID.
-	 *
-	 * @param environment the string environment to be added.
-	 */
-	public void addEnvironment(String environment) {
-		addEnvironment(new IdentifiableEnvironment(environment, environment));
-	}
-
-	public void addRequest(String requestId, RequestElements requestElements) {
+	public MultiRequest addRequest(String requestId, Object subject, Object action, Object resource, Object environment) {
 		requireNonNull(requestId, "requestId must not be null");
-		requireNonNull(requestElements, "requestParts must not be null");
-		validateRequest(requestElements);
-		this.requests.put(requestId, requestElements);
+
+		final Integer subjectId = ensureIsElementOfListAndReturnIndex(subject, subjects);
+		final Integer actionId = ensureIsElementOfListAndReturnIndex(action, actions);
+		final Integer resourceId = ensureIsElementOfListAndReturnIndex(resource, resources);
+		final Integer environmentId = ensureIsElementOfListAndReturnIndex(environment, environments);
+
+		requests.put(requestId, new RequestElements(subjectId, actionId, resourceId, environmentId));
+		return this;
 	}
 
-	private void validateRequest(RequestElements requestElements) throws UnknownIdException {
-		final String subjectId = requestElements.getSubjectId();
-		if (isNotEmpty(subjectId) && ! subjects.containsKey(subjectId)) {
-			throw new UnknownIdException("The multi-request does not contain a subject with id " + subjectId);
+	private int ensureIsElementOfListAndReturnIndex(Object element, ArrayList<Object> list) {
+		int index = list.indexOf(element);
+		if (index == -1) {
+			index = list.size();
+			list.add(element);
 		}
-
-		final String actionId = requestElements.getActionId();
-		if (isNotEmpty(actionId) && ! actions.containsKey(actionId)) {
-			throw new UnknownIdException("The multi-request does not contain an action with id " + actionId);
-		}
-
-		final String resourceId = requestElements.getResourceId();
-		if (isNotEmpty(resourceId) && ! resources.containsKey(resourceId)) {
-			throw new UnknownIdException("The multi-request does not contain a resource with id " + resourceId);
-		}
-
-		final String environmentId = requestElements.getEnvironmentId();
-		if (isNotEmpty(environmentId) && ! environments.containsKey(environmentId)) {
-			throw new UnknownIdException("The multi-request does not contain an environment with id " + environmentId);
-		}
-	}
-
-	private static boolean isNotEmpty(String s) {
-		return s != null && ! s.isEmpty();
+		return index;
 	}
 
 	public boolean hasRequests() {
@@ -159,12 +120,27 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 		};
 	}
 
+	@Override
+	public String toString() {
+		final StringBuilder sb = new StringBuilder("MultiRequest {");
+		for (IdentifiableRequest request : this) {
+			sb.append("\n\t[")
+					.append("REQ-ID: ").append(request.getRequestId()).append(" | ")
+					.append("SUBJECT: ").append(request.getRequest().getSubject()).append(" | ")
+					.append("ACTION: ").append(request.getRequest().getAction()).append(" | ")
+					.append("RESOURCE: ").append(request.getRequest().getResource()).append(" | ")
+					.append("ENVIRONMENT: ").append(request.getRequest().getEnvironment()).append("]");
+		}
+		sb.append("\n}");
+		return sb.toString();
+	}
+
 	private static Request toRequest(Object subject, Object action, Object resource, Object environment) {
 		return new Request(
-				MAPPER.convertValue(subject, JsonNode.class),
-				MAPPER.convertValue(action, JsonNode.class),
-				MAPPER.convertValue(resource, JsonNode.class),
-				MAPPER.convertValue(environment, JsonNode.class)
+				MAPPER.valueToTree(subject),
+				MAPPER.valueToTree(action),
+				MAPPER.valueToTree(resource),
+				MAPPER.valueToTree(environment)
 		);
 	}
 }

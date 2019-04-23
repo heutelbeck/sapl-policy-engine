@@ -35,12 +35,19 @@ public class ObjectImplCustom extends ObjectImpl {
 	@Override
 	@SuppressWarnings("unchecked")
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		// collect all attribute names (keys) and fluxes providing the evaluated values
 		final List<String> keys = new ArrayList<>(getMembers().size());
 		final List<Flux<Optional<JsonNode>>> valueFluxes = new ArrayList<>(getMembers().size());
 		for (Pair member : getMembers()) {
 			keys.add(member.getKey());
 			valueFluxes.add(member.getValue().evaluate(ctx, isBody, relativeNode));
 		}
+
+		// handle the empty object
+		if (valueFluxes.isEmpty()) {
+			return Flux.just(Optional.of(JsonNodeFactory.instance.objectNode()));
+		}
+
 		// the indices of the keys correspond to the indices of the values, because
 		// combineLatest() preserves the order of the given list of fluxes in the array
 		// of values passed to the combinator function

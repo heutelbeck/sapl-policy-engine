@@ -31,7 +31,7 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
-public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
+public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint, io.sapl.api.pdp.Disposable {
 
 	public static final String POLICY_FILE_PATTERN = "*.sapl";
 
