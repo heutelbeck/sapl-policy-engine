@@ -22,7 +22,7 @@ public class DirectoryWatchEventFluxSinkAdapter implements DirectoryWatchEventCo
 		@SuppressWarnings("unchecked")
 		final WatchEvent<Path> ev = (WatchEvent<Path>) event;
 		final Path filename = ev.context();
-		if (filename.toString().endsWith(FilesystemPolicyRetrievalPoint.POLICY_FILE_PATTERN)) {
+		if (filename.toString().endsWith(FilesystemPolicyRetrievalPoint.POLICY_FILE_SUFFIX)) {
 			sink.next("policy modification event");
 		}
 	}

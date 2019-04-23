@@ -34,6 +34,7 @@ import reactor.core.scheduler.Schedulers;
 public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint, io.sapl.api.pdp.Disposable {
 
 	public static final String POLICY_FILE_PATTERN = "*.sapl";
+	public static final String POLICY_FILE_SUFFIX = ".sapl";
 
 	private String path;
 	private ParsedDocumentIndex parsedDocIdx;
