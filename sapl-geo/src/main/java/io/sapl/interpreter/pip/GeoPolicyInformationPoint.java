@@ -26,6 +26,7 @@ import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.interpreter.pip.geo.KMLImport;
 import io.sapl.interpreter.pip.geo.PostGISConnection;
 import io.sapl.interpreter.pip.geo.TraccarConnection;
+import reactor.core.publisher.Flux;
 
 @PolicyInformationPoint(name = GeoPolicyInformationPoint.NAME, description = GeoPolicyInformationPoint.DESCRIPTION)
 public class GeoPolicyInformationPoint {
@@ -34,17 +35,17 @@ public class GeoPolicyInformationPoint {
 	public static final String DESCRIPTION = "PIP for geographical data.";
 
 	@Attribute
-	public JsonNode traccar(JsonNode value, Map<String, JsonNode> variables) throws AttributeException, FunctionException {
-		return new TraccarConnection(value).toGeoPIPResponse();
+	public Flux<JsonNode> traccar(JsonNode value, Map<String, JsonNode> variables) throws AttributeException, FunctionException {
+		return Flux.just(new TraccarConnection(value).toGeoPIPResponse());
 	}
 
 	@Attribute
-	public JsonNode postgis(JsonNode value, Map<String, JsonNode> variables) throws AttributeException, FunctionException {
-		return new PostGISConnection(value).toGeoPIPResponse();
+	public Flux<JsonNode> postgis(JsonNode value, Map<String, JsonNode> variables) throws AttributeException, FunctionException {
+		return Flux.just(new PostGISConnection(value).toGeoPIPResponse());
 	}
 
 	@Attribute
-	public JsonNode kml(JsonNode value, Map<String, JsonNode> variables) throws AttributeException, FunctionException {
-		return new KMLImport(value).toGeoPIPResponse();
+	public Flux<JsonNode> kml(JsonNode value, Map<String, JsonNode> variables) throws AttributeException, FunctionException {
+		return Flux.just(new KMLImport(value).toGeoPIPResponse());
 	}
 }

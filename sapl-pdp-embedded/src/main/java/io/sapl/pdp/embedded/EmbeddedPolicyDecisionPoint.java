@@ -1,6 +1,5 @@
 package io.sapl.pdp.embedded;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -54,7 +53,6 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 	private static final String ALGORITHM_NOT_ALLOWED_FOR_PDP_LEVEL_COMBINATION = "algorithm not allowed for PDP level combination.";
-	public static final String DEFAULT_PATH = "~" + File.separator + "policies";
 
 	private PolicyRetrievalPoint prp;
 	private DocumentsCombinator combinator;
@@ -138,7 +136,6 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 
 	public static class Builder {
 		private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
-		private PolicyCombiningAlgorithm algorithm;
 
 		private Builder() throws FunctionException, AttributeException {
 			pdp.functionCtx.loadLibrary(new FilterFunctionLibrary());
@@ -192,7 +189,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 		}
 
 		public Builder withCombiningAlgorithm(PolicyCombiningAlgorithm algorithm) {
-			this.algorithm = algorithm;
+			setCombinatorAlgorithm(algorithm);
 			return this;
 		}
 
@@ -200,10 +197,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 			if (pdp.prp == null) {
 				withResourcePolicyRetrievalPoint();
 			}
-			if (algorithm == null) {
+			if (pdp.combinator == null) {
 				withCombiningAlgorithm(PolicyCombiningAlgorithm.DENY_UNLESS_PERMIT);
 			}
-			setCombinatorAlgorithm(algorithm);
 			return pdp;
 		}
 

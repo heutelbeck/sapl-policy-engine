@@ -68,6 +68,31 @@ public class WebClientRequestExecutor {
 						.syncBody(getBody(saplRequest))
 						.retrieve()
 						.bodyToFlux(JsonNode.class);
+			} else if (httpMethod == PUT) {
+				return webClient.put()
+						.uri(urlSpec.pathAndQueryString())
+						.contentType(MediaType.APPLICATION_JSON_UTF8)
+						.accept(MediaType.APPLICATION_STREAM_JSON)
+						.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
+						.syncBody(getBody(saplRequest))
+						.retrieve()
+						.bodyToFlux(JsonNode.class);
+			} else if (httpMethod == DELETE) {
+				return webClient.delete()
+						.uri(urlSpec.pathAndQueryString())
+						.accept(MediaType.APPLICATION_STREAM_JSON)
+						.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
+						.retrieve()
+						.bodyToFlux(JsonNode.class);
+			} else if (httpMethod == PATCH) {
+				return webClient.patch()
+						.uri(urlSpec.pathAndQueryString())
+						.contentType(MediaType.APPLICATION_JSON_UTF8)
+						.accept(MediaType.APPLICATION_STREAM_JSON)
+						.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
+						.syncBody(getBody(saplRequest))
+						.retrieve()
+						.bodyToFlux(JsonNode.class);
 			} else {
 				return Flux.error(new IOException("Unsupported request method " + httpMethod));
 			}

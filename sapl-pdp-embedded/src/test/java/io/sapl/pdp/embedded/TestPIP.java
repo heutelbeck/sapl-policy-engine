@@ -4,8 +4,10 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import reactor.core.publisher.Flux;
 
 @PolicyInformationPoint(name = TestPIP.NAME, description = TestPIP.DESCRIPTION)
 public class TestPIP {
@@ -16,7 +18,7 @@ public class TestPIP {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Attribute
-	public JsonNode upper(JsonNode value, Map<String, JsonNode> variables) {
-		return JSON.textNode(value.asText().toUpperCase());
+	public Flux<JsonNode> upper(JsonNode value, Map<String, JsonNode> variables) {
+		return Flux.just(JSON.textNode(value.asText().toUpperCase()));
 	}
 }

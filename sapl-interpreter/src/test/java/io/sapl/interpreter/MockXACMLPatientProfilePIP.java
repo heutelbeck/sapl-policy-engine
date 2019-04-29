@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import reactor.core.publisher.Flux;
 
 @PolicyInformationPoint(name = MockXACMLPatientProfilePIP.NAME)
 public class MockXACMLPatientProfilePIP {
@@ -30,7 +31,7 @@ public class MockXACMLPatientProfilePIP {
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	@Attribute
-	public JsonNode profile(JsonNode value, Map<String, JsonNode> variables) throws IOException {
+	public Flux<JsonNode> profile(JsonNode value, Map<String, JsonNode> variables) throws IOException {
 		String json = "{" + "	\"patient\": {" + "		\"name\": {" + "			\"first\": \"Bartholomew\","
 				+ "			\"last\": \"Simpson\"" + "		}," + "		\"contact\": {"
 				+ "			\"street\": \"27 Shelbyville Road\"," + "			\"email\": null" + "		},"
@@ -48,6 +49,6 @@ public class MockXACMLPatientProfilePIP {
 				+ "			\"value\": \"120/80\"," + "			\"date\": \"2001-06-09\","
 				+ "			\"performedBy\": \"Nurse Betty\"" + "		}" + "	}" + "}";
 
-		return MAPPER.readTree(json);
+		return Flux.just(MAPPER.readTree(json));
 	}
 }

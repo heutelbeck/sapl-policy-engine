@@ -40,6 +40,7 @@ import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.webclient.RequestSpecification;
 import io.sapl.webclient.WebClientRequestExecutor;
+import reactor.core.publisher.Flux;
 
 @RunWith(MockitoJUnitRunner.class)
 public class HttpPolicyInformationPointTest {
@@ -59,7 +60,7 @@ public class HttpPolicyInformationPointTest {
 				"{ " +
 					"\"url\": \"http://jsonplaceholder.typicode.com/posts\", " +
 					"\"headers\": { " +
-						"\"" + HttpHeaders.ACCEPT + "\" : \"application/json\", " +
+						"\"" + HttpHeaders.ACCEPT + "\" : \"application/stream+json\", " +
 						"\"" + HttpHeaders.ACCEPT_CHARSET + "\" : \"" + StandardCharsets.UTF_8 + "\" " +
 					"}, " +
 					"\"rawBody\" : \"hello world\" " +
@@ -69,7 +70,7 @@ public class HttpPolicyInformationPointTest {
 		result = JSON.textNode("result");
 
 		final Map<String, String> headerProperties = new HashMap<>();
-		headerProperties.put(HttpHeaders.ACCEPT, "application/json");
+		headerProperties.put(HttpHeaders.ACCEPT, "application/stream+json");
 		headerProperties.put(HttpHeaders.ACCEPT_CHARSET, StandardCharsets.UTF_8.toString());
 
 		expectedRequestSpec = new RequestSpecification();
@@ -78,7 +79,7 @@ public class HttpPolicyInformationPointTest {
 		expectedRequestSpec.setRawBody("hello world");
 
 		requestExecutor = Mockito.spy(WebClientRequestExecutor.class);
-		doReturn(result).when(requestExecutor).executeBlockingRequest(any(RequestSpecification.class), any(HttpMethod.class));
+		doReturn(Flux.just(result)).when(requestExecutor).executeReactiveRequest(any(RequestSpecification.class), any(HttpMethod.class));
 	}
 
 	@Test
@@ -90,6 +91,6 @@ public class HttpPolicyInformationPointTest {
 		final JsonNode returnedAttribute = attributeCtx.evaluate("http.post", actualRequestSpec, variables).blockFirst();
 
 		assertEquals("return value not matching", result, returnedAttribute);
-		verify(requestExecutor).executeBlockingRequest(eq(expectedRequestSpec), eq(POST));
+		verify(requestExecutor).executeReactiveRequest(eq(expectedRequestSpec), eq(POST));
 	}
 }

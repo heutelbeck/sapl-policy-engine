@@ -24,7 +24,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @NoArgsConstructor
@@ -37,10 +36,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	private static final String BAD_NUMBER_OF_PARAMETERS = "Bad number of parameters for attribute finder. Attribute finders are supposed to have one JsonNode and one Map<String, JsonNode> as parameters. The method had %d parameters";
 	private static final String FIRST_PARAMETER_OF_METHOD_MUST_BE_A_JSON_NODE = "First parameter of method must be a JsonNode. Was: %s";
 	private static final String SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP = "Second parameter of method must be a Map<String, JsonNode>. Was: %s";
-	private static final String KEY_TYPE_OF_THE_MAP_MUST_BE_STRING = "Key type of the map must be String. Was: %s";
-	private static final String VALUE_TYPE_OF_THE_MAP_MUST_BE_JSON_NODE = "Value type of the map must be JsonNode. Was: %s";
-	private static final String RETURN_TYPE_OF_NON_REACTIVE_METHOD_MUST_BE_JSON_NODE = "The return type of a non reactive attribute finder must be JsonNode. Was: %s";
-	private static final String RETURN_TYPE_OF_REACTIVE_METHOD_MUST_BE_FLUX_OF_JSON_NODE = "The return type of a reactive attribute finder must be Flux<JsonNode>. Was: %s";
+	private static final String RETURN_TYPE_MUST_BE_FLUX_OF_JSON_NODE = "The return type of an attribute finder must be Flux<JsonNode>. Was: %s";
 
 	private Map<String, Collection<String>> attributeNamesByPipName = new HashMap<>();
 	private Map<String, AttributeFinderMetadata> attributeMetadataByAttributeName = new HashMap<>();
@@ -64,17 +60,9 @@ public class AnnotationAttributeContext implements AttributeContext {
 		final Parameter firstParameter = method.getParameters()[0];
 		try {
 			ParameterTypeValidator.validateType(value, firstParameter);
-			if (metadata.isReactive()) {
-				@SuppressWarnings("unchecked")
-				final Flux<JsonNode> resultFlux = (Flux<JsonNode>) method.invoke(pip, value, variables);
-				return resultFlux.subscribeOn(Schedulers.newElastic("pip"));
-			} else {
-				// wrap synchronous call to enable scheduling
-				Mono<JsonNode> pipCall = Mono.fromCallable(() -> {
-					return (JsonNode) method.invoke(pip, value, variables);
-				});
-				return pipCall.flux();
-			}
+			@SuppressWarnings("unchecked")
+			final Flux<JsonNode> resultFlux = (Flux<JsonNode>) method.invoke(pip, value, variables);
+			return resultFlux.subscribeOn(Schedulers.newElastic("pip"));
 		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
 				| IllegalParameterType e) {
 			return Flux.error(new AttributeException(e));
@@ -134,39 +122,35 @@ public class AnnotationAttributeContext implements AttributeContext {
 		}
 
 		final Type[] genericTypes = method.getGenericParameterTypes();
-		final Class<?> fistTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1]).getActualTypeArguments()[0];
-		if (!String.class.isAssignableFrom(fistTypeArgument)) {
-			throw new AttributeException(String.format(KEY_TYPE_OF_THE_MAP_MUST_BE_STRING, fistTypeArgument.getName()));
-		}
-		final Class<?> secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1])
-				.getActualTypeArguments()[1];
-		if (!JsonNode.class.isAssignableFrom(secondTypeArgument)) {
+		if (genericTypes[1] instanceof ParameterizedType && ((ParameterizedType) genericTypes[1]).getActualTypeArguments().length == 2) {
+			final Class<?> firstTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1]).getActualTypeArguments()[0];
+			final Class<?> secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1]).getActualTypeArguments()[1];
+			if (!String.class.isAssignableFrom(firstTypeArgument) || !JsonNode.class.isAssignableFrom(secondTypeArgument)) {
+				throw new AttributeException(String.format(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP,
+						parameterTypes[1].getName() + "<" + firstTypeArgument.getName() + "," + secondTypeArgument.getName() + ">"));
+			}
+		} else {
 			throw new AttributeException(
-					String.format(VALUE_TYPE_OF_THE_MAP_MUST_BE_JSON_NODE, secondTypeArgument.getName()));
+					String.format(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName()));
 		}
-
-		final boolean isReactive = attAnnotation.reactive();
 
 		final Class<?> returnType = method.getReturnType();
-		if (isReactive) {
-			final Type genericReturnType = method.getGenericReturnType();
+		final Type genericReturnType = method.getGenericReturnType();
+		if (genericReturnType instanceof ParameterizedType) {
 			final Class<?> returnTypeArgument = (Class<?>) ((ParameterizedType) genericReturnType)
 					.getActualTypeArguments()[0];
 			if (!Flux.class.isAssignableFrom(returnType) || !JsonNode.class.isAssignableFrom(returnTypeArgument)) {
-				throw new AttributeException(String.format(RETURN_TYPE_OF_REACTIVE_METHOD_MUST_BE_FLUX_OF_JSON_NODE,
+				throw new AttributeException(String.format(RETURN_TYPE_MUST_BE_FLUX_OF_JSON_NODE,
 						returnType.getName() + "<" + returnTypeArgument.getName() + ">"));
 			}
 		} else {
-			if (!JsonNode.class.isAssignableFrom(returnType)) {
-				throw new AttributeException(
-						String.format(RETURN_TYPE_OF_NON_REACTIVE_METHOD_MUST_BE_JSON_NODE, returnType.getName()));
-			}
+			throw new AttributeException(String.format(RETURN_TYPE_MUST_BE_FLUX_OF_JSON_NODE, returnType.getName()));
 		}
 
 		pipDocs.documentation.put(attName, attAnnotation.docs());
 
 		attributeMetadataByAttributeName.put(fullName(pipName, attName),
-				new AttributeFinderMetadata(policyInformationPoint, method, isReactive));
+				new AttributeFinderMetadata(policyInformationPoint, method));
 
 		attributeNamesByPipName.get(pipName).add(attName);
 	}
@@ -204,8 +188,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		@NonNull
 		Method function;
-
-		boolean isReactive;
 	}
 
 }

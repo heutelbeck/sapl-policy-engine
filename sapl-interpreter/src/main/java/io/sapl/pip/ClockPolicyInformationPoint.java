@@ -25,11 +25,11 @@ public class ClockPolicyInformationPoint {
     public static final String DESCRIPTION = "Policy Information Point and attributes for retrieving current date and time information";
 
     @Attribute(docs = "Returns the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with time offset.")
-    public JsonNode now(@Text JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
+    public Flux<JsonNode> now(@Text JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
         try {
             final ZoneId zoneId = convertToZoneId(value);
             final OffsetDateTime now = Instant.now().atZone(zoneId).toOffsetDateTime();
-            return JsonNodeFactory.instance.textNode(now.toString());
+            return Flux.just(JsonNodeFactory.instance.textNode(now.toString()));
         } catch (Exception e) {
             throw new AttributeException("Exception while converting the given value to a ZoneId.", e);
         }
@@ -46,7 +46,7 @@ public class ClockPolicyInformationPoint {
         return ZoneId.of(zoneIdStr);
     }
 
-    @Attribute(docs = "Emits every x seconds the current UTC date and time as an ISO-8601 string. x is the passed number value.", reactive = true)
+    @Attribute(docs = "Emits every x seconds the current UTC date and time as an ISO-8601 string. x is the passed number value.")
     public Flux<JsonNode> ticker(@Number JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
         try {
             return Flux.interval(Duration.ofSeconds(value.asLong()))

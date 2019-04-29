@@ -67,7 +67,7 @@ class TemporalFunctionLibraryTest {
 	@Test
 	def void nowPlus10Seconds() {
         val zoneId = JSON.textNode("UTC")
-		val now = new ClockPolicyInformationPoint().now(zoneId, Collections.<String, JsonNode> emptyMap)
+		val now = new ClockPolicyInformationPoint().now(zoneId, Collections.<String, JsonNode> emptyMap).blockFirst()
 		val plus10 = TemporalFunctionLibrary.plusSeconds(now, JSON.numberNode(10))
 
 		val expected = Instant.parse(now.asText).plusSeconds(10).toString
@@ -78,7 +78,7 @@ class TemporalFunctionLibraryTest {
 	@Test
 	def void dayOfWeekFrom() {
         val zoneId = JSON.textNode("UTC")
-        val now = new ClockPolicyInformationPoint().now(zoneId, Collections.<String, JsonNode> emptyMap)
+        val now = new ClockPolicyInformationPoint().now(zoneId, Collections.<String, JsonNode> emptyMap).blockFirst()
 		val dayOfWeek = TemporalFunctionLibrary.dayOfWeekFrom(now)
 		val expected = DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)).toString
 

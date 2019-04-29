@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 @PolicyInformationPoint(name = TestPIP.NAME, description = TestPIP.DESCRIPTION)
@@ -24,9 +25,9 @@ public class TestPIP {
 	}
 
 	@Attribute
-	public JsonNode echo(JsonNode value, Map<String, JsonNode> variables) {
+	public Flux<JsonNode> echo(JsonNode value, Map<String, JsonNode> variables) {
 		logVars(variables);
-		return value;
+		return Flux.just(value);
 	}
 
 	private void logVars(Map<String, JsonNode> variables) {
@@ -36,11 +37,11 @@ public class TestPIP {
 	}
 
 	@Attribute
-	public JsonNode someVariableOrNull(JsonNode value, Map<String, JsonNode> variables) {
+	public Flux<JsonNode> someVariableOrNull(JsonNode value, Map<String, JsonNode> variables) {
 		logVars(variables);
 		if (variables.containsKey(value.asText())) {
-			return variables.get(value.asText()).deepCopy();
+			return Flux.just(variables.get(value.asText()).deepCopy());
 		}
-		return JSON.nullNode();
+		return Flux.just(JSON.nullNode());
 	}
 }
