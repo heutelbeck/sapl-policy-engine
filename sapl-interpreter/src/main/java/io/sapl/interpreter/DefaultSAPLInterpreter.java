@@ -67,6 +67,8 @@ import io.sapl.interpreter.variables.VariableContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 /**
  * The default implementation of the SAPLInterpreter interface.
@@ -75,8 +77,6 @@ import reactor.core.publisher.Flux;
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static final String CANNOT_ASSIGN_UNDEFINED_TO_A_VAL = "Cannot assign undefined to a val.";
-	private static final String ADVICE_EVALUATED_TO_UNDEFINED_VALUE = "Advice evaluated to undefined value";
-	private static final String OBLIGATION_EVALUATED_TO_UNDEFINED_VALUE = "Obligation evaluated to undefined value.";
 
 	@FunctionalInterface
 	interface FluxProvider<T> {
@@ -90,14 +90,14 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	private static final String PERMIT = "permit";
 	private static final String DUMMY_RESOURCE_URI = "policy:/apolicy.sapl";
 
-	static final String FILTER_REMOVE = "remove";
 
 	static final String POLICY_EVALUATION_FAILED = "Policy evaluation failed: {}";
 	static final String PARSING_ERRORS = "Parsing errors: %s";
 	static final String CONDITION_NOT_BOOLEAN = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
 	static final String NO_TARGET_MATCH = "Target not matching.";
 	static final String STATEMENT_NOT_BOOLEAN = "Evaluation error: Statement must evaluate to a boolean value, but was: '%s'.";
-	static final String OBLIGATION_ADVICE_ERROR = "Error occurred while evaluating obligation/advice.";
+	static final String OBLIGATIONS_ERROR = "Error occurred while evaluating obligations.";
+	static final String ADVICE_ERROR = "Error occurred while evaluating advice.";
 	static final String TRANSFORMATION_ERROR = "Error occurred while evaluating transformation.";
 	static final String IMPORT_NOT_FOUND = "Import '%s' was not found.";
 	static final String IMPORT_EXISTS = "An import for name '%s' already exists.";
@@ -363,23 +363,22 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			decisionFlux = Flux.just(entitlement);
 		}
 
-		return decisionFlux.map(decision -> {
+		return decisionFlux.flatMap(decision -> {
 			if (decision == Decision.PERMIT || decision == Decision.DENY) {
-				try {
-					final Optional<ArrayNode> obligation = evaluateObligation(policy, evaluationCtx);
-					final Optional<ArrayNode> advice = evaluateAdvice(policy, evaluationCtx);
-					return new Response(decision, Optional.empty(), obligation, advice);
-				} catch (PolicyEvaluationException e) {
-					throw Exceptions.propagate(e);
-				}
+				return evaluateObligationsAndAdvice(policy, evaluationCtx)
+						.map(obligationsAndAdvice -> {
+							final Optional<ArrayNode> obligations = obligationsAndAdvice.getT1();
+							final Optional<ArrayNode> advice = obligationsAndAdvice.getT2();
+							return new Response(decision, Optional.empty(), obligations, advice);
+						});
 			} else {
-				return new Response(decision, Optional.empty(), Optional.empty(), Optional.empty());
+				return Flux.just(new Response(decision, Optional.empty(), Optional.empty(), Optional.empty()));
 			}
 		}).flatMap(response -> {
-			if (response.getDecision() == Decision.PERMIT) {
-				return evaluateTransformation(policy, evaluationCtx).map(
-						resource -> new Response(response.getDecision(), resource.orElseGet(() -> Optional.empty()),
-								response.getObligations(), response.getAdvices()));
+			final Decision decision = response.getDecision();
+			if (decision == Decision.PERMIT) {
+				return evaluateTransformation(policy, evaluationCtx)
+						.map(resource -> new Response(decision, resource, response.getObligations(), response.getAdvices()));
 			} else {
 				return Flux.just(response);
 			}
@@ -449,57 +448,39 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
 	}
 
-	private static Optional<ArrayNode> evaluateObligation(Policy policy, EvaluationContext evaluationCtx)
-			throws PolicyEvaluationException {
+	private static Flux<Tuple2<Optional<ArrayNode>,Optional<ArrayNode>>> evaluateObligationsAndAdvice(Policy policy, EvaluationContext evaluationCtx) {
+		Flux<Optional<ArrayNode>> obligationsFlux;
 		if (policy.getObligation() != null) {
 			final ArrayNode obligationArr = JSON.arrayNode();
-			try {
-				final Optional<JsonNode> obligation = policy.getObligation().evaluate(evaluationCtx, true, null)
-						.blockFirst();
-				if (!obligation.isPresent()) {
-					throw new PolicyEvaluationException(OBLIGATION_EVALUATED_TO_UNDEFINED_VALUE);
-				}
-				obligationArr.add(obligation.get());
-				return Optional.of(obligationArr);
-			} catch (RuntimeException fluxError) {
-				LOGGER.error(OBLIGATION_ADVICE_ERROR, fluxError);
-				final Throwable originalError = Exceptions.unwrap(fluxError);
-				if (originalError instanceof PolicyEvaluationException) {
-					throw (PolicyEvaluationException) originalError;
-				}
-				throw fluxError;
-			}
+			obligationsFlux = policy.getObligation().evaluate(evaluationCtx, true, null)
+					.doOnError(error -> LOGGER.error(OBLIGATIONS_ERROR, error))
+					.map(obligation -> {
+						obligation.ifPresent(obligationArr::add);
+						return obligationArr.size() > 0 ? Optional.of(obligationArr) : Optional.empty();
+					});
+		} else {
+			obligationsFlux = Flux.just(Optional.empty());
 		}
-		return Optional.empty();
-	}
 
-	private static Optional<ArrayNode> evaluateAdvice(Policy policy, EvaluationContext evaluationCtx)
-			throws PolicyEvaluationException {
+		Flux<Optional<ArrayNode>> adviceFlux;
 		if (policy.getAdvice() != null) {
 			final ArrayNode adviceArr = JSON.arrayNode();
-			try {
-				final Optional<JsonNode> advice = policy.getAdvice().evaluate(evaluationCtx, true, null).blockFirst();
-				if (!advice.isPresent()) {
-					throw new PolicyEvaluationException(ADVICE_EVALUATED_TO_UNDEFINED_VALUE);
-				}
-				adviceArr.add(advice.get());
-				return Optional.of(adviceArr);
-			} catch (RuntimeException fluxError) {
-				LOGGER.error(OBLIGATION_ADVICE_ERROR, fluxError);
-				final Throwable originalError = Exceptions.unwrap(fluxError);
-				if (originalError instanceof PolicyEvaluationException) {
-					throw (PolicyEvaluationException) originalError;
-				}
-				throw fluxError;
-			}
+			adviceFlux = policy.getAdvice().evaluate(evaluationCtx, true, null)
+					.doOnError(error -> LOGGER.error(ADVICE_ERROR, error))
+					.map(advice -> {
+						advice.ifPresent(adviceArr::add);
+						return adviceArr.size() > 0 ? Optional.of(adviceArr) : Optional.empty();
+					});
+		} else {
+			adviceFlux = Flux.just(Optional.empty());
 		}
-		return Optional.empty();
+
+		return Flux.combineLatest(obligationsFlux, adviceFlux, Tuples::of);
 	}
 
-	private static Flux<Optional<Optional<JsonNode>>> evaluateTransformation(Policy policy,
-			EvaluationContext evaluationCtx) {
+	private static Flux<Optional<JsonNode>> evaluateTransformation(Policy policy, EvaluationContext evaluationCtx) {
 		if (policy.getTransformation() != null) {
-			return policy.getTransformation().evaluate(evaluationCtx, true, null).map(Optional::of)
+			return policy.getTransformation().evaluate(evaluationCtx, true, null)
 					.doOnError(error -> LOGGER.error(TRANSFORMATION_ERROR, error));
 		} else {
 			return Flux.just(Optional.empty());
