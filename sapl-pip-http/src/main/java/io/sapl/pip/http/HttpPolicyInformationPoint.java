@@ -22,10 +22,12 @@ import io.sapl.api.validation.Text;
 import io.sapl.webclient.RequestSpecification;
 import io.sapl.webclient.WebClientRequestExecutor;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 @NoArgsConstructor
 @PolicyInformationPoint(name = HttpPolicyInformationPoint.NAME, description = HttpPolicyInformationPoint.DESCRIPTION)
+@Slf4j
 public class HttpPolicyInformationPoint {
 
 	static final String NAME = "http";
@@ -52,27 +54,27 @@ public class HttpPolicyInformationPoint {
 
 	@Attribute(docs = GET_DOCS)
 	public Flux<JsonNode> get(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
-		return executeReactiveRequest(value, GET);
+		return executeReactiveRequest(value, GET).doOnNext(jsonNode -> LOGGER.trace("http.get({}) returned {}", value, jsonNode));
 	}
 
 	@Attribute(docs = POST_DOCS)
 	public Flux<JsonNode> post(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
-		return executeReactiveRequest(value, POST);
+		return executeReactiveRequest(value, POST).doOnNext(jsonNode -> LOGGER.trace("http.post({}) returned {}", value, jsonNode));
 	}
 
 	@Attribute(docs = PUT_DOCS)
 	public Flux<JsonNode> put(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
-		return executeReactiveRequest(value, PUT);
+		return executeReactiveRequest(value, PUT).doOnNext(jsonNode -> LOGGER.trace("http.put({}) returned {}", value, jsonNode));
 	}
 
 	@Attribute(docs = PATCH_DOCS)
 	public Flux<JsonNode> patch(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
-		return executeReactiveRequest(value, PATCH);
+		return executeReactiveRequest(value, PATCH).doOnNext(jsonNode -> LOGGER.trace("http.patch({}) returned {}", value, jsonNode));
 	}
 
 	@Attribute(docs = DELETE_DOCS)
 	public Flux<JsonNode> delete(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
-		return executeReactiveRequest(value, DELETE);
+		return executeReactiveRequest(value, DELETE).doOnNext(jsonNode -> LOGGER.trace("http.delete({}) returned {}", value, jsonNode));
 	}
 
 	private Flux<JsonNode> executeReactiveRequest(@JsonObject @Text JsonNode value, HttpMethod httpMethod) {
