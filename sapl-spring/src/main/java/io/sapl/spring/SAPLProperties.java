@@ -14,13 +14,19 @@ public class SAPLProperties {
 		RESOURCES, FILESYSTEM, REMOTE
 	}
 
+	public enum PRPIndexType {
+		SIMPLE, FAST
+	}
+
 	private PDPType type = PDPType.RESOURCES;
 
-	private Remote remote = new Remote();
+	private PRPIndexType index = PRPIndexType.SIMPLE;
+
+	private Resources resources = new Resources();
 
 	private Filesystem filesystem = new Filesystem();
 
-	private Resources resources = new Resources();
+	private Remote remote = new Remote();
 
 	private boolean policyEnforcementFilter;
 

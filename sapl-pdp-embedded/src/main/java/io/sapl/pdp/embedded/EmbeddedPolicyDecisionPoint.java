@@ -23,6 +23,7 @@ import io.sapl.api.pdp.multirequest.IdentifiableResponse;
 import io.sapl.api.pdp.multirequest.MultiRequest;
 import io.sapl.api.pdp.multirequest.MultiResponse;
 import io.sapl.api.pip.AttributeException;
+import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.functions.FilterFunctionLibrary;
@@ -43,6 +44,8 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.prp.filesystem.FilesystemPolicyRetrievalPoint;
+import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
+import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -135,6 +138,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 	}
 
 	public static class Builder {
+
+		public enum IndexType { SIMPLE, FAST }
+
 		private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
 
 		private Builder() throws FunctionException, AttributeException {
@@ -166,41 +172,37 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 			return this;
 		}
 
-		public Builder withResourcePolicyRetrievalPoint(String resourcePath)
+		public Builder withResourcePolicyRetrievalPoint(String resourcePath, IndexType indexType)
 				throws IOException, URISyntaxException, PolicyEvaluationException {
-			pdp.prp = new ResourcesPolicyRetrievalPoint(resourcePath);
-			return this;
+			return withResourcePolicyRetrievalPoint(ResourcesPolicyRetrievalPoint.class, resourcePath, indexType);
 		}
 
-		public Builder withResourcePolicyRetrievalPoint(Class<?> clazz, String resourcePath)
+		public Builder withResourcePolicyRetrievalPoint(Class<?> clazz, String resourcePath, IndexType indexType)
 				throws IOException, URISyntaxException, PolicyEvaluationException {
-			pdp.prp = new ResourcesPolicyRetrievalPoint(clazz, resourcePath);
+			final ParsedDocumentIndex index = getDocumentIndex(indexType);
+			pdp.prp = new ResourcesPolicyRetrievalPoint(clazz, resourcePath, index);
 			return this;
 		}
 
-		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder) {
-			pdp.prp = new FilesystemPolicyRetrievalPoint(policiesFolder);
+		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder, IndexType indexType) {
+			final ParsedDocumentIndex index = getDocumentIndex(indexType);
+			pdp.prp = new FilesystemPolicyRetrievalPoint(policiesFolder, index);
 			return this;
 		}
 
-		public Builder withIndexedFilesystemPolicyRetrievalPoint(String policiesFolder) {
-			pdp.prp = new FilesystemPolicyRetrievalPoint(policiesFolder, pdp.functionCtx);
-			return this;
+		private ParsedDocumentIndex getDocumentIndex(IndexType indexType) {
+			switch (indexType) {
+				case SIMPLE:
+					return new SimpleParsedDocumentIndex();
+				case FAST:
+					return new FastParsedDocumentIndex(pdp.functionCtx);
+			}
+			return new SimpleParsedDocumentIndex();
 		}
 
 		public Builder withCombiningAlgorithm(PolicyCombiningAlgorithm algorithm) {
 			setCombinatorAlgorithm(algorithm);
 			return this;
-		}
-
-		public EmbeddedPolicyDecisionPoint build() throws IOException, URISyntaxException, PolicyEvaluationException {
-			if (pdp.prp == null) {
-				withResourcePolicyRetrievalPoint();
-			}
-			if (pdp.combinator == null) {
-				withCombiningAlgorithm(PolicyCombiningAlgorithm.DENY_UNLESS_PERMIT);
-			}
-			return pdp;
 		}
 
 		private void setCombinatorAlgorithm(PolicyCombiningAlgorithm algorithm) {
@@ -223,6 +225,16 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 			default:
 				throw new IllegalArgumentException(ALGORITHM_NOT_ALLOWED_FOR_PDP_LEVEL_COMBINATION);
 			}
+		}
+
+		public EmbeddedPolicyDecisionPoint build() throws IOException, URISyntaxException, PolicyEvaluationException {
+			if (pdp.prp == null) {
+				withResourcePolicyRetrievalPoint();
+			}
+			if (pdp.combinator == null) {
+				withCombiningAlgorithm(PolicyCombiningAlgorithm.DENY_UNLESS_PERMIT);
+			}
+			return pdp;
 		}
 
 	}

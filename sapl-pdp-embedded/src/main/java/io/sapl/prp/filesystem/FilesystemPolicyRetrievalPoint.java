@@ -20,8 +20,6 @@ import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
-import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
@@ -47,11 +45,7 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint, io.
 
 	private ReentrantLock lock;
 
-	public FilesystemPolicyRetrievalPoint(String policyPath) {
-		this(policyPath, null);
-	}
-
-	public FilesystemPolicyRetrievalPoint(@NonNull String policyPath, FunctionContext functionCtx) {
+	public FilesystemPolicyRetrievalPoint(@NonNull String policyPath, @NonNull ParsedDocumentIndex parsedDocumentIndex) {
 		this.path = policyPath;
 		if (path.startsWith("~" + File.separator)) {
 			path = System.getProperty("user.home") + path.substring(1);
@@ -59,7 +53,7 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint, io.
 			throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
 		}
 
-		parsedDocIdx = functionCtx != null ? new FastParsedDocumentIndex(functionCtx) : new SimpleParsedDocumentIndex();
+		this.parsedDocIdx = parsedDocumentIndex;
 
 		final Path watchDir = Paths.get(path);
 		final PolicyDirectoryWatcher directoryWatcher = new PolicyDirectoryWatcher(watchDir);
@@ -87,15 +81,12 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint, io.
 		try {
 			lock.lock();
 
-			DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path), POLICY_FILE_PATTERN);
-			try {
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path), POLICY_FILE_PATTERN)) {
 				for (Path filePath : stream) {
-					LOGGER.info("load: {}",filePath);
+					LOGGER.info("load: {}", filePath);
 					final SAPL saplDocument = interpreter.parse(Files.newInputStream(filePath));
 					this.parsedDocIdx.put(filePath.toString(), saplDocument);
 				}
-			} finally {
-				stream.close();
 			}
 			this.parsedDocIdx.setLiveMode();
 		} catch (IOException | PolicyEvaluationException e) {

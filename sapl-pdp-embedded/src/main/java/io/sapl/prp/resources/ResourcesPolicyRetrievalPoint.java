@@ -24,41 +24,31 @@ import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 @Slf4j
 public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
-	private static final String DEFAULT_PATH = "/policies";
+	public static final String DEFAULT_PATH = "/policies";
 
-	public static final String POLICY_FILE_PATTERN = "*.sapl";
+	private static final String POLICY_FILE_PATTERN = "*.sapl";
 
 	private ParsedDocumentIndex parsedDocIdx;
 
-	private SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
-
 	public ResourcesPolicyRetrievalPoint() throws IOException, URISyntaxException, PolicyEvaluationException {
-		this(null);
+		this(DEFAULT_PATH, new SimpleParsedDocumentIndex());
 	}
 
-	public ResourcesPolicyRetrievalPoint(String policyPath)
+	public ResourcesPolicyRetrievalPoint(@NonNull String policyPath, @NonNull ParsedDocumentIndex parsedDocumentIndex)
 			throws IOException, URISyntaxException, PolicyEvaluationException {
-		this(ResourcesPolicyRetrievalPoint.class, policyPath, null);
+		this(ResourcesPolicyRetrievalPoint.class, policyPath, parsedDocumentIndex);
 	}
 
-	public ResourcesPolicyRetrievalPoint(Class<?> clazz, String policyPath)
+	public ResourcesPolicyRetrievalPoint(@NonNull Class<?> clazz, @NonNull String policyPath, @NonNull ParsedDocumentIndex parsedDocumentIndex)
 			throws IOException, URISyntaxException, PolicyEvaluationException {
-		this(clazz, policyPath, null);
-	}
-
-	public ResourcesPolicyRetrievalPoint(Class<?> clazz, String policyPath, FunctionContext functionCtx)
-			throws IOException, URISyntaxException, PolicyEvaluationException {
-		if (policyPath == null) {
-			policyPath = DEFAULT_PATH;
-		}
 
 		URL policyFolderUrl = clazz.getResource(policyPath);
 
@@ -67,9 +57,9 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 					"Policy folder not found. Path:" + policyPath + " - URL: " + policyFolderUrl);
 		}
 
-		parsedDocIdx = functionCtx != null ? new FastParsedDocumentIndex(functionCtx) : new SimpleParsedDocumentIndex();
+		this.parsedDocIdx = parsedDocumentIndex;
 
-		Path path = null;
+		Path path;
 		FileSystem fs = null;
 		if (policyFolderUrl.getProtocol().equals("jar")) {
 			final Map<String, String> env = new HashMap<>();
@@ -81,15 +71,13 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		}
 		try {
 			LOGGER.info("current path: {}", path);
-			DirectoryStream<Path> stream = Files.newDirectoryStream(path, POLICY_FILE_PATTERN);
-			try {
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, POLICY_FILE_PATTERN)) {
 				for (Path filePath : stream) {
 					LOGGER.info("load: {}", filePath);
+					final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 					final SAPL saplDocument = interpreter.parse(Files.newInputStream(filePath));
 					this.parsedDocIdx.put(filePath.toString(), saplDocument);
 				}
-			} finally {
-				stream.close();
 			}
 		} finally {
 			if (fs != null) {

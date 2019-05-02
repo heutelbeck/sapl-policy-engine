@@ -32,7 +32,8 @@ public class EmbeddedPRPTest {
 	public void testTest() throws IOException, AttributeException, FunctionException, URISyntaxException, PolicyEvaluationException {
 		// long startpdp = System.nanoTime();
 		EmbeddedPolicyDecisionPoint pdp = EmbeddedPolicyDecisionPoint.builder()
-				.withFilesystemPolicyRetrievalPoint("src/test/resources/policies").build();
+				.withResourcePolicyRetrievalPoint()
+				.build();
 		// long endpdp = System.nanoTime();
 		// System.out.println("Measuring PDP and PRP initialization:");
 		// System.out.println("Start : " + startpdp);

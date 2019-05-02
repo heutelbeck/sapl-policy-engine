@@ -15,6 +15,8 @@ public class ResourcesPolicyRetrievalPointTest {
 	@Test
 	public void loadPolicies()
 			throws IOException, URISyntaxException, PolicyEvaluationException, FunctionException, AttributeException {
-		EmbeddedPolicyDecisionPoint.builder().withResourcePolicyRetrievalPoint().build();
+		EmbeddedPolicyDecisionPoint.builder()
+				.withResourcePolicyRetrievalPoint()
+				.build();
 	}
 }

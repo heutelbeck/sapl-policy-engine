@@ -142,23 +142,38 @@ public class PDPAutoConfiguration {
 
 	private PolicyDecisionPoint resourcesPolicyDecisionPoint()
 			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
-		LOGGER.info("creating embedded PDP sourcing access policies from bundled resources at: {}",
-				pdpProperties.getResources().getPoliciesPath());
+		final Builder.IndexType indexType = getIndexType();
+		final String policiesPath = pdpProperties.getResources().getPoliciesPath();
+		LOGGER.info("creating embedded PDP with {} index sourcing access policies from bundled resources at: {}",
+				indexType, policiesPath);
+
 		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder()
-				.withResourcePolicyRetrievalPoint(pdpProperties.getResources().getPoliciesPath());
+				.withResourcePolicyRetrievalPoint(policiesPath, indexType);
 
 		return bindComponentsToPDP(builder).build();
 	}
 
 	private PolicyDecisionPoint filesystemPolicyDecisionPoint()
 			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
-		LOGGER.info("creating embedded PDP sourcing and monitoring access policies from the filesystem: {}",
-				pdpProperties.getFilesystem().getPoliciesPath());
+		final Builder.IndexType indexType = getIndexType();
+		final String policiesPath = pdpProperties.getFilesystem().getPoliciesPath();
+		LOGGER.info("creating embedded PDP with {} index sourcing and monitoring access policies from the filesystem: {}",
+				indexType, policiesPath);
 
 		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder()
-				.withFilesystemPolicyRetrievalPoint(pdpProperties.getFilesystem().getPoliciesPath());
+				.withFilesystemPolicyRetrievalPoint(policiesPath, indexType);
 
 		return bindComponentsToPDP(builder).build();
+	}
+
+	private Builder.IndexType getIndexType() {
+		switch(pdpProperties.getIndex()) {
+			case SIMPLE:
+				return Builder.IndexType.SIMPLE;
+			case FAST:
+				return Builder.IndexType.FAST;
+		}
+		return Builder.IndexType.SIMPLE;
 	}
 
 	private Builder bindComponentsToPDP(Builder builder) throws AttributeException {
