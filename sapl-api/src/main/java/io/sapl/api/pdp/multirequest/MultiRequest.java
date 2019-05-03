@@ -12,8 +12,8 @@
  */
 package io.sapl.api.pdp.multirequest;
 
-import static java.util.Objects.requireNonNull;
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
+import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +34,7 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	static {
 		final Jdk8Module jdk8Module = new Jdk8Module();
-		//jdk8Module.configureAbsentsAsNulls(true);
+		// jdk8Module.configureAbsentsAsNulls(true);
 		MAPPER.registerModule(jdk8Module);
 	}
 
@@ -46,32 +46,37 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 	private Map<String, RequestElements> requests = new HashMap<>();
 
 	/**
-	 * Convenience method to add a request without environment data.
-	 * Call {@link #addRequest(String, Object, Object, Object) addRequest(requestId, subject, action, resource, null)}.
+	 * Convenience method to add a request without environment data. Call
+	 * {@link #addRequest(String, Object, Object, Object) addRequest(requestId,
+	 * subject, action, resource, null)}.
 	 *
 	 * @param requestId the id identifying the request to be added.
-	 * @param subject the subject of the request to be added.
-	 * @param action the action of the request to be added.
-	 * @param resource the resource of the request to be added.
-	 * @return this {@code MultiRequest} instance to support chaining of multiple calls to {@code addRequest}.
+	 * @param subject   the subject of the request to be added.
+	 * @param action    the action of the request to be added.
+	 * @param resource  the resource of the request to be added.
+	 * @return this {@code MultiRequest} instance to support chaining of multiple
+	 *         calls to {@code addRequest}.
 	 */
 	public MultiRequest addRequest(String requestId, Object subject, Object action, Object resource) {
 		return addRequest(requestId, subject, action, resource, null);
 	}
 
 	/**
-	 * Adds the request defined by the given subject, action, resource and environment.
-	 * The given {@code requestId} is associated with the according response to allow the
-	 * recipient of the PDP responses to correlate request-response pairs.
+	 * Adds the request defined by the given subject, action, resource and
+	 * environment. The given {@code requestId} is associated with the according
+	 * response to allow the recipient of the PDP responses to correlate
+	 * request-response pairs.
 	 *
-	 * @param requestId the id identifying the request to be added.
-	 * @param subject the subject of the request to be added.
-	 * @param action the action of the request to be added.
-	 * @param resource the resource of the request to be added.
+	 * @param requestId   the id identifying the request to be added.
+	 * @param subject     the subject of the request to be added.
+	 * @param action      the action of the request to be added.
+	 * @param resource    the resource of the request to be added.
 	 * @param environment the environment of the request to be added.
-	 * @return this {@code MultiRequest} instance to support chaining of multiple calls to {@code addRequest}.
+	 * @return this {@code MultiRequest} instance to support chaining of multiple
+	 *         calls to {@code addRequest}.
 	 */
-	public MultiRequest addRequest(String requestId, Object subject, Object action, Object resource, Object environment) {
+	public MultiRequest addRequest(String requestId, Object subject, Object action, Object resource,
+			Object environment) {
 		requireNonNull(requestId, "requestId must not be null");
 
 		final Integer subjectId = ensureIsElementOfListAndReturnIndex(subject, subjects);
@@ -93,7 +98,7 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 	}
 
 	public boolean hasRequests() {
-		return ! requests.isEmpty();
+		return !requests.isEmpty();
 	}
 
 	@Override
@@ -124,23 +129,18 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 	public String toString() {
 		final StringBuilder sb = new StringBuilder("MultiRequest {");
 		for (IdentifiableRequest request : this) {
-			sb.append("\n\t[")
-					.append("REQ-ID: ").append(request.getRequestId()).append(" | ")
-					.append("SUBJECT: ").append(request.getRequest().getSubject()).append(" | ")
-					.append("ACTION: ").append(request.getRequest().getAction()).append(" | ")
-					.append("RESOURCE: ").append(request.getRequest().getResource()).append(" | ")
-					.append("ENVIRONMENT: ").append(request.getRequest().getEnvironment()).append("]");
+			sb.append("\n\t[").append("REQ-ID: ").append(request.getRequestId()).append(" | ").append("SUBJECT: ")
+					.append(request.getRequest().getSubject()).append(" | ").append("ACTION: ")
+					.append(request.getRequest().getAction()).append(" | ").append("RESOURCE: ")
+					.append(request.getRequest().getResource()).append(" | ").append("ENVIRONMENT: ")
+					.append(request.getRequest().getEnvironment()).append(']');
 		}
 		sb.append("\n}");
 		return sb.toString();
 	}
 
 	private static Request toRequest(Object subject, Object action, Object resource, Object environment) {
-		return new Request(
-				MAPPER.valueToTree(subject),
-				MAPPER.valueToTree(action),
-				MAPPER.valueToTree(resource),
-				MAPPER.valueToTree(environment)
-		);
+		return new Request(MAPPER.valueToTree(subject), MAPPER.valueToTree(action), MAPPER.valueToTree(resource),
+				MAPPER.valueToTree(environment));
 	}
 }

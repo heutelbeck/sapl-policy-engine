@@ -69,8 +69,7 @@ public class RequestUtility {
 			final String requestId = identifiableResponse.getRequestId();
 			final Response response = identifiableResponse.getResponse();
 			multiResponse.setResponseForRequestWithId(requestId, response);
-			if (keys.contains(requestId)) {
-				keys.remove(requestId);
+			if (keys.remove(requestId)) {
 				cdl.countDown();
 			}
 		}, error -> {
