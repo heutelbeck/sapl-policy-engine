@@ -2,8 +2,7 @@ package io.sapl.springboot.autoconfig;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Collection;
 import java.util.Optional;
 
 import javax.annotation.PreDestroy;
@@ -55,37 +54,30 @@ import lombok.extern.slf4j.Slf4j;
  * io.sapl.type=embedded
  * <br/>
  * io.sapl.embedded.policy-path=classpath:path/to/policies
- * </code>
- * <br/>
+ * </code> <br/>
  * <br/>
  * <h2>Configure a RemotePolicyDecisionPoint</h2> To have a bean instance of a
  * {@link RemotePolicyDecisionPoint} just activate it in your
  * <i>application.properties</i>-file (or whatever spring supported way to
- * provide properties you wish to use.
- * <br/>
+ * provide properties you wish to use. <br/>
  * c.f. <a href=
  * "https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html">Spring
- * Boot Documentation on config parameters</a>)
- * <br/>
- * Example Snippet from .properties:
- * <br/>
+ * Boot Documentation on config parameters</a>) <br/>
+ * Example Snippet from .properties: <br/>
  * <code>
  * io.sapl.type=remote<br/>
  * io.sapl.remote.host=myhost.example.io<br/>
  * io.sapl.remote.port=8443<br/>
  * io.sapl.remote.key=username<br/>
  * io.sapl.remote.secret=password
- * </code>
- * <br/>
- * Provide the host without a protocol. It will always be assumed to be
- * https
+ * </code> <br/>
+ * Provide the host without a protocol. It will always be assumed to be https
  * <br/>
  * <br/>
  * <h2>Using a policy information point</h2> If your EmbeddedPolicyDecisionPoint
  * shall use one or more PolicyInformationPoints, you can achieve this by ...
- * ... instances you want to use as PolicyInformationPoints need to implement the
- * {@link PolicyInformationPoint}-interface.
- * <br/>
+ * ... instances you want to use as PolicyInformationPoints need to implement
+ * the {@link PolicyInformationPoint}-interface. <br/>
  * <br/>
  * <h2>The PolicyEnforcementFilter</h2> If activated through the following
  * property, a bean of type {@link PolicyEnforcementFilterPEP} will be defined.
@@ -94,7 +86,7 @@ import lombok.extern.slf4j.Slf4j;
  * <code>
  * io.sapl.policyEnforcementFilter=true
  * </code> <br/>
- * 
+ *
  * @see SAPLProperties
  */
 @Slf4j
@@ -105,13 +97,13 @@ import lombok.extern.slf4j.Slf4j;
 public class PDPAutoConfiguration {
 
 	private final SAPLProperties pdpProperties;
-	private final Map<String, Object> policyInformationPoints;
-	private final Map<String, Object> functionLibraries;
+	private final Collection<Object> policyInformationPoints;
+	private final Collection<Object> functionLibraries;
 
 	public PDPAutoConfiguration(SAPLProperties pdpProperties, ConfigurableApplicationContext applicationContext) {
 		this.pdpProperties = pdpProperties;
-		policyInformationPoints = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class);
-		functionLibraries = applicationContext.getBeansWithAnnotation(FunctionLibrary.class);
+		policyInformationPoints = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class).values();
+		functionLibraries = applicationContext.getBeansWithAnnotation(FunctionLibrary.class).values();
 	}
 
 	@Bean
@@ -157,7 +149,8 @@ public class PDPAutoConfiguration {
 			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
 		final Builder.IndexType indexType = getIndexType();
 		final String policiesPath = pdpProperties.getFilesystem().getPoliciesPath();
-		LOGGER.info("creating embedded PDP with {} index sourcing and monitoring access policies from the filesystem: {}",
+		LOGGER.info(
+				"creating embedded PDP with {} index sourcing and monitoring access policies from the filesystem: {}",
 				indexType, policiesPath);
 
 		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder()
@@ -167,28 +160,28 @@ public class PDPAutoConfiguration {
 	}
 
 	private Builder.IndexType getIndexType() {
-		switch(pdpProperties.getIndex()) {
-			case SIMPLE:
-				return Builder.IndexType.SIMPLE;
-			case FAST:
-				return Builder.IndexType.FAST;
+		switch (pdpProperties.getIndex()) {
+		case SIMPLE:
+			return Builder.IndexType.SIMPLE;
+		case FAST:
+			return Builder.IndexType.FAST;
 		}
 		return Builder.IndexType.SIMPLE;
 	}
 
 	private Builder bindComponentsToPDP(Builder builder) throws AttributeException {
-		for (Entry<String, Object> entry : policyInformationPoints.entrySet()) {
-			LOGGER.debug("binding PIP to PDP: {}", entry.getKey());
+		for (Object entry : policyInformationPoints) {
+			LOGGER.debug("binding PIP to PDP: {}", entry.getClass().getSimpleName());
 			try {
-				builder.withPolicyInformationPoint(entry.getValue());
+				builder.withPolicyInformationPoint(entry);
 			} catch (SecurityException | IllegalArgumentException | AttributeException e) {
 				throw new AttributeException(e);
 			}
 		}
-		for (Entry<String, Object> entry : functionLibraries.entrySet()) {
-			LOGGER.debug("binding FunctionLibrary to PDP: {}", entry.getKey());
+		for (Object entry : functionLibraries) {
+			LOGGER.debug("binding FunctionLibrary to PDP: {}", entry.getClass().getSimpleName());
 			try {
-				builder.withFunctionLibrary(entry.getValue());
+				builder.withFunctionLibrary(entry);
 			} catch (SecurityException | IllegalArgumentException | FunctionException e) {
 				throw new AttributeException(e);
 			}

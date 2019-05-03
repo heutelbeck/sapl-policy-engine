@@ -18,6 +18,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -88,7 +89,7 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 		return this;
 	}
 
-	private int ensureIsElementOfListAndReturnIndex(Object element, ArrayList<Object> list) {
+	private int ensureIsElementOfListAndReturnIndex(Object element, List<Object> list) {
 		int index = list.indexOf(element);
 		if (index == -1) {
 			index = list.size();
