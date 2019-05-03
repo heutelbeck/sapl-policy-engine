@@ -77,6 +77,7 @@ import reactor.util.function.Tuples;
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static final String CANNOT_ASSIGN_UNDEFINED_TO_A_VAL = "Cannot assign undefined to a val.";
+	private static final Response INDETERMINATE = Response.indeterminate();
 
 	@FunctionalInterface
 	interface FluxProvider<T> {
@@ -89,7 +90,6 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static final String PERMIT = "permit";
 	private static final String DUMMY_RESOURCE_URI = "policy:/apolicy.sapl";
-
 
 	static final String POLICY_EVALUATION_FAILED = "Policy evaluation failed: {}";
 	static final String PARSING_ERRORS = "Parsing errors: %s";
@@ -217,11 +217,10 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			saplDocument = parse(saplDefinition);
 		} catch (PolicyEvaluationException e) {
 			LOGGER.error(e.getMessage(), e);
-			return Flux.just(Response.indeterminate());
+			return Flux.just(INDETERMINATE);
 		}
 
-		return evaluate(request, saplDocument, attributeCtx, functionCtx, systemVariables)
-				.onErrorReturn(Response.indeterminate());
+		return evaluate(request, saplDocument, attributeCtx, functionCtx, systemVariables).onErrorReturn(INDETERMINATE);
 	}
 
 	@Override
@@ -243,7 +242,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		} catch (PolicyEvaluationException e) {
 			LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED, e.getMessage());
 			LOGGER.trace("| |");
-			return Flux.just(Response.indeterminate());
+			return Flux.just(INDETERMINATE);
 		}
 	}
 
@@ -255,7 +254,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			final PolicyElement policyElement = saplDocument.getPolicyElement();
 			return evaluateRules(request, policyElement, attributeCtx, functionCtx, systemVariables, null, imports);
 		} catch (PolicyEvaluationException e) {
-			return Flux.just(Response.indeterminate());
+			return Flux.just(INDETERMINATE);
 		}
 	}
 
@@ -278,7 +277,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		try {
 			variableCtx = new VariableContext(request, systemVariables);
 		} catch (PolicyEvaluationException e) {
-			return Flux.just(Response.indeterminate());
+			return Flux.just(INDETERMINATE);
 		}
 
 		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx, imports);
@@ -312,7 +311,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		}
 
 		return variablesFlux.flatMap(voiD -> combinator.combinePolicies(policySet.getPolicies(), request, attributeCtx,
-				functionCtx, systemVariables, variables, imports)).onErrorReturn(Response.indeterminate());
+				functionCtx, systemVariables, variables, imports)).onErrorReturn(INDETERMINATE);
 	}
 
 	private static Flux<Void> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx,
@@ -352,7 +351,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			}
 			evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx, imports);
 		} catch (PolicyEvaluationException e) {
-			return Flux.just(Response.indeterminate());
+			return Flux.just(INDETERMINATE);
 		}
 
 		final Decision entitlement = PERMIT.equals(policy.getEntitlement()) ? Decision.PERMIT : Decision.DENY;
@@ -365,24 +364,23 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 		return decisionFlux.flatMap(decision -> {
 			if (decision == Decision.PERMIT || decision == Decision.DENY) {
-				return evaluateObligationsAndAdvice(policy, evaluationCtx)
-						.map(obligationsAndAdvice -> {
-							final Optional<ArrayNode> obligations = obligationsAndAdvice.getT1();
-							final Optional<ArrayNode> advice = obligationsAndAdvice.getT2();
-							return new Response(decision, Optional.empty(), obligations, advice);
-						});
+				return evaluateObligationsAndAdvice(policy, evaluationCtx).map(obligationsAndAdvice -> {
+					final Optional<ArrayNode> obligations = obligationsAndAdvice.getT1();
+					final Optional<ArrayNode> advice = obligationsAndAdvice.getT2();
+					return new Response(decision, Optional.empty(), obligations, advice);
+				});
 			} else {
 				return Flux.just(new Response(decision, Optional.empty(), Optional.empty(), Optional.empty()));
 			}
 		}).flatMap(response -> {
 			final Decision decision = response.getDecision();
 			if (decision == Decision.PERMIT) {
-				return evaluateTransformation(policy, evaluationCtx)
-						.map(resource -> new Response(decision, resource, response.getObligations(), response.getAdvices()));
+				return evaluateTransformation(policy, evaluationCtx).map(
+						resource -> new Response(decision, resource, response.getObligations(), response.getAdvices()));
 			} else {
 				return Flux.just(response);
 			}
-		}).onErrorReturn(Response.indeterminate());
+		}).onErrorReturn(INDETERMINATE);
 	}
 
 	private static Flux<Decision> evaluateBody(Decision entitlement, PolicyBody body, EvaluationContext evaluationCtx) {
@@ -448,13 +446,13 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
 	}
 
-	private static Flux<Tuple2<Optional<ArrayNode>,Optional<ArrayNode>>> evaluateObligationsAndAdvice(Policy policy, EvaluationContext evaluationCtx) {
+	private static Flux<Tuple2<Optional<ArrayNode>, Optional<ArrayNode>>> evaluateObligationsAndAdvice(Policy policy,
+			EvaluationContext evaluationCtx) {
 		Flux<Optional<ArrayNode>> obligationsFlux;
 		if (policy.getObligation() != null) {
 			final ArrayNode obligationArr = JSON.arrayNode();
 			obligationsFlux = policy.getObligation().evaluate(evaluationCtx, true, null)
-					.doOnError(error -> LOGGER.error(OBLIGATIONS_ERROR, error))
-					.map(obligation -> {
+					.doOnError(error -> LOGGER.error(OBLIGATIONS_ERROR, error)).map(obligation -> {
 						obligation.ifPresent(obligationArr::add);
 						return obligationArr.size() > 0 ? Optional.of(obligationArr) : Optional.empty();
 					});
@@ -466,8 +464,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		if (policy.getAdvice() != null) {
 			final ArrayNode adviceArr = JSON.arrayNode();
 			adviceFlux = policy.getAdvice().evaluate(evaluationCtx, true, null)
-					.doOnError(error -> LOGGER.error(ADVICE_ERROR, error))
-					.map(advice -> {
+					.doOnError(error -> LOGGER.error(ADVICE_ERROR, error)).map(advice -> {
 						advice.ifPresent(adviceArr::add);
 						return adviceArr.size() > 0 ? Optional.of(adviceArr) : Optional.empty();
 					});
@@ -547,7 +544,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	private static Map<String, String> fetchWildcardImports(Map<String, String> imports, String library,
 			Collection<String> libraryItems) throws PolicyEvaluationException {
 
-		final Map<String, String> returnImports = new HashMap<>(libraryItems.size());
+		final Map<String, String> returnImports = new HashMap<>(libraryItems.size(), 1.0F);
 		for (String name : libraryItems) {
 			if (imports.containsKey(name)) {
 				throw new PolicyEvaluationException(String.format(WILDCARD_IMPORT_EXISTS, library, name));
@@ -561,7 +558,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	private static Map<String, String> fetchLibraryImports(Map<String, String> imports, String library, String alias,
 			Collection<String> libraryItems) throws PolicyEvaluationException {
 
-		final Map<String, String> returnImports = new HashMap<>(libraryItems.size());
+		final Map<String, String> returnImports = new HashMap<>(libraryItems.size(), 1.0F);
 		for (String name : libraryItems) {
 			String key = String.join(".", alias, name);
 			if (imports.containsKey(key)) {
