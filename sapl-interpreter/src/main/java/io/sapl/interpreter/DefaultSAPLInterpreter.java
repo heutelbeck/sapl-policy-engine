@@ -216,7 +216,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		try {
 			saplDocument = parse(saplDefinition);
 		} catch (PolicyEvaluationException e) {
-			LOGGER.error(e.getMessage(), e);
+			LOGGER.error("Error in policy parsing: {}", e.getMessage());
 			return Flux.just(INDETERMINATE);
 		}
 
@@ -394,7 +394,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			return cascadingSwitchMap(initialResult, fluxProviders, 0)
 					.map(result -> result ? entitlement : Decision.NOT_APPLICABLE).onErrorResume(error -> {
 						final Throwable unwrapped = Exceptions.unwrap(error);
-						LOGGER.error(unwrapped.getMessage(), unwrapped);
+						LOGGER.error("Error in policy body evaluation: {}", unwrapped.getMessage());
 						return Flux.just(Decision.INDETERMINATE);
 					});
 		} else {
@@ -429,7 +429,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 				evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
 				return Boolean.TRUE;
 			} catch (PolicyEvaluationException e) {
-				LOGGER.error(e.getMessage(), e);
+				LOGGER.error("Error in value definition evaluation: {}", e.getMessage());
 				throw Exceptions.propagate(e);
 			}
 		}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
