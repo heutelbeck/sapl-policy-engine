@@ -18,7 +18,6 @@ import java.util.concurrent.CountDownLatch;
 
 import org.junit.Test;
 
-import io.sapl.prp.filesystem.DirectoryWatchEventConsumer;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -32,22 +31,21 @@ public class PolicyDirectoryWatcherTest {
 	 * @throws URISyntaxException
 	 * @throws InterruptedException
 	 */
-	// @Test
+	//@Test
 	public void watchPoliciesDirectory() throws URISyntaxException, InterruptedException {
-		Path watchDir = Paths.get(getClass().getResource("policies").toURI());
+		Path watchDir = Paths.get(getClass().getResource("/policies").toURI());
 		LOGGER.info("watchDir: {}", watchDir);
 		final PolicyDirectoryWatcher watcher = new PolicyDirectoryWatcher(watchDir);
 		final CountDownLatch cdl = new CountDownLatch(1);
-		watcher.watch(new DirectoryWatchEventConsumer() {
+		watcher.watch(new DirectoryWatchEventConsumer<Path>() {
 
 			private boolean isCanceled;
 
 			@Override
 			@SuppressWarnings("unchecked")
-			public void onEvent(WatchEvent<?> event) {
-				System.out.println("policy modification event");
-				WatchEvent<Path> ev = (WatchEvent<Path>) event;
-				Path filename = ev.context();
+			public void onEvent(WatchEvent<Path> event) {
+				LOGGER.info("watch event of kind {} for path {}", event.kind().name(), event.context().toString());
+				Path filename = event.context();
 				if (filename.toString().equals("stop.sapl")) {
 					cancel();
 				}

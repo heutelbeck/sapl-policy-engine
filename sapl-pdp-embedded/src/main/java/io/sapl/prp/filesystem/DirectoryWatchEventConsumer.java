@@ -2,9 +2,9 @@ package io.sapl.prp.filesystem;
 
 import java.nio.file.WatchEvent;
 
-public interface DirectoryWatchEventConsumer {
+public interface DirectoryWatchEventConsumer<T> {
 
-    void onEvent(WatchEvent<?> event);
+    void onEvent(WatchEvent<T> event);
 
     void onComplete();
 
