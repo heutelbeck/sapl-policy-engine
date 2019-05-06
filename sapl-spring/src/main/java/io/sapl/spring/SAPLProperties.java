@@ -11,14 +11,26 @@ import lombok.Data;
 public class SAPLProperties {
 
 	public enum PDPType {
-		RESOURCES, FILESYSTEM, REMOTE
+		EMBEDDED, REMOTE
+	}
+
+	public enum PDPConfigType {
+		RESOURCES, FILESYSTEM
+	}
+
+	public enum PRPType {
+		RESOURCES, FILESYSTEM
 	}
 
 	public enum PRPIndexType {
 		SIMPLE, FAST
 	}
 
-	private PDPType type = PDPType.RESOURCES;
+	private PDPType pdpType = PDPType.EMBEDDED;
+
+	private PDPConfigType pdpConfigType = PDPConfigType.RESOURCES;
+
+	private PRPType prpType = PRPType.RESOURCES;
 
 	private PRPIndexType index = PRPIndexType.SIMPLE;
 
@@ -32,11 +44,13 @@ public class SAPLProperties {
 
 	@Data
 	public static class Filesystem {
+		private String configPath = "~/policies";
 		private String policiesPath = "~/policies";
 	}
 
 	@Data
 	public static class Resources {
+		private String configPath = "/policies";
 		private String policiesPath = "/policies";
 	}
 

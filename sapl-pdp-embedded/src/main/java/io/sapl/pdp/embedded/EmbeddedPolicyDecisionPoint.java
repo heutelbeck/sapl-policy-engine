@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -12,9 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Disposable;
-import io.sapl.api.pdp.PolicyCombiningAlgorithm;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
@@ -25,28 +22,26 @@ import io.sapl.api.pdp.multirequest.MultiResponse;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalPoint;
-import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.SelectionFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.combinators.DenyOverridesCombinator;
-import io.sapl.interpreter.combinators.DenyUnlessPermitCombinator;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
-import io.sapl.interpreter.combinators.OnlyOneApplicableCombinator;
-import io.sapl.interpreter.combinators.PermitOverridesCombinator;
-import io.sapl.interpreter.combinators.PermitUnlessDenyCombinator;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.api.pdp.PDPConfigurationException;
+import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
+import io.sapl.pdp.embedded.config.filesystem.FilesystemPDPConfigurationProvider;
+import io.sapl.pdp.embedded.config.resources.ResourcesPDPConfigurationProvider;
 import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.prp.filesystem.FilesystemPolicyRetrievalPoint;
 import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
@@ -54,32 +49,38 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposable {
 
-	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-	private static final String ALGORITHM_NOT_ALLOWED_FOR_PDP_LEVEL_COMBINATION = "algorithm not allowed for PDP level combination.";
+	private static final String DEFAULT_CONFIG_PATH = "/policies";
 
+	private final FunctionContext functionCtx = new AnnotationFunctionContext();
+	private final AttributeContext attributeCtx = new AnnotationAttributeContext();
+
+	private PDPConfigurationProvider configurationProvider;
 	private PolicyRetrievalPoint prp;
-	private DocumentsCombinator combinator;
-	private Map<String, JsonNode> variables = new HashMap<>();
-	private AttributeContext attributeCtx;
-	private FunctionContext functionCtx;
 
 	private EmbeddedPolicyDecisionPoint() {
-		functionCtx = new AnnotationFunctionContext();
-		attributeCtx = new AnnotationAttributeContext();
+		// use Builder to create new instances
 	}
 
 	@Override
 	public Flux<Response> decide(Request request) {
 		LOGGER.trace("|---------------------------");
 		LOGGER.trace("|-- PDP Request: {}", request);
-		final Flux<PolicyRetrievalResult> retrievalResult = prp.retrievePolicies(request, functionCtx, variables);
-		return retrievalResult.switchMap(result -> {
-			final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
-			final boolean errorsInTarget = result.isErrorsInTarget();
-			LOGGER.trace("|-- Combine documents of request: {}", request);
-			return combinator.combineMatchingDocuments(matchingDocuments, errorsInTarget, request, attributeCtx,
-					functionCtx, variables);
-		}).distinctUntilChanged();
+
+		final Flux<DocumentsCombinator> combinatorFlux = configurationProvider.getDocumentsCombinator();
+		final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider.getVariables();
+
+		return Flux.combineLatest(
+				combinatorFlux, variablesFlux, (combinator, variables) -> prp.retrievePolicies(request, functionCtx, variables)
+						.switchMap(result -> {
+							final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
+							final boolean errorsInTarget = result.isErrorsInTarget();
+							LOGGER.trace("|-- Combine documents of request: {}", request);
+							return combinator.combineMatchingDocuments(matchingDocuments, errorsInTarget, request, attributeCtx,
+									functionCtx, variables);
+						})
+				)
+				.flatMap(responseFlux -> responseFlux)
+				.distinctUntilChanged();
 	}
 
 	@Override
@@ -134,7 +135,11 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 
 
 	public static Builder builder() throws FunctionException, AttributeException {
-		return new Builder();
+		return new Builder(DEFAULT_CONFIG_PATH);
+	}
+
+	public static Builder builder(@NonNull String configPath) throws FunctionException, AttributeException {
+		return new Builder(configPath);
 	}
 
 	public static class Builder {
@@ -143,16 +148,34 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 
 		private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
 
-		private Builder() throws FunctionException, AttributeException {
+		private Builder(@NonNull String configPath) throws FunctionException, AttributeException {
 			pdp.functionCtx.loadLibrary(new FilterFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new SelectionFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new StandardFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new TemporalFunctionLibrary());
+
 			pdp.attributeCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
 		}
 
-		public Builder withVariable(String name, JsonNode value) {
-			pdp.variables.put(name, value);
+		public Builder withResourcePDPConfigurationProvider()
+				throws PDPConfigurationException, IOException, URISyntaxException {
+			pdp.configurationProvider = new ResourcesPDPConfigurationProvider();
+			return this;
+		}
+
+		public Builder withResourcePDPConfigurationProvider(String resourcePath)
+				throws PDPConfigurationException, IOException, URISyntaxException {
+			return withResourcePDPConfigurationProvider(ResourcesPDPConfigurationProvider.class, resourcePath);
+		}
+
+		public Builder withResourcePDPConfigurationProvider(Class<?> clazz, String resourcePath)
+				throws PDPConfigurationException, IOException, URISyntaxException {
+			pdp.configurationProvider = new ResourcesPDPConfigurationProvider(clazz, resourcePath);
+			return this;
+		}
+
+		public Builder withFilesystemPDPConfigurationProvider(String configFolder) {
+			pdp.configurationProvider = new FilesystemPDPConfigurationProvider(configFolder);
 			return this;
 		}
 
@@ -200,39 +223,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 			return new SimpleParsedDocumentIndex();
 		}
 
-		public Builder withCombiningAlgorithm(PolicyCombiningAlgorithm algorithm) {
-			setCombinatorAlgorithm(algorithm);
-			return this;
-		}
-
-		private void setCombinatorAlgorithm(PolicyCombiningAlgorithm algorithm) {
-			switch (algorithm) {
-			case PERMIT_UNLESS_DENY:
-				pdp.combinator = new PermitUnlessDenyCombinator(INTERPRETER);
-				break;
-			case DENY_UNLESS_PERMIT:
-				pdp.combinator = new DenyUnlessPermitCombinator(INTERPRETER);
-				break;
-			case PERMIT_OVERRIDES:
-				pdp.combinator = new PermitOverridesCombinator(INTERPRETER);
-				break;
-			case DENY_OVERRIDES:
-				pdp.combinator = new DenyOverridesCombinator(INTERPRETER);
-				break;
-			case ONLY_ONE_APPLICABLE:
-				pdp.combinator = new OnlyOneApplicableCombinator(INTERPRETER);
-				break;
-			default:
-				throw new IllegalArgumentException(ALGORITHM_NOT_ALLOWED_FOR_PDP_LEVEL_COMBINATION);
-			}
-		}
-
 		public EmbeddedPolicyDecisionPoint build() throws IOException, URISyntaxException, PolicyEvaluationException {
 			if (pdp.prp == null) {
 				withResourcePolicyRetrievalPoint();
-			}
-			if (pdp.combinator == null) {
-				withCombiningAlgorithm(PolicyCombiningAlgorithm.DENY_UNLESS_PERMIT);
 			}
 			return pdp;
 		}

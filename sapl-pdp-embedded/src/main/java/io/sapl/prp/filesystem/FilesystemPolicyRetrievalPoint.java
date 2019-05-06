@@ -13,6 +13,7 @@ import java.nio.file.Paths;
 import java.nio.file.WatchEvent;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -22,6 +23,9 @@ import io.sapl.api.pdp.Request;
 import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
+import io.sapl.directorywatcher.DirectoryWatchEventFluxSinkAdapter;
+import io.sapl.directorywatcher.InitialWatchEvent;
+import io.sapl.directorywatcher.DirectoryWatcher;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -36,45 +40,42 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint, io.sapl.api.pdp.Disposable {
 
-	public static final String POLICY_FILE_PATTERN = "*.sapl";
-	public static final String POLICY_FILE_SUFFIX = ".sapl";
+	private static final String POLICY_FILE_GLOB_PATTERN = "*.sapl";
+	private static final Pattern POLICY_FILE_REGEX_PATTERN = Pattern.compile(".+\\.sapl");
 
-	private static final WatchEvent<Path> INITIAL_WATCH_EVENT = new InitialWatchEventToBeIgnored();
+	private final ReentrantLock lock = new ReentrantLock();
+	private final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
 	private String path;
 	private ParsedDocumentIndex parsedDocIdx;
 
-	private SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
-
 	private Scheduler dirWatcherScheduler;
 	private Disposable dirWatcherFluxSubscription;
-	private ReplayProcessor<WatchEvent<Path>> dirWatcherEventProcessor = ReplayProcessor.cacheLastOrDefault(INITIAL_WATCH_EVENT);
-	private ReentrantLock lock;
+	private ReplayProcessor<WatchEvent<Path>> dirWatcherEventProcessor
+			= ReplayProcessor.cacheLastOrDefault(InitialWatchEvent.INSTANCE);
 
 	public FilesystemPolicyRetrievalPoint(@NonNull String policyPath, @NonNull ParsedDocumentIndex parsedDocumentIndex) {
 		this.path = policyPath;
-		if (path.startsWith("~" + File.separator)) {
-			path = System.getProperty("user.home") + path.substring(1);
-		} else if (path.startsWith("~")) {
+		if (policyPath.startsWith("~" + File.separator)) {
+			this.path = System.getProperty("user.home") + path.substring(1);
+		} else if (policyPath.startsWith("~")) {
 			throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
 		}
 
 		this.parsedDocIdx = parsedDocumentIndex;
 
-		final Path watchDir = Paths.get(path);
-		final PolicyDirectoryWatcher directoryWatcher = new PolicyDirectoryWatcher(watchDir);
-
-		this.lock = new ReentrantLock();
-
 		initializeIndex();
 
-		final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter();
+		final Path watchDir = Paths.get(path);
+		final DirectoryWatcher directoryWatcher = new DirectoryWatcher(watchDir);
+
+		final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter(POLICY_FILE_REGEX_PATTERN);
 		dirWatcherScheduler = Schedulers.newElastic("policyWatcher");
 		final Flux<WatchEvent<Path>> dirWatcherFlux = Flux.<WatchEvent<Path>>push(sink -> {
 			adapter.setSink(sink);
 			directoryWatcher.watch(adapter);
 		}).doOnNext(event -> {
-			if (event == INITIAL_WATCH_EVENT) {
+			if (event == InitialWatchEvent.INSTANCE) {
 				// don't update the index on the initial event (nothing has changed)
 				dirWatcherEventProcessor.onNext(event);
 			} else {
@@ -90,7 +91,7 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint, io.
 		try {
 			lock.lock();
 
-			try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path), POLICY_FILE_PATTERN)) {
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path), POLICY_FILE_GLOB_PATTERN)) {
 				for (Path filePath : stream) {
 					LOGGER.info("load: {}", filePath);
 					final SAPL saplDocument = interpreter.parse(Files.newInputStream(filePath));
@@ -153,28 +154,4 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint, io.
 		dirWatcherScheduler.dispose();
 	}
 
-
-	/**
-	 * The policy retrieval flux is combined with the PDP fluxes. Therefore an initial event
-	 * is required even if nothing has been changed in the policies directory. Otherwise the
-	 * combined flux would only emit items after the first policy modification.
-	 * This class defines the type of the initial directory watch event. No index update will
-	 * be triggered upon this event.
-	 */
-	private static class InitialWatchEventToBeIgnored implements WatchEvent<Path> {
-		@Override
-		public Kind<Path> kind() {
-			return ENTRY_MODIFY;
-		}
-
-		@Override
-		public int count() {
-			return 0;
-		}
-
-		@Override
-		public Path context() {
-			return null;
-		}
-	}
 }

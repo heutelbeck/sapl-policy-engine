@@ -1,4 +1,4 @@
-package io.sapl.prp.filesystem;
+package io.sapl.directorywatcher;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
@@ -15,15 +15,27 @@ import java.nio.file.WatchService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class PolicyDirectoryWatcher {
+/**
+ * Registers a directory watch service on the directory passed to the constructor
+ * and forwards all create, delete and modify events to a {@link DirectoryWatchEventConsumer}.
+ */
+public class DirectoryWatcher {
 
-    private Path watchedDir;
+    private final Path watchedDir;
 
-    PolicyDirectoryWatcher(Path watchedDir) {
-        this.watchedDir = watchedDir;
+    public DirectoryWatcher(Path watchedDirectory) {
+        this.watchedDir = watchedDirectory;
     }
 
-    void watch(DirectoryWatchEventConsumer eventConsumer) {
+    /**
+     * Registers a directory watch service on the directory passed to the constructor
+     * and forwards all create, delete and modify events to the given {@code eventConsumer}.
+     *
+     * @param eventConsumer the consumer to be notified on create, delete and modify events
+     *                      or when the watch service has completed or the watched directory
+     *                      is no longer accessible.
+     */
+    public void watch(DirectoryWatchEventConsumer<Path> eventConsumer) {
         try {
             final WatchService watcher = FileSystems.getDefault().newWatchService();
             watchedDir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
@@ -40,13 +52,14 @@ class PolicyDirectoryWatcher {
         eventConsumer.onComplete();
     }
 
-    void handleWatchKey(WatchKey key, DirectoryWatchEventConsumer eventConsumer) {
+    @SuppressWarnings("unchecked")
+    void handleWatchKey(WatchKey key, DirectoryWatchEventConsumer<Path> eventConsumer) {
         for (WatchEvent<?> event : key.pollEvents()) {
             WatchEvent.Kind<?> kind = event.kind();
             if (kind == OVERFLOW) {
                 continue;
             }
-            eventConsumer.onEvent(event);
+            eventConsumer.onEvent((WatchEvent<Path>) event);
         }
 
         // If the key is no longer valid, the directory is inaccessible.

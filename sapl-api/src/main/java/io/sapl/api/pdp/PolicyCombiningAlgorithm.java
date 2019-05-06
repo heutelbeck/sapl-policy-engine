@@ -1,5 +1,0 @@
-package io.sapl.api.pdp;
-
-public enum PolicyCombiningAlgorithm {
-	DENY_OVERRIDES, PERMIT_OVERRIDES, FIRST_APPLICABLE, ONLY_ONE_APPLICABLE, DENY_UNLESS_PERMIT, PERMIT_UNLESS_DENY
-}

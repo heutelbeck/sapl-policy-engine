@@ -1,4 +1,4 @@
-package io.sapl.prp.filesystem;
+package io.sapl.pdp.embedded;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -12,11 +12,11 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pip.AttributeException;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
+import io.sapl.api.pdp.PDPConfigurationException;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-public class EmbeddedPRPTest {
+public class EmbeddedPolicyDecisionPointPerformanceTest {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -29,9 +29,11 @@ public class EmbeddedPRPTest {
 	}
 
 	@Test
-	public void testTest() throws IOException, AttributeException, FunctionException, URISyntaxException, PolicyEvaluationException {
+	public void testTest() throws IOException, AttributeException, FunctionException, URISyntaxException,
+			PolicyEvaluationException, PDPConfigurationException {
 		// long startpdp = System.nanoTime();
 		EmbeddedPolicyDecisionPoint pdp = EmbeddedPolicyDecisionPoint.builder()
+				.withResourcePDPConfigurationProvider()
 				.withResourcePolicyRetrievalPoint()
 				.build();
 		// long endpdp = System.nanoTime();

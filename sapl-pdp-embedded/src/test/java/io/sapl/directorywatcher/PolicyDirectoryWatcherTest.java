@@ -1,4 +1,4 @@
-package io.sapl.prp.filesystem;
+package io.sapl.directorywatcher;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -35,7 +35,7 @@ public class PolicyDirectoryWatcherTest {
 	public void watchPoliciesDirectory() throws URISyntaxException, InterruptedException {
 		Path watchDir = Paths.get(getClass().getResource("/policies").toURI());
 		LOGGER.info("watchDir: {}", watchDir);
-		final PolicyDirectoryWatcher watcher = new PolicyDirectoryWatcher(watchDir);
+		final DirectoryWatcher watcher = new DirectoryWatcher(watchDir);
 		final CountDownLatch cdl = new CountDownLatch(1);
 		watcher.watch(new DirectoryWatchEventConsumer<Path>() {
 
@@ -89,7 +89,7 @@ public class PolicyDirectoryWatcherTest {
 		final DirectoryWatchEventConsumer eventConsumer = spy(DirectoryWatchEventConsumer.class);
 
 		// when
-		new PolicyDirectoryWatcher(null).handleWatchKey(watchKey, eventConsumer);
+		new DirectoryWatcher(null).handleWatchKey(watchKey, eventConsumer);
 
 		// then
 		verify(eventConsumer, times(3)).onEvent(any(WatchEvent.class));

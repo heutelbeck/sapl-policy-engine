@@ -32,14 +32,14 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
-	public static final String DEFAULT_PATH = "/policies";
+	private static final String DEFAULT_POLICIES_PATH = "/policies";
 
-	private static final String POLICY_FILE_PATTERN = "*.sapl";
+	private static final String POLICY_FILE_GLOB_PATTERN = "*.sapl";
 
 	private ParsedDocumentIndex parsedDocIdx;
 
 	public ResourcesPolicyRetrievalPoint() throws IOException, URISyntaxException, PolicyEvaluationException {
-		this(DEFAULT_PATH, new SimpleParsedDocumentIndex());
+		this(DEFAULT_POLICIES_PATH, new SimpleParsedDocumentIndex());
 	}
 
 	public ResourcesPolicyRetrievalPoint(@NonNull String policyPath, @NonNull ParsedDocumentIndex parsedDocumentIndex)
@@ -61,17 +61,17 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 		Path path;
 		FileSystem fs = null;
-		if (policyFolderUrl.getProtocol().equals("jar")) {
-			final Map<String, String> env = new HashMap<>();
-			final String[] array = policyFolderUrl.toString().split("!");
-			fs = FileSystems.newFileSystem(URI.create(array[0]), env);
-			path = fs.getPath(array[1]);
-		} else {
-			path = Paths.get(policyFolderUrl.toURI());
-		}
 		try {
+			if (policyFolderUrl.getProtocol().equals("jar")) {
+				final Map<String, String> env = new HashMap<>();
+				final String[] array = policyFolderUrl.toString().split("!");
+				fs = FileSystems.newFileSystem(URI.create(array[0]), env);
+				path = fs.getPath(array[1]);
+			} else {
+				path = Paths.get(policyFolderUrl.toURI());
+			}
 			LOGGER.info("current path: {}", path);
-			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, POLICY_FILE_PATTERN)) {
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, POLICY_FILE_GLOB_PATTERN)) {
 				for (Path filePath : stream) {
 					LOGGER.info("load: {}", filePath);
 					final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
@@ -90,10 +90,10 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	@Override
 	public Flux<PolicyRetrievalResult> retrievePolicies(Request request, FunctionContext functionCtx,
 			Map<String, JsonNode> variables) {
-		return Flux.just(parsedDocIdx.retrievePolicies(request, functionCtx, variables)).map(this::logMatching);
+		return Flux.just(parsedDocIdx.retrievePolicies(request, functionCtx, variables)).doOnNext(this::logMatching);
 	}
 
-	private PolicyRetrievalResult logMatching(PolicyRetrievalResult result) {
+	private void logMatching(PolicyRetrievalResult result) {
 		if (result.getMatchingDocuments().isEmpty()) {
 			LOGGER.trace("|-- Matching documents: NONE");
 		} else {
@@ -103,7 +103,5 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 			}
 		}
 		LOGGER.trace("|");
-
-		return result;
 	}
 }

@@ -28,6 +28,7 @@ import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder;
+import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import io.sapl.spring.PolicyEnforcementFilterPEP;
 import io.sapl.spring.SAPLProperties;
@@ -109,61 +110,46 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public PolicyDecisionPoint policyDecisionPoint()
-			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
-		switch (pdpProperties.getType()) {
-		case FILESYSTEM:
-			return filesystemPolicyDecisionPoint();
-		case REMOTE:
+			throws AttributeException, FunctionException, IOException, URISyntaxException, PDPConfigurationException, PolicyEvaluationException {
+		if (pdpProperties.getPdpType() == SAPLProperties.PDPType.REMOTE) {
 			return remotePolicyDecisionPoint();
-		default:
-			return resourcesPolicyDecisionPoint();
+		}
+		return embeddedPolicyDecisionPoint();
+	}
+
+	private PolicyDecisionPoint embeddedPolicyDecisionPoint()
+			throws AttributeException, FunctionException, IOException, URISyntaxException, PDPConfigurationException, PolicyEvaluationException {
+		final EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder();
+		if (pdpProperties.getPdpConfigType() == SAPLProperties.PDPConfigType.FILESYSTEM) {
+			final String configPath = pdpProperties.getFilesystem().getConfigPath();
+			LOGGER.info("using monitored config file from the filesystem: {}", configPath);
+			builder.withFilesystemPDPConfigurationProvider(configPath);
+		} else {
+			final String configPath = pdpProperties.getResources().getConfigPath();
+			LOGGER.info("using config file from bundled resource at: {}", configPath);
+			builder.withResourcePDPConfigurationProvider(configPath);
 		}
 
-	}
-
-	@Service
-	public static class PDPDestroyer {
-		@Autowired
-		Optional<EmbeddedPolicyDecisionPoint> pdp;
-
-		@PreDestroy
-		public void disposePdp() {
-			pdp.ifPresent(EmbeddedPolicyDecisionPoint::dispose);
+		final Builder.IndexType indexType = getIndexType();
+		if (pdpProperties.getPrpType() == SAPLProperties.PRPType.FILESYSTEM) {
+			final String policiesPath = pdpProperties.getFilesystem().getPoliciesPath();
+			LOGGER.info(
+					"creating embedded PDP with {} index sourcing and monitoring access policies from the filesystem: {}",
+					indexType, policiesPath);
+			builder.withFilesystemPolicyRetrievalPoint(policiesPath, indexType);
+		} else {
+			final String policiesPath = pdpProperties.getResources().getPoliciesPath();
+			LOGGER.info(
+					"creating embedded PDP with {} index sourcing access policies from bundled resources at: {}",
+					indexType, policiesPath);
+			builder.withResourcePolicyRetrievalPoint(policiesPath, indexType);
 		}
-	}
-
-	private PolicyDecisionPoint resourcesPolicyDecisionPoint()
-			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
-		final Builder.IndexType indexType = getIndexType();
-		final String policiesPath = pdpProperties.getResources().getPoliciesPath();
-		LOGGER.info("creating embedded PDP with {} index sourcing access policies from bundled resources at: {}",
-				indexType, policiesPath);
-
-		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder()
-				.withResourcePolicyRetrievalPoint(policiesPath, indexType);
-
-		return bindComponentsToPDP(builder).build();
-	}
-
-	private PolicyDecisionPoint filesystemPolicyDecisionPoint()
-			throws AttributeException, FunctionException, IOException, URISyntaxException, PolicyEvaluationException {
-		final Builder.IndexType indexType = getIndexType();
-		final String policiesPath = pdpProperties.getFilesystem().getPoliciesPath();
-		LOGGER.info(
-				"creating embedded PDP with {} index sourcing and monitoring access policies from the filesystem: {}",
-				indexType, policiesPath);
-
-		EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder()
-				.withFilesystemPolicyRetrievalPoint(policiesPath, indexType);
 
 		return bindComponentsToPDP(builder).build();
 	}
 
 	private Builder.IndexType getIndexType() {
-		switch (pdpProperties.getIndex()) {
-		case SIMPLE:
-			return Builder.IndexType.SIMPLE;
-		case FAST:
+		if (pdpProperties.getIndex() == SAPLProperties.PRPIndexType.FAST) {
 			return Builder.IndexType.FAST;
 		}
 		return Builder.IndexType.SIMPLE;
@@ -197,6 +183,18 @@ public class PDPAutoConfiguration {
 		String key = remoteProps.getKey();
 		String secret = remoteProps.getSecret();
 		return new RemotePolicyDecisionPoint(host, port, key, secret);
+	}
+
+
+	@Service
+	public static class PDPDestroyer {
+		@Autowired
+		Optional<EmbeddedPolicyDecisionPoint> pdp;
+
+		@PreDestroy
+		public void disposePdp() {
+			pdp.ifPresent(EmbeddedPolicyDecisionPoint::dispose);
+		}
 	}
 
 	@Bean

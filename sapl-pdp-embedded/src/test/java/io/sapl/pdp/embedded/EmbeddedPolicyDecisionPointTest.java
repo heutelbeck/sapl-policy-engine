@@ -23,6 +23,7 @@ public class EmbeddedPolicyDecisionPointTest {
 	@Before
 	public void setUp() throws Exception {
 		pdp = EmbeddedPolicyDecisionPoint.builder()
+				.withResourcePDPConfigurationProvider()
 				.withResourcePolicyRetrievalPoint()
 				.withPolicyInformationPoint(new TestPIP())
 				.build();

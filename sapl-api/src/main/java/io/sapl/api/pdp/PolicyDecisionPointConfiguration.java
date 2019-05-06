@@ -2,7 +2,9 @@ package io.sapl.api.pdp;
 
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,16 +14,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PolicyDecisionPointConfiguration implements Serializable {
-	private static final long serialVersionUID = 1L;
-	PolicyCombiningAlgorithm algorithm = PolicyCombiningAlgorithm.DENY_UNLESS_PERMIT;
-	HashMap<String, String> variables = new HashMap<>();
-	HashSet<String> attributeFinders = new HashSet<>();
-	HashSet<String> libraries = new HashSet<>();
 
-	public PolicyDecisionPointConfiguration(PolicyDecisionPointConfiguration config) {
-		algorithm = config.getAlgorithm();
-		variables = new HashMap<>(config.getVariables());
-		attributeFinders = new HashSet<>(config.getAttributeFinders());
-		libraries = new HashSet<>(config.getLibraries());
-	}
+	private static final long serialVersionUID = 1L;
+
+	private PolicyDocumentCombiningAlgorithm algorithm = PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT;
+	private Map<String, JsonNode> variables = new HashMap<>();
+
 }
