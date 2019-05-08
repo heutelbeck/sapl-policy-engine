@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.Disposable;
+import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
@@ -32,7 +33,6 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
 import io.sapl.pdp.embedded.config.filesystem.FilesystemPDPConfigurationProvider;
 import io.sapl.pdp.embedded.config.resources.ResourcesPDPConfigurationProvider;
@@ -41,15 +41,12 @@ import io.sapl.prp.filesystem.FilesystemPolicyRetrievalPoint;
 import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposable {
-
-	private static final String DEFAULT_CONFIG_PATH = "/policies";
 
 	private final FunctionContext functionCtx = new AnnotationFunctionContext();
 	private final AttributeContext attributeCtx = new AnnotationAttributeContext();
@@ -135,11 +132,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 
 
 	public static Builder builder() throws FunctionException, AttributeException {
-		return new Builder(DEFAULT_CONFIG_PATH);
-	}
-
-	public static Builder builder(@NonNull String configPath) throws FunctionException, AttributeException {
-		return new Builder(configPath);
+		return new Builder();
 	}
 
 	public static class Builder {
@@ -148,7 +141,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 
 		private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
 
-		private Builder(@NonNull String configPath) throws FunctionException, AttributeException {
+		private Builder() throws FunctionException, AttributeException {
 			pdp.functionCtx.loadLibrary(new FilterFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new SelectionFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new StandardFunctionLibrary());
