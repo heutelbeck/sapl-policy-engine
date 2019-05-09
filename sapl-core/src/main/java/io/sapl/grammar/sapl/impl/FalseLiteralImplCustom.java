@@ -26,9 +26,9 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implements the boolean value 'false'.
- * 
+ *
  * BooleanLiteral returns Value: {TrueLiteral} 'true' | {FalseLiteral} 'false' ;
- * 
+ *
  */
 public class FalseLiteralImplCustom extends FalseLiteralImpl {
 
@@ -36,7 +36,8 @@ public class FalseLiteralImplCustom extends FalseLiteralImpl {
 	 * Returns a constant value of false.
 	 */
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return Flux.just(Optional.of(JsonNodeFactory.instance.booleanNode(false)));
 	}
 
@@ -48,7 +49,8 @@ public class FalseLiteralImplCustom extends FalseLiteralImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
+			Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

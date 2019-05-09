@@ -12,11 +12,19 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(Include.NON_NULL)
 public class TraccarConfig {
+
 	private static final int DEF_POS_VALIDITY_TIMESPAN = 120;
+
 	private String deviceID;
+
 	private String url;
+
 	private String credentials; // already Base64-encrypted
+
 	private String username;
+
 	private String password;
+
 	private int posValidityTimespan = DEF_POS_VALIDITY_TIMESPAN;
+
 }

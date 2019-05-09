@@ -29,16 +29,22 @@ import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class ApplyStepsWildcardTest {
+
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
+
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private static VariableContext variableCtx = new VariableContext();
+
 	private static FunctionContext functionCtx = new MockFunctionContext();
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
+
+	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
+			variableCtx);
 
 	@Test
 	public void applyToNullNode() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
+		ResultNode previousResult = new JsonNodeWithoutParent(
+				Optional.of(JSON.nullNode()));
 
 		WildcardStep step = factory.createWildcardStep();
 
@@ -59,7 +65,8 @@ public class ApplyStepsWildcardTest {
 
 		WildcardStep step = factory.createWildcardStep();
 		previousResult.applyStep(step, ctx, true, null).take(1)
-				.subscribe(result -> assertEquals("Wildcard step applied to an array node should return the array",
+				.subscribe(result -> assertEquals(
+						"Wildcard step applied to an array node should return the array",
 						expectedResult, result));
 	}
 
@@ -76,8 +83,8 @@ public class ApplyStepsWildcardTest {
 		WildcardStep step = factory.createWildcardStep();
 		previousResult.applyStep(step, ctx, true, null).take(1)
 				.subscribe(result -> assertEquals(
-						"Wildcard step applied to a result array node should return the result array", expectedResult,
-						result));
+						"Wildcard step applied to a result array node should return the result array",
+						expectedResult, result));
 	}
 
 	@Test
@@ -90,16 +97,22 @@ public class ApplyStepsWildcardTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(object));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), Optional.of(object), "key1"));
-		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(true)), Optional.of(object), "key2"));
-		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(false)), Optional.of(object), "key3"));
+		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
+				Optional.of(object), "key1"));
+		expectedResultSet.add(new JsonNodeWithParentObject(
+				Optional.of(JSON.booleanNode(true)), Optional.of(object), "key2"));
+		expectedResultSet.add(new JsonNodeWithParentObject(
+				Optional.of(JSON.booleanNode(false)), Optional.of(object), "key3"));
 
 		WildcardStep step = factory.createWildcardStep();
 
 		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Wildcard step applied to an object should return all attribute values", expectedResultSet,
-					resultSet);
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
+					.create(((ArrayResultNode) result).getNodes());
+			assertEquals(
+					"Wildcard step applied to an object should return all attribute values",
+					expectedResultSet, resultSet);
 		});
 	}
+
 }

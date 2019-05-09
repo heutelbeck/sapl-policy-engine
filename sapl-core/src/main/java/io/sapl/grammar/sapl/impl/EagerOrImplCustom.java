@@ -21,20 +21,24 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implements the eager logical OR operation, noted as '|' in the grammar.
- * 
+ *
  * Addition returns Expression: Multiplication (({Plus.left=current} '+' |
- * {Minus.left=current} '-' | {Or.left=current} '||' | '|'
- * {EagerOr.left=current}) right=Multiplication)* ;
- * 
+ * {Minus.left=current} '-' | {Or.left=current} '||' | '|' {EagerOr.left=current})
+ * right=Multiplication)* ;
+ *
  */
 
 public class EagerOrImplCustom extends EagerOrImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
-		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
-		return Flux.combineLatest(left, right, Boolean::logicalOr).map(Value::of).distinctUntilChanged();
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
+		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode)
+				.flatMap(Value::toBoolean);
+		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode)
+				.flatMap(Value::toBoolean);
+		return Flux.combineLatest(left, right, Boolean::logicalOr).map(Value::of)
+				.distinctUntilChanged();
 	}
 
 }

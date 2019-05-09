@@ -34,7 +34,8 @@ public class FilterStatementImplCustom extends FilterStatementImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
+			Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}
@@ -43,7 +44,8 @@ public class FilterStatementImplCustom extends FilterStatementImpl {
 		}
 		final FilterStatementImplCustom otherImpl = (FilterStatementImplCustom) other;
 		if ((getArguments() == null) ? (getArguments() != otherImpl.getArguments())
-				: !getArguments().isEqualTo(otherImpl.getArguments(), otherImports, imports)) {
+				: !getArguments().isEqualTo(otherImpl.getArguments(), otherImports,
+						imports)) {
 			return false;
 		}
 		if ((getTarget() == null) ? (getTarget() != otherImpl.getTarget())

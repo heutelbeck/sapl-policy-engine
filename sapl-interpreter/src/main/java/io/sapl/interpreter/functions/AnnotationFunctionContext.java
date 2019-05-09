@@ -26,13 +26,19 @@ import lombok.NonNull;
 public class AnnotationFunctionContext implements FunctionContext {
 
 	private static final String DOT = ".";
+
 	private static final String UNKNOWN_FUNCTION = "Unknown function %s";
+
 	private static final String ILLEGAL_NUMBER_OF_PARAMETERS = "Illegal number of parameters. Function expected %d but got %d";
+
 	private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION = "Provided class has no @FunctionLibrary annotation.";
+
 	private static final String ILLEGAL_PARAMETER_FOR_IMPORT = "Function has parameters that are not a JsonNode. Cannot be loaded. Type was: %s.";
 
 	private Collection<LibraryDocumentation> documentation = new LinkedList<>();
+
 	private Map<String, FunctionMetadata> functions = new HashMap<>();
+
 	private Map<String, Collection<String>> libraries = new HashMap<>();
 
 	public AnnotationFunctionContext(Object... libraries) throws FunctionException {
@@ -42,7 +48,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 	}
 
 	@Override
-	public Optional<JsonNode> evaluate(String function, ArrayNode parameters) throws FunctionException {
+	public Optional<JsonNode> evaluate(String function, ArrayNode parameters)
+			throws FunctionException {
 		final FunctionMetadata metadata = functions.get(function);
 		if (metadata == null) {
 			throw new FunctionException(String.format(UNKNOWN_FUNCTION, function));
@@ -60,20 +67,24 @@ public class AnnotationFunctionContext implements FunctionContext {
 					arrayParam[i] = parameter;
 				}
 				args[0] = arrayParam;
-			} else if (metadata.getPararmeterCardinality() == parameters.size()) {
+			}
+			else if (metadata.getPararmeterCardinality() == parameters.size()) {
 				args = new Object[parameters.size()];
 				for (int i = 0; i < parameters.size(); i++) {
 					final JsonNode parameter = parameters.get(i);
 					ParameterTypeValidator.validateType(parameter, funParams[i]);
 					args[i] = parameter;
 				}
-			} else {
+			}
+			else {
 				throw new FunctionException(String.format(ILLEGAL_NUMBER_OF_PARAMETERS,
 						metadata.getPararmeterCardinality(), parameters.size()));
 			}
 
-			return Optional.ofNullable((JsonNode) metadata.getFunction().invoke(metadata.getLibrary(), args));
-		} catch (Exception e) {
+			return Optional.ofNullable((JsonNode) metadata.getFunction()
+					.invoke(metadata.getLibrary(), args));
+		}
+		catch (Exception e) {
 			throw new FunctionException(e);
 		}
 	}
@@ -94,7 +105,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 		}
 		libraries.put(libName, new HashSet<>());
 
-		LibraryDocumentation libDocs = new LibraryDocumentation(libName, libAnnotation.description(), library);
+		LibraryDocumentation libDocs = new LibraryDocumentation(libName,
+				libAnnotation.description(), library);
 
 		libDocs.setName(libAnnotation.name());
 		for (Method method : clazz.getDeclaredMethods()) {
@@ -106,8 +118,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	}
 
-	private final void importFunction(Object library, String libName, LibraryDocumentation libMeta, Method method)
-			throws FunctionException {
+	private final void importFunction(Object library, String libName,
+			LibraryDocumentation libMeta, Method method) throws FunctionException {
 		Function funAnnotation = method.getAnnotation(Function.class);
 		String funName = funAnnotation.name();
 		if (funName.isEmpty()) {
@@ -119,8 +131,10 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (parameters == 1 && parameterType.isArray()) {
 				// functions with a variable number of arguments
 				parameters = -1;
-			} else if (!JsonNode.class.isAssignableFrom(parameterType)) {
-				throw new FunctionException(String.format(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName()));
+			}
+			else if (!JsonNode.class.isAssignableFrom(parameterType)) {
+				throw new FunctionException(String.format(ILLEGAL_PARAMETER_FOR_IMPORT,
+						parameterType.getName()));
 			}
 		}
 		libMeta.documentation.put(funName, funAnnotation.docs());
@@ -149,7 +163,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 		Collection<String> libs = libraries.get(libraryName);
 		if (libs != null) {
 			return libs;
-		} else {
+		}
+		else {
 			return new HashSet<>();
 		}
 	}
@@ -157,10 +172,15 @@ public class AnnotationFunctionContext implements FunctionContext {
 	@Data
 	@AllArgsConstructor
 	public static class FunctionMetadata {
+
 		@NonNull
 		Object library;
+
 		int pararmeterCardinality;
+
 		@NonNull
 		Method function;
+
 	}
+
 }

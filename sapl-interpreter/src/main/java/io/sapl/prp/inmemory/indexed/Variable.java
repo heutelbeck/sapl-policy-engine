@@ -14,8 +14,11 @@ import lombok.extern.slf4j.Slf4j;
 public class Variable {
 
 	private final Bool bool;
+
 	private final Bitmask occurencesInCandidates = new Bitmask();
+
 	private final Bitmask unsatisfiableCandidatesWhenFalse = new Bitmask();
+
 	private final Bitmask unsatisfiableCandidatesWhenTrue = new Bitmask();
 
 	public Variable(final Bool bool) {
@@ -38,13 +41,16 @@ public class Variable {
 		return unsatisfiableCandidatesWhenTrue;
 	}
 
-	protected Optional<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
+	protected Optional<Boolean> evaluate(final FunctionContext functionCtx,
+			final VariableContext variableCtx) {
 		Boolean result = null;
 		try {
 			result = getBool().evaluate(functionCtx, variableCtx);
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			LOGGER.debug(Throwables.getStackTraceAsString(e));
 		}
 		return Optional.ofNullable(result);
 	}
+
 }

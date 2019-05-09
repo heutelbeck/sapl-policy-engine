@@ -13,14 +13,23 @@ import com.google.common.math.DoubleMath;
 public class VariableInfo implements Comparable<VariableInfo> {
 
 	private int groupedNumberOfNegatives;
+
 	private int groupedNumberOfPositives;
+
 	private int numberOfNegatives;
+
 	private int numberOfPositives;
+
 	private double relevance;
+
 	private final List<Double> relevances = new LinkedList<>();
+
 	private double score;
+
 	private final Set<ConjunctiveClause> setOfUnsatisfiableClausesIfFalse = new HashSet<>();
+
 	private final Set<ConjunctiveClause> setOfUnsatisfiableClausesIfTrue = new HashSet<>();
+
 	private final Variable variable;
 
 	public VariableInfo(final Variable variable) {
@@ -139,4 +148,5 @@ public class VariableInfo implements Comparable<VariableInfo> {
 	public void setRelevance(double relevance) {
 		this.relevance = relevance;
 	}
+
 }

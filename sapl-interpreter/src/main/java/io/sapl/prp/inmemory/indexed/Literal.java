@@ -11,8 +11,11 @@ import io.sapl.interpreter.variables.VariableContext;
 public class Literal {
 
 	private final Bool bool;
+
 	private int hash;
+
 	private boolean hasHashCode;
+
 	private final boolean hasNegation;
 
 	public Literal(final Bool bool) {
@@ -53,8 +56,8 @@ public class Literal {
 		return result;
 	}
 
-	public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
-			throws PolicyEvaluationException {
+	public boolean evaluate(final FunctionContext functionCtx,
+			final VariableContext variableCtx) throws PolicyEvaluationException {
 		boolean result = bool.evaluate(functionCtx, variableCtx);
 		if (hasNegation) {
 			return !result;
@@ -97,4 +100,5 @@ public class Literal {
 	public boolean sharesNegation(final Literal other) {
 		return hasNegation == other.hasNegation;
 	}
+
 }

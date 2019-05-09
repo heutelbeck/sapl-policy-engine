@@ -16,6 +16,7 @@ import reactor.core.publisher.Flux;
 public class TestPIP {
 
 	public static final String NAME = "sapl.pip.test";
+
 	public static final String DESCRIPTION = "Policy information Point for testing";
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -37,11 +38,13 @@ public class TestPIP {
 	}
 
 	@Attribute
-	public Flux<JsonNode> someVariableOrNull(JsonNode value, Map<String, JsonNode> variables) {
+	public Flux<JsonNode> someVariableOrNull(JsonNode value,
+			Map<String, JsonNode> variables) {
 		logVars(variables);
 		if (variables.containsKey(value.asText())) {
 			return Flux.just(variables.get(value.asText()).deepCopy());
 		}
 		return Flux.just(JSON.nullNode());
 	}
+
 }

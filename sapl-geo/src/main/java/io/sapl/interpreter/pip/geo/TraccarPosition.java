@@ -21,31 +21,51 @@ import lombok.Data;
 @Data
 @JsonInclude(Include.NON_NULL)
 public class TraccarPosition {
+
 	private int id;
+
 	private JsonNode attributes;
+
 	private int deviceId;
+
 	private Object type;
+
 	private String protocol;
+
 	private String serverTime;
+
 	private String deviceTime;
+
 	private String fixTime;
+
 	private boolean outdated;
+
 	private boolean valid;
+
 	private double latitude;
+
 	private double longitude;
+
 	private double altitude;
+
 	private double speed;
+
 	private double course;
+
 	private String address;
+
 	private double accuracy;
+
 	private Object network;
 
 	public static int compareAscending(TraccarPosition a, TraccarPosition b) {
 		if (a.getId() > b.getId()) {
 			return +1;
-		} else if (a.getId() < b.getId()) {
+		}
+		else if (a.getId() < b.getId()) {
 			return -1;
-		} else {
+		}
+		else {
 			return 0;
 		}
 	}
@@ -53,10 +73,13 @@ public class TraccarPosition {
 	public static int compareDescending(TraccarPosition a, TraccarPosition b) {
 		if (a.getId() > b.getId()) {
 			return -1;
-		} else if (a.getId() < b.getId()) {
+		}
+		else if (a.getId() < b.getId()) {
 			return +1;
-		} else {
+		}
+		else {
 			return 0;
 		}
 	}
+
 }

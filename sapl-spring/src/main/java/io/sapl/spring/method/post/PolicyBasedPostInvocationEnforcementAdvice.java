@@ -23,10 +23,12 @@ import lombok.extern.slf4j.Slf4j;
  * Method post-invocation handling based on a SAPL policy decision point.
  */
 @Slf4j
-public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBasedInvocationEnforcementAdvice
+public class PolicyBasedPostInvocationEnforcementAdvice
+		extends AbstractPolicyBasedInvocationEnforcementAdvice
 		implements PostInvocationEnforcementAdvice {
 
-	public PolicyBasedPostInvocationEnforcementAdvice(ObjectFactory<PolicyDecisionPoint> pdpFactory,
+	public PolicyBasedPostInvocationEnforcementAdvice(
+			ObjectFactory<PolicyDecisionPoint> pdpFactory,
 			ObjectFactory<ConstraintHandlerService> constraintHandlerFactory,
 			ObjectFactory<ObjectMapper> objectMapperFactory) {
 		super(pdpFactory, constraintHandlerFactory, objectMapperFactory);
@@ -40,15 +42,18 @@ public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBa
 		// initialization.
 		// Else, beans may become not eligible for BeanPostProcessors
 		lazyLoadDepdendencies();
-		EvaluationContext ctx = expressionHandler.createEvaluationContext(authentication, mi);
+		EvaluationContext ctx = expressionHandler.createEvaluationContext(authentication,
+				mi);
 
 		boolean returnOptional = false;
 		Class<?> returnType;
 		if (returnedObject instanceof Optional) {
-			expressionHandler.setReturnObject(((Optional<Object>) returnedObject).get(), ctx);
+			expressionHandler.setReturnObject(((Optional<Object>) returnedObject).get(),
+					ctx);
 			returnType = ((Optional<Object>) returnedObject).get().getClass();
 			returnOptional = true;
-		} else {
+		}
+		else {
 			returnType = mi.getMethod().getReturnType();
 			expressionHandler.setReturnObject(returnedObject, ctx);
 		}
@@ -58,15 +63,18 @@ public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBa
 		Object resource = retrieveResource(mi, pia, ctx);
 		Object environment = retrieveEnvironment(pia, ctx);
 
-		Request request = new Request(mapper.valueToTree(subject), mapper.valueToTree(action),
-				mapper.valueToTree(resource), mapper.valueToTree(environment));
+		Request request = new Request(mapper.valueToTree(subject),
+				mapper.valueToTree(action), mapper.valueToTree(resource),
+				mapper.valueToTree(environment));
 
 		Response response = pdp.decide(request).blockFirst();
 
 		LOGGER.debug("ATTRIBUTE: {} - {}", pia, pia.getClass());
-		LOGGER.debug("REQUEST  :\n - ACTION={}\n - RESOURCE={}\n - SUBJ={}\n - ENV={}", request.getAction(),
-				request.getResource(), request.getSubject(), request.getEnvironment());
-		LOGGER.debug("RESPONSE : {} - {}", response == null ? "null" : response.getDecision(), response);
+		LOGGER.debug("REQUEST  :\n - ACTION={}\n - RESOURCE={}\n - SUBJ={}\n - ENV={}",
+				request.getAction(), request.getResource(), request.getSubject(),
+				request.getEnvironment());
+		LOGGER.debug("RESPONSE : {} - {}",
+				response == null ? "null" : response.getDecision(), response);
 
 		if (response == null || response.getDecision() != Decision.PERMIT) {
 			throw new AccessDeniedException("Access denied by policy decision point.");
@@ -77,19 +85,24 @@ public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBa
 
 		if (response.getResource().isPresent()) {
 			try {
-				Object returnValue = mapper.treeToValue(response.getResource().get(), returnType);
+				Object returnValue = mapper.treeToValue(response.getResource().get(),
+						returnType);
 				if (returnOptional) {
 					return Optional.of(returnValue);
-				} else {
+				}
+				else {
 					return returnValue;
 				}
-			} catch (JsonProcessingException e) {
-				LOGGER.trace("Transformed result cannot be mapped to expected return type. {}",
+			}
+			catch (JsonProcessingException e) {
+				LOGGER.trace(
+						"Transformed result cannot be mapped to expected return type. {}",
 						response.getResource().get());
 				throw new AccessDeniedException(
 						"Returned resource of response cannot be mapped back to return value. Access not permitted by policy enforcement point.");
 			}
-		} else {
+		}
+		else {
 			return returnedObject;
 		}
 

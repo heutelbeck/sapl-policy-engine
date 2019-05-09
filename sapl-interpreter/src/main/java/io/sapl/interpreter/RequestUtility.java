@@ -16,18 +16,18 @@ import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 /**
- * Multi requests return a {@link Flux flux} of {@link IdentifiableDecision
- * identifiable decisions} or {@link IdentifiableResponse identifiable
- * responses}. The blocking implementation should collect the emitted decisions
- * / responses and return a {@link MultiDecision} / {@link MultiResponse} as
- * soon as at least one decision / response for each request contained in the
- * {@link MultiRequest} has been collected. This class provides according helper
- * methods.
+ * Multi requests return a {@link Flux flux} of {@link IdentifiableDecision identifiable
+ * decisions} or {@link IdentifiableResponse identifiable responses}. The blocking
+ * implementation should collect the emitted decisions / responses and return a
+ * {@link MultiDecision} / {@link MultiResponse} as soon as at least one decision /
+ * response for each request contained in the {@link MultiRequest} has been collected.
+ * This class provides according helper methods.
  */
 @UtilityClass
 public class RequestUtility {
 
-	public static MultiDecision collectDecisions(MultiRequest multiRequest, Flux<IdentifiableDecision> decisionFlux) {
+	public static MultiDecision collectDecisions(MultiRequest multiRequest,
+			Flux<IdentifiableDecision> decisionFlux) {
 		final MultiDecision multiDecision = new MultiDecision();
 
 		final Set<String> keys = multiRequest.getRequests().keySet();
@@ -57,7 +57,8 @@ public class RequestUtility {
 		return multiDecision;
 	}
 
-	public static MultiResponse collectResponses(MultiRequest multiRequest, Flux<IdentifiableResponse> responseFlux) {
+	public static MultiResponse collectResponses(MultiRequest multiRequest,
+			Flux<IdentifiableResponse> responseFlux) {
 		final MultiResponse multiResponse = new MultiResponse();
 
 		final Set<String> keys = multiRequest.getRequests().keySet();
@@ -90,7 +91,8 @@ public class RequestUtility {
 	private static void awaitTaskCompletion(CountDownLatch cdl, Disposable subscription) {
 		try {
 			cdl.await();
-		} catch (InterruptedException e) {
+		}
+		catch (InterruptedException e) {
 			subscription.dispose();
 			throw new RuntimeException(e);
 		}
@@ -99,4 +101,5 @@ public class RequestUtility {
 			subscription.dispose();
 		}
 	}
+
 }

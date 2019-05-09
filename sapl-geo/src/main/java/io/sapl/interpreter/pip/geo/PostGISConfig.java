@@ -16,37 +16,67 @@ import lombok.Getter;
 public class PostGISConfig {
 
 	private static final String ARG_NOT_EXISTING = "Configured table or column name does not exist in the database.";
+
 	private static final String COLUMN_NAME = "COLUMN_NAME";
+
 	private static final String JDBC_SERVICE = "jdbc:postgresql://";
+
 	private static final String SSL_PARAM = "ssl=true";
+
 	private static final String SQL_QUERY = "SELECT %s, %s FROM %s WHERE %s;";
+
 	private static final String SQL_AS_TEXT = "ST_AsText(";
+
 	private static final String SQL_FLIP = "ST_FlipCoordinates(";
+
 	private static final String SQL_TRANSFORM = "ST_Transform(";
+
 	private static final String SQL_AND = " AND ";
+
 	private static final char SLASH = '/';
+
 	private static final char QM = '?';
+
 	private static final char AMP = '&';
+
 	private static final String SEQ = "<=";
+
 	private static final String GEQ = ">=";
+
 	private static final char COLON = ':';
+
 	private static final char COMMA = ',';
+
 	private static final char CLOSING_PAREN = ')';
 
 	private String serverAdress;
+
 	private String port;
+
 	private String db;
+
 	private String table;
+
 	private String username;
+
 	private String password;
+
 	private String pkColName;
+
 	private String idColName;
+
 	private String geometryColName;
+
 	private int from;
+
 	private int until = -1;
+
 	private boolean flipCoordinates;
+
 	private int projectionSRID;
+
 	private boolean ssl;
+
 	private String urlParams;
 
 	public Connection getConnection() throws SQLException {
@@ -55,16 +85,18 @@ public class PostGISConfig {
 
 	public String buildQuery() throws AttributeException {
 		if (verifySqlArguments()) {
-			return String.format(SQL_QUERY, getIdColName(), buildGeometryExpression(), getTable(), buildConditions());
-		} else {
+			return String.format(SQL_QUERY, getIdColName(), buildGeometryExpression(),
+					getTable(), buildConditions());
+		}
+		else {
 			throw new AttributeException(ARG_NOT_EXISTING);
 		}
 	}
 
 	protected String buildUrl() {
 		StringBuilder url = new StringBuilder();
-		url.append(JDBC_SERVICE).append(getServerAdress()).append(COLON).append(getPort()).append(SLASH).append(getDb())
-				.append(QM);
+		url.append(JDBC_SERVICE).append(getServerAdress()).append(COLON).append(getPort())
+				.append(SLASH).append(getDb()).append(QM);
 
 		if (ssl) {
 			url.append(SSL_PARAM);
@@ -85,7 +117,8 @@ public class PostGISConfig {
 			if (colsExist(cols, getIdColName(), getGeometryColName(), getPkColName())) {
 				return true;
 			}
-		} catch (SQLException e) {
+		}
+		catch (SQLException e) {
 			throw new AttributeException(e);
 		}
 		return false;
@@ -95,7 +128,8 @@ public class PostGISConfig {
 		StringBuilder conditions = new StringBuilder();
 		conditions.append(getPkColName()).append(GEQ).append(getFrom());
 		if (getUntil() >= getFrom()) {
-			conditions.append(SQL_AND).append(getPkColName()).append(SEQ).append(getUntil());
+			conditions.append(SQL_AND).append(getPkColName()).append(SEQ)
+					.append(getUntil());
 		}
 		return conditions.toString();
 	}
@@ -111,9 +145,11 @@ public class PostGISConfig {
 		}
 
 		if (getProjectionSRID() != 0) {
-			result.append(SQL_TRANSFORM).append(getGeometryColName()).append(COMMA).append(getProjectionSRID());
+			result.append(SQL_TRANSFORM).append(getGeometryColName()).append(COMMA)
+					.append(getProjectionSRID());
 			parenthesis++;
-		} else {
+		}
+		else {
 			result.append(getGeometryColName());
 		}
 
@@ -124,7 +160,8 @@ public class PostGISConfig {
 		return result.toString();
 	}
 
-	protected static boolean colsExist(ResultSet cols, String... colNames) throws SQLException {
+	protected static boolean colsExist(ResultSet cols, String... colNames)
+			throws SQLException {
 		ArrayList<String> colNamesList = new ArrayList<>();
 
 		while (cols.next()) {
@@ -139,4 +176,5 @@ public class PostGISConfig {
 		return true;
 
 	}
+
 }

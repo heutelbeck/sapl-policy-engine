@@ -39,11 +39,17 @@ import org.xml.sax.SAXException;
 public class KMLImport {
 
 	private static final String ATT_FEATURE = "Feature";
+
 	private static final String ATT_NAME = "name";
+
 	private static final String ATT_GEOM = "Geometry";
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	protected static final String UNABLE_TO_PARSE_KML = "Provided KML-file cannot be found or is not compliant. Unable to parse geometry.";
+
 	protected static final String NO_VALID_FILENAME = "Provided filename is not valid or nested in an Json-Object.";
+
 	protected static final String TEST_OKAY = "ok";
 
 	private final String kmlSource;
@@ -55,7 +61,8 @@ public class KMLImport {
 	public KMLImport(JsonNode source) throws AttributeException {
 		if (source.isTextual()) {
 			kmlSource = source.asText();
-		} else {
+		}
+		else {
 			throw new AttributeException(NO_VALID_FILENAME);
 		}
 	}
@@ -63,16 +70,21 @@ public class KMLImport {
 	public JsonNode toGeoPIPResponse() throws FunctionException, AttributeException {
 		if (kmlSource.isEmpty()) {
 			return JSON.textNode(TEST_OKAY);
-		} else {
-			return GeoPIPResponse.builder().geofences(retrieveGeometries()).build().toJsonNode();
+		}
+		else {
+			return GeoPIPResponse.builder().geofences(retrieveGeometries()).build()
+					.toJsonNode();
 		}
 	}
 
 	private ObjectNode retrieveGeometries() throws FunctionException, AttributeException {
 		if (kmlSource.contains("http://") || kmlSource.contains("https://")) {
-			return formatCollection((Collection<?>) getKmlFromWeb().getAttribute(ATT_FEATURE));
-		} else {
-			return formatCollection((Collection<?>) getKmlFromFile().getAttribute(ATT_FEATURE));
+			return formatCollection(
+					(Collection<?>) getKmlFromWeb().getAttribute(ATT_FEATURE));
+		}
+		else {
+			return formatCollection(
+					(Collection<?>) getKmlFromFile().getAttribute(ATT_FEATURE));
 		}
 	}
 
@@ -81,7 +93,8 @@ public class KMLImport {
 
 			return parse(inputStream);
 
-		} catch (IOException | SAXException | ParserConfigurationException e) {
+		}
+		catch (IOException | SAXException | ParserConfigurationException e) {
 			throw new AttributeException(UNABLE_TO_PARSE_KML, e);
 		}
 	}
@@ -91,7 +104,8 @@ public class KMLImport {
 
 			return parse(inputStream);
 
-		} catch (IOException | ParserConfigurationException | SAXException e) {
+		}
+		catch (IOException | ParserConfigurationException | SAXException e) {
 			throw new AttributeException(UNABLE_TO_PARSE_KML, e);
 		}
 	}
@@ -109,10 +123,12 @@ public class KMLImport {
 
 			if (!(obj instanceof SimpleFeature)) {
 				throw new AttributeException(UNABLE_TO_PARSE_KML);
-			} else {
+			}
+			else {
 				SimpleFeature feature = (SimpleFeature) obj;
 				Geometry geom = (Geometry) feature.getAttribute(ATT_GEOM);
-				geometries.set((String) feature.getAttribute(ATT_NAME), GeometryBuilder.toJsonNode(geom));
+				geometries.set((String) feature.getAttribute(ATT_NAME),
+						GeometryBuilder.toJsonNode(geom));
 			}
 		}
 		return geometries;

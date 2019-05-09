@@ -22,7 +22,8 @@ import io.sapl.api.functions.FunctionException;
 
 public interface FunctionContext {
 
-	Optional<JsonNode> evaluate(String function, ArrayNode parameters) throws FunctionException;
+	Optional<JsonNode> evaluate(String function, ArrayNode parameters)
+			throws FunctionException;
 
 	Boolean provides(String function);
 

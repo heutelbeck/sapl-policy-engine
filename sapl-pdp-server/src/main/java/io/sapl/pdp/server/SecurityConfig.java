@@ -14,29 +14,27 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-    @Value("${http.basic.auth.client-key}")
-    private String clientKey;
+	@Value("${http.basic.auth.client-key}")
+	private String clientKey;
 
-    @Value("${http.basic.auth.client-secret}")
-    private String clientSecret;
+	@Value("${http.basic.auth.client-secret}")
+	private String clientSecret;
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http.csrf().disable()
-            .authorizeRequests()
-                .anyRequest().authenticated()
-                .and().httpBasic();
-    }
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http.csrf().disable().authorizeRequests().anyRequest().authenticated().and()
+				.httpBasic();
+	}
 
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.inMemoryAuthentication()
-                .withUser(clientKey).password(clientSecret).roles("PDP_CLIENT");
-    }
+	@Override
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+		auth.inMemoryAuthentication().withUser(clientKey).password(clientSecret)
+				.roles("PDP_CLIENT");
+	}
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance();
-    }
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return NoOpPasswordEncoder.getInstance();
+	}
 
 }

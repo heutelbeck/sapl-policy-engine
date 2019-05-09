@@ -39,16 +39,18 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	private static final String UNION_TYPE_MISMATCH = "Type mismatch.";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult,
+			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
-	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult)
+			throws PolicyEvaluationException {
 		final JsonNode previousResultNode = previousResult.getNode().get();
 		if (!previousResultNode.isArray()) {
 			throw new PolicyEvaluationException(UNION_TYPE_MISMATCH);
@@ -60,7 +62,8 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (int index : indices) {
 			if (previousResultNode.has(index)) {
-				resultList.add(new JsonNodeWithParentArray(Optional.of(previousResultNode.get(index)),
+				resultList.add(new JsonNodeWithParentArray(
+						Optional.of(previousResultNode.get(index)),
 						previousResult.getNode(), index));
 			}
 		}
@@ -72,7 +75,8 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 		for (BigDecimal index : getIndices()) {
 			if (index.intValue() < 0) {
 				indices.add(arrayLength + index.intValue());
-			} else {
+			}
+			else {
 				indices.add(index.intValue());
 			}
 		}
@@ -80,8 +84,8 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx,
+			boolean isBody, Optional<JsonNode> relativeNode) {
 		return Flux.just(apply(previousResult));
 	}
 
@@ -111,7 +115,8 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
+			Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

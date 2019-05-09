@@ -29,75 +29,85 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvider {
 
-    private static final String DEFAULT_CONFIG_PATH = "/policies";
-    private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
+	private static final String DEFAULT_CONFIG_PATH = "/policies";
 
-    private final ObjectMapper mapper = new ObjectMapper();
-    private final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
+	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
-    private PolicyDecisionPointConfiguration config;
+	private final ObjectMapper mapper = new ObjectMapper();
 
-    public ResourcesPDPConfigurationProvider() throws PDPConfigurationException, IOException, URISyntaxException {
-        this(DEFAULT_CONFIG_PATH);
-    }
+	private final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
-    public ResourcesPDPConfigurationProvider(@NonNull String configPath) throws PDPConfigurationException, IOException, URISyntaxException {
-        this(ResourcesPDPConfigurationProvider.class, configPath);
-    }
+	private PolicyDecisionPointConfiguration config;
 
-    public ResourcesPDPConfigurationProvider(@NonNull Class<?> clazz, @NonNull String configPath) throws PDPConfigurationException, IOException, URISyntaxException {
-        URL configFolderUrl = clazz.getResource(configPath);
+	public ResourcesPDPConfigurationProvider()
+			throws PDPConfigurationException, IOException, URISyntaxException {
+		this(DEFAULT_CONFIG_PATH);
+	}
 
-        if (configFolderUrl == null) {
-            throw new PDPConfigurationException(
-                    "Config folder not found. Path:" + configPath + " - URL: " + configFolderUrl);
-        }
+	public ResourcesPDPConfigurationProvider(@NonNull String configPath)
+			throws PDPConfigurationException, IOException, URISyntaxException {
+		this(ResourcesPDPConfigurationProvider.class, configPath);
+	}
 
-        Path path;
-        FileSystem fs = null;
-        try {
-            if (configFolderUrl.getProtocol().equals("jar")) {
-                final Map<String, String> env = new HashMap<>();
-                final String[] array = configFolderUrl.toString().split("!");
-                fs = FileSystems.newFileSystem(URI.create(array[0]), env);
-                path = fs.getPath(array[1]);
-            } else {
-                path = Paths.get(configFolderUrl.toURI());
-            }
-            LOGGER.info("current path: {}", path);
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, CONFIG_FILE_GLOB_PATTERN)) {
-                for (Path filePath : stream) {
-                    LOGGER.info("load: {}", filePath);
-                    this.config = mapper.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
-                    break;
-                }
-                if (this.config == null) {
-                    this.config = new PolicyDecisionPointConfiguration();
-                }
-            }
-        } finally {
-            if (fs != null) {
-                fs.close();
-            }
-        }
-    }
+	public ResourcesPDPConfigurationProvider(@NonNull Class<?> clazz,
+			@NonNull String configPath)
+			throws PDPConfigurationException, IOException, URISyntaxException {
+		URL configFolderUrl = clazz.getResource(configPath);
 
-    public ResourcesPDPConfigurationProvider(PolicyDecisionPointConfiguration config) {
-        this.config = config;
-    }
+		if (configFolderUrl == null) {
+			throw new PDPConfigurationException("Config folder not found. Path:"
+					+ configPath + " - URL: " + configFolderUrl);
+		}
 
-    @Override
-    public Flux<DocumentsCombinator> getDocumentsCombinator() {
-        return Flux.just(config.getAlgorithm())
-                .map(algorithm -> {
-                    LOGGER.trace("|-- Current PDP config: combining algorithm = {}", algorithm);
-                    return convert(algorithm, interpreter);
-                });
-    }
+		Path path;
+		FileSystem fs = null;
+		try {
+			if (configFolderUrl.getProtocol().equals("jar")) {
+				final Map<String, String> env = new HashMap<>();
+				final String[] array = configFolderUrl.toString().split("!");
+				fs = FileSystems.newFileSystem(URI.create(array[0]), env);
+				path = fs.getPath(array[1]);
+			}
+			else {
+				path = Paths.get(configFolderUrl.toURI());
+			}
+			LOGGER.info("current path: {}", path);
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path,
+					CONFIG_FILE_GLOB_PATTERN)) {
+				for (Path filePath : stream) {
+					LOGGER.info("load: {}", filePath);
+					this.config = mapper.readValue(filePath.toFile(),
+							PolicyDecisionPointConfiguration.class);
+					break;
+				}
+				if (this.config == null) {
+					this.config = new PolicyDecisionPointConfiguration();
+				}
+			}
+		}
+		finally {
+			if (fs != null) {
+				fs.close();
+			}
+		}
+	}
 
-    @Override
-    public Flux<Map<String, JsonNode>> getVariables() {
-        return Flux.just(config.getVariables())
-                .doOnNext(variables -> LOGGER.trace("|-- Current PDP config: variables = {}", variables));
-    }
+	public ResourcesPDPConfigurationProvider(PolicyDecisionPointConfiguration config) {
+		this.config = config;
+	}
+
+	@Override
+	public Flux<DocumentsCombinator> getDocumentsCombinator() {
+		return Flux.just(config.getAlgorithm()).map(algorithm -> {
+			LOGGER.trace("|-- Current PDP config: combining algorithm = {}", algorithm);
+			return convert(algorithm, interpreter);
+		});
+	}
+
+	@Override
+	public Flux<Map<String, JsonNode>> getVariables() {
+		return Flux.just(config.getVariables()).doOnNext(variables -> LOGGER
+				.trace("|-- Current PDP config: variables = {}", variables));
+	}
+
 }

@@ -28,7 +28,8 @@ public class ConjunctiveClauseSimplifier implements Simplifier<ConjunctiveClause
 					data.clear();
 					data.add(literal);
 					return;
-				} else {
+				}
+				else {
 					iter.remove();
 				}
 			}
@@ -46,8 +47,8 @@ public class ConjunctiveClauseSimplifier implements Simplifier<ConjunctiveClause
 		data.removeIf(Objects::isNull);
 	}
 
-	private static boolean reduceFormulaStep(final List<Literal> data, final ListIterator<Literal> pointer,
-			final Literal value) {
+	private static boolean reduceFormulaStep(final List<Literal> data,
+			final ListIterator<Literal> pointer, final Literal value) {
 		ListIterator<Literal> forward = data.listIterator(pointer.nextIndex());
 		while (forward.hasNext()) {
 			Literal rhs = forward.next();
@@ -57,7 +58,8 @@ public class ConjunctiveClauseSimplifier implements Simplifier<ConjunctiveClause
 			if (value.sharesBool(rhs)) {
 				if (value.sharesNegation(rhs)) {
 					forward.set(null);
-				} else {
+				}
+				else {
 					data.clear();
 					data.add(new Literal(new Bool(false)));
 					return true;
@@ -66,4 +68,5 @@ public class ConjunctiveClauseSimplifier implements Simplifier<ConjunctiveClause
 		}
 		return false;
 	}
+
 }

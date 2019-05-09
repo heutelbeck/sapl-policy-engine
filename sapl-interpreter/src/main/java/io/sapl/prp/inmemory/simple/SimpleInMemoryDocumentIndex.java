@@ -16,19 +16,22 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
 
 public class SimpleInMemoryDocumentIndex implements InMemoryDocumentIndex {
+
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	Map<String, SAPL> parsedDocuments = new ConcurrentHashMap<>();
+
 	ParsedDocumentIndex index = new SimpleParsedDocumentIndex();
 
 	@Override
-	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
-			Map<String, JsonNode> variables) {
+	public PolicyRetrievalResult retrievePolicies(Request request,
+			FunctionContext functionCtx, Map<String, JsonNode> variables) {
 		return index.retrievePolicies(request, functionCtx, variables);
 	}
 
 	@Override
-	public void insert(String documentKey, String document) throws PolicyEvaluationException {
+	public void insert(String documentKey, String document)
+			throws PolicyEvaluationException {
 		parsedDocuments.put(documentKey, INTERPRETER.parse(document));
 	}
 

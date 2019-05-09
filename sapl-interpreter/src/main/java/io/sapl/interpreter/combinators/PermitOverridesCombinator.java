@@ -27,20 +27,24 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 	}
 
 	@Override
-	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
-												   Request request, AttributeContext attributeCtx, FunctionContext functionCtx,
-												   Map<String, JsonNode> systemVariables) {
+	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
+			boolean errorsInTarget, Request request, AttributeContext attributeCtx,
+			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
 
-        if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
-            return errorsInTarget ? Flux.just(Response.indeterminate()) : Flux.just(Response.notApplicable());
-        }
-
-		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingSaplDocuments.size());
-		for (SAPL document : matchingSaplDocuments) {
-			responseFluxes.add(interpreter.evaluate(request, document, attributeCtx, functionCtx, systemVariables));
+		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
+			return errorsInTarget ? Flux.just(Response.indeterminate())
+					: Flux.just(Response.notApplicable());
 		}
 
-		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(errorsInTarget);
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(
+				matchingSaplDocuments.size());
+		for (SAPL document : matchingSaplDocuments) {
+			responseFluxes.add(interpreter.evaluate(request, document, attributeCtx,
+					functionCtx, systemVariables));
+		}
+
+		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(
+				errorsInTarget);
 		return Flux.combineLatest(responseFluxes, responses -> {
 			responseAccumulator.addSingleResponses(responses);
 			return responseAccumulator.getCombinedResponse();
@@ -48,45 +52,54 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 	}
 
 	@Override
-	public Flux<Response> combinePolicies(List<Policy> policies, Request request, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
+	public Flux<Response> combinePolicies(List<Policy> policies, Request request,
+			AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
 			Map<String, String> imports) {
 
 		boolean errorsInTarget = false;
 		final List<Policy> matchingPolicies = new ArrayList<>();
 		for (Policy policy : policies) {
 			try {
-				if (interpreter.matches(request, policy, functionCtx, systemVariables, variables, imports)) {
+				if (interpreter.matches(request, policy, functionCtx, systemVariables,
+						variables, imports)) {
 					matchingPolicies.add(policy);
 				}
-			} catch (PolicyEvaluationException e) {
+			}
+			catch (PolicyEvaluationException e) {
 				errorsInTarget = true;
 			}
 		}
 
-        if (matchingPolicies.isEmpty()) {
-            return errorsInTarget ? Flux.just(Response.indeterminate()) : Flux.just(Response.notApplicable());
-        }
-
-		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
-		for (Policy policy : matchingPolicies) {
-			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx, functionCtx,
-					systemVariables, variables, imports));
+		if (matchingPolicies.isEmpty()) {
+			return errorsInTarget ? Flux.just(Response.indeterminate())
+					: Flux.just(Response.notApplicable());
 		}
-		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(errorsInTarget);
+
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(
+				matchingPolicies.size());
+		for (Policy policy : matchingPolicies) {
+			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx,
+					functionCtx, systemVariables, variables, imports));
+		}
+		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(
+				errorsInTarget);
 		return Flux.combineLatest(responseFluxes, responses -> {
 			responseAccumulator.addSingleResponses(responses);
 			return responseAccumulator.getCombinedResponse();
 		}).distinctUntilChanged();
 	}
 
-
 	private static class ResponseAccumulator {
 
 		private boolean errorsInTarget;
+
 		private Response response;
+
 		private int permitCount;
+
 		private boolean transformation;
+
 		private ObligationAdviceCollector obligationAdvice;
 
 		ResponseAccumulator(boolean errorsInTarget) {
@@ -98,7 +111,8 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 			permitCount = 0;
 			transformation = false;
 			obligationAdvice = new ObligationAdviceCollector();
-			response = errorsInTarget ? Response.indeterminate() : Response.notApplicable();
+			response = errorsInTarget ? Response.indeterminate()
+					: Response.notApplicable();
 		}
 
 		void addSingleResponses(Object... responses) {
@@ -118,9 +132,13 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 
 				obligationAdvice.add(Decision.PERMIT, newResponse);
 				response = newResponse;
-			} else if (newDecision == Decision.INDETERMINATE && response.getDecision() != Decision.PERMIT) {
+			}
+			else if (newDecision == Decision.INDETERMINATE
+					&& response.getDecision() != Decision.PERMIT) {
 				response = Response.indeterminate();
-			} else if (newDecision == Decision.DENY && response.getDecision() != Decision.INDETERMINATE
+			}
+			else if (newDecision == Decision.DENY
+					&& response.getDecision() != Decision.INDETERMINATE
 					&& response.getDecision() != Decision.PERMIT) {
 				obligationAdvice.add(Decision.DENY, newResponse);
 				response = Response.deny();
@@ -135,13 +153,17 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 				return new Response(Decision.PERMIT, response.getResource(),
 						obligationAdvice.get(Type.OBLIGATION, Decision.PERMIT),
 						obligationAdvice.get(Type.ADVICE, Decision.PERMIT));
-			} else if (response.getDecision() == Decision.DENY) {
+			}
+			else if (response.getDecision() == Decision.DENY) {
 				return new Response(Decision.DENY, response.getResource(),
 						obligationAdvice.get(Type.OBLIGATION, Decision.DENY),
 						obligationAdvice.get(Type.ADVICE, Decision.DENY));
-			} else {
+			}
+			else {
 				return response;
 			}
 		}
+
 	}
+
 }

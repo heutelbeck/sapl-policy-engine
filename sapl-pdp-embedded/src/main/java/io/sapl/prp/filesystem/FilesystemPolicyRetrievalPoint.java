@@ -38,28 +38,37 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
-public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint, io.sapl.api.pdp.Disposable {
+public class FilesystemPolicyRetrievalPoint
+		implements PolicyRetrievalPoint, io.sapl.api.pdp.Disposable {
 
 	private static final String POLICY_FILE_GLOB_PATTERN = "*.sapl";
+
 	private static final Pattern POLICY_FILE_REGEX_PATTERN = Pattern.compile(".+\\.sapl");
 
 	private final ReentrantLock lock = new ReentrantLock();
+
 	private final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
 	private String path;
+
 	private ParsedDocumentIndex parsedDocIdx;
 
 	private Scheduler dirWatcherScheduler;
-	private Disposable dirWatcherFluxSubscription;
-	private ReplayProcessor<WatchEvent<Path>> dirWatcherEventProcessor
-			= ReplayProcessor.cacheLastOrDefault(InitialWatchEvent.INSTANCE);
 
-	public FilesystemPolicyRetrievalPoint(@NonNull String policyPath, @NonNull ParsedDocumentIndex parsedDocumentIndex) {
+	private Disposable dirWatcherFluxSubscription;
+
+	private ReplayProcessor<WatchEvent<Path>> dirWatcherEventProcessor = ReplayProcessor
+			.cacheLastOrDefault(InitialWatchEvent.INSTANCE);
+
+	public FilesystemPolicyRetrievalPoint(@NonNull String policyPath,
+			@NonNull ParsedDocumentIndex parsedDocumentIndex) {
 		this.path = policyPath;
 		if (policyPath.startsWith("~" + File.separator)) {
 			this.path = System.getProperty("user.home") + path.substring(1);
-		} else if (policyPath.startsWith("~")) {
-			throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
+		}
+		else if (policyPath.startsWith("~")) {
+			throw new UnsupportedOperationException(
+					"Home dir expansion not implemented for explicit usernames");
 		}
 
 		this.parsedDocIdx = parsedDocumentIndex;
@@ -69,20 +78,24 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint, io.
 		final Path watchDir = Paths.get(path);
 		final DirectoryWatcher directoryWatcher = new DirectoryWatcher(watchDir);
 
-		final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter(POLICY_FILE_REGEX_PATTERN);
+		final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter(
+				POLICY_FILE_REGEX_PATTERN);
 		dirWatcherScheduler = Schedulers.newElastic("policyWatcher");
-		final Flux<WatchEvent<Path>> dirWatcherFlux = Flux.<WatchEvent<Path>>push(sink -> {
-			adapter.setSink(sink);
-			directoryWatcher.watch(adapter);
-		}).doOnNext(event -> {
-			if (event == InitialWatchEvent.INSTANCE) {
-				// don't update the index on the initial event (nothing has changed)
-				dirWatcherEventProcessor.onNext(event);
-			} else {
-				updateIndex(event);
-				dirWatcherEventProcessor.onNext(event);
-			}
-		}).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler);
+		final Flux<WatchEvent<Path>> dirWatcherFlux = Flux
+				.<WatchEvent<Path>>push(sink -> {
+					adapter.setSink(sink);
+					directoryWatcher.watch(adapter);
+				}).doOnNext(event -> {
+					if (event == InitialWatchEvent.INSTANCE) {
+						// don't update the index on the initial event (nothing has
+						// changed)
+						dirWatcherEventProcessor.onNext(event);
+					}
+					else {
+						updateIndex(event);
+						dirWatcherEventProcessor.onNext(event);
+					}
+				}).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler);
 
 		dirWatcherFluxSubscription = dirWatcherFlux.subscribe();
 	}
@@ -91,17 +104,21 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint, io.
 		try {
 			lock.lock();
 
-			try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path), POLICY_FILE_GLOB_PATTERN)) {
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path),
+					POLICY_FILE_GLOB_PATTERN)) {
 				for (Path filePath : stream) {
 					LOGGER.info("load: {}", filePath);
-					final SAPL saplDocument = interpreter.parse(Files.newInputStream(filePath));
+					final SAPL saplDocument = interpreter
+							.parse(Files.newInputStream(filePath));
 					parsedDocIdx.put(filePath.toString(), saplDocument);
 				}
 			}
 			parsedDocIdx.setLiveMode();
-		} catch (IOException | PolicyEvaluationException e) {
+		}
+		catch (IOException | PolicyEvaluationException e) {
 			LOGGER.error("Error while initializing the document index.", e);
-		} finally {
+		}
+		finally {
 			lock.unlock();
 		}
 	}
@@ -116,33 +133,42 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint, io.
 			final String absoluteFileName = absoluteFilePath.toString();
 			if (kind == ENTRY_CREATE) {
 				LOGGER.info("adding {} to index", fileName);
-				final SAPL saplDocument = interpreter.parse(Files.newInputStream(absoluteFilePath));
+				final SAPL saplDocument = interpreter
+						.parse(Files.newInputStream(absoluteFilePath));
 				parsedDocIdx.put(absoluteFileName, saplDocument);
-			} else if (kind == ENTRY_DELETE) {
+			}
+			else if (kind == ENTRY_DELETE) {
 				LOGGER.info("removing {} from index", fileName);
 				parsedDocIdx.remove(absoluteFileName);
-			} else if (kind == ENTRY_MODIFY) {
-				LOGGER.info("updating {} in index", fileName);
-				final SAPL saplDocument = interpreter.parse(Files.newInputStream(absoluteFilePath));
-				parsedDocIdx.put(absoluteFileName, saplDocument);
-			} else {
-				LOGGER.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
 			}
-		} catch (IOException | PolicyEvaluationException e) {
+			else if (kind == ENTRY_MODIFY) {
+				LOGGER.info("updating {} in index", fileName);
+				final SAPL saplDocument = interpreter
+						.parse(Files.newInputStream(absoluteFilePath));
+				parsedDocIdx.put(absoluteFileName, saplDocument);
+			}
+			else {
+				LOGGER.error("unknown kind of directory watch event: {}",
+						kind != null ? kind.name() : "null");
+			}
+		}
+		catch (IOException | PolicyEvaluationException e) {
 			LOGGER.error("Error while updating the document index.", e);
-		} finally {
+		}
+		finally {
 			lock.unlock();
 		}
 	}
 
 	@Override
-	public Flux<PolicyRetrievalResult> retrievePolicies(Request request, FunctionContext functionCtx,
-			Map<String, JsonNode> variables) {
+	public Flux<PolicyRetrievalResult> retrievePolicies(Request request,
+			FunctionContext functionCtx, Map<String, JsonNode> variables) {
 		return dirWatcherEventProcessor.map(event -> {
 			try {
 				lock.lock();
 				return parsedDocIdx.retrievePolicies(request, functionCtx, variables);
-			} finally {
+			}
+			finally {
 				lock.unlock();
 			}
 		});

@@ -7,7 +7,8 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfi
 @SpringBootApplication(exclude = { SecurityAutoConfiguration.class })
 public class PDPServerApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(PDPServerApplication.class, args);
-    }
+	public static void main(String[] args) {
+		SpringApplication.run(PDPServerApplication.class, args);
+	}
+
 }

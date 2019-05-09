@@ -77,18 +77,24 @@ import reactor.util.function.Tuples;
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static final String CANNOT_ASSIGN_UNDEFINED_TO_A_VAL = "Cannot assign undefined to a val.";
+
 	private static final Response INDETERMINATE = Response.indeterminate();
 
 	@FunctionalInterface
 	interface FluxProvider<T> {
+
 		Flux<T> getFlux();
+
 	}
 
 	private static class Void {
+
 		private static final Void INSTANCE = new Void();
+
 	}
 
 	private static final String PERMIT = "permit";
+
 	private static final String DUMMY_RESOURCE_URI = "policy:/apolicy.sapl";
 
 	static final String POLICY_EVALUATION_FAILED = "Policy evaluation failed: {}";
@@ -103,7 +109,9 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	static final String IMPORT_EXISTS = "An import for name '%s' already exists.";
 	static final String WILDCARD_IMPORT_EXISTS = "Wildcard import of '%s' not possible as an import for name '%s' already exists.";
 
-	private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
+	private static final Injector INJECTOR = new SAPLStandaloneSetup()
+			.createInjectorAndDoEMFRegistration();
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Override
@@ -116,74 +124,97 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		return (SAPL) loadAsResource(saplInputStream).getContents().get(0);
 	}
 
-	private static Resource loadAsResource(InputStream policyInputStream) throws PolicyEvaluationException {
+	private static Resource loadAsResource(InputStream policyInputStream)
+			throws PolicyEvaluationException {
 		final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-		final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
+		final Resource resource = resourceSet
+				.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
 
 		try {
 			resource.load(policyInputStream, resourceSet.getLoadOptions());
-		} catch (IOException | WrappedException e) {
-			throw new PolicyEvaluationException(String.format(PARSING_ERRORS, resource.getErrors()), e);
+		}
+		catch (IOException | WrappedException e) {
+			throw new PolicyEvaluationException(
+					String.format(PARSING_ERRORS, resource.getErrors()), e);
 		}
 
 		if (!resource.getErrors().isEmpty()) {
-			throw new PolicyEvaluationException(String.format(PARSING_ERRORS, resource.getErrors()));
+			throw new PolicyEvaluationException(
+					String.format(PARSING_ERRORS, resource.getErrors()));
 		}
 		return resource;
 	}
 
-	private static Resource loadAsResource(String saplDefinition) throws PolicyEvaluationException {
-		final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-		final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
-
-		try (InputStream in = new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8))) {
-			resource.load(in, resourceSet.getLoadOptions());
-		} catch (IOException e) {
-			throw new PolicyEvaluationException(String.format(PARSING_ERRORS, resource.getErrors()), e);
-		}
-
-		if (!resource.getErrors().isEmpty()) {
-			throw new PolicyEvaluationException(String.format(PARSING_ERRORS, resource.getErrors()));
-		}
-		return resource;
-	}
-
-	@Override
-	public boolean matches(Request request, SAPL saplDocument, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables) throws PolicyEvaluationException {
-
-		final Map<String, String> imports = fetchFunctionImports(saplDocument, functionCtx);
-		return matches(request, saplDocument.getPolicyElement(), functionCtx, systemVariables, null, imports);
-	}
-
-	@Override
-	public boolean matches(Request request, PolicyElement policyElement, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables, Map<String, String> imports)
+	private static Resource loadAsResource(String saplDefinition)
 			throws PolicyEvaluationException {
-		LOGGER.trace("| | |-- Interpreter test match '{}' with {}", policyElement.getSaplName(), request);
+		final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
+		final Resource resource = resourceSet
+				.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
+
+		try (InputStream in = new ByteArrayInputStream(
+				saplDefinition.getBytes(StandardCharsets.UTF_8))) {
+			resource.load(in, resourceSet.getLoadOptions());
+		}
+		catch (IOException e) {
+			throw new PolicyEvaluationException(
+					String.format(PARSING_ERRORS, resource.getErrors()), e);
+		}
+
+		if (!resource.getErrors().isEmpty()) {
+			throw new PolicyEvaluationException(
+					String.format(PARSING_ERRORS, resource.getErrors()));
+		}
+		return resource;
+	}
+
+	@Override
+	public boolean matches(Request request, SAPL saplDocument,
+			FunctionContext functionCtx, Map<String, JsonNode> systemVariables)
+			throws PolicyEvaluationException {
+
+		final Map<String, String> imports = fetchFunctionImports(saplDocument,
+				functionCtx);
+		return matches(request, saplDocument.getPolicyElement(), functionCtx,
+				systemVariables, null, imports);
+	}
+
+	@Override
+	public boolean matches(Request request, PolicyElement policyElement,
+			FunctionContext functionCtx, Map<String, JsonNode> systemVariables,
+			Map<String, JsonNode> variables, Map<String, String> imports)
+			throws PolicyEvaluationException {
+		LOGGER.trace("| | |-- Interpreter test match '{}' with {}",
+				policyElement.getSaplName(), request);
 		final Expression targetExpression = policyElement.getTargetExpression();
 		if (targetExpression == null) {
 			LOGGER.trace("| | | |-- MATCH (no target expression, matches all)");
 			LOGGER.trace("| | |");
 			return true;
-		} else {
-			final EvaluationContext evaluationCtx = createEvaluationContext(request, functionCtx, systemVariables,
-					variables, imports);
+		}
+		else {
+			final EvaluationContext evaluationCtx = createEvaluationContext(request,
+					functionCtx, systemVariables, variables, imports);
 			try {
 				final Optional<JsonNode> expressionResult = targetExpression
 						.evaluate(evaluationCtx, false, Optional.empty()).blockFirst();
 				if (expressionResult.isPresent() && expressionResult.get().isBoolean()) {
-					LOGGER.trace("| | | |-- {}", expressionResult.get().asBoolean() ? "MATCH" : "NO MATCH");
+					LOGGER.trace("| | | |-- {}",
+							expressionResult.get().asBoolean() ? "MATCH" : "NO MATCH");
 					LOGGER.trace("| | |");
 					return expressionResult.get().asBoolean();
-				} else {
-					LOGGER.trace("| | | |-- ERROR in target expression did not evaluate to boolean. Was: {}",
+				}
+				else {
+					LOGGER.trace(
+							"| | | |-- ERROR in target expression did not evaluate to boolean. Was: {}",
 							expressionResult);
 					LOGGER.trace("| | |");
-					throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, expressionResult));
+					throw new PolicyEvaluationException(
+							String.format(CONDITION_NOT_BOOLEAN, expressionResult));
 				}
-			} catch (RuntimeException fluxError) {
-				LOGGER.trace("| | | |-- ERROR during target expression evaluation: {} ", fluxError.getMessage());
+			}
+			catch (RuntimeException fluxError) {
+				LOGGER.trace("| | | |-- ERROR during target expression evaluation: {} ",
+						fluxError.getMessage());
 				LOGGER.trace("| | | |-- trace: ", fluxError);
 				LOGGER.trace("| | |");
 
@@ -196,8 +227,9 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		}
 	}
 
-	private static EvaluationContext createEvaluationContext(Request request, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables, Map<String, String> imports)
+	private static EvaluationContext createEvaluationContext(Request request,
+			FunctionContext functionCtx, Map<String, JsonNode> systemVariables,
+			Map<String, JsonNode> variables, Map<String, String> imports)
 			throws PolicyEvaluationException {
 
 		final VariableContext variableCtx = new VariableContext(request, systemVariables);
@@ -210,81 +242,103 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	}
 
 	@Override
-	public Flux<Response> evaluate(Request request, String saplDefinition, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
+	public Flux<Response> evaluate(Request request, String saplDefinition,
+			AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables) {
 		final SAPL saplDocument;
 		try {
 			saplDocument = parse(saplDefinition);
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			LOGGER.error("Error in policy parsing: {}", e.getMessage());
 			return Flux.just(INDETERMINATE);
 		}
 
-		return evaluate(request, saplDocument, attributeCtx, functionCtx, systemVariables).onErrorReturn(INDETERMINATE);
+		return evaluate(request, saplDocument, attributeCtx, functionCtx, systemVariables)
+				.onErrorReturn(INDETERMINATE);
 	}
 
 	@Override
-	public Flux<Response> evaluate(Request request, SAPL saplDocument, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
-		LOGGER.trace("| | |-- Interpreter Evaluate: {} ({})", saplDocument.getPolicyElement().getSaplName(),
+	public Flux<Response> evaluate(Request request, SAPL saplDocument,
+			AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables) {
+		LOGGER.trace("| | |-- Interpreter Evaluate: {} ({})",
+				saplDocument.getPolicyElement().getSaplName(),
 				saplDocument.getPolicyElement().getClass().getName());
 		try {
 			if (matches(request, saplDocument, functionCtx, systemVariables)) {
-				return evaluateRules(request, saplDocument, attributeCtx, functionCtx, systemVariables).map(r -> {
-					logResponse(r, saplDocument);
-					return r;
-				});
-			} else {
+				return evaluateRules(request, saplDocument, attributeCtx, functionCtx,
+						systemVariables).map(r -> {
+							logResponse(r, saplDocument);
+							return r;
+						});
+			}
+			else {
 				LOGGER.trace("| | |-- NOT_APPLICABLE. Cause: " + NO_TARGET_MATCH);
 				LOGGER.trace("| |");
 				return Flux.just(Response.notApplicable());
 			}
-		} catch (PolicyEvaluationException e) {
-			LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED, e.getMessage());
+		}
+		catch (PolicyEvaluationException e) {
+			LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED,
+					e.getMessage());
 			LOGGER.trace("| |");
 			return Flux.just(INDETERMINATE);
 		}
 	}
 
 	@Override
-	public Flux<Response> evaluateRules(Request request, SAPL saplDocument, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
+	public Flux<Response> evaluateRules(Request request, SAPL saplDocument,
+			AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables) {
 		try {
-			final Map<String, String> imports = fetchFunctionAndPipImports(saplDocument, functionCtx, attributeCtx);
+			final Map<String, String> imports = fetchFunctionAndPipImports(saplDocument,
+					functionCtx, attributeCtx);
 			final PolicyElement policyElement = saplDocument.getPolicyElement();
-			return evaluateRules(request, policyElement, attributeCtx, functionCtx, systemVariables, null, imports);
-		} catch (PolicyEvaluationException e) {
+			return evaluateRules(request, policyElement, attributeCtx, functionCtx,
+					systemVariables, null, imports);
+		}
+		catch (PolicyEvaluationException e) {
 			return Flux.just(INDETERMINATE);
 		}
 	}
 
 	@Override
-	public Flux<Response> evaluateRules(Request request, PolicyElement policyElement, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
+	public Flux<Response> evaluateRules(Request request, PolicyElement policyElement,
+			AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
 			Map<String, String> imports) {
 		if (policyElement instanceof PolicySet) {
 			final PolicySet policySet = (PolicySet) policyElement;
-			return evaluatePolicySetRules(request, policySet, attributeCtx, functionCtx, systemVariables, imports);
-		} else {
+			return evaluatePolicySetRules(request, policySet, attributeCtx, functionCtx,
+					systemVariables, imports);
+		}
+		else {
 			final Policy policy = (Policy) policyElement;
-			return evaluatePolicyRules(request, policy, attributeCtx, functionCtx, systemVariables, variables, imports);
+			return evaluatePolicyRules(request, policy, attributeCtx, functionCtx,
+					systemVariables, variables, imports);
 		}
 	}
 
-	private Flux<Response> evaluatePolicySetRules(Request request, PolicySet policySet, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, String> imports) {
+	private Flux<Response> evaluatePolicySetRules(Request request, PolicySet policySet,
+			AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables, Map<String, String> imports) {
 		final VariableContext variableCtx;
 		try {
 			variableCtx = new VariableContext(request, systemVariables);
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			return Flux.just(INDETERMINATE);
 		}
 
-		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx, imports);
+		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx,
+				functionCtx, variableCtx, imports);
 		final Map<String, JsonNode> variables = new HashMap<>();
-		final List<FluxProvider<Void>> fluxProviders = new ArrayList<>(policySet.getValueDefinitions().size());
+		final List<FluxProvider<Void>> fluxProviders = new ArrayList<>(
+				policySet.getValueDefinitions().size());
 		for (ValueDefinition valueDefinition : policySet.getValueDefinitions()) {
-			fluxProviders.add(() -> evaluateValueDefinition(valueDefinition, evaluationCtx, variables));
+			fluxProviders.add(() -> evaluateValueDefinition(valueDefinition,
+					evaluationCtx, variables));
 		}
 		final Flux<Void> variablesFlux = cascadingSwitchMap(fluxProviders, 0);
 
@@ -310,153 +364,194 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			break;
 		}
 
-		return variablesFlux.flatMap(voiD -> combinator.combinePolicies(policySet.getPolicies(), request, attributeCtx,
-				functionCtx, systemVariables, variables, imports)).onErrorReturn(INDETERMINATE);
+		return variablesFlux.flatMap(
+				voiD -> combinator.combinePolicies(policySet.getPolicies(), request,
+						attributeCtx, functionCtx, systemVariables, variables, imports))
+				.onErrorReturn(INDETERMINATE);
 	}
 
-	private static Flux<Void> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx,
-			Map<String, JsonNode> variables) {
-		return valueDefinition.getEval().evaluate(evaluationCtx, true, null).map(evaluatedValue -> {
-			try {
-				if (!evaluatedValue.isPresent()) {
-					throw new PolicyEvaluationException(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL);
-				}
-				evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
-				variables.put(valueDefinition.getName(), evaluatedValue.get());
-				return Void.INSTANCE;
-			} catch (PolicyEvaluationException e) {
-				LOGGER.error(e.getMessage(), e);
-				throw Exceptions.propagate(e);
-			}
-		}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+	private static Flux<Void> evaluateValueDefinition(ValueDefinition valueDefinition,
+			EvaluationContext evaluationCtx, Map<String, JsonNode> variables) {
+		return valueDefinition.getEval().evaluate(evaluationCtx, true, null)
+				.map(evaluatedValue -> {
+					try {
+						if (!evaluatedValue.isPresent()) {
+							throw new PolicyEvaluationException(
+									CANNOT_ASSIGN_UNDEFINED_TO_A_VAL);
+						}
+						evaluationCtx.getVariableCtx().put(valueDefinition.getName(),
+								evaluatedValue.get());
+						variables.put(valueDefinition.getName(), evaluatedValue.get());
+						return Void.INSTANCE;
+					}
+					catch (PolicyEvaluationException e) {
+						LOGGER.error(e.getMessage(), e);
+						throw Exceptions.propagate(e);
+					}
+				}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
 	}
 
-	private static Flux<Void> cascadingSwitchMap(List<FluxProvider<Void>> fluxProviders, int idx) {
+	private static Flux<Void> cascadingSwitchMap(List<FluxProvider<Void>> fluxProviders,
+			int idx) {
 		if (idx < fluxProviders.size()) {
-			return fluxProviders.get(idx).getFlux().switchMap(result -> cascadingSwitchMap(fluxProviders, idx + 1));
+			return fluxProviders.get(idx).getFlux()
+					.switchMap(result -> cascadingSwitchMap(fluxProviders, idx + 1));
 		}
 		return Flux.just(Void.INSTANCE);
 	}
 
-	private Flux<Response> evaluatePolicyRules(Request request, Policy policy, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
+	private Flux<Response> evaluatePolicyRules(Request request, Policy policy,
+			AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
 			Map<String, String> imports) {
 		final EvaluationContext evaluationCtx;
 		try {
-			final VariableContext variableCtx = new VariableContext(request, systemVariables);
+			final VariableContext variableCtx = new VariableContext(request,
+					systemVariables);
 			if (variables != null) {
 				for (Map.Entry<String, JsonNode> entry : variables.entrySet()) {
 					variableCtx.put(entry.getKey(), entry.getValue());
 				}
 			}
-			evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx, imports);
-		} catch (PolicyEvaluationException e) {
+			evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx,
+					imports);
+		}
+		catch (PolicyEvaluationException e) {
 			return Flux.just(INDETERMINATE);
 		}
 
-		final Decision entitlement = PERMIT.equals(policy.getEntitlement()) ? Decision.PERMIT : Decision.DENY;
+		final Decision entitlement = PERMIT.equals(policy.getEntitlement())
+				? Decision.PERMIT : Decision.DENY;
 		final Flux<Decision> decisionFlux;
 		if (policy.getBody() != null) {
 			decisionFlux = evaluateBody(entitlement, policy.getBody(), evaluationCtx);
-		} else {
+		}
+		else {
 			decisionFlux = Flux.just(entitlement);
 		}
 
 		return decisionFlux.flatMap(decision -> {
 			if (decision == Decision.PERMIT || decision == Decision.DENY) {
-				return evaluateObligationsAndAdvice(policy, evaluationCtx).map(obligationsAndAdvice -> {
-					final Optional<ArrayNode> obligations = obligationsAndAdvice.getT1();
-					final Optional<ArrayNode> advice = obligationsAndAdvice.getT2();
-					return new Response(decision, Optional.empty(), obligations, advice);
-				});
-			} else {
-				return Flux.just(new Response(decision, Optional.empty(), Optional.empty(), Optional.empty()));
+				return evaluateObligationsAndAdvice(policy, evaluationCtx)
+						.map(obligationsAndAdvice -> {
+							final Optional<ArrayNode> obligations = obligationsAndAdvice
+									.getT1();
+							final Optional<ArrayNode> advice = obligationsAndAdvice
+									.getT2();
+							return new Response(decision, Optional.empty(), obligations,
+									advice);
+						});
+			}
+			else {
+				return Flux.just(new Response(decision, Optional.empty(),
+						Optional.empty(), Optional.empty()));
 			}
 		}).flatMap(response -> {
 			final Decision decision = response.getDecision();
 			if (decision == Decision.PERMIT) {
-				return evaluateTransformation(policy, evaluationCtx).map(
-						resource -> new Response(decision, resource, response.getObligations(), response.getAdvices()));
-			} else {
+				return evaluateTransformation(policy, evaluationCtx)
+						.map(resource -> new Response(decision, resource,
+								response.getObligations(), response.getAdvices()));
+			}
+			else {
 				return Flux.just(response);
 			}
 		}).onErrorReturn(INDETERMINATE);
 	}
 
-	private static Flux<Decision> evaluateBody(Decision entitlement, PolicyBody body, EvaluationContext evaluationCtx) {
+	private static Flux<Decision> evaluateBody(Decision entitlement, PolicyBody body,
+			EvaluationContext evaluationCtx) {
 		final EList<Statement> statements = body.getStatements();
 		if (statements != null && !statements.isEmpty()) {
 			final boolean initialResult = true;
-			final List<FluxProvider<Boolean>> fluxProviders = new ArrayList<>(statements.size());
+			final List<FluxProvider<Boolean>> fluxProviders = new ArrayList<>(
+					statements.size());
 			for (Statement statement : statements) {
 				fluxProviders.add(() -> evaluateStatement(evaluationCtx, statement));
 			}
 			return cascadingSwitchMap(initialResult, fluxProviders, 0)
-					.map(result -> result ? entitlement : Decision.NOT_APPLICABLE).onErrorResume(error -> {
+					.map(result -> result ? entitlement : Decision.NOT_APPLICABLE)
+					.onErrorResume(error -> {
 						final Throwable unwrapped = Exceptions.unwrap(error);
-						LOGGER.error("Error in policy body evaluation: {}", unwrapped.getMessage());
+						LOGGER.error("Error in policy body evaluation: {}",
+								unwrapped.getMessage());
 						return Flux.just(Decision.INDETERMINATE);
 					});
-		} else {
+		}
+		else {
 			return Flux.just(entitlement);
 		}
 	}
 
-	private static Flux<Boolean> cascadingSwitchMap(boolean currentResult, List<FluxProvider<Boolean>> fluxProviders,
-			int idx) {
+	private static Flux<Boolean> cascadingSwitchMap(boolean currentResult,
+			List<FluxProvider<Boolean>> fluxProviders, int idx) {
 		if (idx < fluxProviders.size() && currentResult) {
-			return fluxProviders.get(idx).getFlux()
-					.switchMap(result -> cascadingSwitchMap(result, fluxProviders, idx + 1));
+			return fluxProviders.get(idx).getFlux().switchMap(
+					result -> cascadingSwitchMap(result, fluxProviders, idx + 1));
 		}
 		return Flux.just(currentResult);
 	}
 
-	private static Flux<Boolean> evaluateStatement(EvaluationContext evaluationCtx, Statement statement) {
+	private static Flux<Boolean> evaluateStatement(EvaluationContext evaluationCtx,
+			Statement statement) {
 		if (statement instanceof ValueDefinition) {
 			return evaluateValueDefinition((ValueDefinition) statement, evaluationCtx);
-		} else {
+		}
+		else {
 			return evaluateCondition((Condition) statement, evaluationCtx);
 		}
 	}
 
 	private static Flux<Boolean> evaluateValueDefinition(ValueDefinition valueDefinition,
 			EvaluationContext evaluationCtx) {
-		return valueDefinition.getEval().evaluate(evaluationCtx, true, null).map(evaluatedValue -> {
-			try {
-				if (!evaluatedValue.isPresent()) {
-					throw new PolicyEvaluationException(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL);
-				}
-				evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
-				return Boolean.TRUE;
-			} catch (PolicyEvaluationException e) {
-				LOGGER.error("Error in value definition evaluation: {}", e.getMessage());
-				throw Exceptions.propagate(e);
-			}
-		}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+		return valueDefinition.getEval().evaluate(evaluationCtx, true, null)
+				.map(evaluatedValue -> {
+					try {
+						if (!evaluatedValue.isPresent()) {
+							throw new PolicyEvaluationException(
+									CANNOT_ASSIGN_UNDEFINED_TO_A_VAL);
+						}
+						evaluationCtx.getVariableCtx().put(valueDefinition.getName(),
+								evaluatedValue.get());
+						return Boolean.TRUE;
+					}
+					catch (PolicyEvaluationException e) {
+						LOGGER.error("Error in value definition evaluation: {}",
+								e.getMessage());
+						throw Exceptions.propagate(e);
+					}
+				}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
 	}
 
-	private static Flux<Boolean> evaluateCondition(Condition condition, EvaluationContext evaluationCtx) {
-		return condition.getExpression().evaluate(evaluationCtx, true, null).map(statementResult -> {
-			if (statementResult.isPresent() && statementResult.get().isBoolean()) {
-				return statementResult.get().asBoolean();
-			} else {
-				throw Exceptions.propagate(
-						new PolicyEvaluationException(String.format(STATEMENT_NOT_BOOLEAN, statementResult)));
-			}
-		}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
-	}
-
-	private static Flux<Tuple2<Optional<ArrayNode>, Optional<ArrayNode>>> evaluateObligationsAndAdvice(Policy policy,
+	private static Flux<Boolean> evaluateCondition(Condition condition,
 			EvaluationContext evaluationCtx) {
+		return condition.getExpression().evaluate(evaluationCtx, true, null)
+				.map(statementResult -> {
+					if (statementResult.isPresent()
+							&& statementResult.get().isBoolean()) {
+						return statementResult.get().asBoolean();
+					}
+					else {
+						throw Exceptions.propagate(new PolicyEvaluationException(
+								String.format(STATEMENT_NOT_BOOLEAN, statementResult)));
+					}
+				}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+	}
+
+	private static Flux<Tuple2<Optional<ArrayNode>, Optional<ArrayNode>>> evaluateObligationsAndAdvice(
+			Policy policy, EvaluationContext evaluationCtx) {
 		Flux<Optional<ArrayNode>> obligationsFlux;
 		if (policy.getObligation() != null) {
 			final ArrayNode obligationArr = JSON.arrayNode();
 			obligationsFlux = policy.getObligation().evaluate(evaluationCtx, true, null)
-					.doOnError(error -> LOGGER.error(OBLIGATIONS_ERROR, error)).map(obligation -> {
+					.doOnError(error -> LOGGER.error(OBLIGATIONS_ERROR, error))
+					.map(obligation -> {
 						obligation.ifPresent(obligationArr::add);
-						return obligationArr.size() > 0 ? Optional.of(obligationArr) : Optional.empty();
+						return obligationArr.size() > 0 ? Optional.of(obligationArr)
+								: Optional.empty();
 					});
-		} else {
+		}
+		else {
 			obligationsFlux = Flux.just(Optional.empty());
 		}
 
@@ -466,27 +561,31 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			adviceFlux = policy.getAdvice().evaluate(evaluationCtx, true, null)
 					.doOnError(error -> LOGGER.error(ADVICE_ERROR, error)).map(advice -> {
 						advice.ifPresent(adviceArr::add);
-						return adviceArr.size() > 0 ? Optional.of(adviceArr) : Optional.empty();
+						return adviceArr.size() > 0 ? Optional.of(adviceArr)
+								: Optional.empty();
 					});
-		} else {
+		}
+		else {
 			adviceFlux = Flux.just(Optional.empty());
 		}
 
 		return Flux.combineLatest(obligationsFlux, adviceFlux, Tuples::of);
 	}
 
-	private static Flux<Optional<JsonNode>> evaluateTransformation(Policy policy, EvaluationContext evaluationCtx) {
+	private static Flux<Optional<JsonNode>> evaluateTransformation(Policy policy,
+			EvaluationContext evaluationCtx) {
 		if (policy.getTransformation() != null) {
 			return policy.getTransformation().evaluate(evaluationCtx, true, null)
 					.doOnError(error -> LOGGER.error(TRANSFORMATION_ERROR, error));
-		} else {
+		}
+		else {
 			return Flux.just(Optional.empty());
 		}
 	}
 
 	@Override
-	public Map<String, String> fetchFunctionImports(SAPL saplDocument, FunctionContext functionCtx)
-			throws PolicyEvaluationException {
+	public Map<String, String> fetchFunctionImports(SAPL saplDocument,
+			FunctionContext functionCtx) throws PolicyEvaluationException {
 
 		final Map<String, String> imports = new HashMap<>();
 
@@ -494,16 +593,21 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			final String library = String.join(".", anImport.getLibSteps());
 
 			if (anImport instanceof WildcardImport) {
-				imports.putAll(fetchWildcardImports(imports, library, functionCtx.functionsInLibrary(library)));
-			} else if (anImport instanceof LibraryImport) {
+				imports.putAll(fetchWildcardImports(imports, library,
+						functionCtx.functionsInLibrary(library)));
+			}
+			else if (anImport instanceof LibraryImport) {
 				final String alias = ((LibraryImport) anImport).getLibAlias();
-				imports.putAll(fetchLibraryImports(imports, library, alias, functionCtx.functionsInLibrary(library)));
-			} else {
+				imports.putAll(fetchLibraryImports(imports, library, alias,
+						functionCtx.functionsInLibrary(library)));
+			}
+			else {
 				final String functionName = anImport.getFunctionName();
 				final String fullyQualified = String.join(".", library, functionName);
 
 				if (imports.containsKey(anImport.getFunctionName())) {
-					throw new PolicyEvaluationException(String.format(IMPORT_EXISTS, fullyQualified));
+					throw new PolicyEvaluationException(
+							String.format(IMPORT_EXISTS, fullyQualified));
 				}
 				imports.put(functionName, fullyQualified);
 			}
@@ -512,27 +616,38 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		return imports;
 	}
 
-	private static Map<String, String> fetchFunctionAndPipImports(SAPL saplDocument, FunctionContext functionCtx,
-			AttributeContext attributeCtx) throws PolicyEvaluationException {
+	private static Map<String, String> fetchFunctionAndPipImports(SAPL saplDocument,
+			FunctionContext functionCtx, AttributeContext attributeCtx)
+			throws PolicyEvaluationException {
 		final Map<String, String> imports = new HashMap<>();
 
 		for (Import anImport : saplDocument.getImports()) {
 			final String library = String.join(".", anImport.getLibSteps());
 			if (anImport instanceof WildcardImport) {
-				imports.putAll(fetchWildcardImports(imports, library, functionCtx.functionsInLibrary(library)));
-				imports.putAll(fetchWildcardImports(imports, library, attributeCtx.findersInLibrary(library)));
-			} else if (anImport instanceof LibraryImport) {
+				imports.putAll(fetchWildcardImports(imports, library,
+						functionCtx.functionsInLibrary(library)));
+				imports.putAll(fetchWildcardImports(imports, library,
+						attributeCtx.findersInLibrary(library)));
+			}
+			else if (anImport instanceof LibraryImport) {
 				String alias = ((LibraryImport) anImport).getLibAlias();
-				imports.putAll(fetchLibraryImports(imports, library, alias, functionCtx.functionsInLibrary(library)));
-				imports.putAll(fetchLibraryImports(imports, library, alias, attributeCtx.findersInLibrary(library)));
-			} else {
+				imports.putAll(fetchLibraryImports(imports, library, alias,
+						functionCtx.functionsInLibrary(library)));
+				imports.putAll(fetchLibraryImports(imports, library, alias,
+						attributeCtx.findersInLibrary(library)));
+			}
+			else {
 				String functionName = anImport.getFunctionName();
 				String fullyQualified = String.join(".", library, functionName);
 
 				if (imports.containsKey(functionName)) {
-					throw new PolicyEvaluationException(String.format(IMPORT_EXISTS, fullyQualified));
-				} else if (!functionCtx.provides(fullyQualified) && !attributeCtx.provides(fullyQualified)) {
-					throw new PolicyEvaluationException(String.format(IMPORT_NOT_FOUND, fullyQualified));
+					throw new PolicyEvaluationException(
+							String.format(IMPORT_EXISTS, fullyQualified));
+				}
+				else if (!functionCtx.provides(fullyQualified)
+						&& !attributeCtx.provides(fullyQualified)) {
+					throw new PolicyEvaluationException(
+							String.format(IMPORT_NOT_FOUND, fullyQualified));
 				}
 				imports.put(functionName, fullyQualified);
 			}
@@ -541,29 +656,37 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		return imports;
 	}
 
-	private static Map<String, String> fetchWildcardImports(Map<String, String> imports, String library,
-			Collection<String> libraryItems) throws PolicyEvaluationException {
+	private static Map<String, String> fetchWildcardImports(Map<String, String> imports,
+			String library, Collection<String> libraryItems)
+			throws PolicyEvaluationException {
 
-		final Map<String, String> returnImports = new HashMap<>(libraryItems.size(), 1.0F);
+		final Map<String, String> returnImports = new HashMap<>(libraryItems.size(),
+				1.0F);
 		for (String name : libraryItems) {
 			if (imports.containsKey(name)) {
-				throw new PolicyEvaluationException(String.format(WILDCARD_IMPORT_EXISTS, library, name));
-			} else {
+				throw new PolicyEvaluationException(
+						String.format(WILDCARD_IMPORT_EXISTS, library, name));
+			}
+			else {
 				returnImports.put(name, String.join(".", library, name));
 			}
 		}
 		return returnImports;
 	}
 
-	private static Map<String, String> fetchLibraryImports(Map<String, String> imports, String library, String alias,
-			Collection<String> libraryItems) throws PolicyEvaluationException {
+	private static Map<String, String> fetchLibraryImports(Map<String, String> imports,
+			String library, String alias, Collection<String> libraryItems)
+			throws PolicyEvaluationException {
 
-		final Map<String, String> returnImports = new HashMap<>(libraryItems.size(), 1.0F);
+		final Map<String, String> returnImports = new HashMap<>(libraryItems.size(),
+				1.0F);
 		for (String name : libraryItems) {
 			String key = String.join(".", alias, name);
 			if (imports.containsKey(key)) {
-				throw new PolicyEvaluationException(String.format(WILDCARD_IMPORT_EXISTS, library, name));
-			} else {
+				throw new PolicyEvaluationException(
+						String.format(WILDCARD_IMPORT_EXISTS, library, name));
+			}
+			else {
 				returnImports.put(key, String.join(".", library, name));
 			}
 		}
@@ -579,12 +702,16 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 			if (sapl.getPolicyElement() instanceof PolicySet) {
 				PolicySet set = (PolicySet) sapl.getPolicyElement();
-				result = new DocumentAnalysisResult(true, set.getSaplName(), DocumentType.POLICY_SET, "");
-			} else {
-				Policy policy = (Policy) sapl.getPolicyElement();
-				result = new DocumentAnalysisResult(true, policy.getSaplName(), DocumentType.POLICY, "");
+				result = new DocumentAnalysisResult(true, set.getSaplName(),
+						DocumentType.POLICY_SET, "");
 			}
-		} catch (PolicyEvaluationException e) {
+			else {
+				Policy policy = (Policy) sapl.getPolicyElement();
+				result = new DocumentAnalysisResult(true, policy.getSaplName(),
+						DocumentType.POLICY, "");
+			}
+		}
+		catch (PolicyEvaluationException e) {
 			result = new DocumentAnalysisResult(false, "", null, e.getMessage());
 		}
 		return result;

@@ -30,18 +30,24 @@ import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class ApplyStepsRecursiveIndexTest {
+
 	private static BigDecimal INDEX = BigDecimal.valueOf(1L);
 
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
+
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private static VariableContext variableCtx = new VariableContext();
+
 	private static FunctionContext functionCtx = new MockFunctionContext();
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
+
+	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
+			variableCtx);
 
 	@Test
 	public void applyToNull() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
+		ResultNode previousResult = new JsonNodeWithoutParent(
+				Optional.of(JSON.nullNode()));
 
 		RecursiveIndexStep step = factory.createRecursiveIndexStep();
 		step.setIndex(INDEX);
@@ -59,8 +65,8 @@ public class ApplyStepsRecursiveIndexTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
 
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(
-				new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(true)), Optional.of(array), INDEX.intValue()));
+		list.add(new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(true)),
+				Optional.of(array), INDEX.intValue()));
 		ResultNode expectedResult = new ArrayResultNode(list);
 
 		RecursiveIndexStep step = factory.createRecursiveIndexStep();
@@ -92,17 +98,20 @@ public class ApplyStepsRecursiveIndexTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(object));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(
-				new JsonNodeWithParentArray(Optional.of(JSON.objectNode()), Optional.of(array1), INDEX.intValue()));
-		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(true)), Optional.of(array2),
-				INDEX.intValue()));
+		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.objectNode()),
+				Optional.of(array1), INDEX.intValue()));
+		expectedResultSet
+				.add(new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(true)),
+						Optional.of(array2), INDEX.intValue()));
 
 		RecursiveIndexStep step = factory.createRecursiveIndexStep();
 		step.setIndex(INDEX);
 
 		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Recursive index step should return result array with items", expectedResultSet, resultSet);
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
+					.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Recursive index step should return result array with items",
+					expectedResultSet, resultSet);
 		});
 	}
 
@@ -122,17 +131,21 @@ public class ApplyStepsRecursiveIndexTest {
 		ResultNode previousResult = new ArrayResultNode(listIn);
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(true)), Optional.of(array1),
-				INDEX.intValue()));
-		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(false)), Optional.of(array2),
-				INDEX.intValue()));
+		expectedResultSet
+				.add(new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(true)),
+						Optional.of(array1), INDEX.intValue()));
+		expectedResultSet
+				.add(new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(false)),
+						Optional.of(array2), INDEX.intValue()));
 
 		RecursiveIndexStep step = factory.createRecursiveIndexStep();
 		step.setIndex(INDEX);
 
 		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Recursive index step applied to result array should return result array with items",
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
+					.create(((ArrayResultNode) result).getNodes());
+			assertEquals(
+					"Recursive index step applied to result array should return result array with items",
 					expectedResultSet, resultSet);
 		});
 	}

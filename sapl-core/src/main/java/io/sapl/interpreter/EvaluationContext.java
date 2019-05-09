@@ -24,23 +24,28 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class EvaluationContext {
+
 	AttributeContext attributeCtx;
+
 	FunctionContext functionCtx;
+
 	VariableContext variableCtx;
+
 	Map<String, String> imports;
 
-	public EvaluationContext(AttributeContext attributeContext, FunctionContext functionContext,
-			VariableContext variableContext) {
+	public EvaluationContext(AttributeContext attributeContext,
+			FunctionContext functionContext, VariableContext variableContext) {
 		attributeCtx = attributeContext;
 		functionCtx = functionContext;
 		variableCtx = variableContext;
 		imports = new HashMap<>();
 	}
 
-	public EvaluationContext(FunctionContext functionContext, VariableContext variableContext,
-			Map<String, String> imports) {
+	public EvaluationContext(FunctionContext functionContext,
+			VariableContext variableContext, Map<String, String> imports) {
 		functionCtx = functionContext;
 		variableCtx = variableContext;
 		this.imports = new HashMap<>(imports);
 	}
+
 }

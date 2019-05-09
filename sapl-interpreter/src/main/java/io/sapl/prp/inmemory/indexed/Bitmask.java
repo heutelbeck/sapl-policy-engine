@@ -58,4 +58,5 @@ public class Bitmask {
 			action.accept(i);
 		}
 	}
+
 }

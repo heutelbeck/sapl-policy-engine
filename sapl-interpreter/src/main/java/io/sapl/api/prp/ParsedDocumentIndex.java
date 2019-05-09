@@ -18,5 +18,6 @@ public interface ParsedDocumentIndex {
 	void setLiveMode();
 
 	PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
-										   Map<String, JsonNode> variables);
+			Map<String, JsonNode> variables);
+
 }

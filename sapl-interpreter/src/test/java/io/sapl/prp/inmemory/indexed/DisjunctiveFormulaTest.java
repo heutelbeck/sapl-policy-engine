@@ -28,10 +28,12 @@ public class DisjunctiveFormulaTest {
 		BasicIdentifier id3 = createIdentifier("D");
 		BasicIdentifier id4 = createIdentifier("E");
 		BasicIdentifier id5 = createIdentifier("F");
-		ConjunctiveClause clause0 = new ConjunctiveClause(new Literal(new Bool(id0, null)),
-				new Literal(new Bool(id1, null)), new Literal(new Bool(id2, null)));
-		ConjunctiveClause clause1 = new ConjunctiveClause(new Literal(new Bool(id3, null)),
-				new Literal(new Bool(id4, null)), new Literal(new Bool(id5, null)));
+		ConjunctiveClause clause0 = new ConjunctiveClause(
+				new Literal(new Bool(id0, null)), new Literal(new Bool(id1, null)),
+				new Literal(new Bool(id2, null)));
+		ConjunctiveClause clause1 = new ConjunctiveClause(
+				new Literal(new Bool(id3, null)), new Literal(new Bool(id4, null)),
+				new Literal(new Bool(id5, null)));
 		DisjunctiveFormula complexFormula = new DisjunctiveFormula(clause0, clause1);
 
 		// when
@@ -47,16 +49,18 @@ public class DisjunctiveFormulaTest {
 		ArrayList<ConjunctiveClause> emptyList = new ArrayList<>();
 
 		// then
-		Assertions.assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> {
-			new DisjunctiveFormula(emptyList);
-		}).withNoCause();
+		Assertions.assertThatExceptionOfType(IllegalArgumentException.class)
+				.isThrownBy(() -> {
+					new DisjunctiveFormula(emptyList);
+				}).withNoCause();
 	}
 
 	@Test
 	public void testCreateMinimalTautology() {
 		// given
 		Bool bool = new Bool(true);
-		DisjunctiveFormula formula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(bool)));
+		DisjunctiveFormula formula = new DisjunctiveFormula(
+				new ConjunctiveClause(new Literal(bool)));
 
 		// then
 		Assertions.assertThat(formula.getClauses()).hasSize(1);
@@ -78,8 +82,10 @@ public class DisjunctiveFormulaTest {
 	@Test
 	public void testSimpleConjunction() {
 		// given
-		DisjunctiveFormula tautology = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
-		DisjunctiveFormula contradiction = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(false))));
+		DisjunctiveFormula tautology = new DisjunctiveFormula(
+				new ConjunctiveClause(new Literal(new Bool(true))));
+		DisjunctiveFormula contradiction = new DisjunctiveFormula(
+				new ConjunctiveClause(new Literal(new Bool(false))));
 
 		// when
 		DisjunctiveFormula conjunction = tautology.distribute(contradiction);
@@ -91,8 +97,10 @@ public class DisjunctiveFormulaTest {
 	@Test
 	public void testSimpleDisjunction() {
 		// given
-		DisjunctiveFormula tautology = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
-		DisjunctiveFormula contradiction = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(false))));
+		DisjunctiveFormula tautology = new DisjunctiveFormula(
+				new ConjunctiveClause(new Literal(new Bool(true))));
+		DisjunctiveFormula contradiction = new DisjunctiveFormula(
+				new ConjunctiveClause(new Literal(new Bool(false))));
 
 		// when
 		DisjunctiveFormula disjunction = tautology.combine(contradiction);
@@ -104,9 +112,12 @@ public class DisjunctiveFormulaTest {
 	@Test
 	public void testSimpleEquality() {
 		// given
-		DisjunctiveFormula tautology = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
-		DisjunctiveFormula copyOfTautology = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
-		DisjunctiveFormula contradiction = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(false))));
+		DisjunctiveFormula tautology = new DisjunctiveFormula(
+				new ConjunctiveClause(new Literal(new Bool(true))));
+		DisjunctiveFormula copyOfTautology = new DisjunctiveFormula(
+				new ConjunctiveClause(new Literal(new Bool(true))));
+		DisjunctiveFormula contradiction = new DisjunctiveFormula(
+				new ConjunctiveClause(new Literal(new Bool(false))));
 
 		// when
 		DisjunctiveFormula notTautology = tautology.negate();
@@ -121,7 +132,8 @@ public class DisjunctiveFormulaTest {
 	@Test
 	public void testSimpleNegation() {
 		// given
-		DisjunctiveFormula tautology = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
+		DisjunctiveFormula tautology = new DisjunctiveFormula(
+				new ConjunctiveClause(new Literal(new Bool(true))));
 
 		// when
 		DisjunctiveFormula notTautology = tautology.negate();
@@ -140,13 +152,15 @@ public class DisjunctiveFormulaTest {
 		BasicIdentifier id0 = createIdentifier("A");
 		BasicIdentifier id1 = createIdentifier("B");
 		BasicIdentifier id2 = createIdentifier("C");
-		ConjunctiveClause clause0 = new ConjunctiveClause(new Literal(new Bool(id0, null)),
-				new Literal(new Bool(id1, null)));
+		ConjunctiveClause clause0 = new ConjunctiveClause(
+				new Literal(new Bool(id0, null)), new Literal(new Bool(id1, null)));
 		ConjunctiveClause clause1 = new ConjunctiveClause(new Literal(new Bool(false)));
-		ConjunctiveClause clause2 = new ConjunctiveClause(new Literal(new Bool(id2, null)));
-		ConjunctiveClause clause3 = new ConjunctiveClause(new Literal(new Bool(id0, null)),
-				new Literal(new Bool(id1, null)));
-		DisjunctiveFormula expanded = new DisjunctiveFormula(clause0, clause1, clause2, clause3);
+		ConjunctiveClause clause2 = new ConjunctiveClause(
+				new Literal(new Bool(id2, null)));
+		ConjunctiveClause clause3 = new ConjunctiveClause(
+				new Literal(new Bool(id0, null)), new Literal(new Bool(id1, null)));
+		DisjunctiveFormula expanded = new DisjunctiveFormula(clause0, clause1, clause2,
+				clause3);
 		DisjunctiveFormula reference = new DisjunctiveFormula(clause0, clause2);
 
 		// when
@@ -163,4 +177,5 @@ public class DisjunctiveFormulaTest {
 		result.setIdentifier(identifier);
 		return result;
 	}
+
 }

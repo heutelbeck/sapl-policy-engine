@@ -49,9 +49,11 @@ import reactor.core.scheduler.Schedulers;
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposable {
 
 	private final FunctionContext functionCtx = new AnnotationFunctionContext();
+
 	private final AttributeContext attributeCtx = new AnnotationAttributeContext();
 
 	private PDPConfigurationProvider configurationProvider;
+
 	private PolicyRetrievalPoint prp;
 
 	private EmbeddedPolicyDecisionPoint() {
@@ -63,21 +65,24 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 		LOGGER.trace("|---------------------------");
 		LOGGER.trace("|-- PDP Request: {}", request);
 
-		final Flux<DocumentsCombinator> combinatorFlux = configurationProvider.getDocumentsCombinator();
-		final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider.getVariables();
+		final Flux<DocumentsCombinator> combinatorFlux = configurationProvider
+				.getDocumentsCombinator();
+		final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider
+				.getVariables();
 
-		return Flux.combineLatest(
-				combinatorFlux, variablesFlux, (combinator, variables) -> prp.retrievePolicies(request, functionCtx, variables)
+		return Flux.combineLatest(combinatorFlux, variablesFlux,
+				(combinator, variables) -> prp
+						.retrievePolicies(request, functionCtx, variables)
 						.switchMap(result -> {
-							final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
+							final Collection<SAPL> matchingDocuments = result
+									.getMatchingDocuments();
 							final boolean errorsInTarget = result.isErrorsInTarget();
 							LOGGER.trace("|-- Combine documents of request: {}", request);
-							return combinator.combineMatchingDocuments(matchingDocuments, errorsInTarget, request, attributeCtx,
-									functionCtx, variables);
-						})
-				)
-				.flatMap(responseFlux -> responseFlux)
-				.distinctUntilChanged();
+							return combinator.combineMatchingDocuments(matchingDocuments,
+									errorsInTarget, request, attributeCtx, functionCtx,
+									variables);
+						}))
+				.flatMap(responseFlux -> responseFlux).distinctUntilChanged();
 	}
 
 	@Override
@@ -88,7 +93,8 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 				final Request request = identifiableRequest.getRequest();
 				final Flux<Response> responseFlux = decide(request);
 				final Flux<IdentifiableResponse> requestResponsePairFlux = responseFlux
-						.map(response -> new IdentifiableResponse(identifiableRequest.getRequestId(), response))
+						.map(response -> new IdentifiableResponse(
+								identifiableRequest.getRequestId(), response))
 						.subscribeOn(Schedulers.newElastic("pdp"));
 				requestIdResponsePairFluxes.add(requestResponsePairFlux);
 			}
@@ -118,7 +124,8 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 		final MultiResponse multiResponse = new MultiResponse();
 		for (Object value : values) {
 			IdentifiableResponse ir = (IdentifiableResponse) value;
-			multiResponse.setResponseForRequestWithId(ir.getRequestId(), ir.getResponse());
+			multiResponse.setResponseForRequestWithId(ir.getRequestId(),
+					ir.getResponse());
 		}
 		return multiResponse;
 	}
@@ -130,14 +137,17 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 		}
 	}
 
-
 	public static Builder builder() throws FunctionException, AttributeException {
 		return new Builder();
 	}
 
 	public static class Builder {
 
-		public enum IndexType { SIMPLE, FAST }
+		public enum IndexType {
+
+			SIMPLE, FAST
+
+		}
 
 		private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
 
@@ -147,7 +157,8 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 			pdp.functionCtx.loadLibrary(new StandardFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new TemporalFunctionLibrary());
 
-			pdp.attributeCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
+			pdp.attributeCtx
+					.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
 		}
 
 		public Builder withResourcePDPConfigurationProvider()
@@ -158,17 +169,21 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 
 		public Builder withResourcePDPConfigurationProvider(String resourcePath)
 				throws PDPConfigurationException, IOException, URISyntaxException {
-			return withResourcePDPConfigurationProvider(ResourcesPDPConfigurationProvider.class, resourcePath);
+			return withResourcePDPConfigurationProvider(
+					ResourcesPDPConfigurationProvider.class, resourcePath);
 		}
 
-		public Builder withResourcePDPConfigurationProvider(Class<?> clazz, String resourcePath)
+		public Builder withResourcePDPConfigurationProvider(Class<?> clazz,
+				String resourcePath)
 				throws PDPConfigurationException, IOException, URISyntaxException {
-			pdp.configurationProvider = new ResourcesPDPConfigurationProvider(clazz, resourcePath);
+			pdp.configurationProvider = new ResourcesPDPConfigurationProvider(clazz,
+					resourcePath);
 			return this;
 		}
 
 		public Builder withFilesystemPDPConfigurationProvider(String configFolder) {
-			pdp.configurationProvider = new FilesystemPDPConfigurationProvider(configFolder);
+			pdp.configurationProvider = new FilesystemPDPConfigurationProvider(
+					configFolder);
 			return this;
 		}
 
@@ -188,19 +203,23 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 			return this;
 		}
 
-		public Builder withResourcePolicyRetrievalPoint(String resourcePath, IndexType indexType)
+		public Builder withResourcePolicyRetrievalPoint(String resourcePath,
+				IndexType indexType)
 				throws IOException, URISyntaxException, PolicyEvaluationException {
-			return withResourcePolicyRetrievalPoint(ResourcesPolicyRetrievalPoint.class, resourcePath, indexType);
+			return withResourcePolicyRetrievalPoint(ResourcesPolicyRetrievalPoint.class,
+					resourcePath, indexType);
 		}
 
-		public Builder withResourcePolicyRetrievalPoint(Class<?> clazz, String resourcePath, IndexType indexType)
+		public Builder withResourcePolicyRetrievalPoint(Class<?> clazz,
+				String resourcePath, IndexType indexType)
 				throws IOException, URISyntaxException, PolicyEvaluationException {
 			final ParsedDocumentIndex index = getDocumentIndex(indexType);
 			pdp.prp = new ResourcesPolicyRetrievalPoint(clazz, resourcePath, index);
 			return this;
 		}
 
-		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder, IndexType indexType) {
+		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder,
+				IndexType indexType) {
 			final ParsedDocumentIndex index = getDocumentIndex(indexType);
 			pdp.prp = new FilesystemPolicyRetrievalPoint(policiesFolder, index);
 			return this;
@@ -208,15 +227,16 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 
 		private ParsedDocumentIndex getDocumentIndex(IndexType indexType) {
 			switch (indexType) {
-				case SIMPLE:
-					return new SimpleParsedDocumentIndex();
-				case FAST:
-					return new FastParsedDocumentIndex(pdp.functionCtx);
+			case SIMPLE:
+				return new SimpleParsedDocumentIndex();
+			case FAST:
+				return new FastParsedDocumentIndex(pdp.functionCtx);
 			}
 			return new SimpleParsedDocumentIndex();
 		}
 
-		public EmbeddedPolicyDecisionPoint build() throws IOException, URISyntaxException, PolicyEvaluationException {
+		public EmbeddedPolicyDecisionPoint build()
+				throws IOException, URISyntaxException, PolicyEvaluationException {
 			if (pdp.prp == null) {
 				withResourcePolicyRetrievalPoint();
 			}
@@ -224,4 +244,5 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 		}
 
 	}
+
 }

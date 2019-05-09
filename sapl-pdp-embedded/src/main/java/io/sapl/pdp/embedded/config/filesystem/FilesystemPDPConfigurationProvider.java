@@ -35,137 +35,162 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
-public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvider, io.sapl.api.pdp.Disposable {
+public class FilesystemPDPConfigurationProvider
+		implements PDPConfigurationProvider, io.sapl.api.pdp.Disposable {
 
-    private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
-    private static final Pattern CONFIG_FILE_REGEX_PATTERN = Pattern.compile("pdp\\.json");
+	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
-    private final ObjectMapper mapper = new ObjectMapper();
-    private final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
-    private final ReentrantLock lock = new ReentrantLock();
+	private static final Pattern CONFIG_FILE_REGEX_PATTERN = Pattern
+			.compile("pdp\\.json");
 
-    private String path;
-    private PolicyDecisionPointConfiguration config;
+	private final ObjectMapper mapper = new ObjectMapper();
 
-    private Scheduler dirWatcherScheduler;
-    private Disposable dirWatcherFluxSubscription;
-    private ReplayProcessor<WatchEvent<Path>> dirWatcherEventProcessor
-            = ReplayProcessor.cacheLastOrDefault(InitialWatchEvent.INSTANCE);
+	private final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
-    public FilesystemPDPConfigurationProvider(@NonNull String configPath) {
-        this.path = configPath;
-        if (configPath.startsWith("~" + File.separator)) {
-            this.path = System.getProperty("user.home") + configPath.substring(1);
-        } else if (configPath.startsWith("~")) {
-            throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
-        }
+	private final ReentrantLock lock = new ReentrantLock();
 
-        initializeConfig();
+	private String path;
 
-        final Path watchDir = Paths.get(path);
-        final DirectoryWatcher directoryWatcher = new DirectoryWatcher(watchDir);
+	private PolicyDecisionPointConfiguration config;
 
-        final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter(CONFIG_FILE_REGEX_PATTERN);
-        dirWatcherScheduler = Schedulers.newElastic("configWatcher");
-        final Flux<WatchEvent<Path>> dirWatcherFlux = Flux.<WatchEvent<Path>>push(sink -> {
-                    adapter.setSink(sink);
-                    directoryWatcher.watch(adapter);
-                })
-                .doOnNext(event -> {
-                    if (event == InitialWatchEvent.INSTANCE) {
-                        // don't update the configuration on the initial event (nothing has changed)
-                        dirWatcherEventProcessor.onNext(event);
-                    } else {
-                        updateConfig(event);
-                        dirWatcherEventProcessor.onNext(event);
-                    }
-                })
-                .doOnCancel(adapter::cancel)
-                .subscribeOn(dirWatcherScheduler);
+	private Scheduler dirWatcherScheduler;
 
-        dirWatcherFluxSubscription = dirWatcherFlux.subscribe();
-    }
+	private Disposable dirWatcherFluxSubscription;
 
-    private void initializeConfig() {
-        try {
-            lock.lock();
+	private ReplayProcessor<WatchEvent<Path>> dirWatcherEventProcessor = ReplayProcessor
+			.cacheLastOrDefault(InitialWatchEvent.INSTANCE);
 
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path), CONFIG_FILE_GLOB_PATTERN)) {
-                for (Path filePath : stream) {
-                    LOGGER.info("load: {}", filePath);
-                    config = mapper.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
-                    break;
-                }
-                if (config == null) {
-                    config = new PolicyDecisionPointConfiguration();
-                }
-            }
-        } catch (IOException e) {
-            LOGGER.error("Error while initializing the pdp configuration.", e);
-        } finally {
-            lock.unlock();
-        }
-    }
+	public FilesystemPDPConfigurationProvider(@NonNull String configPath) {
+		this.path = configPath;
+		if (configPath.startsWith("~" + File.separator)) {
+			this.path = System.getProperty("user.home") + configPath.substring(1);
+		}
+		else if (configPath.startsWith("~")) {
+			throw new UnsupportedOperationException(
+					"Home dir expansion not implemented for explicit usernames");
+		}
 
-    private void updateConfig(WatchEvent<Path> watchEvent) {
-        final WatchEvent.Kind<Path> kind = watchEvent.kind();
-        final Path fileName = watchEvent.context();
-        try {
-            lock.lock();
+		initializeConfig();
 
-            final Path absoluteFilePath = Paths.get(path, fileName.toString());
-            if (kind == ENTRY_CREATE) {
-                LOGGER.info("reading pdp config from {}", fileName);
-                config = mapper.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
-            } else if (kind == ENTRY_DELETE) {
-                LOGGER.info("deleted pdp config file {}. Using default configuration", fileName);
-                config = new PolicyDecisionPointConfiguration();
-            } else if (kind == ENTRY_MODIFY) {
-                LOGGER.info("updating pdp config from {}", fileName);
-                config = mapper.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
-            } else {
-                LOGGER.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
-            }
-        } catch (IOException e) {
-            LOGGER.error("Error while updating the pdp config.", e);
-        } finally {
-            lock.unlock();
-        }
-    }
+		final Path watchDir = Paths.get(path);
+		final DirectoryWatcher directoryWatcher = new DirectoryWatcher(watchDir);
 
-    @Override
-    public Flux<DocumentsCombinator> getDocumentsCombinator() {
-        return dirWatcherEventProcessor
-                .map(event -> {
-                    try {
-                        lock.lock();
-                        return convert(config.getAlgorithm(), interpreter);
-                    } finally {
-                        lock.unlock();
-                    }
-                })
-                .distinctUntilChanged()
-                .doOnNext(algorithm -> LOGGER.trace("|-- Current PDP config: combining algorithm = {}", config.getAlgorithm()));
-    }
+		final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter(
+				CONFIG_FILE_REGEX_PATTERN);
+		dirWatcherScheduler = Schedulers.newElastic("configWatcher");
+		final Flux<WatchEvent<Path>> dirWatcherFlux = Flux
+				.<WatchEvent<Path>>push(sink -> {
+					adapter.setSink(sink);
+					directoryWatcher.watch(adapter);
+				}).doOnNext(event -> {
+					if (event == InitialWatchEvent.INSTANCE) {
+						// don't update the configuration on the initial event (nothing
+						// has changed)
+						dirWatcherEventProcessor.onNext(event);
+					}
+					else {
+						updateConfig(event);
+						dirWatcherEventProcessor.onNext(event);
+					}
+				}).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler);
 
-    @Override
-    public Flux<Map<String, JsonNode>> getVariables() {
-        return dirWatcherEventProcessor
-                .map(event -> {
-                    try {
-                        lock.lock();
-                        return config.getVariables();
-                    } finally {
-                        lock.unlock();
-                    }
-                })
-                .distinctUntilChanged()
-                .doOnNext(variables -> LOGGER.trace("|-- Current PDP config: variables = {}", variables));
-    }
+		dirWatcherFluxSubscription = dirWatcherFlux.subscribe();
+	}
 
-    @Override
-    public void dispose() {
-        dirWatcherFluxSubscription.dispose();
-        dirWatcherScheduler.dispose();
-    }
+	private void initializeConfig() {
+		try {
+			lock.lock();
+
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path),
+					CONFIG_FILE_GLOB_PATTERN)) {
+				for (Path filePath : stream) {
+					LOGGER.info("load: {}", filePath);
+					config = mapper.readValue(filePath.toFile(),
+							PolicyDecisionPointConfiguration.class);
+					break;
+				}
+				if (config == null) {
+					config = new PolicyDecisionPointConfiguration();
+				}
+			}
+		}
+		catch (IOException e) {
+			LOGGER.error("Error while initializing the pdp configuration.", e);
+		}
+		finally {
+			lock.unlock();
+		}
+	}
+
+	private void updateConfig(WatchEvent<Path> watchEvent) {
+		final WatchEvent.Kind<Path> kind = watchEvent.kind();
+		final Path fileName = watchEvent.context();
+		try {
+			lock.lock();
+
+			final Path absoluteFilePath = Paths.get(path, fileName.toString());
+			if (kind == ENTRY_CREATE) {
+				LOGGER.info("reading pdp config from {}", fileName);
+				config = mapper.readValue(absoluteFilePath.toFile(),
+						PolicyDecisionPointConfiguration.class);
+			}
+			else if (kind == ENTRY_DELETE) {
+				LOGGER.info("deleted pdp config file {}. Using default configuration",
+						fileName);
+				config = new PolicyDecisionPointConfiguration();
+			}
+			else if (kind == ENTRY_MODIFY) {
+				LOGGER.info("updating pdp config from {}", fileName);
+				config = mapper.readValue(absoluteFilePath.toFile(),
+						PolicyDecisionPointConfiguration.class);
+			}
+			else {
+				LOGGER.error("unknown kind of directory watch event: {}",
+						kind != null ? kind.name() : "null");
+			}
+		}
+		catch (IOException e) {
+			LOGGER.error("Error while updating the pdp config.", e);
+		}
+		finally {
+			lock.unlock();
+		}
+	}
+
+	@Override
+	public Flux<DocumentsCombinator> getDocumentsCombinator() {
+		return dirWatcherEventProcessor.map(event -> {
+			try {
+				lock.lock();
+				return convert(config.getAlgorithm(), interpreter);
+			}
+			finally {
+				lock.unlock();
+			}
+		}).distinctUntilChanged()
+				.doOnNext(algorithm -> LOGGER.trace(
+						"|-- Current PDP config: combining algorithm = {}",
+						config.getAlgorithm()));
+	}
+
+	@Override
+	public Flux<Map<String, JsonNode>> getVariables() {
+		return dirWatcherEventProcessor.map(event -> {
+			try {
+				lock.lock();
+				return config.getVariables();
+			}
+			finally {
+				lock.unlock();
+			}
+		}).distinctUntilChanged().doOnNext(variables -> LOGGER
+				.trace("|-- Current PDP config: variables = {}", variables));
+	}
+
+	@Override
+	public void dispose() {
+		dirWatcherFluxSubscription.dispose();
+		dirWatcherScheduler.dispose();
+	}
+
 }

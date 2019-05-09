@@ -19,14 +19,18 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 
-@FunctionLibrary(name = FilterFunctionLibrary.NAME, description = FilterFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = FilterFunctionLibrary.NAME,
+		description = FilterFunctionLibrary.DESCRIPTION)
 public class FilterFunctionLibrary {
 
 	public static final String NAME = "filter";
+
 	public static final String DESCRIPTION = "Essential functions for content filtering.";
 
 	private static final String BLACKEN_DEFAULT_REPLACEMENT = "X";
+
 	private static final int BLACKEN_DEFAULT_SHOW_LEFT = 0;
+
 	private static final int BLACKEN_DEFAULT_SHOW_RIGHT = 0;
 
 	private static final String BLACKEN_DOC = "blacken(STRING, DISCLOSE_LEFT, DISCLOSE_RIGHT, REPLACEMENT): Assumes that DISCLOSE_LEFT and DISCLOSE_RIGHT are positive integers and STRING and REPLACEMENT are strings."
@@ -34,18 +38,27 @@ public class FilterFunctionLibrary {
 			+ " Except for STRING, all parameters are optional."
 			+ " DISCLOSE_LEFT defaults to 0, DISCLOSE_RIGHT defaults to 0 and REPLACEMENT defaults to 'X'"
 			+ " Returns the modified STRING.";
+
 	private static final String REPLACE_DOC = "replace(ORIGINAL, REPLACEMENT): Assumes that ORIGINAL and REPLACEMENT are JSON nodes. Returns REPLACEMENT.";
 
 	private static final String ILLEGAL_PARAMETERS_COUNT = "Illegal number of parameters provided.";
+
 	private static final String ILLEGAL_PARAMETER_DISCLOSE_LEFT = "Illegal parameter for DISCLOSE_LEFT. Expecting a positive integer.";
+
 	private static final String ILLEGAL_PARAMETER_DISCLOSE_RIGHT = "Illegal parameter for DISCLOSE_RIGHT. Expecting a positive integer.";
+
 	private static final String ILLEGAL_PARAMETER_REPLACEMENT = "Illegal parameter for REPLACEMENT. Expecting a string.";
+
 	private static final String ILLEGAL_PARAMETER_STRING = "Illegal parameter for STRING. Expecting a string.";
 
 	private static final int ZERO = 0;
+
 	private static final int ONE = 1;
+
 	private static final int TWO = 2;
+
 	private static final int THREE = 3;
+
 	private static final int PARAMETERS_MAX = 4;
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -65,7 +78,8 @@ public class FilterFunctionLibrary {
 				throw new FunctionException(ILLEGAL_PARAMETER_REPLACEMENT);
 			}
 			replacement = parameters[THREE].asText();
-		} else {
+		}
+		else {
 			replacement = BLACKEN_DEFAULT_REPLACEMENT;
 		}
 
@@ -75,7 +89,8 @@ public class FilterFunctionLibrary {
 				throw new FunctionException(ILLEGAL_PARAMETER_DISCLOSE_RIGHT);
 			}
 			discloseRight = parameters[TWO].asInt();
-		} else {
+		}
+		else {
 			discloseRight = BLACKEN_DEFAULT_SHOW_RIGHT;
 		}
 
@@ -85,7 +100,8 @@ public class FilterFunctionLibrary {
 				throw new FunctionException(ILLEGAL_PARAMETER_DISCLOSE_LEFT);
 			}
 			discloseLeft = parameters[ONE].asInt();
-		} else {
+		}
+		else {
 			discloseLeft = BLACKEN_DEFAULT_SHOW_LEFT;
 		}
 
@@ -102,7 +118,8 @@ public class FilterFunctionLibrary {
 			if (discloseRight > 0) {
 				result.append(string.substring(discloseLeft + replacedChars));
 			}
-		} else {
+		}
+		else {
 			result.append(string);
 		}
 
@@ -113,4 +130,5 @@ public class FilterFunctionLibrary {
 	public static JsonNode replace(JsonNode original, JsonNode replacement) {
 		return replacement;
 	}
+
 }

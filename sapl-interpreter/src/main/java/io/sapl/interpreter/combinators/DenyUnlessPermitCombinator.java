@@ -30,46 +30,51 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 	}
 
 	@Override
-	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
-			Request request, AttributeContext attributeCtx, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables) {
+	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
+			boolean errorsInTarget, Request request, AttributeContext attributeCtx,
+			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
 		LOGGER.trace("|-- Combining matching documents");
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
 			LOGGER.trace("| |-- No matches. Default to DENY");
 			return Flux.just(Response.deny());
 		}
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingSaplDocuments.size());
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(
+				matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
-			LOGGER.trace("| |-- Evaluate: {} ({})", document.getPolicyElement().getSaplName(),
+			LOGGER.trace("| |-- Evaluate: {} ({})",
+					document.getPolicyElement().getSaplName(),
 					document.getPolicyElement().getClass().getName());
 			// do not first check match again. directly evaluate the rules
-			responseFluxes
-					.add(interpreter.evaluateRules(request, document, attributeCtx, functionCtx, systemVariables));
+			responseFluxes.add(interpreter.evaluateRules(request, document, attributeCtx,
+					functionCtx, systemVariables));
 		}
 
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator();
 		return Flux.combineLatest(responseFluxes, responses -> {
 			responseAccumulator.addSingleResponses(responses);
 			Response result = responseAccumulator.getCombinedResponse();
-			LOGGER.trace("| |-- {} Combined Response: {}", responseAccumulator.getCombinedResponse().getDecision(),
-					result);
+			LOGGER.trace("| |-- {} Combined Response: {}",
+					responseAccumulator.getCombinedResponse().getDecision(), result);
 			return result;
 		}).distinctUntilChanged();
 	}
 
 	@Override
-	public Flux<Response> combinePolicies(List<Policy> policies, Request request, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
+	public Flux<Response> combinePolicies(List<Policy> policies, Request request,
+			AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
 			Map<String, String> imports) {
 
 		final List<Policy> matchingPolicies = new ArrayList<>();
 		for (Policy policy : policies) {
 			try {
-				if (interpreter.matches(request, policy, functionCtx, systemVariables, variables, imports)) {
+				if (interpreter.matches(request, policy, functionCtx, systemVariables,
+						variables, imports)) {
 					matchingPolicies.add(policy);
 				}
-			} catch (PolicyEvaluationException e) {
+			}
+			catch (PolicyEvaluationException e) {
 				// we won't further evaluate this policy
 			}
 		}
@@ -78,10 +83,11 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 			return Flux.just(Response.deny());
 		}
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(
+				matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
-			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx, functionCtx, systemVariables,
-					variables, imports));
+			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx,
+					functionCtx, systemVariables, variables, imports));
 		}
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator();
 		return Flux.combineLatest(responseFluxes, responses -> {
@@ -93,8 +99,11 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 	private static class ResponseAccumulator {
 
 		private Response response;
+
 		private int permitCount;
+
 		private boolean transformation;
+
 		private ObligationAdviceCollector obligationAdvice;
 
 		ResponseAccumulator() {
@@ -123,7 +132,9 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 				}
 				obligationAdvice.add(Decision.PERMIT, newResponse);
 				response = newResponse;
-			} else if (newResponse.getDecision() == Decision.DENY && response.getDecision() != Decision.PERMIT) {
+			}
+			else if (newResponse.getDecision() == Decision.DENY
+					&& response.getDecision() != Decision.PERMIT) {
 				obligationAdvice.add(Decision.DENY, newResponse);
 			}
 		}
@@ -131,7 +142,8 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 		Response getCombinedResponse() {
 			if (response.getDecision() == Decision.PERMIT) {
 				if (permitCount > 1 && transformation) {
-					// Multiple applicable permit policies with at least one transformation not
+					// Multiple applicable permit policies with at least one
+					// transformation not
 					// allowed.
 					return Response.deny();
 				}
@@ -139,11 +151,14 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 				return new Response(Decision.PERMIT, response.getResource(),
 						obligationAdvice.get(Type.OBLIGATION, Decision.PERMIT),
 						obligationAdvice.get(Type.ADVICE, Decision.PERMIT));
-			} else {
+			}
+			else {
 				return new Response(Decision.DENY, response.getResource(),
 						obligationAdvice.get(Type.OBLIGATION, Decision.DENY),
 						obligationAdvice.get(Type.ADVICE, Decision.DENY));
 			}
 		}
+
 	}
+
 }

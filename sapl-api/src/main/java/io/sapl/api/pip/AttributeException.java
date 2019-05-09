@@ -31,4 +31,5 @@ public class AttributeException extends Exception {
 	public AttributeException(Throwable cause) {
 		super(cause);
 	}
+
 }

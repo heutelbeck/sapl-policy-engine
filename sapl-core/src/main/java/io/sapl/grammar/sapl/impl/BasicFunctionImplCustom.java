@@ -35,34 +35,40 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the evaluation of functions.
  *
- * Basic returns BasicExpression: {BasicGroup} '(' expression=Expression ')'
- * steps+=Step* | {BasicValue} value=Value steps+=Step* | {BasicFunction}
- * fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step* |
- * {BasicIdentifier} identifier=ID steps+=Step* | BasicRelative;
+ * Basic returns BasicExpression: {BasicGroup} '(' expression=Expression ')' steps+=Step*
+ * | {BasicValue} value=Value steps+=Step* | {BasicFunction} fsteps+=ID ('.' fsteps+=ID)*
+ * arguments=Arguments steps+=Step* | {BasicIdentifier} identifier=ID steps+=Step* |
+ * BasicRelative;
  */
 public class BasicFunctionImplCustom extends BasicFunctionImpl {
 
 	private static final String UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL = "undefined parameter value handed to function call";
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		if (getArguments() != null && !getArguments().getArgs().isEmpty()) {
 			// first create a List of FLuxes containing the Fluxes of argument assignments
 			// by subscribing to the individual expressions.
-			final List<Flux<Optional<JsonNode>>> arguments = new ArrayList<>(getArguments().getArgs().size());
+			final List<Flux<Optional<JsonNode>>> arguments = new ArrayList<>(
+					getArguments().getArgs().size());
 			for (Expression argument : getArguments().getArgs()) {
 				arguments.add(argument.evaluate(ctx, isBody, relativeNode));
 			}
-			// evaluate function for append the function evaluation to each value assignment
+			// evaluate function for append the function evaluation to each value
+			// assignment
 			// of the parameters
 			return Flux.combineLatest(arguments, Function.identity())
 					.flatMap(parameters -> evaluateFunction(parameters, ctx))
-					.map(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, isBody, relativeNode))
+					.map(funResult -> evaluateStepsFilterSubtemplate(funResult,
+							getSteps(), ctx, isBody, relativeNode))
 					.flatMap(Function.identity());
-		} else {
+		}
+		else {
 			// No need to subscribe to parameters. Just evaluate and apply steps.
 			return evaluateFunction(null, ctx)
-					.map(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, isBody, relativeNode))
+					.map(funResult -> evaluateStepsFilterSubtemplate(funResult,
+							getSteps(), ctx, isBody, relativeNode))
 					.flatMap(Function.identity());
 		}
 	}
@@ -73,7 +79,8 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 	}
 
 	@SuppressWarnings("unchecked")
-	private Flux<Optional<JsonNode>> evaluateFunction(Object[] parameters, EvaluationContext ctx) {
+	private Flux<Optional<JsonNode>> evaluateFunction(Object[] parameters,
+			EvaluationContext ctx) {
 		final ArrayNode argumentsArray = JSON.arrayNode();
 		try {
 			if (parameters != null) {
@@ -85,20 +92,27 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 					// Functions currently still operate in the 1.0.0 engine mindset.
 					// But:
 					// - functions are always local (never remote)
-					// - they never produce a flux of results by their own, only if their arguments
+					// - they never produce a flux of results by their own, only if their
+					// arguments
 					// are fluxes
-					// - therefore they can be used in target expressions, where fluxes of results
+					// - therefore they can be used in target expressions, where fluxes of
+					// results
 					// don't make sense
-					// (and never occur because attribute finders, the only source of result fluxes,
+					// (and never occur because attribute finders, the only source of
+					// result fluxes,
 					// are not allowed
 					// in target expressions)
-					// That's why the function library interface was intentionally left non reactive
-					argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(
-							() -> new FunctionException(UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL)));
+					// That's why the function library interface was intentionally left
+					// non reactive
+					argumentsArray.add(((Optional<JsonNode>) paramNode)
+							.orElseThrow(() -> new FunctionException(
+									UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL)));
 				}
 			}
-			return Flux.just(ctx.getFunctionCtx().evaluate(functionName(ctx), argumentsArray));
-		} catch (FunctionException e) {
+			return Flux.just(
+					ctx.getFunctionCtx().evaluate(functionName(ctx), argumentsArray));
+		}
+		catch (FunctionException e) {
 			return Flux.error(new PolicyEvaluationException(e));
 		}
 	}
@@ -120,12 +134,14 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 		for (Step step : getSteps()) {
 			hash = 37 * hash + (step == null ? 0 : step.hash(imports));
 		}
-		hash = 37 * hash + (getSubtemplate() == null ? 0 : getSubtemplate().hash(imports));
+		hash = 37 * hash
+				+ (getSubtemplate() == null ? 0 : getSubtemplate().hash(imports));
 		return hash;
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
+			Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}
@@ -134,7 +150,8 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 		}
 		final BasicFunctionImplCustom otherImpl = (BasicFunctionImplCustom) other;
 		if (getArguments() == null ? getArguments() != otherImpl.getArguments()
-				: !getArguments().isEqualTo(otherImpl.getArguments(), otherImports, imports)) {
+				: !getArguments().isEqualTo(otherImpl.getArguments(), otherImports,
+						imports)) {
 			return false;
 		}
 		if (getFilter() == null ? getFilter() != otherImpl.getFilter()
@@ -162,7 +179,8 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 			return false;
 		}
 		if (getSubtemplate() == null ? getSubtemplate() != otherImpl.getSubtemplate()
-				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports, imports)) {
+				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports,
+						imports)) {
 			return false;
 		}
 		if (getSteps().size() != otherImpl.getSteps().size()) {

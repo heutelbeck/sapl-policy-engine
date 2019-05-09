@@ -20,10 +20,15 @@ public class Bool {
 	static final String CONDITION_NOT_BOOLEAN = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
 
 	private boolean constant;
+
 	private Expression expression;
+
 	private int hash;
+
 	private boolean hasHashCode;
+
 	private Map<String, String> imports;
+
 	private boolean isConstantExpression;
 
 	public Bool(boolean value) {
@@ -56,7 +61,8 @@ public class Bool {
 		}
 		if (isConstantExpression) {
 			return Objects.equals(constant, other.constant);
-		} else {
+		}
+		else {
 			return expression.isEqualTo(other.expression, other.imports, imports);
 		}
 	}
@@ -68,17 +74,21 @@ public class Bool {
 		throw new IllegalStateException(BOOL_NOT_IMMUTABLE);
 	}
 
-	public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
-			throws PolicyEvaluationException {
+	public boolean evaluate(final FunctionContext functionCtx,
+			final VariableContext variableCtx) throws PolicyEvaluationException {
 		if (!isConstantExpression) {
-			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
+			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx,
+					imports);
 			try {
-				Optional<JsonNode> result = expression.evaluate(ctx, false, null).blockFirst();
+				Optional<JsonNode> result = expression.evaluate(ctx, false, null)
+						.blockFirst();
 				if (result.isPresent() && result.get().isBoolean()) {
 					return result.get().asBoolean();
 				}
-				throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, result));
-			} catch (RuntimeException e) {
+				throw new PolicyEvaluationException(
+						String.format(CONDITION_NOT_BOOLEAN, result));
+			}
+			catch (RuntimeException e) {
 				throw new PolicyEvaluationException(Exceptions.unwrap(e));
 			}
 		}
@@ -92,7 +102,8 @@ public class Bool {
 			h = 59 * h + Objects.hashCode(isConstantExpression);
 			if (isConstantExpression) {
 				h = 59 * h + Objects.hashCode(constant);
-			} else {
+			}
+			else {
 				h = 59 * h + expression.hash(imports);
 			}
 			hash = h;
@@ -104,4 +115,5 @@ public class Bool {
 	public boolean isImmutable() {
 		return isConstantExpression;
 	}
+
 }

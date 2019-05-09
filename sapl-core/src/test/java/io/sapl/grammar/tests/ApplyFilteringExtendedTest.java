@@ -25,12 +25,17 @@ import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class ApplyFilteringExtendedTest {
+
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
+
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private static VariableContext variableCtx = new VariableContext();
+
 	private static FunctionContext functionCtx = new MockFilteringContext();
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
+
+	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
+			variableCtx);
 
 	private static final String REMOVE = "remove";
 
@@ -79,7 +84,8 @@ public class ApplyFilteringExtendedTest {
 		Optional<JsonNode> expectedResult = Optional.of(JSON.arrayNode());
 
 		filter.apply(Optional.of(root), ctx, false, null).take(1)
-				.subscribe(result -> assertEquals("Function remove, no steps and each should return empty array",
+				.subscribe(result -> assertEquals(
+						"Function remove, no steps and each should return empty array",
 						expectedResult, result));
 	}
 
@@ -99,8 +105,8 @@ public class ApplyFilteringExtendedTest {
 
 		filter.apply(Optional.of(root), ctx, false, null).take(1)
 				.subscribe(result -> assertEquals(
-						"Mock function EMPTY_STRING, no steps, no each should return empty string", expectedResult,
-						result));
+						"Mock function EMPTY_STRING, no steps, no each should return empty string",
+						expectedResult, result));
 	}
 
 	@Test
@@ -215,9 +221,10 @@ public class ApplyFilteringExtendedTest {
 		expectedResult.add(JSON.textNode(""));
 		expectedResult.add(JSON.booleanNode(true));
 
-		filter.apply(Optional.of(root), ctx, false, null).take(1).subscribe(result -> assertEquals(
-				"Mock function EMPTY_STRING applied to result array and each should replace selected elements by empty string",
-				Optional.of(expectedResult), result));
+		filter.apply(Optional.of(root), ctx, false, null).take(1)
+				.subscribe(result -> assertEquals(
+						"Mock function EMPTY_STRING applied to result array and each should replace selected elements by empty string",
+						Optional.of(expectedResult), result));
 	}
 
 	@Test
@@ -242,7 +249,8 @@ public class ApplyFilteringExtendedTest {
 		expectedResult.add(JSON.booleanNode(true));
 
 		filter.apply(Optional.of(root), ctx, false, null).take(1)
-				.subscribe(result -> assertEquals("Remove applied to result array and each should remove each element",
+				.subscribe(result -> assertEquals(
+						"Remove applied to result array and each should remove each element",
 						Optional.of(expectedResult), result));
 	}
 

@@ -30,9 +30,13 @@ import lombok.EqualsAndHashCode;
 public class GeoProjection {
 
 	public static final String WGS84_CRS = "EPSG:4326"; // WGS84
+
 	public static final String WEB_MERCATOR_CRS = "EPSG:3857"; // WebMercator
+
 	protected static final String CRS_COULD_NOT_INITIALIZE = "Provided ESPG references could not be decoded into a coordinate reference system or math transformation.";
+
 	protected static final String NO_MATH_TRANSFORMATION_FOUND = "No math-transformation could be found to convert between the provided CRS.";
+
 	protected static final String UNABLE_TO_TRANSFORM = "Unable to transform/project the provided geometry.";
 
 	private final MathTransform mathTransform;
@@ -44,8 +48,10 @@ public class GeoProjection {
 
 	public GeoProjection(String source, String dest) throws FunctionException {
 		try {
-			mathTransform = CRS.findMathTransform(CRS.decode(source), CRS.decode(dest), false);
-		} catch (FactoryException e) {
+			mathTransform = CRS.findMathTransform(CRS.decode(source), CRS.decode(dest),
+					false);
+		}
+		catch (FactoryException e) {
 			throw new FunctionException(CRS_COULD_NOT_INITIALIZE, e);
 		}
 	}
@@ -54,7 +60,8 @@ public class GeoProjection {
 		try {
 			MathTransformFactory fact = new DefaultMathTransformFactory();
 			mathTransform = fact.createFromWKT(mathTransformWkt);
-		} catch (FactoryException e) {
+		}
+		catch (FactoryException e) {
 			throw new FunctionException(CRS_COULD_NOT_INITIALIZE, e);
 		}
 	}
@@ -62,7 +69,8 @@ public class GeoProjection {
 	public Geometry project(Geometry geometry) throws FunctionException {
 		try {
 			return JTS.transform(geometry, mathTransform);
-		} catch (MismatchedDimensionException | TransformException e) {
+		}
+		catch (MismatchedDimensionException | TransformException e) {
 			throw new FunctionException(UNABLE_TO_TRANSFORM, e);
 		}
 	}
@@ -70,7 +78,8 @@ public class GeoProjection {
 	public Geometry reProject(Geometry geometry) throws FunctionException {
 		try {
 			return JTS.transform(geometry, mathTransform.inverse());
-		} catch (MismatchedDimensionException | TransformException e) {
+		}
+		catch (MismatchedDimensionException | TransformException e) {
 			throw new FunctionException(UNABLE_TO_TRANSFORM, e);
 		}
 	}
@@ -82,4 +91,5 @@ public class GeoProjection {
 	public static GeoProjection returnEmptyProjection() {
 		return null;
 	}
+
 }

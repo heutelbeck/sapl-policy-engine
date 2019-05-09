@@ -28,8 +28,11 @@ import lombok.NoArgsConstructor;
 public class VariableContext {
 
 	private static final String SUBJECT = "subject";
+
 	private static final String ACTION = "action";
+
 	private static final String RESOURCE = "resource";
+
 	private static final String ENVIRONMENT = "environment";
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -40,26 +43,31 @@ public class VariableContext {
 		this(request, null);
 	}
 
-	public VariableContext(Request request, Map<String, JsonNode> defaultVariables) throws PolicyEvaluationException {
+	public VariableContext(Request request, Map<String, JsonNode> defaultVariables)
+			throws PolicyEvaluationException {
 		if (request != null) {
 			if (request.getSubject() != null) {
 				variables.put(SUBJECT, request.getSubject());
-			} else {
+			}
+			else {
 				variables.put(SUBJECT, JSON.nullNode());
 			}
 			if (request.getAction() != null) {
 				variables.put(ACTION, request.getAction());
-			} else {
+			}
+			else {
 				variables.put(ACTION, JSON.nullNode());
 			}
 			if (request.getResource() != null) {
 				variables.put(RESOURCE, request.getResource());
-			} else {
+			}
+			else {
 				variables.put(RESOURCE, JSON.nullNode());
 			}
 			if (request.getEnvironment() != null) {
 				variables.put(ENVIRONMENT, request.getEnvironment());
-			} else {
+			}
+			else {
 				variables.put(ENVIRONMENT, JSON.nullNode());
 			}
 		}
@@ -71,10 +79,12 @@ public class VariableContext {
 		}
 	}
 
-	public final void put(String identifier, JsonNode value) throws PolicyEvaluationException {
-		if (SUBJECT.equals(identifier) || RESOURCE.equals(identifier) || ACTION.equals(identifier)
-				|| ENVIRONMENT.equals(identifier)) {
-			throw new PolicyEvaluationException("cannot overwrite system variable " + identifier);
+	public final void put(String identifier, JsonNode value)
+			throws PolicyEvaluationException {
+		if (SUBJECT.equals(identifier) || RESOURCE.equals(identifier)
+				|| ACTION.equals(identifier) || ENVIRONMENT.equals(identifier)) {
+			throw new PolicyEvaluationException(
+					"cannot overwrite system variable " + identifier);
 		}
 		variables.put(identifier, value);
 	}
@@ -94,4 +104,5 @@ public class VariableContext {
 		}
 		return result;
 	}
+
 }

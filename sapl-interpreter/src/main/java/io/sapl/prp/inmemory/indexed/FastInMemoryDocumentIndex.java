@@ -17,14 +17,18 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
 
 public class FastInMemoryDocumentIndex implements InMemoryDocumentIndex {
+
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	ParsedDocumentIndex index = new FastParsedDocumentIndex();
+
 	Map<String, SAPL> parsedDocuments = new ConcurrentHashMap<>();
+
 	AtomicBoolean live = new AtomicBoolean(false);
 
 	@Override
-	public void insert(String documentKey, String document) throws PolicyEvaluationException {
+	public void insert(String documentKey, String document)
+			throws PolicyEvaluationException {
 		parsedDocuments.put(documentKey, INTERPRETER.parse(document));
 	}
 
@@ -34,11 +38,12 @@ public class FastInMemoryDocumentIndex implements InMemoryDocumentIndex {
 	}
 
 	@Override
-	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
-			Map<String, JsonNode> variables) {
+	public PolicyRetrievalResult retrievePolicies(Request request,
+			FunctionContext functionCtx, Map<String, JsonNode> variables) {
 		if (live.get()) {
 			return index.retrievePolicies(request, functionCtx, variables);
-		} else {
+		}
+		else {
 			throw new IndexStillInReplayMode();
 		}
 	}

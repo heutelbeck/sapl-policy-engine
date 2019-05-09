@@ -15,21 +15,25 @@ public class PolicyInformationPointsAutoConfiguration {
 	@Configuration
 	@ConditionalOnClass(io.sapl.pip.http.HttpPolicyInformationPoint.class)
 	public static class HTTPConfiguration {
+
 		@Bean
 		public HttpPolicyInformationPoint httpPolicyInformationPoint() {
 			LOGGER.info("HTTP PIP present. Loading.");
 			return new HttpPolicyInformationPoint();
 		}
+
 	}
 
 	@Configuration
 	@ConditionalOnClass(io.sapl.interpreter.pip.GeoPolicyInformationPoint.class)
 	public static class GeoConfiguration {
+
 		@Bean
 		public GeoPolicyInformationPoint geoPolicyInformationPoint() {
 			LOGGER.info("GEO PIP present. Loading.");
 			return new GeoPolicyInformationPoint();
 		}
+
 	}
 
 }

@@ -23,10 +23,14 @@ import reactor.core.publisher.Flux;
 public class LessEqualsImplCustom extends LessEqualsImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<BigDecimal> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
-		final Flux<BigDecimal> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
-		return Flux.combineLatest(left, right, this::lessOrEqual).map(Value::of).distinctUntilChanged();
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
+		final Flux<BigDecimal> left = getLeft().evaluate(ctx, isBody, relativeNode)
+				.flatMap(Value::toBigDecimal);
+		final Flux<BigDecimal> right = getRight().evaluate(ctx, isBody, relativeNode)
+				.flatMap(Value::toBigDecimal);
+		return Flux.combineLatest(left, right, this::lessOrEqual).map(Value::of)
+				.distinctUntilChanged();
 	}
 
 	private Boolean lessOrEqual(BigDecimal left, BigDecimal right) {

@@ -24,16 +24,22 @@ import reactor.util.function.Tuples;
 public class PlusImplCustom extends PlusImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
-		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().flatMap(this::plus);
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody,
+				relativeNode);
+		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody,
+				relativeNode);
+		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged()
+				.flatMap(this::plus);
 	}
 
-	private Flux<Optional<JsonNode>> plus(Tuple2<Optional<JsonNode>, Optional<JsonNode>> tuple) {
-		if (tuple.getT1().isPresent() && tuple.getT2().isPresent() && tuple.getT1().get().isNumber()
-				&& tuple.getT2().get().isNumber()) {
-			return Value.fluxOf(tuple.getT1().get().decimalValue().add(tuple.getT2().get().decimalValue()));
+	private Flux<Optional<JsonNode>> plus(
+			Tuple2<Optional<JsonNode>, Optional<JsonNode>> tuple) {
+		if (tuple.getT1().isPresent() && tuple.getT2().isPresent()
+				&& tuple.getT1().get().isNumber() && tuple.getT2().get().isNumber()) {
+			return Value.fluxOf(tuple.getT1().get().decimalValue()
+					.add(tuple.getT2().get().decimalValue()));
 		}
 		String left = tuple.getT1().orElseGet(() -> JSON.textNode("undefined")).asText();
 		String right = tuple.getT2().orElseGet(() -> JSON.textNode("undefined")).asText();

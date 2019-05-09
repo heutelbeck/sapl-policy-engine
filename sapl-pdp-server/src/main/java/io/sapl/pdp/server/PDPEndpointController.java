@@ -20,21 +20,23 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class PDPEndpointController {
 
-    private final PolicyDecisionPoint pdp;
+	private final PolicyDecisionPoint pdp;
 
-    @PostMapping(value = "/decide", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
-    public Flux<Response> decide(@RequestBody Request request) {
-        return pdp.decide(request);
-    }
+	@PostMapping(value = "/decide", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
+	public Flux<Response> decide(@RequestBody Request request) {
+		return pdp.decide(request);
+	}
 
-    @PostMapping(value = "/multi-decide", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
-    public Flux<IdentifiableResponse> decide(@RequestBody MultiRequest request) {
-        return pdp.decide(request);
-    }
+	@PostMapping(value = "/multi-decide",
+			produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
+	public Flux<IdentifiableResponse> decide(@RequestBody MultiRequest request) {
+		return pdp.decide(request);
+	}
 
-    @PostMapping(value = "/multi-decide-all", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
-    public Flux<MultiResponse> decideAll(@RequestBody MultiRequest request) {
-        return pdp.decideAll(request);
-    }
+	@PostMapping(value = "/multi-decide-all",
+			produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
+	public Flux<MultiResponse> decideAll(@RequestBody MultiRequest request) {
+		return pdp.decideAll(request);
+	}
 
 }

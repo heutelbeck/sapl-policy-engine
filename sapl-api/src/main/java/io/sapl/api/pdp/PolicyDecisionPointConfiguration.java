@@ -18,6 +18,7 @@ public class PolicyDecisionPointConfiguration implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	private PolicyDocumentCombiningAlgorithm algorithm = PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT;
+
 	private Map<String, JsonNode> variables = new HashMap<>();
 
 }

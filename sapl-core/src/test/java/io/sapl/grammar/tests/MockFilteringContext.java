@@ -15,12 +15,15 @@ import io.sapl.interpreter.functions.LibraryDocumentation;
 public class MockFilteringContext implements FunctionContext {
 
 	@Override
-	public Optional<JsonNode> evaluate(String function, ArrayNode parameters) throws FunctionException {
+	public Optional<JsonNode> evaluate(String function, ArrayNode parameters)
+			throws FunctionException {
 		if ("EXCEPTION".equals(function)) {
 			throw new FunctionException();
-		} else if ("EMPTY_STRING".equals(function)) {
+		}
+		else if ("EMPTY_STRING".equals(function)) {
 			return Optional.of(JsonNodeFactory.instance.textNode(""));
-		} else {
+		}
+		else {
 			return Optional.of(JsonNodeFactory.instance.textNode(function));
 		}
 	}

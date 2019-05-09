@@ -30,16 +30,22 @@ import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class ApplyStepsRecursiveWildcardTest {
+
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
+
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private static VariableContext variableCtx = new VariableContext();
+
 	private static FunctionContext functionCtx = new MockFunctionContext();
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
+
+	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
+			variableCtx);
 
 	@Test
 	public void applyToNullNode() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
+		ResultNode previousResult = new JsonNodeWithoutParent(
+				Optional.of(JSON.nullNode()));
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
 				.expectError(PolicyEvaluationException.class).verify();
@@ -58,17 +64,22 @@ public class ApplyStepsRecursiveWildcardTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array), 0));
-		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(true)), Optional.of(array), 1));
-		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(object), Optional.of(array), 2));
-		expectedResultSet
-				.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(false)), Optional.of(object), "key"));
+		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
+				Optional.of(array), 0));
+		expectedResultSet.add(new JsonNodeWithParentArray(
+				Optional.of(JSON.booleanNode(true)), Optional.of(array), 1));
+		expectedResultSet.add(
+				new JsonNodeWithParentArray(Optional.of(object), Optional.of(array), 2));
+		expectedResultSet.add(new JsonNodeWithParentObject(
+				Optional.of(JSON.booleanNode(false)), Optional.of(object), "key"));
 
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 
 		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Recursive wildcard step applied to array should return all items and attribute values",
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
+					.create(((ArrayResultNode) result).getNodes());
+			assertEquals(
+					"Recursive wildcard step applied to array should return all items and attribute values",
 					expectedResultSet, resultSet);
 		});
 	}
@@ -86,17 +97,22 @@ public class ApplyStepsRecursiveWildcardTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(object));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), Optional.of(object), "key1"));
-		expectedResultSet
-				.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(true)), Optional.of(object), "key2"));
-		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(array), Optional.of(object), "key3"));
-		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(false)), Optional.of(array), 0));
+		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
+				Optional.of(object), "key1"));
+		expectedResultSet.add(new JsonNodeWithParentObject(
+				Optional.of(JSON.booleanNode(true)), Optional.of(object), "key2"));
+		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(array),
+				Optional.of(object), "key3"));
+		expectedResultSet.add(new JsonNodeWithParentArray(
+				Optional.of(JSON.booleanNode(false)), Optional.of(array), 0));
 
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 
 		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Recursive wildcard step applied to object should return all items and attribute values",
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
+					.create(((ArrayResultNode) result).getNodes());
+			assertEquals(
+					"Recursive wildcard step applied to object should return all items and attribute values",
 					expectedResultSet, resultSet);
 		});
 	}
@@ -108,33 +124,37 @@ public class ApplyStepsRecursiveWildcardTest {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 		array.add(JSON.booleanNode(true));
-		AbstractAnnotatedJsonNode annotatedNode1 = new JsonNodeWithParentArray(Optional.of(array),
-				Optional.of(JSON.arrayNode()), 0);
+		AbstractAnnotatedJsonNode annotatedNode1 = new JsonNodeWithParentArray(
+				Optional.of(array), Optional.of(JSON.arrayNode()), 0);
 		listIn.add(annotatedNode1);
 
 		ObjectNode object = JSON.objectNode();
 		object.set("key", JSON.booleanNode(false));
-		AbstractAnnotatedJsonNode annotatedNode2 = new JsonNodeWithParentArray(Optional.of(object),
-				Optional.of(JSON.arrayNode()), 0);
+		AbstractAnnotatedJsonNode annotatedNode2 = new JsonNodeWithParentArray(
+				Optional.of(object), Optional.of(JSON.arrayNode()), 0);
 		listIn.add(annotatedNode2);
 
 		ResultNode previousResult = new ArrayResultNode(listIn);
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
 		expectedResultSet.add(annotatedNode1);
-		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array), 0));
-		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(true)), Optional.of(array), 1));
+		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
+				Optional.of(array), 0));
+		expectedResultSet.add(new JsonNodeWithParentArray(
+				Optional.of(JSON.booleanNode(true)), Optional.of(array), 1));
 		expectedResultSet.add(annotatedNode2);
-		expectedResultSet
-				.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(false)), Optional.of(object), "key"));
+		expectedResultSet.add(new JsonNodeWithParentObject(
+				Optional.of(JSON.booleanNode(false)), Optional.of(object), "key"));
 
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 
 		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
+					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
 					"Recursive wildcard step applied to a result array node should return all items and attribute values",
 					expectedResultSet, resultSet);
 		});
 	}
+
 }

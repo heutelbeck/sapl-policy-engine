@@ -23,12 +23,17 @@ import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class ApplyFilteringSimpleTest {
+
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
+
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private static VariableContext variableCtx = new VariableContext();
+
 	private static FunctionContext functionCtx = new MockFilteringContext();
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
+
+	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
+			variableCtx);
 
 	private static final String REMOVE = "remove";
 
@@ -67,7 +72,8 @@ public class ApplyFilteringSimpleTest {
 		JsonNode expectedResult = JSON.arrayNode();
 
 		filter.apply(Optional.of(root), ctx, false, null).take(1)
-				.subscribe(result -> assertEquals("Remove applied to array with each should return empty array",
+				.subscribe(result -> assertEquals(
+						"Remove applied to array with each should return empty array",
 						Optional.of(expectedResult), result));
 	}
 

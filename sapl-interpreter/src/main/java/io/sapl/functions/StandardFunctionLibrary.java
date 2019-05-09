@@ -23,10 +23,12 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 
-@FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = StandardFunctionLibrary.NAME,
+		description = StandardFunctionLibrary.DESCRIPTION)
 public class StandardFunctionLibrary {
 
 	public static final String NAME = "standard";
+
 	public static final String DESCRIPTION = "This library contains the mandatory functions for the SAPL implementation.";
 
 	private static final String LENGTH_DOC = "length(JSON_VALUE): For STRING it returns the length of the STRING. "
@@ -45,7 +47,8 @@ public class StandardFunctionLibrary {
 	public static JsonNode length(@Array @Text @JsonObject JsonNode parameter) {
 		if (parameter.isTextual()) {
 			return JSON.numberNode(parameter.textValue().length());
-		} else {
+		}
+		else {
 			return JSON.numberNode(parameter.size());
 		}
 	}
@@ -54,11 +57,14 @@ public class StandardFunctionLibrary {
 	public static JsonNode numberToString(@Text @Number @Bool JsonNode parameter) {
 		if (parameter.isNumber()) {
 			return JSON.textNode(parameter.numberValue().toString());
-		} else if (parameter.isBoolean()) {
+		}
+		else if (parameter.isBoolean()) {
 			return JSON.textNode(String.valueOf(parameter.booleanValue()));
-		} else if (parameter.isNull()) {
+		}
+		else if (parameter.isNull()) {
 			return JSON.textNode("");
-		} else {
+		}
+		else {
 			return parameter;
 		}
 	}

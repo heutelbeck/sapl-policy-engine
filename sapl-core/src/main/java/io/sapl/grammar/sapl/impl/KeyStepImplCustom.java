@@ -35,39 +35,50 @@ public class KeyStepImplCustom extends KeyStepImpl {
 	private static final String KEY_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing a JSON key '%s' is not possible on a null node.";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult,
+			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
-	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult)
+			throws PolicyEvaluationException {
 		if (!previousResult.getNode().isPresent()) {
-			return new JsonNodeWithParentObject(Optional.empty(),previousResult.getNode(), id);
+			return new JsonNodeWithParentObject(Optional.empty(),
+					previousResult.getNode(), id);
 		}
 		final JsonNode previousResultNode = previousResult.getNode().get();
 		if (previousResultNode.isObject()) {
 			if (!previousResultNode.has(id)) {
-				return new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), id);
+				return new JsonNodeWithParentObject(Optional.empty(),
+						previousResult.getNode(), id);
 			}
-			return new JsonNodeWithParentObject(Optional.of(previousResultNode.get(id)), previousResult.getNode(), id);
-		} else if (previousResultNode.isArray()) {
+			return new JsonNodeWithParentObject(Optional.of(previousResultNode.get(id)),
+					previousResult.getNode(), id);
+		}
+		else if (previousResultNode.isArray()) {
 			return applyToJsonArray(previousResultNode);
-		} else if (previousResultNode.isTextual()) {
-			return new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), id);
-		} else if (previousResultNode.isNull()) {
-			throw new PolicyEvaluationException(String.format(KEY_ACCESS_TYPE_MISMATCH, id));
-		} else {
+		}
+		else if (previousResultNode.isTextual()) {
+			return new JsonNodeWithParentObject(Optional.empty(),
+					previousResult.getNode(), id);
+		}
+		else if (previousResultNode.isNull()) {
+			throw new PolicyEvaluationException(
+					String.format(KEY_ACCESS_TYPE_MISMATCH, id));
+		}
+		else {
 			return new JsonNodeWithoutParent(Optional.empty());
 		}
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx,
+			boolean isBody, Optional<JsonNode> relativeNode) {
 		return Flux.just(apply(previousResult));
 	}
 
@@ -80,7 +91,8 @@ public class KeyStepImplCustom extends KeyStepImpl {
 
 		for (JsonNode item : array) {
 			if (item.isObject() && item.has(id)) {
-				resultList.add(new JsonNodeWithParentObject(Optional.of(item.get(id)), Optional.of(item), id));
+				resultList.add(new JsonNodeWithParentObject(Optional.of(item.get(id)),
+						Optional.of(item), id));
 			}
 		}
 		return new ArrayResultNode(resultList);
@@ -95,7 +107,8 @@ public class KeyStepImplCustom extends KeyStepImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
+			Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

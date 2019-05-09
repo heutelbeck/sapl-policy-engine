@@ -7,7 +7,9 @@ import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
-public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<MethodInvocation> {
+public class PreInvocationEnforcementAdviceVoter
+		implements AccessDecisionVoter<MethodInvocation> {
+
 	private final PreInvocationEnforcementAdvice preAdvice;
 
 	public PreInvocationEnforcementAdviceVoter(PreInvocationEnforcementAdvice pre) {
@@ -25,8 +27,10 @@ public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<
 	}
 
 	@Override
-	public int vote(Authentication authentication, MethodInvocation method, Collection<ConfigAttribute> attributes) {
-		PolicyBasedPreInvocationEnforcementAttribute preAttr = findPreInvocationEnforcementAttribute(attributes);
+	public int vote(Authentication authentication, MethodInvocation method,
+			Collection<ConfigAttribute> attributes) {
+		PolicyBasedPreInvocationEnforcementAttribute preAttr = findPreInvocationEnforcementAttribute(
+				attributes);
 
 		if (preAttr == null) {
 			// No matching attribute found => abstain
@@ -47,4 +51,5 @@ public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<
 		}
 		return null;
 	}
+
 }

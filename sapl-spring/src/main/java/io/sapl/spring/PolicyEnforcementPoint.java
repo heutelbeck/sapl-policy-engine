@@ -20,8 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * This service can be used to establish a policy enforcement point at any
- * location in users code.
+ * This service can be used to establish a policy enforcement point at any location in
+ * users code.
  */
 @Slf4j
 @Service
@@ -29,33 +29,37 @@ import reactor.core.publisher.Flux;
 public class PolicyEnforcementPoint implements Disposable {
 
 	private final PolicyDecisionPoint pdp;
+
 	private final ConstraintHandlerService constraintHandlers;
+
 	private final ObjectMapper mapper;
 
 	/**
-	 * Creates a SAPL request based on its parameters and asks the PDP for a decision.
-	 * In case of {@link Decision#PERMIT permit}, obligation and advice handlers are
-	 * invoked. Emits {@link Decision#PERMIT permit} only if all obligations could be
-	 * fulfilled and no resource value was provided by the PDP's response. Emits
-	 * {@link Decision#DENY deny} otherwise. Decisions are only emitted if they are
-	 * different from the preceding one.
-	 *
-	 * @param subject     the subject, will be serialized into JSON.
-	 * @param action      the action, will be serialized into JSON.
-	 * @param resource    the resource, will be serialized into JSON.
+	 * Creates a SAPL request based on its parameters and asks the PDP for a decision. In
+	 * case of {@link Decision#PERMIT permit}, obligation and advice handlers are invoked.
+	 * Emits {@link Decision#PERMIT permit} only if all obligations could be fulfilled and
+	 * no resource value was provided by the PDP's response. Emits {@link Decision#DENY
+	 * deny} otherwise. Decisions are only emitted if they are different from the
+	 * preceding one.
+	 * @param subject the subject, will be serialized into JSON.
+	 * @param action the action, will be serialized into JSON.
+	 * @param resource the resource, will be serialized into JSON.
 	 * @param environment the environment, will be serialized into JSON.
 	 * @return a Flux emitting {@link Decision#PERMIT permit}, if the PDP returned
-	 *         {@link Decision#PERMIT permit} and all obligations could be fulfilled,
-	 *         and the PDP's response did not contain a resource value, {@link Decision#DENY deny}
-	 *         otherwise.
+	 * {@link Decision#PERMIT permit} and all obligations could be fulfilled, and the
+	 * PDP's response did not contain a resource value, {@link Decision#DENY deny}
+	 * otherwise.
 	 */
-	public Flux<Decision> enforce(Object subject, Object action, Object resource, Object environment) {
+	public Flux<Decision> enforce(Object subject, Object action, Object resource,
+			Object environment) {
 		Request request = buildRequest(subject, action, resource, environment);
 		final Flux<Response> responseFlux = pdp.decide(request);
 		return responseFlux.map(response -> {
-			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(),
-					request.getSubject(), request.getEnvironment());
-			LOGGER.debug("RESPONSE : {} - {}", response == null ? "null" : response.getDecision(), response);
+			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}",
+					request.getAction(), request.getResource(), request.getSubject(),
+					request.getEnvironment());
+			LOGGER.debug("RESPONSE : {} - {}",
+					response == null ? "null" : response.getDecision(), response);
 
 			if (response == null || response.getDecision() != Decision.PERMIT) {
 				return Decision.DENY;
@@ -65,14 +69,16 @@ public class PolicyEnforcementPoint implements Disposable {
 				return Decision.DENY;
 			}
 			if (response.getResource().isPresent()) {
-				LOGGER.debug("PDP returned a new resource value. " +
-						"This PEP cannot handle resource replacement. Thus, deny access.");
+				LOGGER.debug("PDP returned a new resource value. "
+						+ "This PEP cannot handle resource replacement. Thus, deny access.");
 				return Decision.DENY;
 			}
 			try {
 				constraintHandlers.handleObligations(response);
-			} catch (AccessDeniedException e) {
-				LOGGER.debug("PEP failed to fulfill PDP obligations. Deny access. {}", e.getLocalizedMessage());
+			}
+			catch (AccessDeniedException e) {
+				LOGGER.debug("PEP failed to fulfill PDP obligations. Deny access. {}",
+						e.getLocalizedMessage());
 				return Decision.DENY;
 			}
 			constraintHandlers.handleAdvices(response);
@@ -81,62 +87,65 @@ public class PolicyEnforcementPoint implements Disposable {
 	}
 
 	/**
-	 * Creates a SAPL request based on its parameters and asks the PDP for a decision.
-	 * In case of {@link Decision#PERMIT permit}, obligation and advice handlers are
-	 * invoked. Emits {@link Decision#PERMIT permit} only if all obligations could be
-	 * fulfilled and no resource value was provided by the PDP's response. Emits
-	 * {@link Decision#DENY deny} otherwise. Decisions are only emitted if they are
-	 * different from the preceding one.
-	 *
-	 * @param subject  the subject, will be serialized into JSON.
-	 * @param action   the action, will be serialized into JSON.
+	 * Creates a SAPL request based on its parameters and asks the PDP for a decision. In
+	 * case of {@link Decision#PERMIT permit}, obligation and advice handlers are invoked.
+	 * Emits {@link Decision#PERMIT permit} only if all obligations could be fulfilled and
+	 * no resource value was provided by the PDP's response. Emits {@link Decision#DENY
+	 * deny} otherwise. Decisions are only emitted if they are different from the
+	 * preceding one.
+	 * @param subject the subject, will be serialized into JSON.
+	 * @param action the action, will be serialized into JSON.
 	 * @param resource the resource, will be serialized into JSON.
 	 * @return a Flux emitting {@link Decision#PERMIT permit}, if the PDP returned
-	 *         {@link Decision#PERMIT permit} and all obligations could be fulfilled,
-	 *         and the PDP's response did not contain a resource value, {@link Decision#DENY deny}
-	 *         otherwise.
+	 * {@link Decision#PERMIT permit} and all obligations could be fulfilled, and the
+	 * PDP's response did not contain a resource value, {@link Decision#DENY deny}
+	 * otherwise.
 	 */
 	public Flux<Decision> enforce(Object subject, Object action, Object resource) {
 		return enforce(subject, action, resource, null);
 	}
 
 	/**
-	 * Creates a SAPL request based on its parameters and asks the PDP for a decision.
-	 * In case of {@link Decision#PERMIT permit}, obligation and advice handlers are
-	 * invoked. If all obligations can be fulfilled, the original response emitted by
-	 * the PDP is passed through. Emits a {@link Response response} containing
-	 * {@link Decision#DENY deny} and no resource otherwise. Responses are only emitted
-	 * if they are different from the preceding one.
-	 *
-	 * @param subject     the subject, will be serialized into JSON.
-	 * @param action      the action, will be serialized into JSON.
-	 * @param resource    the resource, will be serialized into JSON.
+	 * Creates a SAPL request based on its parameters and asks the PDP for a decision. In
+	 * case of {@link Decision#PERMIT permit}, obligation and advice handlers are invoked.
+	 * If all obligations can be fulfilled, the original response emitted by the PDP is
+	 * passed through. Emits a {@link Response response} containing {@link Decision#DENY
+	 * deny} and no resource otherwise. Responses are only emitted if they are different
+	 * from the preceding one.
+	 * @param subject the subject, will be serialized into JSON.
+	 * @param action the action, will be serialized into JSON.
+	 * @param resource the resource, will be serialized into JSON.
 	 * @param environment the environment, will be serialized into JSON.
-	 * @return a Flux emitting the original response of the PDP, if the PDP returned
-	 *         a response containing {@link Decision#PERMIT permit} and all obligations
-	 *         could be fulfilled, a {@link Response response} containing
-	 *         {@link Decision#DENY deny} and no resource otherwise.
+	 * @return a Flux emitting the original response of the PDP, if the PDP returned a
+	 * response containing {@link Decision#PERMIT permit} and all obligations could be
+	 * fulfilled, a {@link Response response} containing {@link Decision#DENY deny} and no
+	 * resource otherwise.
 	 */
-	public Flux<Response> filterEnforce(Object subject, Object action, Object resource, Object environment) {
+	public Flux<Response> filterEnforce(Object subject, Object action, Object resource,
+			Object environment) {
 		Request request = buildRequest(subject, action, resource, environment);
 		final Flux<Response> responseFlux = pdp.decide(request);
 		return responseFlux.map(response -> {
-			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(),
-					request.getSubject(), request.getEnvironment());
-			LOGGER.debug("RESPONSE : {} - {}", response == null ? "null" : response.getDecision(), response);
+			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}",
+					request.getAction(), request.getResource(), request.getSubject(),
+					request.getEnvironment());
+			LOGGER.debug("RESPONSE : {} - {}",
+					response == null ? "null" : response.getDecision(), response);
 
 			if (response == null || response.getDecision() != Decision.PERMIT) {
 				return Response.deny();
 			}
 			if (!constraintHandlers.obligationHandlersForObligationsAvailable(response)) {
-				LOGGER.debug("Obligations cannot be fulfilled. No handler available. " +
-						"Access denied by policy enforcement point.");
+				LOGGER.debug("Obligations cannot be fulfilled. No handler available. "
+						+ "Access denied by policy enforcement point.");
 				return Response.deny();
 			}
 			try {
 				constraintHandlers.handleObligations(response);
-			} catch (AccessDeniedException e) {
-				LOGGER.debug("PEP failed to fulfill PDP obligations. Deny access. {}", e.getLocalizedMessage());
+			}
+			catch (AccessDeniedException e) {
+				LOGGER.debug("PEP failed to fulfill PDP obligations. Deny access. {}",
+						e.getLocalizedMessage());
 				return Response.deny();
 			}
 			constraintHandlers.handleAdvices(response);
@@ -145,20 +154,19 @@ public class PolicyEnforcementPoint implements Disposable {
 	}
 
 	/**
-	 * Creates a SAPL request based on its parameters and asks the PDP for a decision.
-	 * In case of {@link Decision#PERMIT permit}, obligation and advice handlers are
-	 * invoked. If all obligations can be fulfilled, the original response emitted by
-	 * the PDP is passed through. Emits a {@link Response response} containing
-	 * {@link Decision#DENY deny} and no resource otherwise. Responses are only emitted
-	 * if they are different from the preceding one.
-	 *
-	 * @param subject  the subject, will be serialized into JSON.
-	 * @param action   the action, will be serialized into JSON.
+	 * Creates a SAPL request based on its parameters and asks the PDP for a decision. In
+	 * case of {@link Decision#PERMIT permit}, obligation and advice handlers are invoked.
+	 * If all obligations can be fulfilled, the original response emitted by the PDP is
+	 * passed through. Emits a {@link Response response} containing {@link Decision#DENY
+	 * deny} and no resource otherwise. Responses are only emitted if they are different
+	 * from the preceding one.
+	 * @param subject the subject, will be serialized into JSON.
+	 * @param action the action, will be serialized into JSON.
 	 * @param resource the resource, will be serialized into JSON.
-	 * @return a Flux emitting the original response of the PDP, if the PDP returned
-	 *         a response containing {@link Decision#PERMIT permit} and all obligations
-	 *         could be fulfilled, a {@link Response response} containing
-	 *         {@link Decision#DENY deny} and no resource otherwise.
+	 * @return a Flux emitting the original response of the PDP, if the PDP returned a
+	 * response containing {@link Decision#PERMIT permit} and all obligations could be
+	 * fulfilled, a {@link Response response} containing {@link Decision#DENY deny} and no
+	 * resource otherwise.
 	 */
 	public Flux<Response> filterEnforce(Object subject, Object action, Object resource) {
 		return filterEnforce(subject, action, resource, null);
@@ -169,14 +177,13 @@ public class PolicyEnforcementPoint implements Disposable {
 	 * {@link MultiResponse multi-responses}. Each response in the multi-response is
 	 * handled as follows: If its decision is {@link Decision#PERMIT permit}, obligation
 	 * and advice handlers are invoked. If all obligations can be fulfilled, the original
-	 * response is left as is. If its decision is not {@link Decision#PERMIT permit} or
-	 * if not all obligations cann be fulfilled, the response is replaced by a response
+	 * response is left as is. If its decision is not {@link Decision#PERMIT permit} or if
+	 * not all obligations cann be fulfilled, the response is replaced by a response
 	 * containing {@link Decision#DENY deny} and no resource. {@link MultiResponse}s are
 	 * only emitted if they are different from the preceding one.
-	 *
 	 * @param multiRequest the multi-request to be sent to the PDP.
 	 * @return a Flux emitting {@link MultiResponse multi-responses} which may differ from
-	 *         the original ones emitted by the PDP after having handled the obligations.
+	 * the original ones emitted by the PDP after having handled the obligations.
 	 */
 	public Flux<MultiResponse> filterEnforce(MultiRequest multiRequest) {
 		final Flux<MultiResponse> multiResponseFlux = pdp.decideAll(multiRequest);
@@ -189,16 +196,26 @@ public class PolicyEnforcementPoint implements Disposable {
 				final String requestId = identifiableResponse.getRequestId();
 				final Response response = identifiableResponse.getResponse();
 				if (response == null || response.getDecision() != Decision.PERMIT) {
-					resultResponse.setResponseForRequestWithId(requestId, Response.deny());
-				} else if (!constraintHandlers.obligationHandlersForObligationsAvailable(response)) {
-					LOGGER.debug("Obligations cannot be fulfilled for response with id {}. No handler available.", requestId);
-					resultResponse.setResponseForRequestWithId(requestId, Response.deny());
+					resultResponse.setResponseForRequestWithId(requestId,
+							Response.deny());
+				}
+				else if (!constraintHandlers
+						.obligationHandlersForObligationsAvailable(response)) {
+					LOGGER.debug(
+							"Obligations cannot be fulfilled for response with id {}. No handler available.",
+							requestId);
+					resultResponse.setResponseForRequestWithId(requestId,
+							Response.deny());
 				}
 				try {
 					constraintHandlers.handleObligations(response);
-				} catch (AccessDeniedException e) {
-					LOGGER.debug("PEP failed to fulfill PDP obligations for response with id {} ({})", requestId, e.getLocalizedMessage());
-					resultResponse.setResponseForRequestWithId(requestId, Response.deny());
+				}
+				catch (AccessDeniedException e) {
+					LOGGER.debug(
+							"PEP failed to fulfill PDP obligations for response with id {} ({})",
+							requestId, e.getLocalizedMessage());
+					resultResponse.setResponseForRequestWithId(requestId,
+							Response.deny());
 				}
 				constraintHandlers.handleAdvices(response);
 				resultResponse.setResponseForRequestWithId(requestId, response);
@@ -208,7 +225,8 @@ public class PolicyEnforcementPoint implements Disposable {
 		}).distinctUntilChanged();
 	}
 
-	private Request buildRequest(Object subject, Object action, Object resource, Object environment) {
+	private Request buildRequest(Object subject, Object action, Object resource,
+			Object environment) {
 		final JsonNode subjectNode = mapper.valueToTree(subject);
 		final JsonNode actionNode = mapper.valueToTree(action);
 		final JsonNode resourceNode = mapper.valueToTree(resource);

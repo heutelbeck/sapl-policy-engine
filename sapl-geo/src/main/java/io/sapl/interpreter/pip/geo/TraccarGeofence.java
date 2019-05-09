@@ -13,10 +13,17 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(Include.NON_NULL)
 public class TraccarGeofence {
+
 	private int id;
+
 	private JsonNode attributes;
+
 	private String name;
+
 	private String description;
+
 	private String area;
+
 	private int calendarId;
+
 }

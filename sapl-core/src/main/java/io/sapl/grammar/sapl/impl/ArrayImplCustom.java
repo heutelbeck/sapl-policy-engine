@@ -32,42 +32,44 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implementation of an array in SAPL.
- * 
- * Grammar: Array returns Value: {Array} '[' (items+=Expression (','
- * items+=Expression)*)? ']' ;
+ *
+ * Grammar: Array returns Value: {Array} '[' (items+=Expression (',' items+=Expression)*)?
+ * ']' ;
  */
 public class ArrayImplCustom extends ArrayImpl {
 
 	/**
 	 * The semantics of evaluating an array is as follows:
-	 * 
-	 * An array may contain a list of expressions. To get the values of the
-	 * individual expressions, these have to be recursively evaluated.
-	 * 
+	 *
+	 * An array may contain a list of expressions. To get the values of the individual
+	 * expressions, these have to be recursively evaluated.
+	 *
 	 * Returning a Flux this means to subscribe to all expression result Fluxes and to
-	 * combineLatest into a new array each time one of the expression Fluxes emits a
-	 * new value.
+	 * combineLatest into a new array each time one of the expression Fluxes emits a new
+	 * value.
 	 */
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(getItems().size());
 		for (Expression item : getItems()) {
-			itemFluxes.add(item.evaluate(ctx, isBody, relativeNode).flatMap(Value::toJsonNode));
+			itemFluxes.add(
+					item.evaluate(ctx, isBody, relativeNode).flatMap(Value::toJsonNode));
 		}
 		// handle the empty array
 		if (itemFluxes.isEmpty()) {
 			return Flux.just(Optional.of(JsonNodeFactory.instance.arrayNode()));
 		}
-		return Flux.combineLatest(itemFluxes, Function.identity()).map(this::collectValuesToArrayNode)
-				.map(Optional::of);
+		return Flux.combineLatest(itemFluxes, Function.identity())
+				.map(this::collectValuesToArrayNode).map(Optional::of);
 	}
 
 	/**
-	 * Collects a concrete evaluation of all expressions in the array into a single
-	 * Array. We do not allow for returning 'undefined'/Optional.empty() as fields
-	 * in the array. At runtime, this is primarily a constraint due to to usage of
-	 * Jackson JsonNodes which do not have a concept of 'undefined'. Also as we want
-	 * to return valid JSON values 'undefined' may not occur anywhere.
+	 * Collects a concrete evaluation of all expressions in the array into a single Array.
+	 * We do not allow for returning 'undefined'/Optional.empty() as fields in the array.
+	 * At runtime, this is primarily a constraint due to to usage of Jackson JsonNodes
+	 * which do not have a concept of 'undefined'. Also as we want to return valid JSON
+	 * values 'undefined' may not occur anywhere.
 	 */
 	private JsonNode collectValuesToArrayNode(Object[] values) {
 		final ArrayNode resultArr = JsonNodeFactory.instance.arrayNode();
@@ -89,7 +91,8 @@ public class ArrayImplCustom extends ArrayImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
+			Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

@@ -8,6 +8,7 @@ import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
 public class PostInvocationEnforcementProvider implements AfterInvocationProvider {
+
 	private final PostInvocationEnforcementAdvice postAdvice;
 
 	public PostInvocationEnforcementProvider(PostInvocationEnforcementAdvice postAdvice) {
@@ -25,13 +26,16 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 	}
 
 	@Override
-	public Object decide(Authentication authentication, Object object, Collection<ConfigAttribute> attributes,
-			Object returnedObject) {
-		PolicyBasedPostInvocationEnforcementAttribute pia = findPostInvocationEnforcementAttribute(attributes);
+	public Object decide(Authentication authentication, Object object,
+			Collection<ConfigAttribute> attributes, Object returnedObject) {
+		PolicyBasedPostInvocationEnforcementAttribute pia = findPostInvocationEnforcementAttribute(
+				attributes);
 		if (pia == null) {
 			return returnedObject;
-		} else {
-			return postAdvice.after(authentication, (MethodInvocation) object, pia, returnedObject);
+		}
+		else {
+			return postAdvice.after(authentication, (MethodInvocation) object, pia,
+					returnedObject);
 		}
 	}
 
@@ -44,4 +48,5 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 		}
 		return null;
 	}
+
 }

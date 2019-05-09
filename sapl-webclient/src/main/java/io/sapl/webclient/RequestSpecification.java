@@ -15,11 +15,15 @@ public class RequestSpecification {
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	private JsonNode url;
+
 	private Map<String, String> headers;
+
 	private String rawBody;
+
 	private JsonNode body;
 
-	public static RequestSpecification from(JsonNode value) throws JsonProcessingException {
+	public static RequestSpecification from(JsonNode value)
+			throws JsonProcessingException {
 		return MAPPER.treeToValue(value, RequestSpecification.class);
 	}
 

@@ -31,9 +31,13 @@ public class FastParsedDocumentIndexTest {
 	public Timeout globalTimeout = Timeout.seconds(60);
 
 	private Map<String, Boolean> bindings;
+
 	private SAPLInterpreter interpreter;
+
 	private JsonNodeFactory json;
+
 	private FastParsedDocumentIndex prp;
+
 	private Map<String, JsonNode> variables;
 
 	@Before
@@ -61,11 +65,13 @@ public class FastParsedDocumentIndexTest {
 		Request request = createRequestObject();
 
 		// when
-		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx,
+				variables);
 
 		// then
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
+		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1)
+				.contains(document);
 	}
 
 	@Test
@@ -82,7 +88,8 @@ public class FastParsedDocumentIndexTest {
 		Request request = createRequestObject();
 
 		// when
-		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx,
+				variables);
 
 		// then
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
@@ -101,11 +108,13 @@ public class FastParsedDocumentIndexTest {
 
 		// when
 		prp.updateFunctionContext(functionCtx);
-		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx,
+				variables);
 
 		// then
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
+		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1)
+				.contains(document);
 	}
 
 	private Request createRequestObject() {
@@ -116,7 +125,8 @@ public class FastParsedDocumentIndexTest {
 				resource.put(entry.getKey(), value);
 			}
 		}
-		return new Request(NullNode.getInstance(), NullNode.getInstance(), resource, NullNode.getInstance());
+		return new Request(NullNode.getInstance(), NullNode.getInstance(), resource,
+				NullNode.getInstance());
 	}
 
 	private static Set<String> getVariables() {
@@ -126,4 +136,5 @@ public class FastParsedDocumentIndexTest {
 		}
 		return variables;
 	}
+
 }

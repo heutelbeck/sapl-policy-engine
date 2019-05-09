@@ -25,8 +25,11 @@ import lombok.Value;
 public class RequestElements {
 
 	private Integer subjectId;
+
 	private Integer actionId;
+
 	private Integer resourceId;
+
 	private Integer environmentId;
 
 	public RequestElements() {
@@ -35,4 +38,5 @@ public class RequestElements {
 		resourceId = null;
 		environmentId = null;
 	}
+
 }

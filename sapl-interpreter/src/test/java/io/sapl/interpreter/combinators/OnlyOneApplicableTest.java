@@ -41,11 +41,14 @@ import io.sapl.interpreter.pip.AttributeContext;
 public class OnlyOneApplicableTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+
+	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections
+			.unmodifiableMap(new HashMap<>());
 
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private AttributeContext attributeCtx;
+
 	private FunctionContext functionCtx;
 
 	@Before
@@ -56,121 +59,164 @@ public class OnlyOneApplicableTest {
 
 	@Test
 	public void permit() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable" + " policy \"testp\" permit");
+		SAPL policySet = INTERPRETER
+				.parse("set \"tests\" only-one-applicable" + " policy \"testp\" permit");
 
-		assertEquals("should return permit if the only policy evaluates to permit", Decision.PERMIT, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getDecision());
+		assertEquals("should return permit if the only policy evaluates to permit",
+				Decision.PERMIT,
+				INTERPRETER
+						.evaluate(new Request(null, null, null, null), policySet,
+								attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	public void deny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable" + " policy \"testp\" deny");
+		SAPL policySet = INTERPRETER
+				.parse("set \"tests\" only-one-applicable" + " policy \"testp\" deny");
 
-		assertEquals("should return deny if the only policy evaluates to deny", Decision.DENY, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getDecision());
+		assertEquals("should return deny if the only policy evaluates to deny",
+				Decision.DENY,
+				INTERPRETER
+						.evaluate(new Request(null, null, null, null), policySet,
+								attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	public void notApplicableTarget() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" only-one-applicable" + " policy \"testp\" deny true == false");
+		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable"
+				+ " policy \"testp\" deny true == false");
 
-		assertEquals("should return not applicable if the only policy target evaluates to not applicable",
-				Decision.NOT_APPLICABLE, INTERPRETER.evaluate(new Request(null, null, null, null), policySet,
-						attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
+		assertEquals(
+				"should return not applicable if the only policy target evaluates to not applicable",
+				Decision.NOT_APPLICABLE,
+				INTERPRETER
+						.evaluate(new Request(null, null, null, null), policySet,
+								attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	public void notApplicableCondition() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" only-one-applicable" + " policy \"testp\" deny where true == false;");
+		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable"
+				+ " policy \"testp\" deny where true == false;");
 
-		assertEquals("should return not applicable if the only policy condition evaluates to not applicable",
-				Decision.NOT_APPLICABLE, INTERPRETER.evaluate(new Request(null, null, null, null), policySet,
-						attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
+		assertEquals(
+				"should return not applicable if the only policy condition evaluates to not applicable",
+				Decision.NOT_APPLICABLE,
+				INTERPRETER
+						.evaluate(new Request(null, null, null, null), policySet,
+								attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	public void indeterminateTarget() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable" + " policy \"testp\" permit \"a\" < 5");
+		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable"
+				+ " policy \"testp\" permit \"a\" < 5");
 
-		assertEquals("should return indeterminate if the only target is indeterminate", Decision.INDETERMINATE,
-				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).blockFirst().getDecision());
+		assertEquals("should return indeterminate if the only target is indeterminate",
+				Decision.INDETERMINATE,
+				INTERPRETER
+						.evaluate(new Request(null, null, null, null), policySet,
+								attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	public void indeterminateCondition() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" only-one-applicable" + " policy \"testp\" permit where \"a\" < 5;");
+		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable"
+				+ " policy \"testp\" permit where \"a\" < 5;");
 
-		assertEquals("should return indeterminate if the only condition is indeterminate", Decision.INDETERMINATE,
-				INTERPRETER.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).blockFirst().getDecision());
+		assertEquals("should return indeterminate if the only condition is indeterminate",
+				Decision.INDETERMINATE,
+				INTERPRETER
+						.evaluate(new Request(null, null, null, null), policySet,
+								attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	public void onePolicyMatching() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable" + " policy \"testp1\" deny false"
-				+ " policy \"testp2\" permit true" + " policy \"testp3\" permit false");
+		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable"
+				+ " policy \"testp1\" deny false" + " policy \"testp2\" permit true"
+				+ " policy \"testp3\" permit false");
 
-		assertEquals("should return permit if only matching policy evaluates to permit", Decision.PERMIT, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getDecision());
+		assertEquals("should return permit if only matching policy evaluates to permit",
+				Decision.PERMIT,
+				INTERPRETER
+						.evaluate(new Request(null, null, null, null), policySet,
+								attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	public void twoPoliciesMatching1() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" only-one-applicable" + " policy \"testp1\" permit" + " policy \"testp2\" deny");
+		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable"
+				+ " policy \"testp1\" permit" + " policy \"testp2\" deny");
 
-		assertEquals("should return indeterminate if more than one policy matching", Decision.INDETERMINATE, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getDecision());
+		assertEquals("should return indeterminate if more than one policy matching",
+				Decision.INDETERMINATE,
+				INTERPRETER
+						.evaluate(new Request(null, null, null, null), policySet,
+								attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	public void twoPoliciesMatching2() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" only-one-applicable" + " policy \"testp1\" permit" + " policy \"testp2\" permit");
+		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable"
+				+ " policy \"testp1\" permit" + " policy \"testp2\" permit");
 
-		assertEquals("should return indeterminate if more than one policy matching", Decision.INDETERMINATE, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getDecision());
+		assertEquals("should return indeterminate if more than one policy matching",
+				Decision.INDETERMINATE,
+				INTERPRETER
+						.evaluate(new Request(null, null, null, null), policySet,
+								attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
-	public void twoPoliciesMatchingButOneNotApplicable() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable" + " policy \"testp1\" permit"
-				+ " policy \"testp2\" deny where false;");
+	public void twoPoliciesMatchingButOneNotApplicable()
+			throws PolicyEvaluationException {
+		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable"
+				+ " policy \"testp1\" permit" + " policy \"testp2\" deny where false;");
 
 		assertEquals(
 				"should return indeterminate if more than one policy matching, "
 						+ "even if only one evaluates to permit or deny",
-				Decision.INDETERMINATE, INTERPRETER.evaluate(new Request(null, null, null, null), policySet,
-						attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
+				Decision.INDETERMINATE,
+				INTERPRETER
+						.evaluate(new Request(null, null, null, null), policySet,
+								attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	public void singlePermitTransformation() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" only-one-applicable" + " policy \"testp\" permit transform true");
+		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable"
+				+ " policy \"testp\" permit transform true");
 
-		assertEquals("should return permit if there is no transformation incertainty", Decision.PERMIT, INTERPRETER
-				.evaluate(new Request(null, null, null, null), policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getDecision());
+		assertEquals("should return permit if there is no transformation incertainty",
+				Decision.PERMIT,
+				INTERPRETER
+						.evaluate(new Request(null, null, null, null), policySet,
+								attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
 	public void singlePermitTransformationResource() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" only-one-applicable" + " policy \"testp\" permit transform true");
+		SAPL policySet = INTERPRETER.parse("set \"tests\" only-one-applicable"
+				+ " policy \"testp\" permit transform true");
 
 		assertEquals("should return resource if there is no transformation incertainty",
-				Optional.of(JSON.booleanNode(true)), INTERPRETER.evaluate(new Request(null, null, null, null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getResource());
+				Optional.of(JSON.booleanNode(true)),
+				INTERPRETER
+						.evaluate(new Request(null, null, null, null), policySet,
+								attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getResource());
 	}
 
 	@Test
@@ -184,9 +230,14 @@ public class OnlyOneApplicableTest {
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
 
-		assertEquals("should collect deny obligation of only matching policy", Optional.of(obligation),
-				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligations());
+		assertEquals("should collect deny obligation of only matching policy",
+				Optional.of(obligation),
+				INTERPRETER
+						.evaluate(
+								new Request(null, null,
+										JsonNodeFactory.instance.booleanNode(true), null),
+								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getObligations());
 	}
 
 	@Test
@@ -200,9 +251,14 @@ public class OnlyOneApplicableTest {
 		ArrayNode advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
 
-		assertEquals("should collect deny advice of only matching policy", Optional.of(advice),
-				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvices());
+		assertEquals("should collect deny advice of only matching policy",
+				Optional.of(advice),
+				INTERPRETER
+						.evaluate(
+								new Request(null, null,
+										JsonNodeFactory.instance.booleanNode(true), null),
+								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getAdvices());
 	}
 
 	@Test
@@ -216,9 +272,14 @@ public class OnlyOneApplicableTest {
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
 
-		assertEquals("should collect permit obligation of only matching policy", Optional.of(obligation),
-				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getObligations());
+		assertEquals("should collect permit obligation of only matching policy",
+				Optional.of(obligation),
+				INTERPRETER
+						.evaluate(
+								new Request(null, null,
+										JsonNodeFactory.instance.booleanNode(true), null),
+								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getObligations());
 	}
 
 	@Test
@@ -232,9 +293,14 @@ public class OnlyOneApplicableTest {
 		ArrayNode advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
 
-		assertEquals("should collect permit advice of only matching policy", Optional.of(advice),
-				INTERPRETER.evaluate(new Request(null, null, JsonNodeFactory.instance.booleanNode(true), null),
-						policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getAdvices());
+		assertEquals("should collect permit advice of only matching policy",
+				Optional.of(advice),
+				INTERPRETER
+						.evaluate(
+								new Request(null, null,
+										JsonNodeFactory.instance.booleanNode(true), null),
+								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getAdvices());
 	}
 
 }

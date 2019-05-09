@@ -21,17 +21,31 @@ import lombok.Data;
 @Data
 @JsonInclude(Include.NON_NULL)
 public class TraccarDevice {
+
 	private int id;
+
 	private JsonNode attributes;
+
 	private String name;
+
 	private String uniqueId;
+
 	private String status;
+
 	private String lastUpdate;
+
 	private int positionId;
+
 	private int groupId;
+
 	private int[] geofenceIds;
+
 	private String phone;
+
 	private String model;
+
 	private String contact;
+
 	private Object category;
+
 }

@@ -16,21 +16,23 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
 
 public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
+
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	Map<String, SAPL> publishedDocuments = new ConcurrentHashMap<>();
 
 	@Override
-	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
-			Map<String, JsonNode> variables) {
+	public PolicyRetrievalResult retrievePolicies(Request request,
+			FunctionContext functionCtx, Map<String, JsonNode> variables) {
 		boolean errorOccured = false;
 		List<SAPL> result = new ArrayList<>();
-		for (SAPL sapl : publishedDocuments.values()) {			
+		for (SAPL sapl : publishedDocuments.values()) {
 			try {
 				if (INTERPRETER.matches(request, sapl, functionCtx, variables)) {
 					result.add(sapl);
 				}
-			} catch (PolicyEvaluationException e) {
+			}
+			catch (PolicyEvaluationException e) {
 				errorOccured = true;
 			}
 		}

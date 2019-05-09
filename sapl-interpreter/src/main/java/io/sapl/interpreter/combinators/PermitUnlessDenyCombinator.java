@@ -27,17 +27,19 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 	}
 
 	@Override
-	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
-												   Request request, AttributeContext attributeCtx, FunctionContext functionCtx,
-												   Map<String, JsonNode> systemVariables) {
+	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
+			boolean errorsInTarget, Request request, AttributeContext attributeCtx,
+			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
 
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
 			return Flux.just(Response.permit());
 		}
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingSaplDocuments.size());
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(
+				matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
-			responseFluxes.add(interpreter.evaluate(request, document, attributeCtx, functionCtx, systemVariables));
+			responseFluxes.add(interpreter.evaluate(request, document, attributeCtx,
+					functionCtx, systemVariables));
 		}
 
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator();
@@ -48,17 +50,20 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 	}
 
 	@Override
-	public Flux<Response> combinePolicies(List<Policy> policies, Request request, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
+	public Flux<Response> combinePolicies(List<Policy> policies, Request request,
+			AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
 			Map<String, String> imports) {
 
 		final List<Policy> matchingPolicies = new ArrayList<>();
 		for (Policy policy : policies) {
 			try {
-				if (interpreter.matches(request, policy, functionCtx, systemVariables, variables, imports)) {
+				if (interpreter.matches(request, policy, functionCtx, systemVariables,
+						variables, imports)) {
 					matchingPolicies.add(policy);
 				}
-			} catch (PolicyEvaluationException e) {
+			}
+			catch (PolicyEvaluationException e) {
 				// we won't further evaluate this policy
 			}
 		}
@@ -67,10 +72,11 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 			return Flux.just(Response.permit());
 		}
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(
+				matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
-			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx, functionCtx,
-					systemVariables, variables, imports));
+			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx,
+					functionCtx, systemVariables, variables, imports));
 		}
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator();
 		return Flux.combineLatest(responseFluxes, responses -> {
@@ -79,12 +85,14 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 		}).distinctUntilChanged();
 	}
 
-
 	private static class ResponseAccumulator {
 
 		private Response response;
+
 		private int permitCount;
+
 		private boolean transformation;
+
 		private ObligationAdviceCollector obligationAdvice;
 
 		ResponseAccumulator() {
@@ -109,7 +117,9 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 			if (newResponse.getDecision() == Decision.DENY) {
 				obligationAdvice.add(Decision.DENY, newResponse);
 				response = Response.deny();
-			} else if (newResponse.getDecision() == Decision.PERMIT && response.getDecision() != Decision.DENY) {
+			}
+			else if (newResponse.getDecision() == Decision.PERMIT
+					&& response.getDecision() != Decision.DENY) {
 				permitCount += 1;
 				if (newResponse.getResource().isPresent()) {
 					transformation = true;
@@ -124,16 +134,20 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 			if (response.getDecision() == Decision.PERMIT) {
 				if (permitCount > 1 && transformation) {
 					return Response.deny();
-				} else {
+				}
+				else {
 					return new Response(Decision.PERMIT, response.getResource(),
 							obligationAdvice.get(Type.OBLIGATION, Decision.PERMIT),
 							obligationAdvice.get(Type.ADVICE, Decision.PERMIT));
 				}
-			} else {
+			}
+			else {
 				return new Response(Decision.DENY, response.getResource(),
 						obligationAdvice.get(Type.OBLIGATION, Decision.DENY),
 						obligationAdvice.get(Type.ADVICE, Decision.DENY));
 			}
 		}
+
 	}
+
 }

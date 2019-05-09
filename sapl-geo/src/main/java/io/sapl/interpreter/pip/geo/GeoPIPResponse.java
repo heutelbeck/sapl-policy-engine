@@ -29,17 +29,26 @@ import lombok.Getter;
 @Getter
 @JsonInclude(Include.NON_NULL)
 public class GeoPIPResponse {
+
 	private final String identifier;
+
 	private final JsonNode position;
+
 	private final double altitude;
+
 	private final String lastUpdate;
+
 	private final double accuracy;
+
 	private final double trust;
+
 	private final ObjectNode geofences;
 
-	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	private static final ObjectMapper MAPPER = new ObjectMapper()
+			.enable(SerializationFeature.INDENT_OUTPUT);
 
 	public JsonNode toJsonNode() {
 		return MAPPER.convertValue(this, JsonNode.class);
 	}
+
 }

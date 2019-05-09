@@ -11,10 +11,13 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
 
 public class ObligationAdviceCollector {
+
 	private EnumMap<Type, Map<Decision, ArrayNode>> obligationAdvice;
 
 	public enum Type {
+
 		OBLIGATION, ADVICE
+
 	}
 
 	public ObligationAdviceCollector() {
@@ -34,10 +37,12 @@ public class ObligationAdviceCollector {
 
 	public void add(Decision decision, Response response) {
 		if (response.getObligations().isPresent()) {
-			obligationAdvice.get(Type.OBLIGATION).get(decision).addAll(response.getObligations().get());
+			obligationAdvice.get(Type.OBLIGATION).get(decision)
+					.addAll(response.getObligations().get());
 		}
 		if (response.getAdvices().isPresent()) {
-			obligationAdvice.get(Type.ADVICE).get(decision).addAll(response.getAdvices().get());
+			obligationAdvice.get(Type.ADVICE).get(decision)
+					.addAll(response.getAdvices().get());
 		}
 	}
 
@@ -45,8 +50,10 @@ public class ObligationAdviceCollector {
 		ArrayNode returnNode = obligationAdvice.get(type).get(decision);
 		if (returnNode.size() > 0) {
 			return Optional.of(returnNode);
-		} else {
+		}
+		else {
 			return Optional.empty();
 		}
 	}
+
 }

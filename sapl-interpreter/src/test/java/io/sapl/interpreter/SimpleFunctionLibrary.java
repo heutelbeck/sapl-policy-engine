@@ -22,6 +22,7 @@ import io.sapl.api.validation.Text;
 
 @FunctionLibrary(name = "simple", description = "some simple functions")
 public class SimpleFunctionLibrary {
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Function
@@ -29,11 +30,14 @@ public class SimpleFunctionLibrary {
 		JsonNode result = null;
 		if (parameter.isArray()) {
 			result = JSON.numberNode(parameter.size());
-		} else if (parameter.isTextual()) {
+		}
+		else if (parameter.isTextual()) {
 			result = JSON.numberNode(parameter.asText().length());
-		} else {
+		}
+		else {
 			throw new FunctionException(
-					"length() parameter must be a string or an array, found " + parameter.getNodeType() + ".");
+					"length() parameter must be a string or an array, found "
+							+ parameter.getNodeType() + ".");
 		}
 		return result;
 	}

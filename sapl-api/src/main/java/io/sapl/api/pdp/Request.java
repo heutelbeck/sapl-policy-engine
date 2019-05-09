@@ -21,29 +21,31 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * The request object defines the request tuple of objects. Each request
- * consists of:
+ * The request object defines the request tuple of objects. Each request consists of:
  * <ul>
  * <li>a subject describing the entity which is requesting permission</li>
- * <li>an action describing for which activity the subject is requesting
- * permission</li>
- * <li>a resource describing or even containing the resource for which the
- * subject is requesting the permission to execute the action</li>
- * <li>an environment object describing additional contextual information from
- * the environment which may be required for evaluating the underlying
- * policies.</li>
+ * <li>an action describing for which activity the subject is requesting permission</li>
+ * <li>a resource describing or even containing the resource for which the subject is
+ * requesting the permission to execute the action</li>
+ * <li>an environment object describing additional contextual information from the
+ * environment which may be required for evaluating the underlying policies.</li>
  * </ul>
  *
- * All of these objects are expected to be Jackson JsonNodes representing an
- * arbitrary JSON object.
+ * All of these objects are expected to be Jackson JsonNodes representing an arbitrary
+ * JSON object.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(Include.NON_NULL)
 public class Request {
+
 	private JsonNode subject;
+
 	private JsonNode action;
+
 	private JsonNode resource;
+
 	private JsonNode environment;
+
 }

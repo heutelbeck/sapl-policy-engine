@@ -10,15 +10,16 @@ import lombok.ToString;
 @ToString
 public class IdentifiableRequest {
 
-    private String requestId;
-    private Request request;
+	private String requestId;
 
-    public IdentifiableRequest(String requestId, Request request) {
-        requireNonNull(requestId, "requestId must not be null");
-        requireNonNull(request, "request must not be null");
+	private Request request;
 
-        this.requestId = requestId;
-        this.request = request;
-    }
+	public IdentifiableRequest(String requestId, Request request) {
+		requireNonNull(requestId, "requestId must not be null");
+		requireNonNull(request, "request must not be null");
+
+		this.requestId = requestId;
+		this.request = request;
+	}
 
 }

@@ -13,16 +13,17 @@ import lombok.Value;
 @JsonInclude(NON_NULL)
 public class IdentifiableResponse {
 
-    private String requestId;
-    private Response response;
+	private String requestId;
 
-    public IdentifiableResponse() {
-        requestId = null;
-        response = null;
-    }
+	private Response response;
 
-    public static IdentifiableResponse indeterminate() {
-        return new IdentifiableResponse(null, Response.indeterminate());
-    }
+	public IdentifiableResponse() {
+		requestId = null;
+		response = null;
+	}
+
+	public static IdentifiableResponse indeterminate() {
+		return new IdentifiableResponse(null, Response.indeterminate());
+	}
 
 }

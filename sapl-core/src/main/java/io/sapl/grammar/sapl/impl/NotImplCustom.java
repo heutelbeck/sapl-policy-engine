@@ -22,9 +22,10 @@ import reactor.core.publisher.Flux;
 public class NotImplCustom extends NotImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return expression.evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean).map(bool -> !bool)
-				.map(Value::of).distinctUntilChanged();
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
+		return expression.evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean)
+				.map(bool -> !bool).map(Value::of).distinctUntilChanged();
 	}
 
 }

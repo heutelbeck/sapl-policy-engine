@@ -25,13 +25,12 @@ public class PolicyDirectoryWatcherTest {
 
 	/**
 	 * Run this test and create, modify or delete files under the directory
-	 * target/test-classes/policies. To terminate the test, add a file called
-	 * "stop.sapl" or delete the whole directory.
-	 * 
+	 * target/test-classes/policies. To terminate the test, add a file called "stop.sapl"
+	 * or delete the whole directory.
 	 * @throws URISyntaxException
 	 * @throws InterruptedException
 	 */
-	//@Test
+	// @Test
 	public void watchPoliciesDirectory() throws URISyntaxException, InterruptedException {
 		Path watchDir = Paths.get(getClass().getResource("/policies").toURI());
 		LOGGER.info("watchDir: {}", watchDir);
@@ -44,7 +43,8 @@ public class PolicyDirectoryWatcherTest {
 			@Override
 			@SuppressWarnings("unchecked")
 			public void onEvent(WatchEvent<Path> event) {
-				LOGGER.info("watch event of kind {} for path {}", event.kind().name(), event.context().toString());
+				LOGGER.info("watch event of kind {} for path {}", event.kind().name(),
+						event.context().toString());
 				Path filename = event.context();
 				if (filename.toString().equals("stop.sapl")) {
 					cancel();
@@ -83,10 +83,12 @@ public class PolicyDirectoryWatcherTest {
 		when(overflowEvent.kind()).thenReturn(StandardWatchEventKinds.OVERFLOW);
 
 		final WatchKey watchKey = mock(WatchKey.class);
-		when(watchKey.pollEvents()).thenReturn(Arrays.asList(createEvent, modifyEvent, deleteEvent, overflowEvent));
+		when(watchKey.pollEvents()).thenReturn(
+				Arrays.asList(createEvent, modifyEvent, deleteEvent, overflowEvent));
 		when(watchKey.isValid()).thenReturn(false);
 
-		final DirectoryWatchEventConsumer eventConsumer = spy(DirectoryWatchEventConsumer.class);
+		final DirectoryWatchEventConsumer eventConsumer = spy(
+				DirectoryWatchEventConsumer.class);
 
 		// when
 		new DirectoryWatcher(null).handleWatchKey(watchKey, eventConsumer);
@@ -95,4 +97,5 @@ public class PolicyDirectoryWatcherTest {
 		verify(eventConsumer, times(3)).onEvent(any(WatchEvent.class));
 		verify(eventConsumer, times(1)).cancel();
 	}
+
 }

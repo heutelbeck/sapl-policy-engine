@@ -8,12 +8,13 @@ import lombok.Value;
 @AllArgsConstructor
 public class IdentifiableDecision {
 
-    private String requestId;
-    private Decision decision;
+	private String requestId;
 
-    public IdentifiableDecision(IdentifiableResponse identifiableResponse) {
-        requestId = identifiableResponse.getRequestId();
-        decision = identifiableResponse.getResponse().getDecision();
-    }
+	private Decision decision;
+
+	public IdentifiableDecision(IdentifiableResponse identifiableResponse) {
+		requestId = identifiableResponse.getRequestId();
+		decision = identifiableResponse.getResponse().getDecision();
+	}
 
 }

@@ -54,7 +54,8 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 
 	@Override
 	public Iterator<IdentifiableResponse> iterator() {
-		final Iterator<Map.Entry<String, Response>> responseIterator = responses.entrySet().iterator();
+		final Iterator<Map.Entry<String, Response>> responseIterator = responses
+				.entrySet().iterator();
 		return new Iterator<IdentifiableResponse>() {
 			@Override
 			public boolean hasNext() {
@@ -64,7 +65,8 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 			@Override
 			public IdentifiableResponse next() {
 				final Map.Entry<String, Response> responseEntry = responseIterator.next();
-				return new IdentifiableResponse(responseEntry.getKey(), responseEntry.getValue());
+				return new IdentifiableResponse(responseEntry.getKey(),
+						responseEntry.getValue());
 			}
 		};
 	}
@@ -112,13 +114,17 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 	public String toString() {
 		final StringBuilder sb = new StringBuilder("MultiResponse {");
 		for (IdentifiableResponse response : this) {
-			sb.append("\n\t[").append("REQ-ID: ").append(response.getRequestId()).append(" | ").append("DECISION: ")
-					.append(response.getResponse().getDecision()).append(" | ").append("RESOURCE: ")
-					.append(response.getResponse().getResource()).append(" | ").append("OBLIGATIONS: ")
-					.append(response.getResponse().getObligations()).append(" | ").append("ADVICE: ")
-					.append(response.getResponse().getAdvices()).append(']');
+			sb.append("\n\t[").append("REQ-ID: ").append(response.getRequestId())
+					.append(" | ").append("DECISION: ")
+					.append(response.getResponse().getDecision()).append(" | ")
+					.append("RESOURCE: ").append(response.getResponse().getResource())
+					.append(" | ").append("OBLIGATIONS: ")
+					.append(response.getResponse().getObligations()).append(" | ")
+					.append("ADVICE: ").append(response.getResponse().getAdvices())
+					.append(']');
 		}
 		sb.append("\n}");
 		return sb.toString();
 	}
+
 }

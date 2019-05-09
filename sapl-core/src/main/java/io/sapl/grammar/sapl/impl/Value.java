@@ -14,9 +14,13 @@ import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class Value {
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	protected static final String BOOLEAN_OPERATION_TYPE_MISMATCH = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
+
 	protected static final String TEXT_OPERATION_TYPE_MISMATCH = "Type mismatch. Text operation expects text values, but got: '%s'.";
+
 	protected static final String ARITHMETIC_OPERATION_TYPE_MISMATCH = "Type mismatch. Number operation expects number values, but got: '%s'.";
 
 	public static Flux<Optional<JsonNode>> nullFlux() {
@@ -77,8 +81,8 @@ public class Value {
 
 	public static Flux<Boolean> toBoolean(Optional<JsonNode> node) {
 		if (!node.isPresent() || !node.get().isBoolean()) {
-			return Flux
-					.error(new PolicyEvaluationException(String.format(BOOLEAN_OPERATION_TYPE_MISMATCH, typeOf(node))));
+			return Flux.error(new PolicyEvaluationException(
+					String.format(BOOLEAN_OPERATION_TYPE_MISMATCH, typeOf(node))));
 		}
 		return Flux.just(node.get().booleanValue());
 	}
@@ -92,31 +96,32 @@ public class Value {
 
 	public static Flux<ArrayNode> toArrayNode(Optional<JsonNode> node) {
 		if (!node.isPresent() || !node.get().isArray()) {
-			return Flux.error(new PolicyEvaluationException(
-					String.format("Type mismatch. Expected an array, but got %s.", typeOf(node))));
+			return Flux.error(new PolicyEvaluationException(String.format(
+					"Type mismatch. Expected an array, but got %s.", typeOf(node))));
 		}
 		return Flux.just((ArrayNode) node.get());
 	}
 
 	public static Flux<ObjectNode> toObjectNode(Optional<JsonNode> node) {
 		if (!node.isPresent() || !node.get().isObject()) {
-			return Flux.error(new PolicyEvaluationException(
-					String.format("Type mismatch. Expected an object, but got %s.", typeOf(node))));
+			return Flux.error(new PolicyEvaluationException(String.format(
+					"Type mismatch. Expected an object, but got %s.", typeOf(node))));
 		}
 		return Flux.just((ObjectNode) node.get());
 	}
 
 	public static Flux<String> toString(Optional<JsonNode> node) {
 		if (!node.isPresent() || !node.get().isTextual()) {
-			return Flux.error(new PolicyEvaluationException(String.format(TEXT_OPERATION_TYPE_MISMATCH, typeOf(node))));
+			return Flux.error(new PolicyEvaluationException(
+					String.format(TEXT_OPERATION_TYPE_MISMATCH, typeOf(node))));
 		}
 		return Flux.just(node.get().textValue());
 	}
 
 	public static Flux<BigDecimal> toBigDecimal(Optional<JsonNode> node) {
 		if (!node.isPresent() || !node.get().isNumber()) {
-			return Flux.error(
-					new PolicyEvaluationException(String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH, typeOf(node))));
+			return Flux.error(new PolicyEvaluationException(
+					String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH, typeOf(node))));
 		}
 		return Flux.just(node.get().decimalValue());
 	}

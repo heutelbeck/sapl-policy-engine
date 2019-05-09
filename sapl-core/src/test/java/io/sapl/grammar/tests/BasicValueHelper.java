@@ -13,4 +13,5 @@ class BasicValueHelper {
 		basicValue.setValue(value);
 		return basicValue;
 	}
+
 }

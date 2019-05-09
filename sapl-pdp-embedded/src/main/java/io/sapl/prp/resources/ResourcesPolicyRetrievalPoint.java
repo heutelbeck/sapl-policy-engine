@@ -38,23 +38,26 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 	private ParsedDocumentIndex parsedDocIdx;
 
-	public ResourcesPolicyRetrievalPoint() throws IOException, URISyntaxException, PolicyEvaluationException {
+	public ResourcesPolicyRetrievalPoint()
+			throws IOException, URISyntaxException, PolicyEvaluationException {
 		this(DEFAULT_POLICIES_PATH, new SimpleParsedDocumentIndex());
 	}
 
-	public ResourcesPolicyRetrievalPoint(@NonNull String policyPath, @NonNull ParsedDocumentIndex parsedDocumentIndex)
+	public ResourcesPolicyRetrievalPoint(@NonNull String policyPath,
+			@NonNull ParsedDocumentIndex parsedDocumentIndex)
 			throws IOException, URISyntaxException, PolicyEvaluationException {
 		this(ResourcesPolicyRetrievalPoint.class, policyPath, parsedDocumentIndex);
 	}
 
-	public ResourcesPolicyRetrievalPoint(@NonNull Class<?> clazz, @NonNull String policyPath, @NonNull ParsedDocumentIndex parsedDocumentIndex)
+	public ResourcesPolicyRetrievalPoint(@NonNull Class<?> clazz,
+			@NonNull String policyPath, @NonNull ParsedDocumentIndex parsedDocumentIndex)
 			throws IOException, URISyntaxException, PolicyEvaluationException {
 
 		URL policyFolderUrl = clazz.getResource(policyPath);
 
 		if (policyFolderUrl == null) {
-			throw new PolicyEvaluationException(
-					"Policy folder not found. Path:" + policyPath + " - URL: " + policyFolderUrl);
+			throw new PolicyEvaluationException("Policy folder not found. Path:"
+					+ policyPath + " - URL: " + policyFolderUrl);
 		}
 
 		this.parsedDocIdx = parsedDocumentIndex;
@@ -67,19 +70,23 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 				final String[] array = policyFolderUrl.toString().split("!");
 				fs = FileSystems.newFileSystem(URI.create(array[0]), env);
 				path = fs.getPath(array[1]);
-			} else {
+			}
+			else {
 				path = Paths.get(policyFolderUrl.toURI());
 			}
 			LOGGER.info("current path: {}", path);
-			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, POLICY_FILE_GLOB_PATTERN)) {
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path,
+					POLICY_FILE_GLOB_PATTERN)) {
 				for (Path filePath : stream) {
 					LOGGER.info("load: {}", filePath);
 					final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
-					final SAPL saplDocument = interpreter.parse(Files.newInputStream(filePath));
+					final SAPL saplDocument = interpreter
+							.parse(Files.newInputStream(filePath));
 					this.parsedDocIdx.put(filePath.toString(), saplDocument);
 				}
 			}
-		} finally {
+		}
+		finally {
 			if (fs != null) {
 				fs.close();
 			}
@@ -88,20 +95,24 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	}
 
 	@Override
-	public Flux<PolicyRetrievalResult> retrievePolicies(Request request, FunctionContext functionCtx,
-			Map<String, JsonNode> variables) {
-		return Flux.just(parsedDocIdx.retrievePolicies(request, functionCtx, variables)).doOnNext(this::logMatching);
+	public Flux<PolicyRetrievalResult> retrievePolicies(Request request,
+			FunctionContext functionCtx, Map<String, JsonNode> variables) {
+		return Flux.just(parsedDocIdx.retrievePolicies(request, functionCtx, variables))
+				.doOnNext(this::logMatching);
 	}
 
 	private void logMatching(PolicyRetrievalResult result) {
 		if (result.getMatchingDocuments().isEmpty()) {
 			LOGGER.trace("|-- Matching documents: NONE");
-		} else {
+		}
+		else {
 			LOGGER.trace("|-- Matching documents:");
 			for (SAPL doc : result.getMatchingDocuments()) {
-				LOGGER.trace("| |-- * {} ({})", doc.getPolicyElement().getSaplName(), doc.getPolicyElement().getClass().getName());
+				LOGGER.trace("| |-- * {} ({})", doc.getPolicyElement().getSaplName(),
+						doc.getPolicyElement().getClass().getName());
 			}
 		}
 		LOGGER.trace("|");
 	}
+
 }

@@ -36,16 +36,21 @@ import nl.jqno.equalsverifier.Warning;
 public class GeoFunctionsTest {
 
 	private static final double COORDINATE_TOLERANCE = 0.001;
+
 	private static final int GEO_DISTANCE_TOLERANCE = 1;
 
 	private static final String SAMPLE_GEOCOLLECTION = "{ \"type\": \"GeometryCollection\","
 			+ "\"geometries\": [{ \"type\": \"Point\", \"coordinates\": [70.0, 0.0] },"
 			+ "{ \"type\": \"LineString\", \"coordinates\": [ [11.0, 0.0], [12.0, 1.0] ] }] }";
+
 	private static final String SAMPLE_WKT_POINT = "POINT (30 10)";
 
 	private Geometry pointJFK;
+
 	private Geometry pointFRA;
+
 	private Geometry pointBJM;
+
 	private JsonNode jsonGeometryCollection;
 
 	@Before
@@ -64,7 +69,8 @@ public class GeoFunctionsTest {
 			Geometry geomObject = GeometryBuilder.fromJsonNode(jsonGeometryCollection);
 			assertTrue("GeoJSON is not correctly being converted into JTS object.",
 					geomObject instanceof GeometryCollection);
-		} catch (FunctionException e) {
+		}
+		catch (FunctionException e) {
 			fail("GeoJSON is not correctly being converted into JTS object.");
 		}
 	}
@@ -73,8 +79,10 @@ public class GeoFunctionsTest {
 	public void wktToGeometry() {
 		try {
 			Geometry geomObject = GeometryBuilder.fromWkt(SAMPLE_WKT_POINT);
-			assertTrue("WKT-Format is not correctly being converted into JTS object.", geomObject instanceof Point);
-		} catch (FunctionException e) {
+			assertTrue("WKT-Format is not correctly being converted into JTS object.",
+					geomObject instanceof Point);
+		}
+		catch (FunctionException e) {
 			fail("WKT-Format is not correctly being converted into JTS object.");
 		}
 	}
@@ -82,7 +90,9 @@ public class GeoFunctionsTest {
 	@Test(expected = FunctionException.class)
 	public void wktParseException() throws FunctionException {
 		Geometry geomObject = GeometryBuilder.fromWkt("PNT (0 1)");
-		assertNull("Geometry is being created even though provided WKT-format was not well formed.", geomObject);
+		assertNull(
+				"Geometry is being created even though provided WKT-format was not well formed.",
+				geomObject);
 	}
 
 	@Test
@@ -91,9 +101,12 @@ public class GeoFunctionsTest {
 		Geometry jtsPoint = geomFactory.createPoint(new Coordinate(1, 1));
 
 		try {
-			assertEquals("JTS Geometry is not correctly being converted into GeoJSON-Format.",
-					"{\"type\":\"Point\",\"coordinates\":[1,1]}", GeometryBuilder.toJsonNode(jtsPoint).toString());
-		} catch (FunctionException e) {
+			assertEquals(
+					"JTS Geometry is not correctly being converted into GeoJSON-Format.",
+					"{\"type\":\"Point\",\"coordinates\":[1,1]}",
+					GeometryBuilder.toJsonNode(jtsPoint).toString());
+		}
+		catch (FunctionException e) {
 			fail("JTS Geometry is not correctly being converted into GeoJSON.");
 		}
 	}
@@ -103,33 +116,36 @@ public class GeoFunctionsTest {
 		GeometryFactory geomFactory = new GeometryFactory();
 		Geometry jtsPoint = geomFactory.createPoint(new Coordinate(1, 1));
 
-		assertEquals("JTS Geometry is not correctly being converted into WKT-format.", "POINT (1 1)",
-				GeometryBuilder.toWkt(jtsPoint));
+		assertEquals("JTS Geometry is not correctly being converted into WKT-format.",
+				"POINT (1 1)", GeometryBuilder.toWkt(jtsPoint));
 
 	}
 
 	@Test
 	public void geodesicDistanceJFKFRA() throws FunctionException {
 		int correctDistance = 6206;
-		int calculatedDistance = (int) Math.round(GeometryBuilder.geodesicDistance(pointJFK, pointFRA) / 1000);
+		int calculatedDistance = (int) Math
+				.round(GeometryBuilder.geodesicDistance(pointJFK, pointFRA) / 1000);
 
-		assertEquals("Geodesic distance (JFK-FRA) is not correctly calculated.", calculatedDistance, correctDistance,
-				GEO_DISTANCE_TOLERANCE);
+		assertEquals("Geodesic distance (JFK-FRA) is not correctly calculated.",
+				calculatedDistance, correctDistance, GEO_DISTANCE_TOLERANCE);
 	}
 
 	@Test
 	public void geodesicDistanceJFKBJM() throws FunctionException {
 		int correctDistance = 11357;
-		int calculatedDistance = (int) Math.round(GeometryBuilder.geodesicDistance(pointJFK, pointBJM) / 1000);
+		int calculatedDistance = (int) Math
+				.round(GeometryBuilder.geodesicDistance(pointJFK, pointBJM) / 1000);
 
-		assertEquals("Geodesic distance (JFK-BJM) is not correctly calculated.", calculatedDistance, correctDistance,
-				GEO_DISTANCE_TOLERANCE);
+		assertEquals("Geodesic distance (JFK-BJM) is not correctly calculated.",
+				calculatedDistance, correctDistance, GEO_DISTANCE_TOLERANCE);
 	}
 
 	@Test
 	public void geodesicDistanceComparison() throws FunctionException {
-		assertTrue("Geodesic distances are not correctly calculated.", GeometryBuilder.geodesicDistance(pointJFK,
-				pointBJM) > GeometryBuilder.geodesicDistance(pointFRA, pointBJM));
+		assertTrue("Geodesic distances are not correctly calculated.",
+				GeometryBuilder.geodesicDistance(pointJFK, pointBJM) > GeometryBuilder
+						.geodesicDistance(pointFRA, pointBJM));
 	}
 
 	@Test
@@ -137,19 +153,22 @@ public class GeoFunctionsTest {
 		GeoProjection projection = new GeoProjection();
 
 		assertTrue("Geodesic distances are not correctly calculated.",
-				pointFRA.distance(projection.reProject(projection.project(pointFRA))) < COORDINATE_TOLERANCE);
+				pointFRA.distance(projection
+						.reProject(projection.project(pointFRA))) < COORDINATE_TOLERANCE);
 	}
 
 	@Test
 	public void geoProjectionEquals() {
-		EqualsVerifier.forClass(GeoProjection.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
-				.verify();
+		EqualsVerifier.forClass(GeoProjection.class)
+				.suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS).verify();
 	}
 
 	@Test(expected = FunctionException.class)
 	public void jsonIOException() throws FunctionException {
 		JsonNode nodeMock = mock(JsonNode.class);
-		assertNull("Geometry is being created even though JsonNode is only a mock object.",
+		assertNull(
+				"Geometry is being created even though JsonNode is only a mock object.",
 				GeometryBuilder.fromJsonNode(nodeMock));
 	}
+
 }

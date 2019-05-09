@@ -20,11 +20,16 @@ import lombok.NonNull;
 
 @Data
 public class LibraryDocumentation {
+
 	@NonNull
 	String name;
+
 	@NonNull
 	String description;
+
 	@NonNull
 	Object library;
+
 	Map<String, String> documentation = new HashMap<>();
+
 }

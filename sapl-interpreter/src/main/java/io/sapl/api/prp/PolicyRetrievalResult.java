@@ -11,6 +11,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 public class PolicyRetrievalResult {
 
 	Collection<SAPL> matchingDocuments;
+
 	boolean errorsInTarget;
 
 	public Collection<SAPL> getMatchingDocuments() {
@@ -30,13 +31,14 @@ public class PolicyRetrievalResult {
 			return false;
 		}
 		final PolicyRetrievalResult otherResult = (PolicyRetrievalResult) other;
-		if (! areEqual(this.getMatchingDocuments(), otherResult.getMatchingDocuments())) {
+		if (!areEqual(this.getMatchingDocuments(), otherResult.getMatchingDocuments())) {
 			return false;
 		}
 		return this.isErrorsInTarget() == otherResult.isErrorsInTarget();
 	}
 
-	private static boolean areEqual(Collection<SAPL> thisMatchingDocuments, Collection<SAPL> otherMatchingDocuments) {
+	private static boolean areEqual(Collection<SAPL> thisMatchingDocuments,
+			Collection<SAPL> otherMatchingDocuments) {
 		if (thisMatchingDocuments == null) {
 			return otherMatchingDocuments == null;
 		}
@@ -49,7 +51,7 @@ public class PolicyRetrievalResult {
 		final Iterator<SAPL> thisIterator = thisMatchingDocuments.iterator();
 		final Iterator<SAPL> otherIterator = otherMatchingDocuments.iterator();
 		while (thisIterator.hasNext()) {
-			if (! EcoreUtil.equals(thisIterator.next(), otherIterator.next())) {
+			if (!EcoreUtil.equals(thisIterator.next(), otherIterator.next())) {
 				return false;
 			}
 		}
@@ -61,16 +63,16 @@ public class PolicyRetrievalResult {
 		final int PRIME = 59;
 		int result = 1;
 		final Collection<SAPL> thisMatchingDocuments = getMatchingDocuments();
-		result = result * PRIME + (thisMatchingDocuments == null ? 43 : thisMatchingDocuments.hashCode());
+		result = result * PRIME
+				+ (thisMatchingDocuments == null ? 43 : thisMatchingDocuments.hashCode());
 		result = result * PRIME + (isErrorsInTarget() ? 79 : 97);
 		return result;
 	}
 
 	@Override
 	public String toString() {
-		return "PolicyRetrievalResult(" +
-				"matchingDocuments=" + getMatchingDocuments() +
-				", errorsInTarget=" + isErrorsInTarget() +
-				")";
+		return "PolicyRetrievalResult(" + "matchingDocuments=" + getMatchingDocuments()
+				+ ", errorsInTarget=" + isErrorsInTarget() + ")";
 	}
+
 }

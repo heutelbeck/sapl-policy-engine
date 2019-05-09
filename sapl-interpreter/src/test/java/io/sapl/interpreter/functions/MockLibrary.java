@@ -20,6 +20,7 @@ import io.sapl.api.functions.FunctionLibrary;
 
 @FunctionLibrary(name = MockLibrary.NAME, description = "docs of my lib")
 public class MockLibrary {
+
 	public static final String NAME = "test.lib";
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;

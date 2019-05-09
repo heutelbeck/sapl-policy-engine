@@ -26,13 +26,15 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 public class MethodInvocationSerializer extends JsonSerializer<MethodInvocation> {
 
 	@Override
-	public void serialize(MethodInvocation value, JsonGenerator gen, SerializerProvider serializers)
-			throws IOException {
+	public void serialize(MethodInvocation value, JsonGenerator gen,
+			SerializerProvider serializers) throws IOException {
 		gen.writeStartObject();
 		gen.writeStringField("name", value.getMethod().getName());
 		gen.writeStringField("shortSig",
-				value.getMethod().getDeclaringClass().getSimpleName() + "." + value.getMethod().getName() + "(..)");
-		gen.writeStringField("declaringTypeName", value.getMethod().getDeclaringClass().getTypeName());
+				value.getMethod().getDeclaringClass().getSimpleName() + "."
+						+ value.getMethod().getName() + "(..)");
+		gen.writeStringField("declaringTypeName",
+				value.getMethod().getDeclaringClass().getTypeName());
 		gen.writeArrayFieldStart("modifiers");
 		int mod = value.getMethod().getModifiers();
 		if (isAbstract(mod)) {
@@ -86,12 +88,14 @@ public class MethodInvocationSerializer extends JsonSerializer<MethodInvocation>
 		}
 	}
 
-	private void writeClassHierarchy(JsonGenerator gen, Class<?> clazz) throws IOException {
+	private void writeClassHierarchy(JsonGenerator gen, Class<?> clazz)
+			throws IOException {
 		do {
 			writeClass(gen, clazz);
 			writeInterfaces(gen, clazz);
 			clazz = clazz.getSuperclass();
-		} while (clazz != null);
+		}
+		while (clazz != null);
 	}
 
 	private void writeClass(JsonGenerator gen, Class<?> clazz) throws IOException {

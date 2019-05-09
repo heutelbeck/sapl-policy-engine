@@ -7,4 +7,5 @@ public interface ConstraintHandler {
 	boolean handle(JsonNode constraint);
 
 	boolean canHandle(JsonNode constraint);
+
 }

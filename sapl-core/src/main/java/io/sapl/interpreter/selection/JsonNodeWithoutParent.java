@@ -25,8 +25,8 @@ import lombok.Value;
 import reactor.core.publisher.Flux;
 
 /**
- * Represents a JsonNode which has no parent node (array or object) in the tree
- * on which the selection is performed. Typically the root element of the tree.
+ * Represents a JsonNode which has no parent node (array or object) in the tree on which
+ * the selection is performed. Typically the root element of the tree.
  */
 @Value
 @EqualsAndHashCode(callSuper = true)
@@ -34,6 +34,7 @@ import reactor.core.publisher.Flux;
 public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 
 	private static final String REFERENCE_CANNOT_BE_COMPARED = "Reference of a JsonNodeWithoutParent cannot be compared.";
+
 	private static final String FILTER_ROOT_ELEMENT = "The root element cannot be filtered.";
 
 	public JsonNodeWithoutParent(Optional<JsonNode> node) {
@@ -59,29 +60,34 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 	public void removeFromTree(boolean each) throws PolicyEvaluationException {
 		if (each) {
 			removeEachItem(node);
-		} else {
+		}
+		else {
 			throw new PolicyEvaluationException(FILTER_ROOT_ELEMENT);
 		}
 	}
 
 	@Override
-	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx,
-			boolean isBody) {
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each,
+			EvaluationContext ctx, boolean isBody) {
 		return applyFilterWithRelativeNode(function, arguments, each, ctx, isBody, null);
 	}
 
 	@Override
-	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments,
+			boolean each, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		if (each) {
 			return applyFilterToEachItem(function, node, arguments, ctx, isBody);
-		} else {
+		}
+		else {
 			return Flux.error(new PolicyEvaluationException(FILTER_ROOT_ELEMENT));
 		}
 	}
 
 	@Override
-	public boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException {
+	public boolean sameReference(AbstractAnnotatedJsonNode other)
+			throws PolicyEvaluationException {
 		throw new PolicyEvaluationException(REFERENCE_CANNOT_BE_COMPARED);
 	}
+
 }

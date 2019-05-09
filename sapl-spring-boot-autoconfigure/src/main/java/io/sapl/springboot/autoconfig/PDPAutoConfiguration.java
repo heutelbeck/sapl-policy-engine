@@ -37,20 +37,19 @@ import io.sapl.spring.constraints.ConstraintHandlerService;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * This automatic configuration will provide you several beans to deal with SAPL
- * by default. <br/>
- * If you do not change it, the default configuration (see
- * {@link SAPLProperties}) will configure an {@link EmbeddedPolicyDecisionPoint}
- * for you. <br/>
+ * This automatic configuration will provide you several beans to deal with SAPL by
+ * default. <br/>
+ * If you do not change it, the default configuration (see {@link SAPLProperties}) will
+ * configure an {@link EmbeddedPolicyDecisionPoint} for you. <br/>
  * <br/>
- * <h2>Configure an EmbeddedPolicyDecisionPoint</h2> To have a bean instance of
- * an {@link EmbeddedPolicyDecisionPoint} just activate it in your
- * <i>application.properties</i>-file (or whatever spring supported way to
- * provide properties you wish to use. c.f. <a href=
+ * <h2>Configure an EmbeddedPolicyDecisionPoint</h2> To have a bean instance of an
+ * {@link EmbeddedPolicyDecisionPoint} just activate it in your
+ * <i>application.properties</i>-file (or whatever spring supported way to provide
+ * properties you wish to use. c.f. <a href=
  * "https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html">Spring
  * Boot Documentation on config parameters</a>) <br/>
- * Do not forget to provide the minimal required files in your policy path!
- * Example Snippet from .properties:<br/>
+ * Do not forget to provide the minimal required files in your policy path! Example
+ * Snippet from .properties:<br/>
  * <code>
  * io.sapl.type=embedded
  * <br/>
@@ -59,8 +58,8 @@ import lombok.extern.slf4j.Slf4j;
  * <br/>
  * <h2>Configure a RemotePolicyDecisionPoint</h2> To have a bean instance of a
  * {@link RemotePolicyDecisionPoint} just activate it in your
- * <i>application.properties</i>-file (or whatever spring supported way to
- * provide properties you wish to use. <br/>
+ * <i>application.properties</i>-file (or whatever spring supported way to provide
+ * properties you wish to use. <br/>
  * c.f. <a href=
  * "https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html">Spring
  * Boot Documentation on config parameters</a>) <br/>
@@ -72,17 +71,16 @@ import lombok.extern.slf4j.Slf4j;
  * io.sapl.remote.key=username<br/>
  * io.sapl.remote.secret=password
  * </code> <br/>
- * Provide the host without a protocol. It will always be assumed to be https
+ * Provide the host without a protocol. It will always be assumed to be https <br/>
  * <br/>
+ * <h2>Using a policy information point</h2> If your EmbeddedPolicyDecisionPoint shall use
+ * one or more PolicyInformationPoints, you can achieve this by ... ... instances you want
+ * to use as PolicyInformationPoints need to implement the
+ * {@link PolicyInformationPoint}-interface. <br/>
  * <br/>
- * <h2>Using a policy information point</h2> If your EmbeddedPolicyDecisionPoint
- * shall use one or more PolicyInformationPoints, you can achieve this by ...
- * ... instances you want to use as PolicyInformationPoints need to implement
- * the {@link PolicyInformationPoint}-interface. <br/>
- * <br/>
- * <h2>The PolicyEnforcementFilter</h2> If activated through the following
- * property, a bean of type {@link PolicyEnforcementFilterPEP} will be defined.
- * You can use it to extends the spring-security filterchain. See
+ * <h2>The PolicyEnforcementFilter</h2> If activated through the following property, a
+ * bean of type {@link PolicyEnforcementFilterPEP} will be defined. You can use it to
+ * extends the spring-security filterchain. See
  * {@link #policyEnforcementFilter(PolicyDecisionPoint, ConstraintHandlerService, ObjectMapper)}<br/>
  * <code>
  * io.sapl.policyEnforcementFilter=true
@@ -94,23 +92,30 @@ import lombok.extern.slf4j.Slf4j;
 @Configuration
 @ComponentScan("io.sapl.spring")
 @EnableConfigurationProperties(SAPLProperties.class)
-@AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
+@AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class,
+		PolicyInformationPointsAutoConfiguration.class })
 public class PDPAutoConfiguration {
 
 	private final SAPLProperties pdpProperties;
+
 	private final Collection<Object> policyInformationPoints;
+
 	private final Collection<Object> functionLibraries;
 
-	public PDPAutoConfiguration(SAPLProperties pdpProperties, ConfigurableApplicationContext applicationContext) {
+	public PDPAutoConfiguration(SAPLProperties pdpProperties,
+			ConfigurableApplicationContext applicationContext) {
 		this.pdpProperties = pdpProperties;
-		policyInformationPoints = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class).values();
-		functionLibraries = applicationContext.getBeansWithAnnotation(FunctionLibrary.class).values();
+		policyInformationPoints = applicationContext
+				.getBeansWithAnnotation(PolicyInformationPoint.class).values();
+		functionLibraries = applicationContext
+				.getBeansWithAnnotation(FunctionLibrary.class).values();
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
 	public PolicyDecisionPoint policyDecisionPoint()
-			throws AttributeException, FunctionException, IOException, URISyntaxException, PDPConfigurationException, PolicyEvaluationException {
+			throws AttributeException, FunctionException, IOException, URISyntaxException,
+			PDPConfigurationException, PolicyEvaluationException {
 		if (pdpProperties.getPdpType() == SAPLProperties.PDPType.REMOTE) {
 			return remotePolicyDecisionPoint();
 		}
@@ -118,13 +123,17 @@ public class PDPAutoConfiguration {
 	}
 
 	private PolicyDecisionPoint embeddedPolicyDecisionPoint()
-			throws AttributeException, FunctionException, IOException, URISyntaxException, PDPConfigurationException, PolicyEvaluationException {
-		final EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder();
+			throws AttributeException, FunctionException, IOException, URISyntaxException,
+			PDPConfigurationException, PolicyEvaluationException {
+		final EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint
+				.builder();
 		if (pdpProperties.getPdpConfigType() == SAPLProperties.PDPConfigType.FILESYSTEM) {
 			final String configPath = pdpProperties.getFilesystem().getConfigPath();
-			LOGGER.info("using monitored config file from the filesystem: {}", configPath);
+			LOGGER.info("using monitored config file from the filesystem: {}",
+					configPath);
 			builder.withFilesystemPDPConfigurationProvider(configPath);
-		} else {
+		}
+		else {
 			final String configPath = pdpProperties.getResources().getConfigPath();
 			LOGGER.info("using config file from bundled resource at: {}", configPath);
 			builder.withResourcePDPConfigurationProvider(configPath);
@@ -137,7 +146,8 @@ public class PDPAutoConfiguration {
 					"creating embedded PDP with {} index sourcing and monitoring access policies from the filesystem: {}",
 					indexType, policiesPath);
 			builder.withFilesystemPolicyRetrievalPoint(policiesPath, indexType);
-		} else {
+		}
+		else {
 			final String policiesPath = pdpProperties.getResources().getPoliciesPath();
 			LOGGER.info(
 					"creating embedded PDP with {} index sourcing access policies from bundled resources at: {}",
@@ -160,15 +170,18 @@ public class PDPAutoConfiguration {
 			LOGGER.debug("binding PIP to PDP: {}", entry.getClass().getSimpleName());
 			try {
 				builder.withPolicyInformationPoint(entry);
-			} catch (SecurityException | IllegalArgumentException | AttributeException e) {
+			}
+			catch (SecurityException | IllegalArgumentException | AttributeException e) {
 				throw new AttributeException(e);
 			}
 		}
 		for (Object entry : functionLibraries) {
-			LOGGER.debug("binding FunctionLibrary to PDP: {}", entry.getClass().getSimpleName());
+			LOGGER.debug("binding FunctionLibrary to PDP: {}",
+					entry.getClass().getSimpleName());
 			try {
 				builder.withFunctionLibrary(entry);
-			} catch (SecurityException | IllegalArgumentException | FunctionException e) {
+			}
+			catch (SecurityException | IllegalArgumentException | FunctionException e) {
 				throw new AttributeException(e);
 			}
 		}
@@ -185,9 +198,9 @@ public class PDPAutoConfiguration {
 		return new RemotePolicyDecisionPoint(host, port, key, secret);
 	}
 
-
 	@Service
 	public static class PDPDestroyer {
+
 		@Autowired
 		Optional<EmbeddedPolicyDecisionPoint> pdp;
 
@@ -195,13 +208,15 @@ public class PDPAutoConfiguration {
 		public void disposePdp() {
 			pdp.ifPresent(EmbeddedPolicyDecisionPoint::dispose);
 		}
+
 	}
 
 	@Bean
 	@ConditionalOnProperty("io.sapl.policyEnforcementFilter")
 	public PolicyEnforcementFilterPEP policyEnforcementFilter(PolicyDecisionPoint pdp,
 			ConstraintHandlerService constraintHandlers, ObjectMapper mapper) {
-		LOGGER.debug("no Bean of type PolicyEnforcementFilter defined. Will create default Bean of {}",
+		LOGGER.debug(
+				"no Bean of type PolicyEnforcementFilter defined. Will create default Bean of {}",
 				PolicyEnforcementFilterPEP.class);
 		return new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
 	}

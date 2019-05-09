@@ -29,12 +29,11 @@ public class EmbeddedPolicyDecisionPointPerformanceTest {
 	}
 
 	@Test
-	public void testTest() throws IOException, AttributeException, FunctionException, URISyntaxException,
-			PolicyEvaluationException, PDPConfigurationException {
+	public void testTest() throws IOException, AttributeException, FunctionException,
+			URISyntaxException, PolicyEvaluationException, PDPConfigurationException {
 		// long startpdp = System.nanoTime();
 		EmbeddedPolicyDecisionPoint pdp = EmbeddedPolicyDecisionPoint.builder()
-				.withResourcePDPConfigurationProvider()
-				.withResourcePolicyRetrievalPoint()
+				.withResourcePDPConfigurationProvider().withResourcePolicyRetrievalPoint()
 				.build();
 		// long endpdp = System.nanoTime();
 		// System.out.println("Measuring PDP and PRP initialization:");
@@ -44,8 +43,8 @@ public class EmbeddedPolicyDecisionPointPerformanceTest {
 		// System.out.println();
 
 		// long start = System.nanoTime();
-		Request simpleRequest = new Request(JSON.textNode("willi"), JSON.textNode("read"), JSON.textNode("something"),
-				JSON.nullNode());
+		Request simpleRequest = new Request(JSON.textNode("willi"), JSON.textNode("read"),
+				JSON.textNode("something"), JSON.nullNode());
 		int RUNS = 00;
 		for (int i = 0; i < RUNS; i++) {
 			final Flux<Response> responseFlux = pdp.decide(simpleRequest);
@@ -64,4 +63,5 @@ public class EmbeddedPolicyDecisionPointPerformanceTest {
 
 		pdp.dispose();
 	}
+
 }

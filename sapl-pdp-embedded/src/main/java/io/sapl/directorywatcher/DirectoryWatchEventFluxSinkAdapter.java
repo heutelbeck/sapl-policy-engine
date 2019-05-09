@@ -9,18 +9,20 @@ import reactor.core.publisher.FluxSink;
 /**
  * Adapter translating directory watch events into reactive flux events.
  */
-public class DirectoryWatchEventFluxSinkAdapter implements DirectoryWatchEventConsumer<Path> {
+public class DirectoryWatchEventFluxSinkAdapter
+		implements DirectoryWatchEventConsumer<Path> {
 
 	private final Pattern fileNamePattern;
+
 	private FluxSink<WatchEvent<Path>> sink;
+
 	private boolean canceled;
 
 	/**
 	 * Creates a new {@code DirectoryWatchEventFluxSinkAdapter} instance forwarding only
 	 * those watch events to the flux sink that match the given file name pattern.
-	 *
 	 * @param fileNamePattern the file name pattern to be used to decide whether a watch
-	 *                        event should be forwarded to the flux sink.
+	 * event should be forwarded to the flux sink.
 	 */
 	public DirectoryWatchEventFluxSinkAdapter(Pattern fileNamePattern) {
 		this.fileNamePattern = fileNamePattern;
@@ -28,7 +30,6 @@ public class DirectoryWatchEventFluxSinkAdapter implements DirectoryWatchEventCo
 
 	/**
 	 * Sets the flux sink to forward watch events to.
-	 *
 	 * @param sink the flux sink to be set.
 	 */
 	public void setSink(FluxSink<WatchEvent<Path>> sink) {
@@ -58,4 +59,5 @@ public class DirectoryWatchEventFluxSinkAdapter implements DirectoryWatchEventCo
 	public boolean isCanceled() {
 		return canceled;
 	}
+
 }

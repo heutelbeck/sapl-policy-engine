@@ -26,16 +26,18 @@ import lombok.Value;
 import reactor.core.publisher.Flux;
 
 /**
- * Represents a JsonNode which is the item of an ArrayNode in the tree on which
- * the selection is performed.
+ * Represents a JsonNode which is the item of an ArrayNode in the tree on which the
+ * selection is performed.
  */
 @Value
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
+
 	private int index;
 
-	public JsonNodeWithParentArray(Optional<JsonNode> node, Optional<JsonNode> parent, int index) {
+	public JsonNodeWithParentArray(Optional<JsonNode> node, Optional<JsonNode> parent,
+			int index) {
 		super(node, parent);
 		this.index = index;
 	}
@@ -59,35 +61,42 @@ public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 	public void removeFromTree(boolean each) throws PolicyEvaluationException {
 		if (each) {
 			removeEachItem(node);
-		} else {
+		}
+		else {
 			((ArrayNode) parent.get()).remove(index);
 		}
 	}
 
 	@Override
-	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx,
-			boolean isBody) {
-		return applyFilterWithRelativeNode(function, arguments, each, ctx, isBody, parent);
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each,
+			EvaluationContext ctx, boolean isBody) {
+		return applyFilterWithRelativeNode(function, arguments, each, ctx, isBody,
+				parent);
 	}
 
 	@Override
-	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments,
+			boolean each, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		if (each) {
 			return applyFilterToEachItem(function, node, arguments, ctx, isBody);
-		} else {
-			return applyFilterToNode(function, node, arguments, ctx, isBody, relativeNode).map(filteredNode -> {
-				((ArrayNode) parent.get()).set(index, filteredNode.get());
-				return ResultNode.Void.INSTANCE;
-			});
+		}
+		else {
+			return applyFilterToNode(function, node, arguments, ctx, isBody, relativeNode)
+					.map(filteredNode -> {
+						((ArrayNode) parent.get()).set(index, filteredNode.get());
+						return ResultNode.Void.INSTANCE;
+					});
 
 		}
 	}
 
 	@Override
-	public boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException {
-		return other.isNodeWithParentArray() && other.getParent().isPresent() && getParent().isPresent()
-				&& other.getParent().get() == getParent().get()
+	public boolean sameReference(AbstractAnnotatedJsonNode other)
+			throws PolicyEvaluationException {
+		return other.isNodeWithParentArray() && other.getParent().isPresent()
+				&& getParent().isPresent() && other.getParent().get() == getParent().get()
 				&& ((JsonNodeWithParentArray) other).getIndex() == getIndex();
 	}
+
 }

@@ -30,7 +30,8 @@ public class DisjunctiveFormulaSimplifier implements Simplifier<DisjunctiveFormu
 					data.clear();
 					data.add(clause);
 					return;
-				} else {
+				}
+				else {
 					iter.remove();
 				}
 			}
@@ -49,7 +50,8 @@ public class DisjunctiveFormulaSimplifier implements Simplifier<DisjunctiveFormu
 	}
 
 	private static void reduceFormulaStep(final List<ConjunctiveClause> data,
-			final ListIterator<ConjunctiveClause> pointer, final ConjunctiveClause value) {
+			final ListIterator<ConjunctiveClause> pointer,
+			final ConjunctiveClause value) {
 		ListIterator<ConjunctiveClause> forward = data.listIterator(pointer.nextIndex());
 		while (forward.hasNext()) {
 			ConjunctiveClause rhs = forward.next();
@@ -58,10 +60,12 @@ public class DisjunctiveFormulaSimplifier implements Simplifier<DisjunctiveFormu
 			}
 			if (value.isSubsetOf(rhs)) {
 				forward.set(null);
-			} else if (rhs.isSubsetOf(value)) {
+			}
+			else if (rhs.isSubsetOf(value)) {
 				pointer.set(null);
 				return;
 			}
 		}
 	}
+
 }

@@ -24,7 +24,7 @@ import io.sapl.grammar.sapl.Expression;
  * This class contains a collection of arguments to be passed to function calls.
  *
  * Grammar:
- * 
+ *
  * Arguments: {Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
  *
  */
@@ -41,7 +41,8 @@ public class ArgumentsImplCustom extends ArgumentsImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
+			Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

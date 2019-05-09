@@ -27,12 +27,17 @@ import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class ApplyStepsAttributeUnionTest {
+
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
+
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private static VariableContext variableCtx = new VariableContext();
+
 	private static FunctionContext functionCtx = new MockFunctionContext();
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
+
+	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
+			variableCtx);
 
 	@Test
 	public void applyToResultArray() {
@@ -48,7 +53,8 @@ public class ApplyStepsAttributeUnionTest {
 
 	@Test
 	public void applyToNonObject() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
+		ResultNode previousResult = new JsonNodeWithoutParent(
+				Optional.of(JSON.nullNode()));
 
 		AttributeUnionStep step = factory.createAttributeUnionStep();
 		step.getAttributes().add("key1");
@@ -71,8 +77,8 @@ public class ApplyStepsAttributeUnionTest {
 
 		previousResult.applyStep(step, ctx, true, null).take(1)
 				.subscribe(result -> assertEquals(
-						"Attribute union applied to empty object should return empty result array", expectedResult,
-						result));
+						"Attribute union applied to empty object should return empty result array",
+						expectedResult, result));
 	}
 
 	@Test
@@ -84,19 +90,22 @@ public class ApplyStepsAttributeUnionTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(object));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), Optional.of(object), "key1"));
-		expectedResultSet
-				.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(true)), Optional.of(object), "key2"));
+		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
+				Optional.of(object), "key1"));
+		expectedResultSet.add(new JsonNodeWithParentObject(
+				Optional.of(JSON.booleanNode(true)), Optional.of(object), "key2"));
 
 		AttributeUnionStep step = factory.createAttributeUnionStep();
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
 		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
+					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
 					"Attribute union applied to object should return result array with corresponding attribute values",
 					expectedResultSet, resultSet);
 		});
 	}
+
 }

@@ -17,55 +17,56 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @EnableWebMvc
 public class MvcConfig implements WebMvcConfigurer {
 
-    @Override
-    public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
-        configurer.setTaskExecutor(createAsyncTaskExecutor());
-    }
+	@Override
+	public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
+		configurer.setTaskExecutor(createAsyncTaskExecutor());
+	}
 
-    private AsyncTaskExecutor createAsyncTaskExecutor() {
-        final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(4);
-        executor.setMaxPoolSize(32);
-        executor.setQueueCapacity(16);
-        executor.setThreadNamePrefix("TaskExecutor-");
-        executor.initialize();
-        return executor;
-    }
+	private AsyncTaskExecutor createAsyncTaskExecutor() {
+		final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(4);
+		executor.setMaxPoolSize(32);
+		executor.setQueueCapacity(16);
+		executor.setThreadNamePrefix("TaskExecutor-");
+		executor.initialize();
+		return executor;
+	}
 
-    @Bean
-    public ConfigurableServletWebServerFactory servletContainer() {
-        final TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory() {
+	@Bean
+	public ConfigurableServletWebServerFactory servletContainer() {
+		final TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory() {
 
-            @Override
-            protected void postProcessContext(Context context) {
-                context.addConstraint(createSecurityConstraint());
-            }
+			@Override
+			protected void postProcessContext(Context context) {
+				context.addConstraint(createSecurityConstraint());
+			}
 
-            private SecurityConstraint createSecurityConstraint() {
-                final SecurityConstraint securityConstraint = new SecurityConstraint();
-                securityConstraint.setUserConstraint("CONFIDENTIAL");
-                securityConstraint.addCollection(createSecurityCollection());
-                return securityConstraint;
-            }
+			private SecurityConstraint createSecurityConstraint() {
+				final SecurityConstraint securityConstraint = new SecurityConstraint();
+				securityConstraint.setUserConstraint("CONFIDENTIAL");
+				securityConstraint.addCollection(createSecurityCollection());
+				return securityConstraint;
+			}
 
-            private SecurityCollection createSecurityCollection() {
-                final SecurityCollection collection = new SecurityCollection();
-                collection.addPattern("/*");
-                return collection;
-            }
+			private SecurityCollection createSecurityCollection() {
+				final SecurityCollection collection = new SecurityCollection();
+				collection.addPattern("/*");
+				return collection;
+			}
 
-        };
-//        tomcat.addAdditionalTomcatConnectors(createHttpConnector());
-        return tomcat;
-    }
+		};
+		// tomcat.addAdditionalTomcatConnectors(createHttpConnector());
+		return tomcat;
+	}
 
-//    private Connector createHttpConnector() {
-//        final Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
-//        connector.setScheme("http");
-//        connector.setPort(8080);
-//        connector.setSecure(false);
-//        connector.setRedirectPort(8443);
-//        return connector;
-//    }
+	// private Connector createHttpConnector() {
+	// final Connector connector = new
+	// Connector("org.apache.coyote.http11.Http11NioProtocol");
+	// connector.setScheme("http");
+	// connector.setPort(8080);
+	// connector.setSecure(false);
+	// connector.setRedirectPort(8443);
+	// return connector;
+	// }
 
 }

@@ -35,7 +35,9 @@ import lombok.RequiredArgsConstructor;
 public class MethodSecurityConfiguration extends GlobalMethodSecurityConfiguration {
 
 	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
+
 	protected final ObjectFactory<ConstraintHandlerService> constraintHandlerFactory;
+
 	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
 
 	@Override
@@ -54,10 +56,11 @@ public class MethodSecurityConfiguration extends GlobalMethodSecurityConfigurati
 
 	@Override
 	protected AfterInvocationManager afterInvocationManager() {
-		PolicyBasedPostInvocationEnforcementAdvice advice = new PolicyBasedPostInvocationEnforcementAdvice(pdpFactory,
-				constraintHandlerFactory, objectMapperFactory);
+		PolicyBasedPostInvocationEnforcementAdvice advice = new PolicyBasedPostInvocationEnforcementAdvice(
+				pdpFactory, constraintHandlerFactory, objectMapperFactory);
 		advice.setExpressionHandler(getExpressionHandler());
-		PostInvocationEnforcementProvider provider = new PostInvocationEnforcementProvider(advice);
+		PostInvocationEnforcementProvider provider = new PostInvocationEnforcementProvider(
+				advice);
 
 		AfterInvocationProviderManager invocationProviderManager = (AfterInvocationProviderManager) super.afterInvocationManager();
 		if (invocationProviderManager == null) {
@@ -65,8 +68,10 @@ public class MethodSecurityConfiguration extends GlobalMethodSecurityConfigurati
 			List<AfterInvocationProvider> afterInvocationProviders = new ArrayList<>();
 			afterInvocationProviders.add(provider);
 			invocationProviderManager.setProviders(afterInvocationProviders);
-		} else {
-			List<AfterInvocationProvider> originalProviders = invocationProviderManager.getProviders();
+		}
+		else {
+			List<AfterInvocationProvider> originalProviders = invocationProviderManager
+					.getProviders();
 			List<AfterInvocationProvider> afterInvocationProviders = new ArrayList<>();
 			afterInvocationProviders.add(provider);
 			afterInvocationProviders.addAll(originalProviders);

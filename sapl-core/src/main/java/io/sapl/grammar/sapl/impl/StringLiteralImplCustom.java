@@ -26,7 +26,8 @@ import reactor.core.publisher.Flux;
 public class StringLiteralImplCustom extends StringLiteralImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return Value.fluxOf(getString());
 	}
 
@@ -39,7 +40,8 @@ public class StringLiteralImplCustom extends StringLiteralImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
+			Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

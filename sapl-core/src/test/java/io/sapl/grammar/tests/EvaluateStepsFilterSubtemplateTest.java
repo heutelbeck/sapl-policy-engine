@@ -23,12 +23,17 @@ import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class EvaluateStepsFilterSubtemplateTest {
+
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
+
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private static VariableContext variableCtx = new VariableContext();
+
 	private static FunctionContext functionCtx = new MockFilteringContext();
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
+
+	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
+			variableCtx);
 
 	@Test
 	public void basicExpressionWithStep() {
@@ -46,7 +51,8 @@ public class EvaluateStepsFilterSubtemplateTest {
 		expression.getSteps().add(step);
 
 		expression.evaluate(ctx, true, null).take(1)
-				.subscribe(result -> assertEquals("Index step applied to BasicValue should return correct result",
+				.subscribe(result -> assertEquals(
+						"Index step applied to BasicValue should return correct result",
 						Optional.of(JSON.nullNode()), result));
 	}
 
@@ -60,7 +66,8 @@ public class EvaluateStepsFilterSubtemplateTest {
 		expression.setFilter(filter);
 
 		expression.evaluate(ctx, true, null).take(1)
-				.subscribe(result -> assertEquals("Filter applied to BasicValue should return correct result",
+				.subscribe(result -> assertEquals(
+						"Filter applied to BasicValue should return correct result",
 						Optional.of(JSON.textNode("")), result));
 	}
 
@@ -73,7 +80,8 @@ public class EvaluateStepsFilterSubtemplateTest {
 		subtemplate.setValue(factory.createNullLiteral());
 		expression.setSubtemplate(subtemplate);
 
-		StepVerifier.create(expression.evaluate(ctx, true, null)).expectError(PolicyEvaluationException.class).verify();
+		StepVerifier.create(expression.evaluate(ctx, true, null))
+				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -100,7 +108,9 @@ public class EvaluateStepsFilterSubtemplateTest {
 		expectedResult.add(JSON.nullNode());
 
 		expression.evaluate(ctx, true, null).take(1)
-				.subscribe(result -> assertEquals("Subtemplate applied to array should return correct result",
+				.subscribe(result -> assertEquals(
+						"Subtemplate applied to array should return correct result",
 						Optional.of(expectedResult), result));
 	}
+
 }

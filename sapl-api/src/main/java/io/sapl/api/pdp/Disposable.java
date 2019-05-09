@@ -2,8 +2,8 @@ package io.sapl.api.pdp;
 
 /**
  * Certain PDP or PRP implementations need to clean up resources (e.g. subscriptions,
- * threads) when they are no longer needed. By implementing this interface, they show
- * this fact to their clients.
+ * threads) when they are no longer needed. By implementing this interface, they show this
+ * fact to their clients.
  */
 public interface Disposable {
 
@@ -13,5 +13,5 @@ public interface Disposable {
 	 * give them the chance to clean up resources.
 	 */
 	void dispose();
-	
+
 }

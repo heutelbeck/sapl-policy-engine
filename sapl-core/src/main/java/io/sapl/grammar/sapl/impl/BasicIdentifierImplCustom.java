@@ -31,15 +31,19 @@ public class BasicIdentifierImplCustom extends BasicIdentifierImpl {
 	private static final String UNBOUND_VARIABLE = "Evaluation error. Variable '%s' is not defined.";
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		if (!ctx.getVariableCtx().exists(getIdentifier())) {
-			return Flux.error(new PolicyEvaluationException(String.format(UNBOUND_VARIABLE, getIdentifier())));
+			return Flux.error(new PolicyEvaluationException(
+					String.format(UNBOUND_VARIABLE, getIdentifier())));
 		}
 
 		try {
 			final JsonNode resultBeforeSteps = ctx.getVariableCtx().get(getIdentifier());
-			return evaluateStepsFilterSubtemplate(Optional.of(resultBeforeSteps), steps, ctx, isBody, relativeNode);
-		} catch (PolicyEvaluationException e) {
+			return evaluateStepsFilterSubtemplate(Optional.of(resultBeforeSteps), steps,
+					ctx, isBody, relativeNode);
+		}
+		catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
@@ -53,12 +57,14 @@ public class BasicIdentifierImplCustom extends BasicIdentifierImpl {
 		for (Step step : getSteps()) {
 			hash = 37 * hash + ((step == null) ? 0 : step.hash(imports));
 		}
-		hash = 37 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
+		hash = 37 * hash
+				+ ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
 		return hash;
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
+			Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}
@@ -71,7 +77,8 @@ public class BasicIdentifierImplCustom extends BasicIdentifierImpl {
 			return false;
 		}
 		if ((getSubtemplate() == null) ? (getSubtemplate() != otherImpl.getSubtemplate())
-				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports, imports)) {
+				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports,
+						imports)) {
 			return false;
 		}
 		if (!Objects.equals(getIdentifier(), otherImpl.getIdentifier())) {

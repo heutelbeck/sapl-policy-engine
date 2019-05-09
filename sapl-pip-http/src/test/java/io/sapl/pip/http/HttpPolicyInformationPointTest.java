@@ -46,51 +46,57 @@ import reactor.core.publisher.Flux;
 public class HttpPolicyInformationPointTest {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	private JsonNode actualRequestSpec;
+
 	private JsonNode result;
+
 	private RequestSpecification expectedRequestSpec;
 
 	private WebClientRequestExecutor requestExecutor;
 
 	@Before
 	public void init() throws IOException {
-		final String request =
-				"{ " +
-					"\"url\": \"http://jsonplaceholder.typicode.com/posts\", " +
-					"\"headers\": { " +
-						"\"" + HttpHeaders.ACCEPT + "\" : \"application/stream+json\", " +
-						"\"" + HttpHeaders.ACCEPT_CHARSET + "\" : \"" + StandardCharsets.UTF_8 + "\" " +
-					"}, " +
-					"\"rawBody\" : \"hello world\" " +
-				"}";
+		final String request = "{ "
+				+ "\"url\": \"http://jsonplaceholder.typicode.com/posts\", "
+				+ "\"headers\": { " + "\"" + HttpHeaders.ACCEPT
+				+ "\" : \"application/stream+json\", " + "\"" + HttpHeaders.ACCEPT_CHARSET
+				+ "\" : \"" + StandardCharsets.UTF_8 + "\" " + "}, "
+				+ "\"rawBody\" : \"hello world\" " + "}";
 
 		actualRequestSpec = MAPPER.readValue(request, JsonNode.class);
 		result = JSON.textNode("result");
 
 		final Map<String, String> headerProperties = new HashMap<>();
 		headerProperties.put(HttpHeaders.ACCEPT, "application/stream+json");
-		headerProperties.put(HttpHeaders.ACCEPT_CHARSET, StandardCharsets.UTF_8.toString());
+		headerProperties.put(HttpHeaders.ACCEPT_CHARSET,
+				StandardCharsets.UTF_8.toString());
 
 		expectedRequestSpec = new RequestSpecification();
-		expectedRequestSpec.setUrl(JSON.textNode("http://jsonplaceholder.typicode.com/posts"));
+		expectedRequestSpec
+				.setUrl(JSON.textNode("http://jsonplaceholder.typicode.com/posts"));
 		expectedRequestSpec.setHeaders(headerProperties);
 		expectedRequestSpec.setRawBody("hello world");
 
 		requestExecutor = Mockito.spy(WebClientRequestExecutor.class);
-		doReturn(Flux.just(result)).when(requestExecutor).executeReactiveRequest(any(RequestSpecification.class), any(HttpMethod.class));
+		doReturn(Flux.just(result)).when(requestExecutor).executeReactiveRequest(
+				any(RequestSpecification.class), any(HttpMethod.class));
 	}
 
 	@Test
 	public void postRequest() throws AttributeException, IOException {
-		final HttpPolicyInformationPoint pip = new HttpPolicyInformationPoint(requestExecutor);
+		final HttpPolicyInformationPoint pip = new HttpPolicyInformationPoint(
+				requestExecutor);
 		final AnnotationAttributeContext attributeCtx = new AnnotationAttributeContext();
 		attributeCtx.loadPolicyInformationPoint(pip);
 		final Map<String, JsonNode> variables = new HashMap<>();
-		final JsonNode returnedAttribute = attributeCtx.evaluate("http.post", actualRequestSpec, variables).blockFirst();
+		final JsonNode returnedAttribute = attributeCtx
+				.evaluate("http.post", actualRequestSpec, variables).blockFirst();
 
 		assertEquals("return value not matching", result, returnedAttribute);
 		verify(requestExecutor).executeReactiveRequest(eq(expectedRequestSpec), eq(POST));
 	}
+
 }

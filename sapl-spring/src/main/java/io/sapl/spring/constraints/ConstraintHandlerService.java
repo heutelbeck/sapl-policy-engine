@@ -24,12 +24,11 @@ public class ConstraintHandlerService {
 	private final List<ConstraintHandler> constraintHandlers;
 
 	/**
-	 * Checks if for all obligations in a response at least one obligation handler
-	 * is registered.
-	 *
+	 * Checks if for all obligations in a response at least one obligation handler is
+	 * registered.
 	 * @param response a PDP Response
-	 * @return true, if for all obligations in a response at least one obligation
-	 *         handler is registered.
+	 * @return true, if for all obligations in a response at least one obligation handler
+	 * is registered.
 	 */
 	public boolean obligationHandlersForObligationsAvailable(Response response) {
 		if (response.getObligations().isPresent()) {
@@ -44,9 +43,8 @@ public class ConstraintHandlerService {
 	}
 
 	/**
-	 * Attempts to handle all obligations of the response and throws
-	 * AccessDeniedException on failure.
-	 *
+	 * Attempts to handle all obligations of the response and throws AccessDeniedException
+	 * on failure.
 	 * @param response a PDP response
 	 * @throws AccessDeniedException if obligation handling fails.
 	 */
@@ -57,8 +55,10 @@ public class ConstraintHandlerService {
 		if (response.getObligations().isPresent()) {
 			for (JsonNode obligation : response.getObligations().get()) {
 				if (!handleConstraint(obligation)) {
-					LOGGER.warn(String.format("Failed to handle obligation: %s", obligation));
-					throw new AccessDeniedException(String.format("Failed to handle obligation: %s", obligation));
+					LOGGER.warn(
+							String.format("Failed to handle obligation: %s", obligation));
+					throw new AccessDeniedException(
+							String.format("Failed to handle obligation: %s", obligation));
 				}
 			}
 		}
@@ -67,7 +67,6 @@ public class ConstraintHandlerService {
 	/**
 	 * Makes a best effort to handle all advices of the response based on registered
 	 * constraint handlers.
-	 *
 	 * @param response a PDP response
 	 */
 	public void handleAdvices(Response response) {

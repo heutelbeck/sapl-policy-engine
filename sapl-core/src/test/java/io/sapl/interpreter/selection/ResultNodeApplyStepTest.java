@@ -18,12 +18,17 @@ import io.sapl.interpreter.variables.VariableContext;
 import org.junit.Test;
 
 public class ResultNodeApplyStepTest {
+
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	private static SaplFactory factory = SaplFactory.eINSTANCE;
 
 	private static VariableContext variableCtx = new VariableContext();
+
 	private static FunctionContext functionCtx = new MockFunctionContext();
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx, variableCtx);
+
+	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
+			variableCtx);
 
 	@Test
 	public void applyStepArrayResult() {
@@ -34,10 +39,12 @@ public class ResultNodeApplyStepTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.ZERO);
 
-		ResultNode expectedResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
+		ResultNode expectedResult = new JsonNodeWithoutParent(
+				Optional.of(JSON.nullNode()));
 
 		resultNode.applyStep(step, ctx, false, null).take(1)
-				.subscribe(result -> assertEquals("applyStep on ArrayResultNode should return correct ResultNode",
+				.subscribe(result -> assertEquals(
+						"applyStep on ArrayResultNode should return correct ResultNode",
 						expectedResult, result));
 	}
 
@@ -50,11 +57,13 @@ public class ResultNodeApplyStepTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.ZERO);
 
-		ResultNode expectedResult = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array), 0);
+		ResultNode expectedResult = new JsonNodeWithParentArray(
+				Optional.of(JSON.nullNode()), Optional.of(array), 0);
 
 		resultNode.applyStep(step, ctx, false, null).take(1)
 				.subscribe(result -> assertEquals(
-						"applyStep on AbstractAnnotatedJsonNode should return correct ResultNode", expectedResult,
-						result));
+						"applyStep on AbstractAnnotatedJsonNode should return correct ResultNode",
+						expectedResult, result));
 	}
+
 }

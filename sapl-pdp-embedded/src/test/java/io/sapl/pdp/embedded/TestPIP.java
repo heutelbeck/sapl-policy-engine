@@ -13,6 +13,7 @@ import reactor.core.publisher.Flux;
 public class TestPIP {
 
 	public static final String NAME = "test";
+
 	public static final String DESCRIPTION = "Policy information Point for testing";
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -21,4 +22,5 @@ public class TestPIP {
 	public Flux<JsonNode> upper(JsonNode value, Map<String, JsonNode> variables) {
 		return Flux.just(JSON.textNode(value.asText().toUpperCase()));
 	}
+
 }

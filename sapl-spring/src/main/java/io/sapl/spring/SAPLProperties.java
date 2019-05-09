@@ -11,19 +11,27 @@ import lombok.Data;
 public class SAPLProperties {
 
 	public enum PDPType {
+
 		EMBEDDED, REMOTE
+
 	}
 
 	public enum PDPConfigType {
+
 		RESOURCES, FILESYSTEM
+
 	}
 
 	public enum PRPType {
+
 		RESOURCES, FILESYSTEM
+
 	}
 
 	public enum PRPIndexType {
+
 		SIMPLE, FAST
+
 	}
 
 	private PDPType pdpType = PDPType.EMBEDDED;
@@ -44,24 +52,37 @@ public class SAPLProperties {
 
 	@Data
 	public static class Filesystem {
+
 		private String configPath = "~/policies";
+
 		private String policiesPath = "~/policies";
+
 	}
 
 	@Data
 	public static class Resources {
+
 		private String configPath = "/policies";
+
 		private String policiesPath = "/policies";
+
 	}
 
 	@Data
 	public static class Remote {
+
 		private static final int DEFAULT_REMOTE_PORT = 8443;
+
 		private boolean active;
+
 		private String host = "localhost";
+
 		private int port = DEFAULT_REMOTE_PORT;
+
 		private String key;
+
 		private String secret;
+
 	}
 
 }

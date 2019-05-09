@@ -14,10 +14,13 @@ public class FunctionLibrariesAutoConfiguration {
 	@Configuration
 	@ConditionalOnClass(io.sapl.functions.GeoFunctionLibrary.class)
 	public static class GeoConfiguration {
+
 		@Bean
 		public GeoFunctionLibrary geoFunctionLibrary() {
 			LOGGER.info("Geo function library present. Loading.");
 			return new GeoFunctionLibrary();
 		}
+
 	}
+
 }

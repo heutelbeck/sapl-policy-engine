@@ -40,52 +40,56 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 	}
 
 	private ArrayList<Object> subjects = new ArrayList<>();
+
 	private ArrayList<Object> actions = new ArrayList<>();
+
 	private ArrayList<Object> resources = new ArrayList<>();
+
 	private ArrayList<Object> environments = new ArrayList<>();
 
 	private Map<String, RequestElements> requests = new HashMap<>();
 
 	/**
 	 * Convenience method to add a request without environment data. Call
-	 * {@link #addRequest(String, Object, Object, Object) addRequest(requestId,
-	 * subject, action, resource, null)}.
-	 *
+	 * {@link #addRequest(String, Object, Object, Object) addRequest(requestId, subject,
+	 * action, resource, null)}.
 	 * @param requestId the id identifying the request to be added.
-	 * @param subject   the subject of the request to be added.
-	 * @param action    the action of the request to be added.
-	 * @param resource  the resource of the request to be added.
-	 * @return this {@code MultiRequest} instance to support chaining of multiple
-	 *         calls to {@code addRequest}.
+	 * @param subject the subject of the request to be added.
+	 * @param action the action of the request to be added.
+	 * @param resource the resource of the request to be added.
+	 * @return this {@code MultiRequest} instance to support chaining of multiple calls to
+	 * {@code addRequest}.
 	 */
-	public MultiRequest addRequest(String requestId, Object subject, Object action, Object resource) {
+	public MultiRequest addRequest(String requestId, Object subject, Object action,
+			Object resource) {
 		return addRequest(requestId, subject, action, resource, null);
 	}
 
 	/**
-	 * Adds the request defined by the given subject, action, resource and
-	 * environment. The given {@code requestId} is associated with the according
-	 * response to allow the recipient of the PDP responses to correlate
-	 * request-response pairs.
-	 *
-	 * @param requestId   the id identifying the request to be added.
-	 * @param subject     the subject of the request to be added.
-	 * @param action      the action of the request to be added.
-	 * @param resource    the resource of the request to be added.
+	 * Adds the request defined by the given subject, action, resource and environment.
+	 * The given {@code requestId} is associated with the according response to allow the
+	 * recipient of the PDP responses to correlate request-response pairs.
+	 * @param requestId the id identifying the request to be added.
+	 * @param subject the subject of the request to be added.
+	 * @param action the action of the request to be added.
+	 * @param resource the resource of the request to be added.
 	 * @param environment the environment of the request to be added.
-	 * @return this {@code MultiRequest} instance to support chaining of multiple
-	 *         calls to {@code addRequest}.
+	 * @return this {@code MultiRequest} instance to support chaining of multiple calls to
+	 * {@code addRequest}.
 	 */
-	public MultiRequest addRequest(String requestId, Object subject, Object action, Object resource,
-			Object environment) {
+	public MultiRequest addRequest(String requestId, Object subject, Object action,
+			Object resource, Object environment) {
 		requireNonNull(requestId, "requestId must not be null");
 
 		final Integer subjectId = ensureIsElementOfListAndReturnIndex(subject, subjects);
 		final Integer actionId = ensureIsElementOfListAndReturnIndex(action, actions);
-		final Integer resourceId = ensureIsElementOfListAndReturnIndex(resource, resources);
-		final Integer environmentId = ensureIsElementOfListAndReturnIndex(environment, environments);
+		final Integer resourceId = ensureIsElementOfListAndReturnIndex(resource,
+				resources);
+		final Integer environmentId = ensureIsElementOfListAndReturnIndex(environment,
+				environments);
 
-		requests.put(requestId, new RequestElements(subjectId, actionId, resourceId, environmentId));
+		requests.put(requestId,
+				new RequestElements(subjectId, actionId, resourceId, environmentId));
 		return this;
 	}
 
@@ -104,7 +108,8 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 
 	@Override
 	public Iterator<IdentifiableRequest> iterator() {
-		final Iterator<Map.Entry<String, RequestElements>> requestIterator = requests.entrySet().iterator();
+		final Iterator<Map.Entry<String, RequestElements>> requestIterator = requests
+				.entrySet().iterator();
 		return new Iterator<IdentifiableRequest>() {
 			@Override
 			public boolean hasNext() {
@@ -113,13 +118,15 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 
 			@Override
 			public IdentifiableRequest next() {
-				final Map.Entry<String, RequestElements> requestsEntry = requestIterator.next();
+				final Map.Entry<String, RequestElements> requestsEntry = requestIterator
+						.next();
 				final String id = requestsEntry.getKey();
 				final RequestElements requestElements = requestsEntry.getValue();
 				final Object subject = subjects.get(requestElements.getSubjectId());
 				final Object action = actions.get(requestElements.getActionId());
 				final Object resource = resources.get(requestElements.getResourceId());
-				final Object environment = environments.get(requestElements.getEnvironmentId());
+				final Object environment = environments
+						.get(requestElements.getEnvironmentId());
 				final Request request = toRequest(subject, action, resource, environment);
 				return new IdentifiableRequest(id, request);
 			}
@@ -130,18 +137,23 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 	public String toString() {
 		final StringBuilder sb = new StringBuilder("MultiRequest {");
 		for (IdentifiableRequest request : this) {
-			sb.append("\n\t[").append("REQ-ID: ").append(request.getRequestId()).append(" | ").append("SUBJECT: ")
-					.append(request.getRequest().getSubject()).append(" | ").append("ACTION: ")
-					.append(request.getRequest().getAction()).append(" | ").append("RESOURCE: ")
-					.append(request.getRequest().getResource()).append(" | ").append("ENVIRONMENT: ")
-					.append(request.getRequest().getEnvironment()).append(']');
+			sb.append("\n\t[").append("REQ-ID: ").append(request.getRequestId())
+					.append(" | ").append("SUBJECT: ")
+					.append(request.getRequest().getSubject()).append(" | ")
+					.append("ACTION: ").append(request.getRequest().getAction())
+					.append(" | ").append("RESOURCE: ")
+					.append(request.getRequest().getResource()).append(" | ")
+					.append("ENVIRONMENT: ").append(request.getRequest().getEnvironment())
+					.append(']');
 		}
 		sb.append("\n}");
 		return sb.toString();
 	}
 
-	private static Request toRequest(Object subject, Object action, Object resource, Object environment) {
-		return new Request(MAPPER.valueToTree(subject), MAPPER.valueToTree(action), MAPPER.valueToTree(resource),
-				MAPPER.valueToTree(environment));
+	private static Request toRequest(Object subject, Object action, Object resource,
+			Object environment) {
+		return new Request(MAPPER.valueToTree(subject), MAPPER.valueToTree(action),
+				MAPPER.valueToTree(resource), MAPPER.valueToTree(environment));
 	}
+
 }

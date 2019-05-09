@@ -20,11 +20,16 @@ import lombok.NonNull;
 
 @Data
 public class PolicyInformationPointDocumentation {
+
 	@NonNull
 	String name;
+
 	@NonNull
 	String description;
+
 	@NonNull
 	Object policyInformationPoint;
+
 	Map<String, String> documentation = new HashMap<>();
+
 }

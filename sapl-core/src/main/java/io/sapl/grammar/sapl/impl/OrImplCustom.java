@@ -25,17 +25,20 @@ public class OrImplCustom extends OrImpl {
 	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy OR operator is not allowed in the target";
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		if (!isBody) {
 			// due to the constraints in indexing policy documents, lazy evaluation is not
 			// allowed in target expressions.
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
 
-		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode)
+				.flatMap(Value::toBoolean);
 		return left.switchMap(leftResult -> {
 			if (Boolean.FALSE.equals(leftResult)) {
-				return getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+				return getRight().evaluate(ctx, isBody, relativeNode)
+						.flatMap(Value::toBoolean);
 			}
 			return Flux.just(Boolean.TRUE);
 		}).map(Value::of).distinctUntilChanged();

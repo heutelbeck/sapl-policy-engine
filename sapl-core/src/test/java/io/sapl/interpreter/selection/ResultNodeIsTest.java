@@ -10,30 +10,35 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import org.junit.Test;
 
 public class ResultNodeIsTest {
+
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Test
 	public void isResultArrayOnAbstractAnnotatedJsonNode() {
 		ResultNode resultNode = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
-		assertFalse("isResultArray on AbstractAnnotatedJsonNode should return false", resultNode.isResultArray());
+		assertFalse("isResultArray on AbstractAnnotatedJsonNode should return false",
+				resultNode.isResultArray());
 	}
 
 	@Test
 	public void isResultArrayOnArrayResultNode() {
 		ResultNode resultNode = new ArrayResultNode(new ArrayList<>());
-		assertTrue("isResultArray on ArrayResultNode should return true", resultNode.isResultArray());
+		assertTrue("isResultArray on ArrayResultNode should return true",
+				resultNode.isResultArray());
 	}
 
 	@Test
 	public void isNodeWithoutParentOnWithoutParent() {
 		ResultNode resultNode = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
-		assertTrue("isNodeWithoutParent on JsonNodeWithoutParent should return true", resultNode.isNodeWithoutParent());
+		assertTrue("isNodeWithoutParent on JsonNodeWithoutParent should return true",
+				resultNode.isNodeWithoutParent());
 	}
 
 	@Test
 	public void isNodeWithoutParentOnArrayResultNode() {
 		ResultNode resultNode = new ArrayResultNode(new ArrayList<>());
-		assertFalse("isNodeWithoutParent on ArrayResultNode should return false", resultNode.isNodeWithoutParent());
+		assertFalse("isNodeWithoutParent on ArrayResultNode should return false",
+				resultNode.isNodeWithoutParent());
 	}
 
 	@Test
@@ -46,8 +51,8 @@ public class ResultNodeIsTest {
 
 	@Test
 	public void isNodeWithoutParentOnWithParentArray() {
-		ResultNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(JSON.arrayNode()),
-				0);
+		ResultNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
+				Optional.of(JSON.arrayNode()), 0);
 		assertFalse("isNodeWithoutParent on JsonNodeWithParentArray should return false",
 				resultNode.isNodeWithoutParent());
 	}
@@ -70,15 +75,17 @@ public class ResultNodeIsTest {
 	public void isNodeWithParentObjectOnWithParentObject() {
 		ResultNode resultNode = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
 				Optional.of(JSON.objectNode()), "key");
-		assertTrue("isNodeWithParentObject on JsonNodeWithParentObject should return true",
+		assertTrue(
+				"isNodeWithParentObject on JsonNodeWithParentObject should return true",
 				resultNode.isNodeWithParentObject());
 	}
 
 	@Test
 	public void isNodeWithParentObjectOnWithParentArray() {
-		ResultNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(JSON.arrayNode()),
-				0);
-		assertFalse("isNodeWithParentObject on JsonNodeWithParentArray should return false",
+		ResultNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
+				Optional.of(JSON.arrayNode()), 0);
+		assertFalse(
+				"isNodeWithParentObject on JsonNodeWithParentArray should return false",
 				resultNode.isNodeWithParentObject());
 	}
 
@@ -92,22 +99,25 @@ public class ResultNodeIsTest {
 	@Test
 	public void isNodeWithParentArrayOnArrayResultNode() {
 		ResultNode resultNode = new ArrayResultNode(new ArrayList<>());
-		assertFalse("isNodeWithParentArray on ArrayResultNode should return false", resultNode.isNodeWithParentArray());
+		assertFalse("isNodeWithParentArray on ArrayResultNode should return false",
+				resultNode.isNodeWithParentArray());
 	}
 
 	@Test
 	public void isNodeWithParentArrayOnWithParentObject() {
 		ResultNode resultNode = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
 				Optional.of(JSON.objectNode()), "key");
-		assertFalse("isNodeWithParentArray on JsonNodeWithParentObject should return false",
+		assertFalse(
+				"isNodeWithParentArray on JsonNodeWithParentObject should return false",
 				resultNode.isNodeWithParentArray());
 	}
 
 	@Test
 	public void isNodeWithParentArrayOnWithParentArray() {
-		ResultNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(JSON.arrayNode()),
-				0);
+		ResultNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
+				Optional.of(JSON.arrayNode()), 0);
 		assertTrue("isNodeWithParentArray on JsonNodeWithParentArray should return true",
 				resultNode.isNodeWithParentArray());
 	}
+
 }

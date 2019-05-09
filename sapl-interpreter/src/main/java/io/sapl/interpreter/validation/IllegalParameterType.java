@@ -31,4 +31,5 @@ public class IllegalParameterType extends Exception {
 	public IllegalParameterType(Throwable cause) {
 		super(cause);
 	}
+
 }

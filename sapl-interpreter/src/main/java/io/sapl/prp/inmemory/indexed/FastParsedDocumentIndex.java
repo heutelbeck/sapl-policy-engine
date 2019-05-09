@@ -29,19 +29,33 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	private FunctionContext bufferCtx;
+
 	private final IndexCreationStrategy creationStrategy = new FastIndexCreationStrategy();
+
 	private final Queue<Map.Entry<String, SAPL>> documentChanges = new ConcurrentLinkedQueue<>();
+
 	private IndexContainer documentIndex;
+
 	private final AtomicBoolean documentSwitch = new AtomicBoolean(true);
+
 	private FunctionContext functionCtx;
+
 	private final Lock functionCtxReadLock;
+
 	private final AtomicBoolean functionCtxSwitch = new AtomicBoolean(true);
+
 	private final Lock functionCtxWriteLock;
+
 	private final CountDownLatch initLatch = new CountDownLatch(1);
+
 	private final AtomicBoolean initSwitch = new AtomicBoolean(true);
+
 	private final AtomicBoolean liveSwitch = new AtomicBoolean(false);
+
 	private final Map<String, SAPL> publishedDocuments = new HashMap<>();
+
 	private final Map<String, DisjunctiveFormula> publishedTargets = new HashMap<>();
+
 	private final Map<String, SAPL> unusableDocuments = new HashMap<>();
 
 	public FastParsedDocumentIndex() {
@@ -74,14 +88,15 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 	}
 
 	@Override
-	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
-			Map<String, JsonNode> variables) {
+	public PolicyRetrievalResult retrievePolicies(Request request,
+			FunctionContext functionCtx, Map<String, JsonNode> variables) {
 		lazyInit(Preconditions.checkNotNull(functionCtx));
 		PolicyRetrievalResult result;
 		try {
 			VariableContext variableCtx = new VariableContext(request, variables);
 			result = documentIndex.match(functionCtx, variableCtx);
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			result = new PolicyRetrievalResult(Collections.emptyList(), true);
 		}
 		if (!unusableDocuments.isEmpty()) {
@@ -136,14 +151,16 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 					updateFunctionContextReference();
 				}
 				updateDocumentReferences();
-			} finally {
+			}
+			finally {
 				functionCtxWriteLock.unlock();
 				initLatch.countDown();
 			}
 		}
 		try {
 			initLatch.await();
-		} catch (InterruptedException e) {
+		}
+		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
 	}
@@ -155,7 +172,8 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 				if (entry.getValue() != null) {
 					retainDocument(entry.getKey(), entry.getValue());
 					retainTarget(entry.getKey(), entry.getValue());
-				} else {
+				}
+				else {
 					discard(entry.getKey());
 				}
 			}
@@ -188,16 +206,20 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 
 	private void retainTarget(String documentKey, SAPL sapl) {
 		try {
-			Map<String, String> imports = INTERPRETER.fetchFunctionImports(sapl, functionCtx);
+			Map<String, String> imports = INTERPRETER.fetchFunctionImports(sapl,
+					functionCtx);
 			Expression targetExpression = sapl.getPolicyElement().getTargetExpression();
 			DisjunctiveFormula targetFormula;
 			if (targetExpression == null) {
-				targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
-			} else {
+				targetFormula = new DisjunctiveFormula(
+						new ConjunctiveClause(new Literal(new Bool(true))));
+			}
+			else {
 				targetFormula = TreeWalker.walk(targetExpression, imports);
 			}
 			publishedTargets.put(documentKey, targetFormula);
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			unusableDocuments.put(documentKey, sapl);
 		}
 	}
@@ -210,7 +232,8 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 				processDocumentChanges();
 				documentSwitch.set(true);
 			}
-		} finally {
+		}
+		finally {
 			functionCtxReadLock.unlock();
 		}
 	}
@@ -223,8 +246,10 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 				processFunctionContextChanges();
 				functionCtxSwitch.set(true);
 			}
-		} finally {
+		}
+		finally {
 			functionCtxWriteLock.unlock();
 		}
 	}
+
 }

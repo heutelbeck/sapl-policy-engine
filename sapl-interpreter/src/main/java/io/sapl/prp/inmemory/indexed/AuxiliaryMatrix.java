@@ -9,13 +9,16 @@ public class AuxiliaryMatrix {
 	private static final int EXPECTED_ROWS = 2;
 
 	private final int size;
+
 	private final int[] uncheckedLiteralsOfClause;
+
 	private final int[] uncheckedOccurrencesOfClause;
 
 	public AuxiliaryMatrix(final AuxiliaryMatrix matrix) {
 		size = matrix.size;
 		uncheckedLiteralsOfClause = Arrays.copyOf(matrix.uncheckedLiteralsOfClause, size);
-		uncheckedOccurrencesOfClause = Arrays.copyOf(matrix.uncheckedOccurrencesOfClause, size);
+		uncheckedOccurrencesOfClause = Arrays.copyOf(matrix.uncheckedOccurrencesOfClause,
+				size);
 	}
 
 	public AuxiliaryMatrix(final int[]... matrix) {
@@ -44,4 +47,5 @@ public class AuxiliaryMatrix {
 	public int size() {
 		return size;
 	}
+
 }

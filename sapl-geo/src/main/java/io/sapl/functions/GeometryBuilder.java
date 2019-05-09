@@ -39,7 +39,9 @@ import lombok.experimental.UtilityClass;
 public final class GeometryBuilder {
 
 	private static final String UNABLE_TO_PARSE_GEOJSON = "Provided GeoJSON-format is not compliant. Unable to parse geometry.";
+
 	private static final String UNABLE_TO_PARSE_WKT = "Provided WKT-format is not compliant. Unable to parse geometry.";
+
 	private static final String UNABLE_TO_PARSE_GEOMETRY = "Unable to parse geometry to JsonNode.";
 
 	public static Geometry fromJsonNode(JsonNode jsonGeometry) throws FunctionException {
@@ -48,7 +50,8 @@ public final class GeometryBuilder {
 
 		try {
 			return geoJsonReader.read(stringReader);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw new FunctionException(UNABLE_TO_PARSE_GEOJSON, e);
 		}
 	}
@@ -57,7 +60,8 @@ public final class GeometryBuilder {
 		try {
 			WKTReader wkt = new WKTReader();
 			return wkt.read(wktGeometry);
-		} catch (ParseException e) {
+		}
+		catch (ParseException e) {
 			throw new FunctionException(UNABLE_TO_PARSE_WKT, e);
 		}
 	}
@@ -73,7 +77,8 @@ public final class GeometryBuilder {
 
 		try {
 			return mapper.readTree(geoJsonWriter.toString(geometry));
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw new FunctionException(UNABLE_TO_PARSE_GEOMETRY, e);
 		}
 	}
@@ -86,7 +91,8 @@ public final class GeometryBuilder {
 		return toWkt(fromJsonNode(jsonGeometry));
 	}
 
-	public static double geodesicDistance(Geometry geometryOne, Geometry geometryTwo) throws FunctionException {
+	public static double geodesicDistance(Geometry geometryOne, Geometry geometryTwo)
+			throws FunctionException {
 		try {
 			int startingPointIndex = 0;
 			int destinationPointIndex = 1;
@@ -95,13 +101,18 @@ public final class GeometryBuilder {
 			DistanceOp distOp = new DistanceOp(geometryOne, geometryTwo);
 			GeodeticCalculator gc = new GeodeticCalculator(crs);
 
-			gc.setStartingPosition(JTS.toDirectPosition(distOp.nearestPoints()[startingPointIndex], crs));
-			gc.setDestinationPosition(JTS.toDirectPosition(distOp.nearestPoints()[destinationPointIndex], crs));
+			gc.setStartingPosition(JTS
+					.toDirectPosition(distOp.nearestPoints()[startingPointIndex], crs));
+			gc.setDestinationPosition(JTS.toDirectPosition(
+					distOp.nearestPoints()[destinationPointIndex], crs));
 			return gc.getOrthodromicDistance();
-		} catch (TransformException e) {
+		}
+		catch (TransformException e) {
 			throw new FunctionException(GeoProjection.UNABLE_TO_TRANSFORM, e);
-		} catch (FactoryException e) {
+		}
+		catch (FactoryException e) {
 			throw new FunctionException(GeoProjection.CRS_COULD_NOT_INITIALIZE, e);
 		}
 	}
+
 }

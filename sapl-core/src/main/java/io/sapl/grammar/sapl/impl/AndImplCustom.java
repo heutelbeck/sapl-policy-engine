@@ -22,32 +22,34 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implements the lazy boolean AND operator, written as '&&' in Expressions.
- * 
+ *
  * Multiplication returns Expression: Comparison (({Multi.left=current} '*' |
- * {Div.left=current} '/' | {And.left=current} '&&' | '&'
- * {EagerAnd.left=current}) right=Comparison)* ;
+ * {Div.left=current} '/' | {And.left=current} '&&' | '&' {EagerAnd.left=current})
+ * right=Comparison)* ;
  */
 public class AndImplCustom extends AndImpl {
 
 	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy AND operator is not allowed in the target";
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		if (!isBody) {
 			// due to the constraints in indexing policy documents, lazy evaluation is not
 			// allowed in target expressions.
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
 
-		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode)
+				.flatMap(Value::toBoolean);
 		return left.switchMap(leftResult -> {
 			// Lazy evaluation of the right expression
 			if (Boolean.TRUE.equals(leftResult)) {
-				return getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+				return getRight().evaluate(ctx, isBody, relativeNode)
+						.flatMap(Value::toBoolean);
 			}
 			return Flux.just(Boolean.FALSE);
 		}).map(Value::of).distinctUntilChanged();
 	}
 
 }
-

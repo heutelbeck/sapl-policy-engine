@@ -35,13 +35,21 @@ import lombok.Getter;
 public class PostGISConnection {
 
 	private static final String NAME_REGEX = "[^a-zA-Z0-9]+";
+
 	private static final String EMPTY_STRING = "";
+
 	private static final int NAME_INDEX = 1;
+
 	private static final int GEOM_INDEX = 2;
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	private static final ObjectMapper MAPPER = new ObjectMapper();
+
 	private static Pattern jsonNamePattern = Pattern.compile(NAME_REGEX);
+
 	protected static final String AF_TEST = "AF_TEST";
+
 	protected static final String TEST_OKAY = "ok";
 
 	@Getter
@@ -60,9 +68,10 @@ public class PostGISConnection {
 	public JsonNode toGeoPIPResponse() throws FunctionException, AttributeException {
 		if (config == null) {
 			return JSON.textNode(TEST_OKAY);
-		} else {
-			return GeoPIPResponse.builder().identifier(config.getTable()).geofences(retrieveGeometries()).build()
-					.toJsonNode();
+		}
+		else {
+			return GeoPIPResponse.builder().identifier(config.getTable())
+					.geofences(retrieveGeometries()).build().toJsonNode();
 		}
 	}
 
@@ -75,18 +84,22 @@ public class PostGISConnection {
 					return formatResultSet(rs);
 				}
 			}
-		} catch (SQLException e) {
+		}
+		catch (SQLException e) {
 			throw new AttributeException(e);
 		}
 	}
 
-	private static ObjectNode formatResultSet(ResultSet rs) throws SQLException, FunctionException {
+	private static ObjectNode formatResultSet(ResultSet rs)
+			throws SQLException, FunctionException {
 		ObjectNode geometries = JSON.objectNode();
 		while (rs.next()) {
-			String name = jsonNamePattern.matcher(rs.getString(NAME_INDEX)).replaceAll(EMPTY_STRING);
+			String name = jsonNamePattern.matcher(rs.getString(NAME_INDEX))
+					.replaceAll(EMPTY_STRING);
 			Geometry geom = GeometryBuilder.fromWkt(rs.getString(GEOM_INDEX));
 			geometries.set(name, GeometryBuilder.toJsonNode(geom));
 		}
 		return geometries;
 	}
+
 }

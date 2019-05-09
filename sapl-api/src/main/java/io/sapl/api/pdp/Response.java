@@ -49,19 +49,23 @@ public class Response {
 	Optional<ArrayNode> advices = Optional.empty();
 
 	public static Response permit() {
-		return new Response(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty());
+		return new Response(Decision.PERMIT, Optional.empty(), Optional.empty(),
+				Optional.empty());
 	}
 
 	public static Response deny() {
-		return new Response(Decision.DENY, Optional.empty(), Optional.empty(), Optional.empty());
+		return new Response(Decision.DENY, Optional.empty(), Optional.empty(),
+				Optional.empty());
 	}
 
 	public static Response indeterminate() {
-		return new Response(Decision.INDETERMINATE, Optional.empty(), Optional.empty(), Optional.empty());
+		return new Response(Decision.INDETERMINATE, Optional.empty(), Optional.empty(),
+				Optional.empty());
 	}
 
 	public static Response notApplicable() {
-		return new Response(Decision.NOT_APPLICABLE, Optional.empty(), Optional.empty(), Optional.empty());
+		return new Response(Decision.NOT_APPLICABLE, Optional.empty(), Optional.empty(),
+				Optional.empty());
 	}
 
 	@Override
@@ -104,9 +108,11 @@ public class Response {
 		final Optional<JsonNode> thisResource = getResource();
 		result = result * PRIME + thisResource.map(Object::hashCode).orElseGet(() -> 43);
 		final Optional<ArrayNode> thisObligation = getObligations();
-		result = result * PRIME + thisObligation.map(Object::hashCode).orElseGet(() -> 43);
+		result = result * PRIME
+				+ thisObligation.map(Object::hashCode).orElseGet(() -> 43);
 		final Optional<ArrayNode> thisAdvice = getAdvices();
 		result = result * PRIME + thisAdvice.map(Object::hashCode).orElseGet(() -> 43);
 		return result;
 	}
+
 }

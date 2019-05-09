@@ -20,8 +20,11 @@ public class ConjunctiveClause implements Simplifiable {
 	static final String EVALUATION_NOT_POSSIBLE = "Evaluation Error: Attempting to evaluate empty clause.";
 
 	private int hash;
+
 	private boolean hasHashCode;
+
 	private final List<Literal> literals;
+
 	private final ConjunctiveClauseSimplifier simplifier = new ConjunctiveClauseSimplifier();
 
 	public ConjunctiveClause(final Collection<Literal> literals) {
@@ -51,7 +54,8 @@ public class ConjunctiveClause implements Simplifiable {
 		if (literals.size() != other.literals.size()) {
 			return false;
 		}
-		return literals.containsAll(other.literals) && other.literals.containsAll(literals);
+		return literals.containsAll(other.literals)
+				&& other.literals.containsAll(literals);
 	}
 
 	public boolean evaluate() {
@@ -70,8 +74,8 @@ public class ConjunctiveClause implements Simplifiable {
 		return result;
 	}
 
-	public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
-			throws PolicyEvaluationException {
+	public boolean evaluate(final FunctionContext functionCtx,
+			final VariableContext variableCtx) throws PolicyEvaluationException {
 		ListIterator<Literal> iter = literals.listIterator();
 		if (!iter.hasNext()) {
 			throw new PolicyEvaluationException(EVALUATION_NOT_POSSIBLE);
@@ -148,4 +152,5 @@ public class ConjunctiveClause implements Simplifiable {
 	public int size() {
 		return literals.size();
 	}
+
 }

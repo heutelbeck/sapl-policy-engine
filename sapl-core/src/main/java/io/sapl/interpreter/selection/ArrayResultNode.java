@@ -41,6 +41,7 @@ import reactor.core.publisher.Flux;
 public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJsonNode> {
 
 	protected static final String UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT = "Undefined values cannot be added to results in JSON format.";
+
 	protected static final String FILTER_HELPER_ARRAY = "Cannot apply filter to helper array.";
 
 	List<AbstractAnnotatedJsonNode> nodes;
@@ -86,41 +87,46 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 			for (AbstractAnnotatedJsonNode node : changeOrderForRemove(nodes)) {
 				node.removeFromTree(false);
 			}
-		} else {
+		}
+		else {
 			throw new PolicyEvaluationException(FILTER_HELPER_ARRAY);
 		}
 	}
 
 	@Override
-	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx,
-			boolean isBody) {
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each,
+			EvaluationContext ctx, boolean isBody) {
 		if (each) {
 			if (!nodes.isEmpty()) {
-				final List<Flux<Void>> appliedFilterFluxes = new ArrayList<>(nodes.size());
+				final List<Flux<Void>> appliedFilterFluxes = new ArrayList<>(
+						nodes.size());
 				for (AbstractAnnotatedJsonNode node : nodes) {
-					appliedFilterFluxes.add(
-							node.applyFilterWithRelativeNode(function, arguments, false, ctx, isBody, node.getParent()));
+					appliedFilterFluxes.add(node.applyFilterWithRelativeNode(function,
+							arguments, false, ctx, isBody, node.getParent()));
 				}
-				return Flux.combineLatest(appliedFilterFluxes, voidResults -> Void.INSTANCE);
-			} else {
+				return Flux.combineLatest(appliedFilterFluxes,
+						voidResults -> Void.INSTANCE);
+			}
+			else {
 				return Flux.just(Void.INSTANCE);
 			}
-		} else {
+		}
+		else {
 			return Flux.error(new PolicyEvaluationException(FILTER_HELPER_ARRAY));
 		}
 	}
 
 	/**
-	 * The helper method prepares a list of AnnotatedJsonNodes for applying the
-	 * remove filter function. It changes the order of the contained annotated
-	 * JsonNodes so that nodes with an array as parent are in descending order based
-	 * on the index. This ensures that removal of a node does not affect the index
-	 * of other nodes that are to be removed from the same array.
-	 *
+	 * The helper method prepares a list of AnnotatedJsonNodes for applying the remove
+	 * filter function. It changes the order of the contained annotated JsonNodes so that
+	 * nodes with an array as parent are in descending order based on the index. This
+	 * ensures that removal of a node does not affect the index of other nodes that are to
+	 * be removed from the same array.
 	 * @param nodes the annotated nodes to prepare
 	 * @return a result array with the correct ordering of its children
 	 */
-	private static List<AbstractAnnotatedJsonNode> changeOrderForRemove(List<AbstractAnnotatedJsonNode> nodes) {
+	private static List<AbstractAnnotatedJsonNode> changeOrderForRemove(
+			List<AbstractAnnotatedJsonNode> nodes) {
 		List<AbstractAnnotatedJsonNode> result = new ArrayList<>();
 		Map<Integer, List<AbstractAnnotatedJsonNode>> nodesWithParentArray = new HashMap<>();
 
@@ -131,7 +137,8 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 					nodesWithParentArray.put(index, new ArrayList<>());
 				}
 				nodesWithParentArray.get(index).add(node);
-			} else {
+			}
+			else {
 				result.add(node);
 			}
 		}
@@ -152,4 +159,5 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 			Optional<JsonNode> relativeNode) {
 		return step.apply(this, ctx, isBody, relativeNode);
 	}
+
 }

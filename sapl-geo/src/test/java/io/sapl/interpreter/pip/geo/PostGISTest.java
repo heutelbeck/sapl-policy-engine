@@ -49,21 +49,31 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
 public class PostGISTest {
+
 	private static final ObjectMapper MAPPER = new ObjectMapper();
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	private static final String JSON_CONF = "{\"serverAdress\": \"localhost\", \"port\": \"5432\","
 			+ "\"db\": \"db_sample\", \"table\": \"geofences\", \"username\": \"uname\", \"password\": \"pw\","
 			+ "\"geometryColName\": \"geom\", \"idColName\": \"fences\", \"pkColName\": \"gid\",\"from\": 0,"
 			+ "\"flipCoordinates\": true %s}";
-	private static final String PROJECTION_CONFIG = ",\"projectionSRID\": 12345," + "\"until\": 1";
+
+	private static final String PROJECTION_CONFIG = ",\"projectionSRID\": 12345,"
+			+ "\"until\": 1";
+
 	private static final String JSON_ANSWER = "{\"name\":{\"type\":\"Point\",\"coordinates\":[1,1]}}";
+
 	private PostGISConfig pgConfFromJson;
+
 	private PostGISConfig pgProjectionConfFromJson;
+
 	private JsonNode jsonConf;
 
 	@Before
 	public void init() throws IOException {
-		jsonConf = MAPPER.readValue(String.format(JSON_CONF, PROJECTION_CONFIG), JsonNode.class);
+		jsonConf = MAPPER.readValue(String.format(JSON_CONF, PROJECTION_CONFIG),
+				JsonNode.class);
 		pgProjectionConfFromJson = MAPPER.convertValue(jsonConf, PostGISConfig.class);
 
 		jsonConf = MAPPER.readValue(String.format(JSON_CONF, ""), JsonNode.class);
@@ -73,28 +83,31 @@ public class PostGISTest {
 	@Test
 	public void builderConstructor() {
 		PostGISConfig conf = new PostGISConfig();
-		assertNotNull("PostGISConnection object fails to be constructed with empty PostGISConfig object.",
+		assertNotNull(
+				"PostGISConnection object fails to be constructed with empty PostGISConfig object.",
 				new PostGISConnection(conf));
 	}
 
 	@Test
 	public void jsonConstructor() {
 		PostGISConnection conn = new PostGISConnection(jsonConf);
-		assertEquals("PostGISConnection object fails to be constructed with proper JSON configuration.",
+		assertEquals(
+				"PostGISConnection object fails to be constructed with proper JSON configuration.",
 				conn.getConfig(), pgConfFromJson);
 	}
 
 	@Test
 	public void confConstructor() {
 		PostGISConnection conn = new PostGISConnection(pgConfFromJson);
-		assertEquals("PostGISConnection object fails to be constructed with proper PostGISConfig object.",
+		assertEquals(
+				"PostGISConnection object fails to be constructed with proper PostGISConfig object.",
 				conn.getConfig(), pgConfFromJson);
 	}
 
 	@Test
 	public void equalsTest() {
-		EqualsVerifier.forClass(PostGISConfig.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
-				.verify();
+		EqualsVerifier.forClass(PostGISConfig.class)
+				.suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS).verify();
 	}
 
 	@Test
@@ -106,7 +119,8 @@ public class PostGISTest {
 		PostGISConnection connSpy = spy(conn);
 
 		ObjectNode response = JSON.objectNode();
-		JsonNode jsonPoint = MAPPER.readValue("{\"type\": \"Point\",\"coordinates\":[10.0, 15.0]}", JsonNode.class);
+		JsonNode jsonPoint = MAPPER.readValue(
+				"{\"type\": \"Point\",\"coordinates\":[10.0, 15.0]}", JsonNode.class);
 		response.set("testPoint", jsonPoint);
 
 		doReturn(response).when(connSpy).retrieveGeometries();
@@ -117,7 +131,8 @@ public class PostGISTest {
 	}
 
 	@Test
-	public void dbConnection() throws SQLException, FunctionException, AttributeException {
+	public void dbConnection()
+			throws SQLException, FunctionException, AttributeException {
 		PostGISConfig configMock = mock(PostGISConfig.class);
 		Connection connMock = mock(Connection.class);
 		Statement sMock = mock(Statement.class);
@@ -133,8 +148,9 @@ public class PostGISTest {
 		when(rsMock.getString(eq(2))).thenReturn("POINT (1 1)");
 
 		PostGISConnection c = new PostGISConnection(configMock);
-		assertEquals("Database connection is not correctly established or result not correctly formatted.", JSON_ANSWER,
-				c.retrieveGeometries().toString());
+		assertEquals(
+				"Database connection is not correctly established or result not correctly formatted.",
+				JSON_ANSWER, c.retrieveGeometries().toString());
 	}
 
 	@Test
@@ -152,7 +168,9 @@ public class PostGISTest {
 		PostGISConfig pgConfSpy = spy(pgConfFromJson);
 		doReturn(false).when(pgConfSpy).verifySqlArguments();
 
-		assertNotEquals("PostGIS SQL Query is build even though parameters are not validated.", pgConfSpy.buildQuery(),
+		assertNotEquals(
+				"PostGIS SQL Query is build even though parameters are not validated.",
+				pgConfSpy.buildQuery(),
 				"SELECT fences, ST_AsText(ST_FlipCoordinates(geom)) FROM geofences WHERE gid>=0;");
 	}
 
@@ -181,7 +199,8 @@ public class PostGISTest {
 		when(rsMock.next()).thenReturn(true).thenReturn(false);
 		when(rsMock.getString(anyString())).thenReturn("test");
 
-		assertTrue("colsExist() returns false even though column title exists in ResultSet.",
+		assertTrue(
+				"colsExist() returns false even though column title exists in ResultSet.",
 				PostGISConfig.colsExist(rsMock, "test"));
 	}
 
@@ -190,7 +209,8 @@ public class PostGISTest {
 		ResultSet rsMock = mock(ResultSet.class);
 		when(rsMock.next()).thenReturn(false);
 
-		assertFalse("colsExist() returns true even though column title does not exist in ResultSet.",
+		assertFalse(
+				"colsExist() returns true even though column title does not exist in ResultSet.",
 				PostGISConfig.colsExist(rsMock, "test"));
 	}
 
@@ -199,7 +219,8 @@ public class PostGISTest {
 		PostGISConfig pgConfSpy = spy(pgProjectionConfFromJson);
 		doThrow(new SQLException()).when(pgConfSpy).getConnection();
 
-		assertTrue("SQLException is not correctly handled.", pgConfSpy.verifySqlArguments());
+		assertTrue("SQLException is not correctly handled.",
+				pgConfSpy.verifySqlArguments());
 	}
 
 	@Test
@@ -211,11 +232,15 @@ public class PostGISTest {
 
 		doReturn(connMock).when(pgConfSpy).getConnection();
 		when(connMock.getMetaData()).thenReturn(dbmMock);
-		when(dbmMock.getColumns(eq(null), eq(null), anyString(), eq(null))).thenReturn(rsMock);
-		when(rsMock.next()).thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false);
-		when(rsMock.getString(anyString())).thenReturn("fences").thenReturn("gid").thenReturn("geom");
+		when(dbmMock.getColumns(eq(null), eq(null), anyString(), eq(null)))
+				.thenReturn(rsMock);
+		when(rsMock.next()).thenReturn(true).thenReturn(true).thenReturn(true)
+				.thenReturn(false);
+		when(rsMock.getString(anyString())).thenReturn("fences").thenReturn("gid")
+				.thenReturn("geom");
 
-		assertTrue("Arguments for SQL query are not correctly validated.", pgConfSpy.verifySqlArguments());
+		assertTrue("Arguments for SQL query are not correctly validated.",
+				pgConfSpy.verifySqlArguments());
 	}
 
 	@Test
@@ -227,17 +252,19 @@ public class PostGISTest {
 
 		doReturn(connMock).when(pgConfSpy).getConnection();
 		when(connMock.getMetaData()).thenReturn(dbmMock);
-		when(dbmMock.getColumns(eq(null), eq(null), anyString(), eq(null))).thenReturn(rsMock);
+		when(dbmMock.getColumns(eq(null), eq(null), anyString(), eq(null)))
+				.thenReturn(rsMock);
 		when(rsMock.next()).thenReturn(true).thenReturn(false);
 		when(rsMock.getString(anyString())).thenReturn("fences");
 
-		assertFalse("Arguments for SQL query are not correctly validated.", pgConfSpy.verifySqlArguments());
+		assertFalse("Arguments for SQL query are not correctly validated.",
+				pgConfSpy.verifySqlArguments());
 	}
 
 	@Test
 	public void buildUrl() {
-		assertEquals("PostGIS-URL is not correctly built.", "jdbc:postgresql://localhost:5432/db_sample?",
-				pgConfFromJson.buildUrl());
+		assertEquals("PostGIS-URL is not correctly built.",
+				"jdbc:postgresql://localhost:5432/db_sample?", pgConfFromJson.buildUrl());
 	}
 
 	@Test
@@ -248,6 +275,8 @@ public class PostGISTest {
 				+ "\"from\": 0, \"ssl\": true, \"urlParams\": \"test=test\"}";
 		PostGISConfig pgConfWithParams = MAPPER.readValue(config, PostGISConfig.class);
 		assertEquals("PostGIS-URL is not correctly built.",
-				"jdbc:postgresql://localhost:5432/db_sample?ssl=true&test=test", pgConfWithParams.buildUrl());
+				"jdbc:postgresql://localhost:5432/db_sample?ssl=true&test=test",
+				pgConfWithParams.buildUrl());
 	}
+
 }

@@ -27,17 +27,20 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 	}
 
 	@Override
-	public Flux<Response> combinePolicies(List<Policy> policies, Request request, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
+	public Flux<Response> combinePolicies(List<Policy> policies, Request request,
+			AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
 			Map<String, String> imports) {
 		List<Policy> matchingPolicies = new ArrayList<>();
 		for (Policy policy : policies) {
 			try {
-				if (interpreter.matches(request, policy, functionCtx, systemVariables, variables, imports)) {
+				if (interpreter.matches(request, policy, functionCtx, systemVariables,
+						variables, imports)) {
 					matchingPolicies.add(policy);
 					LOGGER.trace("Matching policy: {}", policy);
 				}
-			} catch (PolicyEvaluationException e) {
+			}
+			catch (PolicyEvaluationException e) {
 				return Flux.just(Response.indeterminate());
 			}
 		}
@@ -46,10 +49,11 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 			return Flux.just(Response.notApplicable());
 		}
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(
+				matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
-			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx, functionCtx, systemVariables,
-					variables, imports));
+			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx,
+					functionCtx, systemVariables, variables, imports));
 		}
 		return Flux.combineLatest(responseFluxes, responses -> {
 			for (Object response : responses) {
