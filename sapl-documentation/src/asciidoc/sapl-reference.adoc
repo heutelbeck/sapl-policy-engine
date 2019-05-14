@@ -475,7 +475,7 @@ The original resource is accessible via the identifier `resource` and can be fil
 
 .Transformation Example
 ----
-tranform
+transform
 	resource |- {
 		@.someValue : remove,
 		@.anotherValue : filter.blacken
