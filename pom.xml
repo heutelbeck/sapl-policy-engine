@@ -24,9 +24,15 @@
 
 	<name>SAPL Policy Engine</name>
 
-	<organization>
-		<name>Dominic Heutelbeck</name>
-	</organization>
+	<developers>
+		<developer>
+			<name>Dominic Heutelbeck</name>
+			<email>dominic@heutelbeck.com</email>
+			<roles>
+				<role>Project Owner</role>
+			</roles>
+		</developer>
+	</developers>
 
 	<inceptionYear>2019</inceptionYear>
 
@@ -40,15 +46,15 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.8</java.version>
-		<xtextVersion>2.17.0.M2</xtextVersion>
+		<xtextVersion>2.18.0</xtextVersion>
 		<version.license-maven-plugin>1.10</version.license-maven-plugin>
-		<version.maven-javadoc-plugin>3.0.1</version.maven-javadoc-plugin>
-		<version.maven-source-plugin>3.0.1</version.maven-source-plugin>
+		<version.maven-javadoc-plugin>3.1.0</version.maven-javadoc-plugin>
+		<version.maven-source-plugin>3.1.0</version.maven-source-plugin>
 		<version.junit>4.12</version.junit>
-		<version.lombok>1.18.4</version.lombok>
-		<version.springboot>2.1.4.RELEASE</version.springboot>
-		<version.powermock>2.0.0</version.powermock>
-		<version.mockito>2.23.4</version.mockito>
+		<version.lombok>1.18.8</version.lombok>
+		<version.springboot>2.1.5.RELEASE</version.springboot>
+		<version.powermock>2.0.2</version.powermock>
+		<version.mockito>2.28.2</version.mockito>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 	</properties>
@@ -73,6 +79,14 @@
 
 	<dependencyManagement>
 		<dependencies>
+			<!-- XText -->
+			<dependency>
+				<groupId>org.eclipse.xtext</groupId>
+				<artifactId>xtext-dev-bom</artifactId>
+				<version>${xtextVersion}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 			<!-- Testing Scope Dependencies -->
 			<dependency>
 				<groupId>junit</groupId>
@@ -98,7 +112,6 @@
 				<version>${version.mockito}</version>
 				<scope>test</scope>
 			</dependency>
-
 			<!-- Spring-Boot -->
 			<dependency>
 				<groupId>org.springframework.boot</groupId>
@@ -131,15 +144,6 @@
 		<pluginManagement>
 			<plugins>
 				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.8.0</version>
-					<configuration>
-						<source>${maven.compiler.source}</source>
-						<target>${maven.compiler.target}</target>
-					</configuration>
-				</plugin>
-				<plugin>
 					<groupId>org.eclipse.xtend</groupId>
 					<artifactId>xtend-maven-plugin</artifactId>
 					<version>${xtextVersion}</version>
@@ -147,7 +151,9 @@
 						<execution>
 							<goals>
 								<goal>compile</goal>
+								<goal>xtend-install-debug-info</goal>
 								<goal>testCompile</goal>
+								<goal>xtend-test-install-debug-info</goal>
 							</goals>
 						</execution>
 					</executions>
@@ -157,14 +163,9 @@
 					</configuration>
 				</plugin>
 				<plugin>
-					<groupId>io.spring.javaformat</groupId>
-					<artifactId>spring-javaformat-maven-plugin</artifactId>
-					<version>0.0.9</version>
-				</plugin>
-				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-clean-plugin</artifactId>
-					<version>3.0.0</version>
+					<version>2.5</version>
 					<configuration>
 						<filesets>
 							<fileset>
@@ -172,6 +173,8 @@
 								<includes>
 									<include>**/*</include>
 								</includes>
+							</fileset>
+							<fileset>
 								<directory>${basedir}/src/test/xtend-gen</directory>
 								<includes>
 									<include>**/*</include>
@@ -181,38 +184,13 @@
 					</configuration>
 				</plugin>
 				<plugin>
-					<groupId>com.mycila</groupId>
-					<artifactId>license-maven-plugin</artifactId>
-					<version>3.0</version>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>2.22.1</version>
 					<configuration>
-						<header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
-						<properties>
-							<owner>Dominic Heutelbeck</owner>
-							<email>dheutelbeck@ftk.de</email>
-						</properties>
-						<includes>
-							<include>**/*.java</include>
-							<include>**/*.xml</include>
-						</includes>
-						<excludes>
-							<exclude>**/*.md</exclude>
-							<exclude>**/*.txt</exclude>
-							<exclude>**/*.yml</exclude>
-							<exclude>**/*.properties</exclude>
-							<exclude>src/test/resources/**</exclude>
-							<exclude>src/main/resources/**</exclude>
-							<exclude>target/**</exclude>
-						</excludes>
-						<useDefaultExcludes>true</useDefaultExcludes>
-						<strictCheck>true</strictCheck>
+						<!-- workaround for https://issues.apache.org/jira/browse/SUREFIRE-1588 -->
+						<useSystemClassLoader>false</useSystemClassLoader>
 					</configuration>
-					<executions>
-						<execution>
-							<goals>
-								<goal>check</goal>
-							</goals>
-						</execution>
-					</executions>
 				</plugin>
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
@@ -271,6 +249,57 @@
 		</pluginManagement>
 	</build>
 
+	<repositories>
+		<repository>
+			<id>codehaus-snapshots</id>
+			<name>disable dead 'Codehaus Snapshots' repository, see https://bugs.eclipse.org/bugs/show_bug.cgi?id=481478</name>
+			<url>http://nexus.codehaus.org/snapshots/</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>codehaus-snapshots</id>
+			<name>disable dead 'Codehaus Snapshots' repository, see https://bugs.eclipse.org/bugs/show_bug.cgi?id=481478</name>
+			<url>http://nexus.codehaus.org/snapshots/</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</pluginRepository>
+	</pluginRepositories>
+
+	<profiles>
+		<profile>
+			<id>macos</id>
+			<activation>
+				<os>
+					<family>mac</family>
+				</os>
+			</activation>
+			<properties>
+				<!-- THE FOLLOWING LINE MUST NOT BE BROKEN BY AUTOFORMATTING -->
+				<platformSystemProperties>-XstartOnFirstThread</platformSystemProperties>
+			</properties>
+		</profile>
+		<profile>
+			<id>jdk9-or-newer</id>
+			<activation>
+				<jdk>[9,)</jdk>
+			</activation>
+			<properties>
+				<moduleProperties>--add-modules=ALL-SYSTEM</moduleProperties>
+			</properties>
+		</profile>
+	</profiles>
+
 	<distributionManagement>
 		<repository>
 			<id>openconjurer</id>
@@ -284,15 +313,4 @@
 		</snapshotRepository>
 	</distributionManagement>
 
-	<developers>
-		<developer>
-			<name>Dominic Heutelbeck</name>
-			<email>dheutelbeck@ftk.de</email>
-			<organization>FTK e.V.</organization>
-			<organizationUrl>https://ftk.de</organizationUrl>
-			<roles>
-				<role>Project Owner</role>
-			</roles>
-		</developer>
-	</developers>
 </project>
