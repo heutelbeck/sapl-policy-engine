@@ -26,7 +26,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.springframework.http.HttpMethod.GET;
 
 import java.io.IOException;
@@ -35,8 +34,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,13 +43,12 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
-import io.sapl.webclient.HttpClientRequestExecutor;
+import io.sapl.webclient.WebClientRequestExecutor;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
 @Ignore
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(HttpClientRequestExecutor.class)
+@RunWith(MockitoJUnitRunner.class)
 public class TraccarTest {
 
 	private static String positionsJson = "[{\"id\":16,\"attributes\":{\"batteryLevel\":66.0,\"distance\":1.0,"
@@ -98,10 +95,13 @@ public class TraccarTest {
 
 	private JsonNode jsonDumpTwo;
 
+	private WebClientRequestExecutor requestExecutor;
+
 	@Before
 	public void init() throws IOException {
-		mockStatic(HttpClientRequestExecutor.class);
-		trConn = new TraccarConnection(MAPPER.readValue(configJson, TraccarConfig.class));
+		//mockStatic(HttpClientRequestExecutor.class);
+		requestExecutor = mock(WebClientRequestExecutor.class);
+		trConn = new TraccarConnection(MAPPER.readValue(configJson, TraccarConfig.class), requestExecutor);
 		trDevice = MAPPER.readValue(devicesJson, TraccarDevice[].class)[0];
 		trFences = MAPPER.readValue(geofencesJson, TraccarGeofence[].class);
 		jsonDumpOne = JSON.textNode("1");
@@ -118,7 +118,7 @@ public class TraccarTest {
 
 	@Test
 	public void getDeviceTest() throws AttributeException, IOException {
-		when(HttpClientRequestExecutor.executeRequest(any(), eq(GET)))
+		when(requestExecutor.executeBlockingRequest(any(), eq(GET)))
 				.thenReturn(MAPPER.readTree(devicesJson));
 
 		assertEquals("Traccar devices not correctly obtained.", "TestDevice",
@@ -127,7 +127,7 @@ public class TraccarTest {
 
 	@Test
 	public void findDeviceNullArgumentTest() throws IOException {
-		when(HttpClientRequestExecutor.executeRequest(any(), eq(GET))).thenReturn(null);
+		when(requestExecutor.executeBlockingRequest(any(), eq(GET))).thenReturn(null);
 
 		try {
 			trConn.getTraccarDevice(DEVICE_ID).getUniqueId();
@@ -142,7 +142,7 @@ public class TraccarTest {
 
 	@Test
 	public void getDeviceIdNotExistingTest() throws IOException {
-		when(HttpClientRequestExecutor.executeRequest(any(), eq(GET)))
+		when(requestExecutor.executeBlockingRequest(any(), eq(GET)))
 				.thenReturn(MAPPER.readTree(devicesJson));
 
 		try {
@@ -159,7 +159,7 @@ public class TraccarTest {
 
 	@Test
 	public void getPositionTest() throws AttributeException, IOException {
-		when(HttpClientRequestExecutor.executeRequest(any(), eq(GET)))
+		when(requestExecutor.executeBlockingRequest(any(), eq(GET)))
 				.thenReturn(MAPPER.readTree(positionsJson));
 
 		TraccarPosition expectedPosition = MAPPER.readValue(positionsJson,
@@ -171,7 +171,7 @@ public class TraccarTest {
 	@Test
 	public void getPositionExceptionTest() throws IOException {
 		try {
-			when(HttpClientRequestExecutor.executeRequest(any(), eq(GET)))
+			when(requestExecutor.executeBlockingRequest(any(), eq(GET)))
 					.thenReturn(MAPPER.readTree("[]"));
 			trConn.getTraccarPosition(trDevice);
 
@@ -186,7 +186,7 @@ public class TraccarTest {
 
 	@Test
 	public void getGeofencesTest() throws AttributeException, IOException {
-		when(HttpClientRequestExecutor.executeRequest(any(), eq(GET)))
+		when(requestExecutor.executeBlockingRequest(any(), eq(GET)))
 				.thenReturn(MAPPER.convertValue(trFences, JsonNode.class));
 
 		assertArrayEquals("Traccar geofences not correctly obtained.", trFences,

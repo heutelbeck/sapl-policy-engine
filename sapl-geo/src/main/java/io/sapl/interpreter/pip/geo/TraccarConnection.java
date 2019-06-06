@@ -39,8 +39,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.GeometryBuilder;
-import io.sapl.webclient.HttpClientRequestExecutor;
 import io.sapl.webclient.RequestSpecification;
+import io.sapl.webclient.WebClientRequestExecutor;
 import lombok.Getter;
 
 public class TraccarConnection {
@@ -69,19 +69,28 @@ public class TraccarConnection {
 
 	private RequestSpecification requestSpec = new RequestSpecification();
 
+	private WebClientRequestExecutor requestExecutor;
+
 	@Getter
 	private TraccarConfig config;
 
 	public TraccarConnection(TraccarConfig conf) {
-		config = conf;
-		requestSpec.setHeaders(getTraccarHTTPHeader());
+		this(conf, new WebClientRequestExecutor());
 	}
 
 	public TraccarConnection(JsonNode conf) {
 		if (!AF_TEST.equals(conf.asText())) {
-			config = MAPPER.convertValue(conf, TraccarConfig.class);
-			requestSpec.setHeaders(getTraccarHTTPHeader());
+			this.config = MAPPER.convertValue(conf, TraccarConfig.class);
+			this.requestSpec.setHeaders(getTraccarHTTPHeader());
+			this.requestExecutor = new WebClientRequestExecutor();
 		}
+	}
+
+	// Used by unit tests to mock the requestExecutor
+	TraccarConnection(TraccarConfig conf, WebClientRequestExecutor requestExecutor) {
+		this.config = conf;
+		this.requestSpec.setHeaders(getTraccarHTTPHeader());
+		this.requestExecutor = requestExecutor;
 	}
 
 	public JsonNode toGeoPIPResponse() throws AttributeException, FunctionException {
@@ -100,8 +109,7 @@ public class TraccarConnection {
 	public TraccarDevice getTraccarDevice(String uniqueID) throws AttributeException {
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_DEVICES, null)));
 		try {
-			final JsonNode response = HttpClientRequestExecutor
-					.executeRequest(requestSpec, GET);
+			final JsonNode response = requestExecutor.executeBlockingRequest(requestSpec, GET);
 			TraccarDevice[] devices = MAPPER.convertValue(response,
 					TraccarDevice[].class);
 			return findDevice(devices, uniqueID);
@@ -124,8 +132,7 @@ public class TraccarConnection {
 				.textNode(buildTraccarApiGetUrl(TRACCAR_POSITIONS, httpGetArguments)));
 
 		try {
-			final JsonNode response = HttpClientRequestExecutor
-					.executeRequest(requestSpec, GET);
+			final JsonNode response = requestExecutor.executeBlockingRequest(requestSpec, GET);
 			TraccarPosition[] traccarPositions = MAPPER.convertValue(response,
 					TraccarPosition[].class);
 			if (traccarPositions.length == 0) {
@@ -150,8 +157,7 @@ public class TraccarConnection {
 				.textNode(buildTraccarApiGetUrl(TRACCAR_GEOFENCES, httpGetArguments)));
 
 		try {
-			final JsonNode response = HttpClientRequestExecutor
-					.executeRequest(requestSpec, GET);
+			final JsonNode response = requestExecutor.executeBlockingRequest(requestSpec, GET);
 			return MAPPER.convertValue(response, TraccarGeofence[].class);
 		}
 		catch (IOException e) {
