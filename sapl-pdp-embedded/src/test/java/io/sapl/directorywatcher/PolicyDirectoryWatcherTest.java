@@ -41,7 +41,6 @@ public class PolicyDirectoryWatcherTest {
 			private boolean isCanceled;
 
 			@Override
-			@SuppressWarnings("unchecked")
 			public void onEvent(WatchEvent<Path> event) {
 				LOGGER.info("watch event of kind {} for path {}", event.kind().name(),
 						event.context().toString());
@@ -70,7 +69,7 @@ public class PolicyDirectoryWatcherTest {
 	}
 
 	@Test
-	@SuppressWarnings("rawtypes")
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public void handleWatchKey() {
 		// given
 		final WatchEvent createEvent = mock(WatchEvent.class);

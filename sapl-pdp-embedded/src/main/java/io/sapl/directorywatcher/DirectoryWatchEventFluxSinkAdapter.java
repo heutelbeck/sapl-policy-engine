@@ -38,7 +38,6 @@ public class DirectoryWatchEventFluxSinkAdapter
 
 	@Override
 	public void onEvent(WatchEvent<Path> event) {
-		@SuppressWarnings("unchecked")
 		final Path fileName = event.context();
 		if (fileNamePattern.matcher(fileName.toString()).matches()) {
 			sink.next(event);
