@@ -99,7 +99,7 @@ public class PolicyBasedPostInvocationEnforcementAdvice
 						"Transformed result cannot be mapped to expected return type. {}",
 						response.getResource().get());
 				throw new AccessDeniedException(
-						"Returned resource of response cannot be mapped back to return value. Access not permitted by policy enforcement point.");
+						"Returned resource of response cannot be mapped back to return value. Access not permitted by policy enforcement point.",e);
 			}
 		}
 		else {

@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ConstraintHandlerService {
 
+	private static final String FAILED_TO_HANDLE_OBLIGATION = "Failed to handle obligation: %s";
 	private final List<ConstraintHandler> constraintHandlers;
 
 	/**
@@ -55,10 +56,9 @@ public class ConstraintHandlerService {
 		if (response.getObligations().isPresent()) {
 			for (JsonNode obligation : response.getObligations().get()) {
 				if (!handleConstraint(obligation)) {
-					LOGGER.warn(
-							String.format("Failed to handle obligation: %s", obligation));
-					throw new AccessDeniedException(
-							String.format("Failed to handle obligation: %s", obligation));
+					String message = String.format(FAILED_TO_HANDLE_OBLIGATION, obligation);
+					LOGGER.warn(message);
+					throw new AccessDeniedException(message);
 				}
 			}
 		}

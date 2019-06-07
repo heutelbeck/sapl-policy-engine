@@ -75,11 +75,11 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 				path = Paths.get(policyFolderUrl.toURI());
 			}
 			LOGGER.info("current path: {}", path);
+			final SAPLInterpreter interpreter = new DefaultSAPLInterpreter(); 
 			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path,
 					POLICY_FILE_GLOB_PATTERN)) {
 				for (Path filePath : stream) {
 					LOGGER.info("load: {}", filePath);
-					final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 					final SAPL saplDocument = interpreter
 							.parse(Files.newInputStream(filePath));
 					this.parsedDocIdx.put(filePath.toString(), saplDocument);

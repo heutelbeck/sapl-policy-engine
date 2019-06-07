@@ -41,7 +41,7 @@ public class PolicyEnforcementMethodSecurityMetadataSource
 
 		PreEnforce preEnforce = findAnnotation(method, targetClass, PreEnforce.class);
 		if (preEnforce != null) {
-			LOGGER.trace("@PreEnforce on {}.{}: ", targetClass.getSimpleName(),
+			LOGGER.trace("@PreEnforce on {}.{}: {}", targetClass.getSimpleName(),
 					method.getName(), preEnforce);
 			String preEnforceSubject = preEnforce == null ? null : preEnforce.subject();
 			String preEnforceAction = preEnforce == null ? null : preEnforce.action();
@@ -56,7 +56,7 @@ public class PolicyEnforcementMethodSecurityMetadataSource
 
 		PostEnforce postEnforce = findAnnotation(method, targetClass, PostEnforce.class);
 		if (postEnforce != null) {
-			LOGGER.trace("@PostEnforce on {}.{}: ", targetClass.getSimpleName(),
+			LOGGER.trace("@PostEnforce on {}.{}: {}", targetClass.getSimpleName(),
 					method.getName(), postEnforce);
 			String postEnforceSubject = postEnforce == null ? null
 					: postEnforce.subject();
