@@ -70,7 +70,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 		final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider
 				.getVariables();
 
-		return Flux.combineLatest(combinatorFlux, variablesFlux,
+		return Flux.<DocumentsCombinator, Map<String, JsonNode>, Flux<Response>>combineLatest(combinatorFlux, variablesFlux,
 				(combinator, variables) -> prp
 						.retrievePolicies(request, functionCtx, variables)
 						.switchMap(result -> {
