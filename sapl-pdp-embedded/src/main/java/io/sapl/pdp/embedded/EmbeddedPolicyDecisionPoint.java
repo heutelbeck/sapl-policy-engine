@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -82,7 +83,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 									errorsInTarget, request, attributeCtx, functionCtx,
 									variables);
 						}))
-				.flatMap(responseFlux -> responseFlux).distinctUntilChanged();
+				.flatMap(Function.identity()).distinctUntilChanged();
 	}
 
 	@Override

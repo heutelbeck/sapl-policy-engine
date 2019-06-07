@@ -55,7 +55,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 			responseAccumulator.addSingleResponses(responses);
 			Response result = responseAccumulator.getCombinedResponse();
 			LOGGER.trace("| |-- {} Combined Response: {}",
-					responseAccumulator.getCombinedResponse().getDecision(), result);
+					result.getDecision(), result);
 			return result;
 		}).distinctUntilChanged();
 	}

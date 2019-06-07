@@ -33,7 +33,7 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 
 	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
-	private final ObjectMapper mapper = new ObjectMapper();
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	private final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
@@ -76,7 +76,7 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 					CONFIG_FILE_GLOB_PATTERN)) {
 				for (Path filePath : stream) {
 					LOGGER.info("load: {}", filePath);
-					this.config = mapper.readValue(filePath.toFile(),
+					this.config = MAPPER.readValue(filePath.toFile(),
 							PolicyDecisionPointConfiguration.class);
 					break;
 				}
