@@ -385,7 +385,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 						return Void.INSTANCE;
 					}
 					catch (PolicyEvaluationException e) {
-						LOGGER.error(e.getMessage(), e);
+						LOGGER.error("Value definition evaluation failed: {}",e.getMessage(), e);
 						throw Exceptions.propagate(e);
 					}
 				}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
