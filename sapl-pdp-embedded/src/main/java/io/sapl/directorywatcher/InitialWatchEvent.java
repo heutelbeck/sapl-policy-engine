@@ -14,7 +14,7 @@ import java.nio.file.WatchEvent;
  */
 public class InitialWatchEvent implements WatchEvent<Path> {
 
-	public static WatchEvent<Path> INSTANCE = new InitialWatchEvent();
+	public static final WatchEvent<Path> INSTANCE = new InitialWatchEvent();
 
 	private InitialWatchEvent() {
 		// singleton

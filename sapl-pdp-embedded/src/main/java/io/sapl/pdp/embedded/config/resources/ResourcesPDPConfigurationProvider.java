@@ -106,7 +106,7 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 
 	@Override
 	public Flux<Map<String, JsonNode>> getVariables() {
-		return Flux.just(config.getVariables()).doOnNext(variables -> LOGGER
+		return Flux.just((Map<String, JsonNode>) config.getVariables()).doOnNext(variables -> LOGGER
 				.trace("|-- Current PDP config: variables = {}", variables));
 	}
 

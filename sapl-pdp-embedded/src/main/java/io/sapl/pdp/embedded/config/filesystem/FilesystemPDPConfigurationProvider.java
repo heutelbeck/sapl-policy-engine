@@ -178,7 +178,7 @@ public class FilesystemPDPConfigurationProvider
 		return dirWatcherEventProcessor.map(event -> {
 			try {
 				lock.lock();
-				return config.getVariables();
+				return (Map<String, JsonNode>) config.getVariables();
 			}
 			finally {
 				lock.unlock();
