@@ -2,7 +2,6 @@ package io.sapl.api.pdp;
 
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -19,6 +18,6 @@ public class PolicyDecisionPointConfiguration implements Serializable {
 
 	private PolicyDocumentCombiningAlgorithm algorithm = PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT;
 
-	private Map<String, JsonNode> variables = new HashMap<>();
+	private HashMap<String, JsonNode> variables = new HashMap<>();
 
 }
