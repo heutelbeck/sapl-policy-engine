@@ -2,17 +2,16 @@
 
 = SAPL - Structure and Agency Policy Language
 Dominic Heutelbeck
-v1.0, 2018-01-12
+v2.0, 2019-06-07
 
 :toclevels: 4
 
 == Introduction
 
-SAPL (Structure and Agency Policy Language) describes both a *domain specific language (DSL)* for expressing access control policies and a *request/response protocol* based on http://json.org/[JSON].
-Policies expressed in the SAPL policy language describe conditions for access control in applications and distributed systems. 
-SAPL makes use of different successful architectural patterns previously described in https://tools.ietf.org/html/rfc2904[RFC2904], https://tools.ietf.org/html/rfc2905[RFC2905], https://tools.ietf.org/html/rfc2906[RFC2906], and the http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html[XACML 3.0 Specification].  
+SAPL (Structure and Agency Policy Language) describes both a *domain specific language (DSL)* for expressing access control policies and a *publish/subscribe protocol* based on http://json.org/[JSON].
+Policies expressed in the SAPL policy language describe conditions for access control in applications and distributed systems. The underlying policy engine implements a variant of Attribute-based Access control (ABAC) which is centered around data streams and reactive programming patterns. Namely, the SAPL policy engine implements Attribute Stream-based Access control (ASBAC). 
 
-A typical scenario for the application of SAPL would be a subject (e.g., a user or system) attempting to take an action (e.g., read or cancel an order) on a protected resource (e.g., a domain object of an application or a file). The subject makes a request to the system (e.g., an application) for executing the action on the resource. The system implements a *policy enforcement point (PEP)* protecting the resources. The PEP collects information about the subject, action, resource, and potential other relevant data in an authorization request and sends it to a *policy decision point (PDP)* which checks SAPL policies in order to decide whether access to the resource should be permitted as requested. This decision is packed in a response and sent back to the PEP which accordingly either grants access according to the decision or prevents access to the resource.
+A typical scenario for the application of SAPL would be a subject (e.g., a user or system) attempting to take an action (e.g., read or cancel an order) on a protected resource (e.g., a domain object of an application or a file). The subject makes a subscription request to the system (e.g., an application) for executing the action on the resource. The system implements a *policy enforcement point (PEP)* protecting the resources. The PEP collects information about the subject, action, resource, and potential other relevant data in an authorization request and sends it to a *policy decision point (PDP)* which checks SAPL policies in order to decide whether access to the resource should be permitted as requested. This decision is packed in a response and sent back to the PEP which accordingly either grants access according to the decision or prevents access to the resource. All data sources for the decision are subscribed to by the PDP and new decisions are sent to the PEP whenever indicated by the policies and data sources.
 
 There exist several proprietary platform dependent or standardized languages, such as http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html[XACML] for expressing policies. SAPL brings a number of advantages over these solutions:
 
@@ -22,6 +21,7 @@ There exist several proprietary platform dependent or standardized languages, su
 * *Expressiveness*. SAPL provides access control schemata beyond the capabilities of most other practical languages. It allows for attribute-based access control (ABAC), role-based access control (RBAC), forms of entity-based access control (EBAC) and (in the near future) relation-based access control (ReBAC).
 * *Human Readability*. The SAPL syntax is designed from the ground up to be easily readable by humans. Basic SAPL is easy to pick-up for getting started but offers enough expressiveness to address complex access control scenarios.
 * *Transformation and Filtering*. SAPL allows transforming resources and filtering data from resources (e.g., blacken the first digits of a credit card number, or hiding of birth dates by assigning individuals into age groups). 
+* *Designed for a session and data stream-based applications*. SAPL is designed to offer low-latency authorization for interactive applications and data streams.
 * *Designed for a RESTful World with JSON*. SAPL is designed to be easily integrated with modern JSON-based APIs. The core data model of SAPL is JSON offering easy reasoning over such data and simple access to external attributes from RESTful JSON APIs.
         
 The following sections will explain the basic concepts of SAPL policies and show how to easily integrate SAPL in a Java application. Afterwards the different parts of SAPL are explained in more detail.
@@ -136,7 +136,7 @@ SAPL provides an embedded PDP including an embedded PRP with a file system polic
 <dependency>
 	<groupId>io.sapl</groupId>
 	<artifactId>sapl-pdp-embedded</artifactId>
-	<version>1.0.0</version>
+	<version>2.0.0-SNAPSHOT</version>
 </dependency>
 
 . In your application, create a new `EmbeddedPolicyDecisionPoint` (the constructor declares multiple Exceptions which must be handled). The argument `"file:C:/path/to/policies"` is a string specifying the directory which contains all policy sets and policies, as well as the configuration `pdp.json`.

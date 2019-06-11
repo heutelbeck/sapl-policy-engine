@@ -28,17 +28,14 @@ import reactor.core.publisher.Flux;
 
 public class BasicRelativeImplCustom extends BasicRelativeImpl {
 
-	private static final String NOT_ALLOWED = "Relative expression is not allowed at this place. There was no relative node defined. Was: %s";
+	private static final String NOT_ALLOWED = "Relative expression is not allowed at this place. There was no relative node defined. Was: null";
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (relativeNode == null) {
-			return Flux.error(new PolicyEvaluationException(
-					String.format(NOT_ALLOWED, relativeNode)));
+			return Flux.error(new PolicyEvaluationException(NOT_ALLOWED));
 		}
-		return evaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, isBody,
-				relativeNode);
+		return evaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, isBody, relativeNode);
 	}
 
 	@Override
@@ -49,14 +46,12 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
 		for (Step step : getSteps()) {
 			hash = 37 * hash + (step == null ? 0 : step.hash(imports));
 		}
-		hash = 37 * hash
-				+ (getSubtemplate() == null ? 0 : getSubtemplate().hash(imports));
+		hash = 37 * hash + (getSubtemplate() == null ? 0 : getSubtemplate().hash(imports));
 		return hash;
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}
@@ -69,8 +64,7 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
 			return false;
 		}
 		if (getSubtemplate() == null ? getSubtemplate() != otherImpl.getSubtemplate()
-				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports,
-						imports)) {
+				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports, imports)) {
 			return false;
 		}
 		if (getSteps().size() != otherImpl.getSteps().size()) {

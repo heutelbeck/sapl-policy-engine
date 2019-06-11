@@ -56,13 +56,13 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 
 		if (configFolderUrl == null) {
 			throw new PDPConfigurationException("Config folder not found. Path:"
-					+ configPath + " - URL: " + configFolderUrl);
+					+ configPath + " - URL: null");
 		}
 
 		Path path;
 		FileSystem fs = null;
 		try {
-			if (configFolderUrl.getProtocol().equals("jar")) {
+			if ("jar".equals(configFolderUrl.getProtocol())) {
 				final Map<String, String> env = new HashMap<>();
 				final String[] array = configFolderUrl.toString().split("!");
 				fs = FileSystems.newFileSystem(URI.create(array[0]), env);
