@@ -1,69 +1,73 @@
 (* SAPL grammar in EBNF, according to ISO/IEC 14977 *)
 
-sapl				= { import }, ( policy-set | policy ) ;
-import				= "import", ID, { ".", ID }, ".", ( ID | "*" )
-					| "import", { ID, "." }, ID, "as", ID ;
-
-policy-set			= "set", STRING, combining-algorithm, [ "for", target-expression ],  
-					  { value-definition, ";" }, policy, { policy } ;
-combining-algorithm	= "deny-overrides" | "permit-overrides" 
-					| "first-applicable" | "only-one-applicable" 
-					| "deny-unless-permit" | "permit-unless-deny" ;
-target-expression	= expression ;
-value-definition	= "val", ID, ":=", expression ;
-
-policy 				= "policy", STRING, entitlement, [ target-expression ], [ "where", policy-body ], 
-					  [ "obligation", expression ], [ "advice", expression ], [ "transform" expression ] ;
-entitlement 		= "permit" | "deny" ;
-policy-body 		= statement, ";", { statement, ";" } ;
-statement 			= value-definition | expression ;
-
-expression        	= addition ;
-addition          	= multiplication, { ( "+" | "-" | "&&" ), multiplication } ;
-multiplication    	= comparison, { ( "*" | "/" | "||" ), comparison } ;
-comparison        	= prefixed, 
-                 	  [ ( "==" | "=~" | "<" | "<=" | ">=" | ">" | "in" ), prefixed ] ;
-prefixed         	= [ ( "-" | "!" ) ], basic-expression ;
-
-basic-expression  	= ( value | "@" | ID | function-call | ( "(", expression, ")" ) ), 
-                      { selection-step }, [ ("|-", filter) | ( "::", value ) ] ;
-function-call     	= ID, { ".", ID }, "(", [ expression, {",", expression } ], ")" ; 
-
-selection-step    	= key-step | index-step | wildcard-step |
-                  	| rec-descent-step | rec-wildcard-step
-                  	| slicing-step | expression-step | condition-step
-              		| union-step | attr-finder-step
-key-step         	= ".", ID 
-                 	| "[", STRING, "]" ;
-index-step       	= "[", NUMBER, "]" ;
-wildcard-step    	= ".", "*" 
-                 	| "[", "*", "]" ;
-rec-descent-step 	= "..", ID 
-                 	| "..", "[", STRING, "]"
-                 	| "..", "[", NUMBER, "]" ;
-rec-wildcard-step 	= "..", "*" 
-                 	| "..", "[", "*", "]" ;
-slicing-step     	= "[", [ NUMBER ], ":", [ [ NUMBER ], [ ":", [ NUMBER ] ] ], "]" ;
-expression-step  	= "[", "(", expression, ")", "]" ;
-condition-step   	= "[", "?", "(", expression, ")", "]" ;
-union-step       	= "[", NUMBER, ",", NUMBER, { ",", NUMBER }, "]" 
-                 	| "[", ID, ",", ID, { ",", ID }, "]" ;
-attr-finder-step 	= ".", "<", ID, { ".", ID }, ">" ;
-                 
-filter           	= [ "each" ], filter-function
-                 	| "{", filter-statement, { ",", filter-statement }, "}" ;
-filter-statement 	= [ "each" ], "@", {selection-step}, ":", filter-function ;
-filter-function  	= ID, { ".", ID }, 
-                   	  [ "(", [ expression, { ",", expression } ], ")" ] ;
-                 
-value            	= object | array | NUMBER | STRING | "true" | "false" | "null" ;
-object           	= "{", [ STRING, ":", expression, 
-                   	  { ",", STRING, ":", expression } ], "}" ;
-array            	= "[", [ expression, { ",", expression } ], "]" ;
-                 
-ID               	= ( LETTER | "_" | "$" ), { LETTER | DIGIT | "_" | "$" } ;
-LETTER           	= "A" | "B" | ... | "Z" | "a" | "b" | ... | "z" ;
-DIGIT            	= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
-STRING           	= '"', ? any character except " ?, '"'
-                 	| "'", ? any character except ' ?, "'" ;
-NUMBER           	= ? JavaScript number definition ? ;
+sapl                = { import }, ( policy-set | policy );
+import              = "import", ID, { ".", ID }, ".", ( ID | "*" )
+                    | "import", { ID, "." }, ID, "as", ID;
+policy-set          = "set", STRING, combining-algorithm, 
+                      [ "for", target-expression ], 
+                      { value-definition, ";" }, policy, { policy };
+combining-algorithm = "deny-overrides" | "permit-overrides"
+                    | "first-applicable" | "only-one-applicable"
+                    | "deny-unless-permit" | "permit-unless-deny";
+target-expression   = expression;
+value-definition    = "val", ID, ":=", expression ;
+policy              = "policy", STRING, entitlement, 
+                      [ target-expression ], [ "where", policy-body ], 
+                      [ "obligation", expression ],
+                      [ "advice", expression ], 
+                      [ "transform" expression ];
+entitlement         = "permit" | "deny";
+policy-body         = statement, ";", { statement, ";" };
+statement           = value-definition | expression;
+expression          = addition;
+addition            = multiplication, 
+                      { ( "+" | "-" | "&&" | "&" ), multiplication };
+multiplication      = comparison, 
+                      { ( "*" | "/" | "||" | "|"), comparison };
+comparison          = prefixed,[ ( "==" | "=~" | "<" | "<=" 
+                                   | ">=" | ">" | "in" ),
+                      prefixed ] ;
+prefixed            = [ ( "-" | "!" ) ], basic-expression;
+basic-expression    = ( value | "@" | ID | function-call 
+                      | ( "(", expression, ")" ) ),
+                      { selection-step }, [ ("|-", filter) 
+                      | ( "::", value ) ];
+function-call       = ID, { ".", ID }, "(", [ expression, 
+                      {",", expression } ], ")" ;
+selection-step      = key-step | index-step | wildcard-step |
+                    | rec-descent-step | rec-wildcard-step
+                    | slicing-step | expression-step | condition-step
+                    | union-step | attr-finder-step
+key-step            = ".", ID
+                    | "[", STRING, "]";
+index-step          = "[", NUMBER, "]";
+wildcard-step       = ".", "*"
+                    | "[", "*", "]" ;
+rec-descent-step    = "..", ID
+                    | "..", "[", STRING, "]"
+                    | "..", "[", NUMBER, "]";
+rec-wildcard-step   = "..", "*"
+                    | "..", "[", "*", "]";
+slicing-step        = "[", [ NUMBER ], ":", [ [ NUMBER ], 
+                      [ ":", [ NUMBER ] ] ], "]";
+expression-step     = "[", "(", expression, ")", "]";
+condition-step      = "[", "?", "(", expression, ")", "]";
+union-step          = "[", NUMBER, ",", NUMBER, { ",", NUMBER }, "]"
+                    | "[", ID, ",", ID, { ",", ID }, "]";
+attr-finder-step    = ".", "<", ID, { ".", ID }, ">";
+filter              = [ "each" ], filter-function
+                    | "{", filter-statement, { ",", filter-statement }, "}";
+filter-statement    = [ "each" ], "@", {selection-step}, ":", filter-function;
+filter-function     = ID, { ".", ID },
+                      [ "(", [ expression, { ",", expression } ], ")" ];
+value               = object | array | NUMBER | STRING | "true" | "false" 
+                    | "null" | "undefined";
+object              = "{", [ STRING, ":", expression,
+                      { ",", STRING, ":", expression } ], "}";
+array               = "[", [ expression, { ",", expression } ], "]" ;
+ID                  = ( LETTER | "_" | "$" ), { LETTER | DIGIT | "_" | "$" };
+LETTER              = "A" | "B" | ... | "Z" | "a" | "b" | ... | "z" ;
+DIGIT               = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+STRING              = '"', ? any character except " ?, '"'
+                    | "'", ? any character except ' ?, "'";
+NUMBER              = ? JavaScript number definition ?;
