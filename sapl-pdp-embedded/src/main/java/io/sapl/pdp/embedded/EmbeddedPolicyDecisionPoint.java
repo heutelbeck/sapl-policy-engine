@@ -66,13 +66,13 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 		LOGGER.trace("|---------------------------");
 		LOGGER.trace("|-- PDP Request: {}", request);
 
-		final Flux<DocumentsCombinator> combinatorFlux = configurationProvider
-				.getDocumentsCombinator();
 		final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider
 				.getVariables();
+		final Flux<DocumentsCombinator> combinatorFlux = configurationProvider
+				.getDocumentsCombinator();
 
-		return Flux.combineLatest(combinatorFlux, variablesFlux,
-				(combinator, variables) -> prp
+		return Flux.combineLatest(variablesFlux, combinatorFlux,
+				(variables, combinator) -> prp
 						.retrievePolicies(request, functionCtx, variables)
 						.switchMap(result -> {
 							final Collection<SAPL> matchingDocuments = result
