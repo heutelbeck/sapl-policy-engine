@@ -25,8 +25,6 @@ public class DisjunctiveFormula {
 
 	private boolean hasHashCode;
 
-	private final DisjunctiveFormulaReductionSupport simplifier = new DisjunctiveFormulaReductionSupport();
-
 	public DisjunctiveFormula(final Collection<ConjunctiveClause> clauses) {
 		Preconditions.checkArgument(!clauses.isEmpty(), CONSTRUCTION_FAILED);
 		this.clauses = new ArrayList<>(clauses);
