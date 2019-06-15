@@ -14,7 +14,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 
-public class DisjunctiveFormula implements Simplifiable {
+public class DisjunctiveFormula {
 
 	static final String CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";
 	static final String EVALUATION_NOT_POSSIBLE = "Evaluation Error: Attempting to evaluate empty formula.";
@@ -25,7 +25,7 @@ public class DisjunctiveFormula implements Simplifiable {
 
 	private boolean hasHashCode;
 
-	private final DisjunctiveFormulaSimplifier simplifier = new DisjunctiveFormulaSimplifier();
+	private final DisjunctiveFormulaReductionSupport simplifier = new DisjunctiveFormulaReductionSupport();
 
 	public DisjunctiveFormula(final Collection<ConjunctiveClause> clauses) {
 		Preconditions.checkArgument(!clauses.isEmpty(), CONSTRUCTION_FAILED);
@@ -151,9 +151,17 @@ public class DisjunctiveFormula implements Simplifiable {
 		return result.reduce();
 	}
 
-	@Override
 	public DisjunctiveFormula reduce() {
-		return simplifier.reduce(this);
+		List<ConjunctiveClause> clauses = getClauses();
+		List<ConjunctiveClause> result = new ArrayList<>(clauses.size());
+		for (ConjunctiveClause clause : clauses) {
+			result.add(clause.reduce());
+		}
+		if (result.size() > 1) {
+			DisjunctiveFormulaReductionSupport.reduceConstants(result);
+			DisjunctiveFormulaReductionSupport.reduceFormula(result);
+		}
+		return new DisjunctiveFormula(result);
 	}
 
 	public int size() {

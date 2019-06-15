@@ -1,27 +1,12 @@
 package io.sapl.prp.inmemory.indexed;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 
-public class DisjunctiveFormulaSimplifier implements Simplifier<DisjunctiveFormula> {
+public class DisjunctiveFormulaReductionSupport {
 
-	@Override
-	public DisjunctiveFormula reduce(final DisjunctiveFormula obj) {
-		List<ConjunctiveClause> clauses = obj.getClauses();
-		List<ConjunctiveClause> result = new ArrayList<>(clauses.size());
-		for (ConjunctiveClause clause : clauses) {
-			result.add(clause.reduce());
-		}
-		if (result.size() > 1) {
-			reduceConstants(result);
-			reduceFormula(result);
-		}
-		return new DisjunctiveFormula(result);
-	}
-
-	private static void reduceConstants(final List<ConjunctiveClause> data) {
+	static void reduceConstants(final List<ConjunctiveClause> data) {
 		ListIterator<ConjunctiveClause> iter = data.listIterator();
 		while (iter.hasNext() && data.size() > 1) {
 			ConjunctiveClause clause = iter.next();
@@ -38,7 +23,7 @@ public class DisjunctiveFormulaSimplifier implements Simplifier<DisjunctiveFormu
 		}
 	}
 
-	private static void reduceFormula(final List<ConjunctiveClause> data) {
+	static void reduceFormula(final List<ConjunctiveClause> data) {
 		ListIterator<ConjunctiveClause> pointer = data.listIterator();
 		while (pointer.hasNext()) {
 			ConjunctiveClause lhs = pointer.next();

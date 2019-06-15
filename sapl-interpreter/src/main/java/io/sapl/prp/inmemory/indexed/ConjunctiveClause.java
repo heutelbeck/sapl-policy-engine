@@ -14,7 +14,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 
-public class ConjunctiveClause implements Simplifiable {
+public class ConjunctiveClause {
 
 	static final String CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";
 	static final String EVALUATION_NOT_POSSIBLE = "Evaluation Error: Attempting to evaluate empty clause.";
@@ -24,8 +24,6 @@ public class ConjunctiveClause implements Simplifiable {
 	private boolean hasHashCode;
 
 	private final List<Literal> literals;
-
-	private final ConjunctiveClauseSimplifier simplifier = new ConjunctiveClauseSimplifier();
 
 	public ConjunctiveClause(final Collection<Literal> literals) {
 		Preconditions.checkArgument(!literals.isEmpty(), CONSTRUCTION_FAILED);
@@ -144,9 +142,14 @@ public class ConjunctiveClause implements Simplifiable {
 		return Collections.unmodifiableList(result);
 	}
 
-	@Override
 	public ConjunctiveClause reduce() {
-		return simplifier.reduce(this);
+		if (size() > 1) {
+			List<Literal> result = new ArrayList<>(getLiterals());
+			ConjunctiveClauseReductionSupport.reduceConstants(result);
+			ConjunctiveClauseReductionSupport.reduceFormula(result);
+			return new ConjunctiveClause(result);
+		}
+		return this;
 	}
 
 	public int size() {
