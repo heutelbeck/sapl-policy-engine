@@ -372,7 +372,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static Flux<Void> evaluateValueDefinition(ValueDefinition valueDefinition,
 			EvaluationContext evaluationCtx, Map<String, JsonNode> variables) {
-		return valueDefinition.getEval().evaluate(evaluationCtx, true, null)
+		return valueDefinition.getEval().evaluate(evaluationCtx, true, Optional.empty())
 				.map(evaluatedValue -> {
 					try {
 						if (!evaluatedValue.isPresent()) {
@@ -504,7 +504,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static Flux<Boolean> evaluateValueDefinition(ValueDefinition valueDefinition,
 			EvaluationContext evaluationCtx) {
-		return valueDefinition.getEval().evaluate(evaluationCtx, true, null)
+		return valueDefinition.getEval().evaluate(evaluationCtx, true, Optional.empty())
 				.map(evaluatedValue -> {
 					try {
 						if (!evaluatedValue.isPresent()) {
@@ -525,7 +525,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private static Flux<Boolean> evaluateCondition(Condition condition,
 			EvaluationContext evaluationCtx) {
-		return condition.getExpression().evaluate(evaluationCtx, true, null)
+		return condition.getExpression().evaluate(evaluationCtx, true, Optional.empty())
 				.map(statementResult -> {
 					if (statementResult.isPresent()
 							&& statementResult.get().isBoolean()) {
@@ -543,7 +543,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		Flux<Optional<ArrayNode>> obligationsFlux;
 		if (policy.getObligation() != null) {
 			final ArrayNode obligationArr = JSON.arrayNode();
-			obligationsFlux = policy.getObligation().evaluate(evaluationCtx, true, null)
+			obligationsFlux = policy.getObligation().evaluate(evaluationCtx, true, Optional.empty())
 					.doOnError(error -> LOGGER.error(OBLIGATIONS_ERROR, error))
 					.map(obligation -> {
 						obligation.ifPresent(obligationArr::add);
@@ -558,7 +558,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		Flux<Optional<ArrayNode>> adviceFlux;
 		if (policy.getAdvice() != null) {
 			final ArrayNode adviceArr = JSON.arrayNode();
-			adviceFlux = policy.getAdvice().evaluate(evaluationCtx, true, null)
+			adviceFlux = policy.getAdvice().evaluate(evaluationCtx, true, Optional.empty())
 					.doOnError(error -> LOGGER.error(ADVICE_ERROR, error)).map(advice -> {
 						advice.ifPresent(adviceArr::add);
 						return adviceArr.size() > 0 ? Optional.of(adviceArr)
@@ -575,7 +575,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	private static Flux<Optional<JsonNode>> evaluateTransformation(Policy policy,
 			EvaluationContext evaluationCtx) {
 		if (policy.getTransformation() != null) {
-			return policy.getTransformation().evaluate(evaluationCtx, true, null)
+			return policy.getTransformation().evaluate(evaluationCtx, true, Optional.empty())
 					.doOnError(error -> LOGGER.error(TRANSFORMATION_ERROR, error));
 		}
 		else {

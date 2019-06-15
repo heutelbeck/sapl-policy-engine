@@ -28,11 +28,11 @@ import reactor.core.publisher.Flux;
 
 public class BasicRelativeImplCustom extends BasicRelativeImpl {
 
-	private static final String NOT_ALLOWED = "Relative expression is not allowed at this place. There was no relative node defined. Was: null";
+	private static final String NOT_ALLOWED = "Relative expression is not allowed at this place. There was no relative node defined. Was: undefined";
 
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		if (relativeNode == null) {
+		if (!relativeNode.isPresent()) {
 			return Flux.error(new PolicyEvaluationException(NOT_ALLOWED));
 		}
 		return evaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, isBody, relativeNode);

@@ -63,7 +63,7 @@ public class EvaluateBasicExpressionsTest {
 		BasicValue expression = factory.createBasicValue();
 		expression.setValue(factory.createNullLiteral());
 
-		expression.evaluate(ctx, true, null).take(1).subscribe(result -> assertEquals(
+		expression.evaluate(ctx, true, Optional.empty()).take(1).subscribe(result -> assertEquals(
 				"BasicValueExpression with NullLiteral should evaluate to NullNode",
 				Optional.of(JSON.nullNode()), result));
 	}
@@ -73,7 +73,7 @@ public class EvaluateBasicExpressionsTest {
 		BasicIdentifier expression = factory.createBasicIdentifier();
 		expression.setIdentifier(KEY);
 
-		expression.evaluate(ctx, true, null).take(1).subscribe(result -> assertEquals(
+		expression.evaluate(ctx, true, Optional.empty()).take(1).subscribe(result -> assertEquals(
 				"BasicIdentifierExpression should return the corresponding variable value",
 				Optional.of(JSON.booleanNode(true)), result));
 	}
@@ -83,7 +83,7 @@ public class EvaluateBasicExpressionsTest {
 		BasicIdentifier expression = factory.createBasicIdentifier();
 		expression.setIdentifier(KEY_ANOTHER);
 
-		StepVerifier.create(expression.evaluate(ctx, true, null))
+		StepVerifier.create(expression.evaluate(ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -100,7 +100,7 @@ public class EvaluateBasicExpressionsTest {
 	@Test
 	public void evaluateBasicRelativeNotAllowed() {
 		BasicRelative expression = factory.createBasicRelative();
-		StepVerifier.create(expression.evaluate(ctx, true, null))
+		StepVerifier.create(expression.evaluate(ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -111,7 +111,7 @@ public class EvaluateBasicExpressionsTest {
 		value.setValue(factory.createNullLiteral());
 		expression.setExpression(value);
 
-		expression.evaluate(ctx, true, null).take(1).subscribe(result -> assertEquals(
+		expression.evaluate(ctx, true, Optional.empty()).take(1).subscribe(result -> assertEquals(
 				"BasicGroupExpression should evaluate to the result of evaluating its expression",
 				Optional.of(JSON.nullNode()), result));
 	}
@@ -121,7 +121,7 @@ public class EvaluateBasicExpressionsTest {
 		BasicFunction expression = factory.createBasicFunction();
 		expression.getFsteps().add(KEY);
 
-		expression.evaluate(ctx, true, null).take(1).subscribe(result -> assertEquals(
+		expression.evaluate(ctx, true, Optional.empty()).take(1).subscribe(result -> assertEquals(
 				"BasicFunctionExpression should evaluate to the result of evaluating the function",
 				Optional.of(JSON.textNode(KEY)), result));
 	}
@@ -132,7 +132,7 @@ public class EvaluateBasicExpressionsTest {
 		expression.setArguments(factory.createArguments());
 		expression.getFsteps().add(KEY);
 
-		expression.evaluate(ctx, true, null).take(1).subscribe(result -> assertEquals(
+		expression.evaluate(ctx, true, Optional.empty()).take(1).subscribe(result -> assertEquals(
 				"BasicFunctionExpression should evaluate to the result of evaluating the function",
 				Optional.of(JSON.textNode(KEY)), result));
 	}
@@ -151,7 +151,7 @@ public class EvaluateBasicExpressionsTest {
 		ArrayNode expectedResult = JSON.arrayNode();
 		expectedResult.add(JSON.nullNode());
 
-		expression.evaluate(ctx, true, null).take(1).subscribe(result -> assertEquals(
+		expression.evaluate(ctx, true, Optional.empty()).take(1).subscribe(result -> assertEquals(
 				"BasicFunctionExpression should evaluate to the result of evaluating the function",
 				Optional.of(expectedResult), result));
 	}
@@ -176,7 +176,7 @@ public class EvaluateBasicExpressionsTest {
 		expectedResult.add(JSON.nullNode());
 		expectedResult.add(JSON.nullNode());
 
-		expression.evaluate(ctx, true, null).take(1).subscribe(result -> assertEquals(
+		expression.evaluate(ctx, true, Optional.empty()).take(1).subscribe(result -> assertEquals(
 				"BasicFunctionExpression should evaluate to the result of evaluating the function",
 				Optional.of(expectedResult), result));
 	}
@@ -187,7 +187,7 @@ public class EvaluateBasicExpressionsTest {
 		expression.setArguments(factory.createArguments());
 		expression.getFsteps().add(SHORT);
 
-		expression.evaluate(ctx, true, null).take(1).subscribe(result -> assertEquals(
+		expression.evaluate(ctx, true, Optional.empty()).take(1).subscribe(result -> assertEquals(
 				"BasicFunctionExpression should evaluate to the result of evaluating the function",
 				Optional.of(JSON.textNode(LONG)), result));
 	}
@@ -198,7 +198,7 @@ public class EvaluateBasicExpressionsTest {
 		expression.setArguments(factory.createArguments());
 		expression.getFsteps().add(EXCEPTION);
 
-		StepVerifier.create(expression.evaluate(ctx, true, null))
+		StepVerifier.create(expression.evaluate(ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
