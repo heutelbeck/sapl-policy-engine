@@ -57,7 +57,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 		if (policyFolderUrl == null) {
 			throw new PolicyEvaluationException("Policy folder not found. Path:"
-					+ policyPath + " - URL: " + policyFolderUrl);
+					+ policyPath);
 		}
 
 		this.parsedDocIdx = parsedDocumentIndex;
@@ -65,7 +65,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		Path path;
 		FileSystem fs = null;
 		try {
-			if (policyFolderUrl.getProtocol().equals("jar")) {
+			if ("jar".equals(policyFolderUrl.getProtocol())) {
 				final Map<String, String> env = new HashMap<>();
 				final String[] array = policyFolderUrl.toString().split("!");
 				fs = FileSystems.newFileSystem(URI.create(array[0]), env);

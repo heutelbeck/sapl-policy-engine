@@ -39,12 +39,12 @@ public class URLSpecification {
 
 	static URLSpecification from(String urlStr) throws MalformedURLException {
 		final URL url = new URL(urlStr);
-		return new URLSpecification(url.getProtocol(), getUser(url), getPassword(url),
-				url.getHost(), getPort(url), url.getPath(), url.getQuery(),
-				getQueryParameters(url), url.getRef());
+		return new URLSpecification(url.getProtocol(), extractUserFrom(url), extractPasswordFrom(url),
+				url.getHost(), extractPortFrom(url), url.getPath(), url.getQuery(),
+				extractQueryParametersFrom(url), url.getRef());
 	}
 
-	private static String getUser(URL url) {
+	private static String extractUserFrom(URL url) {
 		final String userInfo = url.getUserInfo();
 		if (userInfo != null) {
 			final String[] userPassword = userInfo.split(":");
@@ -55,7 +55,7 @@ public class URLSpecification {
 		return null;
 	}
 
-	private static String getPassword(URL url) {
+	private static String extractPasswordFrom(URL url) {
 		final String userInfo = url.getUserInfo();
 		if (userInfo != null) {
 			final String[] userPassword = userInfo.split(":");
@@ -66,11 +66,11 @@ public class URLSpecification {
 		return null;
 	}
 
-	private static Integer getPort(URL url) {
+	private static Integer extractPortFrom(URL url) {
 		return url.getPort() > 0 ? url.getPort() : null;
 	}
 
-	private static Map<String, String> getQueryParameters(URL url) {
+	private static Map<String, String> extractQueryParametersFrom(URL url) {
 		final String query = url.getQuery();
 		if (query != null) {
 			final Map<String, String> queryParams = new HashMap<>();

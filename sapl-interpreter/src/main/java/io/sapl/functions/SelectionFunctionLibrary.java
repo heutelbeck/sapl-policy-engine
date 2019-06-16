@@ -46,6 +46,8 @@ import reactor.core.Exceptions;
 @FunctionLibrary(name = SelectionFunctionLibrary.NAME, description = SelectionFunctionLibrary.DESCRIPTION)
 public class SelectionFunctionLibrary {
 
+	private static final String BLOCKING_METHOD_CALL_RETURNED_NULL = "Blocking call of a reactive method returned null.";
+
 	private static final String EQUAL = "equal";
 
 	public static final String NAME = "selection";
@@ -77,6 +79,9 @@ public class SelectionFunctionLibrary {
 		try {
 			final ResultNode result = StepResolver
 					.resolveSteps(oStruct, relativeExpression.getSteps(), null, false, oStruct).blockFirst();
+			if (result == null) {
+				throw new FunctionException(BLOCKING_METHOD_CALL_RETURNED_NULL);
+			}
 			return result.asJsonWithoutAnnotations().orElseThrow(() -> new FunctionException("undefined result"));
 		}
 		catch (RuntimeException e) {
@@ -91,7 +96,10 @@ public class SelectionFunctionLibrary {
 		try {
 			final ResultNode result = StepResolver
 					.resolveSteps(oStruct, relativeExpression.getSteps(), null, false, oStruct).blockFirst();
-			if (result.isResultArray()) {
+			if (result == null) {
+				throw new FunctionException(BLOCKING_METHOD_CALL_RETURNED_NULL);
+			}
+			else if (result.isResultArray()) {
 				return JSON.numberNode(((ArrayResultNode) result).getNodes().size());
 			}
 			else {
@@ -117,7 +125,10 @@ public class SelectionFunctionLibrary {
 			ResultNode needleResult = StepResolver
 					.resolveSteps(oStruct, needleExpression.getSteps(), null, false, oStruct).blockFirst();
 
-			if (haystackResult.isNodeWithoutParent()) {
+			if (haystackResult == null || needleResult == null) {
+				throw new PolicyEvaluationException(BLOCKING_METHOD_CALL_RETURNED_NULL);
+			}
+			else if (haystackResult.isNodeWithoutParent()) {
 				return JSON.booleanNode(true);
 			}
 			else if (needleResult.isNodeWithoutParent()) {
@@ -154,7 +165,10 @@ public class SelectionFunctionLibrary {
 			ResultNode secondResult = StepResolver
 					.resolveSteps(oStruct, secondExpression.getSteps(), null, false, oStruct).blockFirst();
 
-			if (firstResult.isNodeWithoutParent() && secondResult.isNodeWithoutParent()) {
+			if (firstResult == null || secondResult == null) {
+				throw new PolicyEvaluationException(BLOCKING_METHOD_CALL_RETURNED_NULL);
+			}
+			else if (firstResult.isNodeWithoutParent() && secondResult.isNodeWithoutParent()) {
 				return JSON.booleanNode(true);
 			}
 			else if (!firstResult.isResultArray() && !secondResult.isResultArray()) {

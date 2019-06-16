@@ -12,6 +12,8 @@
  */
 package io.sapl.interpreter.pip.geo;
 
+import java.util.Arrays;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,4 +50,14 @@ public class TraccarDevice {
 
 	private Object category;
 
+
+	// Don't expose the internal representation by storing an externally mutable object into geofenceIds
+
+	public int[] getGeofenceIds() {
+		return geofenceIds != null ? Arrays.copyOf(geofenceIds, geofenceIds.length) : null;
+	}
+
+	public void setGeofenceIds(int[] geofenceIds) {
+		this.geofenceIds = geofenceIds != null ? Arrays.copyOf(geofenceIds, geofenceIds.length) : null;
+	}
 }

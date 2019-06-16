@@ -114,14 +114,11 @@ public class PostGISConfig {
 			DatabaseMetaData dbm = conn.getMetaData();
 			ResultSet cols = dbm.getColumns(null, null, getTable(), null);
 
-			if (colsExist(cols, getIdColName(), getGeometryColName(), getPkColName())) {
-				return true;
-			}
+			return colsExist(cols, getIdColName(), getGeometryColName(), getPkColName());
 		}
 		catch (SQLException e) {
 			throw new AttributeException(e);
 		}
-		return false;
 	}
 
 	private String buildConditions() {

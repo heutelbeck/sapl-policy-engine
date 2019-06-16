@@ -62,13 +62,15 @@ public class FilesystemPolicyRetrievalPoint
 
 	public FilesystemPolicyRetrievalPoint(@NonNull String policyPath,
 			@NonNull ParsedDocumentIndex parsedDocumentIndex) {
-		this.path = policyPath;
 		if (policyPath.startsWith("~" + File.separator)) {
-			this.path = System.getProperty("user.home") + path.substring(1);
+			this.path = System.getProperty("user.home") + policyPath.substring(1);
 		}
 		else if (policyPath.startsWith("~")) {
 			throw new UnsupportedOperationException(
 					"Home dir expansion not implemented for explicit usernames");
+		}
+		else {
+			this.path = policyPath;
 		}
 
 		this.parsedDocIdx = parsedDocumentIndex;
