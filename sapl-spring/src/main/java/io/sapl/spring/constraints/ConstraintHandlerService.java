@@ -31,7 +31,7 @@ public class ConstraintHandlerService {
 	 * @return true, if for all obligations in a response at least one obligation handler
 	 * is registered.
 	 */
-	public boolean obligationHandlersForObligationsAvailable(Response response) {
+	public boolean handlersForObligationsAvailable(Response response) {
 		if (response.getObligations().isPresent()) {
 			for (JsonNode obligation : response.getObligations().get()) {
 				if (!atLeastOneHandlerForConstraintIsPresent(obligation)) {
@@ -50,7 +50,7 @@ public class ConstraintHandlerService {
 	 * @throws AccessDeniedException if obligation handling fails.
 	 */
 	public void handleObligations(Response response) {
-		if (!obligationHandlersForObligationsAvailable(response)) {
+		if (!handlersForObligationsAvailable(response)) {
 			throw new AccessDeniedException("Obligation handlers missing.");
 		}
 		if (response.getObligations().isPresent()) {
