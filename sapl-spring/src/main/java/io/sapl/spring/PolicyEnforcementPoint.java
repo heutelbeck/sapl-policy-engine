@@ -28,6 +28,8 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class PolicyEnforcementPoint implements Disposable {
 
+	private static final Response DENY = Response.deny();
+
 	private final PolicyDecisionPoint pdp;
 
 	private final ConstraintHandlerService constraintHandlers;
@@ -52,38 +54,9 @@ public class PolicyEnforcementPoint implements Disposable {
 	 */
 	public Flux<Decision> enforce(Object subject, Object action, Object resource,
 			Object environment) {
-		Request request = buildRequest(subject, action, resource, environment);
-		final Flux<Response> responseFlux = pdp.decide(request);
-		return responseFlux.map(response -> {
-			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}",
-					request.getAction(), request.getResource(), request.getSubject(),
-					request.getEnvironment());
-			LOGGER.debug("RESPONSE : {} - {}",
-					response == null ? "null" : response.getDecision(), response);
+		return execute(subject, action, resource, environment, false)
+				.map(Response::getDecision);
 
-			if (response == null || response.getDecision() != Decision.PERMIT) {
-				return Decision.DENY;
-			}
-			if (!constraintHandlers.obligationHandlersForObligationsAvailable(response)) {
-				LOGGER.debug("PEP cannot fulfill PDP obligations. Deny access.");
-				return Decision.DENY;
-			}
-			if (response.getResource().isPresent()) {
-				LOGGER.debug("PDP returned a new resource value. "
-						+ "This PEP cannot handle resource replacement. Thus, deny access.");
-				return Decision.DENY;
-			}
-			try {
-				constraintHandlers.handleObligations(response);
-			}
-			catch (AccessDeniedException e) {
-				LOGGER.debug("PEP failed to fulfill PDP obligations. Deny access. {}",
-						e.getLocalizedMessage());
-				return Decision.DENY;
-			}
-			constraintHandlers.handleAdvices(response);
-			return Decision.PERMIT;
-		}).distinctUntilChanged();
 	}
 
 	/**
@@ -123,6 +96,11 @@ public class PolicyEnforcementPoint implements Disposable {
 	 */
 	public Flux<Response> filterEnforce(Object subject, Object action, Object resource,
 			Object environment) {
+		return execute(subject, action, resource, environment, true);
+	}
+
+	private Flux<Response> execute(Object subject, Object action, Object resource,
+		    Object environment, boolean supportResourceTransformation) {
 		Request request = buildRequest(subject, action, resource, environment);
 		final Flux<Response> responseFlux = pdp.decide(request);
 		return responseFlux.map(response -> {
@@ -133,12 +111,17 @@ public class PolicyEnforcementPoint implements Disposable {
 					response == null ? "null" : response.getDecision(), response);
 
 			if (response == null || response.getDecision() != Decision.PERMIT) {
-				return Response.deny();
+				return DENY;
 			}
-			if (!constraintHandlers.obligationHandlersForObligationsAvailable(response)) {
+			if (!supportResourceTransformation && response.getResource().isPresent()) {
+				LOGGER.debug("PDP returned a new resource value. "
+						+ "This PEP cannot handle resource replacement. Thus, deny access.");
+				return DENY;
+			}
+			if (!constraintHandlers.handlersForObligationsAvailable(response)) {
 				LOGGER.debug("Obligations cannot be fulfilled. No handler available. "
 						+ "Access denied by policy enforcement point.");
-				return Response.deny();
+				return DENY;
 			}
 			try {
 				constraintHandlers.handleObligations(response);
@@ -146,7 +129,7 @@ public class PolicyEnforcementPoint implements Disposable {
 			catch (AccessDeniedException e) {
 				LOGGER.debug("PEP failed to fulfill PDP obligations. Deny access. {}",
 						e.getLocalizedMessage());
-				return Response.deny();
+				return DENY;
 			}
 			constraintHandlers.handleAdvices(response);
 			return response;
@@ -197,15 +180,15 @@ public class PolicyEnforcementPoint implements Disposable {
 				final Response response = identifiableResponse.getResponse();
 				if (response == null || response.getDecision() != Decision.PERMIT) {
 					resultResponse.setResponseForRequestWithId(requestId,
-							Response.deny());
+							DENY);
 				}
 				else if (!constraintHandlers
-						.obligationHandlersForObligationsAvailable(response)) {
+						.handlersForObligationsAvailable(response)) {
 					LOGGER.debug(
 							"Obligations cannot be fulfilled for response with id {}. No handler available.",
 							requestId);
 					resultResponse.setResponseForRequestWithId(requestId,
-							Response.deny());
+							DENY);
 				}
 				try {
 					constraintHandlers.handleObligations(response);
@@ -215,7 +198,7 @@ public class PolicyEnforcementPoint implements Disposable {
 							"PEP failed to fulfill PDP obligations for response with id {} ({})",
 							requestId, e.getLocalizedMessage());
 					resultResponse.setResponseForRequestWithId(requestId,
-							Response.deny());
+							DENY);
 				}
 				constraintHandlers.handleAdvices(response);
 				resultResponse.setResponseForRequestWithId(requestId, response);
