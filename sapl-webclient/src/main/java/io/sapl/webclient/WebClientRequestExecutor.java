@@ -109,7 +109,10 @@ public class WebClientRequestExecutor {
 					.uri(urlSpec.pathAndQueryString()).accept(MediaType.APPLICATION_JSON)
 					.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
 					.exchange().block();
-			if (response.statusCode().is2xxSuccessful()) {
+			if (response == null) {
+				throw new IOException("HTTP GET request returned null");
+			}
+			else if (response.statusCode().is2xxSuccessful()) {
 				final Mono<JsonNode> body = response
 						.body(BodyExtractors.toMono(JsonNode.class));
 				return body.block();
@@ -126,7 +129,10 @@ public class WebClientRequestExecutor {
 					.accept(MediaType.APPLICATION_JSON)
 					.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
 					.syncBody(getBody(saplRequest)).exchange().block();
-			if (response.statusCode().is2xxSuccessful()) {
+			if (response == null) {
+				throw new IOException("HTTP POST request returned null");
+			}
+			else if (response.statusCode().is2xxSuccessful()) {
 				final Mono<JsonNode> body = response
 						.body(BodyExtractors.toMono(JsonNode.class));
 				return body.block();
@@ -143,7 +149,10 @@ public class WebClientRequestExecutor {
 					.accept(MediaType.APPLICATION_JSON)
 					.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
 					.syncBody(getBody(saplRequest)).exchange().block();
-			if (response.statusCode().is2xxSuccessful()) {
+			if (response == null) {
+				throw new IOException("HTTP PUT request returned null");
+			}
+			else if (response.statusCode().is2xxSuccessful()) {
 				final Mono<JsonNode> body = response
 						.body(BodyExtractors.toMono(JsonNode.class));
 				return body.block();
@@ -158,7 +167,10 @@ public class WebClientRequestExecutor {
 					.uri(urlSpec.pathAndQueryString()).accept(MediaType.APPLICATION_JSON)
 					.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
 					.exchange().block();
-			if (response.statusCode().is2xxSuccessful()) {
+			if (response == null) {
+				throw new IOException("HTTP DELETE request returned null");
+			}
+			else if (response.statusCode().is2xxSuccessful()) {
 				final Mono<JsonNode> body = response
 						.body(BodyExtractors.toMono(JsonNode.class));
 				return body.block();
@@ -175,7 +187,10 @@ public class WebClientRequestExecutor {
 					.accept(MediaType.APPLICATION_JSON)
 					.headers(httpHeaders -> addHeaders(httpHeaders, saplRequest))
 					.syncBody(getBody(saplRequest)).exchange().block();
-			if (response.statusCode().is2xxSuccessful()) {
+			if (response == null) {
+				throw new IOException("HTTP PATCH request returned null");
+			}
+			else if (response.statusCode().is2xxSuccessful()) {
 				final Mono<JsonNode> body = response
 						.body(BodyExtractors.toMono(JsonNode.class));
 				return body.block();
@@ -206,8 +221,6 @@ public class WebClientRequestExecutor {
 	}
 
 	private SslContext createSslContext() throws IOException {
-		// return
-		// SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
 		try {
 			final KeyStore ks = KeyStore.getInstance("PKCS12");
 			try (InputStream is = getClass().getResourceAsStream("/truststore.p12")) {
@@ -225,6 +238,8 @@ public class WebClientRequestExecutor {
 			}).toArray(X509Certificate[]::new);
 
 			return SslContextBuilder.forClient().trustManager(trusted).build();
+			// return SslContextBuilder.forClient()
+			// 		   .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
 		}
 		catch (RuntimeException e) {
 			throw new SSLException(

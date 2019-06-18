@@ -72,17 +72,17 @@ public class URLSpecification {
 
 	private static Map<String, String> extractQueryParametersFrom(URL url) {
 		final String query = url.getQuery();
-		if (query != null) {
-			final Map<String, String> queryParams = new HashMap<>();
-			final String[] nameValuePairs = query.split("&");
-			for (String nameValuePair : nameValuePairs) {
-				final String[] nameValue = nameValuePair.split("=");
-				queryParams.put(nameValue[0].startsWith("?") ? nameValue[0].substring(1)
-						: nameValue[0], nameValue.length > 1 ? nameValue[1] : "");
-			}
-			return queryParams;
+		if (query == null) {
+			return null;
 		}
-		return null;
+		final Map<String, String> queryParams = new HashMap<>();
+		final String[] nameValuePairs = query.split("&");
+		for (String nameValuePair : nameValuePairs) {
+			final String[] nameValue = nameValuePair.split("=");
+			queryParams.put(nameValue[0].startsWith("?") ? nameValue[0].substring(1)
+					: nameValue[0], nameValue.length > 1 ? nameValue[1] : "");
+		}
+		return queryParams;
 	}
 
 	String asString() {
