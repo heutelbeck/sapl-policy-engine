@@ -83,15 +83,8 @@ public class FilesystemPDPConfigurationProvider
 					adapter.setSink(sink);
 					directoryWatcher.watch(adapter);
 				}).doOnNext(event -> {
-					if (event == InitialWatchEvent.INSTANCE) {
-						// don't update the configuration on the initial event (nothing
-						// has changed)
-						dirWatcherEventProcessor.onNext(event);
-					}
-					else {
-						updateConfig(event);
-						dirWatcherEventProcessor.onNext(event);
-					}
+					updateConfig(event);
+					dirWatcherEventProcessor.onNext(event);
 				}).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler);
 
 		dirWatcherFluxSubscription = dirWatcherFlux.subscribe();
@@ -99,8 +92,6 @@ public class FilesystemPDPConfigurationProvider
 
 	private void initializeConfig() {
 		try {
-			lock.lock();
-
 			try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path),
 					CONFIG_FILE_GLOB_PATTERN)) {
 				for (Path filePath : stream) {
@@ -116,9 +107,6 @@ public class FilesystemPDPConfigurationProvider
 		}
 		catch (IOException e) {
 			LOGGER.error("Error while initializing the pdp configuration.", e);
-		}
-		finally {
-			lock.unlock();
 		}
 	}
 
@@ -159,32 +147,21 @@ public class FilesystemPDPConfigurationProvider
 
 	@Override
 	public Flux<DocumentsCombinator> getDocumentsCombinator() {
-		return dirWatcherEventProcessor.map(event -> {
-			try {
-				lock.lock();
-				return convert(config.getAlgorithm(), interpreter);
-			}
-			finally {
-				lock.unlock();
-			}
-		}).distinctUntilChanged()
-				.doOnNext(algorithm -> LOGGER.trace(
-						"|-- Current PDP config: combining algorithm = {}",
-						config.getAlgorithm()));
+		return dirWatcherEventProcessor
+				.map(event -> config.getAlgorithm())
+				.distinctUntilChanged()
+				.map(algorithm -> {
+					LOGGER.trace("|-- Current PDP config: combining algorithm = {}", algorithm);
+					return convert(algorithm, interpreter);
+				});
 	}
 
 	@Override
 	public Flux<Map<String, JsonNode>> getVariables() {
-		return dirWatcherEventProcessor.map(event -> {
-			try {
-				lock.lock();
-				return (Map<String, JsonNode>) config.getVariables();
-			}
-			finally {
-				lock.unlock();
-			}
-		}).distinctUntilChanged().doOnNext(variables -> LOGGER
-				.trace("|-- Current PDP config: variables = {}", variables));
+		return dirWatcherEventProcessor
+				.map(event -> (Map<String, JsonNode>) config.getVariables())
+				.distinctUntilChanged()
+				.doOnNext(variables -> LOGGER.trace("|-- Current PDP config: variables = {}", variables));
 	}
 
 	@Override

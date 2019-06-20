@@ -88,15 +88,8 @@ public class FilesystemPolicyRetrievalPoint
 					adapter.setSink(sink);
 					directoryWatcher.watch(adapter);
 				}).doOnNext(event -> {
-					if (event == InitialWatchEvent.INSTANCE) {
-						// don't update the index on the initial event (nothing has
-						// changed)
-						dirWatcherEventProcessor.onNext(event);
-					}
-					else {
-						updateIndex(event);
-						dirWatcherEventProcessor.onNext(event);
-					}
+					updateIndex(event);
+					dirWatcherEventProcessor.onNext(event);
 				}).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler);
 
 		dirWatcherFluxSubscription = dirWatcherFlux.subscribe();
