@@ -35,9 +35,7 @@ public class DirectoryWatcher {
 	 * longer accessible.
 	 */
 	public void watch(DirectoryWatchEventConsumer<Path> eventConsumer) {
-		WatchService watcher = null;
-		try {
-			watcher = FileSystems.getDefault().newWatchService();
+		try (WatchService watcher = FileSystems.getDefault().newWatchService()) {
 			watchedDir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
 			while (!eventConsumer.isCanceled()) {
 				final WatchKey key = watcher.take();
@@ -53,14 +51,6 @@ public class DirectoryWatcher {
 		}
 		finally {
 			eventConsumer.onComplete();
-			if (watcher != null) {
-				try {
-					watcher.close();
-				}
-				catch (IOException e) {
-					LOGGER.error(e.getMessage());
-				}
-			}
 		}
 	}
 
