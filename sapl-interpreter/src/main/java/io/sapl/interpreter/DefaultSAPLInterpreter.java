@@ -43,7 +43,6 @@ import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.Condition;
-import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.Policy;
@@ -99,7 +98,6 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	static final String POLICY_EVALUATION_FAILED = "Policy evaluation failed: {}";
 	static final String PARSING_ERRORS = "Parsing errors: %s";
-	static final String CONDITION_NOT_BOOLEAN = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
 	static final String NO_TARGET_MATCH = "Target not matching.";
 	static final String STATEMENT_NOT_BOOLEAN = "Evaluation error: Statement must evaluate to a boolean value, but was: '%s'.";
 	static final String OBLIGATIONS_ERROR = "Error occurred while evaluating obligations.";
@@ -172,62 +170,13 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables)
 			throws PolicyEvaluationException {
 
-		final Map<String, String> imports = fetchFunctionImports(saplDocument,
-				functionCtx);
-		return matches(request, saplDocument.getPolicyElement(), functionCtx,
-				systemVariables, null, imports);
+		final VariableContext variableCtx = new VariableContext(request, systemVariables);
+		final EvaluationContext evaluationCtx = new EvaluationContext(functionCtx, variableCtx);
+		return saplDocument.matches(request, evaluationCtx);
 	}
 
 	@Override
 	public boolean matches(Request request, PolicyElement policyElement,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables,
-			Map<String, JsonNode> variables, Map<String, String> imports)
-			throws PolicyEvaluationException {
-		LOGGER.trace("| | |-- Interpreter test match '{}' with {}",
-				policyElement.getSaplName(), request);
-		final Expression targetExpression = policyElement.getTargetExpression();
-		if (targetExpression == null) {
-			LOGGER.trace("| | | |-- MATCH (no target expression, matches all)");
-			LOGGER.trace("| | |");
-			return true;
-		}
-		else {
-			final EvaluationContext evaluationCtx = createEvaluationContext(request,
-					functionCtx, systemVariables, variables, imports);
-			try {
-				final Optional<JsonNode> expressionResult = targetExpression
-						.evaluate(evaluationCtx, false, Optional.empty()).blockFirst();
-				if (expressionResult.isPresent() && expressionResult.get().isBoolean()) {
-					LOGGER.trace("| | | |-- {}",
-							expressionResult.get().asBoolean() ? "MATCH" : "NO MATCH");
-					LOGGER.trace("| | |");
-					return expressionResult.get().asBoolean();
-				}
-				else {
-					LOGGER.trace(
-							"| | | |-- ERROR in target expression did not evaluate to boolean. Was: {}",
-							expressionResult);
-					LOGGER.trace("| | |");
-					throw new PolicyEvaluationException(
-							String.format(CONDITION_NOT_BOOLEAN, expressionResult));
-				}
-			}
-			catch (RuntimeException fluxError) {
-				LOGGER.trace("| | | |-- ERROR during target expression evaluation: {} ",
-						fluxError.getMessage());
-				LOGGER.trace("| | | |-- trace: ", fluxError);
-				LOGGER.trace("| | |");
-
-				final Throwable originalError = Exceptions.unwrap(fluxError);
-				if (originalError instanceof PolicyEvaluationException) {
-					throw (PolicyEvaluationException) originalError;
-				}
-				throw fluxError;
-			}
-		}
-	}
-
-	private static EvaluationContext createEvaluationContext(Request request,
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables,
 			Map<String, JsonNode> variables, Map<String, String> imports)
 			throws PolicyEvaluationException {
@@ -238,7 +187,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 				variableCtx.put(entry.getKey(), entry.getValue());
 			}
 		}
-		return new EvaluationContext(functionCtx, variableCtx, imports);
+		final EvaluationContext evaluationCtx = new EvaluationContext(functionCtx, variableCtx, imports);
+		return policyElement.matches(request, evaluationCtx);
 	}
 
 	@Override
@@ -581,39 +531,6 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		else {
 			return Flux.just(Optional.empty());
 		}
-	}
-
-	@Override
-	public Map<String, String> fetchFunctionImports(SAPL saplDocument,
-			FunctionContext functionCtx) throws PolicyEvaluationException {
-
-		final Map<String, String> imports = new HashMap<>();
-
-		for (Import anImport : saplDocument.getImports()) {
-			final String library = String.join(".", anImport.getLibSteps());
-
-			if (anImport instanceof WildcardImport) {
-				imports.putAll(fetchWildcardImports(imports, library,
-						functionCtx.functionsInLibrary(library)));
-			}
-			else if (anImport instanceof LibraryImport) {
-				final String alias = ((LibraryImport) anImport).getLibAlias();
-				imports.putAll(fetchLibraryImports(imports, library, alias,
-						functionCtx.functionsInLibrary(library)));
-			}
-			else {
-				final String functionName = anImport.getFunctionName();
-				final String fullyQualified = String.join(".", library, functionName);
-
-				if (imports.containsKey(anImport.getFunctionName())) {
-					throw new PolicyEvaluationException(
-							String.format(IMPORT_EXISTS, fullyQualified));
-				}
-				imports.put(functionName, fullyQualified);
-			}
-		}
-
-		return imports;
 	}
 
 	private static Map<String, String> fetchFunctionAndPipImports(SAPL saplDocument,

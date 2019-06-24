@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="sapl" nsURI="http://sapl.io/sapl/SAPL" nsPrefix="sapl">
-  <eClassifiers xsi:type="ecore:EClass" name="SAPL">
+  <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable">
+    <eOperations name="fetchFunctionImports" eType="#//StringMap" eExceptions="#//PolicyEvaluationException">
+      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+        <details key="documentation" value="The method returns a map of full qualified function names by their short names (or library alias plus short name) for all function imports of the SAPL document depending on the functions available in the given function context..&#xA;&#xA;@param functionCtx &#xA;&#x9;&#x9;the function context&#xA;@returns &#xA;&#x9;&#x9;a map of full qualified function names by their short names for all function imports of the SAPL document.&#xA;@throws PolicyEvaluationException in case an error occurs while evaluating the import statements and creating the map"/>
+      </eAnnotations>
+      <eParameters name="functionCtx" eType="#//FunctionContext"/>
+    </eOperations>
     <eStructuralFeatures xsi:type="ecore:EReference" name="imports" upperBound="-1"
         eType="#//Import" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="policyElement" eType="#//PolicyElement"
@@ -12,7 +18,7 @@
         upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="functionName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="PolicyElement">
+  <eClassifiers xsi:type="ecore:EClass" name="PolicyElement" eSuperTypes="#//Matchable">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="saplName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="targetExpression" eType="#//Expression"
         containment="true"/>
@@ -256,6 +262,16 @@
       <eParameters name="relativeNode" eType="#//OptionalJsonNode"/>
     </eOperations>
   </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Matchable" abstract="true" interface="true">
+    <eOperations name="matches" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+        eExceptions="#//PolicyEvaluationException">
+      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+        <details key="documentation" value="The method returns a flag indicating whether the object it is called on matches the given request within the given evaluation context.&#xA;&#xA;@param request&#xA;&#x9;&#x9;the SAPL request&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@returns &#xA;&#x9;&#x9;true if the object this method is called on matches the given request within the given evaluation context, false otherwise.&#xA;@throws PolicyEvaluationException if an error occurs while evaluating the target expression"/>
+      </eAnnotations>
+      <eParameters name="request" eType="#//Request"/>
+      <eParameters name="ctx" eType="#//EvaluationContext"/>
+    </eOperations>
+  </eClassifiers>
   <eClassifiers xsi:type="ecore:EDataType" name="EvaluationContext" instanceClassName="io.sapl.interpreter.EvaluationContext"/>
   <eClassifiers xsi:type="ecore:EDataType" name="JsonNode" instanceClassName="com.fasterxml.jackson.databind.JsonNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="JsonNodeFlux" instanceTypeName="reactor.core.publisher.Flux&lt;com.fasterxml.jackson.databind.JsonNode>"
@@ -268,4 +284,8 @@
   <eClassifiers xsi:type="ecore:EDataType" name="AbstractAnnotatedJsonNode" instanceClassName="io.sapl.interpreter.selection.AbstractAnnotatedJsonNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="OptionalJsonNodeFlux" instanceTypeName="reactor.core.publisher.Flux&lt;java.util.Optional&lt;com.fasterxml.jackson.databind.JsonNode>>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="OptionalJsonNode" instanceTypeName="java.util.Optional&lt;com.fasterxml.jackson.databind.JsonNode>"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="Request" instanceClassName="io.sapl.api.pdp.Request"
+      serializable="false"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="FunctionContext" instanceClassName="io.sapl.interpreter.functions.FunctionContext"
+      serializable="false"/>
 </ecore:EPackage>

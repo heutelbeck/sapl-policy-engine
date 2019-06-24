@@ -162,18 +162,4 @@ public interface SAPLInterpreter {
 			Map<String, JsonNode> variables, Map<String, String> imports)
 			throws PolicyEvaluationException;
 
-	/**
-	 * Method which uses the import statements from a SAPL document to create a Map
-	 * between simple function names (String) and fully qualified names (String) depending
-	 * on the functions available in the function context.
-	 * @param saplDocument the SAPL document
-	 * @param functionCtx the function context
-	 * @return the Map from simple function names (String) to fully qualified names
-	 * (String)
-	 * @throws PolicyEvaluationException in case there is an error while evaluating the
-	 * import statements and creating the Map
-	 */
-	Map<String, String> fetchFunctionImports(SAPL saplDocument,
-			FunctionContext functionCtx) throws PolicyEvaluationException;
-
 }
