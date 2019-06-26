@@ -1,14 +1,10 @@
 package io.sapl.interpreter.combinators;
 
 import java.util.List;
-import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.grammar.sapl.Policy;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 /**
@@ -23,20 +19,22 @@ public interface PolicyCombinator {
 	 * supposed to be used to determine a response for multiple policies inside a policy
 	 * set.
 	 * @param policies the list of policies
-	 * @param request the Request object
-	 * @param attributeCtx the attribute context
-	 * @param functionCtx the function context
-	 * @param systemVariables the system variables
-	 * @param variables custom variables, e.g., obtained from the containing policy set
-	 * @param imports the import mapping for functions and attribute finders
+	 * @param ctx the evaluation context in which the given policies will be evaluated.
+	 *            It must contain
+	 *            <ul>
+	 *            <li>the attribute context</li>
+	 *            <li>the function context</li>
+	 *            <li>the variable context holding the four request variables 'subject',
+	 *                'action', 'resource' and 'environment' combined with system variables
+	 *                from the PDP configuration and other variables e.g. obtained from the
+	 *                containing policy set</li>
+	 *            <li>the import mapping for functions and attribute finders</li>
+	 *            </ul>
 	 * @return a {@link Flux} of {@link Response} objects containing the combined
 	 * decision, the combined obligation and advice and a transformed resource if
 	 * applicable. A new response object is only pushed if it is different from the
 	 * previous one.
 	 */
-	Flux<Response> combinePolicies(List<Policy> policies, Request request,
-			AttributeContext attributeCtx, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
-			Map<String, String> imports);
+	Flux<Response> combinePolicies(List<Policy> policies, EvaluationContext ctx);
 
 }

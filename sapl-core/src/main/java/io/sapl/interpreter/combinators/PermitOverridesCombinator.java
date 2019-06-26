@@ -6,25 +6,21 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.combinators.ObligationAdviceCollector.Type;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.interpreter.variables.VariableContext;
 import reactor.core.publisher.Flux;
 
 public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCombinator {
-
-	private SAPLInterpreter interpreter;
-
-	public PermitOverridesCombinator(SAPLInterpreter interpreter) {
-		this.interpreter = interpreter;
-	}
 
 	@Override
 	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
@@ -36,11 +32,19 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 					: Flux.just(Response.notApplicable());
 		}
 
+		final VariableContext variableCtx;
+		try {
+			variableCtx = new VariableContext(request, systemVariables);
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.just(Response.indeterminate());
+		}
+		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
+
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(
 				matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
-			responseFluxes.add(interpreter.evaluate(request, document, attributeCtx,
-					functionCtx, systemVariables));
+			responseFluxes.add(document.evaluate(evaluationCtx));
 		}
 
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(
@@ -52,17 +56,12 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 	}
 
 	@Override
-	public Flux<Response> combinePolicies(List<Policy> policies, Request request,
-			AttributeContext attributeCtx, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
-			Map<String, String> imports) {
-
+	public Flux<Response> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		boolean errorsInTarget = false;
 		final List<Policy> matchingPolicies = new ArrayList<>();
 		for (Policy policy : policies) {
 			try {
-				if (interpreter.matches(request, policy, functionCtx, systemVariables,
-						variables, imports)) {
+				if (policy.matches(ctx)) {
 					matchingPolicies.add(policy);
 				}
 			}
@@ -79,8 +78,7 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(
 				matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
-			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx,
-					functionCtx, systemVariables, variables, imports));
+			responseFluxes.add(policy.evaluate(ctx));
 		}
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(
 				errorsInTarget);

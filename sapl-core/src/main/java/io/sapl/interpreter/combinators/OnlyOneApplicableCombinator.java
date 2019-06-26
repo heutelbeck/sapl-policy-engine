@@ -5,24 +5,19 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.interpreter.variables.VariableContext;
 import reactor.core.publisher.Flux;
 
-public class OnlyOneApplicableCombinator
-		implements DocumentsCombinator, PolicyCombinator {
-
-	private SAPLInterpreter interpreter;
-
-	public OnlyOneApplicableCombinator(SAPLInterpreter interpreter) {
-		this.interpreter = interpreter;
-	}
+public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyCombinator {
 
 	@Override
 	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
@@ -33,9 +28,17 @@ public class OnlyOneApplicableCombinator
 			return Flux.just(Response.indeterminate());
 		}
 		else if (matchingSaplDocuments.size() == 1) {
+			final VariableContext variableCtx;
+			try {
+				variableCtx = new VariableContext(request, systemVariables);
+			}
+			catch (PolicyEvaluationException e) {
+				return Flux.just(Response.indeterminate());
+			}
+			final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
+
 			final SAPL matchingDocument = matchingSaplDocuments.iterator().next();
-			return interpreter.evaluateRules(request, matchingDocument, attributeCtx,
-					functionCtx, systemVariables);
+			return matchingDocument.evaluate(evaluationCtx);
 		}
 		else {
 			return Flux.just(Response.notApplicable());
@@ -43,16 +46,11 @@ public class OnlyOneApplicableCombinator
 	}
 
 	@Override
-	public Flux<Response> combinePolicies(List<Policy> policies, Request request,
-			AttributeContext attributeCtx, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
-			Map<String, String> imports) {
-
+	public Flux<Response> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		Policy matchingPolicy = null;
 		for (Policy policy : policies) {
 			try {
-				if (interpreter.matches(request, policy, functionCtx, systemVariables,
-						variables, imports)) {
+				if (policy.matches(ctx)) {
 					if (matchingPolicy != null) {
 						return Flux.just(Response.indeterminate());
 					}
@@ -68,8 +66,7 @@ public class OnlyOneApplicableCombinator
 			return Flux.just(Response.notApplicable());
 		}
 
-		return interpreter.evaluateRules(request, matchingPolicy, attributeCtx,
-				functionCtx, systemVariables, variables, imports);
+		return matchingPolicy.evaluate(ctx);
 	}
 
 }
