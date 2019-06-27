@@ -1,26 +1,16 @@
 package io.sapl.grammar.sapl.impl;
 
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
-
-import org.eclipse.emf.common.util.EList;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
-import io.sapl.grammar.sapl.Condition;
-import io.sapl.grammar.sapl.PolicyBody;
-import io.sapl.grammar.sapl.Statement;
-import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
@@ -28,7 +18,6 @@ import reactor.util.function.Tuples;
 @Slf4j
 public class PolicyImplCustom extends PolicyImpl {
 
-    private static final String STATEMENT_NOT_BOOLEAN = "Evaluation error: Statement must evaluate to a boolean value, but was: '%s'.";
     private static final String OBLIGATIONS_ERROR = "Error occurred while evaluating obligations.";
     private static final String ADVICE_ERROR = "Error occurred while evaluating advice.";
     private static final String TRANSFORMATION_ERROR = "Error occurred while evaluating transformation.";
@@ -58,13 +47,10 @@ public class PolicyImplCustom extends PolicyImpl {
     @Override
     public Flux<Response> evaluate(EvaluationContext ctx) {
         final Decision entitlement = PERMIT.equals(getEntitlement()) ? Decision.PERMIT : Decision.DENY;
-        final Flux<Decision> decisionFlux;
-        if (getBody() != null) {
-            decisionFlux = evaluateBody(entitlement, getBody(), ctx);
-        }
-        else {
-            decisionFlux = Flux.just(entitlement);
-        }
+        final Flux<Decision> decisionFlux =
+                getBody() != null
+                        ? getBody().evaluate(entitlement, ctx)
+                        : Flux.just(entitlement);
 
         return decisionFlux.flatMap(decision -> {
             if (decision == Decision.PERMIT || decision == Decision.DENY) {
@@ -93,82 +79,6 @@ public class PolicyImplCustom extends PolicyImpl {
                 return Flux.just(response);
             }
         }).onErrorReturn(INDETERMINATE);
-    }
-
-    private Flux<Decision> evaluateBody(Decision entitlement, PolicyBody body,
-                                               EvaluationContext evaluationCtx) {
-        final EList<Statement> statements = body.getStatements();
-        if (statements != null && !statements.isEmpty()) {
-            final boolean initialResult = true;
-            final List<FluxProvider<Boolean>> fluxProviders = new ArrayList<>(
-                    statements.size());
-            for (Statement statement : statements) {
-                fluxProviders.add(() -> evaluateStatement(statement, evaluationCtx));
-            }
-            return cascadingSwitchMap(initialResult, fluxProviders, 0)
-                    .map(result -> result ? entitlement : Decision.NOT_APPLICABLE)
-                    .onErrorResume(error -> {
-                        final Throwable unwrapped = Exceptions.unwrap(error);
-                        LOGGER.error("Error in policy body evaluation: {}",
-                                unwrapped.getMessage());
-                        return Flux.just(Decision.INDETERMINATE);
-                    });
-        }
-        else {
-            return Flux.just(entitlement);
-        }
-    }
-
-    private Flux<Boolean> cascadingSwitchMap(boolean currentResult,
-                List<FluxProvider<Boolean>> fluxProviders, int idx) {
-        if (idx < fluxProviders.size() && currentResult) {
-            return fluxProviders.get(idx).getFlux().switchMap(
-                    result -> cascadingSwitchMap(result, fluxProviders, idx + 1));
-        }
-        return Flux.just(currentResult);
-    }
-
-    private Flux<Boolean> evaluateStatement(Statement statement, EvaluationContext evaluationCtx) {
-        if (statement instanceof ValueDefinition) {
-            return evaluateValueDefinition((ValueDefinition) statement, evaluationCtx);
-        }
-        else {
-            return evaluateCondition((Condition) statement, evaluationCtx);
-        }
-    }
-
-    private Flux<Boolean> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx) {
-        return valueDefinition.getEval().evaluate(evaluationCtx, true, Optional.empty())
-                .map(evaluatedValue -> {
-                    try {
-                        if (!evaluatedValue.isPresent()) {
-                            throw new PolicyEvaluationException(
-                                    CANNOT_ASSIGN_UNDEFINED_TO_A_VAL);
-                        }
-                        evaluationCtx.getVariableCtx().put(valueDefinition.getName(),
-                                evaluatedValue.get());
-                        return Boolean.TRUE;
-                    }
-                    catch (PolicyEvaluationException e) {
-                        LOGGER.error("Error in value definition evaluation: {}",
-                                e.getMessage());
-                        throw Exceptions.propagate(e);
-                    }
-                }).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
-    }
-
-    private Flux<Boolean> evaluateCondition(Condition condition, EvaluationContext evaluationCtx) {
-        return condition.getExpression().evaluate(evaluationCtx, true, Optional.empty())
-                .map(statementResult -> {
-                    if (statementResult.isPresent()
-                            && statementResult.get().isBoolean()) {
-                        return statementResult.get().asBoolean();
-                    }
-                    else {
-                        throw Exceptions.propagate(new PolicyEvaluationException(
-                                String.format(STATEMENT_NOT_BOOLEAN, statementResult)));
-                    }
-                }).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
     }
 
     private Flux<Tuple2<Optional<ArrayNode>, Optional<ArrayNode>>> evaluateObligationsAndAdvice(

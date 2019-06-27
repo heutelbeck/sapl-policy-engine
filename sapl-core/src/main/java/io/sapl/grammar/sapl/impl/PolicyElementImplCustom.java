@@ -22,8 +22,8 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
     private static final String CONDITION_NOT_BOOLEAN = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
 
     /**
-     * Method which checks whether the policy element (policy set or policy) matches a
-     * Request by evaluating the element's target expression.
+     * Checks whether the policy element (policy set or policy) matches a Request
+     * by evaluating the element's target expression.
      * An import mapping and custom variables can be provided.
      *
      * @param ctx the evaluation context in which the policy element's target expression

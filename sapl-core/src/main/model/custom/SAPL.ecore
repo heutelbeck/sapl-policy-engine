@@ -4,7 +4,7 @@
   <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable #//ResponseEvaluable">
     <eOperations name="fetchFunctionImports" eType="#//StringMap" eExceptions="#//PolicyEvaluationException">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method returns a map of full qualified function names by their short names (or library alias plus short name) for all function imports of the SAPL document depending on the functions available in the given function context..&#xA;&#xA;@param functionCtx &#xA;&#x9;&#x9;the function context&#xA;@returns &#xA;&#x9;&#x9;a map of full qualified function names by their short names for all function imports of the SAPL document.&#xA;@throws PolicyEvaluationException in case an error occurs while evaluating the import statements and creating the map"/>
+        <details key="documentation" value="The method returns a map of full qualified function names by their short names (or library alias plus short name) for all function imports of the SAPL document depending on the functions available in the given function context.&#xA;&#xA;@param functionCtx &#xA;&#x9;&#x9;the function context&#xA;@returns &#xA;&#x9;&#x9;a map of full qualified function names by their short names for all function imports of the SAPL document.&#xA;@throws PolicyEvaluationException in case an error occurs while evaluating the import statements and creating the map"/>
       </eAnnotations>
       <eParameters name="functionCtx" eType="#//FunctionContext"/>
     </eOperations>
@@ -42,6 +42,13 @@
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="PolicyBody">
+    <eOperations name="evaluate" eType="#//DecisionFlux">
+      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+        <details key="documentation" value="The method evaluates all statements of the policy body in the given context and returns a flux of Decisions.&#xA;&#xA;@param entitlement &#xA;&#x9;&#x9;the entitlement of the enclosing policy&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@returns &#xA;&#x9;&#x9;a flux of authorisation decisions based on the stamtents in the policy body"/>
+      </eAnnotations>
+      <eParameters name="entitlement" eType="#//Decision"/>
+      <eParameters name="ctx" eType="#//EvaluationContext"/>
+    </eOperations>
     <eStructuralFeatures xsi:type="ecore:EReference" name="statements" upperBound="-1"
         eType="#//Statement" containment="true"/>
   </eClassifiers>
@@ -285,6 +292,8 @@
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="ResponseFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.pdp.Response>"
       serializable="false"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="DecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.pdp.Decision>"
+      serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="PolicyEvaluationException" instanceClassName="io.sapl.api.interpreter.PolicyEvaluationException"/>
   <eClassifiers xsi:type="ecore:EDataType" name="ResultNodeFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.interpreter.selection.ResultNode>"
       serializable="false"/>
@@ -299,4 +308,5 @@
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Response" instanceClassName="io.sapl.api.pdp.Response"
       serializable="false"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="Decision" instanceClassName="io.sapl.api.pdp.Decision"/>
 </ecore:EPackage>
