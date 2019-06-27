@@ -137,24 +137,6 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	}
 
 	@Override
-	public Flux<Response> evaluate(Request request, SAPL saplDocument,
-			AttributeContext attributeCtx, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables) {
-
-		try {
-			final VariableContext variableCtx = new VariableContext(request, systemVariables);
-			final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
-			return saplDocument.evaluate(evaluationCtx);
-		}
-		catch (PolicyEvaluationException e) {
-			LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED,
-					e.getMessage());
-			LOGGER.trace("| |");
-			return Flux.just(INDETERMINATE);
-		}
-	}
-
-	@Override
 	public DocumentAnalysisResult analyze(String policyDefinition) {
 		DocumentAnalysisResult result;
 		try {

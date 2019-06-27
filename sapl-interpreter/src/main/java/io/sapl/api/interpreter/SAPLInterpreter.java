@@ -49,23 +49,6 @@ public interface SAPLInterpreter {
 	SAPL parse(InputStream saplInputStream) throws PolicyEvaluationException;
 
 	/**
-	 * Method which evaluates a SAPL document (containing a policy set or policy) against
-	 * a Request object within a given attribute context and function context and returns
-	 * a {@link Flux} of {@link Response} objects.
-	 *
-	 * @param request the Request object
-	 * @param saplDocument the SAPL document
-	 * @param attributeCtx the attribute context
-	 * @param functionCtx the function context
-	 * @param systemVariables the system variables, a Map between the variable name and
-	 *                        its value
-	 * @return A {@link Flux} of {@link Response} objects.
-	 */
-	Flux<Response> evaluate(Request request, SAPL saplDocument,
-			AttributeContext attributeCtx, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables);
-
-	/**
 	 * Convenience method for unit tests which evaluates a String representing a SAPL document
 	 * (containing a policy set or policy) against a Request object within a given attribute
 	 * context and function context and returns a {@link Flux} of {@link Response} objects.

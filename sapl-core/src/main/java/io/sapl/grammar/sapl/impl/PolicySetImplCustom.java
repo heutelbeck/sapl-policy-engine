@@ -73,8 +73,8 @@ public class PolicySetImplCustom extends PolicySetImpl {
                 break;
         }
 
-        return variablesFlux.flatMap(
-                voiD -> combinator.combinePolicies(getPolicies(), ctx))
+        return variablesFlux
+                .flatMap(voiD -> combinator.combinePolicies(getPolicies(), ctx))
                 .onErrorReturn(INDETERMINATE);
     }
 

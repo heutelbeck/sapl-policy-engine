@@ -1,7 +1,7 @@
 /**
  * Copyright © 2017 Dominic Heutelbeck (dheutelbeck@ftk.de)
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * Licensed under the Apache License, Version 2.0 (the "License"; you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -26,12 +26,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.functions.FunctionException;
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Request;
-import io.sapl.api.pip.AttributeException;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -41,32 +37,31 @@ import io.sapl.interpreter.pip.AttributeContext;
 public class PermitOverridesTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections
-			.unmodifiableMap(new HashMap<>());
-
-	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final Request EMPTY_REQUEST = new Request(null, null, null, null);
+	private static final Request REQUEST_WITH_TRUE_RESOURCE =
+			new Request(null, null, JSON.booleanNode(true), null);
+	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
 	private AttributeContext attributeCtx;
-
 	private FunctionContext functionCtx;
 
-	private Request emptyRequest;
-
 	@Before
-	public void init() throws FunctionException, AttributeException {
+	public void init() {
 		attributeCtx = new AnnotationAttributeContext();
 		functionCtx = new AnnotationFunctionContext();
-		emptyRequest = new Request(null, null, null, null);
 	}
 
 	@Test
-	public void permit() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" permit-overrides" + " policy \"testp\" permit");
+	public void permit() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp\" permit";
 
-		INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-				SYSTEM_VARIABLES).take(1).subscribe(response -> {
+		INTERPRETER
+				.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+				.take(1)
+				.subscribe(response -> {
 					final Decision expected = Decision.PERMIT;
 					final Decision actual = response.getDecision();
 					assertEquals(
@@ -76,12 +71,14 @@ public class PermitOverridesTest {
 	}
 
 	@Test
-	public void deny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" permit-overrides" + " policy \"testp\" deny");
+	public void deny() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp\" deny";
 
-		INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-				SYSTEM_VARIABLES).take(1).subscribe(response -> {
+		INTERPRETER
+				.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+				.take(1)
+				.subscribe(response -> {
 					final Decision expected = Decision.DENY;
 					final Decision actual = response.getDecision();
 					assertEquals(
@@ -91,12 +88,14 @@ public class PermitOverridesTest {
 	}
 
 	@Test
-	public void notApplicableTarget() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
-				+ " policy \"testp\" deny true == false");
+	public void notApplicableTarget() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp\" deny true == false";
 
-		INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-				SYSTEM_VARIABLES).take(1).subscribe(response -> {
+		INTERPRETER
+				.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+				.take(1)
+				.subscribe(response -> {
 					final Decision expected = Decision.NOT_APPLICABLE;
 					final Decision actual = response.getDecision();
 					assertEquals(
@@ -106,12 +105,14 @@ public class PermitOverridesTest {
 	}
 
 	@Test
-	public void notApplicableCondition() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
-				+ " policy \"testp\" deny where true == false;");
+	public void notApplicableCondition() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp\" deny where true == false;";
 
-		INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-				SYSTEM_VARIABLES).take(1).subscribe(response -> {
+		INTERPRETER
+				.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+				.take(1)
+				.subscribe(response -> {
 					final Decision expected = Decision.NOT_APPLICABLE;
 					final Decision actual = response.getDecision();
 					assertEquals(
@@ -121,168 +122,200 @@ public class PermitOverridesTest {
 	}
 
 	@Test
-	public void indeterminateTarget() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse(
-				"set \"tests\" permit-overrides" + " policy \"testp\" permit \"a\" < 5");
+	public void indeterminateTarget() {
+		String policySet = "set \"tests\" permit-overrides "
+				+ "policy \"testp\" permit \"a\" < 5";
 
 		assertEquals("should return indeterminate if the only target is indeterminate",
 				Decision.INDETERMINATE,
-				INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).blockFirst().getDecision());
+				INTERPRETER
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void indeterminateCondition() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
-				+ " policy \"testp\" permit where \"a\" < 5;");
+	public void indeterminateCondition() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp\" permit where \"a\" < 5;";
 
 		assertEquals("should return indeterminate if the only condition is indeterminate",
 				Decision.INDETERMINATE,
-				INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).blockFirst().getDecision());
+				INTERPRETER
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void permitDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
-				+ " policy \"testp1\" permit" + " policy \"testp2\" deny");
+	public void permitDeny() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp1\" permit"
+				+ " policy \"testp2\" deny";
 
 		assertEquals("should return permit if any policy evaluates to permit",
 				Decision.PERMIT,
-				INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).blockFirst().getDecision());
+				INTERPRETER
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void permitIndeterminate() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" permit-overrides" + " policy \"testp1\" permit"
-						+ " policy \"testp2\" permit where \"a\" > 5;");
+	public void permitIndeterminate() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp1\" permit"
+						+ " policy \"testp2\" permit where \"a\" > 5;";
 
 		assertEquals("should return permit if any policy evaluates to permit",
 				Decision.PERMIT,
-				INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).blockFirst().getDecision());
+				INTERPRETER
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void permitNotApplicableDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
-				+ " policy \"testp1\" deny" + " policy \"testp2\" permit true == false"
-				+ " policy \"testp3\" permit");
+	public void permitNotApplicableDeny() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp1\" deny"
+				+ " policy \"testp2\" permit true == false"
+				+ " policy \"testp3\" permit";
 
 		assertEquals("should return permit if any policy evaluates to permit",
 				Decision.PERMIT,
-				INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).blockFirst().getDecision());
+				INTERPRETER
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void permitNotApplicableIndeterminateDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
-				+ " policy \"testp1\" permit true == false" + " policy \"testp2\" permit"
-				+ " policy \"testp3\" permit \"a\" > 5" + " policy \"testp4\" deny"
-				+ " policy \"testp5\" permit");
+	public void permitNotApplicableIndeterminateDeny() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp1\" permit true == false"
+				+ " policy \"testp2\" permit"
+				+ " policy \"testp3\" permit \"a\" > 5"
+				+ " policy \"testp4\" deny"
+				+ " policy \"testp5\" permit";
 
 		assertEquals("should return permit if any policy evaluates to permit",
 				Decision.PERMIT,
-				INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).blockFirst().getDecision());
+				INTERPRETER
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void denyIndeterminateNotApplicable() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
-				+ " policy \"testp1\" deny" + " policy \"testp2\" permit \"a\" < 5"
-				+ " policy \"testp3\" permit true == false");
+	public void denyIndeterminateNotApplicable() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp1\" deny"
+				+ " policy \"testp2\" permit \"a\" < 5"
+				+ " policy \"testp3\" permit true == false";
 
 		assertEquals(
 				"should return indeterminate if only indeterminate, deny and not applicable present",
 				Decision.INDETERMINATE,
-				INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).blockFirst().getDecision());
+				INTERPRETER
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void denyNotApplicable() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
-				+ " policy \"testp1\" deny " + " policy \"testp2\" permit true == false");
+	public void denyNotApplicable() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp1\" deny "
+				+ " policy \"testp2\" permit true == false";
 
 		assertEquals("should return deny if only deny and not applicable present",
-				Decision.DENY, INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx,
-						functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
+				Decision.DENY,
+				INTERPRETER
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void multiplePermitTransformation() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" permit-overrides" + " policy \"testp1\" permit"
-						+ " policy \"testp2\" permit transform true");
+	public void multiplePermitTransformation() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp1\" permit"
+				+ " policy \"testp2\" permit transform true";
 
 		assertEquals(
 				"should return indeterminate if final decision would be permit and there is a transformation incertainty",
 				Decision.INDETERMINATE,
-				INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).blockFirst().getDecision());
+				INTERPRETER
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void multiplePermitTransformationDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse(
-				"set \"tests\" permit-overrides" + " policy \"testp1\" permit false"
+	public void multiplePermitTransformationDeny() {
+		String policySet = 
+				"set \"tests\" permit-overrides"
+						+ " policy \"testp1\" permit false"
 						+ " policy \"testp2\" permit false transform true"
-						+ " policy \"testp3\" deny");
+						+ " policy \"testp3\" deny";
 
 		assertEquals(
 				"should return deny if final decision would be deny and there is a transformation incertainty",
-				Decision.DENY, INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx,
-						functionCtx, SYSTEM_VARIABLES).blockFirst().getDecision());
+				Decision.DENY,
+				INTERPRETER
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void singlePermitTransformation() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
-				+ " policy \"testp\" permit transform true");
-
-		assertEquals("should return permit if there is no transformation incertainty",
-				Decision.PERMIT,
-				INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).blockFirst().getDecision());
-	}
-
-	@Test
-	public void singlePermitTransformationResource() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
-				+ " policy \"testp\" permit transform true");
-
-		assertEquals("should return resource if there is no transformation incertainty",
-				Optional.of(JSON.booleanNode(true)),
-				INTERPRETER.evaluate(emptyRequest, policySet, attributeCtx, functionCtx,
-						SYSTEM_VARIABLES).blockFirst().getResource());
-	}
-
-	@Test
-	public void multiplePermitNoTransformation() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
-				+ " policy \"testp1\" permit" + " policy \"testp2\" permit");
+	public void singlePermitTransformation() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp\" permit transform true";
 
 		assertEquals("should return permit if there is no transformation incertainty",
 				Decision.PERMIT,
 				INTERPRETER
-						.evaluate(
-								new Request(null, null,
-										JsonNodeFactory.instance.booleanNode(true), null),
-								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void collectObligationDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
+	public void singlePermitTransformationResource() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp\" permit transform true";
+
+		assertEquals("should return resource if there is no transformation incertainty",
+				Optional.of(JSON.booleanNode(true)),
+				INTERPRETER
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getResource());
+	}
+
+	@Test
+	public void multiplePermitNoTransformation() {
+		String policySet = "set \"tests\" permit-overrides"
+				+ " policy \"testp1\" permit"
+				+ " policy \"testp2\" permit";
+
+		assertEquals("should return permit if there is no transformation incertainty",
+				Decision.PERMIT,
+				INTERPRETER
+						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
+	}
+
+	@Test
+	public void collectObligationDeny() {
+		String policySet = "set \"tests\" permit-overrides"
 				+ " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\""
 				+ " policy \"testp3\" permit false obligation \"obligation3\" advice \"advice3\""
-				+ " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"");
+				+ " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
 
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
@@ -290,20 +323,18 @@ public class PermitOverridesTest {
 
 		assertEquals("should collect all deny obligation", Optional.of(obligation),
 				INTERPRETER
-						.evaluate(
-								new Request(null, null,
-										JsonNodeFactory.instance.booleanNode(true), null),
-								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getObligations());
+						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getObligations());
 	}
 
 	@Test
-	public void collectAdviceDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
+	public void collectAdviceDeny() {
+		String policySet = "set \"tests\" permit-overrides"
 				+ " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\""
 				+ " policy \"testp3\" permit false obligation \"obligation3\" advice \"advice3\""
-				+ " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"");
+				+ " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
 
 		ArrayNode advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
@@ -311,20 +342,18 @@ public class PermitOverridesTest {
 
 		assertEquals("should collect all deny advice", Optional.of(advice),
 				INTERPRETER
-						.evaluate(
-								new Request(null, null,
-										JsonNodeFactory.instance.booleanNode(true), null),
-								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getAdvices());
+						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getAdvices());
 	}
 
 	@Test
-	public void collectObligationPermit() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
+	public void collectObligationPermit() {
+		String policySet = "set \"tests\" permit-overrides"
 				+ " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\""
 				+ " policy \"testp3\" deny false obligation \"obligation3\" advice \"advice3\""
-				+ " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"");
+				+ " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"";
 
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
@@ -332,20 +361,18 @@ public class PermitOverridesTest {
 
 		assertEquals("should collect all permit obligation", Optional.of(obligation),
 				INTERPRETER
-						.evaluate(
-								new Request(null, null,
-										JsonNodeFactory.instance.booleanNode(true), null),
-								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getObligations());
+						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getObligations());
 	}
 
 	@Test
-	public void collectAdvicePermit() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-overrides"
+	public void collectAdvicePermit() {
+		String policySet = "set \"tests\" permit-overrides"
 				+ " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\""
 				+ " policy \"testp3\" deny false obligation \"obligation3\" advice \"advice3\""
-				+ " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"");
+				+ " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"";
 
 		ArrayNode advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
@@ -353,11 +380,9 @@ public class PermitOverridesTest {
 
 		assertEquals("should collect all permit advice", Optional.of(advice),
 				INTERPRETER
-						.evaluate(
-								new Request(null, null,
-										JsonNodeFactory.instance.booleanNode(true), null),
-								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getAdvices());
+						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getAdvices());
 	}
 
 }
