@@ -7,15 +7,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.Test;
+
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import io.sapl.grammar.sapl.IndexStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.tests.MockFunctionContext;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
-import org.junit.Test;
 
 public class ResultNodeApplyStepTest {
 
@@ -27,8 +29,7 @@ public class ResultNodeApplyStepTest {
 
 	private static FunctionContext functionCtx = new MockFunctionContext();
 
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
-			variableCtx);
+	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
 
 	@Test
 	public void applyStepArrayResult() {

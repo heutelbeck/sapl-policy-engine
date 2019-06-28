@@ -36,8 +36,7 @@ public class ResultNodeApplyFunctionTest {
 
 	private static FunctionContext functionCtx = new MockFunctionContext();
 
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
-			variableCtx);
+	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
 
 	private static Optional<JsonNode> nullNode() {
 		return Optional.of(JSON.nullNode());

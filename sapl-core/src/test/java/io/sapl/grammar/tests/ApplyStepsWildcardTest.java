@@ -38,8 +38,7 @@ public class ApplyStepsWildcardTest {
 
 	private static FunctionContext functionCtx = new MockFunctionContext();
 
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
-			variableCtx);
+	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
 
 	@Test
 	public void applyToNullNode() {

@@ -34,8 +34,7 @@ public class ApplyFilteringExtendedTest {
 
 	private static FunctionContext functionCtx = new MockFilteringContext();
 
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
-			variableCtx);
+	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
 
 	private static final String REMOVE = "remove";
 

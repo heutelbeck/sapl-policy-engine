@@ -32,8 +32,7 @@ public class EvaluateStepsFilterSubtemplateTest {
 
 	private static FunctionContext functionCtx = new MockFilteringContext();
 
-	private static EvaluationContext ctx = new EvaluationContext(null, functionCtx,
-			variableCtx);
+	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
 
 	@Test
 	public void basicExpressionWithStep() {
