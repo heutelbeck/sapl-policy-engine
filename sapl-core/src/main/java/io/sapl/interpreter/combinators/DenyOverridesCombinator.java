@@ -28,8 +28,8 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
 
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
-			return errorsInTarget ? Flux.just(Response.indeterminate())
-					: Flux.just(Response.notApplicable());
+			return errorsInTarget ? Flux.just(Response.INDETERMINATE)
+					: Flux.just(Response.NOT_APPLICABLE);
 		}
 
 		final VariableContext variableCtx;
@@ -37,7 +37,7 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 			variableCtx = new VariableContext(request, systemVariables);
 		}
 		catch (PolicyEvaluationException e) {
-			return Flux.just(Response.indeterminate());
+			return Flux.just(Response.INDETERMINATE);
 		}
 		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 
@@ -70,8 +70,8 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 		}
 
 		if (matchingPolicies.isEmpty()) {
-			return errorsInTarget ? Flux.just(Response.indeterminate())
-					: Flux.just(Response.notApplicable());
+			return errorsInTarget ? Flux.just(Response.INDETERMINATE)
+					: Flux.just(Response.NOT_APPLICABLE);
 		}
 
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
@@ -106,8 +106,8 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 			permitCount = 0;
 			transformation = false;
 			obligationAdvice = new ObligationAdviceCollector();
-			response = errorsInTarget ? Response.indeterminate()
-					: Response.notApplicable();
+			response = errorsInTarget ? Response.INDETERMINATE
+					: Response.NOT_APPLICABLE;
 		}
 
 		void addSingleResponses(Object... responses) {
@@ -121,11 +121,11 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 			Decision newDecision = newResponse.getDecision();
 			if (newDecision == Decision.DENY) {
 				obligationAdvice.add(Decision.DENY, newResponse);
-				response = Response.deny();
+				response = Response.DENY;
 			}
 			else if (newDecision == Decision.INDETERMINATE
 					&& response.getDecision() != Decision.DENY) {
-				response = Response.indeterminate();
+				response = Response.INDETERMINATE;
 			}
 			else if (newDecision == Decision.PERMIT) {
 				permitCount += 1;
@@ -144,7 +144,7 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 		Response getCombinedResponse() {
 			if (response.getDecision() == Decision.PERMIT) {
 				if (permitCount > 1 && transformation) {
-					return Response.indeterminate();
+					return Response.INDETERMINATE;
 				}
 				else {
 					return new Response(Decision.PERMIT, response.getResource(),

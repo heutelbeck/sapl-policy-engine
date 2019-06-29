@@ -110,7 +110,7 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records");
 		''';
 
-		val expectedResponse = Response.notApplicable()
+		val expectedResponse = Response.NOT_APPLICABLE
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -142,7 +142,7 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.personal.firstname");
 		''';
 
-		val expectedResponse = Response.notApplicable()
+		val expectedResponse = Response.NOT_APPLICABLE
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -158,7 +158,7 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records[:-1]");
 		''';
 
-		val expectedResponse = Response.notApplicable()
+		val expectedResponse = Response.NOT_APPLICABLE
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -190,7 +190,7 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records[?(@.value>250)]");
 		''';
 
-		val expectedResponse = Response.notApplicable()
+		val expectedResponse = Response.NOT_APPLICABLE
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -254,7 +254,7 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records");
 		''';
 
-		val expectedResponse = Response.notApplicable()
+		val expectedResponse = Response.NOT_APPLICABLE
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -296,7 +296,7 @@ class SelectionFunctionLibraryTest {
 			permit selection.equal(resource._content, "@.dummy","@.personal.firstname")
 		''';
 
-		val expectedResponse = Response.notApplicable()
+		val expectedResponse = Response.NOT_APPLICABLE
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 

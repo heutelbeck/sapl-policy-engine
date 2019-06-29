@@ -28,7 +28,7 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
 
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
-			return Flux.just(Response.permit());
+			return Flux.just(Response.PERMIT);
 		}
 
 		final VariableContext variableCtx;
@@ -36,7 +36,7 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 			variableCtx = new VariableContext(request, systemVariables);
 		}
 		catch (PolicyEvaluationException e) {
-			return Flux.just(Response.indeterminate());
+			return Flux.just(Response.INDETERMINATE);
 		}
 		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 
@@ -68,7 +68,7 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 		}
 
 		if (matchingPolicies.isEmpty()) {
-			return Flux.just(Response.permit());
+			return Flux.just(Response.PERMIT);
 		}
 
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(
@@ -101,7 +101,7 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 			permitCount = 0;
 			transformation = false;
 			obligationAdvice = new ObligationAdviceCollector();
-			response = Response.permit();
+			response = Response.PERMIT;
 		}
 
 		void addSingleResponses(Object... responses) {
@@ -114,7 +114,7 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 		private void addSingleResponse(Response newResponse) {
 			if (newResponse.getDecision() == Decision.DENY) {
 				obligationAdvice.add(Decision.DENY, newResponse);
-				response = Response.deny();
+				response = Response.DENY;
 			}
 			else if (newResponse.getDecision() == Decision.PERMIT
 					&& response.getDecision() != Decision.DENY) {
@@ -131,7 +131,7 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 		Response getCombinedResponse() {
 			if (response.getDecision() == Decision.PERMIT) {
 				if (permitCount > 1 && transformation) {
-					return Response.deny();
+					return Response.DENY;
 				}
 				else {
 					return new Response(Decision.PERMIT, response.getResource(),

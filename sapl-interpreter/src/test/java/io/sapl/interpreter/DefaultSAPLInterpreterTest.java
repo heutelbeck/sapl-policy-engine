@@ -35,6 +35,7 @@ import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.DocumentAnalysisResult;
 import io.sapl.api.interpreter.DocumentType;
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pip.AttributeException;
@@ -125,7 +126,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void permitAll() {
 		final String policyDefinition = "policy \"test\" permit";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("permit all did not evaluate to permit", expected, actual);
@@ -134,7 +135,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void denyAll() {
 		final String policyDefinition = "policy \"test\" deny";
-		final Response expected = Response.deny();
+		final Response expected = Response.DENY;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("deny all did not evaluate to deny", expected, actual);
@@ -143,7 +144,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void permitFalse() {
 		final String policyDefinition = "policy \"test\" permit false";
-		final Response expected = Response.notApplicable();
+		final Response expected = Response.NOT_APPLICABLE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("false in target did not lead to not_applicable result", expected,
@@ -153,7 +154,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void permitParseError() {
 		final String policyDefinition = "--- policy \"test\" permit ---";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("parse error should lead to indeterminate", expected, actual);
@@ -162,7 +163,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void targetNotBoolean() {
 		final String policyDefinition = "policy \"test\" permit 20";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("target expression type mismatch not detected", expected, actual);
@@ -177,7 +178,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void processParsedEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit resource.emptyArray == []";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("a parsed empty array cannot be processed", expected, actual);
@@ -186,7 +187,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void processParsedEmptyObject() {
 		final String policyDefinition = "policy \"test\" permit resource.emptyObject == {}";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("a parsed empty object cannot be processed", expected, actual);
@@ -195,7 +196,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void evaluateWorkingBodyTrue() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where true;";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("evaluateRule behaves unexpectedly", expected, actual);
@@ -204,7 +205,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void evaluateWorkingBodyFalse() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where false;";
-		final Response expected = Response.notApplicable();
+		final Response expected = Response.NOT_APPLICABLE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("evaluateRule behaves unexpectedly", expected, actual);
@@ -213,7 +214,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void evaluateWorkingBodyError() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where 4 && true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("evaluateRule behaves unexpectedly", expected, actual);
@@ -222,7 +223,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void echoAttributeFinder() {
 		final String policyDefinition = "policy \"test\" permit where var variable = [1,2,3]; variable.<sapl.pip.test.echo> == variable;";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("external attribute finder not evaluated as expected", expected,
@@ -232,7 +233,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void attributeFinderInTarget() {
 		final String policyDefinition = "policy \"test\" permit \"test\".<sapl.pip.test.echo> == \"test\"";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		// StepVerifier.create(INTERPRETER.evaluate(requestObject, policyDefinition,
 		// attributeCtx, functionCtx, SYSTEM_VARIABLES))
 		// .expectNext(expected)
@@ -245,7 +246,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void bodyStatementNotBoolean() {
 		final String policyDefinition = "policy \"test\" permit where null;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("non boolean statement should lead to an error", expected, actual);
@@ -254,7 +255,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void variableRedefinition() {
 		final String policyDefinition = "policy \"test\" permit where var test = null; var test = 2; test == 2;";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("redefinition of value was not allowed", expected, actual);
@@ -263,7 +264,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void unboundVariable() {
 		final String policyDefinition = "policy \"test\" permit where variable;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("access to unbound variable should lead to an error", expected,
@@ -273,7 +274,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void functionCall() {
 		final String policyDefinition = "policy \"test\" permit where simple.append(\"a\",\"b\") == \"ab\";";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("function call not evaluated as expected", expected, actual);
@@ -282,7 +283,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void functionCallImport() {
 		final String policyDefinition = "import simple.append policy \"test\" permit where append(\"a\",\"b\") == \"ab\";";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("function call with import not evaluated as expected", expected,
@@ -292,7 +293,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void functionCallError() {
 		final String policyDefinition = "policy \"test\" permit where append(null) == \"ab\";";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("function call error should lead to indeterminate", expected,
@@ -302,7 +303,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void keyStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where undefined.key == undefined;";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("key step on undefined did not evaluate to undefined", expected,
@@ -312,7 +313,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveKeyStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where undefined..key == undefined;";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("recursive key step on undefined did not evaluate to undefined",
@@ -322,7 +323,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void keyStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where \"foo\".key == undefined;";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("key step on string did not evaluate to undefined", expected,
@@ -332,7 +333,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveKeyStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where \"foo\"..key == undefined;";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("recursive key step on string did not evaluate to undefined",
@@ -342,7 +343,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void keyStepWithUnknownKey() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": 1}.key == undefined;";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("key step with unknown key did not evaluate to undefined", expected,
@@ -352,7 +353,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveKeyStepWithUnknownKey() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": 1}..key == [];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -363,7 +364,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void keyStepWithKnownKey() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": 1}.key == 1;";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("key step with known key did not evaluate to the value", expected,
@@ -373,7 +374,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveKeyStepWithKnownKey() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": 1}..key == [1];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -384,7 +385,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void keyStepWithKnownKeyInChildObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}.key == undefined;";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -395,7 +396,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveKeyStepWithKnownKeyInChildObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}..key == [1];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -406,7 +407,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void keyStepWithKnownKeyInParentAndChildObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": 1}}.key == {\"key\": 1};";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -417,7 +418,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveKeyStepWithKnownKeyInParentAndChildObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": 1}}..key == [{\"key\": 1}, 1];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -428,7 +429,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveKeyStepComplex() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": [{\"key\": 1}, {\"key\": 2}]}}..key == [{\"key\": [{\"key\": 1}, {\"key\": 2}]}, [{\"key\": 1}, {\"key\": 2}], 1, 2];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("recursive key step on complex object did not evaluate as expected",
@@ -438,7 +439,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void indexStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = undefined[0]; true == true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("index step on undefined did not throw an exception", expected,
@@ -448,7 +449,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveIndexStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = undefined..[0]; true == true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("recursive index step on undefined did not throw an exception",
@@ -458,7 +459,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void indexStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where var error = \"foo\"[0]; true == true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("index step on string did not throw an exception", expected, actual);
@@ -467,7 +468,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveIndexStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where var error = \"foo\"..[0]; true == true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("recursive index step on string did not throw an exception",
@@ -477,7 +478,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void indexStepOnArrayWithUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = [undefined][0]; true == true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("index step on array with undefined did not throw an exception",
@@ -487,7 +488,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveIndexStepOnArrayWithUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = [undefined]..[0]; true == true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -498,7 +499,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void indexStepOnArrayWithIndexOutOfBounds() {
 		final String policyDefinition = "policy \"test\" permit where var error = [0,1][2]; true == true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -509,7 +510,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveIndexStepOnArrayWithIndexOutOfBounds() {
 		final String policyDefinition = "policy \"test\" permit where [0,1]..[2] == [];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -520,7 +521,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void indexStepOnArrayWithValidIndex() {
 		final String policyDefinition = "policy \"test\" permit where [0,1][1] == 1;";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -531,7 +532,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveIndexStepOnArrayWithValidIndex() {
 		final String policyDefinition = "policy \"test\" permit where [0,1]..[1] == [1];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -542,7 +543,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveIndexStepOnArrayWithChildArray1() {
 		final String policyDefinition = "policy \"test\" permit where [[0,1], 2]..[1] == [2, 1];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -553,7 +554,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveIndexStepOnArrayWithChildArray2() {
 		final String policyDefinition = "policy \"test\" permit where [0, [0,1]]..[1] == [[0,1], 1];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -564,7 +565,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveIndexStepOnArrayWithChildArray3() {
 		final String policyDefinition = "policy \"test\" permit where [0, [0, 1, 2]]..[2] == [2];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -575,7 +576,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveIndexStepComplex() {
 		final String policyDefinition = "policy \"test\" permit where [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2]]..[2] == [2, 5];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("recursive index step on complex array did not evaluate as expected",
@@ -585,7 +586,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void wildcardStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = undefined.*; true == true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("wildcard step on undefined did not throw an exception", expected,
@@ -595,7 +596,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveWildcardStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = undefined..*; true == true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("recursive wildcard step on undefined did not throw an exception",
@@ -605,7 +606,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void wildcardStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where var error = \"foo\".*; true == true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("wildcard step on string did not throw an exception", expected,
@@ -615,7 +616,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveWildcardStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where var error = \"foo\"..*; true == true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("recursive wildcard step on string did not throw an exception",
@@ -625,7 +626,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void wildcardStepOnEmptyObject() {
 		final String policyDefinition = "policy \"test\" permit where {}.* == [];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("wildcard step on empty object did not evaluate to the empty array",
@@ -635,7 +636,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveWildcardStepOnEmptyObject() {
 		final String policyDefinition = "policy \"test\" permit where {}..* == [];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -646,7 +647,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void wildcardStepOnEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit where [].* == [];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("wildcard step on empty array did not evaluate to the empty array",
@@ -656,7 +657,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveWildcardStepOnEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit where []..* == [];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -667,7 +668,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void wildcardStepOnSimpleObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": 1, \"attr\": 2}.* == [1, 2];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("wildcard step on simple object did not evaluate to array of values",
@@ -677,7 +678,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveWildcardStepOnSimpleObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": 1, \"attr\": 2}..* == [1, 2];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -688,7 +689,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void wildcardStepOnSimpleArray() {
 		final String policyDefinition = "policy \"test\" permit where [1, 2].* == [1, 2];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("wildcard step on simple array did not evaluate to same array",
@@ -698,7 +699,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveWildcardStepOnSimpleArray() {
 		final String policyDefinition = "policy \"test\" permit where [1, 2]..* == [1, 2];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -709,7 +710,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void wildcardStepOnHierarchicalObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}.* == [{\"key\": 1}];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -720,7 +721,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveWildcardStepOnHierarchicalObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}..* == [{\"key\": 1}, 1];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -731,7 +732,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void wildcardStepOnHierarchicalArray() {
 		final String policyDefinition = "policy \"test\" permit where [0, [1, 2]].* == [0, [1, 2]];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("wildcard step on hierarchical array did not evaluate to same array",
@@ -741,7 +742,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveWildcardStepOnHierarchicalArray() {
 		final String policyDefinition = "policy \"test\" permit where [0, [1, 2]]..* == [0, [1, 2], 1, 2];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -752,7 +753,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void recursiveWildcardStepComplex() {
 		final String policyDefinition = "policy \"test\" permit where [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2], 6]..* == [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2], {\"text\": 1, \"arr\": [3, 4, 5]}, 1, [3, 4, 5], 3, 4, 5, 1, 2, 6];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("complex recursive wildcard step did not evaluate as expected",
@@ -762,7 +763,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void conditionStepOnEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit where [][?(@ == undefined)] == [];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("condition step on empty array did not evaluate to empty array",
@@ -772,7 +773,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void conditionStepOnEmptyObject() {
 		final String policyDefinition = "policy \"test\" permit where {}[?(@ == undefined)] == [];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("condition step on empty object did not evaluate to empty array",
@@ -782,7 +783,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void functionCallOnObjectNodeWithRelativeArguments() {
 		final String policyDefinition = "import simple.append policy \"test\" permit where {\"name\": \"Ben\", \"origin\": \"Berlin\"} |- {@.name : append(\" from \", @.origin), @.origin : remove} == {\"name\": \"Ben from Berlin\"};";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -793,7 +794,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void functionCallOnEachArrayItemWithRelativeArguments() {
 		final String policyDefinition = "import simple.append policy \"test\" permit where [{\"name\": \"Ben\", \"origin\": \"Berlin\"}, {\"name\": \"Zoe\", \"origin\": \"Zurich\"}] |- {each @.name : append(\" from \", @.origin), each @.origin : remove} == [{\"name\": \"Ben from Berlin\"}, {\"name\": \"Zoe from Zurich\"}];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals(
@@ -804,8 +805,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void filterExtended() throws IOException {
 		final String policyDefinition = "policy \"test\" permit transform [\"foo\", \"bars\"] |- {each @.<sapl.pip.test.echo> : simple.length}";
-		final Response expected = Response.permit();
-		expected.setResource(Optional.of(MAPPER.readTree("[3, 4]")));
+		final Response expected = new Response(Decision.PERMIT, Optional.of(MAPPER.readTree("[3, 4]")), Optional.empty(), Optional.empty());
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("permit all did not evaluate to permit", expected, actual);
@@ -814,7 +814,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void subtemplateOnEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit where [] :: { \"name\": \"foo\" } == [];";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("subtemplate on empty array did not evaluate to empty array",
@@ -834,7 +834,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void transformationError() {
 		final String policyDefinition = "policy \"test\" permit transform null * true";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("error in transformation should evaluate to indeterminate", expected,
@@ -859,7 +859,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void obligationError() {
 		final String policyDefinition = "policy \"test\" permit obligation \"a\" > 5";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("error in obligation evaluation should evaluate to indeterminate",
@@ -884,7 +884,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void adviceError() {
 		final String policyDefinition = "policy \"test\" permit advice \"a\" > 5";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("error in advice evaluation should evaluate to indeterminate",
@@ -894,7 +894,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void importWildcard() {
 		final String policyDefinition = "import simple.* policy \"test\" permit where var a = append(\"a\",\"b\");";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("wildcard import not working", expected, actual);
@@ -903,7 +903,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void importAttributeFinder() {
 		final String policyDefinition = "import sapl.pip.test.echo policy \"test\" permit where \"echo\" == \"echo\".<echo>;";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("attribute finder import not working", expected, actual);
@@ -912,7 +912,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void importLibrary() {
 		final String policyDefinition = "import simple as simple_lib policy \"test\" permit where var a = simple_lib.append(\"a\",\"b\");";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("library import with alias not working", expected, actual);
@@ -921,7 +921,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void importMultiple() {
 		final String policyDefinition = "import simple.length import simple.append policy \"test\" permit where var a = append(\"a\",\"b\");";
-		final Response expected = Response.permit();
+		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("multiple imports not working", expected, actual);
@@ -930,7 +930,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void importNonExistingFunction() {
 		final String policyDefinition = "import simple.non_existing policy \"test\" permit where true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("importing non existing function should cause an error", expected,
@@ -940,7 +940,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void importDuplicateFunction() {
 		final String policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("importing duplicate short name should cause an error", expected,
@@ -950,7 +950,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void importDuplicateFunctionMatchingPolicy() {
 		final String policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("importing duplicate short name should cause an error", expected,
@@ -960,7 +960,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void importDuplicateWildcard() {
 		final String policyDefinition = "import simple.append import simple.* policy \"test\" permit where true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("importing duplicate short name should cause an error", expected,
@@ -970,7 +970,7 @@ public class DefaultSAPLInterpreterTest {
 	@Test
 	public void importDuplicateAlias() {
 		final String policyDefinition = "import simple as test import simple as test policy \"test\" permit where true;";
-		final Response expected = Response.indeterminate();
+		final Response expected = Response.INDETERMINATE;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("importing duplicate aliased name should cause an error", expected,

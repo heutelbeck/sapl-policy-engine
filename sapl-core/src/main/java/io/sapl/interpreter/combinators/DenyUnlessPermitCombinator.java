@@ -31,7 +31,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 		LOGGER.trace("|-- Combining matching documents");
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
 			LOGGER.trace("| |-- No matches. Default to DENY");
-			return Flux.just(Response.deny());
+			return Flux.just(Response.DENY);
 		}
 
 		final VariableContext variableCtx;
@@ -39,7 +39,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 			variableCtx = new VariableContext(request, systemVariables);
 		}
 		catch (PolicyEvaluationException e) {
-			return Flux.just(Response.indeterminate());
+			return Flux.just(Response.INDETERMINATE);
 		}
 		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 
@@ -77,7 +77,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 		}
 
 		if (matchingPolicies.isEmpty()) {
-			return Flux.just(Response.deny());
+			return Flux.just(Response.DENY);
 		}
 
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(
@@ -110,7 +110,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 			permitCount = 0;
 			transformation = false;
 			obligationAdvice = new ObligationAdviceCollector();
-			response = Response.deny();
+			response = Response.DENY;
 		}
 
 		void addSingleResponses(Object... responses) {
@@ -141,7 +141,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 					// Multiple applicable permit policies with at least one
 					// transformation not
 					// allowed.
-					return Response.deny();
+					return Response.DENY;
 				}
 
 				return new Response(Decision.PERMIT, response.getResource(),

@@ -17,7 +17,7 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
 
     protected static final String CANNOT_ASSIGN_UNDEFINED_TO_A_VAL = "Cannot assign undefined to a val.";
 
-    protected static final Response INDETERMINATE = Response.indeterminate();
+    protected static final Response INDETERMINATE = Response.INDETERMINATE;
 
     private static final String CONDITION_NOT_BOOLEAN = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
 

@@ -103,7 +103,7 @@ class SampleXACMLTest {
 			}
 		''', Request)
 
-		val expectedResponse = Response.notApplicable()
+		val expectedResponse = Response.NOT_APPLICABLE
 
 		assertThat("XACML example one not working as expected",
 			INTERPRETER.evaluate(request_object, policyExampleOne(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
@@ -154,7 +154,7 @@ class SampleXACMLTest {
 	
 	@Test
 	def void exampleTwoRule1() throws PolicyEvaluationException {
-		val expectedResponse = Response.notApplicable()
+		val expectedResponse = Response.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 1 not working as expected",
 			INTERPRETER.evaluate(request_example_two, policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
@@ -218,7 +218,7 @@ class SampleXACMLTest {
 	
 	@Test
 	def void exampleTwoRule2() throws PolicyEvaluationException {
-		val expectedResponse = Response.notApplicable()
+		val expectedResponse = Response.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 2 not working as expected",
 			INTERPRETER.evaluate(request_example_two, policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
@@ -285,7 +285,7 @@ class SampleXACMLTest {
 	
 	@Test
 	def void exampleTwoRule3() throws PolicyEvaluationException {
-		val expectedResponse = Response.notApplicable()
+		val expectedResponse = Response.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 3 not working as expected",
 			INTERPRETER.evaluate(request_example_two, policyExampleTwoRule3(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
@@ -363,7 +363,7 @@ class SampleXACMLTest {
 	@Test
 	def void exampleTwoRule4() throws PolicyEvaluationException {
 		val request = request_example_two
-		val expectedResponse = Response.notApplicable()
+		val expectedResponse = Response.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 4 not working as expected",
 			INTERPRETER.evaluate(request, policyExampleTwoRule4(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
@@ -402,7 +402,7 @@ class SampleXACMLTest {
 			}
 		''', Request)
 		
-		val expectedResponse = Response.deny()
+		val expectedResponse = Response.DENY
 		
 		assertThat("XACML example two rule 4 not working as expected",
 			INTERPRETER.evaluate(request, policyExampleTwoRule4(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),

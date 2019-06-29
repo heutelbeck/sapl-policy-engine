@@ -25,7 +25,7 @@ public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyC
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
 
 		if (errorsInTarget || matchingSaplDocuments.size() > 1) {
-			return Flux.just(Response.indeterminate());
+			return Flux.just(Response.INDETERMINATE);
 		}
 		else if (matchingSaplDocuments.size() == 1) {
 			final VariableContext variableCtx;
@@ -33,7 +33,7 @@ public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyC
 				variableCtx = new VariableContext(request, systemVariables);
 			}
 			catch (PolicyEvaluationException e) {
-				return Flux.just(Response.indeterminate());
+				return Flux.just(Response.INDETERMINATE);
 			}
 			final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 
@@ -41,7 +41,7 @@ public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyC
 			return matchingDocument.evaluate(evaluationCtx);
 		}
 		else {
-			return Flux.just(Response.notApplicable());
+			return Flux.just(Response.NOT_APPLICABLE);
 		}
 	}
 
@@ -52,18 +52,18 @@ public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyC
 			try {
 				if (policy.matches(ctx)) {
 					if (matchingPolicy != null) {
-						return Flux.just(Response.indeterminate());
+						return Flux.just(Response.INDETERMINATE);
 					}
 					matchingPolicy = policy;
 				}
 			}
 			catch (PolicyEvaluationException e) {
-				return Flux.just(Response.indeterminate());
+				return Flux.just(Response.INDETERMINATE);
 			}
 		}
 
 		if (matchingPolicy == null) {
-			return Flux.just(Response.notApplicable());
+			return Flux.just(Response.NOT_APPLICABLE);
 		}
 
 		return matchingPolicy.evaluate(ctx);

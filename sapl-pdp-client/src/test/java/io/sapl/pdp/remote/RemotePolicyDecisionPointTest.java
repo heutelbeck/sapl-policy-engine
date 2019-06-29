@@ -45,7 +45,7 @@ public class RemotePolicyDecisionPointTest {
 		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port,
 				clientKey, clientSecret);
 		final Flux<Response> decideFlux = pdp.decide(simpleRequest);
-		StepVerifier.create(decideFlux).expectNext(Response.permit()).thenCancel()
+		StepVerifier.create(decideFlux).expectNext(Response.PERMIT).thenCancel()
 				.verify();
 	}
 
@@ -66,10 +66,10 @@ public class RemotePolicyDecisionPointTest {
 		final Flux<IdentifiableResponse> decideFlux = pdp.decide(multiRequest);
 		StepVerifier.create(decideFlux).expectNextMatches(response -> {
 			if (response.getRequestId().equals("requestId_1")) {
-				return response.getResponse().equals(Response.permit());
+				return response.getResponse().equals(Response.PERMIT);
 			}
 			else if (response.getRequestId().equals("requestId_2")) {
-				return response.getResponse().equals(Response.deny());
+				return response.getResponse().equals(Response.DENY);
 			}
 			else {
 				throw new IllegalStateException(
@@ -77,10 +77,10 @@ public class RemotePolicyDecisionPointTest {
 			}
 		}).expectNextMatches(response -> {
 			if (response.getRequestId().equals("requestId_1")) {
-				return response.getResponse().equals(Response.permit());
+				return response.getResponse().equals(Response.PERMIT);
 			}
 			else if (response.getRequestId().equals("requestId_2")) {
-				return response.getResponse().equals(Response.deny());
+				return response.getResponse().equals(Response.DENY);
 			}
 			else {
 				throw new IllegalStateException(

@@ -25,7 +25,7 @@ public class SAPLImplCustom extends SAPLImpl {
     private static final String WILDCARD_IMPORT_EXISTS = "Wildcard import of '%s' not possible as an import for name '%s' already exists.";
     private static final String NO_TARGET_MATCH = "Target not matching.";
 
-    private static final Response INDETERMINATE = Response.indeterminate();
+    private static final Response INDETERMINATE = Response.INDETERMINATE;
 
     /**
      * Checks whether the SAPL document matches a Request by evaluating the
@@ -83,7 +83,7 @@ public class SAPLImplCustom extends SAPLImpl {
             else {
                 LOGGER.trace("| | |-- NOT_APPLICABLE. Cause: " + NO_TARGET_MATCH);
                 LOGGER.trace("| |");
-                return Flux.just(Response.notApplicable());
+                return Flux.just(Response.NOT_APPLICABLE);
             }
         }
         catch (PolicyEvaluationException e) {

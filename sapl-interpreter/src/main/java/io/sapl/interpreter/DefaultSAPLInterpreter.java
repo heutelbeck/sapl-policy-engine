@@ -48,7 +48,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
-	private static final Response INDETERMINATE = Response.indeterminate();
+	private static final Response INDETERMINATE = Response.INDETERMINATE;
 
 	private static final String DUMMY_RESOURCE_URI = "policy:/apolicy.sapl";
 

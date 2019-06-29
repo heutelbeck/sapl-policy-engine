@@ -19,9 +19,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.junit.Before;
+import org.junit.Test;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Request;
@@ -31,8 +35,6 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import org.junit.Before;
-import org.junit.Test;
 
 public class DefaultSAPLInterpreterPolicySetTest {
 
@@ -58,7 +60,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	@Test
 	public void setPermit() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp\" permit";
-		Response expected = Response.permit();
+		Response expected = Response.PERMIT;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst();
@@ -68,7 +70,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	@Test
 	public void setDeny() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp\" deny";
-		Response expected = Response.deny();
+		Response expected = Response.DENY;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst();
@@ -79,7 +81,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void setNotApplicable() {
 		String policySet = "set \"tests\" deny-overrides " + "for true == false "
 				+ "policy \"testp\" deny";
-		Response expected = Response.notApplicable();
+		Response expected = Response.NOT_APPLICABLE;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst();
@@ -91,7 +93,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void noApplicablePolicies() {
 		String policySet = "set \"tests\" deny-overrides " + "for true "
 				+ "policy \"testp\" deny true == false";
-		Response expected = Response.notApplicable();
+		Response expected = Response.NOT_APPLICABLE;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst();
@@ -103,7 +105,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void setIndeterminate() {
 		String policySet = "set \"tests\" deny-overrides" + "for \"a\" > 4 "
 				+ "policy \"testp\" permit";
-		Response expected = Response.indeterminate();
+		Response expected = Response.INDETERMINATE;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst();
@@ -115,7 +117,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void denyOverridesPermitAndDeny() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
 				+ "policy \"testp2\" deny";
-		Response expected = Response.deny();
+		Response expected = Response.DENY;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst();
@@ -127,7 +129,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void denyOverridesPermitAndNotApplicableAndDeny() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
 				+ "policy \"testp2\" permit true == false " + "policy \"testp3\" deny";
-		Response expected = Response.deny();
+		Response expected = Response.DENY;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst();
@@ -139,7 +141,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void denyOverridesPermitAndIntederminateAndDeny() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
 				+ "policy \"testp2\" permit \"a\" < 5 " + "policy \"testp3\" deny";
-		Response expected = Response.deny();
+		Response expected = Response.DENY;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst();
@@ -165,7 +167,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 		String policySet = "import filter.replace " + "import filter.replace "
 				+ "set \"tests\" deny-overrides "
 				+ "policy \"testp1\" permit where true;";
-		Response expected = Response.indeterminate();
+		Response expected = Response.INDETERMINATE;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst();
@@ -189,7 +191,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void variablesOnSetLevelError() {
 		String policySet = "set \"tests\" deny-overrides " + "var var1 = true / null; "
 				+ "policy \"testp1\" permit";
-		Response expected = Response.indeterminate();
+		Response expected = Response.INDETERMINATE;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst();
@@ -215,7 +217,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void subjectAsVariable() {
 		String policySet = "set \"test\" deny-overrides " + "var subject = null;  "
 				+ "policy \"test\" permit";
-		Response expected = Response.indeterminate();
+		Response expected = Response.INDETERMINATE;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst();

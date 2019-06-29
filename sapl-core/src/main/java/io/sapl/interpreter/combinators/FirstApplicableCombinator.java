@@ -25,12 +25,12 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 				}
 			}
 			catch (PolicyEvaluationException e) {
-				return Flux.just(Response.indeterminate());
+				return Flux.just(Response.INDETERMINATE);
 			}
 		}
 
 		if (matchingPolicies.isEmpty()) {
-			return Flux.just(Response.notApplicable());
+			return Flux.just(Response.NOT_APPLICABLE);
 		}
 
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(
@@ -45,7 +45,7 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 					return resp;
 				}
 			}
-			return Response.notApplicable();
+			return Response.NOT_APPLICABLE;
 		}).distinctUntilChanged();
 	}
 
