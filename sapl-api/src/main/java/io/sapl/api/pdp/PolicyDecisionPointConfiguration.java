@@ -1,7 +1,7 @@
 package io.sapl.api.pdp;
 
-import java.io.Serializable;
 import java.util.HashMap;
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -12,12 +12,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PolicyDecisionPointConfiguration implements Serializable {
-
-	private static final long serialVersionUID = 1L;
+public class PolicyDecisionPointConfiguration {
 
 	private PolicyDocumentCombiningAlgorithm algorithm = PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT;
 
-	private HashMap<String, JsonNode> variables = new HashMap<>();
+	private Map<String, JsonNode> variables = new HashMap<>();
 
 }
