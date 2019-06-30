@@ -5,7 +5,7 @@ services:
 # setup environment for java
 language: java
 jdk:
-  - oraclejdk11
+  - openjdk12
 # skip "mvn install -skipTexts=true" before building
 install: true
 env:
