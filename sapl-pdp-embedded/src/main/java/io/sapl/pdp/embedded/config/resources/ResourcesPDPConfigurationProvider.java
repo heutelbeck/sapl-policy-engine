@@ -16,11 +16,9 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.api.interpreter.SAPLInterpreter;
-import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.api.pdp.PDPConfigurationException;
+import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
+import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -34,8 +32,6 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-
-	private final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
 	private PolicyDecisionPointConfiguration config;
 
@@ -100,7 +96,7 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 	public Flux<DocumentsCombinator> getDocumentsCombinator() {
 		return Flux.just(config.getAlgorithm()).map(algorithm -> {
 			LOGGER.trace("|-- Current PDP config: combining algorithm = {}", algorithm);
-			return convert(algorithm, interpreter);
+			return convert(algorithm);
 		});
 	}
 

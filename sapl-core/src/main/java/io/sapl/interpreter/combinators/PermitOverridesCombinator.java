@@ -6,25 +6,21 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.combinators.ObligationAdviceCollector.Type;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.interpreter.variables.VariableContext;
 import reactor.core.publisher.Flux;
 
-public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombinator {
-
-	private SAPLInterpreter interpreter;
-
-	public DenyOverridesCombinator(SAPLInterpreter interpreter) {
-		this.interpreter = interpreter;
-	}
+public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCombinator {
 
 	@Override
 	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
@@ -32,15 +28,23 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
 
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
-			return errorsInTarget ? Flux.just(Response.indeterminate())
-					: Flux.just(Response.notApplicable());
+			return errorsInTarget ? Flux.just(Response.INDETERMINATE)
+					: Flux.just(Response.NOT_APPLICABLE);
 		}
+
+		final VariableContext variableCtx;
+		try {
+			variableCtx = new VariableContext(request, systemVariables);
+		}
+		catch (PolicyEvaluationException e) {
+			return Flux.just(Response.INDETERMINATE);
+		}
+		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(
 				matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
-			responseFluxes.add(interpreter.evaluate(request, document, attributeCtx,
-					functionCtx, systemVariables));
+			responseFluxes.add(document.evaluate(evaluationCtx));
 		}
 
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(
@@ -52,17 +56,12 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 	}
 
 	@Override
-	public Flux<Response> combinePolicies(List<Policy> policies, Request request,
-			AttributeContext attributeCtx, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables, Map<String, JsonNode> variables,
-			Map<String, String> imports) {
-
+	public Flux<Response> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		boolean errorsInTarget = false;
 		final List<Policy> matchingPolicies = new ArrayList<>();
 		for (Policy policy : policies) {
 			try {
-				if (interpreter.matches(request, policy, functionCtx, systemVariables,
-						variables, imports)) {
+				if (policy.matches(ctx)) {
 					matchingPolicies.add(policy);
 				}
 			}
@@ -72,15 +71,14 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 		}
 
 		if (matchingPolicies.isEmpty()) {
-			return errorsInTarget ? Flux.just(Response.indeterminate())
-					: Flux.just(Response.notApplicable());
+			return errorsInTarget ? Flux.just(Response.INDETERMINATE)
+					: Flux.just(Response.NOT_APPLICABLE);
 		}
 
 		final List<Flux<Response>> responseFluxes = new ArrayList<>(
 				matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
-			responseFluxes.add(interpreter.evaluateRules(request, policy, attributeCtx,
-					functionCtx, systemVariables, variables, imports));
+			responseFluxes.add(policy.evaluate(ctx));
 		}
 		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(
 				errorsInTarget);
@@ -111,8 +109,8 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 			permitCount = 0;
 			transformation = false;
 			obligationAdvice = new ObligationAdviceCollector();
-			response = errorsInTarget ? Response.indeterminate()
-					: Response.notApplicable();
+			response = errorsInTarget ? Response.INDETERMINATE
+					: Response.NOT_APPLICABLE;
 		}
 
 		void addSingleResponses(Object... responses) {
@@ -124,38 +122,35 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 
 		private void addSingleResponse(Response newResponse) {
 			Decision newDecision = newResponse.getDecision();
-			if (newDecision == Decision.DENY) {
-				obligationAdvice.add(Decision.DENY, newResponse);
-				response = Response.deny();
-			}
-			else if (newDecision == Decision.INDETERMINATE
-					&& response.getDecision() != Decision.DENY) {
-				response = Response.indeterminate();
-			}
-			else if (newDecision == Decision.PERMIT) {
+			if (newDecision == Decision.PERMIT) {
 				permitCount += 1;
 				if (newResponse.getResource().isPresent()) {
 					transformation = true;
 				}
 
 				obligationAdvice.add(Decision.PERMIT, newResponse);
-				if (response.getDecision() != Decision.DENY
-						&& response.getDecision() != Decision.INDETERMINATE) {
-					response = newResponse;
-				}
+				response = newResponse;
+			}
+			else if (newDecision == Decision.INDETERMINATE
+					&& response.getDecision() != Decision.PERMIT) {
+				response = Response.INDETERMINATE;
+			}
+			else if (newDecision == Decision.DENY
+					&& response.getDecision() != Decision.INDETERMINATE
+					&& response.getDecision() != Decision.PERMIT) {
+				obligationAdvice.add(Decision.DENY, newResponse);
+				response = Response.DENY;
 			}
 		}
 
 		Response getCombinedResponse() {
 			if (response.getDecision() == Decision.PERMIT) {
-				if (permitCount > 1 && transformation) {
-					return Response.indeterminate();
-				}
-				else {
-					return new Response(Decision.PERMIT, response.getResource(),
-							obligationAdvice.get(Type.OBLIGATION, Decision.PERMIT),
-							obligationAdvice.get(Type.ADVICE, Decision.PERMIT));
-				}
+				if (permitCount > 1 && transformation)
+					return Response.INDETERMINATE;
+
+				return new Response(Decision.PERMIT, response.getResource(),
+						obligationAdvice.get(Type.OBLIGATION, Decision.PERMIT),
+						obligationAdvice.get(Type.ADVICE, Decision.PERMIT));
 			}
 			else if (response.getDecision() == Decision.DENY) {
 				return new Response(Decision.DENY, response.getResource(),

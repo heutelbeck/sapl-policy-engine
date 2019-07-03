@@ -1,7 +1,7 @@
 /**
  * Copyright © 2017 Dominic Heutelbeck (dheutelbeck@ftk.de)
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * Licensed under the Apache License, Version 2.0 (the "License"; you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -26,12 +26,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.functions.FunctionException;
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Request;
-import io.sapl.api.pip.AttributeException;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -41,236 +37,231 @@ import io.sapl.interpreter.pip.AttributeContext;
 public class PermitUnlessDenyTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections
-			.unmodifiableMap(new HashMap<>());
-
-	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final Request EMPTY_REQUEST = new Request(null, null, null, null);
+	private static final Request REQUEST_WITH_TRUE_RESOURCE =
+			new Request(null, null, JSON.booleanNode(true), null);
+	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
 	private AttributeContext attributeCtx;
-
 	private FunctionContext functionCtx;
 
 	@Before
-	public void init() throws FunctionException, AttributeException {
+	public void init() {
 		attributeCtx = new AnnotationAttributeContext();
 		functionCtx = new AnnotationFunctionContext();
 	}
 
 	@Test
-	public void permit() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" permit-unless-deny" + " policy \"testp\" permit");
+	public void permit() {
+		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" permit";
 
 		assertEquals("should return permit if the only policy evaluates to permit",
 				Decision.PERMIT,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void deny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" permit-unless-deny" + " policy \"testp\" deny");
+	public void deny() {
+		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny";
 
 		assertEquals("should return deny if the only policy evaluates to deny",
 				Decision.DENY,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void notApplicableTarget() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
-				+ " policy \"testp\" deny true == false");
+	public void notApplicableTarget() {
+		String policySet = "set \"tests\" permit-unless-deny"
+				+ " policy \"testp\" deny true == false";
 
 		assertEquals(
 				"should return permit if the only policy target evaluates to not applicable",
 				Decision.PERMIT,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void notApplicableCondition() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
-				+ " policy \"testp\" deny where true == false;");
+	public void notApplicableCondition() {
+		String policySet = "set \"tests\" permit-unless-deny"
+				+ " policy \"testp\" deny where true == false;";
 
 		assertEquals(
 				"should return permit if the only policy condition evaluates to not applicable",
 				Decision.PERMIT,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void indeterminateTarget() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse(
-				"set \"tests\" permit-unless-deny" + " policy \"testp\" deny \"a\" < 5");
+	public void indeterminateTarget() {
+		String policySet = 
+				"set \"tests\" permit-unless-deny" + " policy \"testp\" deny \"a\" < 5";
 
 		assertEquals("should return permit if the only target is indeterminate",
 				Decision.PERMIT,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void indeterminateCondition() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
-				+ " policy \"testp\" deny where \"a\" < 5;");
+	public void indeterminateCondition() {
+		String policySet = "set \"tests\" permit-unless-deny"
+				+ " policy \"testp\" deny where \"a\" < 5;";
 
 		assertEquals("should return deny if the only condition is indeterminate",
 				Decision.PERMIT,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void permitDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
-				+ " policy \"testp1\" permit" + " policy \"testp2\" deny");
+	public void permitDeny() {
+		String policySet = "set \"tests\" permit-unless-deny"
+				+ " policy \"testp1\" permit" + " policy \"testp2\" deny";
 
 		assertEquals("should return deny if any policy evaluates to deny", Decision.DENY,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void denyIndeterminate() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER
-				.parse("set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
-						+ " policy \"testp2\" permit where \"a\" > 5;");
+	public void denyIndeterminate() {
+		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
+						+ " policy \"testp2\" permit where \"a\" > 5;";
 
 		assertEquals(
 				"should return permit if policies evaluate to deny and indeterminate",
 				Decision.PERMIT,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void permitNotApplicableDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
+	public void permitNotApplicableDeny() {
+		String policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" permit" + " policy \"testp2\" permit true == false"
-				+ " policy \"testp3\" deny");
+				+ " policy \"testp3\" deny";
 
 		assertEquals("should return deny if any policy evaluates to permit",
 				Decision.DENY,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void permitNotApplicableIndeterminateDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse(
+	public void permitNotApplicableIndeterminateDeny() {
+		String policySet = 
 				"set \"tests\" permit-unless-deny" + " policy \"testp1\" deny \"a\" > 5"
 						+ " policy \"testp2\" permit true == false"
 						+ " policy \"testp3\" permit \"a\" > 5"
-						+ " policy \"testp4\" deny" + " policy \"testp5\" permit");
+						+ " policy \"testp4\" deny" + " policy \"testp5\" permit";
 
 		assertEquals("should return deny if any policy evaluates to deny", Decision.DENY,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void permitIndeterminateNotApplicable() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
+	public void permitIndeterminateNotApplicable() {
+		String policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" permit" + " policy \"testp2\" permit \"a\" < 5"
-				+ " policy \"testp3\" permit true == false");
+				+ " policy \"testp3\" permit true == false";
 
 		assertEquals(
 				"should return permit if only indeterminate, permit and not applicable present",
 				Decision.PERMIT,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void multiplePermitTransformationDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
+	public void multiplePermitTransformationDeny() {
+		String policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" permit" + " policy \"testp2\" permit transform true"
-				+ " policy \"testp3\" deny false");
+				+ " policy \"testp3\" deny false";
 
 		assertEquals(
 				"should return deny if final decision would be permit and there is a transformation incertainty",
 				Decision.DENY,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void singlePermitTransformation() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
-				+ " policy \"testp1\" permit transform true");
+	public void singlePermitTransformation() {
+		String policySet = "set \"tests\" permit-unless-deny"
+				+ " policy \"testp1\" permit transform true";
 
 		assertEquals("should return permit if there is no transformation incertainty",
 				Decision.PERMIT,
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void singlePermitTransformationResource() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
-				+ " policy \"testp\" permit transform true");
+	public void singlePermitTransformationResource() {
+		String policySet = "set \"tests\" permit-unless-deny"
+				+ " policy \"testp\" permit transform true";
 
 		assertEquals("should return resource if there is no transformation incertainty",
 				Optional.of(JSON.booleanNode(true)),
 				INTERPRETER
-						.evaluate(new Request(null, null, null, null), policySet,
-								attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getResource());
+						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getResource());
 	}
 
 	@Test
-	public void multiplePermitNoTransformation() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
-				+ " policy \"testp1\" permit" + " policy \"testp2\" permit");
+	public void multiplePermitNoTransformation() {
+		String policySet = "set \"tests\" permit-unless-deny"
+				+ " policy \"testp1\" permit" + " policy \"testp2\" permit";
 
 		assertEquals("should return permit if there is no transformation incertainty",
 				Decision.PERMIT,
 				INTERPRETER
-						.evaluate(
-								new Request(null, null,
-										JsonNodeFactory.instance.booleanNode(true), null),
-								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getDecision());
 	}
 
 	@Test
-	public void collectObligationDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
+	public void collectObligationDeny() {
+		String policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\""
 				+ " policy \"testp3\" permit obligation \"obligation3\" advice \"advice3\""
-				+ " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"");
+				+ " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
 
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
@@ -278,20 +269,18 @@ public class PermitUnlessDenyTest {
 
 		assertEquals("should collect all deny obligation", Optional.of(obligation),
 				INTERPRETER
-						.evaluate(
-								new Request(null, null,
-										JsonNodeFactory.instance.booleanNode(true), null),
-								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getObligations());
+						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getObligations());
 	}
 
 	@Test
-	public void collectAdviceDeny() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
+	public void collectAdviceDeny() {
+		String policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\""
 				+ " policy \"testp3\" permit obligation \"obligation3\" advice \"advice3\""
-				+ " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"");
+				+ " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
 
 		ArrayNode advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
@@ -299,20 +288,18 @@ public class PermitUnlessDenyTest {
 
 		assertEquals("should collect all deny advice", Optional.of(advice),
 				INTERPRETER
-						.evaluate(
-								new Request(null, null,
-										JsonNodeFactory.instance.booleanNode(true), null),
-								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getAdvices());
+						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getAdvices());
 	}
 
 	@Test
-	public void collectObligationPermit() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
+	public void collectObligationPermit() {
+		String policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\""
 				+ " policy \"testp3\" deny false obligation \"obligation3\" advice \"advice3\""
-				+ " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"");
+				+ " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"";
 
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
@@ -320,20 +307,18 @@ public class PermitUnlessDenyTest {
 
 		assertEquals("should collect all permit obligation", Optional.of(obligation),
 				INTERPRETER
-						.evaluate(
-								new Request(null, null,
-										JsonNodeFactory.instance.booleanNode(true), null),
-								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getObligations());
+						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getObligations());
 	}
 
 	@Test
-	public void collectAdvicePermit() throws PolicyEvaluationException {
-		SAPL policySet = INTERPRETER.parse("set \"tests\" permit-unless-deny"
+	public void collectAdvicePermit() {
+		String policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\""
 				+ " policy \"testp3\" deny false obligation \"obligation3\" advice \"advice3\""
-				+ " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"");
+				+ " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"";
 
 		ArrayNode advice = JSON.arrayNode();
 		advice.add(JSON.textNode("advice1"));
@@ -341,11 +326,9 @@ public class PermitUnlessDenyTest {
 
 		assertEquals("should collect all permit obligation", Optional.of(advice),
 				INTERPRETER
-						.evaluate(
-								new Request(null, null,
-										JsonNodeFactory.instance.booleanNode(true), null),
-								policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getAdvices());
+						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst()
+						.getAdvices());
 	}
 
 }

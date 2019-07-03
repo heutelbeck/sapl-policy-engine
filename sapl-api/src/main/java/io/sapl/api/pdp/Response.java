@@ -33,6 +33,19 @@ import lombok.ToString;
 @ToString
 public class Response {
 
+	public static final Response PERMIT = new Response(Decision.PERMIT,
+			Optional.empty(), Optional.empty(), Optional.empty());
+
+	public static final Response DENY = new Response(Decision.DENY,
+			Optional.empty(), Optional.empty(), Optional.empty());
+
+	public static final Response INDETERMINATE = new Response(Decision.INDETERMINATE,
+			Optional.empty(), Optional.empty(), Optional.empty());
+
+	public static final Response NOT_APPLICABLE = new Response(Decision.NOT_APPLICABLE,
+			Optional.empty(), Optional.empty(), Optional.empty());
+
+
 	Decision decision;
 
 	// Optional fields initialized as Optional.empty to allow comparing with JSON
@@ -47,26 +60,6 @@ public class Response {
 
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<ArrayNode> advices = Optional.empty();
-
-	public static Response permit() {
-		return new Response(Decision.PERMIT, Optional.empty(), Optional.empty(),
-				Optional.empty());
-	}
-
-	public static Response deny() {
-		return new Response(Decision.DENY, Optional.empty(), Optional.empty(),
-				Optional.empty());
-	}
-
-	public static Response indeterminate() {
-		return new Response(Decision.INDETERMINATE, Optional.empty(), Optional.empty(),
-				Optional.empty());
-	}
-
-	public static Response notApplicable() {
-		return new Response(Decision.NOT_APPLICABLE, Optional.empty(), Optional.empty(),
-				Optional.empty());
-	}
 
 	@Override
 	public boolean equals(Object o) {

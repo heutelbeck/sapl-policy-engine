@@ -4,7 +4,6 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.combinators.DenyOverridesCombinator;
 import io.sapl.interpreter.combinators.DenyUnlessPermitCombinator;
@@ -20,19 +19,18 @@ public interface PDPConfigurationProvider {
 
 	Flux<Map<String, JsonNode>> getVariables();
 
-	default DocumentsCombinator convert(PolicyDocumentCombiningAlgorithm algorithm,
-			SAPLInterpreter interpreter) {
+	default DocumentsCombinator convert(PolicyDocumentCombiningAlgorithm algorithm) {
 		switch (algorithm) {
 		case PERMIT_UNLESS_DENY:
-			return new PermitUnlessDenyCombinator(interpreter);
+			return new PermitUnlessDenyCombinator();
 		case DENY_UNLESS_PERMIT:
-			return new DenyUnlessPermitCombinator(interpreter);
+			return new DenyUnlessPermitCombinator();
 		case PERMIT_OVERRIDES:
-			return new PermitOverridesCombinator(interpreter);
+			return new PermitOverridesCombinator();
 		case DENY_OVERRIDES:
-			return new DenyOverridesCombinator(interpreter);
+			return new DenyOverridesCombinator();
 		case ONLY_ONE_APPLICABLE:
-			return new OnlyOneApplicableCombinator(interpreter);
+			return new OnlyOneApplicableCombinator();
 		default:
 			throw new IllegalArgumentException(
 					"Algorithm FIRST_APPLICABLE is not allowed for PDP level combination.");

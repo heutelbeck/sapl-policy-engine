@@ -48,4 +48,10 @@ public class EvaluationContext {
 		this.imports = new HashMap<>(imports);
 	}
 
+	public EvaluationContext(FunctionContext functionContext, VariableContext variableContext) {
+		functionCtx = functionContext;
+		variableCtx = variableContext;
+		imports = new HashMap<>();
+	}
+
 }

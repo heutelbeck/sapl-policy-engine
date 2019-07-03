@@ -1,0 +1,127 @@
+package io.sapl.grammar.sapl.impl;
+
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import org.eclipse.emf.common.util.EList;
+
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.Response;
+import io.sapl.grammar.sapl.Condition;
+import io.sapl.grammar.sapl.Statement;
+import io.sapl.grammar.sapl.ValueDefinition;
+import io.sapl.interpreter.EvaluationContext;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
+
+@Slf4j
+public class PolicyBodyImplCustom extends PolicyBodyImpl {
+
+    private static final String STATEMENT_NOT_BOOLEAN = "Evaluation error: Statement must evaluate to a boolean value, but was: '%s'.";
+    protected static final String CANNOT_ASSIGN_UNDEFINED_TO_A_VAL = "Cannot assign undefined to a val.";
+
+
+    /**
+     * Evaluates all statements of this policy body within the given evaluation context and
+     * returns a {@link Flux} of {@link Decision} objects.
+     *
+     * @param entitlement the entitlement of the enclosing policy.
+     * @param ctx the evaluation context in which the statements are evaluated.
+     *            It must contain
+     *            <ul>
+     *            <li>the attribute context</li>
+     *            <li>the function context</li>
+     *            <li>the variable context holding the four request variables 'subject',
+     *                'action', 'resource' and 'environment' combined with system variables
+     *                from the PDP configuration and other variables e.g. obtained from the
+     *                containing policy set</li>
+     *            <li>the import mapping for functions and attribute finders</li>
+     *            </ul>
+     * @return A {@link Flux} of {@link Response} objects.
+     */
+    @Override
+    public Flux<Decision> evaluate(Decision entitlement, EvaluationContext ctx) {
+        final EList<Statement> statements = getStatements();
+        if (statements != null && !statements.isEmpty()) {
+            final boolean initialResult = true;
+            final List<FluxProvider<Boolean>> fluxProviders = new ArrayList<>(
+                    statements.size());
+            for (Statement statement : statements) {
+                fluxProviders.add(() -> evaluateStatement(statement, ctx));
+            }
+            return cascadingSwitchMap(initialResult, fluxProviders, 0)
+                    .map(result -> result ? entitlement : Decision.NOT_APPLICABLE)
+                    .onErrorResume(error -> {
+                        final Throwable unwrapped = Exceptions.unwrap(error);
+                        LOGGER.error("Error in policy body evaluation: {}",
+                                unwrapped.getMessage());
+                        return Flux.just(Decision.INDETERMINATE);
+                    });
+        }
+        else {
+            return Flux.just(entitlement);
+        }
+    }
+
+    private Flux<Boolean> cascadingSwitchMap(boolean currentResult,
+                List<FluxProvider<Boolean>> fluxProviders, int idx) {
+        if (idx < fluxProviders.size() && currentResult) {
+            return fluxProviders.get(idx).getFlux().switchMap(
+                    result -> cascadingSwitchMap(result, fluxProviders, idx + 1));
+        }
+        return Flux.just(currentResult);
+    }
+
+    private Flux<Boolean> evaluateStatement(Statement statement, EvaluationContext evaluationCtx) {
+        if (statement instanceof ValueDefinition) {
+            return evaluateValueDefinition((ValueDefinition) statement, evaluationCtx);
+        }
+        else {
+            return evaluateCondition((Condition) statement, evaluationCtx);
+        }
+    }
+
+    private Flux<Boolean> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx) {
+        return valueDefinition.getEval().evaluate(evaluationCtx, true, Optional.empty())
+                .map(evaluatedValue -> {
+                    try {
+                        if (!evaluatedValue.isPresent()) {
+                            throw new PolicyEvaluationException(
+                                    CANNOT_ASSIGN_UNDEFINED_TO_A_VAL);
+                        }
+                        evaluationCtx.getVariableCtx().put(valueDefinition.getName(),
+                                evaluatedValue.get());
+                        return Boolean.TRUE;
+                    }
+                    catch (PolicyEvaluationException e) {
+                        LOGGER.error("Error in value definition evaluation: {}",
+                                e.getMessage());
+                        throw Exceptions.propagate(e);
+                    }
+                }).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+    }
+
+    private Flux<Boolean> evaluateCondition(Condition condition, EvaluationContext evaluationCtx) {
+        return condition.getExpression().evaluate(evaluationCtx, true, Optional.empty())
+                .map(statementResult -> {
+                    if (statementResult.isPresent()
+                            && statementResult.get().isBoolean()) {
+                        return statementResult.get().asBoolean();
+                    }
+                    else {
+                        throw Exceptions.propagate(new PolicyEvaluationException(
+                                String.format(STATEMENT_NOT_BOOLEAN, statementResult)));
+                    }
+                }).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+    }
+
+
+    @FunctionalInterface
+    interface FluxProvider<T> {
+        Flux<T> getFlux();
+    }
+}

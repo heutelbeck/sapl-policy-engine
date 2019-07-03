@@ -22,8 +22,6 @@ public class IdentifiableResponse {
 		response = null;
 	}
 
-	public static IdentifiableResponse indeterminate() {
-		return new IdentifiableResponse(null, Response.indeterminate());
-	}
+	public static IdentifiableResponse INDETERMINATE = new IdentifiableResponse(null, Response.INDETERMINATE);
 
 }

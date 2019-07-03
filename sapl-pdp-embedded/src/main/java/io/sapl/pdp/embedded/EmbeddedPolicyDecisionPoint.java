@@ -101,7 +101,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 			}
 			return Flux.merge(requestIdResponsePairFluxes);
 		}
-		return Flux.just(IdentifiableResponse.indeterminate());
+		return Flux.just(IdentifiableResponse.INDETERMINATE);
 	}
 
 	@Override

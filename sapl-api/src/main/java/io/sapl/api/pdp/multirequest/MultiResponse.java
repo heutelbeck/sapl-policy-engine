@@ -1,7 +1,7 @@
 package io.sapl.api.pdp.multirequest;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 import static java.util.Objects.requireNonNull;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,7 +23,7 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 
 	public static MultiResponse indeterminate() {
 		final MultiResponse multiResponse = new MultiResponse();
-		multiResponse.setResponseForRequestWithId("", Response.indeterminate());
+		multiResponse.setResponseForRequestWithId("", Response.INDETERMINATE);
 		return multiResponse;
 	}
 

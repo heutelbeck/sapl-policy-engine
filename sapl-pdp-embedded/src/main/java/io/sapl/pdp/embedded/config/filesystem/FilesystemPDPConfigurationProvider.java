@@ -18,12 +18,10 @@ import java.util.regex.Pattern;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
 import io.sapl.directorywatcher.DirectoryWatchEventFluxSinkAdapter;
 import io.sapl.directorywatcher.DirectoryWatcher;
 import io.sapl.directorywatcher.InitialWatchEvent;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
 import lombok.NonNull;
@@ -44,8 +42,6 @@ public class FilesystemPDPConfigurationProvider
 			.compile("pdp\\.json");
 
 	private final ObjectMapper mapper = new ObjectMapper();
-
-	private final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
 	private final ReentrantLock lock = new ReentrantLock();
 
@@ -152,7 +148,7 @@ public class FilesystemPDPConfigurationProvider
 				.distinctUntilChanged()
 				.map(algorithm -> {
 					LOGGER.trace("|-- Current PDP config: combining algorithm = {}", algorithm);
-					return convert(algorithm, interpreter);
+					return convert(algorithm);
 				});
 	}
 

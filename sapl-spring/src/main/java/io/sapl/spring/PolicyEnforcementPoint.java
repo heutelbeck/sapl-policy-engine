@@ -28,7 +28,7 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class PolicyEnforcementPoint implements Disposable {
 
-	private static final Response DENY = Response.deny();
+	private static final Response DENY = Response.DENY;
 
 	private final PolicyDecisionPoint pdp;
 

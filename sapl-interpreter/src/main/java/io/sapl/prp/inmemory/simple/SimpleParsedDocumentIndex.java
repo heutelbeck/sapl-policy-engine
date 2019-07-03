@@ -6,38 +6,48 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.variables.VariableContext;
 
 public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
-
-	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	Map<String, SAPL> publishedDocuments = new ConcurrentHashMap<>();
 
 	@Override
 	public PolicyRetrievalResult retrievePolicies(Request request,
 			FunctionContext functionCtx, Map<String, JsonNode> variables) {
-		boolean errorOccured = false;
-		List<SAPL> result = new ArrayList<>();
-		for (SAPL sapl : publishedDocuments.values()) {
-			try {
-				if (INTERPRETER.matches(request, sapl, functionCtx, variables)) {
-					result.add(sapl);
+
+		final List<SAPL> result = new ArrayList<>();
+		boolean errorOccurred = false;
+
+		EvaluationContext evaluationCtx = null;
+		try {
+			final VariableContext variableCtx = new VariableContext(request, variables);
+			evaluationCtx = new EvaluationContext(functionCtx, variableCtx);
+		}
+		catch (PolicyEvaluationException e) {
+			errorOccurred = true;
+		}
+		if (! errorOccurred) {
+			for (SAPL sapl : publishedDocuments.values()) {
+				try {
+					if (sapl.matches(evaluationCtx)) {
+						result.add(sapl);
+					}
+				}
+				catch (PolicyEvaluationException e) {
+					errorOccurred = true;
 				}
 			}
-			catch (PolicyEvaluationException e) {
-				errorOccured = true;
-			}
 		}
-		return new PolicyRetrievalResult(result, errorOccured);
-
+		return new PolicyRetrievalResult(result, errorOccurred);
 	}
 
 	@Override

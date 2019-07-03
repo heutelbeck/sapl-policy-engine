@@ -63,7 +63,7 @@ public class EmbeddedPolicyDecisionPointTest {
 
 		final Flux<IdentifiableResponse> flux = pdp.decide(multiRequest);
 		StepVerifier.create(flux).expectNextMatches(
-				response -> response.getRequestId() == null && response.getResponse().equals(Response.indeterminate()))
+				response -> response.getRequestId() == null && response.getResponse().equals(Response.INDETERMINATE))
 				.thenCancel().verify();
 	}
 
@@ -73,7 +73,7 @@ public class EmbeddedPolicyDecisionPointTest {
 
 		final Flux<IdentifiableResponse> flux = pdp.decide(multiRequest);
 		StepVerifier.create(flux).expectNextMatches(
-				response -> response.getRequestId().equals("req") && response.getResponse().equals(Response.permit()))
+				response -> response.getRequestId().equals("req") && response.getResponse().equals(Response.PERMIT))
 				.thenCancel().verify();
 	}
 
@@ -85,20 +85,20 @@ public class EmbeddedPolicyDecisionPointTest {
 		final Flux<IdentifiableResponse> flux = pdp.decide(multiRequest);
 		StepVerifier.create(flux).expectNextMatches(response -> {
 			if (response.getRequestId().equals("req1")) {
-				return response.getResponse().equals(Response.permit());
+				return response.getResponse().equals(Response.PERMIT);
 			}
 			else if (response.getRequestId().equals("req2")) {
-				return response.getResponse().equals(Response.deny());
+				return response.getResponse().equals(Response.DENY);
 			}
 			else {
 				throw new IllegalStateException("Invalid request id: " + response.getRequestId());
 			}
 		}).expectNextMatches(response -> {
 			if (response.getRequestId().equals("req1")) {
-				return response.getResponse().equals(Response.permit());
+				return response.getResponse().equals(Response.PERMIT);
 			}
 			else if (response.getRequestId().equals("req2")) {
-				return response.getResponse().equals(Response.deny());
+				return response.getResponse().equals(Response.DENY);
 			}
 			else {
 				throw new IllegalStateException("Invalid request id: " + response.getRequestId());
