@@ -59,7 +59,8 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	public Flux<Response> decide(Request request) {
 		final RequestSpecification saplRequest = getRequestSpecification(request);
 		return new WebClientRequestExecutor().executeReactiveRequest(saplRequest, POST)
-				.map(jsonNode -> mapper.convertValue(jsonNode, Response.class));
+				.map(jsonNode -> mapper.convertValue(jsonNode, Response.class))
+				.onErrorResume(error -> Flux.just(Response.INDETERMINATE));
 	}
 
 	@Override
@@ -67,8 +68,8 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		final RequestSpecification saplRequest = getRequestSpecification(multiRequest,
 				false);
 		return new WebClientRequestExecutor().executeReactiveRequest(saplRequest, POST)
-				.map(jsonNode -> mapper.convertValue(jsonNode,
-						IdentifiableResponse.class));
+				.map(jsonNode -> mapper.convertValue(jsonNode, IdentifiableResponse.class))
+				.onErrorResume(error -> Flux.just(IdentifiableResponse.INDETERMINATE));
 	}
 
 	@Override
@@ -76,7 +77,8 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		final RequestSpecification saplRequest = getRequestSpecification(multiRequest,
 				true);
 		return new WebClientRequestExecutor().executeReactiveRequest(saplRequest, POST)
-				.map(jsonNode -> mapper.convertValue(jsonNode, MultiResponse.class));
+				.map(jsonNode -> mapper.convertValue(jsonNode, MultiResponse.class))
+				.onErrorResume(error -> Flux.just(MultiResponse.indeterminate()));
 	}
 
 	private RequestSpecification getRequestSpecification(Request request) {

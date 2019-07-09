@@ -24,19 +24,19 @@ public class PDPEndpointController {
 
 	@PostMapping(value = "/decide", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
 	public Flux<Response> decide(@RequestBody Request request) {
-		return pdp.decide(request);
+		return pdp.decide(request).onErrorResume(error -> Flux.just(Response.INDETERMINATE));
 	}
 
 	@PostMapping(value = "/multi-decide",
 			produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
 	public Flux<IdentifiableResponse> decide(@RequestBody MultiRequest request) {
-		return pdp.decide(request);
+		return pdp.decide(request).onErrorResume(error -> Flux.just(IdentifiableResponse.INDETERMINATE));
 	}
 
 	@PostMapping(value = "/multi-decide-all",
 			produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
 	public Flux<MultiResponse> decideAll(@RequestBody MultiRequest request) {
-		return pdp.decideAll(request);
+		return pdp.decideAll(request).onErrorResume(error -> Flux.just(MultiResponse.indeterminate()));
 	}
 
 }
