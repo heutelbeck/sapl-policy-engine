@@ -15,6 +15,7 @@ package io.sapl.interpreter.selection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -45,6 +46,8 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	private static final String FILTER_EACH_NO_ARRAY = "Trying to filter each element of array, but got type %s.";
 
 	protected static final String UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT = "Undefined values cannot be added to results in JSON format.";
+
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	protected Optional<JsonNode> node;
 
@@ -118,19 +121,17 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 			return Flux.combineLatest(parameterFluxes, paramNodes -> {
 				for (int i = 0; i < arrayNode.size(); i++) {
 					final JsonNode childNode = arrayNode.get(i);
-					final ArrayNode argumentsArray = JsonNodeFactory.instance.arrayNode();
+					final ArrayNode argumentsArray = JSON.arrayNode();
 					argumentsArray.add(childNode);
 					for (Object paramNode : paramNodes) {
 						argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(
-								() -> Exceptions.propagate(new PolicyEvaluationException(
-										UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION))));
+								exception(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION)));
 					}
 					try {
 						final Optional<JsonNode> modifiedChildNode = ctx.getFunctionCtx()
 								.evaluate(fullyQualifiedName, argumentsArray);
 						arrayNode.set(i, modifiedChildNode.orElseThrow(
-								() -> Exceptions.propagate(new PolicyEvaluationException(
-										UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT))));
+								exception(UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT)));
 					}
 					catch (FunctionException e) {
 						throw Exceptions.propagate(new PolicyEvaluationException(
@@ -144,13 +145,12 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 			try {
 				for (int i = 0; i < arrayNode.size(); i++) {
 					final JsonNode childNode = arrayNode.get(i);
-					final ArrayNode argumentsArray = JsonNodeFactory.instance.arrayNode();
+					final ArrayNode argumentsArray = JSON.arrayNode();
 					argumentsArray.add(childNode);
 					final Optional<JsonNode> modifiedChildNode = ctx.getFunctionCtx()
 							.evaluate(fullyQualifiedName, argumentsArray);
 					arrayNode.set(i, modifiedChildNode.orElseThrow(
-							() -> Exceptions.propagate(new PolicyEvaluationException(
-									UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT))));
+							exception(UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT)));
 				}
 				return Flux.just(ResultNode.Void.INSTANCE);
 			}
@@ -186,14 +186,12 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 			}
 
 			return Flux.combineLatest(parameterFluxes, paramNodes -> {
-				final ArrayNode argumentsArray = JsonNodeFactory.instance.arrayNode();
+				final ArrayNode argumentsArray = JSON.arrayNode();
 				argumentsArray.add(node.orElseThrow(
-						(() -> Exceptions.propagate(new PolicyEvaluationException(
-								UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION)))));
+						exception(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION)));
 				for (Object paramNode : paramNodes) {
 					argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(
-							() -> Exceptions.propagate(new PolicyEvaluationException(
-									UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION))));
+							exception(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION)));
 				}
 				try {
 					return ctx.getFunctionCtx().evaluate(fullyQualifiedName,
@@ -207,10 +205,9 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 		}
 		else {
 			try {
-				final ArrayNode argumentsArray = JsonNodeFactory.instance.arrayNode();
+				final ArrayNode argumentsArray = JSON.arrayNode();
 				argumentsArray.add(node.orElseThrow(
-						(() -> Exceptions.propagate(new PolicyEvaluationException(
-								UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION)))));
+						exception(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION)));
 				return Flux.just(ctx.getFunctionCtx().evaluate(fullyQualifiedName,
 						argumentsArray));
 			}
@@ -219,6 +216,10 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 						String.format(FILTER_FUNCTION_EVALUATION, function), e));
 			}
 		}
+	}
+
+	private static Supplier<? extends RuntimeException> exception(String message) {
+		return () -> Exceptions.propagate(new PolicyEvaluationException(message));
 	}
 
 	@Override
