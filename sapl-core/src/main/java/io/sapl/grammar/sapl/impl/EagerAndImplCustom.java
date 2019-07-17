@@ -22,9 +22,9 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the eager boolean AND operator, written as '&' in Expressions.
  *
- * Multiplication returns Expression: Comparison (({Multi.left=current} '*' |
- * {Div.left=current} '/' | {And.left=current} '&&' | '&' {EagerAnd.left=current})
- * right=Comparison)* ;
+ * Grammar:
+ * Multiplication returns Expression:
+ *   Comparison (('&' {EagerAnd.left=current}) right=Comparison)* ;
  */
 public class EagerAndImplCustom extends EagerAndImpl {
 

@@ -20,6 +20,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
+/**
+ * Checks for a left value being greater than a right value.
+ *
+ * Grammar:
+ * Comparison returns Expression:
+ * 	  Prefixed (({More.left=current} '>') right=Prefixed)? ;
+ */
 public class MoreImplCustom extends MoreImpl {
 
 	@Override

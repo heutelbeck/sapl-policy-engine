@@ -53,8 +53,8 @@ import reactor.core.publisher.Flux;
  * Example: Applied to the array [1, 2, 3, 4, 5], the selection step [?(@ > 2)] returns
  * the array [3, 4, 5] (containing all values that are greater than 2).
  *
- * Grammar: Step: ... | '[' Subscript ']' | ...
- *
+ * Grammar:
+ * Step: ... | '[' Subscript ']' | ...
  * Subscript returns Step: ... | {ConditionStep} '?' '(' expression=Expression ')' | ...
  */
 public class ConditionStepImplCustom extends ConditionStepImpl {

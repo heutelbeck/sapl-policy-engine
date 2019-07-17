@@ -32,6 +32,17 @@ import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the application of an array slicing step to a previous array value,
+ * e.g. 'arr[4:12:2]'.
+ *
+ * Grammar:
+ * Step:
+ * 	'[' Subscript ']' ;
+ *
+ * Subscript returns Step:
+ *   {ArraySlicingStep} index=JSONNUMBER? ':' to=JSONNUMBER? (':' step=JSONNUMBER)? ;
+ */
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
 	private static final String STEP_ZERO = "Step must not be zero.";

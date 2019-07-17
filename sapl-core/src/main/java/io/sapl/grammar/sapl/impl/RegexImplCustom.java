@@ -24,6 +24,13 @@ import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
+/**
+ * Checks for a value matching a regular expression.
+ *
+ * Grammar:
+ * Comparison returns Expression:
+ * 	  Prefixed (({Regex.left=current} '=~') right=Prefixed)? ;
+ */
 public class RegexImplCustom extends RegexImpl {
 
 	private static final String REGEX_SYNTAX_ERROR = "Syntax error in regular expression '%s'.";

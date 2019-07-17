@@ -43,8 +43,8 @@ import reactor.core.publisher.Flux;
  * (object.array[(anIndex+2)]) or apply custom functions
  * (object.array[(max_value(object.array))].
  *
- * Grammar: Step: ... | '[' Subscript ']' | ...
- *
+ * Grammar:
+ * Step: ... | '[' Subscript ']' | ...
  * Subscript returns Step: ... | {ExpressionStep} '(' expression=Expression ')' | ...
  */
 public class ExpressionStepImplCustom extends ExpressionStepImpl {

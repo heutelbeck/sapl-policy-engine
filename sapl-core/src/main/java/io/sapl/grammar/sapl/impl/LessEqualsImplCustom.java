@@ -20,6 +20,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
+/**
+ * Checks for a left value being less than or equal to a right value.
+ *
+ * Grammar:
+ * Comparison returns Expression:
+ * 	  Prefixed (({LessEquals.left=current} '<=') right=Prefixed)? ;
+ */
 public class LessEqualsImplCustom extends LessEqualsImpl {
 
 	@Override

@@ -22,11 +22,9 @@ import reactor.core.publisher.Flux;
 /**
  * Checks for equality of two values.
  *
- * Comparison returns Expression: Prefixed (({Equals.left=current} '==' |
- * {NotEquals.left=current} '!=' | {Regex.left=current} '=~' | {Less.left=current} '<' |
- * {LessEquals.left=current} '<=' | {More.left=current} '>' | {MoreEquals.left=current}
- * '>=' | {ElementOf.left=current} 'in') right=Prefixed)? ;
- *
+ * Grammar:
+ * Comparison returns Expression:
+ * 	  Prefixed (({Equals.left=current} '==') right=Prefixed)? ;
  */
 public class EqualsImplCustom extends EqualsImpl {
 

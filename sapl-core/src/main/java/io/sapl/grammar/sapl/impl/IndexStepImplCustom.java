@@ -29,6 +29,16 @@ import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the application of an index step to a previous array value, e.g. 'arr[2]'.
+ *
+ * Grammar:
+ * Step:
+ * 	'[' Subscript ']' ;
+ *
+ * Subscript returns Step:
+ *   {IndexStep} index=JSONNUMBER ;
+ */
 public class IndexStepImplCustom extends IndexStepImpl {
 
 	private static final String INDEX_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing a JSON array index [%s] expects array value, but got: '%s'.";

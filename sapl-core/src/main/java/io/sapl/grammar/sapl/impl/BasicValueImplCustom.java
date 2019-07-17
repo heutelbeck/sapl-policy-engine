@@ -25,6 +25,16 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the evaluation of values.
+ *
+ * Grammar:
+ * {BasicValue} value=Value steps+=Step*;
+ *
+ * Value:
+ *     Object | Array | NumberLiteral | StringLiteral |
+ *     BooleanLiteral | NullLiteral | UndefinedLiteral ;
+ */
 public class BasicValueImplCustom extends BasicValueImpl {
 
 	@Override

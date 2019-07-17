@@ -29,11 +29,26 @@ import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
+/**
+ * Superclass of basic expressions providing a method to evaluate the steps, filter and
+ * subtemplate possibly being part of the basic expression.
+ *
+ * Grammar:
+ * BasicExpression returns Expression:
+ * 	  Basic (FILTER filter=FilterComponent | SUBTEMPLATE subtemplate=BasicExpression)? ;
+ *
+ * Basic returns BasicExpression:
+ *    {BasicGroup} '(' expression=Expression ')' steps+=Step* |
+ *    {BasicValue} value=Value steps+=Step*  |
+ *    {BasicFunction} fsteps+=ID ('.' fsteps+=ID)*  arguments=Arguments steps+=Step* |
+ *    {BasicIdentifier} identifier=ID steps+=Step* |
+ *    {BasicRelative} '@' steps+=Step* ;
+ */
 public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
 	/**
 	 * Method which is supposed to be inherited by the various subclasses of
-	 * BasicExpression and used in their {@code reactiveEvaluate} method.
+	 * BasicExpression and used in their {@code evaluate} method.
 	 *
 	 * The method takes the JsonNode from evaluating the first part of the BasicExpression
 	 * and applies the selection steps as well as a filter or sub-template specified in

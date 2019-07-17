@@ -31,6 +31,14 @@ import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the application of a recursive key step to a previous value,
+ * e.g. 'obj..name' or 'arr..["name"]'.
+ *
+ * Grammar:
+ * Step:
+ * 	'..' ({RecursiveKeyStep} (id=ID | '[' id=STRING ']')) ;
+ */
 public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
 	private static final String UNDEFINED_ARRAY_ELEMENT = "JSON does not support undefined array elements.";

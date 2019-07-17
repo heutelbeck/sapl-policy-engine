@@ -26,6 +26,12 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the evaluation of relative expressions.
+ *
+ * Grammar:
+ * {BasicRelative} '@' steps+=Step*;
+ */
 public class BasicRelativeImplCustom extends BasicRelativeImpl {
 
 	private static final String NOT_ALLOWED = "Relative expression is not allowed at this place. There was no relative node defined. Was: undefined";

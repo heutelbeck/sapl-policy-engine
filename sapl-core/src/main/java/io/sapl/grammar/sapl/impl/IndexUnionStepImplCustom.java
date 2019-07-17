@@ -34,6 +34,17 @@ import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the application of an index union step to a previous array value,
+ * e.g. 'arr[4, 7, 11]'.
+ *
+ * Grammar:
+ * Step:
+ * 	'[' Subscript ']' ;
+ *
+ * Subscript returns Step:
+ *   {IndexUnionStep} indices+=JSONNUMBER ',' indices+=JSONNUMBER (',' indices+=JSONNUMBER)* ;
+ */
 public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 
 	private static final String UNION_TYPE_MISMATCH = "Type mismatch.";

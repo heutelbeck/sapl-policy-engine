@@ -17,6 +17,9 @@ import java.util.Objects;
 
 import org.eclipse.emf.ecore.EObject;
 
+/**
+ * Superclass for all unary operator expressions.
+ */
 public class UnaryOperatorImplCustom extends UnaryOperatorImpl {
 
 	@Override

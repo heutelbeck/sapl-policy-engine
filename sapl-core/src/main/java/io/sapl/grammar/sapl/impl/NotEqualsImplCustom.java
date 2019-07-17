@@ -19,6 +19,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
+/**
+ * Checks for non equality of two values.
+ *
+ * Grammar:
+ * Comparison returns Expression:
+ * 	  Prefixed (({NotEquals.left=current} '!=') right=Prefixed)? ;
+ */
 public class NotEqualsImplCustom extends NotEqualsImpl {
 
 	@Override

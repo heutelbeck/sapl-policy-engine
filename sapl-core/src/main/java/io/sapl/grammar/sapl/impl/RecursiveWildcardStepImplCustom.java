@@ -32,6 +32,14 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the application of a recursive wildcard step to a previous value,
+ * e.g. 'obj..*' or 'arr..[*]'.
+ *
+ * Grammar:
+ * Step:
+ * 	'..' ({RecursiveWildcardStep} ('*' | '[' '*' ']' )) ;
+ */
 public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 
 	private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE = "Cannot descent on an undefined value.";

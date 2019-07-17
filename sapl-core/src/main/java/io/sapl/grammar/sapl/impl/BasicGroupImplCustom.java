@@ -25,6 +25,12 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the evaluation of expression groups.
+ *
+ * Grammar:
+ * {BasicGroup} '(' expression=Expression ')' steps+=Step*;
+ */
 public class BasicGroupImplCustom extends BasicGroupImpl {
 
 	@Override

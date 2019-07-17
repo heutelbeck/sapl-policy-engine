@@ -26,6 +26,12 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the evaluation of identifiers.
+ *
+ * Grammar:
+ * {BasicIdentifier} identifier=ID steps+=Step*;
+ */
 public class BasicIdentifierImplCustom extends BasicIdentifierImpl {
 
 	private static final String UNBOUND_VARIABLE = "Evaluation error. Variable '%s' is not defined.";

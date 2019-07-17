@@ -17,6 +17,9 @@ import java.util.Objects;
 
 import org.eclipse.emf.ecore.EObject;
 
+/**
+ * Superclass for all binary operator expressions.
+ */
 public class BinaryOperatorImplCustom extends BinaryOperatorImpl {
 
 	@Override

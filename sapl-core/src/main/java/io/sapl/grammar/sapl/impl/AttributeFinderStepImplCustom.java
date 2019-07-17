@@ -29,6 +29,13 @@ import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the application of an attribute finder step to a previous value.
+ *
+ * Grammar:
+ * Step:
+ * 	'.' ({AttributeFinderStep} '<' idSteps+=ID ('.' idSteps+=ID)* '>') ;
+ */
 public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
 	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attribute '%s' is not allowed in target.";

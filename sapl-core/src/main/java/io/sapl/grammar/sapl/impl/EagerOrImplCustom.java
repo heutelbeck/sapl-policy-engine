@@ -22,10 +22,9 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the eager logical OR operation, noted as '|' in the grammar.
  *
- * Addition returns Expression: Multiplication (({Plus.left=current} '+' |
- * {Minus.left=current} '-' | {Or.left=current} '||' | '|' {EagerOr.left=current})
- * right=Multiplication)* ;
- *
+ * Grammar:
+ * Addition returns Expression:
+ *   Multiplication (('|' {EagerOr.left=current}) right=Multiplication)* ;
  */
 
 public class EagerOrImplCustom extends EagerOrImpl {

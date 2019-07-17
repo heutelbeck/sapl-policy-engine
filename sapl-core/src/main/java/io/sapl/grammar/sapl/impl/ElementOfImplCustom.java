@@ -23,8 +23,12 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 /**
- * Implements the evaluation of the array operation. It checks if a value is contained in
- * an array.
+ * Implements the evaluation of the 'in-array' operation.
+ * It checks if a value is contained in an array.
+ *
+ * Grammar:
+ * Comparison returns Expression:
+ * 	  Prefixed (({ElementOf.left=current} 'in') right=Prefixed)? ;
  */
 public class ElementOfImplCustom extends ElementOfImpl {
 

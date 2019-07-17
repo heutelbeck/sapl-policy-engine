@@ -34,6 +34,17 @@ import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the application of an attribute union step to a previous object value,
+ * e.g. 'person["firstName", "lastName"]'.
+ *
+ * Grammar:
+ * Step:
+ * 	'[' Subscript ']' ;
+ *
+ * Subscript returns Step:
+ *   {AttributeUnionStep} attributes+=STRING ',' attributes+=STRING (',' attributes+=STRING)* ;
+ */
 public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 
 	private static final String UNION_TYPE_MISMATCH = "Type mismatch.";

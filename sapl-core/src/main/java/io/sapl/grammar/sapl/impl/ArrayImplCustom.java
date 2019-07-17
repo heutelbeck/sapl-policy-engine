@@ -33,8 +33,8 @@ import reactor.core.publisher.Flux;
 /**
  * Implementation of an array in SAPL.
  *
- * Grammar: Array returns Value: {Array} '[' (items+=Expression (',' items+=Expression)*)?
- * ']' ;
+ * Grammar:
+ * Array returns Value: {Array} '[' (items+=Expression (',' items+=Expression)*)? ']' ;
  */
 public class ArrayImplCustom extends ArrayImpl {
 

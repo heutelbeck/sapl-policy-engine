@@ -30,6 +30,13 @@ import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the application of a key step to a previous value, e.g 'value.name'.
+ *
+ * Grammar:
+ * Step:
+ * 	'.' ({KeyStep} id=ID) ;
+ */
 public class KeyStepImplCustom extends KeyStepImpl {
 
 	private static final String KEY_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing a JSON key '%s' is not possible on a null node.";

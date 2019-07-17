@@ -29,6 +29,14 @@ import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
+/**
+ * Implements the application of a recursive index step to a previous array value,
+ * e.g. 'arr..[2]'.
+ *
+ * Grammar:
+ * Step:
+ * 	'..' ({RecursiveIndexStep} '[' index=JSONNUMBER ']') ;
+ */
 public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
 	private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE = "Cannot descent on an undefined value.";

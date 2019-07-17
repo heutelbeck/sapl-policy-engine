@@ -41,6 +41,8 @@ public class PlusImplCustom extends PlusImpl {
 			return Value.fluxOf(tuple.getT1().get().decimalValue()
 					.add(tuple.getT2().get().decimalValue()));
 		}
+		// The left or right value (or both) is/are not numeric. The plus operator is
+		// therefore interpreted as a string concatenation operator.
 		String left = tuple.getT1().orElseGet(() -> JSON.textNode("undefined")).asText();
 		String right = tuple.getT2().orElseGet(() -> JSON.textNode("undefined")).asText();
 		return Value.fluxOf(left.concat(right));
