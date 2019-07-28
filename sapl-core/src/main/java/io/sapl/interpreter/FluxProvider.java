@@ -1,9 +1,9 @@
-package io.sapl.grammar.sapl.impl;
+package io.sapl.interpreter;
 
 import reactor.core.publisher.Flux;
 
 @FunctionalInterface
-interface FluxProvider<T> {
+public interface FluxProvider<T> {
 
 	Flux<T> getFlux(T input);
 

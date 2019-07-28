@@ -14,6 +14,7 @@ import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Statement;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.FluxProvider;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
@@ -47,13 +48,13 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
     public Flux<Decision> evaluate(Decision entitlement, EvaluationContext ctx) {
         final EList<Statement> statements = getStatements();
         if (statements != null && !statements.isEmpty()) {
-            final boolean initialResult = true;
             final List<FluxProvider<Boolean>> fluxProviders = new ArrayList<>(
                     statements.size());
             for (Statement statement : statements) {
-                fluxProviders.add(() -> evaluateStatement(statement, ctx));
+                fluxProviders.add(currentResult -> evaluateStatement(statement, ctx));
             }
-            return cascadingSwitchMap(initialResult, fluxProviders, 0)
+            return sequentialSwitchMap(true, fluxProviders)
+            //return nestedSwitchMap(true, fluxProviders, 0)
                     .map(result -> result ? entitlement : Decision.NOT_APPLICABLE)
                     .onErrorResume(error -> {
                         final Throwable unwrapped = Exceptions.unwrap(error);
@@ -67,11 +68,24 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
         }
     }
 
-    private Flux<Boolean> cascadingSwitchMap(boolean currentResult,
-                List<FluxProvider<Boolean>> fluxProviders, int idx) {
+    private Flux<Boolean> sequentialSwitchMap(Boolean input, List<FluxProvider<Boolean>> fluxProviders) {
+        Flux<Boolean> flux = fluxProviders.isEmpty()
+                ? Flux.just(input)
+                : fluxProviders.get(0).getFlux(input);
+        for (int i = 1; i < fluxProviders.size(); i++) {
+            final int idx = i;
+            flux = flux.switchMap(currentResult -> currentResult
+                    ? fluxProviders.get(idx).getFlux(currentResult)
+                    : Flux.just(false));
+        }
+        return flux;
+    }
+
+    private Flux<Boolean> nestedSwitchMap(Boolean currentResult,
+                                             List<FluxProvider<Boolean>> fluxProviders, int idx) {
         if (idx < fluxProviders.size() && currentResult) {
-            return fluxProviders.get(idx).getFlux().switchMap(
-                    result -> cascadingSwitchMap(result, fluxProviders, idx + 1));
+            return fluxProviders.get(idx).getFlux(currentResult).switchMap(
+                    result -> nestedSwitchMap(result, fluxProviders, idx + 1));
         }
         return Flux.just(currentResult);
     }
@@ -117,11 +131,5 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
                                 String.format(STATEMENT_NOT_BOOLEAN, statementResult)));
                     }
                 }).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
-    }
-
-
-    @FunctionalInterface
-    interface FluxProvider<T> {
-        Flux<T> getFlux();
     }
 }

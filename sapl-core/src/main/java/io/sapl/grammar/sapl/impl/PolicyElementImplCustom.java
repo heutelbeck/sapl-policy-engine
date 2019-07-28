@@ -10,7 +10,6 @@ import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
-import reactor.core.publisher.Flux;
 
 @Slf4j
 public class PolicyElementImplCustom extends PolicyElementImpl {
@@ -83,15 +82,5 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
                 throw fluxError;
             }
         }
-    }
-
-
-    @FunctionalInterface
-    interface FluxProvider<T> {
-        Flux<T> getFlux();
-    }
-
-    protected static class Void {
-        protected static final Void INSTANCE = new Void();
     }
 }

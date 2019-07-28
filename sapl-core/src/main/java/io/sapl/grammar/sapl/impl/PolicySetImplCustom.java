@@ -12,6 +12,8 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.Response;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.FluxProvider;
+import io.sapl.interpreter.DependentStreamsUtil;
 import io.sapl.interpreter.combinators.DenyOverridesCombinator;
 import io.sapl.interpreter.combinators.DenyUnlessPermitCombinator;
 import io.sapl.interpreter.combinators.FirstApplicableCombinator;
@@ -47,9 +49,10 @@ public class PolicySetImplCustom extends PolicySetImpl {
         final Map<String, JsonNode> variables = new HashMap<>();
         final List<FluxProvider<Void>> fluxProviders = new ArrayList<>(getValueDefinitions().size());
         for (ValueDefinition valueDefinition : getValueDefinitions()) {
-            fluxProviders.add(() -> evaluateValueDefinition(valueDefinition, ctx, variables));
+            fluxProviders.add(voiD -> evaluateValueDefinition(valueDefinition, ctx, variables));
         }
-        final Flux<Void> variablesFlux = cascadingSwitchMap(fluxProviders, 0);
+        final Flux<Void> variablesFlux = DependentStreamsUtil.sequentialSwitchMap(Void.INSTANCE, fluxProviders);
+        //final Flux<Void> variablesFlux = DependentStreamsUtil.nestedSwitchMap(Void.INSTANCE, fluxProviders, 0);
 
         final PolicyCombinator combinator;
         switch (getAlgorithm()) {
@@ -74,7 +77,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
         }
 
         return variablesFlux
-                .flatMap(voiD -> combinator.combinePolicies(getPolicies(), ctx))
+                .switchMap(voiD -> combinator.combinePolicies(getPolicies(), ctx))
                 .onErrorReturn(INDETERMINATE);
     }
 
@@ -99,11 +102,16 @@ public class PolicySetImplCustom extends PolicySetImpl {
                 }).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
     }
 
-    private Flux<Void> cascadingSwitchMap(List<FluxProvider<Void>> fluxProviders, int idx) {
-        if (idx < fluxProviders.size()) {
-            return fluxProviders.get(idx).getFlux()
-                    .switchMap(result -> cascadingSwitchMap(fluxProviders, idx + 1));
-        }
-        return Flux.just(Void.INSTANCE);
+    /**
+     * The reactive version of a non reactive method returning void
+     * would return a Flux of Void. Since the only instance of the
+     * type java.lang.Void is {@code null} and {@code null} cannot
+     * be used for Flux items (e.g. Flux.just(null) is not possible),
+     * another type representing Void must be used.
+     * This is the purpose of this class. It provides a non null
+     * instance representing a void result.
+     */
+    private static class Void {
+        protected static final Void INSTANCE = new Void();
     }
 }

@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.FluxProvider;
+import io.sapl.interpreter.DependentStreamsUtil;
 import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
@@ -42,20 +44,12 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 						statement.getArguments(), statement.getTarget().getSteps(),
 						statement.isEach(), ctx, isBody, relativeNode));
 			}
-			return cascadingSwitchMap(result, fluxProviders, 0);
+			return DependentStreamsUtil.sequentialSwitchMap(Optional.of(result), fluxProviders);
+			//return DependentStreamsUtil.nestedSwitchMap(Optional.of(result), fluxProviders, 0);
 		}
 		else {
 			return Flux.just(Optional.of(result));
 		}
-	}
-
-	private static Flux<Optional<JsonNode>> cascadingSwitchMap(JsonNode input,
-			List<FluxProvider<Optional<JsonNode>>> fluxProviders, int idx) {
-		if (idx < fluxProviders.size()) {
-			return fluxProviders.get(idx).getFlux(Optional.of(input)).switchMap(
-					result -> cascadingSwitchMap(result.get(), fluxProviders, idx + 1));
-		}
-		return Flux.just(Optional.of(input));
 	}
 
 	@Override

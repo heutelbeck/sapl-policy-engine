@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.FluxProvider;
+import io.sapl.interpreter.DependentStreamsUtil;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
 import lombok.experimental.UtilityClass;
@@ -45,20 +47,12 @@ public class StepResolver {
 				fluxProviders.add(resultNode -> resultNode.applyStep(step, ctx, isBody,
 						relativeNode));
 			}
-			return cascadingSwitchMap(result, fluxProviders, 0);
+			return DependentStreamsUtil.sequentialSwitchMap(result, fluxProviders);
+			//return DependentStreamsUtil.nestedSwitchMap(result, fluxProviders, 0);
 		}
 		else {
 			return Flux.just(result);
 		}
-	}
-
-	private static Flux<ResultNode> cascadingSwitchMap(ResultNode input,
-			List<FluxProvider<ResultNode>> fluxProviders, int idx) {
-		if (idx < fluxProviders.size()) {
-			return fluxProviders.get(idx).getFlux(input).switchMap(
-					result -> cascadingSwitchMap(result, fluxProviders, idx + 1));
-		}
-		return Flux.just(input);
 	}
 
 }
