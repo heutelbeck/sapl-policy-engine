@@ -53,7 +53,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
             for (Statement statement : statements) {
                 fluxProviders.add(currentResult -> evaluateStatement(statement, ctx));
             }
-            return sequentialSwitchMap(true, fluxProviders)
+            return sequentialSwitchMap(Boolean.TRUE, fluxProviders)
             //return nestedSwitchMap(true, fluxProviders, 0)
                     .map(result -> result ? entitlement : Decision.NOT_APPLICABLE)
                     .onErrorResume(error -> {
@@ -76,7 +76,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
             final int idx = i;
             flux = flux.switchMap(currentResult -> currentResult
                     ? fluxProviders.get(idx).getFlux(currentResult)
-                    : Flux.just(false));
+                    : Flux.just(Boolean.FALSE));
         }
         return flux;
     }
