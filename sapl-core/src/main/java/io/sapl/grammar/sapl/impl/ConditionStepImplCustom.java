@@ -43,9 +43,8 @@ import reactor.core.publisher.Flux;
  * item) and an object (then it checks each attribute value). Condition must be an
  * expression, in which relative expressions starting with @ can be used.
  *
- * @ evaluates to
- * the current array item or attribute value for which the condition is evaluated and can
- * be followed by further selection steps.
+ * @ evaluates to the current array item or attribute value for which the condition is
+ * evaluated and can be followed by further selection steps.
  *
  * As attributes have no order, the sorting of the result array of a condition step
  * applied to an object is not specified.
@@ -83,10 +82,10 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		}
 		final JsonNode previousResultNode = optPreviousResultNode.get();
 		if (previousResultNode.isArray()) {
-			return handleArrayNode(ctx, isBody, previousResultNode);
+			return handleArrayNode(previousResultNode, ctx, isBody);
 		}
 		else if (previousResultNode.isObject()) {
-			return handleObjectNode(ctx, isBody, previousResultNode);
+			return handleObjectNode(previousResultNode, ctx, isBody);
 		}
 		else {
 			return Flux.error(new PolicyEvaluationException(
@@ -95,8 +94,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		}
 	}
 
-	private Flux<ResultNode> handleArrayNode(EvaluationContext ctx, boolean isBody,
-			JsonNode arrayNode) {
+	private Flux<ResultNode> handleArrayNode(JsonNode arrayNode, EvaluationContext ctx, boolean isBody) {
+		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(arrayNode.size());
 		IntStream.range(0, arrayNode.size())
 				.forEach(idx -> itemFluxes.add(getExpression()
@@ -107,15 +106,12 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			return Flux.just(new ArrayResultNode(new ArrayList<>()));
 		}
 		// the indices of the elements in the arrayNode correspond to the indices of the
-		// flux results,
-		// because combineLatest() preserves the order of the given list of fluxes in the
-		// results array
-		// passed to the combinator function
+		// flux results, because combineLatest() preserves the order of the given list of
+		// fluxes in the results array passed to the combinator function
 		return Flux.combineLatest(itemFluxes, results -> {
 			final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 			// iterate over all condition results and collect the array elements related
-			// to a result
-			// representing true
+			// to a result representing true
 			IntStream.range(0, results.length).forEach(idx -> {
 				final JsonNode result = (JsonNode) results[idx];
 				if (result.isBoolean() && result.asBoolean()) {
@@ -128,11 +124,9 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		});
 	}
 
-	private Flux<ResultNode> handleObjectNode(EvaluationContext ctx, boolean isBody,
-			JsonNode objectNode) {
+	private Flux<ResultNode> handleObjectNode(JsonNode objectNode, EvaluationContext ctx, boolean isBody) {
 		// create three parallel lists collecting the field names and field values of the
-		// object
-		// and the fluxes providing the evaluated conditions for the field values
+		// object and the fluxes providing the evaluated conditions for the field values
 		final List<String> fieldNames = new ArrayList<>();
 		final List<JsonNode> fieldValues = new ArrayList<>();
 		final List<Flux<JsonNode>> valueFluxes = new ArrayList<>();
@@ -151,14 +145,12 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		}
 		// the indices of the elements in the fieldNames list and the fieldValues list
 		// correspond to the indices of the flux results, because combineLatest()
-		// preserves
-		// the order of the given list of fluxes in the results array passed to the
-		// combinator function
+		// preserves the order of the given list of fluxes in the results array passed
+		// to the combinator function
 		return Flux.combineLatest(valueFluxes, results -> {
 			final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 			// iterate over all condition results and collect the field values related to
-			// a result
-			// representing true
+			// a result representing true
 			IntStream.range(0, results.length).forEach(idx -> {
 				final JsonNode result = (JsonNode) results[idx];
 				if (result.isBoolean() && result.asBoolean()) {
@@ -205,8 +197,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 				.flatMap(results -> {
 					final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 					// iterate over all condition results and collect the array elements
-					// related to a result
-					// representing true
+					// related to a result representing true
 					for (int idx = 0; idx < results.length; idx++) {
 						@SuppressWarnings("unchecked")
 						Optional<JsonNode> optionalResult = ((Optional<JsonNode>) results[idx]);

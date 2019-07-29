@@ -44,14 +44,6 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
 	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
 
-	private String getFullyQualifiedName(EvaluationContext ctx) {
-		String fullyQualifiedName = String.join(".", getIdSteps());
-		if (ctx.getImports().containsKey(fullyQualifiedName)) {
-			fullyQualifiedName = ctx.getImports().get(fullyQualifiedName);
-		}
-		return fullyQualifiedName;
-	}
-
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode value, EvaluationContext ctx,
 			boolean isBody, Optional<JsonNode> relativeNode) {
@@ -80,6 +72,14 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 				.onErrorResume(error -> Flux.error(new PolicyEvaluationException(
 						String.format(ATTRIBUTE_RESOLUTION, fullyQualifiedName), error)));
 		return jsonNodeFlux.map(Optional::of).map(JsonNodeWithoutParent::new);
+	}
+
+	private String getFullyQualifiedName(EvaluationContext ctx) {
+		String fullyQualifiedName = String.join(".", getIdSteps());
+		if (ctx.getImports().containsKey(fullyQualifiedName)) {
+			fullyQualifiedName = ctx.getImports().get(fullyQualifiedName);
+		}
+		return fullyQualifiedName;
 	}
 
 	@Override
