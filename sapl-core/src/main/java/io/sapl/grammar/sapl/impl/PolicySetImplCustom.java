@@ -52,7 +52,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
             fluxProviders.add(voiD -> evaluateValueDefinition(valueDefinition, ctx, variables));
         }
         final Flux<Void> variablesFlux = DependentStreamsUtil.sequentialSwitchMap(Void.INSTANCE, fluxProviders);
-        //final Flux<Void> variablesFlux = DependentStreamsUtil.nestedSwitchMap(Void.INSTANCE, fluxProviders, 0);
+        //final Flux<Void> variablesFlux = DependentStreamsUtil.nestedSwitchMap(Void.INSTANCE, fluxProviders);
 
         final PolicyCombinator combinator;
         switch (getAlgorithm()) {

@@ -54,7 +54,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
                 fluxProviders.add(currentResult -> evaluateStatement(statement, ctx));
             }
             return sequentialSwitchMap(Boolean.TRUE, fluxProviders)
-            //return nestedSwitchMap(true, fluxProviders, 0)
+            //return nestedSwitchMap(Boolean.TRUE, fluxProviders)
                     .map(result -> result ? entitlement : Decision.NOT_APPLICABLE)
                     .onErrorResume(error -> {
                         final Throwable unwrapped = Exceptions.unwrap(error);

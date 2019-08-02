@@ -103,28 +103,31 @@ public class DependentStreamsUtil {
      *              If no flux providers are given, a flux emitting just this {@code input}
      *              element is returned.
      * @param fluxProviders a list of objects providing the fluxes to be combined
-     * @param idx the index of the flux provider for the current recursion. Must be 0 on the
-     *            initial call (from outside) and is incremented before each recursive call.
      * @param <T> type parameter for the items emitted by the returned flux
      * @return a flux of {@code T} items which is the result of recursively applying the
      *         {@code switchMap} operator on the fluxes provided by the given
      *         {@code fluxProviders}.
      */
-    public static <T> Flux<T> nestedSwitchMap(T input, List<FluxProvider<T>> fluxProviders, int idx) {
+    public static <T> Flux<T> nestedSwitchMap(T input, List<FluxProvider<T>> fluxProviders) {
         if (fluxProviders == null || fluxProviders.isEmpty()) {
             return Flux.just(input);
         }
         else if (fluxProviders.size() == 1) {
             return fluxProviders.get(0).getFlux(input);
         }
-        else if (idx < fluxProviders.size() - 2) {
+        else {
+            return DependentStreamsUtil.nestedSwitchMap(input, fluxProviders, 0);
+        }
+    }
+
+    private static <T> Flux<T> nestedSwitchMap(T input, List<FluxProvider<T>> fluxProviders, int idx) {
+        if (idx < fluxProviders.size() - 2) {
             return fluxProviders.get(idx).getFlux(input).switchMap(
                     result -> DependentStreamsUtil.nestedSwitchMap(result, fluxProviders, idx + 1));
         }
-        else if (idx == fluxProviders.size() - 2) {
+        else { // idx == fluxProviders.size() - 2
             return fluxProviders.get(idx).getFlux(input).switchMap(
                     result -> fluxProviders.get(idx + 1).getFlux(result));
         }
-        throw new IllegalArgumentException("Illegal index value " + idx);
     }
 }

@@ -45,7 +45,7 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 						statement.isEach(), ctx, isBody, relativeNode));
 			}
 			return DependentStreamsUtil.sequentialSwitchMap(Optional.of(result), fluxProviders);
-			//return DependentStreamsUtil.nestedSwitchMap(Optional.of(result), fluxProviders, 0);
+			//return DependentStreamsUtil.nestedSwitchMap(Optional.of(result), fluxProviders);
 		}
 		else {
 			return Flux.just(Optional.of(result));

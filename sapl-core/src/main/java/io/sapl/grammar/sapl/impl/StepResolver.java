@@ -26,6 +26,7 @@ public class StepResolver {
 	 * annotated JsonNodes. The annotation contains the parent node of the JsonNode in the
 	 * JSON tree of which the root is the input JsonNode. This allows for modifying or
 	 * deleting the selected JsonNodes.
+	 *
 	 * @param rootNode the input JsonNode
 	 * @param steps the selection steps
 	 * @param ctx the evaluation context
@@ -48,7 +49,7 @@ public class StepResolver {
 						relativeNode));
 			}
 			return DependentStreamsUtil.sequentialSwitchMap(result, fluxProviders);
-			//return DependentStreamsUtil.nestedSwitchMap(result, fluxProviders, 0);
+			//return DependentStreamsUtil.nestedSwitchMap(result, fluxProviders);
 		}
 		else {
 			return Flux.just(result);
