@@ -15,7 +15,7 @@ package io.sapl.interpreter.selection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -29,7 +29,6 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 /**
@@ -124,22 +123,33 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 					final ArrayNode argumentsArray = JSON.arrayNode();
 					argumentsArray.add(childNode);
 					for (Object paramNode : paramNodes) {
-						argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(
-								exception(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION)));
+						final Optional<JsonNode> optParamNode = (Optional<JsonNode>) paramNode;
+						if (optParamNode.isPresent()) {
+							argumentsArray.add(optParamNode.get());
+						}
+						else {
+							return Flux.<Void> error(new PolicyEvaluationException(
+									UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION));
+						}
 					}
 					try {
 						final Optional<JsonNode> modifiedChildNode = ctx.getFunctionCtx()
 								.evaluate(fullyQualifiedName, argumentsArray);
-						arrayNode.set(i, modifiedChildNode.orElseThrow(
-								exception(UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT)));
+						if (modifiedChildNode.isPresent()) {
+							arrayNode.set(i, modifiedChildNode.get());
+						}
+						else {
+							return Flux.<Void> error(new PolicyEvaluationException(
+									UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT));
+						}
 					}
 					catch (FunctionException e) {
-						throw Exceptions.propagate(new PolicyEvaluationException(
+						return Flux.<Void> error(new PolicyEvaluationException(
 								String.format(FILTER_FUNCTION_EVALUATION, function), e));
 					}
 				}
-				return ResultNode.Void.INSTANCE;
-			}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+				return Flux.just(ResultNode.Void.INSTANCE);
+			}).flatMap(Function.identity());
 		}
 		else {
 			try {
@@ -182,7 +192,8 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 			Optional<JsonNode> optNode, Arguments arguments, EvaluationContext ctx,
 			boolean isBody, Optional<JsonNode> relativeNode) {
 		if (!optNode.isPresent()) {
-			return Flux.error(new PolicyEvaluationException(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION));
+			return Flux.error(new PolicyEvaluationException(
+					UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION));
 		}
 		final JsonNode node = optNode.get();
 		final String fullyQualifiedName = ctx.getImports().getOrDefault(function,
@@ -198,18 +209,24 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 				final ArrayNode argumentsArray = JSON.arrayNode();
 				argumentsArray.add(node);
 				for (Object paramNode : paramNodes) {
-					argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(
-							exception(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION)));
+					final Optional<JsonNode> optParamNode = (Optional<JsonNode>) paramNode;
+					if (!optParamNode.isPresent()) {
+						return Flux.<Optional<JsonNode>> error(new PolicyEvaluationException(
+								UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION));
+					}
+					else {
+						argumentsArray.add(optParamNode.get());
+					}
 				}
 				try {
-					return ctx.getFunctionCtx().evaluate(fullyQualifiedName,
-							argumentsArray);
+					return Flux.just(ctx.getFunctionCtx().evaluate(fullyQualifiedName,
+							argumentsArray));
 				}
 				catch (FunctionException e) {
-					throw Exceptions.propagate(new PolicyEvaluationException(
+					return Flux.<Optional<JsonNode>> error(new PolicyEvaluationException(
 							String.format(FILTER_FUNCTION_EVALUATION, function), e));
 				}
-			}).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+			}).flatMap(Function.identity());
 		}
 		else {
 			try {
@@ -223,10 +240,6 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 						String.format(FILTER_FUNCTION_EVALUATION, function), e));
 			}
 		}
-	}
-
-	private static Supplier<? extends RuntimeException> exception(String message) {
-		return () -> Exceptions.propagate(new PolicyEvaluationException(message));
 	}
 
 	@Override

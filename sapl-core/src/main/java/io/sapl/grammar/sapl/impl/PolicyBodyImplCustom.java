@@ -101,35 +101,36 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 
     private Flux<Boolean> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx) {
         return valueDefinition.getEval().evaluate(evaluationCtx, true, Optional.empty())
-                .map(evaluatedValue -> {
+                .flatMap(evaluatedValue -> {
                     try {
-                        if (!evaluatedValue.isPresent()) {
-                            throw new PolicyEvaluationException(
-                                    CANNOT_ASSIGN_UNDEFINED_TO_A_VAL);
+                        if (evaluatedValue.isPresent()) {
+                            evaluationCtx.getVariableCtx().put(valueDefinition.getName(),
+                                    evaluatedValue.get());
+                            return Flux.just(Boolean.TRUE);
                         }
-                        evaluationCtx.getVariableCtx().put(valueDefinition.getName(),
-                                evaluatedValue.get());
-                        return Boolean.TRUE;
+                        else {
+                            return Flux.error(new PolicyEvaluationException(
+                                    CANNOT_ASSIGN_UNDEFINED_TO_A_VAL));
+                        }
                     }
                     catch (PolicyEvaluationException e) {
-                        LOGGER.error("Error in value definition evaluation: {}",
-                                e.getMessage());
-                        throw Exceptions.propagate(e);
+                        LOGGER.error("Error in value definition evaluation: {}", e.getMessage());
+                        return Flux.error(e);
                     }
-                }).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+                });
     }
 
     private Flux<Boolean> evaluateCondition(Condition condition, EvaluationContext evaluationCtx) {
         return condition.getExpression().evaluate(evaluationCtx, true, Optional.empty())
-                .map(statementResult -> {
+                .flatMap(statementResult -> {
                     if (statementResult.isPresent()
                             && statementResult.get().isBoolean()) {
-                        return statementResult.get().asBoolean();
+                        return Flux.just(statementResult.get().asBoolean());
                     }
                     else {
-                        throw Exceptions.propagate(new PolicyEvaluationException(
+                        return Flux.error(new PolicyEvaluationException(
                                 String.format(STATEMENT_NOT_BOOLEAN, statementResult)));
                     }
-                }).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+                });
     }
 }

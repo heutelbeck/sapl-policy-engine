@@ -11,9 +11,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.Response;
 import io.sapl.grammar.sapl.ValueDefinition;
+import io.sapl.interpreter.DependentStreamsUtil;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.FluxProvider;
-import io.sapl.interpreter.DependentStreamsUtil;
 import io.sapl.interpreter.combinators.DenyOverridesCombinator;
 import io.sapl.interpreter.combinators.DenyUnlessPermitCombinator;
 import io.sapl.interpreter.combinators.FirstApplicableCombinator;
@@ -22,7 +22,6 @@ import io.sapl.interpreter.combinators.PermitOverridesCombinator;
 import io.sapl.interpreter.combinators.PermitUnlessDenyCombinator;
 import io.sapl.interpreter.combinators.PolicyCombinator;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 @Slf4j
@@ -84,22 +83,24 @@ public class PolicySetImplCustom extends PolicySetImpl {
     private Flux<Void> evaluateValueDefinition(ValueDefinition valueDefinition,
                 EvaluationContext evaluationCtx, Map<String, JsonNode> variables) {
         return valueDefinition.getEval().evaluate(evaluationCtx, true, Optional.empty())
-                .map(evaluatedValue -> {
+                .flatMap(evaluatedValue -> {
                     try {
-                        if (!evaluatedValue.isPresent()) {
-                            throw new PolicyEvaluationException(
-                                    CANNOT_ASSIGN_UNDEFINED_TO_A_VAL);
+                        if (evaluatedValue.isPresent()) {
+                            evaluationCtx.getVariableCtx().put(valueDefinition.getName(),
+                                    evaluatedValue.get());
+                            variables.put(valueDefinition.getName(), evaluatedValue.get());
+                            return Flux.just(Void.INSTANCE);
                         }
-                        evaluationCtx.getVariableCtx().put(valueDefinition.getName(),
-                                evaluatedValue.get());
-                        variables.put(valueDefinition.getName(), evaluatedValue.get());
-                        return Void.INSTANCE;
+                        else {
+                            return Flux.error(new PolicyEvaluationException(
+                                    CANNOT_ASSIGN_UNDEFINED_TO_A_VAL));
+                        }
                     }
                     catch (PolicyEvaluationException e) {
-                        LOGGER.error("Value definition evaluation failed: {}",e.getMessage(), e);
-                        throw Exceptions.propagate(e);
+                        LOGGER.error("Value definition evaluation failed: {}", e.getMessage());
+                        return Flux.error(e);
                     }
-                }).onErrorResume(error -> Flux.error(Exceptions.unwrap(error)));
+                });
     }
 
     /**
