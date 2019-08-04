@@ -169,7 +169,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	/**
 	 * Applies a function to a JSON node and returns a flux of the results.
 	 * @param function the name of the function
-	 * @param node the JSON node to apply the function to
+	 * @param optNode the JSON node to apply the function to
 	 * @param arguments other arguments to be passed to the function as a JSON array
 	 * @param ctx the evaluation context
 	 * @param isBody true if the expression occurs within the policy body (attribute
@@ -179,8 +179,12 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 */
 	@SuppressWarnings("unchecked")
 	public static Flux<Optional<JsonNode>> applyFilterToNode(String function,
-			Optional<JsonNode> node, Arguments arguments, EvaluationContext ctx,
+			Optional<JsonNode> optNode, Arguments arguments, EvaluationContext ctx,
 			boolean isBody, Optional<JsonNode> relativeNode) {
+		if (!optNode.isPresent()) {
+			return Flux.error(new PolicyEvaluationException(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION));
+		}
+		final JsonNode node = optNode.get();
 		final String fullyQualifiedName = ctx.getImports().getOrDefault(function,
 				function);
 		if (arguments != null && !arguments.getArgs().isEmpty()) {
@@ -192,8 +196,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 
 			return Flux.combineLatest(parameterFluxes, paramNodes -> {
 				final ArrayNode argumentsArray = JSON.arrayNode();
-				argumentsArray.add(node.orElseThrow(
-						exception(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION)));
+				argumentsArray.add(node);
 				for (Object paramNode : paramNodes) {
 					argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(
 							exception(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION)));
@@ -211,8 +214,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 		else {
 			try {
 				final ArrayNode argumentsArray = JSON.arrayNode();
-				argumentsArray.add(node.orElseThrow(
-						exception(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION)));
+				argumentsArray.add(node);
 				return Flux.just(ctx.getFunctionCtx().evaluate(fullyQualifiedName,
 						argumentsArray));
 			}
