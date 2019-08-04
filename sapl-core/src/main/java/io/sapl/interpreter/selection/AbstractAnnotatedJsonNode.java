@@ -149,8 +149,13 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 					argumentsArray.add(childNode);
 					final Optional<JsonNode> modifiedChildNode = ctx.getFunctionCtx()
 							.evaluate(fullyQualifiedName, argumentsArray);
-					arrayNode.set(i, modifiedChildNode.orElseThrow(
-							exception(UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT)));
+					if (modifiedChildNode.isPresent()) {
+						arrayNode.set(i, modifiedChildNode.get());
+					}
+					else {
+						return Flux.error(new PolicyEvaluationException(
+								UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT));
+					}
 				}
 				return Flux.just(ResultNode.Void.INSTANCE);
 			}
