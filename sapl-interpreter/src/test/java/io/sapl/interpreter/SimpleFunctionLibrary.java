@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 
 @FunctionLibrary(name = "simple", description = "some simple functions")
@@ -43,10 +44,15 @@ public class SimpleFunctionLibrary {
 	}
 
 	@Function
-	public JsonNode append(@Text JsonNode... parameters) throws FunctionException {
+	public JsonNode append(@Text @Number JsonNode... parameters) throws FunctionException {
 		StringBuilder builder = new StringBuilder();
 		for (JsonNode parameter : parameters) {
-			builder.append(parameter.asText());
+			if (parameter.isTextual()) {
+				builder.append(parameter.asText());
+			}
+			else if (parameter.isNumber()) {
+				builder.append(parameter.asInt());
+			}
 		}
 		return JSON.textNode(builder.toString());
 	}

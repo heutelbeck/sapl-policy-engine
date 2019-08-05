@@ -793,7 +793,7 @@ public class DefaultSAPLInterpreterTest {
 
 	@Test
 	public void functionCallOnEachArrayItemWithRelativeArguments() {
-		final String policyDefinition = "import simple.append policy \"test\" permit where [{\"name\": \"Ben\", \"origin\": \"Berlin\"}, {\"name\": \"Zoe\", \"origin\": \"Zurich\"}] |- {each @.name : append(\" from \", @.origin), each @.origin : remove} == [{\"name\": \"Ben from Berlin\"}, {\"name\": \"Zoe from Zurich\"}];";
+		final String policyDefinition = "import simple.* policy \"test\" permit where [{\"name\": \"Hans\", \"origin\": \"Hagen\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}] |- {each @..name : append(\" aus \", @.origin), each @..origin : remove} == [{\"name\": \"Hans aus Hagen\"}, {\"name\": \"Felix aus Zürich\"}];";
 		final Response expected = Response.PERMIT;
 		final Response actual = INTERPRETER.evaluate(requestObject, policyDefinition,
 				attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
