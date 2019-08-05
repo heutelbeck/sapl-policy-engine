@@ -87,8 +87,8 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	/**
 	 * Replaces each item of an array by the result of evaluating a filter function for
 	 * the item.
-	 * @param function name of the filter function
 	 * @param parentNode the parent JsonNode (must be an array node)
+	 * @param function name of the filter function
 	 * @param arguments arguments to be passed to the function as a JSON array
 	 * @param ctx the evaluation context
 	 * @param isBody true if the expression occurs within the policy body (attribute
@@ -98,9 +98,8 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 * @throws PolicyEvaluationException
 	 */
 	@SuppressWarnings("unchecked")
-	protected static Flux<Void> applyFilterToEachItem(String function,
-			Optional<JsonNode> parentNode, Arguments arguments, EvaluationContext ctx,
-			boolean isBody) {
+	protected static Flux<Void> applyFilterToEachItem(Optional<JsonNode> parentNode,
+			String function, Arguments arguments, EvaluationContext ctx, boolean isBody) {
 		if (!parentNode.isPresent() || !parentNode.get().isArray()) {
 			return Flux.error(new PolicyEvaluationException(
 					String.format(FILTER_EACH_NO_ARRAY, parentNode.isPresent()
@@ -178,8 +177,8 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 
 	/**
 	 * Applies a function to a JSON node and returns a flux of the results.
-	 * @param function the name of the function
 	 * @param optNode the JSON node to apply the function to
+	 * @param function the name of the function
 	 * @param arguments other arguments to be passed to the function as a JSON array
 	 * @param ctx the evaluation context
 	 * @param isBody true if the expression occurs within the policy body (attribute
@@ -188,9 +187,9 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 * @return a flux of the results as JsonNodes
 	 */
 	@SuppressWarnings("unchecked")
-	public static Flux<Optional<JsonNode>> applyFilterToNode(String function,
-			Optional<JsonNode> optNode, Arguments arguments, EvaluationContext ctx,
-			boolean isBody, Optional<JsonNode> relativeNode) {
+	public static Flux<Optional<JsonNode>> applyFilterToNode(Optional<JsonNode> optNode,
+			String function, Arguments arguments, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		if (!optNode.isPresent()) {
 			return Flux.error(new PolicyEvaluationException(
 					UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION));

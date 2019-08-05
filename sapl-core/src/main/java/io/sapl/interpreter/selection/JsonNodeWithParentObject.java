@@ -79,10 +79,10 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 			boolean each, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
 		if (each) {
-			return applyFilterToEachItem(function, node, arguments, ctx, isBody);
+			return applyFilterToEachItem(node, function, arguments, ctx, isBody);
 		}
 		else {
-			return applyFilterToNode(function, node, arguments, ctx, isBody, relativeNode)
+			return applyFilterToNode(node, function, arguments, ctx, isBody, relativeNode)
 					.map(filteredNode -> {
 						((ObjectNode) parent.get()).set(attribute, filteredNode.get());
 						return ResultNode.Void.INSTANCE;

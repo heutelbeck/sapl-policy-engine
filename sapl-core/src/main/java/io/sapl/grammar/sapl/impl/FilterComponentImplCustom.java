@@ -29,9 +29,9 @@ import reactor.core.publisher.Flux;
 
 public class FilterComponentImplCustom extends FilterComponentImpl {
 
-	protected static final String FILTER_REMOVE = "remove";
+	private static final String FILTER_REMOVE = "remove";
 
-	protected static final String FILTER_REMOVE_ROOT = "Filter cannot remove the root of the tree the filter is applied to.";
+	private static final String FILTER_REMOVE_ROOT = "Filter cannot remove the root of the tree the filter is applied to.";
 
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -41,11 +41,11 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 	 * filtered tree is returned (which are the original roots in case the root nodes are
 	 * not modified).
 	 * @param rootNode the root node of the tree to be filtered
-	 * @param function the name of the filter function
-	 * @param arguments arguments to be passed to the function, as JSON array
-	 * @param steps the steps
+	 * @param steps the selection steps to be applied to the root node
 	 * @param each true if the selected node should be treated as an array and the filter
 	 * function should be applied to each of its items
+	 * @param function the name of the filter function
+	 * @param arguments arguments to be passed to the function, as JSON array
 	 * @param ctx the evaluation context
 	 * @param isBody true if the expression occurs within the policy body (attribute
 	 * finder steps are only allowed if set to true)
@@ -54,7 +54,7 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 	 * @return a Flux of root nodes of the filtered tree
 	 */
 	protected Flux<Optional<JsonNode>> applyFilterStatement(Optional<JsonNode> rootNode,
-			String function, Arguments arguments, EList<Step> steps, boolean each,
+			EList<Step> steps, boolean each, String function, Arguments arguments,
 			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		return StepResolver.resolveSteps(rootNode, steps, ctx, isBody, relativeNode)
 				.switchMap(resultNode -> {
@@ -81,13 +81,13 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 	 * finder steps are only allowed if set to true)
 	 * @return the stream of results returned by the reactive filter function
 	 */
-	protected static Flux<Optional<JsonNode>> getFilteredRoot(ResultNode target,
+	private static Flux<Optional<JsonNode>> getFilteredRoot(ResultNode target,
 			String function, Arguments arguments, EvaluationContext ctx, boolean isBody) {
 		if (FILTER_REMOVE.equals(function)) {
 			return Flux.error(new PolicyEvaluationException(FILTER_REMOVE_ROOT));
 		}
-		return AbstractAnnotatedJsonNode.applyFilterToNode(function,
-				target.asJsonWithoutAnnotations(), arguments, ctx, isBody, null);
+		return AbstractAnnotatedJsonNode.applyFilterToNode(target.asJsonWithoutAnnotations(),
+				function, arguments, ctx, isBody, null);
 	}
 
 	/**
@@ -104,7 +104,7 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 	 * @return a flux of {@link ResultNode.Void} instances, each indicating a finished
 	 * application of the filter function
 	 */
-	protected static Flux<ResultNode.Void> applyFilter(ResultNode target, String function,
+	private static Flux<ResultNode.Void> applyFilter(ResultNode target, String function,
 			Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
 		if (FILTER_REMOVE.equals(function)) {
 			return Flux.defer(() -> {

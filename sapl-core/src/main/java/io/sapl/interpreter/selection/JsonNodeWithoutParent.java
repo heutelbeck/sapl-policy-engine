@@ -77,7 +77,7 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 			boolean each, EvaluationContext ctx, boolean isBody,
 			Optional<JsonNode> relativeNode) {
 		if (each) {
-			return applyFilterToEachItem(function, node, arguments, ctx, isBody);
+			return applyFilterToEachItem(node, function, arguments, ctx, isBody);
 		}
 		else {
 			return Flux.error(new PolicyEvaluationException(FILTER_ROOT_ELEMENT));

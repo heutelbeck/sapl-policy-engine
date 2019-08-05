@@ -31,7 +31,7 @@ public class FilterSimpleImplCustom extends FilterSimpleImpl {
 			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		final String function = String.join(".", fsteps);
 		return applyFilterStatement(Optional.of(unfilteredRootNode.get().deepCopy()),
-				function, getArguments(), null, each, ctx, isBody, relativeNode);
+				null, each, function, getArguments(), ctx, isBody, relativeNode);
 	}
 
 	@Override

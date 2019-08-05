@@ -40,9 +40,9 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 					statements.size());
 			for (FilterStatement statement : statements) {
 				final String function = String.join(".", statement.getFsteps());
-				fluxProviders.add(node -> applyFilterStatement(node, function,
-						statement.getArguments(), statement.getTarget().getSteps(),
-						statement.isEach(), ctx, isBody, relativeNode));
+				fluxProviders.add(node -> applyFilterStatement(node, statement.getTarget().getSteps(),
+						statement.isEach(), function, statement.getArguments(),
+						ctx, isBody, relativeNode));
 			}
 			return DependentStreamsUtil.sequentialSwitchMap(Optional.of(result), fluxProviders);
 			//return DependentStreamsUtil.nestedSwitchMap(Optional.of(result), fluxProviders);
