@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.Void;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.Value;
@@ -85,7 +86,7 @@ public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 			return applyFilterToNode(node, function, arguments, ctx, isBody, relativeNode)
 					.map(filteredNode -> {
 						((ArrayNode) parent.get()).set(index, filteredNode.get());
-						return ResultNode.Void.INSTANCE;
+						return Void.INSTANCE;
 					});
 
 		}

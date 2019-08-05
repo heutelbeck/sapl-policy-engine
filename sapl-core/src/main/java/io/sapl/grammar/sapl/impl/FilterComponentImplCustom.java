@@ -23,6 +23,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.Void;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
@@ -101,16 +102,16 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 	 * @param ctx the evaluation context
 	 * @param isBody true if the expression occurs within the policy body (attribute
 	 * finder steps are only allowed if set to true)
-	 * @return a flux of {@link ResultNode.Void} instances, each indicating a finished
+	 * @return a flux of {@link Void} instances, each indicating a finished
 	 * application of the filter function
 	 */
-	private static Flux<ResultNode.Void> applyFilter(ResultNode target, String function,
+	private static Flux<Void> applyFilter(ResultNode target, String function,
 			Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody) {
 		if (FILTER_REMOVE.equals(function)) {
 			return Flux.defer(() -> {
 				try {
 					target.removeFromTree(each);
-					return Flux.just(ResultNode.Void.INSTANCE);
+					return Flux.just(Void.INSTANCE);
 				}
 				catch (PolicyEvaluationException e) {
 					return Flux.error(e);

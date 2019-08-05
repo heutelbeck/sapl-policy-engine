@@ -28,6 +28,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.Void;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import reactor.core.publisher.Flux;

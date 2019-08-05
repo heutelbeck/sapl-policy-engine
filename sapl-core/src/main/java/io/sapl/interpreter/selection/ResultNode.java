@@ -20,6 +20,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.Void;
 import reactor.core.publisher.Flux;
 
 /**
@@ -35,12 +36,6 @@ import reactor.core.publisher.Flux;
  * JSON tree.
  */
 public interface ResultNode {
-
-	class Void {
-
-		public static final Void INSTANCE = new Void();
-
-	}
 
 	/**
 	 * Removes all annotations from the selection result tree and returns the root
@@ -94,7 +89,7 @@ public interface ResultNode {
 	 * function should be applied to each of its items
 	 * @param ctx the evaluation context
 	 * @param isBody true if the filter is applied within the policy body
-	 * @return a flux of {@link ResultNode.Void} instances, each indicating a finished
+	 * @return a flux of {@link Void} instances, each indicating a finished
 	 * application of the filter function to the selected JsonNode or its child elements.
 	 */
 	Flux<Void> applyFilter(String function, Arguments arguments, boolean each,

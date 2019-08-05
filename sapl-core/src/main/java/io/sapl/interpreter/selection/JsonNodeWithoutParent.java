@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.Void;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.Value;

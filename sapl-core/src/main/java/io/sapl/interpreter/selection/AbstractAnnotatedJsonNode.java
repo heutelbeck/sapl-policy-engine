@@ -27,6 +27,7 @@ import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.Void;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import reactor.core.publisher.Flux;
@@ -93,7 +94,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 * @param ctx the evaluation context
 	 * @param isBody true if the expression occurs within the policy body (attribute
 	 * finder steps are only allowed if set to true)
-	 * @return a flux of {@link ResultNode.Void} instances, each indicating a finished
+	 * @return a flux of {@link Void} instances, each indicating a finished
 	 * application of the function to each item of the parent array node
 	 * @throws PolicyEvaluationException
 	 */
@@ -147,7 +148,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 								String.format(FILTER_FUNCTION_EVALUATION, function), e));
 					}
 				}
-				return Flux.just(ResultNode.Void.INSTANCE);
+				return Flux.just(Void.INSTANCE);
 			}).flatMap(Function.identity());
 		}
 		else {
@@ -166,7 +167,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 								UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT));
 					}
 				}
-				return Flux.just(ResultNode.Void.INSTANCE);
+				return Flux.just(Void.INSTANCE);
 			}
 			catch (FunctionException e) {
 				return Flux.error(new PolicyEvaluationException(
@@ -257,7 +258,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 * @param isBody true if the expression occurs within the policy body (attribute
 	 * finder steps are only allowed if set to true)
 	 * @param relativeNode the node a relative expression evaluates to
-	 * @return a flux of {@link ResultNode.Void} instances, each indicating a finished
+	 * @return a flux of {@link Void} instances, each indicating a finished
 	 * application of the function
 	 */
 	public abstract Flux<Void> applyFilterWithRelativeNode(String function,
