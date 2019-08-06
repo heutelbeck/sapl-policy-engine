@@ -112,10 +112,10 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 			return Flux.just(Optional.of(arrayNode));
 		}
 		return Flux.combineLatest(fluxes, Function.identity())
-				.flatMap(replacements -> replace(replacements, arrayNode));
+				.flatMap(replacements -> replace(arrayNode, replacements));
 	}
 
-	private Flux<Optional<JsonNode>> replace(Object[] replacements, ArrayNode arrayNode) {
+	private Flux<Optional<JsonNode>> replace(ArrayNode arrayNode, Object[] replacements) {
 		for (int i = 0; i < arrayNode.size(); i++) {
 			@SuppressWarnings("unchecked")
 			Optional<JsonNode> value = ((Optional<JsonNode>) replacements[i]);
