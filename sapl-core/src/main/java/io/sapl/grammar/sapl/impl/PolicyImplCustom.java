@@ -47,14 +47,17 @@ public class PolicyImplCustom extends PolicyImpl {
     @Override
     public Flux<Response> evaluate(EvaluationContext ctx) {
         final Decision entitlement = PERMIT.equals(getEntitlement()) ? Decision.PERMIT : Decision.DENY;
+        final EvaluationContext policyCtx = new EvaluationContext(
+                ctx.getAttributeCtx(), ctx.getFunctionCtx(),
+                ctx.getVariableCtx(), ctx.getImports());
         final Flux<Decision> decisionFlux =
                 getBody() != null
-                        ? getBody().evaluate(entitlement, ctx)
+                        ? getBody().evaluate(entitlement, policyCtx)
                         : Flux.just(entitlement);
 
         return decisionFlux.flatMap(decision -> {
             if (decision == Decision.PERMIT || decision == Decision.DENY) {
-                return evaluateObligationsAndAdvice(ctx)
+                return evaluateObligationsAndAdvice(policyCtx)
                         .map(obligationsAndAdvice -> {
                             final Optional<ArrayNode> obligations = obligationsAndAdvice
                                     .getT1();
@@ -71,7 +74,7 @@ public class PolicyImplCustom extends PolicyImpl {
         }).flatMap(response -> {
             final Decision decision = response.getDecision();
             if (decision == Decision.PERMIT) {
-                return evaluateTransformation(ctx)
+                return evaluateTransformation(policyCtx)
                         .map(resource -> new Response(decision, resource,
                                 response.getObligations(), response.getAdvices()));
             }
