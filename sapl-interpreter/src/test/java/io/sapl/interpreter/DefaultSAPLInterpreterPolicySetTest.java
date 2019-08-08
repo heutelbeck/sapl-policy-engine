@@ -59,7 +59,8 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void setPermit() {
-		String policySet = "set \"tests\" deny-overrides " + "policy \"testp\" permit";
+		String policySet = "set \"tests\" deny-overrides "
+				+ "policy \"testp\" permit";
 		Response expected = Response.PERMIT;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
@@ -69,7 +70,8 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void setDeny() {
-		String policySet = "set \"tests\" deny-overrides " + "policy \"testp\" deny";
+		String policySet = "set \"tests\" deny-overrides "
+				+ "policy \"testp\" deny";
 		Response expected = Response.DENY;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
@@ -79,7 +81,8 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void setNotApplicable() {
-		String policySet = "set \"tests\" deny-overrides " + "for true == false "
+		String policySet = "set \"tests\" deny-overrides "
+				+ "for true == false "
 				+ "policy \"testp\" deny";
 		Response expected = Response.NOT_APPLICABLE;
 		Response actual = INTERPRETER
@@ -91,7 +94,8 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void noApplicablePolicies() {
-		String policySet = "set \"tests\" deny-overrides " + "for true "
+		String policySet = "set \"tests\" deny-overrides "
+				+ "for true "
 				+ "policy \"testp\" deny true == false";
 		Response expected = Response.NOT_APPLICABLE;
 		Response actual = INTERPRETER
@@ -103,7 +107,8 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void setIndeterminate() {
-		String policySet = "set \"tests\" deny-overrides" + "for \"a\" > 4 "
+		String policySet = "set \"tests\" deny-overrides"
+				+ "for \"a\" > 4 "
 				+ "policy \"testp\" permit";
 		Response expected = Response.INDETERMINATE;
 		Response actual = INTERPRETER
@@ -115,7 +120,8 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void denyOverridesPermitAndDeny() {
-		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
+		String policySet = "set \"tests\" deny-overrides "
+				+ "policy \"testp1\" permit "
 				+ "policy \"testp2\" deny";
 		Response expected = Response.DENY;
 		Response actual = INTERPRETER
@@ -127,8 +133,10 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void denyOverridesPermitAndNotApplicableAndDeny() {
-		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
-				+ "policy \"testp2\" permit true == false " + "policy \"testp3\" deny";
+		String policySet = "set \"tests\" deny-overrides "
+				+ "policy \"testp1\" permit "
+				+ "policy \"testp2\" permit true == false "
+				+ "policy \"testp3\" deny";
 		Response expected = Response.DENY;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
@@ -139,8 +147,10 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void denyOverridesPermitAndIntederminateAndDeny() {
-		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
-				+ "policy \"testp2\" permit \"a\" < 5 " + "policy \"testp3\" deny";
+		String policySet = "set \"tests\" deny-overrides "
+				+ "policy \"testp1\" permit "
+				+ "policy \"testp2\" permit \"a\" < 5 "
+				+ "policy \"testp3\" deny";
 		Response expected = Response.DENY;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
@@ -151,7 +161,8 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void importsInSetAvailableInPolicy() {
-		String policySet = "import filter.replace " + "set \"tests\" deny-overrides "
+		String policySet = "import filter.replace "
+				+ "set \"tests\" deny-overrides "
 				+ "policy \"testp1\" permit transform true |- replace(false)";
 		Optional<BooleanNode> expected = Optional
 				.of(JsonNodeFactory.instance.booleanNode(false));
@@ -164,7 +175,8 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void importsDuplicatesByPolicySet() {
-		String policySet = "import filter.replace " + "import filter.replace "
+		String policySet = "import filter.replace "
+				+ "import filter.replace "
 				+ "set \"tests\" deny-overrides "
 				+ "policy \"testp1\" permit where true;";
 		Response expected = Response.INDETERMINATE;
@@ -177,7 +189,8 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void variablesOnSetLevel() {
-		String policySet = "set \"tests\" deny-overrides " + "var var1 = true; "
+		String policySet = "set \"tests\" deny-overrides "
+				+ "var var1 = true; "
 				+ "policy \"testp1\" permit var1 == true";
 		Decision expected = Decision.PERMIT;
 		Decision actual = INTERPRETER
@@ -202,7 +215,8 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void variablesOverwriteInPolicy() {
-		String policySet = "set \"tests\" deny-overrides " + "var var1 = true; "
+		String policySet = "set \"tests\" deny-overrides "
+				+ "var var1 = true; "
 				+ "policy \"testp1\" permit where var var1 = 10; var1 == 10; "
 				+ "policy \"testp2\" deny where !(var1 == true);";
 		Decision expected = Decision.PERMIT;
@@ -215,13 +229,28 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void subjectAsVariable() {
-		String policySet = "set \"test\" deny-overrides " + "var subject = null;  "
+		String policySet = "set \"test\" deny-overrides "
+				+ "var subject = null;  "
 				+ "policy \"test\" permit";
 		Response expected = Response.INDETERMINATE;
 		Response actual = INTERPRETER
 				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst();
 		assertEquals("'subject' as variable name should evaluate to indeterminate",
+				expected, actual);
+	}
+
+	@Test
+	public void variablesInPolicyMustNotLeakIntoNextPolicy() {
+		String policySet = "set \"test\" deny-overrides "
+				+ "var ps1 = true; "
+				+ "policy \"pol1\" permit where var p1 = 10; p1 == 10; "
+				+ "policy \"pol2\" deny where p1 == 10;";
+		Response expected = Response.INDETERMINATE;
+		Response actual = INTERPRETER
+				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+				.blockFirst();
+		assertEquals("variable p1 from policy pol1 should not be defined in policy pol2",
 				expected, actual);
 	}
 

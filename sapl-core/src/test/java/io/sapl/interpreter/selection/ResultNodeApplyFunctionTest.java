@@ -252,7 +252,7 @@ public class ResultNodeApplyFunctionTest {
 	public void functionWithImport() {
 		Map<String, String> imports = new HashMap<>();
 		imports.put("short", "dummy");
-		ctx = new EvaluationContext(null, functionCtx, variableCtx, imports);
+		ctx = new EvaluationContext(functionCtx, variableCtx, imports);
 
 		ArrayNode target = JSON.arrayNode();
 		target.add(JSON.nullNode());

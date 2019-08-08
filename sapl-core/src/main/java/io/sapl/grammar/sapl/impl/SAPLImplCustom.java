@@ -8,7 +8,6 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.Response;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
-import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -76,9 +75,10 @@ public class SAPLImplCustom extends SAPLImpl {
         try {
             if (matches(ctx)) {
                 final Map<String, String> imports = fetchFunctionAndPipImports(ctx);
-                final EvaluationContext evaluationCtx = new EvaluationContext(ctx.getAttributeCtx(), ctx.getFunctionCtx(), ctx.getVariableCtx(), imports);
-                final PolicyElement policyElement = getPolicyElement();
-                return policyElement.evaluate(evaluationCtx).doOnNext(this::logResponse);
+                final EvaluationContext evaluationCtx = new EvaluationContext(
+                        ctx.getAttributeCtx(), ctx.getFunctionCtx(),
+                        ctx.getVariableCtx().copy(), imports);
+                return getPolicyElement().evaluate(evaluationCtx).doOnNext(this::logResponse);
             }
             else {
                 LOGGER.trace("| | |-- NOT_APPLICABLE. Cause: " + NO_TARGET_MATCH);

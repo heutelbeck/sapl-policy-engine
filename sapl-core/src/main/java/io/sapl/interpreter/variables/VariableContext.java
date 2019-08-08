@@ -105,4 +105,13 @@ public class VariableContext {
 		return result;
 	}
 
+	/**
+	 * @return a deep copy of this variables context.
+	 */
+	public VariableContext copy() {
+		final VariableContext copy = new VariableContext();
+		variables.forEach((key, value) -> copy.variables.put(key, value.deepCopy()));
+		return copy;
+	}
+
 }

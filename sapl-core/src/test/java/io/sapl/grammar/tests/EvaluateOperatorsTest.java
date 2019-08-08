@@ -6,7 +6,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.Optional;
 
 import org.junit.Test;
@@ -57,8 +56,7 @@ public class EvaluateOperatorsTest {
 
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private static EvaluationContext ctx = new EvaluationContext(null, null, null,
-			new HashMap<>());
+	private static EvaluationContext ctx = new EvaluationContext();
 
 	@Test
 	public void evaluateAndInTarget() {

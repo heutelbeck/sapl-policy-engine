@@ -12,17 +12,17 @@
  */
 package io.sapl.interpreter;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 import java.util.Map;
 
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.variables.VariableContext;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 public class EvaluationContext {
 
 	AttributeContext attributeCtx;
@@ -33,25 +33,52 @@ public class EvaluationContext {
 
 	Map<String, String> imports;
 
-	public EvaluationContext(AttributeContext attributeContext,
-			FunctionContext functionContext, VariableContext variableContext) {
-		attributeCtx = attributeContext;
-		functionCtx = functionContext;
-		variableCtx = variableContext;
-		imports = new HashMap<>();
+	public EvaluationContext() {
+		this.variableCtx = new VariableContext();
+		this.imports = new HashMap<>();
+	}
+
+	public EvaluationContext(FunctionContext functionContext, VariableContext variableContext) {
+		this.functionCtx = requireNonNull(functionContext);
+		this.variableCtx = requireNonNull(variableContext);
+		this.imports = new HashMap<>();
 	}
 
 	public EvaluationContext(FunctionContext functionContext,
 			VariableContext variableContext, Map<String, String> imports) {
-		functionCtx = functionContext;
-		variableCtx = variableContext;
-		this.imports = new HashMap<>(imports);
+		this.functionCtx = requireNonNull(functionContext);
+		this.variableCtx = requireNonNull(variableContext);
+		this.imports = imports == null ? new HashMap<>() : new HashMap<>(imports);
 	}
 
-	public EvaluationContext(FunctionContext functionContext, VariableContext variableContext) {
-		functionCtx = functionContext;
-		variableCtx = variableContext;
-		imports = new HashMap<>();
+	public EvaluationContext(AttributeContext attributeContext,
+			FunctionContext functionContext, VariableContext variableContext) {
+		this.attributeCtx = requireNonNull(attributeContext);
+		this.functionCtx = requireNonNull(functionContext);
+		this.variableCtx = requireNonNull(variableContext);
+		this.imports = new HashMap<>();
+	}
+
+	public EvaluationContext(AttributeContext attributeContext, FunctionContext functionContext,
+			VariableContext variableContext, Map<String, String> imports) {
+		this.attributeCtx = requireNonNull(attributeContext);
+		this.functionCtx = requireNonNull(functionContext);
+		this.variableCtx = requireNonNull(variableContext);
+		this.imports = imports == null ? new HashMap<>() : new HashMap<>(imports);
+	}
+
+	/**
+	 * Creates a copy of this evaluation context. The copy references the same instance of
+	 * the attribute context and function context, but deep copies of the variable context and imports.
+	 * The attribute context and function context are created once during startup, but the variable
+	 * context and imports may be specific to a certain scope. Before passing the evaluation context
+	 * to a narrower scope, it should be copied to make sure, the current context is not polluted by
+	 * elements of the narrower scope when after the narrower scope has been processed.
+	 *
+	 * @return a copy of this evaluation context to be passed to narrower scopes.
+	 */
+	public EvaluationContext copy() {
+		return new EvaluationContext(attributeCtx, functionCtx, variableCtx.copy(), new HashMap<>(imports));
 	}
 
 }

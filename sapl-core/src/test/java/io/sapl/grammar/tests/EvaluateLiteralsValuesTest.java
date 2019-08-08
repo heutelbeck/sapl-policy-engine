@@ -4,7 +4,6 @@ import static io.sapl.grammar.tests.BasicValueHelper.basicValueFrom;
 import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.Optional;
 
 import org.junit.Test;
@@ -36,8 +35,7 @@ public class EvaluateLiteralsValuesTest {
 
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private static EvaluationContext ctx = new EvaluationContext(null, null, null,
-			new HashMap<>());
+	private static EvaluationContext ctx = new EvaluationContext();
 
 	@Test
 	public void evaluateNullLiteral() {

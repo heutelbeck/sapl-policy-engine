@@ -46,10 +46,8 @@ public class PolicyImplCustom extends PolicyImpl {
      */
     @Override
     public Flux<Response> evaluate(EvaluationContext ctx) {
+        final EvaluationContext policyCtx = ctx.copy();
         final Decision entitlement = PERMIT.equals(getEntitlement()) ? Decision.PERMIT : Decision.DENY;
-        final EvaluationContext policyCtx = new EvaluationContext(
-                ctx.getAttributeCtx(), ctx.getFunctionCtx(),
-                ctx.getVariableCtx(), ctx.getImports());
         final Flux<Decision> decisionFlux =
                 getBody() != null
                         ? getBody().evaluate(entitlement, policyCtx)

@@ -54,7 +54,7 @@ public class EvaluateBasicExpressionsTest {
 	public void prepare() throws PolicyEvaluationException {
 		Map<String, String> imports = new HashMap<>();
 		imports.put(SHORT, LONG);
-		ctx = new EvaluationContext(null, functionCtx, variableCtx, imports);
+		ctx = new EvaluationContext(functionCtx, variableCtx, imports);
 		variableCtx.put(KEY, JSON.booleanNode(true));
 	}
 
