@@ -42,7 +42,6 @@ class SelectionFunctionLibraryTest {
 	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
 	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>());
-	static final Response PERMIT_EMPTY = new Response(Decision.PERMIT, Optional.empty, Optional.empty, Optional.empty)
 
 	static final String request = '''
 		{  
@@ -94,7 +93,7 @@ class SelectionFunctionLibraryTest {
 				selection.apply(resource._content, _selector) == "name3";
 		''';
 
-		val expectedResponse = io.sapl.functions.SelectionFunctionLibraryTest.PERMIT_EMPTY
+		val expectedResponse = Response.PERMIT
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -126,7 +125,7 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records");
 		''';
 
-		val expectedResponse = io.sapl.functions.SelectionFunctionLibraryTest.PERMIT_EMPTY
+		val expectedResponse = Response.PERMIT
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -174,7 +173,7 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records[:-1]");
 		''';
 
-		val expectedResponse = io.sapl.functions.SelectionFunctionLibraryTest.PERMIT_EMPTY
+		val expectedResponse = Response.PERMIT
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -206,7 +205,7 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records[?(@.value>250)]");
 		''';
 
-		val expectedResponse = io.sapl.functions.SelectionFunctionLibraryTest.PERMIT_EMPTY
+		val expectedResponse = Response.PERMIT
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -222,7 +221,7 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@");
 		''';
 
-		val expectedResponse = io.sapl.functions.SelectionFunctionLibraryTest.PERMIT_EMPTY
+		val expectedResponse = Response.PERMIT
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -238,7 +237,7 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@");
 		''';
 
-		val expectedResponse = io.sapl.functions.SelectionFunctionLibraryTest.PERMIT_EMPTY
+		val expectedResponse = Response.PERMIT
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -268,7 +267,7 @@ class SelectionFunctionLibraryTest {
 			permit selection.equal(resource._content, "@.records[-1].name","@.records[2].name")
 		''';
 
-		val expectedResponse = PERMIT_EMPTY
+		val expectedResponse = Response.PERMIT
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -282,7 +281,7 @@ class SelectionFunctionLibraryTest {
 			permit selection.equal(resource._content, "@","@")
 		''';
 
-		val expectedResponse = PERMIT_EMPTY
+		val expectedResponse = Response.PERMIT
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
@@ -310,7 +309,7 @@ class SelectionFunctionLibraryTest {
 			permit selection.equal(resource._content, "@.records[:-1].name","@.records[0:2].name")
 		''';
 
-		val expectedResponse = PERMIT_EMPTY
+		val expectedResponse = Response.PERMIT
 		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 

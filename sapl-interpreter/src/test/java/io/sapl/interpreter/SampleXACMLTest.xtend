@@ -128,7 +128,7 @@ class SampleXACMLTest {
 			permit subject =~ "(?i).*@med\\.example\\.com"
 		''';
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty());
+		val expectedResponse = Response.PERMIT
 
 		assertThat("XACML example one not working as expected",
 			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
@@ -190,7 +190,7 @@ class SampleXACMLTest {
 			}
 		''', Request)
 		
-		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, Optional.empty, Optional.empty)
+		val expectedResponse = Response.PERMIT
 		
 		assertThat("XACML example two rule 1 not working as expected",
 			INTERPRETER.evaluate(request, policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
@@ -254,7 +254,7 @@ class SampleXACMLTest {
 			}
 		''', Request)
 		
-		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, Optional.empty, Optional.empty)
+		val expectedResponse = Response.PERMIT
 		
 		assertThat("XACML example two rule 2 not working as expected",
 			INTERPRETER.evaluate(request, policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),

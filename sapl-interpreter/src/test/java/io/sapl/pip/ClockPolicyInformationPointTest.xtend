@@ -42,7 +42,6 @@ class ClockPolicyInformationPointTest {
 	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext()
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>())
 	static final ClockPolicyInformationPoint PIP = new ClockPolicyInformationPoint()
-    static final Response PERMIT_EMPTY = new Response(Decision.PERMIT, Optional.empty, Optional.empty, Optional.empty)
 
     static final String request = '''
 		{
@@ -72,7 +71,7 @@ class ClockPolicyInformationPointTest {
 			    standard.length("UTC".<clock.now>) > 1;
 		'''
 
-        val expectedResponse = ClockPolicyInformationPointTest.PERMIT_EMPTY
+        val expectedResponse = Response.PERMIT
         val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("now in UTC time zone should return a string of length > 1", response, equalTo(expectedResponse))
@@ -88,7 +87,7 @@ class ClockPolicyInformationPointTest {
 			    standard.length("ECT".<clock.now>) > 1;
 		'''
 
-        val expectedResponse = ClockPolicyInformationPointTest.PERMIT_EMPTY
+        val expectedResponse = Response.PERMIT
         val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("now in ECT time zone should return a string of length  > 1", response, equalTo(expectedResponse))
@@ -104,7 +103,7 @@ class ClockPolicyInformationPointTest {
 			    standard.length("Europe/Berlin".<clock.now>) > 1;
 		'''
 
-        val expectedResponse = ClockPolicyInformationPointTest.PERMIT_EMPTY
+        val expectedResponse = Response.PERMIT
         val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("now in Europe/Berlin time zone should return a string of length > 1", response, equalTo(expectedResponse))
@@ -121,7 +120,7 @@ class ClockPolicyInformationPointTest {
 			    length > 1;
 		'''
 
-        val expectedResponse = ClockPolicyInformationPointTest.PERMIT_EMPTY
+        val expectedResponse = Response.PERMIT
         val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
         assertThat("now in the system's time zone should return a string of length > 1", response, equalTo(expectedResponse))

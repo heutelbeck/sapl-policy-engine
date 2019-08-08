@@ -12,6 +12,8 @@
  */
 package io.sapl.api.pdp;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -33,17 +35,13 @@ import lombok.ToString;
 @ToString
 public class Response {
 
-	public static final Response PERMIT = new Response(Decision.PERMIT,
-			Optional.empty(), Optional.empty(), Optional.empty());
+	public static final Response PERMIT = new Response(Decision.PERMIT);
 
-	public static final Response DENY = new Response(Decision.DENY,
-			Optional.empty(), Optional.empty(), Optional.empty());
+	public static final Response DENY = new Response(Decision.DENY);
 
-	public static final Response INDETERMINATE = new Response(Decision.INDETERMINATE,
-			Optional.empty(), Optional.empty(), Optional.empty());
+	public static final Response INDETERMINATE = new Response(Decision.INDETERMINATE);
 
-	public static final Response NOT_APPLICABLE = new Response(Decision.NOT_APPLICABLE,
-			Optional.empty(), Optional.empty(), Optional.empty());
+	public static final Response NOT_APPLICABLE = new Response(Decision.NOT_APPLICABLE);
 
 
 	Decision decision;
@@ -60,6 +58,11 @@ public class Response {
 
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<ArrayNode> advices = Optional.empty();
+
+
+	public Response(Decision decision) {
+		this.decision = requireNonNull(decision);
+	}
 
 	@Override
 	public boolean equals(Object o) {

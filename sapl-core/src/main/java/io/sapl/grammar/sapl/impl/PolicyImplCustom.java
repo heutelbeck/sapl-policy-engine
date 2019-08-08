@@ -66,8 +66,7 @@ public class PolicyImplCustom extends PolicyImpl {
                         });
             }
             else {
-                return Flux.just(new Response(decision, Optional.empty(),
-                        Optional.empty(), Optional.empty()));
+                return Flux.just(new Response(decision));
             }
         }).flatMap(response -> {
             final Decision decision = response.getDecision();

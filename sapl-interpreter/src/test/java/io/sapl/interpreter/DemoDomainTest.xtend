@@ -78,7 +78,7 @@ class DemoDomainTest {
 			permit "getPatients" in action..java.name
 		''';
 
-		val expectedResponse = new Response(Decision.NOT_APPLICABLE, Optional.empty(), Optional.empty(), Optional.empty())
+		val expectedResponse = Response.NOT_APPLICABLE
 
 		assertThat("demo policy fail",
 			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
