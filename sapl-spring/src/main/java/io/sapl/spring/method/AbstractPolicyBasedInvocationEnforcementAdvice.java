@@ -56,7 +56,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 	}
 
 	/**
-	 * Lazy loading of decouples security infrastructure from domain logic in
+	 * Lazy loading of dependencies decouples security infrastructure from domain logic in
 	 * initialization. This avoids beans to become not eligible for Bean post processing.
 	 */
 	protected void lazyLoadDepdendencies() {

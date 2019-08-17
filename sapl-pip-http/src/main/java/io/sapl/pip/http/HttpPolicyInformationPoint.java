@@ -58,35 +58,35 @@ public class HttpPolicyInformationPoint {
 
 	@Attribute(docs = GET_DOCS)
 	public Flux<JsonNode> get(@Text @JsonObject JsonNode value,
-			Map<String, JsonNode> variables) throws AttributeException {
+			Map<String, JsonNode> variables) {
 		return executeReactiveRequest(value, GET).doOnNext(
 				jsonNode -> LOGGER.trace("http.get({}) returned {}", value, jsonNode));
 	}
 
 	@Attribute(docs = POST_DOCS)
 	public Flux<JsonNode> post(@Text @JsonObject JsonNode value,
-			Map<String, JsonNode> variables) throws AttributeException {
+			Map<String, JsonNode> variables) {
 		return executeReactiveRequest(value, POST).doOnNext(
 				jsonNode -> LOGGER.trace("http.post({}) returned {}", value, jsonNode));
 	}
 
 	@Attribute(docs = PUT_DOCS)
 	public Flux<JsonNode> put(@Text @JsonObject JsonNode value,
-			Map<String, JsonNode> variables) throws AttributeException {
+			Map<String, JsonNode> variables) {
 		return executeReactiveRequest(value, PUT).doOnNext(
 				jsonNode -> LOGGER.trace("http.put({}) returned {}", value, jsonNode));
 	}
 
 	@Attribute(docs = PATCH_DOCS)
 	public Flux<JsonNode> patch(@Text @JsonObject JsonNode value,
-			Map<String, JsonNode> variables) throws AttributeException {
+			Map<String, JsonNode> variables) {
 		return executeReactiveRequest(value, PATCH).doOnNext(
 				jsonNode -> LOGGER.trace("http.patch({}) returned {}", value, jsonNode));
 	}
 
 	@Attribute(docs = DELETE_DOCS)
 	public Flux<JsonNode> delete(@Text @JsonObject JsonNode value,
-			Map<String, JsonNode> variables) throws AttributeException {
+			Map<String, JsonNode> variables) {
 		return executeReactiveRequest(value, DELETE).doOnNext(
 				jsonNode -> LOGGER.trace("http.delete({}) returned {}", value, jsonNode));
 	}
