@@ -34,7 +34,7 @@ import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 public class FilesystemPDPConfigurationProvider
-		implements PDPConfigurationProvider, io.sapl.api.pdp.Disposable {
+		implements PDPConfigurationProvider {
 
 	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
@@ -158,12 +158,6 @@ public class FilesystemPDPConfigurationProvider
 				.map(event -> (Map<String, JsonNode>) config.getVariables())
 				.distinctUntilChanged()
 				.doOnNext(variables -> LOGGER.trace("|-- Current PDP config: variables = {}", variables));
-	}
-
-	@Override
-	public void dispose() {
-		dirWatcherFluxSubscription.dispose();
-		dirWatcherScheduler.dispose();
 	}
 
 }

@@ -1,6 +1,5 @@
 package io.sapl.pdp.embedded;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -24,11 +23,6 @@ public class EmbeddedPolicyDecisionPointTest {
 	public void setUp() throws Exception {
 		pdp = EmbeddedPolicyDecisionPoint.builder().withResourcePDPConfigurationProvider()
 				.withResourcePolicyRetrievalPoint().withPolicyInformationPoint(new TestPIP()).build();
-	}
-
-	@After
-	public void cleanUp() throws Exception {
-		pdp.dispose();
 	}
 
 	@Test

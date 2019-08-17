@@ -39,7 +39,7 @@ import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 public class FilesystemPolicyRetrievalPoint
-		implements PolicyRetrievalPoint, io.sapl.api.pdp.Disposable {
+		implements PolicyRetrievalPoint {
 
 	private static final String POLICY_FILE_GLOB_PATTERN = "*.sapl";
 
@@ -167,12 +167,6 @@ public class FilesystemPolicyRetrievalPoint
 				lock.unlock();
 			}
 		});
-	}
-
-	@Override
-	public void dispose() {
-		dirWatcherFluxSubscription.dispose();
-		dirWatcherScheduler.dispose();
 	}
 
 }

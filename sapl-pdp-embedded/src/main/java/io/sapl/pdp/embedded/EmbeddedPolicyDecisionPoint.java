@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.Disposable;
 import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
@@ -47,7 +46,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
-public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposable {
+public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private final FunctionContext functionCtx = new AnnotationFunctionContext();
 
@@ -129,13 +128,6 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 					ir.getResponse());
 		}
 		return multiResponse;
-	}
-
-	@Override
-	public void dispose() {
-		if (prp instanceof Disposable) {
-			((Disposable) prp).dispose();
-		}
 	}
 
 	public static Builder builder() throws FunctionException, AttributeException {

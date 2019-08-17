@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.Disposable;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
@@ -26,7 +25,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PolicyEnforcementPoint implements Disposable {
+public class PolicyEnforcementPoint {
 
 	private static final Response DENY = Response.DENY;
 
@@ -215,13 +214,6 @@ public class PolicyEnforcementPoint implements Disposable {
 		final JsonNode resourceNode = mapper.valueToTree(resource);
 		final JsonNode environmentNode = mapper.valueToTree(environment);
 		return new Request(subjectNode, actionNode, resourceNode, environmentNode);
-	}
-
-	@Override
-	public void dispose() {
-		if (pdp instanceof Disposable) {
-			((Disposable) pdp).dispose();
-		}
 	}
 
 }

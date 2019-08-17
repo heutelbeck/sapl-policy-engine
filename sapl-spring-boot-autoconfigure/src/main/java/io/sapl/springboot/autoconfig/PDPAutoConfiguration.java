@@ -3,11 +3,7 @@ package io.sapl.springboot.autoconfig;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Collection;
-import java.util.Optional;
 
-import javax.annotation.PreDestroy;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,19 +12,18 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder;
-import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import io.sapl.spring.PolicyEnforcementFilterPEP;
 import io.sapl.spring.SAPLProperties;
@@ -196,19 +191,6 @@ public class PDPAutoConfiguration {
 		String key = remoteProps.getKey();
 		String secret = remoteProps.getSecret();
 		return new RemotePolicyDecisionPoint(host, port, key, secret);
-	}
-
-	@Service
-	public static class PDPDestroyer {
-
-		@Autowired
-		Optional<EmbeddedPolicyDecisionPoint> pdp;
-
-		@PreDestroy
-		public void disposePdp() {
-			pdp.ifPresent(EmbeddedPolicyDecisionPoint::dispose);
-		}
-
 	}
 
 	@Bean
