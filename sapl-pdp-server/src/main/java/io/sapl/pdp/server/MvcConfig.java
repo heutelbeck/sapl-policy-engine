@@ -1,11 +1,5 @@
 package io.sapl.pdp.server;
 
-import org.apache.catalina.Context;
-import org.apache.tomcat.util.descriptor.web.SecurityCollection;
-import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
-import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -31,42 +25,5 @@ public class MvcConfig implements WebMvcConfigurer {
 		executor.initialize();
 		return executor;
 	}
-
-	@Bean
-	public ConfigurableServletWebServerFactory servletContainer() {
-		final TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory() {
-
-			@Override
-			protected void postProcessContext(Context context) {
-				context.addConstraint(createSecurityConstraint());
-			}
-
-			private SecurityConstraint createSecurityConstraint() {
-				final SecurityConstraint securityConstraint = new SecurityConstraint();
-				securityConstraint.setUserConstraint("CONFIDENTIAL");
-				securityConstraint.addCollection(createSecurityCollection());
-				return securityConstraint;
-			}
-
-			private SecurityCollection createSecurityCollection() {
-				final SecurityCollection collection = new SecurityCollection();
-				collection.addPattern("/*");
-				return collection;
-			}
-
-		};
-		// tomcat.addAdditionalTomcatConnectors(createHttpConnector());
-		return tomcat;
-	}
-
-	// private Connector createHttpConnector() {
-	// final Connector connector = new
-	// Connector("org.apache.coyote.http11.Http11NioProtocol");
-	// connector.setScheme("http");
-	// connector.setPort(8080);
-	// connector.setSecure(false);
-	// connector.setRedirectPort(8443);
-	// return connector;
-	// }
 
 }
