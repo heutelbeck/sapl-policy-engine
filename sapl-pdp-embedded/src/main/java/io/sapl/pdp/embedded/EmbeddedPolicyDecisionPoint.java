@@ -237,9 +237,12 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint, Disposa
 		}
 
 		public EmbeddedPolicyDecisionPoint build()
-				throws IOException, URISyntaxException, PolicyEvaluationException {
+				throws IOException, URISyntaxException, PolicyEvaluationException, PDPConfigurationException {
 			if (pdp.prp == null) {
 				withResourcePolicyRetrievalPoint();
+			}
+			if (pdp.configurationProvider == null) {
+				withResourcePDPConfigurationProvider();
 			}
 			return pdp;
 		}
