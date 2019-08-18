@@ -16,7 +16,6 @@ import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.FluxProvider;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 @Slf4j
@@ -57,9 +56,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
             //return nestedSwitchMap(Boolean.TRUE, fluxProviders)
                     .map(result -> result ? entitlement : Decision.NOT_APPLICABLE)
                     .onErrorResume(error -> {
-                        final Throwable unwrapped = Exceptions.unwrap(error);
                         LOGGER.error("Error in policy body evaluation: {}",
-                                unwrapped.getMessage());
+                                error.getMessage());
                         return Flux.just(Decision.INDETERMINATE);
                     });
         }
