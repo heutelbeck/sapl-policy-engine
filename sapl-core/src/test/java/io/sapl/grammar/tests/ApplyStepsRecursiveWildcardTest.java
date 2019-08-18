@@ -46,7 +46,7 @@ public class ApplyStepsRecursiveWildcardTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(
 				Optional.of(JSON.nullNode()));
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -74,7 +74,7 @@ public class ApplyStepsRecursiveWildcardTest {
 
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
@@ -107,7 +107,7 @@ public class ApplyStepsRecursiveWildcardTest {
 
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
@@ -147,7 +147,7 @@ public class ApplyStepsRecursiveWildcardTest {
 
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(

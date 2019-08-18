@@ -49,7 +49,7 @@ public class EvaluateStepsFilterSubtemplateTest {
 		step.setIndex(BigDecimal.ZERO);
 		expression.getSteps().add(step);
 
-		expression.evaluate(ctx, true, null).take(1)
+		expression.evaluate(ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Index step applied to BasicValue should return correct result",
 						Optional.of(JSON.nullNode()), result));
@@ -64,7 +64,7 @@ public class EvaluateStepsFilterSubtemplateTest {
 		filter.getFsteps().add("EMPTY_STRING");
 		expression.setFilter(filter);
 
-		expression.evaluate(ctx, true, null).take(1)
+		expression.evaluate(ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Filter applied to BasicValue should return correct result",
 						Optional.of(JSON.textNode("")), result));
@@ -79,7 +79,7 @@ public class EvaluateStepsFilterSubtemplateTest {
 		subtemplate.setValue(factory.createNullLiteral());
 		expression.setSubtemplate(subtemplate);
 
-		StepVerifier.create(expression.evaluate(ctx, true, null))
+		StepVerifier.create(expression.evaluate(ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -106,7 +106,7 @@ public class EvaluateStepsFilterSubtemplateTest {
 		expectedResult.add(JSON.nullNode());
 		expectedResult.add(JSON.nullNode());
 
-		expression.evaluate(ctx, true, null).take(1)
+		expression.evaluate(ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Subtemplate applied to array should return correct result",
 						Optional.of(expectedResult), result));

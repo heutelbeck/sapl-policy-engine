@@ -46,7 +46,7 @@ public class ApplyStepsAttributeUnionTest {
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -59,7 +59,7 @@ public class ApplyStepsAttributeUnionTest {
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -74,7 +74,7 @@ public class ApplyStepsAttributeUnionTest {
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		previousResult.applyStep(step, ctx, true, null).take(1)
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Attribute union applied to empty object should return empty result array",
 						expectedResult, result));
@@ -98,7 +98,7 @@ public class ApplyStepsAttributeUnionTest {
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(

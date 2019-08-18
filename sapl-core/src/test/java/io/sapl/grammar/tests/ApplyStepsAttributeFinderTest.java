@@ -46,7 +46,7 @@ public class ApplyStepsAttributeFinderTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(
 				Optional.of(JSON.nullNode()));
 		AttributeFinderStep step = factory.createAttributeFinderStep();
-		StepVerifier.create(previousResult.applyStep(step, ctx, false, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, false, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -56,7 +56,7 @@ public class ApplyStepsAttributeFinderTest {
 				Optional.of(JSON.nullNode()));
 		AttributeFinderStep step = factory.createAttributeFinderStep();
 		step.getIdSteps().add("EXCEPTION");
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -71,7 +71,7 @@ public class ApplyStepsAttributeFinderTest {
 
 		AttributeFinderStep step = factory.createAttributeFinderStep();
 		step.getIdSteps().add("short");
-		previousResult.applyStep(step, ctx, true, null).take(1)
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Attribute finder step should take import mapping into account",
 						expectedResult, result));
@@ -87,7 +87,7 @@ public class ApplyStepsAttributeFinderTest {
 		AttributeFinderStep step = factory.createAttributeFinderStep();
 		step.getIdSteps().add("one");
 		step.getIdSteps().add("two");
-		previousResult.applyStep(step, ctx, true, null).take(1)
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Attribute finder step should take import mapping into account",
 						expectedResult, result));
@@ -108,7 +108,7 @@ public class ApplyStepsAttributeFinderTest {
 		AttributeFinderStep step = factory.createAttributeFinderStep();
 		step.getIdSteps().add("one");
 		step.getIdSteps().add("two");
-		previousResult.applyStep(step, ctx, true, null).take(1)
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Attribute finder step applied to result array should take import mapping into account",
 						expectedResult, result));

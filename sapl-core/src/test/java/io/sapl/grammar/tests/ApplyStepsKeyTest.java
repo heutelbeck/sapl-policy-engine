@@ -72,7 +72,7 @@ public class ApplyStepsKeyTest {
 
 		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(),
 				previousResult.getNode(), KEY);
-		previousResult.applyStep(step, ctx, true, null).take(1)
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Accessing null object should yield undefined.", expectedResult,
 						result));

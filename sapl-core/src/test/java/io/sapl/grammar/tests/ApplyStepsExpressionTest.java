@@ -51,7 +51,7 @@ public class ApplyStepsExpressionTest {
 		ExpressionStep step = factory.createExpressionStep();
 		step.setExpression(basicValueFrom(factory.createTrueLiteral()));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -64,7 +64,7 @@ public class ApplyStepsExpressionTest {
 		stringLiteral.setString("key");
 		step.setExpression(basicValueFrom(stringLiteral));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -80,7 +80,7 @@ public class ApplyStepsExpressionTest {
 		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(),
 				previousResult.getNode(), stringLiteral.getString());
 
-		previousResult.applyStep(step, ctx, true, null).take(1)
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Accessing key on text should yield undefined.", expectedResult,
 						result));
@@ -99,7 +99,7 @@ public class ApplyStepsExpressionTest {
 		stringLiteral.setString("key");
 		step.setExpression(basicValueFrom(stringLiteral));
 
-		previousResult.applyStep(step, ctx, true, null).take(1)
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Expression step with expression evaluating to key should return the value of the corresponding attribute",
 						expectedResult, result));
@@ -115,7 +115,7 @@ public class ApplyStepsExpressionTest {
 		numberLiteral.setNumber(BigDecimal.valueOf(0));
 		step.setExpression(basicValueFrom(numberLiteral));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -132,7 +132,7 @@ public class ApplyStepsExpressionTest {
 		numberLiteral.setNumber(BigDecimal.valueOf(0));
 		step.setExpression(basicValueFrom(numberLiteral));
 
-		previousResult.applyStep(step, ctx, true, null).take(1)
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Expression step with expression evaluating to number should return the corresponding array item",
 						expectedResult, result));
@@ -149,7 +149,7 @@ public class ApplyStepsExpressionTest {
 		numberLiteral.setNumber(BigDecimal.valueOf(1));
 		step.setExpression(basicValueFrom(numberLiteral));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -165,7 +165,7 @@ public class ApplyStepsExpressionTest {
 		numberLiteral.setNumber(BigDecimal.valueOf(1));
 		step.setExpression(basicValueFrom(numberLiteral));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -181,7 +181,7 @@ public class ApplyStepsExpressionTest {
 		numberLiteral.setNumber(BigDecimal.valueOf(-1));
 		step.setExpression(basicValueFrom(numberLiteral));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -200,7 +200,7 @@ public class ApplyStepsExpressionTest {
 		numberLiteral.setNumber(BigDecimal.valueOf(0));
 		step.setExpression(basicValueFrom(numberLiteral));
 
-		previousResult.applyStep(step, ctx, true, null).take(1)
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
 						"Expression step with expression evaluating to number applied to result array should return the corresponding array item",
 						expectedResult, result));

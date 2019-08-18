@@ -80,7 +80,7 @@ public class Bool {
 			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx,
 					imports);
 			try {
-				Optional<JsonNode> result = expression.evaluate(ctx, false, null)
+				Optional<JsonNode> result = expression.evaluate(ctx, false, Optional.empty())
 						.blockFirst();
 				if (result.isPresent() && result.get().isBoolean()) {
 					return result.get().asBoolean();

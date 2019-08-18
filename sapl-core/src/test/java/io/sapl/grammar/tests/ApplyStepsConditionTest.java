@@ -56,7 +56,7 @@ public class ApplyStepsConditionTest {
 		ConditionStep step = factory.createConditionStep();
 		step.setExpression(basicValueFrom(factory.createTrueLiteral()));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -74,7 +74,7 @@ public class ApplyStepsConditionTest {
 		expression.setValue(nullLiteral);
 		step.setExpression(expression);
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.consumeNextWith(result -> {
 					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 							.create(((ArrayResultNode) result).getNodes());
@@ -98,7 +98,7 @@ public class ApplyStepsConditionTest {
 		expression.setValue(nullLiteral);
 		step.setExpression(expression);
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.consumeNextWith(result -> {
 					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 							.create(((ArrayResultNode) result).getNodes());
@@ -127,7 +127,7 @@ public class ApplyStepsConditionTest {
 		expression.setValue(nullLiteral);
 		step.setExpression(expression);
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
@@ -159,7 +159,7 @@ public class ApplyStepsConditionTest {
 		expression.setRight(basicValueFrom(number));
 		step.setExpression(expression);
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
@@ -194,7 +194,7 @@ public class ApplyStepsConditionTest {
 
 		// [20, 5][@>10] should be [20]
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
@@ -224,7 +224,7 @@ public class ApplyStepsConditionTest {
 		expression.setRight(basicValueFrom(number));
 		step.setExpression(expression);
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(

@@ -50,7 +50,7 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(0));
 		step.getIndices().add(BigDecimal.valueOf(1));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, null))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -79,7 +79,7 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(10));
 		step.getIndices().add(BigDecimal.valueOf(-10));
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
@@ -108,7 +108,7 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(1));
 		step.getIndices().add(BigDecimal.valueOf(10));
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
@@ -135,7 +135,7 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(-2));
 		step.getIndices().add(BigDecimal.valueOf(0));
 
-		previousResult.applyStep(step, ctx, true, null).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
 					.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
