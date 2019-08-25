@@ -103,7 +103,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		return Flux.just(MultiResponse.indeterminate());
 	}
 
-	private List<Flux<IdentifiableResponse>> createIdentifiableResponseFluxes(MultiRequest multiRequest, boolean useSeparateSchedulers) {
+	private List<Flux<IdentifiableResponse>> createIdentifiableResponseFluxes(Iterable<IdentifiableRequest> multiRequest, boolean useSeparateSchedulers) {
 		final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = new ArrayList<>();
 		for (IdentifiableRequest identifiableRequest : multiRequest) {
 			final String requestId = identifiableRequest.getRequestId();
