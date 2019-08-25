@@ -88,17 +88,8 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	@Override
 	public Flux<IdentifiableResponse> decide(MultiRequest multiRequest) {
 		if (multiRequest.hasRequests()) {
-			final List<Flux<IdentifiableResponse>> requestIdResponsePairFluxes = new ArrayList<>();
-			for (IdentifiableRequest identifiableRequest : multiRequest) {
-				final Request request = identifiableRequest.getRequest();
-				final Flux<Response> responseFlux = decide(request);
-				final Flux<IdentifiableResponse> requestResponsePairFlux = responseFlux
-						.map(response -> new IdentifiableResponse(
-								identifiableRequest.getRequestId(), response))
-						.subscribeOn(Schedulers.newElastic("pdp"));
-				requestIdResponsePairFluxes.add(requestResponsePairFlux);
-			}
-			return Flux.merge(requestIdResponsePairFluxes);
+			final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = createIdentifiableResponseFluxes(multiRequest, true);
+			return Flux.merge(identifiableResponseFluxes);
 		}
 		return Flux.just(IdentifiableResponse.INDETERMINATE);
 	}
@@ -106,18 +97,27 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	@Override
 	public Flux<MultiResponse> decideAll(MultiRequest multiRequest) {
 		if (multiRequest.hasRequests()) {
-			final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = new ArrayList<>();
-			for (IdentifiableRequest identifiableRequest : multiRequest) {
-				final String requestId = identifiableRequest.getRequestId();
-				final Request request = identifiableRequest.getRequest();
-				final Flux<Response> responseFlux = decide(request);
-				final Flux<IdentifiableResponse> identifiableResponseFlux = responseFlux
-						.map(response -> new IdentifiableResponse(requestId, response));
-				identifiableResponseFluxes.add(identifiableResponseFlux);
-			}
+			final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = createIdentifiableResponseFluxes(multiRequest, false);
 			return Flux.combineLatest(identifiableResponseFluxes, this::collectResponses);
 		}
 		return Flux.just(MultiResponse.indeterminate());
+	}
+
+	private List<Flux<IdentifiableResponse>> createIdentifiableResponseFluxes(MultiRequest multiRequest, boolean useSeparateSchedulers) {
+		final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = new ArrayList<>();
+		for (IdentifiableRequest identifiableRequest : multiRequest) {
+			final String requestId = identifiableRequest.getRequestId();
+			final Request request = identifiableRequest.getRequest();
+			final Flux<IdentifiableResponse> identifiableResponseFlux = decide(request)
+					.map(response -> new IdentifiableResponse(requestId, response));
+			if (useSeparateSchedulers) {
+				identifiableResponseFluxes.add(identifiableResponseFlux.subscribeOn(Schedulers.newElastic("pdp")));
+			}
+			else {
+				identifiableResponseFluxes.add(identifiableResponseFlux);
+			}
+		}
+		return identifiableResponseFluxes;
 	}
 
 	private MultiResponse collectResponses(Object[] values) {
