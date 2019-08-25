@@ -15,6 +15,14 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.Response;
 import lombok.Value;
 
+/**
+ * A multi-response holds a map of request IDs and corresponding {@link Response responses}.
+ * It provides methods to {@link #setResponseForRequestWithId(String, Response)} add}
+ * single responses related to a request ID, to {@link #getResponseForRequestWithId(String) get}
+ * a single response for a given request ID and to {@link #iterator() iterate} over all the responses.
+ *
+ * @see io.sapl.api.pdp.Response
+ */
 @Value
 public class MultiResponse implements Iterable<IdentifiableResponse> {
 
@@ -27,31 +35,72 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 		return multiResponse;
 	}
 
+	/**
+	 * @return the number of {@link Response responses} contained by this
+	 *         multi-response.
+	 */
 	public int size() {
 		return responses.size();
 	}
 
+	/**
+	 * Adds the given tuple of request ID and related response to this multi-response.
+	 *
+	 * @param requestId the ID of the request related to the given response.
+	 * @param response the response related to the request with the given ID.
+	 */
 	public void setResponseForRequestWithId(String requestId, Response response) {
 		requireNonNull(requestId, "requestId must not be null");
 		requireNonNull(response, "response must not be null");
 		responses.put(requestId, response);
 	}
 
+	/**
+	 * Retrieves the response related to the request with the given ID.
+	 *
+	 * @param requestId the ID of the request for which the related response
+	 *                  has to be returned.
+	 * @return the response related to the request with the given ID.
+	 */
 	public Response getResponseForRequestWithId(String requestId) {
 		requireNonNull(requestId, "requestId must not be null");
 		return responses.get(requestId);
 	}
 
+	/**
+	 * Retrieves the authorization decision related to the request with the
+	 * given ID.
+	 *
+	 * @param requestId the ID of the request for which the related
+	 *                  authorization decision has to be returned.
+	 * @return the authorization decision related to the request with the
+	 *         given ID.
+	 */
 	public Decision getDecisionForRequestWithId(String requestId) {
 		requireNonNull(requestId, "requestId must not be null");
 		return responses.get(requestId).getDecision();
 	}
 
+	/**
+	 * Returns {@code true} if the authorization decision related to the request
+	 * with the given ID is {@link Decision#PERMIT}, {@code false} otherwise.
+	 *
+	 * @param requestId the ID of the request for which the related flag
+	 *                  indicating whether the authorization decision was
+	 *                  PERMIT or not has to be returned.
+	 * @return {@code true} if the authorization decision related to the request
+	 *         with the given ID is {@link Decision#PERMIT}, {@code false} otherwise.
+	 */
 	public boolean isAccessPermittedForRequestWithId(String requestId) {
 		requireNonNull(requestId, "requestId must not be null");
 		return responses.get(requestId).getDecision() == Decision.PERMIT;
 	}
 
+	/**
+	 * @return an {@link Iterator iterator} providing access to the
+	 *         {@link IdentifiableResponse identifiable responses} created
+	 *         from the data held by this multi-response.
+	 */
 	@Override
 	public Iterator<IdentifiableResponse> iterator() {
 		final Iterator<Map.Entry<String, Response>> responseIterator = responses

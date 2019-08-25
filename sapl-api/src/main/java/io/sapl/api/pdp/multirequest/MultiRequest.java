@@ -12,8 +12,8 @@
  */
 package io.sapl.api.pdp.multirequest;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 import static java.util.Objects.requireNonNull;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +28,15 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.sapl.api.pdp.Request;
 import lombok.Value;
 
+/**
+ * A multi-request holds a list of subjects, a list of actions, a list of resources,
+ * a list of environments (which are the elements of a {@link Request SAPL request})
+ * and a map holding request IDs and corresponding {@link RequestElements request elements}.
+ * It provides methods to {@link #addRequest(String, Object, Object, Object, Object) add}
+ * single requests and to {@link #iterator() iterate} over all the requests.
+ *
+ * @see io.sapl.api.pdp.Request
+ */
 @Value
 @JsonInclude(NON_EMPTY)
 public class MultiRequest implements Iterable<IdentifiableRequest> {
@@ -39,18 +48,18 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 		MAPPER.registerModule(jdk8Module);
 	}
 
-	private ArrayList<Object> subjects = new ArrayList<>();
+	private List<Object> subjects = new ArrayList<>();
 
-	private ArrayList<Object> actions = new ArrayList<>();
+	private List<Object> actions = new ArrayList<>();
 
-	private ArrayList<Object> resources = new ArrayList<>();
+	private List<Object> resources = new ArrayList<>();
 
-	private ArrayList<Object> environments = new ArrayList<>();
+	private List<Object> environments = new ArrayList<>();
 
 	private Map<String, RequestElements> requests = new HashMap<>();
 
 	/**
-	 * Convenience method to add a request without environment data. Call
+	 * Convenience method to add a request without environment data. Calls
 	 * {@link #addRequest(String, Object, Object, Object) addRequest(requestId, subject,
 	 * action, resource, null)}.
 	 * @param requestId the id identifying the request to be added.
@@ -102,10 +111,19 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 		return index;
 	}
 
+	/**
+	 * @return {@code true} if this multi request holds at least one request,
+	 *         {@code false} otherwise.
+	 */
 	public boolean hasRequests() {
 		return !requests.isEmpty();
 	}
 
+	/**
+	 * @return an {@link Iterator iterator} providing access to the
+	 *         {@link IdentifiableRequest identifiable requests} created
+	 *         from the data held by this multi-request.
+	 */
 	@Override
 	public Iterator<IdentifiableRequest> iterator() {
 		final Iterator<Map.Entry<String, RequestElements>> requestIterator = requests

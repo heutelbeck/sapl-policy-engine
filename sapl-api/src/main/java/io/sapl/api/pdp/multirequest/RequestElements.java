@@ -19,6 +19,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
+/**
+ * Data structure holding IDs for the elements of a
+ * {@link io.sapl.api.pdp.Request SAPL request).
+ */
 @Value
 @AllArgsConstructor
 @JsonInclude(NON_EMPTY)

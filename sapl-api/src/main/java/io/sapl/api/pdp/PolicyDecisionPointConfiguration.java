@@ -9,6 +9,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Data structure holding the configured algorithm to be used to combine SAPL documents
+ * and configured system variables to be available in all policies.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
