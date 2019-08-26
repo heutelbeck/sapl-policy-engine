@@ -120,14 +120,28 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 	}
 
 	/**
+	 * Returns the request related to the given ID or {@code null} if
+	 * this multi-request contains no such request ID.
+	 *
+	 * @param requestId the ID of the request to be returned.
+	 * @return the request related to the given ID or {@code null}.
+	 */
+	public Request getRequestWithId(String requestId) {
+		if (requests.containsKey(requestId)) {
+			final RequestElements requestElements = requests.get(requestId);
+			return toRequest(requestElements);
+		}
+		return null;
+	}
+
+	/**
 	 * @return an {@link Iterator iterator} providing access to the
 	 *         {@link IdentifiableRequest identifiable requests} created
 	 *         from the data held by this multi-request.
 	 */
 	@Override
 	public Iterator<IdentifiableRequest> iterator() {
-		final Iterator<Map.Entry<String, RequestElements>> requestIterator = requests
-				.entrySet().iterator();
+		final Iterator<Map.Entry<String, RequestElements>> requestIterator = requests.entrySet().iterator();
 		return new Iterator<IdentifiableRequest>() {
 			@Override
 			public boolean hasNext() {
@@ -136,16 +150,10 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 
 			@Override
 			public IdentifiableRequest next() {
-				final Map.Entry<String, RequestElements> requestsEntry = requestIterator
-						.next();
+				final Map.Entry<String, RequestElements> requestsEntry = requestIterator.next();
 				final String id = requestsEntry.getKey();
 				final RequestElements requestElements = requestsEntry.getValue();
-				final Object subject = subjects.get(requestElements.getSubjectId());
-				final Object action = actions.get(requestElements.getActionId());
-				final Object resource = resources.get(requestElements.getResourceId());
-				final Object environment = environments
-						.get(requestElements.getEnvironmentId());
-				final Request request = toRequest(subject, action, resource, environment);
+				final Request request = toRequest(requestElements);
 				return new IdentifiableRequest(id, request);
 			}
 		};
@@ -168,8 +176,12 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 		return sb.toString();
 	}
 
-	private static Request toRequest(Object subject, Object action, Object resource,
-			Object environment) {
+	private Request toRequest(RequestElements requestElements) {
+		final Object subject = subjects.get(requestElements.getSubjectId());
+		final Object action = actions.get(requestElements.getActionId());
+		final Object resource = resources.get(requestElements.getResourceId());
+		final Object environment = environments
+				.get(requestElements.getEnvironmentId());
 		return new Request(MAPPER.valueToTree(subject), MAPPER.valueToTree(action),
 				MAPPER.valueToTree(resource), MAPPER.valueToTree(environment));
 	}
