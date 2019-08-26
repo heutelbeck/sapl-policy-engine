@@ -117,21 +117,16 @@ public class PolicyEnforcementPoint {
 						+ "This PEP cannot handle resource replacement. Thus, deny access.");
 				return DENY;
 			}
-			if (!constraintHandlers.handlersForObligationsAvailable(response)) {
-				LOGGER.debug("Obligations cannot be fulfilled. No handler available. "
-						+ "Access denied by policy enforcement point.");
-				return DENY;
-			}
 			try {
 				constraintHandlers.handleObligations(response);
+				constraintHandlers.handleAdvices(response);
+				return response;
 			}
 			catch (AccessDeniedException e) {
-				LOGGER.debug("PEP failed to fulfill PDP obligations. Deny access. {}",
+				LOGGER.debug("PEP failed to fulfill PDP obligations ({}). Access denied by policy enforcement point.",
 						e.getLocalizedMessage());
 				return DENY;
 			}
-			constraintHandlers.handleAdvices(response);
-			return response;
 		}).distinctUntilChanged();
 	}
 
@@ -155,19 +150,40 @@ public class PolicyEnforcementPoint {
 	}
 
 	/**
+	 * Sends the given {@code multiRequest} to the PDP which emits
+	 * {@link IdentifiableResponse identifiable responses} as soon as they are available.
+	 * Each response is handled as follows: If its decision is {@link Decision#PERMIT permit},
+	 * obligation and advice handlers are invoked. If all obligations can be fulfilled, the original
+	 * response is left as is. If its decision is not {@link Decision#PERMIT permit} or if
+	 * not all obligations can be fulfilled, the response is replaced by a response
+	 * containing {@link Decision#DENY deny} and no resource.
+	 * @param multiRequest the multi-request to be sent to the PDP.
+	 * @return a Flux emitting {@link IdentifiableResponse identifiable responses} which may differ
+	 *        from the original ones emitted by the PDP after having handled the obligations.
+	 */
+	public Flux<IdentifiableResponse> filterEnforce(MultiRequest multiRequest) {
+		final Flux<IdentifiableResponse> multiResponseFlux = pdp.decide(multiRequest);
+		return multiResponseFlux.map(identifiableResponse -> {
+			LOGGER.debug("REQUEST           : {}", multiRequest.getRequestWithId(identifiableResponse.getRequestId()));
+			LOGGER.debug("ORIGINAL RESPONSE : {}", identifiableResponse.getResponse());
+			return handle(identifiableResponse);
+		});
+	}
+
+	/**
 	 * Sends the given {@code multiRequest} to the PDP which emits related
 	 * {@link MultiResponse multi-responses}. Each response in the multi-response is
 	 * handled as follows: If its decision is {@link Decision#PERMIT permit}, obligation
 	 * and advice handlers are invoked. If all obligations can be fulfilled, the original
 	 * response is left as is. If its decision is not {@link Decision#PERMIT permit} or if
-	 * not all obligations cann be fulfilled, the response is replaced by a response
+	 * not all obligations can be fulfilled, the response is replaced by a response
 	 * containing {@link Decision#DENY deny} and no resource. {@link MultiResponse}s are
 	 * only emitted if they are different from the preceding one.
 	 * @param multiRequest the multi-request to be sent to the PDP.
 	 * @return a Flux emitting {@link MultiResponse multi-responses} which may differ from
 	 * the original ones emitted by the PDP after having handled the obligations.
 	 */
-	public Flux<MultiResponse> filterEnforce(MultiRequest multiRequest) {
+	public Flux<MultiResponse> filterEnforceAll(MultiRequest multiRequest) {
 		final Flux<MultiResponse> multiResponseFlux = pdp.decideAll(multiRequest);
 		return multiResponseFlux.map(multiResponse -> {
 			LOGGER.debug("REQUEST           : {}", multiRequest);
@@ -175,45 +191,40 @@ public class PolicyEnforcementPoint {
 
 			final MultiResponse resultResponse = new MultiResponse();
 			for (IdentifiableResponse identifiableResponse : multiResponse) {
-				final String requestId = identifiableResponse.getRequestId();
-				final Response response = identifiableResponse.getResponse();
-				if (response == null || response.getDecision() != Decision.PERMIT) {
-					resultResponse.setResponseForRequestWithId(requestId,
-							DENY);
-				}
-				else if (!constraintHandlers
-						.handlersForObligationsAvailable(response)) {
-					LOGGER.debug(
-							"Obligations cannot be fulfilled for response with id {}. No handler available.",
-							requestId);
-					resultResponse.setResponseForRequestWithId(requestId,
-							DENY);
-				}
-				try {
-					constraintHandlers.handleObligations(response);
-				}
-				catch (AccessDeniedException e) {
-					LOGGER.debug(
-							"PEP failed to fulfill PDP obligations for response with id {} ({})",
-							requestId, e.getLocalizedMessage());
-					resultResponse.setResponseForRequestWithId(requestId,
-							DENY);
-				}
-				constraintHandlers.handleAdvices(response);
-				resultResponse.setResponseForRequestWithId(requestId, response);
+				final IdentifiableResponse handledResponse = handle(identifiableResponse);
+				resultResponse.setResponseForRequestWithId(handledResponse.getRequestId(), handledResponse.getResponse());
 			}
+
 			LOGGER.debug("RETURNED RESPONSE : {}", resultResponse);
 			return resultResponse;
 		}).distinctUntilChanged();
 	}
 
 	private Request buildRequest(Object subject, Object action, Object resource,
-			Object environment) {
+								 Object environment) {
 		final JsonNode subjectNode = mapper.valueToTree(subject);
 		final JsonNode actionNode = mapper.valueToTree(action);
 		final JsonNode resourceNode = mapper.valueToTree(resource);
 		final JsonNode environmentNode = mapper.valueToTree(environment);
 		return new Request(subjectNode, actionNode, resourceNode, environmentNode);
+	}
+
+	private IdentifiableResponse handle(IdentifiableResponse identifiableResponse) {
+		final String requestId = identifiableResponse.getRequestId();
+		final Response response = identifiableResponse.getResponse();
+		if (response == null || response.getDecision() != Decision.PERMIT) {
+			return new IdentifiableResponse(requestId, DENY);
+		}
+		try {
+			constraintHandlers.handleObligations(response);
+			constraintHandlers.handleAdvices(response);
+			return identifiableResponse;
+		}
+		catch (AccessDeniedException e) {
+			LOGGER.debug("PEP failed to fulfill PDP obligations ({}). Access denied by policy enforcement point.",
+					e.getLocalizedMessage());
+			return new IdentifiableResponse(requestId, DENY);
+		}
 	}
 
 }
