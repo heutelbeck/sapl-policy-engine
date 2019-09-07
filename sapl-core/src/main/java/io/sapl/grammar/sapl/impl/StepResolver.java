@@ -48,8 +48,7 @@ public class StepResolver {
 				fluxProviders.add(resultNode -> resultNode.applyStep(step, ctx, isBody,
 						relativeNode));
 			}
-			return DependentStreamsUtil.sequentialSwitchMap(result, fluxProviders);
-			//return DependentStreamsUtil.nestedSwitchMap(result, fluxProviders);
+			return DependentStreamsUtil.nestedSwitchMap(result, fluxProviders);
 		}
 		else {
 			return Flux.just(result);

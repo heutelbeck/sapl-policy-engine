@@ -52,8 +52,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
             for (Statement statement : statements) {
                 fluxProviders.add(currentResult -> evaluateStatement(statement, ctx));
             }
-            return sequentialSwitchMap(Boolean.TRUE, fluxProviders)
-            //return nestedSwitchMap(Boolean.TRUE, fluxProviders)
+            //return sequentialSwitchMap(Boolean.TRUE, fluxProviders)
+            return nestedSwitchMap(Boolean.TRUE, fluxProviders, 0)
                     .map(result -> result ? entitlement : Decision.NOT_APPLICABLE)
                     .onErrorResume(error -> {
                         LOGGER.error("Error in policy body evaluation: {}",
@@ -73,7 +73,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
         for (int i = 1; i < fluxProviders.size(); i++) {
             final int idx = i;
             flux = flux.switchMap(currentResult -> currentResult
-                    ? fluxProviders.get(idx).getFlux(currentResult)
+                    ? fluxProviders.get(idx).getFlux(Boolean.TRUE)
                     : Flux.just(Boolean.FALSE));
         }
         return flux;
@@ -82,7 +82,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
     private Flux<Boolean> nestedSwitchMap(Boolean currentResult,
                                              List<FluxProvider<Boolean>> fluxProviders, int idx) {
         if (idx < fluxProviders.size() && currentResult) {
-            return fluxProviders.get(idx).getFlux(currentResult).switchMap(
+            return fluxProviders.get(idx).getFlux(Boolean.TRUE).switchMap(
                     result -> nestedSwitchMap(result, fluxProviders, idx + 1));
         }
         return Flux.just(currentResult);
