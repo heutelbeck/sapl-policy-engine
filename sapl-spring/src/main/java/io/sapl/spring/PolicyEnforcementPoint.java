@@ -162,8 +162,8 @@ public class PolicyEnforcementPoint {
 	 *        from the original ones emitted by the PDP after having handled the obligations.
 	 */
 	public Flux<IdentifiableResponse> filterEnforce(MultiRequest multiRequest) {
-		final Flux<IdentifiableResponse> multiResponseFlux = pdp.decide(multiRequest);
-		return multiResponseFlux.map(identifiableResponse -> {
+		final Flux<IdentifiableResponse> identifiableResponseFlux = pdp.decide(multiRequest);
+		return identifiableResponseFlux.map(identifiableResponse -> {
 			LOGGER.debug("REQUEST           : {}", multiRequest.getRequestWithId(identifiableResponse.getRequestId()));
 			LOGGER.debug("ORIGINAL RESPONSE : {}", identifiableResponse.getResponse());
 			return handle(identifiableResponse);

@@ -127,8 +127,8 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 	 * @return the request related to the given ID or {@code null}.
 	 */
 	public Request getRequestWithId(String requestId) {
-		if (requests.containsKey(requestId)) {
-			final RequestElements requestElements = requests.get(requestId);
+		final RequestElements requestElements = requests.get(requestId);
+		if (requestElements != null) {
 			return toRequest(requestElements);
 		}
 		return null;
