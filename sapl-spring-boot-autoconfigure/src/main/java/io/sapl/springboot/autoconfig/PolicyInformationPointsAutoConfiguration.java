@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.interpreter.pip.GeoPolicyInformationPoint;
+import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.pip.http.HttpPolicyInformationPoint;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,6 +33,18 @@ public class PolicyInformationPointsAutoConfiguration {
 		public GeoPolicyInformationPoint geoPolicyInformationPoint() {
 			LOGGER.info("GEO PIP present. Loading.");
 			return new GeoPolicyInformationPoint();
+		}
+
+	}
+
+	@Configuration
+	@ConditionalOnClass(io.sapl.pip.ClockPolicyInformationPoint.class)
+	public static class ClockConfiguration {
+
+		@Bean
+		public ClockPolicyInformationPoint clockPolicyInformationPoint() {
+			LOGGER.info("Clock PIP present. Loading.");
+			return new ClockPolicyInformationPoint();
 		}
 
 	}
