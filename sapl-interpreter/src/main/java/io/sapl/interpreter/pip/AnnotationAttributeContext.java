@@ -24,7 +24,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
 
 @NoArgsConstructor
 public class AnnotationAttributeContext implements AttributeContext {
@@ -59,6 +58,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public Flux<JsonNode> evaluate(String attribute, JsonNode value,
 			Map<String, JsonNode> variables) {
 		final AttributeFinderMetadata metadata = attributeMetadataByAttributeName
@@ -73,10 +73,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		final Parameter firstParameter = method.getParameters()[0];
 		try {
 			ParameterTypeValidator.validateType(value, firstParameter);
-			@SuppressWarnings("unchecked")
-			final Flux<JsonNode> resultFlux = (Flux<JsonNode>) method.invoke(pip, value,
-					variables);
-			return resultFlux.subscribeOn(Schedulers.newElastic("pip"));
+			return (Flux<JsonNode>) method.invoke(pip, value, variables);
 		}
 		catch (IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException | IllegalParameterType e) {
