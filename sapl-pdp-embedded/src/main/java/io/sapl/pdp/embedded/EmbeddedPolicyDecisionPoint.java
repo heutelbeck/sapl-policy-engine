@@ -43,6 +43,7 @@ import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
@@ -104,6 +105,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	private List<Flux<IdentifiableResponse>> createIdentifiableResponseFluxes(Iterable<IdentifiableRequest> multiRequest, boolean useSeparateSchedulers) {
+		final Scheduler schedulerForMerge = useSeparateSchedulers ? Schedulers.newElastic("pdp") : null;
 		final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = new ArrayList<>();
 		for (IdentifiableRequest identifiableRequest : multiRequest) {
 			final String requestId = identifiableRequest.getRequestId();
@@ -111,7 +113,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			final Flux<IdentifiableResponse> identifiableResponseFlux = decide(request)
 					.map(response -> new IdentifiableResponse(requestId, response));
 			if (useSeparateSchedulers) {
-				identifiableResponseFluxes.add(identifiableResponseFlux.subscribeOn(Schedulers.newElastic("pdp")));
+				identifiableResponseFluxes.add(identifiableResponseFlux.subscribeOn(schedulerForMerge));
 			}
 			else {
 				identifiableResponseFluxes.add(identifiableResponseFlux);
