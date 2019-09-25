@@ -57,7 +57,7 @@ A SAPL policy document generally consists of:
 * the entitlement, which is the decision result to be returned upon successful evaluation of the policy, i.e., `permit` or `deny`
 * an optional target expression for indexing and policy selection
 * an optional `where` clause containing the conditions under which the entitlement (`permit` or `deny` as defined above) applies
-* optional `advice` and `obligation` clauses to inform the PEP about optional and mandatory requirements for grantic access to the resource
+* optional `advice` and `obligation` clauses to inform the PEP about optional and mandatory requirements for granting access to the resource
 * an optional `transformation` clause for defining a transformed resource to be used instead of the original resource
 
 A simple SAPL policy which allows `alice` to `HTTP:GET` the resource `\https://medical.org/api/patients/123` would look as follows (in a real world this policy is too specific):
