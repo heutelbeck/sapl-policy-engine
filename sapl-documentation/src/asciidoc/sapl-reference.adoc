@@ -23,6 +23,7 @@ There exist several proprietary platform dependent or standardized languages, su
 * *Transformation and Filtering*. SAPL allows transforming resources and filtering data from resources (e.g., blacken the first digits of a credit card number, or hiding of birth dates by assigning individuals into age groups). 
 * *Designed for a session and data stream-based applications*. SAPL is designed to offer low-latency authorization for interactive applications and data streams.
 * *Designed for a RESTful World with JSON*. SAPL is designed to be easily integrated with modern JSON-based APIs. The core data model of SAPL is JSON offering easy reasoning over such data and simple access to external attributes from RESTful JSON APIs.
+* *Supports Multi-Requests*. SAPL allows to bundle multiple authorization requests into one multi-request thus further reducing connection time and latency.
         
 The following sections will explain the basic concepts of SAPL policies and show how to easily integrate SAPL in a Java application. Afterwards the different parts of SAPL are explained in more detail.
 
@@ -139,14 +140,17 @@ SAPL provides an embedded PDP including an embedded PRP with a file system polic
 	<version>2.0.0-SNAPSHOT</version>
 </dependency>
 
-. In your application, create a new `EmbeddedPolicyDecisionPoint` (the constructor declares multiple Exceptions which must be handled). The argument `"file:C:/path/to/policies"` is a string specifying the directory which contains all policy sets and policies, as well as the configuration `pdp.json`.
+. In your application, create a new `EmbeddedPolicyDecisionPoint` (the builder methods declare multiple Exceptions which must be handled). The arguments `"C:/path/to/config"` and `"C:/path/to/policies"` are strings specifying the directories which contain the configuration file `pdp.json` and all policies respectively.
 +
 [source,Java,linenums]
 ----
-EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint("file:C:/path/to/policies");
+EmbeddedPolicyDecisionPoint pdp = EmbeddedPolicyDecisionPoint.builder()
+    .withFilesystemPDPConfigurationProvider("C:/path/to/config")
+    .withFilesystemPolicyRetrievalPoint("C:/path/to/policies", IndexType.FAST)
+    .build();
 ----
 
-. Add a `pdp.json` with the following content to the directory `C:/path/to/policies`:
+. Add a `pdp.json` with the following content to the directory `C:/path/to/config`:
 +
 [source,linenums]
 ----
@@ -172,21 +176,38 @@ The whole source code to make use of the `test.sapl` policy could look as follow
 [source,Java,linenums]
 ----
 import java.io.IOException;
+import java.net.URISyntaxException;
+
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.pdp.PDPConfigurationException;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.Request;
 import io.sapl.api.pdp.Response;
 import io.sapl.api.pip.AttributeException;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
+import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder.IndexType;
+import reactor.core.publisher.Flux;
 
-PolicyDecisionPoint pdp;
+PolicyDecisionPoint pdp = null;
 try {
-	pdp = new EmbeddedPolicyDecisionPoint("file:C:/path/to/policies");
-	Response response = pdp.decide("admin", "an_action", "a_resource");
-	System.out.println(response.getDecision());
-} catch (IOException | PolicyEvaluationException | AttributeException | FunctionException e) {
-	e.printStackTrace();
+    pdp = EmbeddedPolicyDecisionPoint.builder()
+            .withFilesystemPDPConfigurationProvider("C:/path/to/config")
+            .withFilesystemPolicyRetrievalPoint("C:/path/to/policies", IndexType.FAST)
+            .build();
 }
+catch (IOException | URISyntaxException | PolicyEvaluationException |
+       PDPConfigurationException | FunctionException | AttributeException e) {
+    e.printStackTrace();
+}
+
+JsonNodeFactory JSON = JsonNodeFactory.instance;
+Request request = new Request(JSON.textNode("admin"), JSON.textNode("an_action"),
+                              JSON.textNode("a_resource"), null);
+
+Flux<Response> responses = pdp.decide(request);
+responses.subscribe(response -> System.out.println(response.getDecision()));
 ----
 The console output should be `PERMIT`. With subject set to `"alice"` instead of `"admin"`, the output should be `DENY`.
 
@@ -204,7 +225,7 @@ The PEP is a software entity which intercepts actions taken by users within an a
 The PEP must let the application process the action if and only if the decision is `PERMIT`. If the response object also contains an `obligation` the PEP must fulfill this obligation. Proper fulfillment is an additional requirement for granting access. In case the decision is not `PERMIT` or the obligation cannot be fulfilled, access has to be denied. Since policies may contain instructions to alter the resource (like blackening certain information, e.g., credit card numbers) the PEP should ensure that the application only reveals the resource contained in the response object if one is returned. 
 
 [NOTE]
-A PEP strongly depends on the application domain. Therefore SAPL does not come with a PEP implementation. In the future, generic PEPs integrating with various platforms (e.g., spring security) will be provided.
+A PEP strongly depends on the application domain. SAPL comes with a default PEP implementation using a passed in constraint handler service to handle obligations and advices contained in a response. In the future, more generic PEPs integrating with various platforms (e.g., spring security) will be provided.
 
 === Policy Decision Point (PDP)
 
@@ -272,6 +293,61 @@ The algorithm `first-applicable` is not available for the PDP since the PDP's co
 
 The combining algorithms are described in more detail <<combining-algorithms,later>>.
 
+
+== Multi-Requests
+
+SAPL allows for bundling multiple requests into one multi-request. A multi-request is a JSON object with the following structure:
+
+[source,json]
+.Multi-Requests - JSON Structure
+----
+{
+  "subjects"     : ["bs@simpsons.com", "ms@simpsons.com"],
+  "actions"      : ["read"],
+  "resources"    : ["file://example/med/record/patient/BartSimpson",
+                    "file://example/med/record/patient/MaggieSimpson"],
+  "environments" : [],
+
+  "requests"     : {
+                     "req-1" : { "subjectId": 0, "actionId": 0, "resourceId": 0 },
+                     "req-2" : { "subjectId": 1, "actionId": 0, "resourceId": 1 }
+                   }
+}
+----
+
+It contains distinct lists of all subjects, actions, resources and environments referenced by the single requests being part of the multi-request. The requests themselves are stored in a map of request IDs pointing to an object defining a request by providing indexes into the four lists mentioned before.
+
+The multi-request shown in the example above contains two requests. The user `bs@simpsons.com` wants to `read` the file `file://example/med/record/patient/BartSimpson` and the user `ms@simpsons.com` wants to `read` the file `file://example/med/record/patient/MaggieSimpson`.
+
+The SAPL PDP processes all individual requests contained in the multi-request in parallel and either returns the related responses as soon as they are available or it collects all the responses of the individual requests and returns them as a multi-response. In both cases the responses are associated with the request IDs of the related request. The following listings show the JSON structures of the two response types:
+
+[source,json]
+.Single Response with Associated Request ID - JSON Structure
+----
+{
+  "requestId" : "req-1",
+  "response"  : {
+                  "decision" : "PERMIT",
+                  "resource" : { ... }
+                }
+}
+----
+
+[source,json]
+.Multi-Response - JSON Structure
+----
+{
+  "responses" : {
+                  "req-1" : {
+                              "decision" : "PERMIT",
+                              "resource" : { ... }
+                            },
+                  "req-2" : {
+                              "decision" : "DENY"
+                            }
+                }
+}
+----
 
 == The SAPL Policy Language
 
