@@ -25,6 +25,10 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
+/**
+ * Uses the {@link WebClientRequestExecutor} the send reactive HTTP requests to a remote
+ * policy information point providing the according REST endpoints.
+ */
 @NoArgsConstructor
 @PolicyInformationPoint(name = HttpPolicyInformationPoint.NAME,
 		description = HttpPolicyInformationPoint.DESCRIPTION)
