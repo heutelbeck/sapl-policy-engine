@@ -39,8 +39,8 @@ public class ClockPolicyInformationPoint {
 	}
 
 	private ZoneId convertToZoneId(JsonNode value) {
-		final String text = value.asText();
-		final String zoneIdStr = (text == null || text.trim().length() == 0) ? "system" : text.trim();
+		final String text = value.asText() == null ? "" : value.asText().trim();
+		final String zoneIdStr = text.length() == 0 ? "system" : text;
 		if ("system".equals(zoneIdStr)) {
 			return ZoneId.systemDefault();
 		}

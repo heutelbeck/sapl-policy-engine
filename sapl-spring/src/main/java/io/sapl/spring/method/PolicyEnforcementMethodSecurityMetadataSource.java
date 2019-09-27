@@ -40,10 +40,10 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		PreEnforce preEnforce = findAnnotation(method, targetClass, PreEnforce.class);
 		if (preEnforce != null) {
 			LOGGER.trace("@PreEnforce on {}.{}: {}", targetClass.getSimpleName(), method.getName(), preEnforce);
-			String preEnforceSubject = preEnforce == null ? null : preEnforce.subject();
-			String preEnforceAction = preEnforce == null ? null : preEnforce.action();
-			String preEnforceResource = preEnforce == null ? null : preEnforce.resource();
-			String preEnforceEnvironment = preEnforce == null ? null : preEnforce.environment();
+			String preEnforceSubject = preEnforce.subject();
+			String preEnforceAction = preEnforce.action();
+			String preEnforceResource = preEnforce.resource();
+			String preEnforceEnvironment = preEnforce.environment();
 			PreInvocationEnforcementAttribute pre = attributeFactory.createPreInvocationAttribute(preEnforceSubject,
 					preEnforceAction, preEnforceResource, preEnforceEnvironment);
 			attrs.add(pre);
@@ -52,10 +52,10 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		PostEnforce postEnforce = findAnnotation(method, targetClass, PostEnforce.class);
 		if (postEnforce != null) {
 			LOGGER.trace("@PostEnforce on {}.{}: {}", targetClass.getSimpleName(), method.getName(), postEnforce);
-			String postEnforceSubject = postEnforce == null ? null : postEnforce.subject();
-			String postEnforceAction = postEnforce == null ? null : postEnforce.action();
-			String postEnforceResource = postEnforce == null ? null : postEnforce.resource();
-			String postEnforceEnvironment = postEnforce == null ? null : postEnforce.environment();
+			String postEnforceSubject = postEnforce.subject();
+			String postEnforceAction = postEnforce.action();
+			String postEnforceResource = postEnforce.resource();
+			String postEnforceEnvironment = postEnforce.environment();
 			PostInvocationEnforcementAttribute post = attributeFactory.createPostInvocationAttribute(postEnforceSubject,
 					postEnforceAction, postEnforceResource, postEnforceEnvironment);
 			attrs.add(post);
