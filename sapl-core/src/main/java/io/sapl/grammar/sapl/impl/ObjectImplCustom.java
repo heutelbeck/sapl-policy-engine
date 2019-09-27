@@ -33,29 +33,26 @@ import reactor.core.publisher.Flux;
 /**
  * Implementation of an object in SAPL.
  *
- * Grammar:
- * Object returns Value: {Object} '{' (members+=Pair (',' members+=Pair)*)? '}' ;
+ * Grammar: Object returns Value: {Object} '{' (members+=Pair (',' members+=Pair)*)? '}' ;
  */
 public class ObjectImplCustom extends ObjectImpl {
 
 	/**
 	 * The semantics of evaluating an object is as follows:
 	 *
-	 * An object may contain a list of attribute name-value pairs. To get the values
-	 * of the individual attributes, these have to be recursively evaluated.
+	 * An object may contain a list of attribute name-value pairs. To get the values of
+	 * the individual attributes, these have to be recursively evaluated.
 	 *
 	 * Returning a Flux this means to subscribe to all attribute-value expression result
-	 * Fluxes and to combineLatest into a new object each time one of the expression Fluxes
-	 * emits a new value.
+	 * Fluxes and to combineLatest into a new object each time one of the expression
+	 * Fluxes emits a new value.
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		// collect all attribute names (keys) and fluxes providing the evaluated values
 		final List<String> keys = new ArrayList<>(getMembers().size());
-		final List<Flux<Optional<JsonNode>>> valueFluxes = new ArrayList<>(
-				getMembers().size());
+		final List<Flux<Optional<JsonNode>>> valueFluxes = new ArrayList<>(getMembers().size());
 		for (Pair member : getMembers()) {
 			keys.add(member.getKey());
 			valueFluxes.add(member.getValue().evaluate(ctx, isBody, relativeNode));
@@ -72,9 +69,8 @@ public class ObjectImplCustom extends ObjectImpl {
 		return Flux.combineLatest(valueFluxes, values -> {
 			final ObjectNode result = JsonNodeFactory.instance.objectNode();
 			// omit undefined fields
-			IntStream.range(0, values.length)
-					.forEach(idx -> ((Optional<JsonNode>) values[idx])
-							.ifPresent(val -> result.set(keys.get(idx), (JsonNode) val)));
+			IntStream.range(0, values.length).forEach(idx -> ((Optional<JsonNode>) values[idx])
+					.ifPresent(val -> result.set(keys.get(idx), (JsonNode) val)));
 			return Optional.of(result);
 		});
 	}
@@ -91,8 +87,7 @@ public class ObjectImplCustom extends ObjectImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

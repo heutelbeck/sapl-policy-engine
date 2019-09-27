@@ -28,39 +28,32 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the evaluation of expression groups.
  *
- * Grammar:
- * {BasicGroup} '(' expression=Expression ')' steps+=Step*;
+ * Grammar: {BasicGroup} '(' expression=Expression ')' steps+=Step*;
  */
 public class BasicGroupImplCustom extends BasicGroupImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> evaluatedExpressions = getExpression()
-				.evaluate(ctx, isBody, relativeNode);
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> evaluatedExpressions = getExpression().evaluate(ctx, isBody, relativeNode);
 		return evaluatedExpressions
-				.switchMap(value -> evaluateStepsFilterSubtemplate(value, getSteps(), ctx,
-						isBody, relativeNode));
+				.switchMap(value -> evaluateStepsFilterSubtemplate(value, getSteps(), ctx, isBody, relativeNode));
 	}
 
 	@Override
 	public int hash(Map<String, String> imports) {
 		int hash = 17;
 		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = 37 * hash
-				+ ((getExpression() == null) ? 0 : getExpression().hash(imports));
+		hash = 37 * hash + ((getExpression() == null) ? 0 : getExpression().hash(imports));
 		hash = 37 * hash + ((getFilter() == null) ? 0 : getFilter().hash(imports));
 		for (Step step : getSteps()) {
 			hash = 37 * hash + ((step == null) ? 0 : step.hash(imports));
 		}
-		hash = 37 * hash
-				+ ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
+		hash = 37 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
 		return hash;
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}
@@ -69,8 +62,7 @@ public class BasicGroupImplCustom extends BasicGroupImpl {
 		}
 		final BasicGroupImplCustom otherImpl = (BasicGroupImplCustom) other;
 		if ((getExpression() == null) ? (getExpression() != otherImpl.getExpression())
-				: !getExpression().isEqualTo(otherImpl.getExpression(), otherImports,
-						imports)) {
+				: !getExpression().isEqualTo(otherImpl.getExpression(), otherImports, imports)) {
 			return false;
 		}
 		if ((getFilter() == null) ? (getFilter() != otherImpl.getFilter())
@@ -78,8 +70,7 @@ public class BasicGroupImplCustom extends BasicGroupImpl {
 			return false;
 		}
 		if ((getSubtemplate() == null) ? (getSubtemplate() != otherImpl.getSubtemplate())
-				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports,
-						imports)) {
+				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports, imports)) {
 			return false;
 		}
 		if (getSteps().size() != otherImpl.getSteps().size()) {

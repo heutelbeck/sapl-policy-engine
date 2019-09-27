@@ -8,9 +8,8 @@ import lombok.Getter;
 import lombok.ToString;
 
 /**
- * Holds a {@link Request SAPL request} together with an ID used
- * to identify the request and to assign the request its corresponding
- * {@link Response SAPL response}.
+ * Holds a {@link Request SAPL request} together with an ID used to identify the request
+ * and to assign the request its corresponding {@link Response SAPL response}.
  *
  * @see io.sapl.api.pdp.Request
  * @see io.sapl.api.pdp.multirequest.IdentifiableResponse
@@ -24,9 +23,8 @@ public class IdentifiableRequest {
 	private Request request;
 
 	/**
-	 * Creates a new {@code IdentifiableRequest} instance holding the given
-	 * request ID and request.
-	 *
+	 * Creates a new {@code IdentifiableRequest} instance holding the given request ID and
+	 * request.
 	 * @param requestId the ID assigned to the given request. Must not be {@code null}.
 	 * @param request the request assigned to the given ID. Must not be {@code null}.
 	 */

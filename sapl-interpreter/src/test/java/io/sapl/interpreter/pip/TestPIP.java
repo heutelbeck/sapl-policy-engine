@@ -38,8 +38,7 @@ public class TestPIP {
 	}
 
 	@Attribute
-	public Flux<JsonNode> someVariableOrNull(JsonNode value,
-			Map<String, JsonNode> variables) {
+	public Flux<JsonNode> someVariableOrNull(JsonNode value, Map<String, JsonNode> variables) {
 		logVars(variables);
 		if (variables.containsKey(value.asText())) {
 			return Flux.just(variables.get(value.asText()).deepCopy());

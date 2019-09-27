@@ -35,8 +35,7 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 
 	private PolicyDecisionPointConfiguration config;
 
-	public ResourcesPDPConfigurationProvider()
-			throws PDPConfigurationException, IOException, URISyntaxException {
+	public ResourcesPDPConfigurationProvider() throws PDPConfigurationException, IOException, URISyntaxException {
 		this(DEFAULT_CONFIG_PATH);
 	}
 
@@ -45,14 +44,12 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 		this(ResourcesPDPConfigurationProvider.class, configPath);
 	}
 
-	public ResourcesPDPConfigurationProvider(@NonNull Class<?> clazz,
-			@NonNull String configPath)
+	public ResourcesPDPConfigurationProvider(@NonNull Class<?> clazz, @NonNull String configPath)
 			throws PDPConfigurationException, IOException, URISyntaxException {
 		URL configFolderUrl = clazz.getResource(configPath);
 
 		if (configFolderUrl == null) {
-			throw new PDPConfigurationException("Config folder not found. Path:"
-					+ configPath + " - URL: null");
+			throw new PDPConfigurationException("Config folder not found. Path:" + configPath + " - URL: null");
 		}
 
 		Path path;
@@ -68,12 +65,10 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 				path = Paths.get(configFolderUrl.toURI());
 			}
 			LOGGER.info("current path: {}", path);
-			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path,
-					CONFIG_FILE_GLOB_PATTERN)) {
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, CONFIG_FILE_GLOB_PATTERN)) {
 				for (Path filePath : stream) {
 					LOGGER.info("load: {}", filePath);
-					this.config = MAPPER.readValue(filePath.toFile(),
-							PolicyDecisionPointConfiguration.class);
+					this.config = MAPPER.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
 					break;
 				}
 				if (this.config == null) {
@@ -102,8 +97,8 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 
 	@Override
 	public Flux<Map<String, JsonNode>> getVariables() {
-		return Flux.just((Map<String, JsonNode>) config.getVariables()).doOnNext(variables -> LOGGER
-				.trace("|-- Current PDP config: variables = {}", variables));
+		return Flux.just((Map<String, JsonNode>) config.getVariables())
+				.doOnNext(variables -> LOGGER.trace("|-- Current PDP config: variables = {}", variables));
 	}
 
 }

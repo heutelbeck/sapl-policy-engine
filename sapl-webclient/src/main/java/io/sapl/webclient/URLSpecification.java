@@ -39,9 +39,8 @@ public class URLSpecification {
 
 	static URLSpecification from(String urlStr) throws MalformedURLException {
 		final URL url = new URL(urlStr);
-		return new URLSpecification(url.getProtocol(), extractUserFrom(url), extractPasswordFrom(url),
-				url.getHost(), extractPortFrom(url), url.getPath(), url.getQuery(),
-				extractQueryParametersFrom(url), url.getRef());
+		return new URLSpecification(url.getProtocol(), extractUserFrom(url), extractPasswordFrom(url), url.getHost(),
+				extractPortFrom(url), url.getPath(), url.getQuery(), extractQueryParametersFrom(url), url.getRef());
 	}
 
 	private static String extractUserFrom(URL url) {
@@ -79,8 +78,8 @@ public class URLSpecification {
 		final String[] nameValuePairs = query.split("&");
 		for (String nameValuePair : nameValuePairs) {
 			final String[] nameValue = nameValuePair.split("=");
-			queryParams.put(nameValue[0].startsWith("?") ? nameValue[0].substring(1)
-					: nameValue[0], nameValue.length > 1 ? nameValue[1] : "");
+			queryParams.put(nameValue[0].startsWith("?") ? nameValue[0].substring(1) : nameValue[0],
+					nameValue.length > 1 ? nameValue[1] : "");
 		}
 		return queryParams;
 	}

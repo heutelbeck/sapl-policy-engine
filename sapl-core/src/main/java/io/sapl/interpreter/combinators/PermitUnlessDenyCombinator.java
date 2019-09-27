@@ -23,9 +23,9 @@ import reactor.core.publisher.Flux;
 public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCombinator {
 
 	@Override
-	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
-			boolean errorsInTarget, Request request, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
+	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
+			Request request, AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables) {
 
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
 			return Flux.just(Response.PERMIT);
@@ -40,8 +40,7 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 		}
 		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>(
-				matchingSaplDocuments.size());
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
 			responseFluxes.add(document.evaluate(evaluationCtx));
 		}
@@ -71,8 +70,7 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 			return Flux.just(Response.PERMIT);
 		}
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>(
-				matchingPolicies.size());
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
 			responseFluxes.add(policy.evaluate(ctx));
 		}
@@ -116,8 +114,7 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 				obligationAdvice.add(Decision.DENY, newResponse);
 				response = Response.DENY;
 			}
-			else if (newResponse.getDecision() == Decision.PERMIT
-					&& response.getDecision() != Decision.DENY) {
+			else if (newResponse.getDecision() == Decision.PERMIT && response.getDecision() != Decision.DENY) {
 				permitCount += 1;
 				if (newResponse.getResource().isPresent()) {
 					transformation = true;

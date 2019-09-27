@@ -23,22 +23,17 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the numerical division operator, written as '/' in Expressions.
  *
- * Grammar:
- * Multiplication returns Expression: Comparison (({Multi.left=current} '*' |
+ * Grammar: Multiplication returns Expression: Comparison (({Multi.left=current} '*' |
  * {Div.left=current} '/' | {And.left=current} '&&' | '&' {EagerAnd.left=current})
  * right=Comparison)* ;
  */
 public class DivImplCustom extends DivImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
-		final Flux<BigDecimal> divident = getLeft().evaluate(ctx, isBody, relativeNode)
-				.flatMap(Value::toBigDecimal);
-		final Flux<BigDecimal> divisor = getRight().evaluate(ctx, isBody, relativeNode)
-				.flatMap(Value::toBigDecimal);
-		return Flux.combineLatest(divident, divisor, BigDecimal::divide).map(Value::of)
-				.distinctUntilChanged();
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<BigDecimal> divident = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
+		final Flux<BigDecimal> divisor = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
+		return Flux.combineLatest(divident, divisor, BigDecimal::divide).map(Value::of).distinctUntilChanged();
 	}
 
 }

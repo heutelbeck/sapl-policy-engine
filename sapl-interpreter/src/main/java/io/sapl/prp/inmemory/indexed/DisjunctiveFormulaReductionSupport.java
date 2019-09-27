@@ -35,8 +35,7 @@ public class DisjunctiveFormulaReductionSupport {
 	}
 
 	private static void reduceFormulaStep(final List<ConjunctiveClause> data,
-			final ListIterator<ConjunctiveClause> pointer,
-			final ConjunctiveClause value) {
+			final ListIterator<ConjunctiveClause> pointer, final ConjunctiveClause value) {
 		ListIterator<ConjunctiveClause> forward = data.listIterator(pointer.nextIndex());
 		while (forward.hasNext()) {
 			ConjunctiveClause rhs = forward.next();

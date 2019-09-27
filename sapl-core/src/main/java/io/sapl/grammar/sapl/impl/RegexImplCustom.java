@@ -27,27 +27,21 @@ import reactor.util.function.Tuples;
 /**
  * Checks for a value matching a regular expression.
  *
- * Grammar:
- * Comparison returns Expression:
- * 	  Prefixed (({Regex.left=current} '=~') right=Prefixed)? ;
+ * Grammar: Comparison returns Expression: Prefixed (({Regex.left=current} '=~')
+ * right=Prefixed)? ;
  */
 public class RegexImplCustom extends RegexImpl {
 
 	private static final String REGEX_SYNTAX_ERROR = "Syntax error in regular expression '%s'.";
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody,
-				relativeNode);
-		final Flux<String> right = getRight().evaluate(ctx, isBody, relativeNode)
-				.flatMap(Value::toString);
-		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged()
-				.flatMap(this::matchRegexp);
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<String> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toString);
+		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().flatMap(this::matchRegexp);
 	}
 
-	private Flux<Optional<JsonNode>> matchRegexp(
-			Tuple2<Optional<JsonNode>, String> tuple) {
+	private Flux<Optional<JsonNode>> matchRegexp(Tuple2<Optional<JsonNode>, String> tuple) {
 		if (!tuple.getT1().isPresent()) {
 			return Value.fluxOfFalse();
 		}
@@ -55,12 +49,10 @@ public class RegexImplCustom extends RegexImpl {
 			return Value.fluxOfFalse();
 		}
 		try {
-			return Value
-					.fluxOf(Pattern.matches(tuple.getT2(), tuple.getT1().get().asText()));
+			return Value.fluxOf(Pattern.matches(tuple.getT2(), tuple.getT1().get().asText()));
 		}
 		catch (PatternSyntaxException e) {
-			return Flux.error(new PolicyEvaluationException(
-					String.format(REGEX_SYNTAX_ERROR, tuple.getT2()), e));
+			return Flux.error(new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, tuple.getT2()), e));
 		}
 	}
 

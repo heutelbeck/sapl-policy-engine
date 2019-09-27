@@ -41,8 +41,7 @@ public class Variable {
 		return unsatisfiableCandidatesWhenTrue;
 	}
 
-	protected Optional<Boolean> evaluate(final FunctionContext functionCtx,
-			final VariableContext variableCtx) {
+	protected Optional<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
 		Boolean result = null;
 		try {
 			result = getBool().evaluate(functionCtx, variableCtx);

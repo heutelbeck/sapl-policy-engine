@@ -52,9 +52,8 @@ import reactor.core.publisher.Flux;
  * Example: Applied to the array [1, 2, 3, 4, 5], the selection step [?(@ > 2)] returns
  * the array [3, 4, 5] (containing all values that are greater than 2).
  *
- * Grammar:
- * Step: ... | '[' Subscript ']' | ...
- * Subscript returns Step: ... | {ConditionStep} '?' '(' expression=Expression ')' | ...
+ * Grammar: Step: ... | '[' Subscript ']' | ... Subscript returns Step: ... |
+ * {ConditionStep} '?' '(' expression=Expression ')' | ...
  */
 public class ConditionStepImplCustom extends ConditionStepImpl {
 
@@ -73,12 +72,11 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	 * original array/object for which the condition expression evaluates to true
 	 */
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		final Optional<JsonNode> optPreviousResultNode = previousResult.getNode();
 		if (!optPreviousResultNode.isPresent()) {
-			return Flux.error(new PolicyEvaluationException(
-					"undefined value during conditional step evaluation."));
+			return Flux.error(new PolicyEvaluationException("undefined value during conditional step evaluation."));
 		}
 		final JsonNode previousResultNode = optPreviousResultNode.get();
 		if (previousResultNode.isArray()) {
@@ -89,18 +87,15 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		}
 		else {
 			return Flux.error(new PolicyEvaluationException(
-					String.format(CONDITION_ACCESS_TYPE_MISMATCH,
-							Value.typeOf(previousResult.getNode()))));
+					String.format(CONDITION_ACCESS_TYPE_MISMATCH, Value.typeOf(previousResult.getNode()))));
 		}
 	}
 
 	private Flux<ResultNode> handleArrayNode(JsonNode arrayNode, EvaluationContext ctx, boolean isBody) {
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(arrayNode.size());
-		IntStream.range(0, arrayNode.size())
-				.forEach(idx -> itemFluxes.add(getExpression()
-						.evaluate(ctx, isBody, Optional.of(arrayNode.get(idx)))
-						.flatMap(Value::toJsonNode)));
+		IntStream.range(0, arrayNode.size()).forEach(idx -> itemFluxes.add(
+				getExpression().evaluate(ctx, isBody, Optional.of(arrayNode.get(idx))).flatMap(Value::toJsonNode)));
 		// handle the empty array
 		if (itemFluxes.isEmpty()) {
 			return Flux.just(new ArrayResultNode(new ArrayList<>()));
@@ -116,8 +111,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 				final JsonNode result = (JsonNode) results[idx];
 				if (result.isBoolean() && result.asBoolean()) {
 					resultList.add(
-							new JsonNodeWithParentArray(Optional.of(arrayNode.get(idx)),
-									Optional.of(arrayNode), idx));
+							new JsonNodeWithParentArray(Optional.of(arrayNode.get(idx)), Optional.of(arrayNode), idx));
 				}
 			});
 			return new ArrayResultNode(resultList);
@@ -136,8 +130,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			final JsonNode fieldValue = objectNode.get(fieldName);
 			fieldNames.add(fieldName);
 			fieldValues.add(fieldValue);
-			valueFluxes.add(getExpression().evaluate(ctx, isBody, Optional.of(fieldValue))
-					.flatMap(Value::toJsonNode));
+			valueFluxes.add(getExpression().evaluate(ctx, isBody, Optional.of(fieldValue)).flatMap(Value::toJsonNode));
 		}
 		// handle the empty object
 		if (valueFluxes.isEmpty()) {
@@ -154,9 +147,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			IntStream.range(0, results.length).forEach(idx -> {
 				final JsonNode result = (JsonNode) results[idx];
 				if (result.isBoolean() && result.asBoolean()) {
-					resultList.add(new JsonNodeWithParentObject(
-							Optional.of(fieldValues.get(idx)), Optional.of(objectNode),
-							fieldNames.get(idx)));
+					resultList.add(new JsonNodeWithParentObject(Optional.of(fieldValues.get(idx)),
+							Optional.of(objectNode), fieldNames.get(idx)));
 				}
 			});
 			return new ArrayResultNode(resultList);
@@ -173,18 +165,15 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	 * for which the condition expression evaluates to true
 	 */
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx,
-			boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		// create two parallel lists collecting the elements of the array
 		// and the fluxes providing the evaluated conditions for these elements
-		final List<AbstractAnnotatedJsonNode> arrayElements = new ArrayList<>(
-				previousResult.getNodes().size());
-		final List<Flux<Optional<JsonNode>>> conditionResultFluxes = new ArrayList<>(
-				previousResult.getNodes().size());
+		final List<AbstractAnnotatedJsonNode> arrayElements = new ArrayList<>(previousResult.getNodes().size());
+		final List<Flux<Optional<JsonNode>>> conditionResultFluxes = new ArrayList<>(previousResult.getNodes().size());
 		for (AbstractAnnotatedJsonNode arrayElement : previousResult) {
 			arrayElements.add(arrayElement);
-			conditionResultFluxes
-					.add(getExpression().evaluate(ctx, isBody, arrayElement.getNode()));
+			conditionResultFluxes.add(getExpression().evaluate(ctx, isBody, arrayElement.getNode()));
 		}
 		// handle the empty array
 		if (conditionResultFluxes.isEmpty()) {
@@ -193,47 +182,42 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		// the indices of the elements in the arrayElements list correspond to the indices
 		// of the flux results, because combineLatest() preserves the order of the given
 		// list of fluxes in the results array passed to the combinator function
-		return Flux.combineLatest(conditionResultFluxes, Function.identity())
-				.flatMap(results -> {
-					final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-					// iterate over all condition results and collect the array elements
-					// related to a result representing true
-					for (int idx = 0; idx < results.length; idx++) {
-						@SuppressWarnings("unchecked")
-						Optional<JsonNode> optionalResult = ((Optional<JsonNode>) results[idx]);
-						if (!optionalResult.isPresent()) {
-							return Flux.error(new PolicyEvaluationException(
-									UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS));
-						}
-						final JsonNode result = optionalResult.get();
-						if (result.isBoolean() && result.asBoolean()) {
-							resultList.add(arrayElements.get(idx));
-						}
-					}
-					return Flux.just(new ArrayResultNode(resultList));
-				});
+		return Flux.combineLatest(conditionResultFluxes, Function.identity()).flatMap(results -> {
+			final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
+			// iterate over all condition results and collect the array elements
+			// related to a result representing true
+			for (int idx = 0; idx < results.length; idx++) {
+				@SuppressWarnings("unchecked")
+				Optional<JsonNode> optionalResult = ((Optional<JsonNode>) results[idx]);
+				if (!optionalResult.isPresent()) {
+					return Flux.error(new PolicyEvaluationException(UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS));
+				}
+				final JsonNode result = optionalResult.get();
+				if (result.isBoolean() && result.asBoolean()) {
+					resultList.add(arrayElements.get(idx));
+				}
+			}
+			return Flux.just(new ArrayResultNode(resultList));
+		});
 	}
 
 	@Override
 	public int hash(Map<String, String> imports) {
 		int hash = 17;
 		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = 37 * hash
-				+ ((getExpression() == null) ? 0 : getExpression().hash(imports));
+		hash = 37 * hash + ((getExpression() == null) ? 0 : getExpression().hash(imports));
 		return hash;
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other)
 			return true;
 		if (other == null || getClass() != other.getClass())
 			return false;
 		final ConditionStepImplCustom otherImpl = (ConditionStepImplCustom) other;
 		return (getExpression() == null) ? (getExpression() == otherImpl.getExpression())
-				: getExpression().isEqualTo(otherImpl.getExpression(), otherImports,
-						imports);
+				: getExpression().isEqualTo(otherImpl.getExpression(), otherImports, imports);
 	}
 
 }

@@ -40,29 +40,24 @@ public class RemotePolicyDecisionPointTest {
 
 	@Test
 	public void sendSingleRequest() {
-		final Request simpleRequest = new Request(JSON.textNode("willi"),
-				JSON.textNode("test-read"), JSON.textNode("something"), JSON.nullNode());
-		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port,
-				clientKey, clientSecret);
+		final Request simpleRequest = new Request(JSON.textNode("willi"), JSON.textNode("test-read"),
+				JSON.textNode("something"), JSON.nullNode());
+		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
 		final Flux<Response> decideFlux = pdp.decide(simpleRequest);
-		StepVerifier.create(decideFlux).expectNext(Response.PERMIT).thenCancel()
-				.verify();
+		StepVerifier.create(decideFlux).expectNext(Response.PERMIT).thenCancel().verify();
 	}
 
 	@Test
 	public void sendMultiRequestReceiveSeparately() {
 		final Collection<GrantedAuthority> authorities = Collections
 				.singletonList(new SimpleGrantedAuthority("TESTER"));
-		final Authentication authentication = new UsernamePasswordAuthenticationToken(
-				"Reactor", null, authorities);
+		final Authentication authentication = new UsernamePasswordAuthenticationToken("Reactor", null, authorities);
 
 		final MultiRequest multiRequest = new MultiRequest()
 				.addRequest("requestId_1", authentication, "test-read", "heartBeatData")
-				.addRequest("requestId_2", authentication, "test-read",
-						"bloodPressureData");
+				.addRequest("requestId_2", authentication, "test-read", "bloodPressureData");
 
-		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port,
-				clientKey, clientSecret);
+		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
 		final Flux<IdentifiableResponse> decideFlux = pdp.decide(multiRequest);
 		StepVerifier.create(decideFlux).expectNextMatches(response -> {
 			if (response.getRequestId().equals("requestId_1")) {
@@ -72,8 +67,7 @@ public class RemotePolicyDecisionPointTest {
 				return response.getResponse().equals(Response.DENY);
 			}
 			else {
-				throw new IllegalStateException(
-						"Invalid request id: " + response.getRequestId());
+				throw new IllegalStateException("Invalid request id: " + response.getRequestId());
 			}
 		}).expectNextMatches(response -> {
 			if (response.getRequestId().equals("requestId_1")) {
@@ -83,8 +77,7 @@ public class RemotePolicyDecisionPointTest {
 				return response.getResponse().equals(Response.DENY);
 			}
 			else {
-				throw new IllegalStateException(
-						"Invalid request id: " + response.getRequestId());
+				throw new IllegalStateException("Invalid request id: " + response.getRequestId());
 			}
 		}).thenCancel().verify();
 	}
@@ -93,20 +86,17 @@ public class RemotePolicyDecisionPointTest {
 	public void sendMultiRequestReceiveAll() {
 		final Collection<GrantedAuthority> authorities = Collections
 				.singletonList(new SimpleGrantedAuthority("TESTER"));
-		final Authentication authentication = new UsernamePasswordAuthenticationToken(
-				"Reactor", null, authorities);
+		final Authentication authentication = new UsernamePasswordAuthenticationToken("Reactor", null, authorities);
 
 		final MultiRequest multiRequest = new MultiRequest()
 				.addRequest("requestId_1", authentication, "test-read", "heartBeatData")
-				.addRequest("requestId_2", authentication, "test-read",
-						"bloodPressureData");
+				.addRequest("requestId_2", authentication, "test-read", "bloodPressureData");
 
-		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port,
-				clientKey, clientSecret);
+		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
 		final Flux<MultiResponse> multiResponseFlux = pdp.decideAll(multiRequest);
-		StepVerifier.create(multiResponseFlux).expectNextMatches(response -> response
-				.isAccessPermittedForRequestWithId("requestId_1")
-				&& response.getDecisionForRequestWithId("requestId_2") == Decision.DENY)
+		StepVerifier.create(multiResponseFlux)
+				.expectNextMatches(response -> response.isAccessPermittedForRequestWithId("requestId_1")
+						&& response.getDecisionForRequestWithId("requestId_2") == Decision.DENY)
 				.thenCancel().verify();
 	}
 

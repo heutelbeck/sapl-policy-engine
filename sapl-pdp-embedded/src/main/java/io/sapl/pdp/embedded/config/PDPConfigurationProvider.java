@@ -32,8 +32,7 @@ public interface PDPConfigurationProvider {
 		case ONLY_ONE_APPLICABLE:
 			return new OnlyOneApplicableCombinator();
 		default:
-			throw new IllegalArgumentException(
-					"Algorithm FIRST_APPLICABLE is not allowed for PDP level combination.");
+			throw new IllegalArgumentException("Algorithm FIRST_APPLICABLE is not allowed for PDP level combination.");
 		}
 	}
 

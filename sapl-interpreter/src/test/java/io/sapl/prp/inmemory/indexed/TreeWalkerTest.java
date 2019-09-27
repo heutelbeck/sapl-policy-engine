@@ -40,8 +40,7 @@ public class TreeWalkerTest {
 		SAPL document = interpreter.parse(definition);
 
 		// when
-		DisjunctiveFormula formula = TreeWalker
-				.walk(document.getPolicyElement().getTargetExpression(), imports);
+		DisjunctiveFormula formula = TreeWalker.walk(document.getPolicyElement().getTargetExpression(), imports);
 
 		// then
 		Assertions.assertThat(formula.size()).isEqualTo(1);
@@ -57,8 +56,7 @@ public class TreeWalkerTest {
 		SAPL document = interpreter.parse(definition);
 
 		// when
-		DisjunctiveFormula formula = TreeWalker
-				.walk(document.getPolicyElement().getTargetExpression(), imports);
+		DisjunctiveFormula formula = TreeWalker.walk(document.getPolicyElement().getTargetExpression(), imports);
 
 		// then
 		Assertions.assertThat(formula.size()).isEqualTo(1);
@@ -74,8 +72,7 @@ public class TreeWalkerTest {
 		SAPL document = interpreter.parse(definition);
 
 		// when
-		DisjunctiveFormula formula = TreeWalker
-				.walk(document.getPolicyElement().getTargetExpression(), imports);
+		DisjunctiveFormula formula = TreeWalker.walk(document.getPolicyElement().getTargetExpression(), imports);
 
 		// then
 		Assertions.assertThat(formula.size()).isEqualTo(2);
@@ -91,8 +88,7 @@ public class TreeWalkerTest {
 		SAPL document = interpreter.parse(definition);
 
 		// when
-		DisjunctiveFormula formula = TreeWalker
-				.walk(document.getPolicyElement().getTargetExpression(), imports);
+		DisjunctiveFormula formula = TreeWalker.walk(document.getPolicyElement().getTargetExpression(), imports);
 
 		// then
 		Assertions.assertThat(formula.size()).isEqualTo(1);

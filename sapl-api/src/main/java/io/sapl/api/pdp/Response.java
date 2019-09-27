@@ -43,7 +43,6 @@ public class Response {
 
 	public static final Response NOT_APPLICABLE = new Response(Decision.NOT_APPLICABLE);
 
-
 	Decision decision;
 
 	// Optional fields initialized as Optional.empty to allow comparing with JSON
@@ -58,7 +57,6 @@ public class Response {
 
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<ArrayNode> advices = Optional.empty();
-
 
 	public Response(Decision decision) {
 		this.decision = requireNonNull(decision);
@@ -104,8 +102,7 @@ public class Response {
 		final Optional<JsonNode> thisResource = getResource();
 		result = result * PRIME + thisResource.map(Object::hashCode).orElseGet(() -> 43);
 		final Optional<ArrayNode> thisObligation = getObligations();
-		result = result * PRIME
-				+ thisObligation.map(Object::hashCode).orElseGet(() -> 43);
+		result = result * PRIME + thisObligation.map(Object::hashCode).orElseGet(() -> 43);
 		final Optional<ArrayNode> thisAdvice = getAdvices();
 		result = result * PRIME + thisAdvice.map(Object::hashCode).orElseGet(() -> 43);
 		return result;

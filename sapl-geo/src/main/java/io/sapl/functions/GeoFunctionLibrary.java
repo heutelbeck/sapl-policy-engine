@@ -39,8 +39,7 @@ import lombok.NoArgsConstructor;
  */
 
 @NoArgsConstructor
-@FunctionLibrary(name = GeoFunctionLibrary.NAME,
-		description = GeoFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = GeoFunctionLibrary.NAME, description = GeoFunctionLibrary.DESCRIPTION)
 public class GeoFunctionLibrary {
 
 	public static final String NAME = "geo";
@@ -129,8 +128,8 @@ public class GeoFunctionLibrary {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Function(name = "equals", docs = EQUALS_DOC)
-	public JsonNode geometryEquals(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode geometryEquals(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -138,8 +137,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = DISJOINT_DOC)
-	public JsonNode disjoint(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode disjoint(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -147,8 +146,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = TOUCHES_DOC)
-	public JsonNode touches(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode touches(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -156,8 +155,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = CROSSES_DOC)
-	public JsonNode crosses(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode crosses(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -165,8 +164,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = WITHIN_DOC)
-	public JsonNode within(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode within(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -179,8 +178,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = CONTAINS_DOC)
-	public JsonNode contains(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode contains(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -193,8 +192,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = OVERLAPS_DOC)
-	public JsonNode overlaps(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode overlaps(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -202,8 +201,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = INTERSECTS_DOC)
-	public JsonNode intersects(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode intersects(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -211,8 +210,7 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = BUFFER_DOC)
-	public JsonNode buffer(@JsonObject JsonNode jsonGeometry, @Number JsonNode buffer)
-			throws FunctionException {
+	public JsonNode buffer(@JsonObject JsonNode jsonGeometry, @Number JsonNode buffer) throws FunctionException {
 		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
 		return GeometryBuilder.toJsonNode(geometry.buffer(buffer.asDouble()));
 	}
@@ -230,15 +228,13 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = CONVEXHULL_DOC)
-	public JsonNode convexHull(@JsonObject JsonNode jsonGeometry)
-			throws FunctionException {
+	public JsonNode convexHull(@JsonObject JsonNode jsonGeometry) throws FunctionException {
 		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
 		return GeometryBuilder.toJsonNode(geometry.convexHull());
 	}
 
 	@Function(docs = UNION_DOC)
-	public JsonNode union(@JsonObject JsonNode... jsonGeometries)
-			throws FunctionException {
+	public JsonNode union(@JsonObject JsonNode... jsonGeometries) throws FunctionException {
 		if (jsonGeometries.length == 1) {
 			return jsonGeometries[0];
 		}
@@ -253,8 +249,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = INTERSECTION_DOC)
-	public JsonNode intersection(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode intersection(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -262,8 +258,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = DIFFERENCE_DOC)
-	public JsonNode difference(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode difference(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -271,8 +267,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = SYMDIFFERENCE_DOC)
-	public JsonNode symDifference(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode symDifference(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -280,8 +276,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = DISTANCE_DOC)
-	public JsonNode distance(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode distance(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -289,19 +285,17 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = GEODISTANCE_DOC)
-	public JsonNode geoDistance(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo) throws FunctionException {
+	public JsonNode geoDistance(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo)
+			throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
-		return JSON.numberNode(BigDecimal
-				.valueOf(GeometryBuilder.geodesicDistance(geometryOne, geometryTwo)));
+		return JSON.numberNode(BigDecimal.valueOf(GeometryBuilder.geodesicDistance(geometryOne, geometryTwo)));
 	}
 
 	@Function(docs = ISWITHINDISTANCE_DOC)
-	public JsonNode isWithinDistance(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo, @Number JsonNode distInput)
-			throws FunctionException {
+	public JsonNode isWithinDistance(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo,
+			@Number JsonNode distInput) throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 		double distance = distInput.asDouble();
@@ -310,9 +304,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = ISWITHINGEODISTANCE_DOC)
-	public JsonNode isWithinGeoDistance(@JsonObject JsonNode jsonGeometryOne,
-			@JsonObject JsonNode jsonGeometryTwo, @Number JsonNode distInput)
-			throws FunctionException {
+	public JsonNode isWithinGeoDistance(@JsonObject JsonNode jsonGeometryOne, @JsonObject JsonNode jsonGeometryTwo,
+			@Number JsonNode distInput) throws FunctionException {
 		Geometry geometryOne = GeometryBuilder.fromJsonNode(jsonGeometryOne);
 		Geometry geometryTwo = GeometryBuilder.fromJsonNode(jsonGeometryTwo);
 
@@ -412,8 +405,7 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = ONEANDONLY_DOC)
-	public JsonNode oneAndOnly(@JsonObject JsonNode jsonGeometryCollection)
-			throws FunctionException {
+	public JsonNode oneAndOnly(@JsonObject JsonNode jsonGeometryCollection) throws FunctionException {
 		GeometryCollection geometryCollection = (GeometryCollection) GeometryBuilder
 				.fromJsonNode(jsonGeometryCollection);
 
@@ -426,8 +418,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = GEOMETRYISIN_DOC)
-	public JsonNode geometryIsIn(@JsonObject JsonNode jsonGeometry,
-			@JsonObject JsonNode jsonGeometryCollection) throws FunctionException {
+	public JsonNode geometryIsIn(@JsonObject JsonNode jsonGeometry, @JsonObject JsonNode jsonGeometryCollection)
+			throws FunctionException {
 		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
 		GeometryCollection geometryCollection = (GeometryCollection) GeometryBuilder
 				.fromJsonNode(jsonGeometryCollection);
@@ -442,21 +434,18 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = GEOMETRYBAG_DOC)
-	public JsonNode geometryBag(@JsonObject JsonNode... geometryJsonInput)
-			throws FunctionException {
+	public JsonNode geometryBag(@JsonObject JsonNode... geometryJsonInput) throws FunctionException {
 		Geometry[] geometries = new Geometry[geometryJsonInput.length];
 		for (int i = 0; i < geometryJsonInput.length; i++) {
 			geometries[i] = GeometryBuilder.fromJsonNode(geometryJsonInput[i]);
 		}
 
 		GeometryFactory geomFactory = new GeometryFactory();
-		return GeometryBuilder
-				.toJsonNode(geomFactory.createGeometryCollection(geometries));
+		return GeometryBuilder.toJsonNode(geomFactory.createGeometryCollection(geometries));
 	}
 
 	@Function(docs = RES_TO_GEOMETRYBAG_DOC)
-	public JsonNode resToGeometryBag(@Array JsonNode resourceArray)
-			throws FunctionException {
+	public JsonNode resToGeometryBag(@Array JsonNode resourceArray) throws FunctionException {
 		ObjectMapper mapper = new ObjectMapper();
 		return geometryBag(mapper.convertValue(resourceArray, JsonNode[].class));
 	}
@@ -472,8 +461,7 @@ public class GeoFunctionLibrary {
 
 		for (int i = 0; i < geometryCollectionOne.getNumGeometries(); i++) {
 			for (int j = 0; j < geometryCollectionTwo.getNumGeometries(); j++) {
-				if (geometryCollectionOne.getGeometryN(i)
-						.equals(geometryCollectionTwo.getGeometryN(j))) {
+				if (geometryCollectionOne.getGeometryN(i).equals(geometryCollectionTwo.getGeometryN(j))) {
 					result = true;
 				}
 			}
@@ -488,8 +476,7 @@ public class GeoFunctionLibrary {
 				.fromJsonNode(jsonGeometryCollectionOne);
 		GeometryCollection geometryCollectionTwo = (GeometryCollection) GeometryBuilder
 				.fromJsonNode(jsonGeometryCollectionTwo);
-		if (geometryCollectionOne.getNumGeometries() > geometryCollectionTwo
-				.getNumGeometries()) {
+		if (geometryCollectionOne.getNumGeometries() > geometryCollectionTwo.getNumGeometries()) {
 			return JSON.booleanNode(false);
 		}
 
@@ -498,8 +485,7 @@ public class GeoFunctionLibrary {
 
 		for (int i = 0; i < geometryCollectionOne.getNumGeometries(); i++) {
 			for (int j = 0; j < geometryCollectionTwo.getNumGeometries(); j++) {
-				if (geometryCollectionOne.getGeometryN(i)
-						.equals(geometryCollectionTwo.getGeometryN(j))) {
+				if (geometryCollectionOne.getGeometryN(i).equals(geometryCollectionTwo.getGeometryN(j))) {
 					resultSet.set(i);
 				}
 			}
@@ -514,15 +500,12 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = GETPROJECTION_DOC)
-	public JsonNode getProjection(@Text JsonNode srcSystem, @Text JsonNode destSystem)
-			throws FunctionException {
-		return JSON.textNode(
-				new GeoProjection(srcSystem.asText(), destSystem.asText()).toWkt());
+	public JsonNode getProjection(@Text JsonNode srcSystem, @Text JsonNode destSystem) throws FunctionException {
+		return JSON.textNode(new GeoProjection(srcSystem.asText(), destSystem.asText()).toWkt());
 	}
 
 	@Function(docs = PROJECT_DOC)
-	public JsonNode project(@JsonObject JsonNode jsonGeometry,
-			@Text JsonNode mathTransform) throws FunctionException {
+	public JsonNode project(@JsonObject JsonNode jsonGeometry, @Text JsonNode mathTransform) throws FunctionException {
 		GeoProjection projection = new GeoProjection(mathTransform.asText());
 		Geometry geometry = GeometryBuilder.fromJsonNode(jsonGeometry);
 		return GeometryBuilder.toJsonNode(projection.project(geometry));

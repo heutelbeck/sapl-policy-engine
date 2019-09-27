@@ -24,14 +24,13 @@ public class SimpleInMemoryDocumentIndex implements InMemoryDocumentIndex {
 	ParsedDocumentIndex index = new SimpleParsedDocumentIndex();
 
 	@Override
-	public PolicyRetrievalResult retrievePolicies(Request request,
-			FunctionContext functionCtx, Map<String, JsonNode> variables) {
+	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
+			Map<String, JsonNode> variables) {
 		return index.retrievePolicies(request, functionCtx, variables);
 	}
 
 	@Override
-	public void insert(String documentKey, String document)
-			throws PolicyEvaluationException {
+	public void insert(String documentKey, String document) throws PolicyEvaluationException {
 		parsedDocuments.put(documentKey, INTERPRETER.parse(document));
 	}
 

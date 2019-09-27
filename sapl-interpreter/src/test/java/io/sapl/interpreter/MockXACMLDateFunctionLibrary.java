@@ -25,8 +25,7 @@ public class MockXACMLDateFunctionLibrary {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Function
-	public JsonNode diff(JsonNode type, JsonNode to, JsonNode from)
-			throws FunctionException {
+	public JsonNode diff(JsonNode type, JsonNode to, JsonNode from) throws FunctionException {
 		if ("years".equals(type.asText())) {
 			return JSON.numberNode(15);
 		}

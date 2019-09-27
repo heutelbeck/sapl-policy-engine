@@ -95,18 +95,16 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	}
 
 	@Override
-	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, boolean isBody) {
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx,
+			boolean isBody) {
 		if (each) {
 			if (!nodes.isEmpty()) {
-				final List<Flux<Void>> appliedFilterFluxes = new ArrayList<>(
-						nodes.size());
+				final List<Flux<Void>> appliedFilterFluxes = new ArrayList<>(nodes.size());
 				for (AbstractAnnotatedJsonNode node : nodes) {
-					appliedFilterFluxes.add(node.applyFilterWithRelativeNode(function,
-							arguments, false, ctx, isBody, node.getParent()));
+					appliedFilterFluxes.add(node.applyFilterWithRelativeNode(function, arguments, false, ctx, isBody,
+							node.getParent()));
 				}
-				return Flux.combineLatest(appliedFilterFluxes,
-						voidResults -> Void.INSTANCE);
+				return Flux.combineLatest(appliedFilterFluxes, voidResults -> Void.INSTANCE);
 			}
 			else {
 				return Flux.just(Void.INSTANCE);
@@ -126,8 +124,7 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	 * @param nodes the annotated nodes to prepare
 	 * @return a result array with the correct ordering of its children
 	 */
-	private static List<AbstractAnnotatedJsonNode> changeOrderForRemove(
-			List<AbstractAnnotatedJsonNode> nodes) {
+	private static List<AbstractAnnotatedJsonNode> changeOrderForRemove(List<AbstractAnnotatedJsonNode> nodes) {
 		List<AbstractAnnotatedJsonNode> result = new ArrayList<>();
 		Map<Integer, List<AbstractAnnotatedJsonNode>> nodesWithParentArray = new HashMap<>();
 

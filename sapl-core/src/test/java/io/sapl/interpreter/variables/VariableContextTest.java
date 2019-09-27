@@ -49,11 +49,10 @@ public class VariableContextTest {
 
 	private static final String VAR_ID = "var";
 
-	private static final Request REQUEST_OBJECT = new Request(SUBJECT_NODE, ACTION_NODE,
-			RESOURCE_NODE, ENVIRONMENT_NODE);
+	private static final Request REQUEST_OBJECT = new Request(SUBJECT_NODE, ACTION_NODE, RESOURCE_NODE,
+			ENVIRONMENT_NODE);
 
-	private static final Request EMPTY_REQUEST_OBJECT = new Request(null, null, null,
-			null);
+	private static final Request EMPTY_REQUEST_OBJECT = new Request(null, null, null, null);
 
 	@Test
 	public void emtpyInitializationTest() {
@@ -65,8 +64,7 @@ public class VariableContextTest {
 	public void requestInitializationTest() throws PolicyEvaluationException {
 		VariableContext ctx = new VariableContext(REQUEST_OBJECT);
 		assertTrue("context was not created or did not remember values",
-				ctx != null && ctx.get("subject").equals(SUBJECT_NODE)
-						&& ctx.get("action").equals(ACTION_NODE)
+				ctx != null && ctx.get("subject").equals(SUBJECT_NODE) && ctx.get("action").equals(ACTION_NODE)
 						&& ctx.get("resource").equals(RESOURCE_NODE)
 						&& ctx.get("environment").equals(ENVIRONMENT_NODE));
 	}
@@ -75,25 +73,21 @@ public class VariableContextTest {
 	public void emptyRequestInitializationTest() throws PolicyEvaluationException {
 		VariableContext ctx = new VariableContext(EMPTY_REQUEST_OBJECT);
 		assertTrue("context was not created or did not remember values",
-				ctx != null && ctx.get("subject").equals(NULL_NODE)
-						&& ctx.get("action").equals(NULL_NODE)
-						&& ctx.get("resource").equals(NULL_NODE)
-						&& ctx.get("environment").equals(NULL_NODE));
+				ctx != null && ctx.get("subject").equals(NULL_NODE) && ctx.get("action").equals(NULL_NODE)
+						&& ctx.get("resource").equals(NULL_NODE) && ctx.get("environment").equals(NULL_NODE));
 	}
 
 	@Test
 	public void notExistsTest() throws PolicyEvaluationException {
 		VariableContext ctx = new VariableContext(REQUEST_OBJECT);
-		assertFalse("var should not be existing in freshly created context",
-				ctx.exists(VAR_ID));
+		assertFalse("var should not be existing in freshly created context", ctx.exists(VAR_ID));
 	}
 
 	@Test
 	public void existsTest() throws PolicyEvaluationException {
 		VariableContext ctx = new VariableContext(REQUEST_OBJECT);
 		ctx.put(VAR_ID, VAR_NODE);
-		assertTrue("var should be existing in freshly created context",
-				ctx.get(VAR_ID).equals(VAR_NODE));
+		assertTrue("var should be existing in freshly created context", ctx.get(VAR_ID).equals(VAR_NODE));
 	}
 
 	@Test

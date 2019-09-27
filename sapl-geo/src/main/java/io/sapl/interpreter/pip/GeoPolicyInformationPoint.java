@@ -28,8 +28,7 @@ import io.sapl.interpreter.pip.geo.PostGISConnection;
 import io.sapl.interpreter.pip.geo.TraccarConnection;
 import reactor.core.publisher.Flux;
 
-@PolicyInformationPoint(name = GeoPolicyInformationPoint.NAME,
-		description = GeoPolicyInformationPoint.DESCRIPTION)
+@PolicyInformationPoint(name = GeoPolicyInformationPoint.NAME, description = GeoPolicyInformationPoint.DESCRIPTION)
 public class GeoPolicyInformationPoint {
 
 	public static final String NAME = "io.sapl.pip.geo";

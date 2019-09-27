@@ -32,12 +32,9 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the application of an index step to a previous array value, e.g. 'arr[2]'.
  *
- * Grammar:
- * Step:
- * 	'[' Subscript ']' ;
+ * Grammar: Step: '[' Subscript ']' ;
  *
- * Subscript returns Step:
- *   {IndexStep} index=JSONNUMBER ;
+ * Subscript returns Step: {IndexStep} index=JSONNUMBER ;
  */
 public class IndexStepImplCustom extends IndexStepImpl {
 
@@ -46,8 +43,8 @@ public class IndexStepImplCustom extends IndexStepImpl {
 	private static final String INDEX_ACCESS_NOT_FOUND = "Index not found. Failed to access index [%s].";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		}
@@ -56,36 +53,32 @@ public class IndexStepImplCustom extends IndexStepImpl {
 		}
 	}
 
-	private ResultNode apply(AbstractAnnotatedJsonNode previousResult)
-			throws PolicyEvaluationException {
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		final JsonNode previousResultNode = previousResult.getNode().get();
 		if (!previousResultNode.isArray()) {
-			throw new PolicyEvaluationException(String.format(INDEX_ACCESS_TYPE_MISMATCH,
-					getIndex(), previousResultNode.getNodeType()));
+			throw new PolicyEvaluationException(
+					String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), previousResultNode.getNodeType()));
 		}
 
 		final int arrayLength = previousResultNode.size();
 		int index = computeAndValidateIndex(arrayLength);
-		return new JsonNodeWithParentArray(Optional.of(previousResultNode.get(index)),
-				previousResult.getNode(), index);
+		return new JsonNodeWithParentArray(Optional.of(previousResultNode.get(index)), previousResult.getNode(), index);
 	}
 
-	private int computeAndValidateIndex(int arrayLength)
-			throws PolicyEvaluationException {
+	private int computeAndValidateIndex(int arrayLength) throws PolicyEvaluationException {
 		int index = getIndex().intValue();
 		if (index < 0) {
 			index += arrayLength;
 		}
 		if (index < 0 || index >= arrayLength) {
-			throw new PolicyEvaluationException(
-					String.format(INDEX_ACCESS_NOT_FOUND, index));
+			throw new PolicyEvaluationException(String.format(INDEX_ACCESS_NOT_FOUND, index));
 		}
 		return index;
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx,
-			boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		}
@@ -94,10 +87,8 @@ public class IndexStepImplCustom extends IndexStepImpl {
 		}
 	}
 
-	private ResultNode apply(ArrayResultNode previousResult)
-			throws PolicyEvaluationException {
-		final List<AbstractAnnotatedJsonNode> previousResultNodes = previousResult
-				.getNodes();
+	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
+		final List<AbstractAnnotatedJsonNode> previousResultNodes = previousResult.getNodes();
 
 		final int arrayLength = previousResultNodes.size();
 		int index = computeAndValidateIndex(arrayLength);
@@ -113,8 +104,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

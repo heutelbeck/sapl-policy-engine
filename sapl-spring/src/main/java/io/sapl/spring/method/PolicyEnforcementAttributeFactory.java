@@ -7,12 +7,10 @@ import io.sapl.spring.method.pre.PreInvocationEnforcementAttribute;
 
 public interface PolicyEnforcementAttributeFactory extends AopInfrastructureBean {
 
-	PreInvocationEnforcementAttribute createPreInvocationAttribute(
-			String subjectAttribute, String actionAttribute, String resourceAttribute,
-			String environmentAttribute);
+	PreInvocationEnforcementAttribute createPreInvocationAttribute(String subjectAttribute, String actionAttribute,
+			String resourceAttribute, String environmentAttribute);
 
-	PostInvocationEnforcementAttribute createPostInvocationAttribute(
-			String subjectAttribute, String actionAttribute, String resourceAttribute,
-			String environmentAttribute);
+	PostInvocationEnforcementAttribute createPostInvocationAttribute(String subjectAttribute, String actionAttribute,
+			String resourceAttribute, String environmentAttribute);
 
 }

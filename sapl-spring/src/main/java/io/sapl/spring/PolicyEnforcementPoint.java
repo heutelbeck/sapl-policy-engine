@@ -51,10 +51,8 @@ public class PolicyEnforcementPoint {
 	 * PDP's response did not contain a resource value, {@link Decision#DENY deny}
 	 * otherwise.
 	 */
-	public Flux<Decision> enforce(Object subject, Object action, Object resource,
-			Object environment) {
-		return execute(subject, action, resource, environment, false)
-				.map(Response::getDecision);
+	public Flux<Decision> enforce(Object subject, Object action, Object resource, Object environment) {
+		return execute(subject, action, resource, environment, false).map(Response::getDecision);
 
 	}
 
@@ -93,21 +91,18 @@ public class PolicyEnforcementPoint {
 	 * fulfilled, a {@link Response response} containing {@link Decision#DENY deny} and no
 	 * resource otherwise.
 	 */
-	public Flux<Response> filterEnforce(Object subject, Object action, Object resource,
-			Object environment) {
+	public Flux<Response> filterEnforce(Object subject, Object action, Object resource, Object environment) {
 		return execute(subject, action, resource, environment, true);
 	}
 
-	private Flux<Response> execute(Object subject, Object action, Object resource,
-		    Object environment, boolean supportResourceTransformation) {
+	private Flux<Response> execute(Object subject, Object action, Object resource, Object environment,
+			boolean supportResourceTransformation) {
 		Request request = buildRequest(subject, action, resource, environment);
 		final Flux<Response> responseFlux = pdp.decide(request);
 		return responseFlux.map(response -> {
-			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}",
-					request.getAction(), request.getResource(), request.getSubject(),
-					request.getEnvironment());
-			LOGGER.debug("RESPONSE : {} - {}",
-					response == null ? "null" : response.getDecision(), response);
+			LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(),
+					request.getSubject(), request.getEnvironment());
+			LOGGER.debug("RESPONSE : {} - {}", response == null ? "null" : response.getDecision(), response);
 
 			if (response == null || response.getDecision() != Decision.PERMIT) {
 				return DENY;
@@ -152,14 +147,16 @@ public class PolicyEnforcementPoint {
 	/**
 	 * Sends the given {@code multiRequest} to the PDP which emits
 	 * {@link IdentifiableResponse identifiable responses} as soon as they are available.
-	 * Each response is handled as follows: If its decision is {@link Decision#PERMIT permit},
-	 * obligation and advice handlers are invoked. If all obligations can be fulfilled, the original
-	 * response is left as is. If its decision is not {@link Decision#PERMIT permit} or if
-	 * not all obligations can be fulfilled, the response is replaced by a response
-	 * containing {@link Decision#DENY deny} and no resource.
+	 * Each response is handled as follows: If its decision is {@link Decision#PERMIT
+	 * permit}, obligation and advice handlers are invoked. If all obligations can be
+	 * fulfilled, the original response is left as is. If its decision is not
+	 * {@link Decision#PERMIT permit} or if not all obligations can be fulfilled, the
+	 * response is replaced by a response containing {@link Decision#DENY deny} and no
+	 * resource.
 	 * @param multiRequest the multi-request to be sent to the PDP.
-	 * @return a Flux emitting {@link IdentifiableResponse identifiable responses} which may differ
-	 *        from the original ones emitted by the PDP after having handled the obligations.
+	 * @return a Flux emitting {@link IdentifiableResponse identifiable responses} which
+	 * may differ from the original ones emitted by the PDP after having handled the
+	 * obligations.
 	 */
 	public Flux<IdentifiableResponse> filterEnforce(MultiRequest multiRequest) {
 		final Flux<IdentifiableResponse> identifiableResponseFlux = pdp.decide(multiRequest);
@@ -192,7 +189,8 @@ public class PolicyEnforcementPoint {
 			final MultiResponse resultResponse = new MultiResponse();
 			for (IdentifiableResponse identifiableResponse : multiResponse) {
 				final IdentifiableResponse handledResponse = handle(identifiableResponse);
-				resultResponse.setResponseForRequestWithId(handledResponse.getRequestId(), handledResponse.getResponse());
+				resultResponse.setResponseForRequestWithId(handledResponse.getRequestId(),
+						handledResponse.getResponse());
 			}
 
 			LOGGER.debug("RETURNED RESPONSE : {}", resultResponse);
@@ -200,8 +198,7 @@ public class PolicyEnforcementPoint {
 		}).distinctUntilChanged();
 	}
 
-	private Request buildRequest(Object subject, Object action, Object resource,
-								 Object environment) {
+	private Request buildRequest(Object subject, Object action, Object resource, Object environment) {
 		final JsonNode subjectNode = mapper.valueToTree(subject);
 		final JsonNode actionNode = mapper.valueToTree(action);
 		final JsonNode resourceNode = mapper.valueToTree(resource);

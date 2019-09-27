@@ -72,8 +72,7 @@ public class ConcurrencyTest {
 		Request request = createRequestObject(bindings);
 
 		// when
-		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx,
-				variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx, variables);
 
 		// then
 		Assertions.assertThat(result).isNotNull();
@@ -94,8 +93,7 @@ public class ConcurrencyTest {
 		Request request = createRequestObject(bindings);
 
 		// when
-		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx,
-				variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx, variables);
 
 		// then
 		Assertions.assertThat(result).isNotNull();
@@ -114,8 +112,7 @@ public class ConcurrencyTest {
 
 		// when
 		prp.updateFunctionContext(functionCtx);
-		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx,
-				variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx, variables);
 
 		// then
 		Assertions.assertThat(result).isNotNull();
@@ -137,8 +134,7 @@ public class ConcurrencyTest {
 				resource.put(entry.getKey(), value);
 			}
 		}
-		return new Request(NullNode.getInstance(), NullNode.getInstance(), resource,
-				NullNode.getInstance());
+		return new Request(NullNode.getInstance(), NullNode.getInstance(), resource, NullNode.getInstance());
 	}
 
 	private static Set<String> getVariables() {

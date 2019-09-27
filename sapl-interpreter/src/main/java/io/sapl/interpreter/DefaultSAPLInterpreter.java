@@ -67,53 +67,43 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		return (SAPL) loadAsResource(saplInputStream).getContents().get(0);
 	}
 
-	private static Resource loadAsResource(InputStream policyInputStream)
-			throws PolicyEvaluationException {
+	private static Resource loadAsResource(InputStream policyInputStream) throws PolicyEvaluationException {
 		final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-		final Resource resource = resourceSet
-				.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
+		final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
 
 		try {
 			resource.load(policyInputStream, resourceSet.getLoadOptions());
 		}
 		catch (IOException | WrappedException e) {
-			throw new PolicyEvaluationException(
-					String.format(PARSING_ERRORS, resource.getErrors()), e);
+			throw new PolicyEvaluationException(String.format(PARSING_ERRORS, resource.getErrors()), e);
 		}
 
 		if (!resource.getErrors().isEmpty()) {
-			throw new PolicyEvaluationException(
-					String.format(PARSING_ERRORS, resource.getErrors()));
+			throw new PolicyEvaluationException(String.format(PARSING_ERRORS, resource.getErrors()));
 		}
 		return resource;
 	}
 
-	private static Resource loadAsResource(String saplDefinition)
-			throws PolicyEvaluationException {
+	private static Resource loadAsResource(String saplDefinition) throws PolicyEvaluationException {
 		final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-		final Resource resource = resourceSet
-				.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
+		final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
 
-		try (InputStream in = new ByteArrayInputStream(
-				saplDefinition.getBytes(StandardCharsets.UTF_8))) {
+		try (InputStream in = new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8))) {
 			resource.load(in, resourceSet.getLoadOptions());
 		}
 		catch (IOException e) {
-			throw new PolicyEvaluationException(
-					String.format(PARSING_ERRORS, resource.getErrors()), e);
+			throw new PolicyEvaluationException(String.format(PARSING_ERRORS, resource.getErrors()), e);
 		}
 
 		if (!resource.getErrors().isEmpty()) {
-			throw new PolicyEvaluationException(
-					String.format(PARSING_ERRORS, resource.getErrors()));
+			throw new PolicyEvaluationException(String.format(PARSING_ERRORS, resource.getErrors()));
 		}
 		return resource;
 	}
 
 	@Override
-	public Flux<Response> evaluate(Request request, String saplDefinition,
-			AttributeContext attributeCtx, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables) {
+	public Flux<Response> evaluate(Request request, String saplDefinition, AttributeContext attributeCtx,
+			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
 		final SAPL saplDocument;
 		try {
 			saplDocument = parse(saplDefinition);
@@ -129,8 +119,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			return saplDocument.evaluate(evaluationCtx).onErrorReturn(INDETERMINATE);
 		}
 		catch (PolicyEvaluationException e) {
-			LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED,
-					e.getMessage());
+			LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED, e.getMessage());
 			LOGGER.trace("| |");
 			return Flux.just(INDETERMINATE);
 		}
@@ -145,13 +134,11 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 			if (sapl.getPolicyElement() instanceof PolicySet) {
 				PolicySet set = (PolicySet) sapl.getPolicyElement();
-				result = new DocumentAnalysisResult(true, set.getSaplName(),
-						DocumentType.POLICY_SET, "");
+				result = new DocumentAnalysisResult(true, set.getSaplName(), DocumentType.POLICY_SET, "");
 			}
 			else {
 				Policy policy = (Policy) sapl.getPolicyElement();
-				result = new DocumentAnalysisResult(true, policy.getSaplName(),
-						DocumentType.POLICY, "");
+				result = new DocumentAnalysisResult(true, policy.getSaplName(), DocumentType.POLICY, "");
 			}
 		}
 		catch (PolicyEvaluationException e) {

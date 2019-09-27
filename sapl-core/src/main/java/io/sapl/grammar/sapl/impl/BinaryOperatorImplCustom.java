@@ -32,8 +32,7 @@ public class BinaryOperatorImplCustom extends BinaryOperatorImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}
@@ -41,8 +40,8 @@ public class BinaryOperatorImplCustom extends BinaryOperatorImpl {
 			return false;
 		}
 		final BinaryOperatorImpl otherImpl = (BinaryOperatorImpl) other;
-		if ((getLeft() == null && otherImpl.getLeft() != null) || (getLeft() != null
-				&& !getLeft().isEqualTo(otherImpl.getLeft(), otherImports, imports))) {
+		if ((getLeft() == null && otherImpl.getLeft() != null)
+				|| (getLeft() != null && !getLeft().isEqualTo(otherImpl.getLeft(), otherImports, imports))) {
 			return false;
 		}
 		return getRight() == null ? otherImpl.getRight() == null

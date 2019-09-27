@@ -33,15 +33,13 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of an array slicing step to a previous array value,
- * e.g. 'arr[4:12:2]'.
+ * Implements the application of an array slicing step to a previous array value, e.g.
+ * 'arr[4:12:2]'.
  *
- * Grammar:
- * Step:
- * 	'[' Subscript ']' ;
+ * Grammar: Step: '[' Subscript ']' ;
  *
- * Subscript returns Step:
- *   {ArraySlicingStep} index=JSONNUMBER? ':' to=JSONNUMBER? (':' step=JSONNUMBER)? ;
+ * Subscript returns Step: {ArraySlicingStep} index=JSONNUMBER? ':' to=JSONNUMBER? (':'
+ * step=JSONNUMBER)? ;
  */
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
@@ -50,8 +48,8 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	private static final String INDEX_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing an JSON array index [%s] expects array value, but got: '%s'.";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		}
@@ -60,30 +58,24 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 		}
 	}
 
-	private ResultNode apply(AbstractAnnotatedJsonNode previousResult)
-			throws PolicyEvaluationException {
-		if (!previousResult.getNode().isPresent()
-				|| !previousResult.getNode().get().isArray()) {
-			throw new PolicyEvaluationException(
-					String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(),
-							previousResult.getNode().isPresent()
-									? previousResult.getNode().get().getNodeType()
-									: "undefined"));
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
+		if (!previousResult.getNode().isPresent() || !previousResult.getNode().get().isArray()) {
+			throw new PolicyEvaluationException(String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(),
+					previousResult.getNode().isPresent() ? previousResult.getNode().get().getNodeType() : "undefined"));
 		}
 
 		final List<Integer> nodeIndices = resolveIndex(previousResult.getNode().get());
 		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>(nodeIndices.size());
 		for (Integer idx : nodeIndices) {
-			list.add(new JsonNodeWithParentArray(
-					Optional.of(previousResult.getNode().get().get(idx)),
+			list.add(new JsonNodeWithParentArray(Optional.of(previousResult.getNode().get().get(idx)),
 					previousResult.getNode(), idx));
 		}
 		return new ArrayResultNode(list);
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx,
-			boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		}
@@ -92,11 +84,9 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 		}
 	}
 
-	private ResultNode apply(ArrayResultNode previousResult)
-			throws PolicyEvaluationException {
-		final List<Integer> nodeIndices = resolveIndex(
-				previousResult.asJsonWithoutAnnotations().orElseThrow(
-						() -> new PolicyEvaluationException("undefined value")));
+	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
+		final List<Integer> nodeIndices = resolveIndex(previousResult.asJsonWithoutAnnotations()
+				.orElseThrow(() -> new PolicyEvaluationException("undefined value")));
 		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>(nodeIndices.size());
 		for (Integer i : nodeIndices) {
 			list.add(previousResult.getNodes().get(i));
@@ -125,8 +115,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 			index = index == null ? BigDecimal.ZERO : index;
 			to = to == null ? BigDecimal.valueOf(value.size()) : to;
 			if (index.compareTo(to) < 0) {
-				for (int i = index.intValue(); i < to.intValue(); i = i
-						+ step.intValue()) {
+				for (int i = index.intValue(); i < to.intValue(); i = i + step.intValue()) {
 					returnIndices.add(i);
 				}
 			}
@@ -135,8 +124,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 			index = index == null ? BigDecimal.valueOf(value.size() - 1L) : index;
 			to = to == null ? BigDecimal.valueOf(-1) : to;
 			if (index.compareTo(to) > 0) {
-				for (int i = index.intValue(); i > to.intValue(); i = i
-						+ step.intValue()) {
+				for (int i = index.intValue(); i > to.intValue(); i = i + step.intValue()) {
 					returnIndices.add(i);
 				}
 			}
@@ -155,8 +143,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

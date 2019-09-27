@@ -37,14 +37,17 @@ import io.sapl.interpreter.pip.AttributeContext;
 public class DenyOverridesTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private static final Request EMPTY_REQUEST = new Request(null, null, null, null);
-	private static final Request REQUEST_WITH_TRUE_RESOURCE = 
-			new Request(null, null, JSON.booleanNode(true), null);
+
+	private static final Request REQUEST_WITH_TRUE_RESOURCE = new Request(null, null, JSON.booleanNode(true), null);
+
 	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
 	private AttributeContext attributeCtx;
+
 	private FunctionContext functionCtx;
 
 	@Before
@@ -55,225 +58,160 @@ public class DenyOverridesTest {
 
 	@Test
 	public void permit() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp\" permit";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp\" permit";
 
-		assertEquals("should return permit if the only policy evaluates to permit",
-				Decision.PERMIT,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+		assertEquals("should return permit if the only policy evaluates to permit", Decision.PERMIT,
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void deny() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp\" deny";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp\" deny";
 
-		assertEquals("should return deny if the only policy evaluates to deny",
-				Decision.DENY,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+		assertEquals("should return deny if the only policy evaluates to deny", Decision.DENY,
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void notApplicableTarget() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp\" deny true == false";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp\" deny true == false";
 
-		assertEquals(
-				"should return not applicable if the only policy target evaluates to not applicable",
+		assertEquals("should return not applicable if the only policy target evaluates to not applicable",
 				Decision.NOT_APPLICABLE,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void notApplicableCondition() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp\" deny where true == false;";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp\" deny where true == false;";
 
-		assertEquals(
-				"should return not applicable if the only policy condition evaluates to not applicable",
+		assertEquals("should return not applicable if the only policy condition evaluates to not applicable",
 				Decision.NOT_APPLICABLE,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void indeterminateTarget() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp\" permit \"a\" < 5";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp\" permit \"a\" < 5";
 
-		assertEquals("should return indeterminate if the only target is indeterminate",
-				Decision.INDETERMINATE,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+		assertEquals("should return indeterminate if the only target is indeterminate", Decision.INDETERMINATE,
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void indeterminateCondition() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp\" permit where \"a\" < 5;";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp\" permit where \"a\" < 5;";
 
-		assertEquals("should return indeterminate if the only condition is indeterminate",
-				Decision.INDETERMINATE,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+		assertEquals("should return indeterminate if the only condition is indeterminate", Decision.INDETERMINATE,
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void permitDeny() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp1\" permit" 
-				+ " policy \"testp2\" deny";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp1\" permit" + " policy \"testp2\" deny";
 
 		assertEquals("should return deny if any policy evaluates to deny", Decision.DENY,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void denyIndeterminate() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp1\" deny" 
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp1\" deny"
 				+ " policy \"testp2\" deny where \"a\" > 5;";
 
 		assertEquals("should return deny if any policy evaluates to deny", Decision.DENY,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void permitNotApplicableDeny() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp1\" permit" 
-				+ " policy \"testp2\" permit true == false"
-				+ " policy \"testp3\" deny";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp1\" permit"
+				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" deny";
 
 		assertEquals("should return deny if any policy evaluates to deny", Decision.DENY,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void permitNotApplicableIndeterminateDeny() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp1\" permit"
-				+ " policy \"testp2\" permit true == false"
-				+ " policy \"testp3\" permit \"a\" > 5"
-				+ " policy \"testp4\" deny"
-				+ " policy \"testp5\" permit";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp1\" permit"
+				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" permit \"a\" > 5"
+				+ " policy \"testp4\" deny" + " policy \"testp5\" permit";
 
 		assertEquals("should return deny if any policy evaluates to deny", Decision.DENY,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void permitIndeterminateNotApplicable() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp1\" permit"
-				+ " policy \"testp2\" deny \"a\" < 5"
-				+ " policy \"testp3\" deny true == false";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp1\" permit"
+				+ " policy \"testp2\" deny \"a\" < 5" + " policy \"testp3\" deny true == false";
 
-		assertEquals(
-				"should return indeterminate if only indeterminate, permit and not applicable present",
+		assertEquals("should return indeterminate if only indeterminate, permit and not applicable present",
 				Decision.INDETERMINATE,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void multiplePermitTransformation() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp1\" permit"
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp1\" permit"
 				+ " policy \"testp2\" permit transform true";
 
 		assertEquals(
 				"should return indeterminate if final decision would be permit and there is a transformation incertainty",
 				Decision.INDETERMINATE,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void multiplePermitTransformationDeny() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp1\" permit"
-				+ " policy \"testp2\" permit transform true"
-				+ " policy \"testp3\" deny";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp1\" permit"
+				+ " policy \"testp2\" permit transform true" + " policy \"testp3\" deny";
 
-		assertEquals(
-				"should return deny if final decision would be deny and there is a transformation incertainty",
+		assertEquals("should return deny if final decision would be deny and there is a transformation incertainty",
 				Decision.DENY,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void singlePermitTransformation() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp\" permit transform true";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp\" permit transform true";
 
-		assertEquals("should return permit if there is no transformation incertainty",
-				Decision.PERMIT,
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+		assertEquals("should return permit if there is no transformation incertainty", Decision.PERMIT,
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getDecision());
 	}
 
 	@Test
 	public void singlePermitTransformationResource() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp\" permit transform true";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp\" permit transform true";
 
 		assertEquals("should return resource if there is no transformation incertainty",
 				Optional.of(JSON.booleanNode(true)),
-				INTERPRETER
-						.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
+				INTERPRETER.evaluate(EMPTY_REQUEST, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
 						.getResource());
 	}
 
 	@Test
 	public void multiplePermitNoTransformation() {
-		String policySet = "set \"tests\" deny-overrides"
-				+ " policy \"testp1\" permit"
-				+ " policy \"testp2\" permit";
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp1\" permit" + " policy \"testp2\" permit";
 
-		assertEquals("should return permit if there is no transformation incertainty",
-				Decision.PERMIT,
-				INTERPRETER
-						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
-						.getDecision());
+		assertEquals("should return permit if there is no transformation incertainty", Decision.PERMIT,
+				INTERPRETER.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getDecision());
 	}
 
 	@Test
@@ -289,10 +227,8 @@ public class DenyOverridesTest {
 		obligation.add(JSON.textNode("obligation2"));
 
 		assertEquals("should collect all deny obligation", Optional.of(obligation),
-				INTERPRETER
-						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
-						.getObligations());
+				INTERPRETER.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getObligations());
 	}
 
 	@Test
@@ -308,10 +244,8 @@ public class DenyOverridesTest {
 		advice.add(JSON.textNode("advice2"));
 
 		assertEquals("should collect all deny advice", Optional.of(advice),
-				INTERPRETER
-						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
-						.getAdvices());
+				INTERPRETER.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getAdvices());
 	}
 
 	@Test
@@ -327,10 +261,8 @@ public class DenyOverridesTest {
 		obligation.add(JSON.textNode("obligation2"));
 
 		assertEquals("should collect all permit obligation", Optional.of(obligation),
-				INTERPRETER
-						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
-						.getObligations());
+				INTERPRETER.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getObligations());
 	}
 
 	@Test
@@ -346,10 +278,8 @@ public class DenyOverridesTest {
 		advice.add(JSON.textNode("advice2"));
 
 		assertEquals("should collect all permit advice", Optional.of(advice),
-				INTERPRETER
-						.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst()
-						.getAdvices());
+				INTERPRETER.evaluate(REQUEST_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+						.blockFirst().getAdvices());
 	}
 
 }

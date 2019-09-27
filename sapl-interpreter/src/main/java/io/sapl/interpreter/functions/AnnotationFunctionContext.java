@@ -48,8 +48,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 	}
 
 	@Override
-	public Optional<JsonNode> evaluate(String function, ArrayNode parameters)
-			throws FunctionException {
+	public Optional<JsonNode> evaluate(String function, ArrayNode parameters) throws FunctionException {
 		final FunctionMetadata metadata = functions.get(function);
 		if (metadata == null) {
 			throw new FunctionException(String.format(UNKNOWN_FUNCTION, function));
@@ -81,8 +80,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 						metadata.getPararmeterCardinality(), parameters.size()));
 			}
 
-			return Optional.ofNullable((JsonNode) metadata.getFunction()
-					.invoke(metadata.getLibrary(), args));
+			return Optional.ofNullable((JsonNode) metadata.getFunction().invoke(metadata.getLibrary(), args));
 		}
 		catch (Exception e) {
 			throw new FunctionException(e);
@@ -105,8 +103,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 		}
 		libraries.put(libName, new HashSet<>());
 
-		LibraryDocumentation libDocs = new LibraryDocumentation(libName,
-				libAnnotation.description(), library);
+		LibraryDocumentation libDocs = new LibraryDocumentation(libName, libAnnotation.description(), library);
 
 		libDocs.setName(libAnnotation.name());
 		for (Method method : clazz.getDeclaredMethods()) {
@@ -118,8 +115,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	}
 
-	private final void importFunction(Object library, String libName,
-			LibraryDocumentation libMeta, Method method) throws FunctionException {
+	private final void importFunction(Object library, String libName, LibraryDocumentation libMeta, Method method)
+			throws FunctionException {
 		Function funAnnotation = method.getAnnotation(Function.class);
 		String funName = funAnnotation.name();
 		if (funName.isEmpty()) {
@@ -133,8 +130,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 				parameters = -1;
 			}
 			else if (!JsonNode.class.isAssignableFrom(parameterType)) {
-				throw new FunctionException(String.format(ILLEGAL_PARAMETER_FOR_IMPORT,
-						parameterType.getName()));
+				throw new FunctionException(String.format(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName()));
 			}
 		}
 		libMeta.documentation.put(funName, funAnnotation.docs());

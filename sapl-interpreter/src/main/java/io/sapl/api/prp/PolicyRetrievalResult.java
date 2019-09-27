@@ -37,8 +37,7 @@ public class PolicyRetrievalResult {
 		return this.isErrorsInTarget() == otherResult.isErrorsInTarget();
 	}
 
-	private static boolean areEqual(Collection<SAPL> thisMatchingDocuments,
-			Collection<SAPL> otherMatchingDocuments) {
+	private static boolean areEqual(Collection<SAPL> thisMatchingDocuments, Collection<SAPL> otherMatchingDocuments) {
 		if (thisMatchingDocuments == null) {
 			return otherMatchingDocuments == null;
 		}
@@ -63,16 +62,15 @@ public class PolicyRetrievalResult {
 		final int PRIME = 59;
 		int result = 1;
 		final Collection<SAPL> thisMatchingDocuments = getMatchingDocuments();
-		result = result * PRIME
-				+ (thisMatchingDocuments == null ? 43 : thisMatchingDocuments.hashCode());
+		result = result * PRIME + (thisMatchingDocuments == null ? 43 : thisMatchingDocuments.hashCode());
 		result = result * PRIME + (isErrorsInTarget() ? 79 : 97);
 		return result;
 	}
 
 	@Override
 	public String toString() {
-		return "PolicyRetrievalResult(" + "matchingDocuments=" + getMatchingDocuments()
-				+ ", errorsInTarget=" + isErrorsInTarget() + ")";
+		return "PolicyRetrievalResult(" + "matchingDocuments=" + getMatchingDocuments() + ", errorsInTarget="
+				+ isErrorsInTarget() + ")";
 	}
 
 }

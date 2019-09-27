@@ -34,16 +34,14 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 	private final ObjectMapper mapper;
 
 	@Override
-	public void doFilter(ServletRequest request, ServletResponse response,
-			FilterChain chain) throws IOException, ServletException {
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+			throws IOException, ServletException {
 
 		HttpServletRequest req = (HttpServletRequest) request;
 
-		Authentication authentication = SecurityContextHolder.getContext()
-				.getAuthentication();
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-		Response saplResponse = pdp.decide(buildRequest(authentication, req, req))
-				.blockFirst();
+		Response saplResponse = pdp.decide(buildRequest(authentication, req, req)).blockFirst();
 
 		LOGGER.trace("PDP response: {}", saplResponse);
 
@@ -58,8 +56,7 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 	}
 
 	private Request buildRequest(Object subject, Object action, Object resource) {
-		return new Request(mapper.valueToTree(subject), mapper.valueToTree(action),
-				mapper.valueToTree(resource), null);
+		return new Request(mapper.valueToTree(subject), mapper.valueToTree(action), mapper.valueToTree(resource), null);
 	}
 
 }

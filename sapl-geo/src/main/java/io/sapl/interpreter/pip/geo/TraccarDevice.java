@@ -50,8 +50,8 @@ public class TraccarDevice {
 
 	private Object category;
 
-
-	// Don't expose the internal representation by storing an externally mutable object into geofenceIds
+	// Don't expose the internal representation by storing an externally mutable object
+	// into geofenceIds
 
 	public int[] getGeofenceIds() {
 		return geofenceIds != null ? Arrays.copyOf(geofenceIds, geofenceIds.length) : null;
@@ -60,4 +60,5 @@ public class TraccarDevice {
 	public void setGeofenceIds(int[] geofenceIds) {
 		this.geofenceIds = geofenceIds != null ? Arrays.copyOf(geofenceIds, geofenceIds.length) : null;
 	}
+
 }

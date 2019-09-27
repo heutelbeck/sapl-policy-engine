@@ -27,11 +27,11 @@ import reactor.core.publisher.Flux;
 public class FilterSimpleImplCustom extends FilterSimpleImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> apply(Optional<JsonNode> unfilteredRootNode,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> apply(Optional<JsonNode> unfilteredRootNode, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		final String function = String.join(".", fsteps);
-		return applyFilterStatement(Optional.of(unfilteredRootNode.get().deepCopy()),
-				null, each, function, getArguments(), ctx, isBody, relativeNode);
+		return applyFilterStatement(Optional.of(unfilteredRootNode.get().deepCopy()), null, each, function,
+				getArguments(), ctx, isBody, relativeNode);
 	}
 
 	@Override
@@ -47,8 +47,7 @@ public class FilterSimpleImplCustom extends FilterSimpleImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}
@@ -57,8 +56,7 @@ public class FilterSimpleImplCustom extends FilterSimpleImpl {
 		}
 		final FilterSimpleImplCustom otherImpl = (FilterSimpleImplCustom) other;
 		if ((getArguments() == null) ? (getArguments() != otherImpl.getArguments())
-				: !getArguments().isEqualTo(otherImpl.getArguments(), otherImports,
-						imports)) {
+				: !getArguments().isEqualTo(otherImpl.getArguments(), otherImports, imports)) {
 			return false;
 		}
 		if (!Objects.equals(isEach(), otherImpl.isEach())) {

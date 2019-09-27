@@ -32,35 +32,32 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of a recursive key step to a previous value,
- * e.g. 'obj..name' or 'arr..["name"]'.
+ * Implements the application of a recursive key step to a previous value, e.g.
+ * 'obj..name' or 'arr..["name"]'.
  *
- * Grammar:
- * Step:
- * 	'..' ({RecursiveKeyStep} (id=ID | '[' id=STRING ']')) ;
+ * Grammar: Step: '..' ({RecursiveKeyStep} (id=ID | '[' id=STRING ']')) ;
  */
 public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
 	private static final String UNDEFINED_ARRAY_ELEMENT = "JSON does not support undefined array elements.";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return Flux.just(apply(previousResult));
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) {
 		if (!previousResult.getNode().isPresent()
-				|| (!previousResult.getNode().get().isArray()
-						&& !previousResult.getNode().get().isObject())) {
+				|| (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject())) {
 			return new JsonNodeWithoutParent(Optional.empty());
 		}
 		return new ArrayResultNode(resolveRecursive(previousResult.getNode().get()));
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx,
-			boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		}
@@ -69,8 +66,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 		}
 	}
 
-	private ResultNode apply(ArrayResultNode previousResult)
-			throws PolicyEvaluationException {
+	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
 			if (child.getNode().isPresent()) {
@@ -88,8 +84,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 	private List<AbstractAnnotatedJsonNode> resolveRecursive(JsonNode node) {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		if (node.has(id)) {
-			resultList.add(new JsonNodeWithParentObject(Optional.of(node.get(id)),
-					Optional.of(node), id));
+			resultList.add(new JsonNodeWithParentObject(Optional.of(node.get(id)), Optional.of(node), id));
 		}
 		for (JsonNode child : node) {
 			resultList.addAll(resolveRecursive(child));
@@ -106,8 +101,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

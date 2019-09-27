@@ -40,18 +40,15 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private String basicAuthHeader;
 
-	public RemotePolicyDecisionPoint(String host, int port, String clientKey,
-			String clientSecret) {
-		this(host, port, clientKey, clientSecret,
-				new ObjectMapper().registerModule(new Jdk8Module()));
+	public RemotePolicyDecisionPoint(String host, int port, String clientKey, String clientSecret) {
+		this(host, port, clientKey, clientSecret, new ObjectMapper().registerModule(new Jdk8Module()));
 	}
 
-	public RemotePolicyDecisionPoint(String host, int port, String clientKey,
-			String clientSecret, ObjectMapper mapper) {
+	public RemotePolicyDecisionPoint(String host, int port, String clientKey, String clientSecret,
+			ObjectMapper mapper) {
 		this.host = host;
 		this.port = port;
-		this.basicAuthHeader = "Basic " + Base64Utils
-				.encodeToString((clientKey + ":" + clientSecret).getBytes(UTF_8));
+		this.basicAuthHeader = "Basic " + Base64Utils.encodeToString((clientKey + ":" + clientSecret).getBytes(UTF_8));
 		this.mapper = mapper;
 	}
 
@@ -65,8 +62,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Flux<IdentifiableResponse> decide(MultiRequest multiRequest) {
-		final RequestSpecification saplRequest = getRequestSpecification(multiRequest,
-				false);
+		final RequestSpecification saplRequest = getRequestSpecification(multiRequest, false);
 		return new WebClientRequestExecutor().executeReactiveRequest(saplRequest, POST)
 				.map(jsonNode -> mapper.convertValue(jsonNode, IdentifiableResponse.class))
 				.onErrorResume(error -> Flux.just(IdentifiableResponse.INDETERMINATE));
@@ -74,8 +70,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Flux<MultiResponse> decideAll(MultiRequest multiRequest) {
-		final RequestSpecification saplRequest = getRequestSpecification(multiRequest,
-				true);
+		final RequestSpecification saplRequest = getRequestSpecification(multiRequest, true);
 		return new WebClientRequestExecutor().executeReactiveRequest(saplRequest, POST)
 				.map(jsonNode -> mapper.convertValue(jsonNode, MultiResponse.class))
 				.onErrorResume(error -> Flux.just(MultiResponse.indeterminate()));
@@ -85,10 +80,9 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		return getRequestSpecification(request, PDP_PATH_SINGLE_REQUEST);
 	}
 
-	private RequestSpecification getRequestSpecification(MultiRequest multiRequest,
-			boolean responsesForAllRequests) {
-		return getRequestSpecification(multiRequest, responsesForAllRequests
-				? PDP_PATH_MULTI_REQUEST_ALL : PDP_PATH_MULTI_REQUEST);
+	private RequestSpecification getRequestSpecification(MultiRequest multiRequest, boolean responsesForAllRequests) {
+		return getRequestSpecification(multiRequest,
+				responsesForAllRequests ? PDP_PATH_MULTI_REQUEST_ALL : PDP_PATH_MULTI_REQUEST);
 	}
 
 	private RequestSpecification getRequestSpecification(Object request, String urlPath) {

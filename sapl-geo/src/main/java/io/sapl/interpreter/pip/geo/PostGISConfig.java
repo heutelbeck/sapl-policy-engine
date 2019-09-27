@@ -85,8 +85,7 @@ public class PostGISConfig {
 
 	public String buildQuery() throws AttributeException {
 		if (verifySqlArguments()) {
-			return String.format(SQL_QUERY, getIdColName(), buildGeometryExpression(),
-					getTable(), buildConditions());
+			return String.format(SQL_QUERY, getIdColName(), buildGeometryExpression(), getTable(), buildConditions());
 		}
 		else {
 			throw new AttributeException(ARG_NOT_EXISTING);
@@ -95,8 +94,8 @@ public class PostGISConfig {
 
 	protected String buildUrl() {
 		StringBuilder url = new StringBuilder();
-		url.append(JDBC_SERVICE).append(getServerAdress()).append(COLON).append(getPort())
-				.append(SLASH).append(getDb()).append(QM);
+		url.append(JDBC_SERVICE).append(getServerAdress()).append(COLON).append(getPort()).append(SLASH).append(getDb())
+				.append(QM);
 
 		if (ssl) {
 			url.append(SSL_PARAM);
@@ -125,8 +124,7 @@ public class PostGISConfig {
 		StringBuilder conditions = new StringBuilder();
 		conditions.append(getPkColName()).append(GEQ).append(getFrom());
 		if (getUntil() >= getFrom()) {
-			conditions.append(SQL_AND).append(getPkColName()).append(SEQ)
-					.append(getUntil());
+			conditions.append(SQL_AND).append(getPkColName()).append(SEQ).append(getUntil());
 		}
 		return conditions.toString();
 	}
@@ -142,8 +140,7 @@ public class PostGISConfig {
 		}
 
 		if (getProjectionSRID() != 0) {
-			result.append(SQL_TRANSFORM).append(getGeometryColName()).append(COMMA)
-					.append(getProjectionSRID());
+			result.append(SQL_TRANSFORM).append(getGeometryColName()).append(COMMA).append(getProjectionSRID());
 			parenthesis++;
 		}
 		else {
@@ -157,8 +154,7 @@ public class PostGISConfig {
 		return result.toString();
 	}
 
-	protected static boolean colsExist(ResultSet cols, String... colNames)
-			throws SQLException {
+	protected static boolean colsExist(ResultSet cols, String... colNames) throws SQLException {
 		ArrayList<String> colNamesList = new ArrayList<>();
 
 		while (cols.next()) {

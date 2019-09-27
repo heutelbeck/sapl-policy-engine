@@ -29,8 +29,7 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the evaluation of relative expressions.
  *
- * Grammar:
- * {BasicRelative} '@' steps+=Step*;
+ * Grammar: {BasicRelative} '@' steps+=Step*;
  */
 public class BasicRelativeImplCustom extends BasicRelativeImpl {
 

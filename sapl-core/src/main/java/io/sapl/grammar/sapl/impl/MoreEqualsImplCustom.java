@@ -23,21 +23,16 @@ import reactor.core.publisher.Flux;
 /**
  * Checks for a left value being greater than or equal to a right value.
  *
- * Grammar:
- * Comparison returns Expression:
- * 	  Prefixed (({MoreEquals.left=current} '>=') right=Prefixed)? ;
+ * Grammar: Comparison returns Expression: Prefixed (({MoreEquals.left=current} '>=')
+ * right=Prefixed)? ;
  */
 public class MoreEqualsImplCustom extends MoreEqualsImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
-		final Flux<BigDecimal> left = getLeft().evaluate(ctx, isBody, relativeNode)
-				.flatMap(Value::toBigDecimal);
-		final Flux<BigDecimal> right = getRight().evaluate(ctx, isBody, relativeNode)
-				.flatMap(Value::toBigDecimal);
-		return Flux.combineLatest(left, right, this::moreOrEqual).map(Value::of)
-				.distinctUntilChanged();
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<BigDecimal> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
+		final Flux<BigDecimal> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
+		return Flux.combineLatest(left, right, this::moreOrEqual).map(Value::of).distinctUntilChanged();
 	}
 
 	private Boolean moreOrEqual(BigDecimal left, BigDecimal right) {

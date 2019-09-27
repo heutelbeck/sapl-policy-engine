@@ -29,45 +29,41 @@ public interface SAPLInterpreter {
 	/**
 	 * Method which applies the SAPL parser to a String containing a SAPL document and
 	 * generates the matching parse-tree.
-	 *
 	 * @param saplDefinition a String containing a SAPL document
 	 * @return A parse tree of the document
 	 * @throws PolicyEvaluationException in case an error occurs during parsing. This may
-	 *                                   be either a syntax error or an IO error.
+	 * be either a syntax error or an IO error.
 	 */
 	SAPL parse(String saplDefinition) throws PolicyEvaluationException;
 
 	/**
 	 * Method which applies the SAPL parser to an InputStream containing a SAPL document
 	 * and generates the matching parse-tree.
-	 *
 	 * @param saplInputStream an InputStream containing a SAPL document
 	 * @return A parse tree of the document
 	 * @throws PolicyEvaluationException in case an error occurs during parsing. This may
-	 *                                   be either a syntax error or an IO error.
+	 * be either a syntax error or an IO error.
 	 */
 	SAPL parse(InputStream saplInputStream) throws PolicyEvaluationException;
 
 	/**
-	 * Convenience method for unit tests which evaluates a String representing a SAPL document
-	 * (containing a policy set or policy) against a Request object within a given attribute
-	 * context and function context and returns a {@link Flux} of {@link Response} objects.
-	 *
+	 * Convenience method for unit tests which evaluates a String representing a SAPL
+	 * document (containing a policy set or policy) against a Request object within a
+	 * given attribute context and function context and returns a {@link Flux} of
+	 * {@link Response} objects.
 	 * @param request the Request object
 	 * @param saplDefinition the String representing the SAPL document
 	 * @param attributeCtx the attribute context
 	 * @param functionCtx the function context
 	 * @param systemVariables the system variables, a Map between the variable name and
-	 *                        its value
+	 * its value
 	 * @return A {@link Flux} of {@link Response} objects.
 	 */
-	Flux<Response> evaluate(Request request, String saplDefinition,
-			AttributeContext attributeCtx, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables);
+	Flux<Response> evaluate(Request request, String saplDefinition, AttributeContext attributeCtx,
+			FunctionContext functionCtx, Map<String, JsonNode> systemVariables);
 
 	/**
 	 * Method which analyzes a String containing a SAPL document.
-	 *
 	 * @param saplDefinition the String containing the SAPL document
 	 * @return the document analysis result
 	 */

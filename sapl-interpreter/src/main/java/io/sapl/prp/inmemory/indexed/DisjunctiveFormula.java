@@ -94,8 +94,8 @@ public class DisjunctiveFormula {
 		return result;
 	}
 
-	public boolean evaluate(final FunctionContext functionCtx,
-			final VariableContext variableCtx) throws PolicyEvaluationException {
+	public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
+			throws PolicyEvaluationException {
 		ListIterator<ConjunctiveClause> iter = clauses.listIterator();
 		if (!iter.hasNext()) {
 			throw new PolicyEvaluationException(EVALUATION_NOT_POSSIBLE);

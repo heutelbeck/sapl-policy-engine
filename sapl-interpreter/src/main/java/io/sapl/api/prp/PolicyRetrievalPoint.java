@@ -27,7 +27,7 @@ public interface PolicyRetrievalPoint {
 	 * matching policies or policy sets. New results are only added to the stream if they
 	 * are different from the preceding result.
 	 */
-	Flux<PolicyRetrievalResult> retrievePolicies(Request request,
-			FunctionContext functionCtx, Map<String, JsonNode> variables);
+	Flux<PolicyRetrievalResult> retrievePolicies(Request request, FunctionContext functionCtx,
+			Map<String, JsonNode> variables);
 
 }

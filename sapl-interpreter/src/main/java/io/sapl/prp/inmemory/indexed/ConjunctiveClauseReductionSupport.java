@@ -34,8 +34,8 @@ public class ConjunctiveClauseReductionSupport {
 		data.removeIf(Objects::isNull);
 	}
 
-	private static boolean reduceFormulaStep(final List<Literal> data,
-			final ListIterator<Literal> pointer, final Literal value) {
+	private static boolean reduceFormulaStep(final List<Literal> data, final ListIterator<Literal> pointer,
+			final Literal value) {
 		ListIterator<Literal> forward = data.listIterator(pointer.nextIndex());
 		while (forward.hasNext()) {
 			Literal rhs = forward.next();

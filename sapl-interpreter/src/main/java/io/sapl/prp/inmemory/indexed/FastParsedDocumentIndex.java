@@ -85,8 +85,8 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 	}
 
 	@Override
-	public PolicyRetrievalResult retrievePolicies(Request request,
-			FunctionContext functionCtx, Map<String, JsonNode> variables) {
+	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
+			Map<String, JsonNode> variables) {
 		lazyInit(Preconditions.checkNotNull(functionCtx));
 		PolicyRetrievalResult result;
 		try {
@@ -206,8 +206,7 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 			Expression targetExpression = sapl.getPolicyElement().getTargetExpression();
 			DisjunctiveFormula targetFormula;
 			if (targetExpression == null) {
-				targetFormula = new DisjunctiveFormula(
-						new ConjunctiveClause(new Literal(new Bool(true))));
+				targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
 			}
 			else {
 				Map<String, String> imports = sapl.fetchFunctionImports(functionCtx);

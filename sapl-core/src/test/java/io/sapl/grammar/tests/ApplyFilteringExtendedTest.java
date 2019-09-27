@@ -83,11 +83,9 @@ public class ApplyFilteringExtendedTest {
 		Optional<JsonNode> expectedResult = Optional.of(JSON.arrayNode());
 
 		StepVerifier.create(filter.apply(Optional.of(root), ctx, false, Optional.empty()))
-				.consumeNextWith(result -> assertEquals(
-						"Function remove, no steps and each should return empty array",
+				.consumeNextWith(result -> assertEquals("Function remove, no steps and each should return empty array",
 						expectedResult, result))
-				.thenCancel()
-				.verify();
+				.thenCancel().verify();
 	}
 
 	@Test
@@ -106,10 +104,9 @@ public class ApplyFilteringExtendedTest {
 
 		StepVerifier.create(filter.apply(Optional.of(root), ctx, false, Optional.empty()))
 				.consumeNextWith(result -> assertEquals(
-						"Mock function EMPTY_STRING, no steps, no each should return empty string",
-						expectedResult, result))
-				.thenCancel()
-				.verify();
+						"Mock function EMPTY_STRING, no steps, no each should return empty string", expectedResult,
+						result))
+				.thenCancel().verify();
 	}
 
 	@Test
@@ -133,8 +130,7 @@ public class ApplyFilteringExtendedTest {
 				.consumeNextWith(result -> assertEquals(
 						"Mock function EMPTY_STRING, no steps, each should array with empty strings",
 						Optional.of(expectedResult), result))
-				.thenCancel()
-				.verify();
+				.thenCancel().verify();
 	}
 
 	@Test
@@ -230,8 +226,7 @@ public class ApplyFilteringExtendedTest {
 				.consumeNextWith(result -> assertEquals(
 						"Mock function EMPTY_STRING applied to result array and each should replace selected elements by empty string",
 						Optional.of(expectedResult), result))
-				.thenCancel()
-				.verify();
+				.thenCancel().verify();
 	}
 
 	@Test
@@ -256,12 +251,10 @@ public class ApplyFilteringExtendedTest {
 		expectedResult.add(JSON.booleanNode(true));
 
 		StepVerifier.create(filter.apply(Optional.of(root), ctx, false, Optional.empty()))
-				.consumeNextWith(result -> assertEquals(
-						"Remove applied to result array and each should remove each element",
-						Optional.of(expectedResult), result))
-				.thenCancel()
-				.verify();
+				.consumeNextWith(
+						result -> assertEquals("Remove applied to result array and each should remove each element",
+								Optional.of(expectedResult), result))
+				.thenCancel().verify();
 	}
-
 
 }

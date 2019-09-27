@@ -37,12 +37,10 @@ public class ObligationAdviceCollector {
 
 	public void add(Decision decision, Response response) {
 		if (response.getObligations().isPresent()) {
-			obligationAdvice.get(Type.OBLIGATION).get(decision)
-					.addAll(response.getObligations().get());
+			obligationAdvice.get(Type.OBLIGATION).get(decision).addAll(response.getObligations().get());
 		}
 		if (response.getAdvices().isPresent()) {
-			obligationAdvice.get(Type.ADVICE).get(decision)
-					.addAll(response.getAdvices().get());
+			obligationAdvice.get(Type.ADVICE).get(decision).addAll(response.getAdvices().get());
 		}
 	}
 

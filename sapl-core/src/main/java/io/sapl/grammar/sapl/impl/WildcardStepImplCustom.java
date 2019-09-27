@@ -33,17 +33,15 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the application of a wildcard step to a previous value, e.g 'value.*'.
  *
- * Grammar:
- * Step:
- * 	'.' ({WildcardStep} '*') ;
+ * Grammar: Step: '.' ({WildcardStep} '*') ;
  */
 public class WildcardStepImplCustom extends WildcardStepImpl {
 
 	private static final String WILDCARD_ACCESS_TYPE_MISMATCH = "Type mismatch. Wildcard access expects object or array, but got: '%s'.";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		}
@@ -52,12 +50,10 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 		}
 	}
 
-	private ResultNode apply(AbstractAnnotatedJsonNode previousResult)
-			throws PolicyEvaluationException {
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		final Optional<JsonNode> previousResultNode = previousResult.getNode();
 		if (!previousResultNode.isPresent()) {
-			throw new PolicyEvaluationException(
-					String.format(WILDCARD_ACCESS_TYPE_MISMATCH, "undefined"));
+			throw new PolicyEvaluationException(String.format(WILDCARD_ACCESS_TYPE_MISMATCH, "undefined"));
 		}
 		if (previousResultNode.get().isArray()) {
 			return previousResult;
@@ -67,22 +63,20 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 			final Iterator<String> iterator = previousResultNode.get().fieldNames();
 			while (iterator.hasNext()) {
 				final String key = iterator.next();
-				resultList.add(new JsonNodeWithParentObject(
-						Optional.of(previousResultNode.get().get(key)),
+				resultList.add(new JsonNodeWithParentObject(Optional.of(previousResultNode.get().get(key)),
 						previousResultNode, key));
 			}
 			return new ArrayResultNode(resultList);
 		}
 		else {
 			throw new PolicyEvaluationException(
-					String.format(WILDCARD_ACCESS_TYPE_MISMATCH,
-							previousResultNode.get().getNodeType()));
+					String.format(WILDCARD_ACCESS_TYPE_MISMATCH, previousResultNode.get().getNodeType()));
 		}
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx,
-			boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return Flux.just(previousResult);
 	}
 
@@ -94,8 +88,7 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

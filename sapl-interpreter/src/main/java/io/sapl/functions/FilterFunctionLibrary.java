@@ -19,8 +19,7 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 
-@FunctionLibrary(name = FilterFunctionLibrary.NAME,
-		description = FilterFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = FilterFunctionLibrary.NAME, description = FilterFunctionLibrary.DESCRIPTION)
 public class FilterFunctionLibrary {
 
 	public static final String NAME = "filter";

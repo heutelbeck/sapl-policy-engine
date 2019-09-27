@@ -33,12 +33,10 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of a recursive wildcard step to a previous value,
- * e.g. 'obj..*' or 'arr..[*]'.
+ * Implements the application of a recursive wildcard step to a previous value, e.g.
+ * 'obj..*' or 'arr..[*]'.
  *
- * Grammar:
- * Step:
- * 	'..' ({RecursiveWildcardStep} ('*' | '[' '*' ']' )) ;
+ * Grammar: Step: '..' ({RecursiveWildcardStep} ('*' | '[' '*' ']' )) ;
  */
 public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 
@@ -47,8 +45,8 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		}
@@ -57,21 +55,19 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 		}
 	}
 
-	private ResultNode apply(AbstractAnnotatedJsonNode previousResult)
-			throws PolicyEvaluationException {
+	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		if (!previousResult.getNode().isPresent()) {
 			throw new PolicyEvaluationException(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE);
 		}
-		else if (!previousResult.getNode().get().isArray()
-				&& !previousResult.getNode().get().isObject()) {
+		else if (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject()) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
 		return new ArrayResultNode(resolveRecursive(previousResult.getNode().get()));
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx,
-			boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		}
@@ -80,8 +76,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 		}
 	}
 
-	private ResultNode apply(ArrayResultNode previousResult)
-			throws PolicyEvaluationException {
+	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
 			if (child.getNode().isPresent()) {
@@ -99,8 +94,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		if (node.isArray()) {
 			for (int i = 0; i < node.size(); i++) {
-				resultList.add(new JsonNodeWithParentArray(Optional.of(node.get(i)),
-						Optional.of(node), i));
+				resultList.add(new JsonNodeWithParentArray(Optional.of(node.get(i)), Optional.of(node), i));
 				resultList.addAll(resolveRecursive(node.get(i)));
 			}
 		}
@@ -108,8 +102,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 			final Iterator<String> it = node.fieldNames();
 			while (it.hasNext()) {
 				final String key = it.next();
-				resultList.add(new JsonNodeWithParentObject(Optional.of(node.get(key)),
-						Optional.of(node), key));
+				resultList.add(new JsonNodeWithParentObject(Optional.of(node.get(key)), Optional.of(node), key));
 				resultList.addAll(resolveRecursive(node.get(key)));
 			}
 		}
@@ -124,8 +117,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

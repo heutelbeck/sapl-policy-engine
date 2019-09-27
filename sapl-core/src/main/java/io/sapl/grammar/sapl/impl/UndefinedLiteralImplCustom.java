@@ -27,8 +27,7 @@ import reactor.core.publisher.Flux;
  * Implements a constant value of 'undefined'. The value of 'undefined' is represented by
  * Optional.empty().
  *
- * Grammar:
- * UndefinedLiteral returns Value: {UndefinedLiteral} 'undefined' ;
+ * Grammar: UndefinedLiteral returns Value: {UndefinedLiteral} 'undefined' ;
  */
 public class UndefinedLiteralImplCustom extends UndefinedLiteralImpl {
 
@@ -36,8 +35,7 @@ public class UndefinedLiteralImplCustom extends UndefinedLiteralImpl {
 	 * A FLux only containing the 'undefined' value, i.e. Optional.empty();
 	 */
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		return Value.undefinedFlux();
 	}
 
@@ -49,8 +47,7 @@ public class UndefinedLiteralImplCustom extends UndefinedLiteralImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

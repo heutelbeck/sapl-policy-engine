@@ -52,8 +52,7 @@ public class ConjunctiveClause {
 		if (literals.size() != other.literals.size()) {
 			return false;
 		}
-		return literals.containsAll(other.literals)
-				&& other.literals.containsAll(literals);
+		return literals.containsAll(other.literals) && other.literals.containsAll(literals);
 	}
 
 	public boolean evaluate() {
@@ -72,8 +71,8 @@ public class ConjunctiveClause {
 		return result;
 	}
 
-	public boolean evaluate(final FunctionContext functionCtx,
-			final VariableContext variableCtx) throws PolicyEvaluationException {
+	public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
+			throws PolicyEvaluationException {
 		ListIterator<Literal> iter = literals.listIterator();
 		if (!iter.hasNext()) {
 			throw new PolicyEvaluationException(EVALUATION_NOT_POSSIBLE);

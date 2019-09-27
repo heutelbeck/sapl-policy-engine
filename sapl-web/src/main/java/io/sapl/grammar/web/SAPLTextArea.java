@@ -16,12 +16,10 @@ import com.vaadin.util.ReflectTools;
  */
 @StyleSheet({ "vaadin://../webjars/codemirror/5.39.2/lib/codemirror.css",
 		"vaadin://../webjars/codemirror/5.39.2/addon/hint/show-hint.css",
-		"vaadin://../xtext/2.16.0/xtext-codemirror.css",
-		"vaadin://../sapl-text-area-style.css" })
-@JavaScript({ "vaadin://../webjars/requirejs/2.2.0/require.min.js",
-		"vaadin://../sapl-text-area.js", "vaadin://../sapl-text-area-connector.js" })
-public class SAPLTextArea extends AbstractJavaScriptComponent
-		implements HasValue<String> {
+		"vaadin://../xtext/2.16.0/xtext-codemirror.css", "vaadin://../sapl-text-area-style.css" })
+@JavaScript({ "vaadin://../webjars/requirejs/2.2.0/require.min.js", "vaadin://../sapl-text-area.js",
+		"vaadin://../sapl-text-area-connector.js" })
+public class SAPLTextArea extends AbstractJavaScriptComponent implements HasValue<String> {
 
 	/**
 	 * generated serialVersionUID
@@ -71,8 +69,8 @@ public class SAPLTextArea extends AbstractJavaScriptComponent
 	 */
 	@Override
 	public Registration addValueChangeListener(ValueChangeListener<String> aListener) {
-		return addListener(ValueChangeEvent.class, aListener, ReflectTools.findMethod(
-				ValueChangeListener.class, "valueChange", ValueChangeEvent.class));
+		return addListener(ValueChangeEvent.class, aListener,
+				ReflectTools.findMethod(ValueChangeListener.class, "valueChange", ValueChangeEvent.class));
 	}
 
 	/**

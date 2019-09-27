@@ -37,8 +37,7 @@ public class ResultNodeRemoveTest {
 		ResultNode resultNode = new JsonNodeWithoutParent(Optional.of(target));
 		resultNode.removeFromTree(true);
 
-		assertEquals(
-				"remove applied to JsonNodeWithoutParent and each should remove each element of array",
+		assertEquals("remove applied to JsonNodeWithoutParent and each should remove each element of array",
 				JSON.arrayNode(), target);
 	}
 
@@ -47,12 +46,10 @@ public class ResultNodeRemoveTest {
 		ObjectNode target = JSON.objectNode();
 		target.set("key", JSON.nullNode());
 
-		ResultNode resultNode = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
-				Optional.of(target), "key");
+		ResultNode resultNode = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), Optional.of(target), "key");
 		resultNode.removeFromTree(false);
 
-		assertEquals(
-				"remove applied to JsonNodeWithParentObject without each should remove selected element",
+		assertEquals("remove applied to JsonNodeWithParentObject without each should remove selected element",
 				JSON.objectNode(), target);
 	}
 
@@ -61,8 +58,7 @@ public class ResultNodeRemoveTest {
 		ObjectNode target = JSON.objectNode();
 		target.set("key", JSON.nullNode());
 
-		ResultNode resultNode = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
-				Optional.of(target), "key");
+		ResultNode resultNode = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), Optional.of(target), "key");
 		resultNode.removeFromTree(true);
 	}
 
@@ -76,12 +72,10 @@ public class ResultNodeRemoveTest {
 		ObjectNode expectedResult = JSON.objectNode();
 		expectedResult.set("key", JSON.arrayNode());
 
-		ResultNode resultNode = new JsonNodeWithParentObject(Optional.of(array),
-				Optional.of(target), "key");
+		ResultNode resultNode = new JsonNodeWithParentObject(Optional.of(array), Optional.of(target), "key");
 		resultNode.removeFromTree(true);
 
-		assertEquals(
-				"remove applied to JsonNodeWithParentObject with each should remove each element from array",
+		assertEquals("remove applied to JsonNodeWithParentObject with each should remove each element from array",
 				expectedResult, target);
 	}
 
@@ -90,12 +84,10 @@ public class ResultNodeRemoveTest {
 		ArrayNode target = JSON.arrayNode();
 		target.add(JSON.nullNode());
 
-		ResultNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
-				Optional.of(target), 0);
+		ResultNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(target), 0);
 		resultNode.removeFromTree(false);
 
-		assertEquals(
-				"remove applied to JsonNodeWithParentArray without each should remove selected element",
+		assertEquals("remove applied to JsonNodeWithParentArray without each should remove selected element",
 				JSON.arrayNode(), target);
 	}
 
@@ -104,8 +96,7 @@ public class ResultNodeRemoveTest {
 		ArrayNode target = JSON.arrayNode();
 		target.add(JSON.nullNode());
 
-		ResultNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
-				Optional.of(target), 0);
+		ResultNode resultNode = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(target), 0);
 		resultNode.removeFromTree(true);
 	}
 
@@ -119,12 +110,10 @@ public class ResultNodeRemoveTest {
 		ArrayNode expectedResult = JSON.arrayNode();
 		expectedResult.add(JSON.arrayNode());
 
-		ResultNode resultNode = new JsonNodeWithParentArray(Optional.of(array),
-				Optional.of(target), 0);
+		ResultNode resultNode = new JsonNodeWithParentArray(Optional.of(array), Optional.of(target), 0);
 		resultNode.removeFromTree(true);
 
-		assertEquals(
-				"remove applied to JsonNodeWithParentArray with each should remove each element from array",
+		assertEquals("remove applied to JsonNodeWithParentArray with each should remove each element from array",
 				expectedResult, target);
 	}
 
@@ -133,8 +122,7 @@ public class ResultNodeRemoveTest {
 		ArrayNode target = JSON.arrayNode();
 
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
-				Optional.of(target), 0));
+		list.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(target), 0));
 		ArrayResultNode resultNode = new ArrayResultNode(list);
 
 		resultNode.removeFromTree(false);
@@ -156,19 +144,14 @@ public class ResultNodeRemoveTest {
 		expectedResult.add(JSON.arrayNode());
 
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
-				Optional.of(target), 0));
-		list.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
-				Optional.of(object), "key"));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
-				Optional.of(array), 0));
+		list.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(target), 0));
+		list.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), Optional.of(object), "key"));
+		list.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array), 0));
 		ArrayResultNode resultNode = new ArrayResultNode(list);
 
 		resultNode.removeFromTree(true);
 
-		assertEquals(
-				"remove applied to ArrayResultNode with each should remove each node",
-				expectedResult, target);
+		assertEquals("remove applied to ArrayResultNode with each should remove each node", expectedResult, target);
 	}
 
 }

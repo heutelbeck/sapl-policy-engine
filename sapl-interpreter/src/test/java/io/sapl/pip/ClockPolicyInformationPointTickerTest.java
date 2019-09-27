@@ -27,26 +27,21 @@ public class ClockPolicyInformationPointTickerTest {
 		final JsonNodeFactory json = JsonNodeFactory.instance;
 		StepVerifier.withVirtualTime(() -> {
 			try {
-				return clockPip.ticker(json.numberNode(BigDecimal.valueOf(30)),
-						Collections.emptyMap());
+				return clockPip.ticker(json.numberNode(BigDecimal.valueOf(30)), Collections.emptyMap());
 			}
 			catch (AttributeException e) {
 				fail(e.getMessage());
 				return null;
 			}
-		}).expectSubscription().expectNoEvent(Duration.ofSeconds(30))
-				.consumeNextWith(node -> {
-					/* the first node is provided some nano seconds after its creation */ })
+		}).expectSubscription().expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
+			/* the first node is provided some nano seconds after its creation */ })
 				.expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					try {
 						final LocalDateTime localDateTime = LocalDateTime.now();
-						final String actual = TemporalFunctionLibrary.localDateTime(node)
-								.textValue();
-						final String expected = localDateTime
-								.truncatedTo(ChronoUnit.SECONDS).toString();
-						assertEquals(
-								"<clock.ticker> or time.localDateTime() do not work as expected",
-								expected, actual);
+						final String actual = TemporalFunctionLibrary.localDateTime(node).textValue();
+						final String expected = localDateTime.truncatedTo(ChronoUnit.SECONDS).toString();
+						assertEquals("<clock.ticker> or time.localDateTime() do not work as expected", expected,
+								actual);
 					}
 					catch (FunctionException e) {
 						fail(e.getMessage());
@@ -54,13 +49,9 @@ public class ClockPolicyInformationPointTickerTest {
 				}).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					try {
 						final LocalTime localTime = LocalTime.now();
-						final String actual = TemporalFunctionLibrary.localTime(node)
-								.textValue();
-						final String expected = localTime.truncatedTo(ChronoUnit.SECONDS)
-								.toString();
-						assertEquals(
-								"<clock.ticker> or time.localTime() do not work as expected",
-								expected, actual);
+						final String actual = TemporalFunctionLibrary.localTime(node).textValue();
+						final String expected = localTime.truncatedTo(ChronoUnit.SECONDS).toString();
+						assertEquals("<clock.ticker> or time.localTime() do not work as expected", expected, actual);
 					}
 					catch (FunctionException e) {
 						fail(e.getMessage());
@@ -68,12 +59,10 @@ public class ClockPolicyInformationPointTickerTest {
 				}).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					try {
 						final LocalTime localTime = LocalTime.now();
-						final Number actual = TemporalFunctionLibrary.localHour(node)
-								.numberValue();
+						final Number actual = TemporalFunctionLibrary.localHour(node).numberValue();
 						final Number expected = BigDecimal.valueOf(localTime.getHour());
-						assertEquals(
-								"<clock.ticker> or time.localHour() do not work as expected",
-								expected.longValue(), actual.longValue());
+						assertEquals("<clock.ticker> or time.localHour() do not work as expected", expected.longValue(),
+								actual.longValue());
 					}
 					catch (FunctionException e) {
 						fail(e.getMessage());
@@ -81,11 +70,9 @@ public class ClockPolicyInformationPointTickerTest {
 				}).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					try {
 						final LocalTime localTime = LocalTime.now();
-						final Number actual = TemporalFunctionLibrary.localMinute(node)
-								.numberValue();
+						final Number actual = TemporalFunctionLibrary.localMinute(node).numberValue();
 						final Number expected = BigDecimal.valueOf(localTime.getMinute());
-						assertEquals(
-								"<clock.ticker> or time.localMinute() do not work as expected",
+						assertEquals("<clock.ticker> or time.localMinute() do not work as expected",
 								expected.longValue(), actual.longValue());
 					}
 					catch (FunctionException e) {
@@ -94,11 +81,9 @@ public class ClockPolicyInformationPointTickerTest {
 				}).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					try {
 						final LocalTime localTime = LocalTime.now();
-						final Number actual = TemporalFunctionLibrary.localSecond(node)
-								.numberValue();
+						final Number actual = TemporalFunctionLibrary.localSecond(node).numberValue();
 						final Number expected = BigDecimal.valueOf(localTime.getSecond());
-						assertEquals(
-								"<clock.ticker> or time.localSecond() do not work as expected",
+						assertEquals("<clock.ticker> or time.localSecond() do not work as expected",
 								expected.longValue(), actual.longValue());
 					}
 					catch (FunctionException e) {

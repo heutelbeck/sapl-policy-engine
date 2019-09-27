@@ -14,10 +14,10 @@ import io.sapl.api.pdp.PDPConfigurationException;
 public class ResourcesPolicyRetrievalPointTest {
 
 	@Test
-	public void loadPolicies() throws IOException, URISyntaxException, FunctionException,
-			AttributeException, PolicyEvaluationException, PDPConfigurationException {
-		EmbeddedPolicyDecisionPoint.builder().withResourcePDPConfigurationProvider()
-				.withResourcePolicyRetrievalPoint().build();
+	public void loadPolicies() throws IOException, URISyntaxException, FunctionException, AttributeException,
+			PolicyEvaluationException, PDPConfigurationException {
+		EmbeddedPolicyDecisionPoint.builder().withResourcePDPConfigurationProvider().withResourcePolicyRetrievalPoint()
+				.build();
 	}
 
 }

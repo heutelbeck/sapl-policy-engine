@@ -110,8 +110,7 @@ public class TraccarConnection {
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_DEVICES, null)));
 		try {
 			final JsonNode response = requestExecutor.executeBlockingRequest(requestSpec, GET);
-			TraccarDevice[] devices = MAPPER.convertValue(response,
-					TraccarDevice[].class);
+			TraccarDevice[] devices = MAPPER.convertValue(response, TraccarDevice[].class);
 			return findDevice(devices, uniqueID);
 		}
 		catch (IOException e) {
@@ -120,21 +119,18 @@ public class TraccarConnection {
 
 	}
 
-	public TraccarPosition getTraccarPosition(TraccarDevice device)
-			throws AttributeException {
+	public TraccarPosition getTraccarPosition(TraccarDevice device) throws AttributeException {
 		HashMap<String, String> httpGetArguments = new HashMap<>();
 		httpGetArguments.put("deviceId", String.valueOf(device.getId()));
-		httpGetArguments.put("from", Instant.now()
-				.minus(config.getPosValidityTimespan(), ChronoUnit.MINUTES).toString());
+		httpGetArguments.put("from",
+				Instant.now().minus(config.getPosValidityTimespan(), ChronoUnit.MINUTES).toString());
 		httpGetArguments.put("to", Instant.now().toString());
 
-		requestSpec.setUrl(JSON
-				.textNode(buildTraccarApiGetUrl(TRACCAR_POSITIONS, httpGetArguments)));
+		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_POSITIONS, httpGetArguments)));
 
 		try {
 			final JsonNode response = requestExecutor.executeBlockingRequest(requestSpec, GET);
-			TraccarPosition[] traccarPositions = MAPPER.convertValue(response,
-					TraccarPosition[].class);
+			TraccarPosition[] traccarPositions = MAPPER.convertValue(response, TraccarPosition[].class);
 			if (traccarPositions.length == 0) {
 				throw new AttributeException(UNABLE_TO_READ_FROM_SERVER);
 			}
@@ -148,13 +144,11 @@ public class TraccarConnection {
 		}
 	}
 
-	public TraccarGeofence[] getTraccarGeofences(TraccarDevice device)
-			throws AttributeException {
+	public TraccarGeofence[] getTraccarGeofences(TraccarDevice device) throws AttributeException {
 		HashMap<String, String> httpGetArguments = new HashMap<>();
 		httpGetArguments.put("deviceId", String.valueOf(device.getId()));
 
-		requestSpec.setUrl(JSON
-				.textNode(buildTraccarApiGetUrl(TRACCAR_GEOFENCES, httpGetArguments)));
+		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_GEOFENCES, httpGetArguments)));
 
 		try {
 			final JsonNode response = requestExecutor.executeBlockingRequest(requestSpec, GET);
@@ -165,32 +159,25 @@ public class TraccarConnection {
 		}
 	}
 
-	protected static GeoPIPResponse buildGeoPIPesponse(TraccarDevice device,
-			TraccarPosition position, TraccarGeofence... geofences)
-			throws FunctionException {
-		return GeoPIPResponse.builder().identifier(device.getName())
-				.position(formatPositionForPIPResponse(position))
-				.altitude(position.getAltitude())
-				.geofences(formatGeofencesForPIPResponse(geofences))
-				.lastUpdate(device.getLastUpdate()).accuracy(position.getAccuracy())
-				.build();
+	protected static GeoPIPResponse buildGeoPIPesponse(TraccarDevice device, TraccarPosition position,
+			TraccarGeofence... geofences) throws FunctionException {
+		return GeoPIPResponse.builder().identifier(device.getName()).position(formatPositionForPIPResponse(position))
+				.altitude(position.getAltitude()).geofences(formatGeofencesForPIPResponse(geofences))
+				.lastUpdate(device.getLastUpdate()).accuracy(position.getAccuracy()).build();
 	}
 
-	private static ObjectNode formatGeofencesForPIPResponse(TraccarGeofence... geofences)
-			throws FunctionException {
+	private static ObjectNode formatGeofencesForPIPResponse(TraccarGeofence... geofences) throws FunctionException {
 		ObjectNode returnGeofences = JSON.objectNode();
 		for (TraccarGeofence fence : geofences) {
-			returnGeofences.set(fence.getName(),
-					GeometryBuilder.wktToJsonNode(fence.getArea()));
+			returnGeofences.set(fence.getName(), GeometryBuilder.wktToJsonNode(fence.getArea()));
 		}
 		return returnGeofences;
 	}
 
-	private static JsonNode formatPositionForPIPResponse(TraccarPosition position)
-			throws FunctionException {
+	private static JsonNode formatPositionForPIPResponse(TraccarPosition position) throws FunctionException {
 		GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-		Point jtsPosition = geometryFactory.createPoint(
-				new Coordinate(position.getLatitude(), position.getLongitude()));
+		Point jtsPosition = geometryFactory
+				.createPoint(new Coordinate(position.getLatitude(), position.getLongitude()));
 
 		return GeometryBuilder.toJsonNode(jtsPosition);
 	}
@@ -202,10 +189,8 @@ public class TraccarConnection {
 
 		if (config.getCredentials() == null || config.getCredentials().isEmpty()) {
 			byte[] encodedBytes = Base64.getEncoder()
-					.encode((config.getUsername() + ":" + config.getPassword())
-							.getBytes(StandardCharsets.UTF_8));
-			headerProperties.put("Authorization",
-					"Basic " + new String(encodedBytes, StandardCharsets.UTF_8));
+					.encode((config.getUsername() + ":" + config.getPassword()).getBytes(StandardCharsets.UTF_8));
+			headerProperties.put("Authorization", "Basic " + new String(encodedBytes, StandardCharsets.UTF_8));
 		}
 		else {
 			headerProperties.put("Authorization", "Basic " + config.getCredentials());
@@ -214,8 +199,7 @@ public class TraccarConnection {
 		return headerProperties;
 	}
 
-	private String buildTraccarApiGetUrl(String service,
-			Map<String, String> httpGetArguments) {
+	private String buildTraccarApiGetUrl(String service, Map<String, String> httpGetArguments) {
 		return config.getUrl() + service + formatQueryString(httpGetArguments);
 	}
 
@@ -225,15 +209,13 @@ public class TraccarConnection {
 		}
 		StringBuilder params = new StringBuilder();
 		params.append(QUESTIONMARK);
-		httpGetArguments.forEach(
-				(key, val) -> params.append(key).append('=').append(val).append('&'));
+		httpGetArguments.forEach((key, val) -> params.append(key).append('=').append(val).append('&'));
 		params.setLength(params.length() - 1); // Cut last "&"
 
 		return params.toString();
 	}
 
-	private static TraccarDevice findDevice(TraccarDevice[] devices, String uniqueID)
-			throws AttributeException {
+	private static TraccarDevice findDevice(TraccarDevice[] devices, String uniqueID) throws AttributeException {
 		if (devices == null) {
 			throw new AttributeException(String.format(NO_SUCH_DEVICE_FOUND, uniqueID));
 		}

@@ -56,8 +56,8 @@ public class Literal {
 		return result;
 	}
 
-	public boolean evaluate(final FunctionContext functionCtx,
-			final VariableContext variableCtx) throws PolicyEvaluationException {
+	public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
+			throws PolicyEvaluationException {
 		boolean result = bool.evaluate(functionCtx, variableCtx);
 		if (hasNegation) {
 			return !result;

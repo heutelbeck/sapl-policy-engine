@@ -52,8 +52,7 @@ public class ApplyStepsAttributeUnionTest {
 
 	@Test
 	public void applyToNonObject() {
-		ResultNode previousResult = new JsonNodeWithoutParent(
-				Optional.of(JSON.nullNode()));
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
 
 		AttributeUnionStep step = factory.createAttributeUnionStep();
 		step.getAttributes().add("key1");
@@ -76,8 +75,8 @@ public class ApplyStepsAttributeUnionTest {
 
 		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
-						"Attribute union applied to empty object should return empty result array",
-						expectedResult, result));
+						"Attribute union applied to empty object should return empty result array", expectedResult,
+						result));
 	}
 
 	@Test
@@ -89,18 +88,16 @@ public class ApplyStepsAttributeUnionTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(object));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
-				Optional.of(object), "key1"));
-		expectedResultSet.add(new JsonNodeWithParentObject(
-				Optional.of(JSON.booleanNode(true)), Optional.of(object), "key2"));
+		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), Optional.of(object), "key1"));
+		expectedResultSet
+				.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(true)), Optional.of(object), "key2"));
 
 		AttributeUnionStep step = factory.createAttributeUnionStep();
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
 		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
-					.create(((ArrayResultNode) result).getNodes());
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
 					"Attribute union applied to object should return result array with corresponding attribute values",
 					expectedResultSet, resultSet);

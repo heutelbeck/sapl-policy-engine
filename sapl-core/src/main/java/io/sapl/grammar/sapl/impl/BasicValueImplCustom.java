@@ -28,22 +28,18 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the evaluation of values.
  *
- * Grammar:
- * {BasicValue} value=Value steps+=Step*;
+ * Grammar: {BasicValue} value=Value steps+=Step*;
  *
- * Value:
- *     Object | Array | NumberLiteral | StringLiteral |
- *     BooleanLiteral | NullLiteral | UndefinedLiteral ;
+ * Value: Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral |
+ * UndefinedLiteral ;
  */
 public class BasicValueImplCustom extends BasicValueImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> evaluatedValue = getValue().evaluate(ctx, isBody,
-				relativeNode);
-		return evaluatedValue.switchMap(value -> evaluateStepsFilterSubtemplate(value,
-				getSteps(), ctx, isBody, relativeNode));
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> evaluatedValue = getValue().evaluate(ctx, isBody, relativeNode);
+		return evaluatedValue
+				.switchMap(value -> evaluateStepsFilterSubtemplate(value, getSteps(), ctx, isBody, relativeNode));
 	}
 
 	@Override
@@ -54,15 +50,13 @@ public class BasicValueImplCustom extends BasicValueImpl {
 		for (Step step : getSteps()) {
 			hash = 37 * hash + ((step == null) ? 0 : step.hash(imports));
 		}
-		hash = 37 * hash
-				+ ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
+		hash = 37 * hash + ((getSubtemplate() == null) ? 0 : getSubtemplate().hash(imports));
 		hash = 37 * hash + ((getValue() == null) ? 0 : getValue().hash(imports));
 		return hash;
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}
@@ -75,8 +69,7 @@ public class BasicValueImplCustom extends BasicValueImpl {
 			return false;
 		}
 		if ((getSubtemplate() == null) ? (getSubtemplate() != otherImpl.getSubtemplate())
-				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports,
-						imports)) {
+				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports, imports)) {
 			return false;
 		}
 		if ((getValue() == null) ? (getValue() != otherImpl.getValue())

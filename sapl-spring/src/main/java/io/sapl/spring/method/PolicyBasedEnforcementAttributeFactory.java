@@ -14,8 +14,7 @@ import io.sapl.spring.method.pre.PreInvocationEnforcementAttribute;
  * This factory is used to create the ConfigAttributes for SAPL method security.
  *
  */
-public class PolicyBasedEnforcementAttributeFactory
-		implements PolicyEnforcementAttributeFactory {
+public class PolicyBasedEnforcementAttributeFactory implements PolicyEnforcementAttributeFactory {
 
 	private final Object parserLock = new Object();
 
@@ -23,60 +22,47 @@ public class PolicyBasedEnforcementAttributeFactory
 
 	private MethodSecurityExpressionHandler handler;
 
-	public PolicyBasedEnforcementAttributeFactory(
-			MethodSecurityExpressionHandler handler) {
+	public PolicyBasedEnforcementAttributeFactory(MethodSecurityExpressionHandler handler) {
 		this.handler = handler;
 	}
 
 	@Override
-	public PreInvocationEnforcementAttribute createPreInvocationAttribute(
-			String subjectAttribute, String actionAttribute, String resourceAttribute,
-			String environmentAttribute) {
+	public PreInvocationEnforcementAttribute createPreInvocationAttribute(String subjectAttribute,
+			String actionAttribute, String resourceAttribute, String environmentAttribute) {
 		try {
-			Expression subjectExpression = subjectAttribute == null
-					|| subjectAttribute.isEmpty() ? null
-							: getParser().parseExpression(subjectAttribute);
-			Expression actionExpression = actionAttribute == null
-					|| actionAttribute.isEmpty() ? null
-							: getParser().parseExpression(actionAttribute);
-			Expression resourceExpression = resourceAttribute == null
-					|| resourceAttribute.isEmpty() ? null
-							: getParser().parseExpression(resourceAttribute);
-			Expression environmentExpression = environmentAttribute == null
-					|| environmentAttribute.isEmpty() ? null
-							: getParser().parseExpression(environmentAttribute);
-			return new PolicyBasedPreInvocationEnforcementAttribute(subjectExpression,
-					actionExpression, resourceExpression, environmentExpression);
+			Expression subjectExpression = subjectAttribute == null || subjectAttribute.isEmpty() ? null
+					: getParser().parseExpression(subjectAttribute);
+			Expression actionExpression = actionAttribute == null || actionAttribute.isEmpty() ? null
+					: getParser().parseExpression(actionAttribute);
+			Expression resourceExpression = resourceAttribute == null || resourceAttribute.isEmpty() ? null
+					: getParser().parseExpression(resourceAttribute);
+			Expression environmentExpression = environmentAttribute == null || environmentAttribute.isEmpty() ? null
+					: getParser().parseExpression(environmentAttribute);
+			return new PolicyBasedPreInvocationEnforcementAttribute(subjectExpression, actionExpression,
+					resourceExpression, environmentExpression);
 		}
 		catch (ParseException e) {
-			throw new IllegalArgumentException(
-					"Failed to parse expression '" + e.getExpressionString() + "'", e);
+			throw new IllegalArgumentException("Failed to parse expression '" + e.getExpressionString() + "'", e);
 		}
 	}
 
 	@Override
-	public PostInvocationEnforcementAttribute createPostInvocationAttribute(
-			String subjectAttribute, String actionAttribute, String resourceAttribute,
-			String environmentAttribute) {
+	public PostInvocationEnforcementAttribute createPostInvocationAttribute(String subjectAttribute,
+			String actionAttribute, String resourceAttribute, String environmentAttribute) {
 		try {
-			Expression subjectExpression = subjectAttribute == null
-					|| subjectAttribute.isEmpty() ? null
-							: getParser().parseExpression(subjectAttribute);
-			Expression actionExpression = actionAttribute == null
-					|| actionAttribute.isEmpty() ? null
-							: getParser().parseExpression(actionAttribute);
-			Expression resourceExpression = resourceAttribute == null
-					|| resourceAttribute.isEmpty() ? null
-							: getParser().parseExpression(resourceAttribute);
-			Expression environmentExpression = environmentAttribute == null
-					|| environmentAttribute.isEmpty() ? null
-							: getParser().parseExpression(environmentAttribute);
-			return new PolicyBasedPostInvocationEnforcementAttribute(subjectExpression,
-					actionExpression, resourceExpression, environmentExpression);
+			Expression subjectExpression = subjectAttribute == null || subjectAttribute.isEmpty() ? null
+					: getParser().parseExpression(subjectAttribute);
+			Expression actionExpression = actionAttribute == null || actionAttribute.isEmpty() ? null
+					: getParser().parseExpression(actionAttribute);
+			Expression resourceExpression = resourceAttribute == null || resourceAttribute.isEmpty() ? null
+					: getParser().parseExpression(resourceAttribute);
+			Expression environmentExpression = environmentAttribute == null || environmentAttribute.isEmpty() ? null
+					: getParser().parseExpression(environmentAttribute);
+			return new PolicyBasedPostInvocationEnforcementAttribute(subjectExpression, actionExpression,
+					resourceExpression, environmentExpression);
 		}
 		catch (ParseException e) {
-			throw new IllegalArgumentException(
-					"Failed to parse expression '" + e.getExpressionString() + "'", e);
+			throw new IllegalArgumentException("Failed to parse expression '" + e.getExpressionString() + "'", e);
 		}
 	}
 

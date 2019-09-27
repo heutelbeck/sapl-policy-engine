@@ -29,10 +29,10 @@ import io.sapl.api.pdp.Request;
 import lombok.Value;
 
 /**
- * A multi-request holds a list of subjects, a list of actions, a list of resources,
- * a list of environments (which are the elements of a {@link Request SAPL request})
- * and a map holding request IDs and corresponding {@link RequestElements request elements}.
- * It provides methods to {@link #addRequest(String, Object, Object, Object, Object) add}
+ * A multi-request holds a list of subjects, a list of actions, a list of resources, a
+ * list of environments (which are the elements of a {@link Request SAPL request}) and a
+ * map holding request IDs and corresponding {@link RequestElements request elements}. It
+ * provides methods to {@link #addRequest(String, Object, Object, Object, Object) add}
  * single requests and to {@link #iterator() iterate} over all the requests.
  *
  * @see io.sapl.api.pdp.Request
@@ -69,8 +69,7 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 	 * @return this {@code MultiRequest} instance to support chaining of multiple calls to
 	 * {@code addRequest}.
 	 */
-	public MultiRequest addRequest(String requestId, Object subject, Object action,
-			Object resource) {
+	public MultiRequest addRequest(String requestId, Object subject, Object action, Object resource) {
 		return addRequest(requestId, subject, action, resource, null);
 	}
 
@@ -86,19 +85,16 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 	 * @return this {@code MultiRequest} instance to support chaining of multiple calls to
 	 * {@code addRequest}.
 	 */
-	public MultiRequest addRequest(String requestId, Object subject, Object action,
-			Object resource, Object environment) {
+	public MultiRequest addRequest(String requestId, Object subject, Object action, Object resource,
+			Object environment) {
 		requireNonNull(requestId, "requestId must not be null");
 
 		final Integer subjectId = ensureIsElementOfListAndReturnIndex(subject, subjects);
 		final Integer actionId = ensureIsElementOfListAndReturnIndex(action, actions);
-		final Integer resourceId = ensureIsElementOfListAndReturnIndex(resource,
-				resources);
-		final Integer environmentId = ensureIsElementOfListAndReturnIndex(environment,
-				environments);
+		final Integer resourceId = ensureIsElementOfListAndReturnIndex(resource, resources);
+		final Integer environmentId = ensureIsElementOfListAndReturnIndex(environment, environments);
 
-		requests.put(requestId,
-				new RequestElements(subjectId, actionId, resourceId, environmentId));
+		requests.put(requestId, new RequestElements(subjectId, actionId, resourceId, environmentId));
 		return this;
 	}
 
@@ -113,16 +109,15 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 
 	/**
 	 * @return {@code true} if this multi request holds at least one request,
-	 *         {@code false} otherwise.
+	 * {@code false} otherwise.
 	 */
 	public boolean hasRequests() {
 		return !requests.isEmpty();
 	}
 
 	/**
-	 * Returns the request related to the given ID or {@code null} if
-	 * this multi-request contains no such request ID.
-	 *
+	 * Returns the request related to the given ID or {@code null} if this multi-request
+	 * contains no such request ID.
 	 * @param requestId the ID of the request to be returned.
 	 * @return the request related to the given ID or {@code null}.
 	 */
@@ -136,8 +131,8 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 
 	/**
 	 * @return an {@link Iterator iterator} providing access to the
-	 *         {@link IdentifiableRequest identifiable requests} created
-	 *         from the data held by this multi-request.
+	 * {@link IdentifiableRequest identifiable requests} created from the data held by
+	 * this multi-request.
 	 */
 	@Override
 	public Iterator<IdentifiableRequest> iterator() {
@@ -163,14 +158,11 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 	public String toString() {
 		final StringBuilder sb = new StringBuilder("MultiRequest {");
 		for (IdentifiableRequest request : this) {
-			sb.append("\n\t[").append("REQ-ID: ").append(request.getRequestId())
-					.append(" | ").append("SUBJECT: ")
-					.append(request.getRequest().getSubject()).append(" | ")
-					.append("ACTION: ").append(request.getRequest().getAction())
-					.append(" | ").append("RESOURCE: ")
-					.append(request.getRequest().getResource()).append(" | ")
-					.append("ENVIRONMENT: ").append(request.getRequest().getEnvironment())
-					.append(']');
+			sb.append("\n\t[").append("REQ-ID: ").append(request.getRequestId()).append(" | ").append("SUBJECT: ")
+					.append(request.getRequest().getSubject()).append(" | ").append("ACTION: ")
+					.append(request.getRequest().getAction()).append(" | ").append("RESOURCE: ")
+					.append(request.getRequest().getResource()).append(" | ").append("ENVIRONMENT: ")
+					.append(request.getRequest().getEnvironment()).append(']');
 		}
 		sb.append("\n}");
 		return sb.toString();
@@ -180,10 +172,9 @@ public class MultiRequest implements Iterable<IdentifiableRequest> {
 		final Object subject = subjects.get(requestElements.getSubjectId());
 		final Object action = actions.get(requestElements.getActionId());
 		final Object resource = resources.get(requestElements.getResourceId());
-		final Object environment = environments
-				.get(requestElements.getEnvironmentId());
-		return new Request(MAPPER.valueToTree(subject), MAPPER.valueToTree(action),
-				MAPPER.valueToTree(resource), MAPPER.valueToTree(environment));
+		final Object environment = environments.get(requestElements.getEnvironmentId());
+		return new Request(MAPPER.valueToTree(subject), MAPPER.valueToTree(action), MAPPER.valueToTree(resource),
+				MAPPER.valueToTree(environment));
 	}
 
 }

@@ -20,9 +20,9 @@ import reactor.core.publisher.Flux;
 public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyCombinator {
 
 	@Override
-	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
-			boolean errorsInTarget, Request request, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
+	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
+			Request request, AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables) {
 
 		if (errorsInTarget || matchingSaplDocuments.size() > 1) {
 			return Flux.just(Response.INDETERMINATE);

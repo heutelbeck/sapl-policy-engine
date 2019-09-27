@@ -50,8 +50,7 @@ public class EvaluateStepsFilterSubtemplateTest {
 		expression.getSteps().add(step);
 
 		expression.evaluate(ctx, true, Optional.empty()).take(1)
-				.subscribe(result -> assertEquals(
-						"Index step applied to BasicValue should return correct result",
+				.subscribe(result -> assertEquals("Index step applied to BasicValue should return correct result",
 						Optional.of(JSON.nullNode()), result));
 	}
 
@@ -65,8 +64,7 @@ public class EvaluateStepsFilterSubtemplateTest {
 		expression.setFilter(filter);
 
 		expression.evaluate(ctx, true, Optional.empty()).take(1)
-				.subscribe(result -> assertEquals(
-						"Filter applied to BasicValue should return correct result",
+				.subscribe(result -> assertEquals("Filter applied to BasicValue should return correct result",
 						Optional.of(JSON.textNode("")), result));
 	}
 
@@ -107,8 +105,7 @@ public class EvaluateStepsFilterSubtemplateTest {
 		expectedResult.add(JSON.nullNode());
 
 		expression.evaluate(ctx, true, Optional.empty()).take(1)
-				.subscribe(result -> assertEquals(
-						"Subtemplate applied to array should return correct result",
+				.subscribe(result -> assertEquals("Subtemplate applied to array should return correct result",
 						Optional.of(expectedResult), result));
 	}
 

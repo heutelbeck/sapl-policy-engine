@@ -9,8 +9,7 @@ import reactor.core.publisher.FluxSink;
 /**
  * Adapter translating directory watch events into reactive flux events.
  */
-public class DirectoryWatchEventFluxSinkAdapter
-		implements DirectoryWatchEventConsumer<Path> {
+public class DirectoryWatchEventFluxSinkAdapter implements DirectoryWatchEventConsumer<Path> {
 
 	private final Pattern fileNamePattern;
 

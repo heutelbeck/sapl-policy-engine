@@ -91,8 +91,7 @@ public final class GeometryBuilder {
 		return toWkt(fromJsonNode(jsonGeometry));
 	}
 
-	public static double geodesicDistance(Geometry geometryOne, Geometry geometryTwo)
-			throws FunctionException {
+	public static double geodesicDistance(Geometry geometryOne, Geometry geometryTwo) throws FunctionException {
 		try {
 			int startingPointIndex = 0;
 			int destinationPointIndex = 1;
@@ -101,10 +100,8 @@ public final class GeometryBuilder {
 			DistanceOp distOp = new DistanceOp(geometryOne, geometryTwo);
 			GeodeticCalculator gc = new GeodeticCalculator(crs);
 
-			gc.setStartingPosition(JTS
-					.toDirectPosition(distOp.nearestPoints()[startingPointIndex], crs));
-			gc.setDestinationPosition(JTS.toDirectPosition(
-					distOp.nearestPoints()[destinationPointIndex], crs));
+			gc.setStartingPosition(JTS.toDirectPosition(distOp.nearestPoints()[startingPointIndex], crs));
+			gc.setDestinationPosition(JTS.toDirectPosition(distOp.nearestPoints()[destinationPointIndex], crs));
 			return gc.getOrthodromicDistance();
 		}
 		catch (TransformException e) {

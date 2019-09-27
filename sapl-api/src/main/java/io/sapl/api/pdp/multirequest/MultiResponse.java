@@ -16,10 +16,11 @@ import io.sapl.api.pdp.Response;
 import lombok.Value;
 
 /**
- * A multi-response holds a map of request IDs and corresponding {@link Response responses}.
- * It provides methods to {@link #setResponseForRequestWithId(String, Response)} add}
- * single responses related to a request ID, to {@link #getResponseForRequestWithId(String) get}
- * a single response for a given request ID and to {@link #iterator() iterate} over all the responses.
+ * A multi-response holds a map of request IDs and corresponding {@link Response
+ * responses}. It provides methods to
+ * {@link #setResponseForRequestWithId(String, Response)} add} single responses related to
+ * a request ID, to {@link #getResponseForRequestWithId(String) get} a single response for
+ * a given request ID and to {@link #iterator() iterate} over all the responses.
  *
  * @see io.sapl.api.pdp.Response
  */
@@ -36,8 +37,7 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 	}
 
 	/**
-	 * @return the number of {@link Response responses} contained by this
-	 *         multi-response.
+	 * @return the number of {@link Response responses} contained by this multi-response.
 	 */
 	public int size() {
 		return responses.size();
@@ -45,7 +45,6 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 
 	/**
 	 * Adds the given tuple of request ID and related response to this multi-response.
-	 *
 	 * @param requestId the ID of the request related to the given response.
 	 * @param response the response related to the request with the given ID.
 	 */
@@ -57,9 +56,8 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 
 	/**
 	 * Retrieves the response related to the request with the given ID.
-	 *
-	 * @param requestId the ID of the request for which the related response
-	 *                  has to be returned.
+	 * @param requestId the ID of the request for which the related response has to be
+	 * returned.
 	 * @return the response related to the request with the given ID.
 	 */
 	public Response getResponseForRequestWithId(String requestId) {
@@ -68,13 +66,10 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 	}
 
 	/**
-	 * Retrieves the authorization decision related to the request with the
-	 * given ID.
-	 *
-	 * @param requestId the ID of the request for which the related
-	 *                  authorization decision has to be returned.
-	 * @return the authorization decision related to the request with the
-	 *         given ID.
+	 * Retrieves the authorization decision related to the request with the given ID.
+	 * @param requestId the ID of the request for which the related authorization decision
+	 * has to be returned.
+	 * @return the authorization decision related to the request with the given ID.
 	 */
 	public Decision getDecisionForRequestWithId(String requestId) {
 		requireNonNull(requestId, "requestId must not be null");
@@ -82,14 +77,12 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 	}
 
 	/**
-	 * Returns {@code true} if the authorization decision related to the request
-	 * with the given ID is {@link Decision#PERMIT}, {@code false} otherwise.
-	 *
-	 * @param requestId the ID of the request for which the related flag
-	 *                  indicating whether the authorization decision was
-	 *                  PERMIT or not has to be returned.
-	 * @return {@code true} if the authorization decision related to the request
-	 *         with the given ID is {@link Decision#PERMIT}, {@code false} otherwise.
+	 * Returns {@code true} if the authorization decision related to the request with the
+	 * given ID is {@link Decision#PERMIT}, {@code false} otherwise.
+	 * @param requestId the ID of the request for which the related flag indicating
+	 * whether the authorization decision was PERMIT or not has to be returned.
+	 * @return {@code true} if the authorization decision related to the request with the
+	 * given ID is {@link Decision#PERMIT}, {@code false} otherwise.
 	 */
 	public boolean isAccessPermittedForRequestWithId(String requestId) {
 		requireNonNull(requestId, "requestId must not be null");
@@ -98,13 +91,12 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 
 	/**
 	 * @return an {@link Iterator iterator} providing access to the
-	 *         {@link IdentifiableResponse identifiable responses} created
-	 *         from the data held by this multi-response.
+	 * {@link IdentifiableResponse identifiable responses} created from the data held by
+	 * this multi-response.
 	 */
 	@Override
 	public Iterator<IdentifiableResponse> iterator() {
-		final Iterator<Map.Entry<String, Response>> responseIterator = responses
-				.entrySet().iterator();
+		final Iterator<Map.Entry<String, Response>> responseIterator = responses.entrySet().iterator();
 		return new Iterator<IdentifiableResponse>() {
 			@Override
 			public boolean hasNext() {
@@ -114,8 +106,7 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 			@Override
 			public IdentifiableResponse next() {
 				final Map.Entry<String, Response> responseEntry = responseIterator.next();
-				return new IdentifiableResponse(responseEntry.getKey(),
-						responseEntry.getValue());
+				return new IdentifiableResponse(responseEntry.getKey(), responseEntry.getValue());
 			}
 		};
 	}
@@ -163,14 +154,11 @@ public class MultiResponse implements Iterable<IdentifiableResponse> {
 	public String toString() {
 		final StringBuilder sb = new StringBuilder("MultiResponse {");
 		for (IdentifiableResponse response : this) {
-			sb.append("\n\t[").append("REQ-ID: ").append(response.getRequestId())
-					.append(" | ").append("DECISION: ")
-					.append(response.getResponse().getDecision()).append(" | ")
-					.append("RESOURCE: ").append(response.getResponse().getResource())
-					.append(" | ").append("OBLIGATIONS: ")
-					.append(response.getResponse().getObligations()).append(" | ")
-					.append("ADVICE: ").append(response.getResponse().getAdvices())
-					.append(']');
+			sb.append("\n\t[").append("REQ-ID: ").append(response.getRequestId()).append(" | ").append("DECISION: ")
+					.append(response.getResponse().getDecision()).append(" | ").append("RESOURCE: ")
+					.append(response.getResponse().getResource()).append(" | ").append("OBLIGATIONS: ")
+					.append(response.getResponse().getObligations()).append(" | ").append("ADVICE: ")
+					.append(response.getResponse().getAdvices()).append(']');
 		}
 		sb.append("\n}");
 		return sb.toString();

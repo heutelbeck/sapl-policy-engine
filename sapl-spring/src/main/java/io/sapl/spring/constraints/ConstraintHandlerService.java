@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ConstraintHandlerService {
 
 	private static final String FAILED_TO_HANDLE_OBLIGATION = "Failed to handle obligation: %s";
+
 	private final List<ConstraintHandler> constraintHandlers;
 
 	/**

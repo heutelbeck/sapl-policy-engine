@@ -17,8 +17,7 @@ public class AuxiliaryMatrix {
 	public AuxiliaryMatrix(final AuxiliaryMatrix matrix) {
 		size = matrix.size;
 		uncheckedLiteralsOfClause = Arrays.copyOf(matrix.uncheckedLiteralsOfClause, size);
-		uncheckedOccurrencesOfClause = Arrays.copyOf(matrix.uncheckedOccurrencesOfClause,
-				size);
+		uncheckedOccurrencesOfClause = Arrays.copyOf(matrix.uncheckedOccurrencesOfClause, size);
 	}
 
 	public AuxiliaryMatrix(final int[]... matrix) {

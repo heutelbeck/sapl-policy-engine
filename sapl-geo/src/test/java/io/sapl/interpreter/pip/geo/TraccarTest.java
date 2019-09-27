@@ -78,8 +78,7 @@ public class TraccarTest {
 			+ ",\"Mainz\":{\"type\":\"Polygon\",\"coordinates\":[[[50.03,8.23],[50,8.18],[50,8.23],[50,8.3],[50,8.4],[50.03,8.4]"
 			+ ",[50.05,8.3],[50.03,8.23]]]}}}";
 
-	private static final ObjectMapper MAPPER = new ObjectMapper()
-			.enable(SerializationFeature.INDENT_OUTPUT);
+	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	private static final String DEVICE_ID = "123456";
 
@@ -99,7 +98,7 @@ public class TraccarTest {
 
 	@Before
 	public void init() throws IOException {
-		//mockStatic(HttpClientRequestExecutor.class);
+		// mockStatic(HttpClientRequestExecutor.class);
 		requestExecutor = mock(WebClientRequestExecutor.class);
 		trConn = new TraccarConnection(MAPPER.readValue(configJson, TraccarConfig.class), requestExecutor);
 		trDevice = MAPPER.readValue(devicesJson, TraccarDevice[].class)[0];
@@ -111,15 +110,13 @@ public class TraccarTest {
 	@Test
 	public void jsonConstructor() throws IOException {
 		JsonNode jsonConfig = MAPPER.readValue(configJson, JsonNode.class);
-		assertEquals(
-				"Same parameters used in different constructor formats result in different results.",
+		assertEquals("Same parameters used in different constructor formats result in different results.",
 				new TraccarConnection(jsonConfig).getConfig(), trConn.getConfig());
 	}
 
 	@Test
 	public void getDeviceTest() throws AttributeException, IOException {
-		when(requestExecutor.executeBlockingRequest(any(), eq(GET)))
-				.thenReturn(MAPPER.readTree(devicesJson));
+		when(requestExecutor.executeBlockingRequest(any(), eq(GET))).thenReturn(MAPPER.readTree(devicesJson));
 
 		assertEquals("Traccar devices not correctly obtained.", "TestDevice",
 				trConn.getTraccarDevice(DEVICE_ID).getName());
@@ -134,52 +131,43 @@ public class TraccarTest {
 			fail("No exception thrown for empty device answer..");
 		}
 		catch (AttributeException e) {
-			assertEquals("Wrong exception thrown for empty device answer.",
-					e.getMessage(),
+			assertEquals("Wrong exception thrown for empty device answer.", e.getMessage(),
 					String.format(TraccarConnection.NO_SUCH_DEVICE_FOUND, DEVICE_ID));
 		}
 	}
 
 	@Test
 	public void getDeviceIdNotExistingTest() throws IOException {
-		when(requestExecutor.executeBlockingRequest(any(), eq(GET)))
-				.thenReturn(MAPPER.readTree(devicesJson));
+		when(requestExecutor.executeBlockingRequest(any(), eq(GET))).thenReturn(MAPPER.readTree(devicesJson));
 
 		try {
 			trConn.getTraccarDevice("0");
 			fail("No exception thrown when looking up a device that is not in the server answer.");
 		}
 		catch (AttributeException e) {
-			assertEquals(
-					"Wrong exception thrown when looking up a device that is not in the server answer.",
-					e.getMessage(),
-					String.format(TraccarConnection.NO_SUCH_DEVICE_FOUND, "0"));
+			assertEquals("Wrong exception thrown when looking up a device that is not in the server answer.",
+					e.getMessage(), String.format(TraccarConnection.NO_SUCH_DEVICE_FOUND, "0"));
 		}
 	}
 
 	@Test
 	public void getPositionTest() throws AttributeException, IOException {
-		when(requestExecutor.executeBlockingRequest(any(), eq(GET)))
-				.thenReturn(MAPPER.readTree(positionsJson));
+		when(requestExecutor.executeBlockingRequest(any(), eq(GET))).thenReturn(MAPPER.readTree(positionsJson));
 
-		TraccarPosition expectedPosition = MAPPER.readValue(positionsJson,
-				TraccarPosition[].class)[0];
-		assertEquals("Traccar position not correctly obtained.", expectedPosition,
-				trConn.getTraccarPosition(trDevice));
+		TraccarPosition expectedPosition = MAPPER.readValue(positionsJson, TraccarPosition[].class)[0];
+		assertEquals("Traccar position not correctly obtained.", expectedPosition, trConn.getTraccarPosition(trDevice));
 	}
 
 	@Test
 	public void getPositionExceptionTest() throws IOException {
 		try {
-			when(requestExecutor.executeBlockingRequest(any(), eq(GET)))
-					.thenReturn(MAPPER.readTree("[]"));
+			when(requestExecutor.executeBlockingRequest(any(), eq(GET))).thenReturn(MAPPER.readTree("[]"));
 			trConn.getTraccarPosition(trDevice);
 
 			fail("No error message is thrown when zero positions are returned from server.");
 		}
 		catch (AttributeException e) {
-			assertEquals(
-					"Wrong error message gets thrown when zero positions are returned from server.",
+			assertEquals("Wrong error message gets thrown when zero positions are returned from server.",
 					TraccarConnection.UNABLE_TO_READ_FROM_SERVER, e.getMessage());
 		}
 	}
@@ -189,13 +177,11 @@ public class TraccarTest {
 		when(requestExecutor.executeBlockingRequest(any(), eq(GET)))
 				.thenReturn(MAPPER.convertValue(trFences, JsonNode.class));
 
-		assertArrayEquals("Traccar geofences not correctly obtained.", trFences,
-				trConn.getTraccarGeofences(trDevice));
+		assertArrayEquals("Traccar geofences not correctly obtained.", trFences, trConn.getTraccarGeofences(trDevice));
 	}
 
 	@Test
-	public void toGeoPIPResponseTest()
-			throws IOException, FunctionException, AttributeException {
+	public void toGeoPIPResponseTest() throws IOException, FunctionException, AttributeException {
 		TraccarConnection connSpy = spy(trConn);
 
 		TraccarDevice tDev = mock(TraccarDevice.class);
@@ -210,8 +196,7 @@ public class TraccarTest {
 		doReturn(tPos).when(connSpy).getTraccarPosition(any(TraccarDevice.class));
 		doReturn(trFences).when(connSpy).getTraccarGeofences(any(TraccarDevice.class));
 
-		assertEquals("Generation of GeoPIPResponse works not as expected.",
-				connSpy.toGeoPIPResponse(),
+		assertEquals("Generation of GeoPIPResponse works not as expected.", connSpy.toGeoPIPResponse(),
 				MAPPER.readValue(expectedGeoPIPResponse, JsonNode.class));
 	}
 
@@ -226,8 +211,7 @@ public class TraccarTest {
 	public void createCredentialsTest() throws IOException {
 		String config = "{\"deviceID\": \"123456\", \"url\": \"http://lcl:00/api/\","
 				+ "\"username\": \"admin\", \"password\": \"admin\"}";
-		TraccarConnection conn = new TraccarConnection(
-				MAPPER.readValue(config, TraccarConfig.class));
+		TraccarConnection conn = new TraccarConnection(MAPPER.readValue(config, TraccarConfig.class));
 		assertEquals("Base64 encoding of username and password is not correct.",
 				"{Authorization=Basic YWRtaW46YWRtaW4=, Accept=application/json}",
 				conn.getTraccarHTTPHeader().toString());
@@ -235,29 +219,26 @@ public class TraccarTest {
 
 	@Test
 	public void positionEqualsTest() {
-		EqualsVerifier.forClass(TraccarPosition.class)
-				.suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
+		EqualsVerifier.forClass(TraccarPosition.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
 				.withPrefabValues(JsonNode.class, jsonDumpOne, jsonDumpTwo).verify();
 	}
 
 	@Test
 	public void geofenceEqualsTest() {
-		EqualsVerifier.forClass(TraccarGeofence.class)
-				.suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
+		EqualsVerifier.forClass(TraccarGeofence.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
 				.withPrefabValues(JsonNode.class, jsonDumpOne, jsonDumpTwo).verify();
 	}
 
 	@Test
 	public void deviceEqualsTest() {
-		EqualsVerifier.forClass(TraccarDevice.class)
-				.suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
+		EqualsVerifier.forClass(TraccarDevice.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
 				.withPrefabValues(JsonNode.class, jsonDumpOne, jsonDumpTwo).verify();
 	}
 
 	@Test
 	public void configEqualsTest() {
-		EqualsVerifier.forClass(TraccarConfig.class)
-				.suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS).verify();
+		EqualsVerifier.forClass(TraccarConfig.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
+				.verify();
 	}
 
 	@Test
@@ -269,8 +250,7 @@ public class TraccarTest {
 		when(b.getId()).thenReturn(1);
 
 		assertTrue("Sorting TraccarPositions in ascending order does not work properly.",
-				TraccarPosition.compareAscending(a, b) == -1
-						&& TraccarPosition.compareAscending(b, a) == 1
+				TraccarPosition.compareAscending(a, b) == -1 && TraccarPosition.compareAscending(b, a) == 1
 						&& TraccarPosition.compareAscending(a, a) == 0);
 	}
 
@@ -283,8 +263,7 @@ public class TraccarTest {
 		when(b.getId()).thenReturn(1);
 
 		assertTrue("Sorting TraccarPositions in descending order does not work properly.",
-				TraccarPosition.compareDescending(a, b) == 1
-						&& TraccarPosition.compareDescending(b, a) == -1
+				TraccarPosition.compareDescending(a, b) == 1 && TraccarPosition.compareDescending(b, a) == -1
 						&& TraccarPosition.compareDescending(a, a) == 0);
 	}
 

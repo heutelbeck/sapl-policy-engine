@@ -21,8 +21,8 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 	Map<String, SAPL> publishedDocuments = new ConcurrentHashMap<>();
 
 	@Override
-	public PolicyRetrievalResult retrievePolicies(Request request,
-			FunctionContext functionCtx, Map<String, JsonNode> variables) {
+	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
+			Map<String, JsonNode> variables) {
 
 		final List<SAPL> result = new ArrayList<>();
 		boolean errorOccurred = false;
@@ -35,7 +35,7 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 		catch (PolicyEvaluationException e) {
 			errorOccurred = true;
 		}
-		if (! errorOccurred) {
+		if (!errorOccurred) {
 			for (SAPL sapl : publishedDocuments.values()) {
 				try {
 					if (sapl.matches(evaluationCtx)) {

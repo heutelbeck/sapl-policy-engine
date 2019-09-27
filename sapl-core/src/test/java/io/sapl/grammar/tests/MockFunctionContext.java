@@ -15,8 +15,7 @@ import io.sapl.interpreter.functions.LibraryDocumentation;
 public class MockFunctionContext implements FunctionContext {
 
 	@Override
-	public Optional<JsonNode> evaluate(String function, ArrayNode parameters)
-			throws FunctionException {
+	public Optional<JsonNode> evaluate(String function, ArrayNode parameters) throws FunctionException {
 		if ("EXCEPTION".equals(function)) {
 			throw new FunctionException();
 		}

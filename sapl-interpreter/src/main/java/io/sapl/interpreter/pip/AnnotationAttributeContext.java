@@ -50,8 +50,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	private Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
 
-	public AnnotationAttributeContext(Object... policyInformationPoints)
-			throws AttributeException {
+	public AnnotationAttributeContext(Object... policyInformationPoints) throws AttributeException {
 		for (Object pip : policyInformationPoints) {
 			loadPolicyInformationPoint(pip);
 		}
@@ -59,13 +58,10 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public Flux<JsonNode> evaluate(String attribute, JsonNode value,
-			Map<String, JsonNode> variables) {
-		final AttributeFinderMetadata metadata = attributeMetadataByAttributeName
-				.get(attribute);
+	public Flux<JsonNode> evaluate(String attribute, JsonNode value, Map<String, JsonNode> variables) {
+		final AttributeFinderMetadata metadata = attributeMetadataByAttributeName.get(attribute);
 		if (metadata == null) {
-			return Flux.error(
-					new AttributeException(String.format(UNKNOWN_ATTRIBUTE, attribute)));
+			return Flux.error(new AttributeException(String.format(UNKNOWN_ATTRIBUTE, attribute)));
 		}
 
 		final Object pip = metadata.getPolicyInformationPoint();
@@ -75,8 +71,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 			ParameterTypeValidator.validateType(value, firstParameter);
 			return (Flux<JsonNode>) method.invoke(pip, value, variables);
 		}
-		catch (IllegalAccessException | IllegalArgumentException
-				| InvocationTargetException | IllegalParameterType e) {
+		catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | IllegalParameterType e) {
 			return Flux.error(new AttributeException(e));
 		}
 	}
@@ -85,12 +80,10 @@ public class AnnotationAttributeContext implements AttributeContext {
 	public final void loadPolicyInformationPoint(Object pip) throws AttributeException {
 		final Class<?> clazz = pip.getClass();
 
-		final PolicyInformationPoint pipAnnotation = clazz
-				.getAnnotation(PolicyInformationPoint.class);
+		final PolicyInformationPoint pipAnnotation = clazz.getAnnotation(PolicyInformationPoint.class);
 
 		if (pipAnnotation == null) {
-			throw new AttributeException(
-					CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION);
+			throw new AttributeException(CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION);
 		}
 
 		String pipName = pipAnnotation.name();
@@ -98,8 +91,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 			pipName = clazz.getName();
 		}
 		attributeNamesByPipName.put(pipName, new HashSet<>());
-		PolicyInformationPointDocumentation pipDocs = new PolicyInformationPointDocumentation(
-				pipName, pipAnnotation.description(), pip);
+		PolicyInformationPointDocumentation pipDocs = new PolicyInformationPointDocumentation(pipName,
+				pipAnnotation.description(), pip);
 
 		pipDocs.setName(pipAnnotation.name());
 		for (Method method : clazz.getDeclaredMethods()) {
@@ -112,8 +105,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	}
 
 	private void importAttribute(Object policyInformationPoint, String pipName,
-			PolicyInformationPointDocumentation pipDocs, Method method)
-			throws AttributeException {
+			PolicyInformationPointDocumentation pipDocs, Method method) throws AttributeException {
 
 		final Attribute attAnnotation = method.getAnnotation(Attribute.class);
 
@@ -124,25 +116,21 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		int parameters = method.getParameterCount();
 		if (parameters != REQUIRED_NUMBER_OF_PARAMETERS) {
-			throw new AttributeException(
-					String.format(BAD_NUMBER_OF_PARAMETERS, parameters));
+			throw new AttributeException(String.format(BAD_NUMBER_OF_PARAMETERS, parameters));
 		}
 		final Class<?>[] parameterTypes = method.getParameterTypes();
 		if (!JsonNode.class.isAssignableFrom(parameterTypes[0])) {
 			throw new AttributeException(
-					String.format(FIRST_PARAMETER_OF_METHOD_MUST_BE_A_JSON_NODE,
-							parameterTypes[0].getName()));
+					String.format(FIRST_PARAMETER_OF_METHOD_MUST_BE_A_JSON_NODE, parameterTypes[0].getName()));
 		}
 		if (!Map.class.isAssignableFrom(parameterTypes[1])) {
 			throw new AttributeException(
-					String.format(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP,
-							parameterTypes[1].getName()));
+					String.format(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName()));
 		}
 
 		final Type[] genericTypes = method.getGenericParameterTypes();
 		if (genericTypes[1] instanceof ParameterizedType
-				&& ((ParameterizedType) genericTypes[1])
-						.getActualTypeArguments().length == 2) {
+				&& ((ParameterizedType) genericTypes[1]).getActualTypeArguments().length == 2) {
 			final Class<?> firstTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1])
 					.getActualTypeArguments()[0];
 			final Class<?> secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1])
@@ -150,16 +138,13 @@ public class AnnotationAttributeContext implements AttributeContext {
 			if (!String.class.isAssignableFrom(firstTypeArgument)
 					|| !JsonNode.class.isAssignableFrom(secondTypeArgument)) {
 				throw new AttributeException(
-						String.format(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP,
-								parameterTypes[1].getName() + "<"
-										+ firstTypeArgument.getName() + ","
-										+ secondTypeArgument.getName() + ">"));
+						String.format(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName() + "<"
+								+ firstTypeArgument.getName() + "," + secondTypeArgument.getName() + ">"));
 			}
 		}
 		else {
 			throw new AttributeException(
-					String.format(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP,
-							parameterTypes[1].getName()));
+					String.format(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName()));
 		}
 
 		final Class<?> returnType = method.getReturnType();
@@ -167,16 +152,13 @@ public class AnnotationAttributeContext implements AttributeContext {
 		if (genericReturnType instanceof ParameterizedType) {
 			final Class<?> returnTypeArgument = (Class<?>) ((ParameterizedType) genericReturnType)
 					.getActualTypeArguments()[0];
-			if (!Flux.class.isAssignableFrom(returnType)
-					|| !JsonNode.class.isAssignableFrom(returnTypeArgument)) {
-				throw new AttributeException(String.format(
-						RETURN_TYPE_MUST_BE_FLUX_OF_JSON_NODE,
+			if (!Flux.class.isAssignableFrom(returnType) || !JsonNode.class.isAssignableFrom(returnTypeArgument)) {
+				throw new AttributeException(String.format(RETURN_TYPE_MUST_BE_FLUX_OF_JSON_NODE,
 						returnType.getName() + "<" + returnTypeArgument.getName() + ">"));
 			}
 		}
 		else {
-			throw new AttributeException(String
-					.format(RETURN_TYPE_MUST_BE_FLUX_OF_JSON_NODE, returnType.getName()));
+			throw new AttributeException(String.format(RETURN_TYPE_MUST_BE_FLUX_OF_JSON_NODE, returnType.getName()));
 		}
 
 		pipDocs.documentation.put(attName, attAnnotation.docs());

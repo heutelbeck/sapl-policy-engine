@@ -35,8 +35,7 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the evaluation of functions.
  *
- * Grammar:
- * {BasicFunction} fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step*;
+ * Grammar: {BasicFunction} fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step*;
  * {Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
  */
 public class BasicFunctionImplCustom extends BasicFunctionImpl {
@@ -44,33 +43,29 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 	private static final String UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL = "undefined parameter value handed to function call";
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (getArguments() != null && !getArguments().getArgs().isEmpty()) {
 			// create a list of Fluxes containing the results of evaluating the
 			// individual argument expressions.
-			final List<Flux<Optional<JsonNode>>> arguments = new ArrayList<>(
-					getArguments().getArgs().size());
+			final List<Flux<Optional<JsonNode>>> arguments = new ArrayList<>(getArguments().getArgs().size());
 			for (Expression argument : getArguments().getArgs()) {
 				arguments.add(argument.evaluate(ctx, isBody, relativeNode));
 			}
 			// evaluate the function for each value assignment of the arguments
 			return Flux.combineLatest(arguments, Function.identity())
 					.switchMap(parameters -> evaluateFunction(parameters, ctx))
-					.flatMap(funResult -> evaluateStepsFilterSubtemplate(funResult,
-							getSteps(), ctx, isBody, relativeNode));
+					.flatMap(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, isBody,
+							relativeNode));
 		}
 		else {
 			// No need to evaluate arguments. Just evaluate and apply steps.
-			return evaluateFunction(null, ctx)
-					.flatMap(funResult -> evaluateStepsFilterSubtemplate(funResult,
-							getSteps(), ctx, isBody, relativeNode));
+			return evaluateFunction(null, ctx).flatMap(
+					funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, isBody, relativeNode));
 		}
 	}
 
 	@SuppressWarnings("unchecked")
-	private Flux<Optional<JsonNode>> evaluateFunction(Object[] parameters,
-			EvaluationContext ctx) {
+	private Flux<Optional<JsonNode>> evaluateFunction(Object[] parameters, EvaluationContext ctx) {
 		// TODO: consider to adjust function library interfaces to:
 		// - accept fluxes
 		// - accept undefined
@@ -89,9 +84,8 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 		try {
 			if (parameters != null) {
 				for (Object paramNode : parameters) {
-					argumentsArray.add(((Optional<JsonNode>) paramNode)
-							.orElseThrow(() -> new FunctionException(
-									UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL)));
+					argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(
+							() -> new FunctionException(UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL)));
 				}
 			}
 			return Flux.just(ctx.getFunctionCtx().evaluate(functionName(ctx), argumentsArray));
@@ -123,14 +117,12 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 		for (Step step : getSteps()) {
 			hash = 37 * hash + (step == null ? 0 : step.hash(imports));
 		}
-		hash = 37 * hash
-				+ (getSubtemplate() == null ? 0 : getSubtemplate().hash(imports));
+		hash = 37 * hash + (getSubtemplate() == null ? 0 : getSubtemplate().hash(imports));
 		return hash;
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}
@@ -139,8 +131,7 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 		}
 		final BasicFunctionImplCustom otherImpl = (BasicFunctionImplCustom) other;
 		if (getArguments() == null ? getArguments() != otherImpl.getArguments()
-				: !getArguments().isEqualTo(otherImpl.getArguments(), otherImports,
-						imports)) {
+				: !getArguments().isEqualTo(otherImpl.getArguments(), otherImports, imports)) {
 			return false;
 		}
 		if (getFilter() == null ? getFilter() != otherImpl.getFilter()
@@ -168,8 +159,7 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 			return false;
 		}
 		if (getSubtemplate() == null ? getSubtemplate() != otherImpl.getSubtemplate()
-				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports,
-						imports)) {
+				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports, imports)) {
 			return false;
 		}
 		if (getSteps().size() != otherImpl.getSteps().size()) {

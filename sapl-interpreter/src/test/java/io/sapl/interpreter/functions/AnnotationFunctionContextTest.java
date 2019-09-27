@@ -12,8 +12,7 @@ public class AnnotationFunctionContextTest {
 
 	@Test
 	public void testAutoconfigure() throws FunctionException {
-		AnnotationFunctionContext context = new AnnotationFunctionContext(
-				new MockLibrary());
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		context.evaluate(MockLibrary.NAME + ".helloTest", JSON.arrayNode());
 	}
 

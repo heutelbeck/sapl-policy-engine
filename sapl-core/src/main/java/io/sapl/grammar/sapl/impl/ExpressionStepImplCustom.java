@@ -43,9 +43,8 @@ import reactor.core.publisher.Flux;
  * (object.array[(anIndex+2)]) or apply custom functions
  * (object.array[(max_value(object.array))].
  *
- * Grammar:
- * Step: ... | '[' Subscript ']' | ...
- * Subscript returns Step: ... | {ExpressionStep} '(' expression=Expression ')' | ...
+ * Grammar: Step: ... | '[' Subscript ']' | ... Subscript returns Step: ... |
+ * {ExpressionStep} '(' expression=Expression ')' | ...
  */
 public class ExpressionStepImplCustom extends ExpressionStepImpl {
 
@@ -68,24 +67,21 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	 * name) retrieved by evaluating the expression
 	 */
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return getExpression().evaluate(ctx, isBody, relativeNode)
-				.flatMap(expressionResult -> {
-					try {
-						return Flux.just(handleExpressionResultFor(previousResult,
-								expressionResult));
-					}
-					catch (PolicyEvaluationException e) {
-						return Flux.error(e);
-					}
-				});
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
+		return getExpression().evaluate(ctx, isBody, relativeNode).flatMap(expressionResult -> {
+			try {
+				return Flux.just(handleExpressionResultFor(previousResult, expressionResult));
+			}
+			catch (PolicyEvaluationException e) {
+				return Flux.error(e);
+			}
+		});
 	}
 
-	private ResultNode handleExpressionResultFor(AbstractAnnotatedJsonNode previousResult,
-			Optional<JsonNode> optResult) throws PolicyEvaluationException {
-		JsonNode result = optResult
-				.orElseThrow(() -> new PolicyEvaluationException("undefined value"));
+	private ResultNode handleExpressionResultFor(AbstractAnnotatedJsonNode previousResult, Optional<JsonNode> optResult)
+			throws PolicyEvaluationException {
+		JsonNode result = optResult.orElseThrow(() -> new PolicyEvaluationException("undefined value"));
 		final Optional<JsonNode> previousResultNode = previousResult.getNode();
 		if (result.isNumber()) {
 			if (previousResultNode.isPresent() && previousResultNode.get().isArray()) {
@@ -97,8 +93,8 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 				// the
 				// result type does not match, but the node the subscript is applied to is
 				// either undefined or not an array.
-				throw new PolicyEvaluationException(String
-						.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+				throw new PolicyEvaluationException(
+						String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
 			}
 		}
 		else if (result.isTextual()) {
@@ -111,35 +107,30 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 				// the
 				// result type does not match, but the node the subscript is applied to is
 				// undefined.
-				throw new PolicyEvaluationException(String
-						.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+				throw new PolicyEvaluationException(
+						String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
 			}
 		}
 		else {
-			throw new PolicyEvaluationException(
-					String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+			throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
 		}
 	}
 
-	private ResultNode handleArrayIndex(JsonNode previousResult, JsonNode result)
-			throws PolicyEvaluationException {
+	private ResultNode handleArrayIndex(JsonNode previousResult, JsonNode result) throws PolicyEvaluationException {
 		final int index = result.asInt();
 		if (!previousResult.has(index)) {
-			throw new PolicyEvaluationException(
-					String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
+			throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
 		}
-		return new JsonNodeWithParentArray(Optional.of(previousResult.get(index)),
-				Optional.of(previousResult), index);
+		return new JsonNodeWithParentArray(Optional.of(previousResult.get(index)), Optional.of(previousResult), index);
 	}
 
 	private ResultNode handleAttributeName(JsonNode previousResult, JsonNode result) {
 		final String attribute = result.asText();
 		if (!previousResult.has(attribute)) {
-			return new JsonNodeWithParentObject(Optional.empty(),
-					Optional.of(previousResult), attribute);
+			return new JsonNodeWithParentObject(Optional.empty(), Optional.of(previousResult), attribute);
 		}
-		return new JsonNodeWithParentObject(Optional.of(previousResult.get(attribute)),
-				Optional.of(previousResult), attribute);
+		return new JsonNodeWithParentObject(Optional.of(previousResult.get(attribute)), Optional.of(previousResult),
+				attribute);
 	}
 
 	/**
@@ -154,29 +145,26 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	 * expression
 	 */
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx,
-			boolean isBody, Optional<JsonNode> relativeNode) {
-		return getExpression()
-				.evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations())
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
+		return getExpression().evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations())
 				.flatMap(Value::toJsonNode)
-				.flatMap(expressionResult -> handleExpressionResultFor(previousResult,
-						expressionResult));
+				.flatMap(expressionResult -> handleExpressionResultFor(previousResult, expressionResult));
 	}
 
-	private Flux<ResultNode> handleExpressionResultFor(ArrayResultNode previousResult,
-			JsonNode result) {
+	private Flux<ResultNode> handleExpressionResultFor(ArrayResultNode previousResult, JsonNode result) {
 		if (result.isNumber()) {
 			int index = result.asInt();
 			List<AbstractAnnotatedJsonNode> nodes = previousResult.getNodes();
 			if (index < 0 || index >= nodes.size()) {
-				return Flux.error(new PolicyEvaluationException(
-						String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index)));
+				return Flux
+						.error(new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index)));
 			}
 			return Flux.just(nodes.get(index));
 		}
 		else {
-			return Flux.error(new PolicyEvaluationException(String
-					.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType())));
+			return Flux.error(new PolicyEvaluationException(
+					String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType())));
 		}
 	}
 
@@ -184,22 +172,19 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	public int hash(Map<String, String> imports) {
 		int hash = 17;
 		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = 37 * hash
-				+ ((getExpression() == null) ? 0 : getExpression().hash(imports));
+		hash = 37 * hash + ((getExpression() == null) ? 0 : getExpression().hash(imports));
 		return hash;
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other)
 			return true;
 		if (other == null || getClass() != other.getClass())
 			return false;
 		final ExpressionStepImplCustom otherImpl = (ExpressionStepImplCustom) other;
 		return (getExpression() == null) ? (getExpression() == otherImpl.getExpression())
-				: getExpression().isEqualTo(otherImpl.getExpression(), otherImports,
-						imports);
+				: getExpression().isEqualTo(otherImpl.getExpression(), otherImports, imports);
 	}
 
 }

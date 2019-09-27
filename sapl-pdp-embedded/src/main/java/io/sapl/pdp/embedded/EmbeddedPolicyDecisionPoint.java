@@ -66,30 +66,24 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		LOGGER.trace("|---------------------------");
 		LOGGER.trace("|-- PDP Request: {}", request);
 
-		final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider
-				.getVariables();
-		final Flux<DocumentsCombinator> combinatorFlux = configurationProvider
-				.getDocumentsCombinator();
+		final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider.getVariables();
+		final Flux<DocumentsCombinator> combinatorFlux = configurationProvider.getDocumentsCombinator();
 
 		return Flux.combineLatest(variablesFlux, combinatorFlux,
-				(variables, combinator) -> prp
-						.retrievePolicies(request, functionCtx, variables)
-						.switchMap(result -> {
-							final Collection<SAPL> matchingDocuments = result
-									.getMatchingDocuments();
-							final boolean errorsInTarget = result.isErrorsInTarget();
-							LOGGER.trace("|-- Combine documents of request: {}", request);
-							return (Flux<Response>) combinator.combineMatchingDocuments(matchingDocuments,
-									errorsInTarget, request, attributeCtx, functionCtx,
-									variables);
-						}))
-				.flatMap(Function.identity()).distinctUntilChanged();
+				(variables, combinator) -> prp.retrievePolicies(request, functionCtx, variables).switchMap(result -> {
+					final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
+					final boolean errorsInTarget = result.isErrorsInTarget();
+					LOGGER.trace("|-- Combine documents of request: {}", request);
+					return (Flux<Response>) combinator.combineMatchingDocuments(matchingDocuments, errorsInTarget,
+							request, attributeCtx, functionCtx, variables);
+				})).flatMap(Function.identity()).distinctUntilChanged();
 	}
 
 	@Override
 	public Flux<IdentifiableResponse> decide(MultiRequest multiRequest) {
 		if (multiRequest.hasRequests()) {
-			final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = createIdentifiableResponseFluxes(multiRequest, true);
+			final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = createIdentifiableResponseFluxes(
+					multiRequest, true);
 			return Flux.merge(identifiableResponseFluxes);
 		}
 		return Flux.just(IdentifiableResponse.INDETERMINATE);
@@ -98,13 +92,15 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	@Override
 	public Flux<MultiResponse> decideAll(MultiRequest multiRequest) {
 		if (multiRequest.hasRequests()) {
-			final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = createIdentifiableResponseFluxes(multiRequest, false);
+			final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = createIdentifiableResponseFluxes(
+					multiRequest, false);
 			return Flux.combineLatest(identifiableResponseFluxes, this::collectResponses);
 		}
 		return Flux.just(MultiResponse.indeterminate());
 	}
 
-	private List<Flux<IdentifiableResponse>> createIdentifiableResponseFluxes(Iterable<IdentifiableRequest> multiRequest, boolean useSeparateSchedulers) {
+	private List<Flux<IdentifiableResponse>> createIdentifiableResponseFluxes(
+			Iterable<IdentifiableRequest> multiRequest, boolean useSeparateSchedulers) {
 		final Scheduler schedulerForMerge = useSeparateSchedulers ? Schedulers.newElastic("pdp") : null;
 		final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = new ArrayList<>();
 		for (IdentifiableRequest identifiableRequest : multiRequest) {
@@ -126,8 +122,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		final MultiResponse multiResponse = new MultiResponse();
 		for (Object value : values) {
 			IdentifiableResponse ir = (IdentifiableResponse) value;
-			multiResponse.setResponseForRequestWithId(ir.getRequestId(),
-					ir.getResponse());
+			multiResponse.setResponseForRequestWithId(ir.getRequestId(), ir.getResponse());
 		}
 		return multiResponse;
 	}
@@ -152,8 +147,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			pdp.functionCtx.loadLibrary(new StandardFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new TemporalFunctionLibrary());
 
-			pdp.attributeCtx
-					.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
+			pdp.attributeCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
 		}
 
 		public Builder withResourcePDPConfigurationProvider()
@@ -164,21 +158,17 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		public Builder withResourcePDPConfigurationProvider(String resourcePath)
 				throws PDPConfigurationException, IOException, URISyntaxException {
-			return withResourcePDPConfigurationProvider(
-					ResourcesPDPConfigurationProvider.class, resourcePath);
+			return withResourcePDPConfigurationProvider(ResourcesPDPConfigurationProvider.class, resourcePath);
 		}
 
-		public Builder withResourcePDPConfigurationProvider(Class<?> clazz,
-				String resourcePath)
+		public Builder withResourcePDPConfigurationProvider(Class<?> clazz, String resourcePath)
 				throws PDPConfigurationException, IOException, URISyntaxException {
-			pdp.configurationProvider = new ResourcesPDPConfigurationProvider(clazz,
-					resourcePath);
+			pdp.configurationProvider = new ResourcesPDPConfigurationProvider(clazz, resourcePath);
 			return this;
 		}
 
 		public Builder withFilesystemPDPConfigurationProvider(String configFolder) {
-			pdp.configurationProvider = new FilesystemPDPConfigurationProvider(
-					configFolder);
+			pdp.configurationProvider = new FilesystemPDPConfigurationProvider(configFolder);
 			return this;
 		}
 
@@ -198,23 +188,19 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			return this;
 		}
 
-		public Builder withResourcePolicyRetrievalPoint(String resourcePath,
-				IndexType indexType)
+		public Builder withResourcePolicyRetrievalPoint(String resourcePath, IndexType indexType)
 				throws IOException, URISyntaxException, PolicyEvaluationException {
-			return withResourcePolicyRetrievalPoint(ResourcesPolicyRetrievalPoint.class,
-					resourcePath, indexType);
+			return withResourcePolicyRetrievalPoint(ResourcesPolicyRetrievalPoint.class, resourcePath, indexType);
 		}
 
-		public Builder withResourcePolicyRetrievalPoint(Class<?> clazz,
-				String resourcePath, IndexType indexType)
+		public Builder withResourcePolicyRetrievalPoint(Class<?> clazz, String resourcePath, IndexType indexType)
 				throws IOException, URISyntaxException, PolicyEvaluationException {
 			final ParsedDocumentIndex index = getDocumentIndex(indexType);
 			pdp.prp = new ResourcesPolicyRetrievalPoint(clazz, resourcePath, index);
 			return this;
 		}
 
-		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder,
-				IndexType indexType) {
+		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder, IndexType indexType) {
 			final ParsedDocumentIndex index = getDocumentIndex(indexType);
 			pdp.prp = new FilesystemPolicyRetrievalPoint(policiesFolder, index);
 			return this;

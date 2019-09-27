@@ -72,19 +72,16 @@ public class KMLImport {
 			return JSON.textNode(TEST_OKAY);
 		}
 		else {
-			return GeoPIPResponse.builder().geofences(retrieveGeometries()).build()
-					.toJsonNode();
+			return GeoPIPResponse.builder().geofences(retrieveGeometries()).build().toJsonNode();
 		}
 	}
 
 	private ObjectNode retrieveGeometries() throws FunctionException, AttributeException {
 		if (kmlSource.contains("http://") || kmlSource.contains("https://")) {
-			return formatCollection(
-					(Collection<?>) getKmlFromWeb().getAttribute(ATT_FEATURE));
+			return formatCollection((Collection<?>) getKmlFromWeb().getAttribute(ATT_FEATURE));
 		}
 		else {
-			return formatCollection(
-					(Collection<?>) getKmlFromFile().getAttribute(ATT_FEATURE));
+			return formatCollection((Collection<?>) getKmlFromFile().getAttribute(ATT_FEATURE));
 		}
 	}
 
@@ -127,8 +124,7 @@ public class KMLImport {
 			else {
 				SimpleFeature feature = (SimpleFeature) obj;
 				Geometry geom = (Geometry) feature.getAttribute(ATT_GEOM);
-				geometries.set((String) feature.getAttribute(ATT_NAME),
-						GeometryBuilder.toJsonNode(geom));
+				geometries.set((String) feature.getAttribute(ATT_NAME), GeometryBuilder.toJsonNode(geom));
 			}
 		}
 		return geometries;

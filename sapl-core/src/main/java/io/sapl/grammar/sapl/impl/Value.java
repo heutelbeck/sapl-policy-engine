@@ -81,8 +81,8 @@ public class Value {
 
 	public static Flux<Boolean> toBoolean(Optional<JsonNode> node) {
 		if (!node.isPresent() || !node.get().isBoolean()) {
-			return Flux.error(new PolicyEvaluationException(
-					String.format(BOOLEAN_OPERATION_TYPE_MISMATCH, typeOf(node))));
+			return Flux
+					.error(new PolicyEvaluationException(String.format(BOOLEAN_OPERATION_TYPE_MISMATCH, typeOf(node))));
 		}
 		return Flux.just(node.get().booleanValue());
 	}
@@ -96,32 +96,31 @@ public class Value {
 
 	public static Flux<ArrayNode> toArrayNode(Optional<JsonNode> node) {
 		if (!node.isPresent() || !node.get().isArray()) {
-			return Flux.error(new PolicyEvaluationException(String.format(
-					"Type mismatch. Expected an array, but got %s.", typeOf(node))));
+			return Flux.error(new PolicyEvaluationException(
+					String.format("Type mismatch. Expected an array, but got %s.", typeOf(node))));
 		}
 		return Flux.just((ArrayNode) node.get());
 	}
 
 	public static Flux<ObjectNode> toObjectNode(Optional<JsonNode> node) {
 		if (!node.isPresent() || !node.get().isObject()) {
-			return Flux.error(new PolicyEvaluationException(String.format(
-					"Type mismatch. Expected an object, but got %s.", typeOf(node))));
+			return Flux.error(new PolicyEvaluationException(
+					String.format("Type mismatch. Expected an object, but got %s.", typeOf(node))));
 		}
 		return Flux.just((ObjectNode) node.get());
 	}
 
 	public static Flux<String> toString(Optional<JsonNode> node) {
 		if (!node.isPresent() || !node.get().isTextual()) {
-			return Flux.error(new PolicyEvaluationException(
-					String.format(TEXT_OPERATION_TYPE_MISMATCH, typeOf(node))));
+			return Flux.error(new PolicyEvaluationException(String.format(TEXT_OPERATION_TYPE_MISMATCH, typeOf(node))));
 		}
 		return Flux.just(node.get().textValue());
 	}
 
 	public static Flux<BigDecimal> toBigDecimal(Optional<JsonNode> node) {
 		if (!node.isPresent() || !node.get().isNumber()) {
-			return Flux.error(new PolicyEvaluationException(
-					String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH, typeOf(node))));
+			return Flux.error(
+					new PolicyEvaluationException(String.format(ARITHMETIC_OPERATION_TYPE_MISMATCH, typeOf(node))));
 		}
 		return Flux.just(node.get().decimalValue());
 	}

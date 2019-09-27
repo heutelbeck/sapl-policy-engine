@@ -52,25 +52,21 @@ public class ExceptionHandlingTest {
 
 	@Test
 	public void factoryExceptionInProjectionConstructor() throws FactoryException {
-		when(CRS.findMathTransform(any(), any(), anyBoolean()))
-				.thenThrow(new FactoryException());
+		when(CRS.findMathTransform(any(), any(), anyBoolean())).thenThrow(new FactoryException());
 
 		try {
 			new GeoProjection();
 			fail("Exception in transform method was expected but not thrown.");
 		}
 		catch (FunctionException e) {
-			assertEquals(
-					"Handling of FactoryException in GeoProjection works not as expected.",
+			assertEquals("Handling of FactoryException in GeoProjection works not as expected.",
 					GeoProjection.CRS_COULD_NOT_INITIALIZE, e.getMessage());
 		}
 	}
 
 	@Test
-	public void transformExceptioninProjection()
-			throws TransformException, MismatchedDimensionException {
-		when(JTS.transform(any(Geometry.class), any()))
-				.thenThrow(new TransformException());
+	public void transformExceptioninProjection() throws TransformException, MismatchedDimensionException {
+		when(JTS.transform(any(Geometry.class), any())).thenThrow(new TransformException());
 
 		try {
 			GeoProjection sampleProjection = new GeoProjection();
@@ -78,17 +74,14 @@ public class ExceptionHandlingTest {
 			fail("Exception in transform method was expected but not thrown.");
 		}
 		catch (FunctionException e) {
-			assertEquals(
-					"Handling of FactoryException in GeoProjection works not as expected.",
+			assertEquals("Handling of FactoryException in GeoProjection works not as expected.",
 					GeoProjection.UNABLE_TO_TRANSFORM, e.getMessage());
 		}
 	}
 
 	@Test
-	public void mismatchedDimensionExceptioninProjection()
-			throws TransformException, MismatchedDimensionException {
-		when(JTS.transform(any(Geometry.class), any()))
-				.thenThrow(new MismatchedDimensionException());
+	public void mismatchedDimensionExceptioninProjection() throws TransformException, MismatchedDimensionException {
+		when(JTS.transform(any(Geometry.class), any())).thenThrow(new MismatchedDimensionException());
 
 		try {
 			GeoProjection sampleProjection = new GeoProjection();
@@ -96,15 +89,13 @@ public class ExceptionHandlingTest {
 			fail("Exception in transform method was expected but not thrown.");
 		}
 		catch (FunctionException e) {
-			assertEquals(
-					"Handling of FactoryException in GeoProjection works not as expected.",
+			assertEquals("Handling of FactoryException in GeoProjection works not as expected.",
 					GeoProjection.UNABLE_TO_TRANSFORM, e.getMessage());
 		}
 	}
 
 	@Test
-	public void factoryExceptionInGeodesicCalculation()
-			throws FactoryException, FunctionException {
+	public void factoryExceptionInGeodesicCalculation() throws FactoryException, FunctionException {
 		when(CRS.decode(anyString())).thenThrow(new FactoryException());
 
 		Geometry geometryOne = GeometryBuilder.fromWkt("POINT (10 10)");
@@ -115,8 +106,7 @@ public class ExceptionHandlingTest {
 			fail("Exception in geodesic calculations was expected but not thrown.");
 		}
 		catch (FunctionException e) {
-			assertEquals(
-					"Handling of FactoryException in geodesic calculations works not as expected.",
+			assertEquals("Handling of FactoryException in geodesic calculations works not as expected.",
 					GeoProjection.CRS_COULD_NOT_INITIALIZE, e.getMessage());
 		}
 	}

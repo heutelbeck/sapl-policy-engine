@@ -25,10 +25,9 @@ public class ConjunctiveClauseTest {
 		ArrayList<Literal> emptyList = new ArrayList<>();
 
 		// then
-		Assertions.assertThatExceptionOfType(IllegalArgumentException.class)
-				.isThrownBy(() -> {
-					new ConjunctiveClause(emptyList);
-				}).withNoCause();
+		Assertions.assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> {
+			new ConjunctiveClause(emptyList);
+		}).withNoCause();
 	}
 
 	@Test
@@ -36,11 +35,9 @@ public class ConjunctiveClauseTest {
 		// given
 		BasicIdentifier id0 = createIdentifier("A");
 		BasicIdentifier id1 = createIdentifier("B");
-		ConjunctiveClause expanded = new ConjunctiveClause(
-				new Literal(new Bool(id0, null)), new Literal(new Bool(id0, null)),
-				new Literal(new Bool(id1, null), false));
-		ConjunctiveClause reference = new ConjunctiveClause(
-				new Literal(new Bool(id0, null)),
+		ConjunctiveClause expanded = new ConjunctiveClause(new Literal(new Bool(id0, null)),
+				new Literal(new Bool(id0, null)), new Literal(new Bool(id1, null), false));
+		ConjunctiveClause reference = new ConjunctiveClause(new Literal(new Bool(id0, null)),
 				new Literal(new Bool(id1, null), false));
 
 		// when

@@ -71,8 +71,7 @@ public class ApplyFilteringSimpleTest {
 		JsonNode expectedResult = JSON.arrayNode();
 
 		filter.apply(Optional.of(root), ctx, false, Optional.empty()).take(1)
-				.subscribe(result -> assertEquals(
-						"Remove applied to array with each should return empty array",
+				.subscribe(result -> assertEquals("Remove applied to array with each should return empty array",
 						Optional.of(expectedResult), result));
 	}
 

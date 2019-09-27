@@ -42,8 +42,7 @@ public class PolicyDirectoryWatcherTest {
 
 			@Override
 			public void onEvent(WatchEvent<Path> event) {
-				LOGGER.info("watch event of kind {} for path {}", event.kind().name(),
-						event.context().toString());
+				LOGGER.info("watch event of kind {} for path {}", event.kind().name(), event.context().toString());
 				Path filename = event.context();
 				if (filename.toString().equals("stop.sapl")) {
 					cancel();
@@ -82,12 +81,10 @@ public class PolicyDirectoryWatcherTest {
 		when(overflowEvent.kind()).thenReturn(StandardWatchEventKinds.OVERFLOW);
 
 		final WatchKey watchKey = mock(WatchKey.class);
-		when(watchKey.pollEvents()).thenReturn(
-				Arrays.asList(createEvent, modifyEvent, deleteEvent, overflowEvent));
+		when(watchKey.pollEvents()).thenReturn(Arrays.asList(createEvent, modifyEvent, deleteEvent, overflowEvent));
 		when(watchKey.isValid()).thenReturn(false);
 
-		final DirectoryWatchEventConsumer eventConsumer = spy(
-				DirectoryWatchEventConsumer.class);
+		final DirectoryWatchEventConsumer eventConsumer = spy(DirectoryWatchEventConsumer.class);
 
 		// when
 		new DirectoryWatcher(null).handleWatchKey(watchKey, eventConsumer);

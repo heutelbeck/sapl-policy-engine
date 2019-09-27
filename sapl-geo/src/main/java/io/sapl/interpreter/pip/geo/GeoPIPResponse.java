@@ -44,8 +44,7 @@ public class GeoPIPResponse {
 
 	private final ObjectNode geofences;
 
-	private static final ObjectMapper MAPPER = new ObjectMapper()
-			.enable(SerializationFeature.INDENT_OUTPUT);
+	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public JsonNode toJsonNode() {
 		return MAPPER.convertValue(this, JsonNode.class);

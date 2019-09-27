@@ -20,8 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
-public class PolicyEnforcementMethodSecurityMetadataSource
-		extends AbstractMethodSecurityMetadataSource {
+public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMethodSecurityMetadataSource {
 
 	private final PolicyEnforcementAttributeFactory attributeFactory;
 
@@ -31,8 +30,7 @@ public class PolicyEnforcementMethodSecurityMetadataSource
 	}
 
 	@Override
-	public Collection<ConfigAttribute> getAttributes(Method method,
-			Class<?> targetClass) {
+	public Collection<ConfigAttribute> getAttributes(Method method, Class<?> targetClass) {
 		if (method.getDeclaringClass() == Object.class) {
 			return Collections.emptyList();
 		}
@@ -41,33 +39,25 @@ public class PolicyEnforcementMethodSecurityMetadataSource
 
 		PreEnforce preEnforce = findAnnotation(method, targetClass, PreEnforce.class);
 		if (preEnforce != null) {
-			LOGGER.trace("@PreEnforce on {}.{}: {}", targetClass.getSimpleName(),
-					method.getName(), preEnforce);
+			LOGGER.trace("@PreEnforce on {}.{}: {}", targetClass.getSimpleName(), method.getName(), preEnforce);
 			String preEnforceSubject = preEnforce == null ? null : preEnforce.subject();
 			String preEnforceAction = preEnforce == null ? null : preEnforce.action();
 			String preEnforceResource = preEnforce == null ? null : preEnforce.resource();
-			String preEnforceEnvironment = preEnforce == null ? null
-					: preEnforce.environment();
-			PreInvocationEnforcementAttribute pre = attributeFactory
-					.createPreInvocationAttribute(preEnforceSubject, preEnforceAction,
-							preEnforceResource, preEnforceEnvironment);
+			String preEnforceEnvironment = preEnforce == null ? null : preEnforce.environment();
+			PreInvocationEnforcementAttribute pre = attributeFactory.createPreInvocationAttribute(preEnforceSubject,
+					preEnforceAction, preEnforceResource, preEnforceEnvironment);
 			attrs.add(pre);
 		}
 
 		PostEnforce postEnforce = findAnnotation(method, targetClass, PostEnforce.class);
 		if (postEnforce != null) {
-			LOGGER.trace("@PostEnforce on {}.{}: {}", targetClass.getSimpleName(),
-					method.getName(), postEnforce);
-			String postEnforceSubject = postEnforce == null ? null
-					: postEnforce.subject();
+			LOGGER.trace("@PostEnforce on {}.{}: {}", targetClass.getSimpleName(), method.getName(), postEnforce);
+			String postEnforceSubject = postEnforce == null ? null : postEnforce.subject();
 			String postEnforceAction = postEnforce == null ? null : postEnforce.action();
-			String postEnforceResource = postEnforce == null ? null
-					: postEnforce.resource();
-			String postEnforceEnvironment = postEnforce == null ? null
-					: postEnforce.environment();
-			PostInvocationEnforcementAttribute post = attributeFactory
-					.createPostInvocationAttribute(postEnforceSubject, postEnforceAction,
-							postEnforceResource, postEnforceEnvironment);
+			String postEnforceResource = postEnforce == null ? null : postEnforce.resource();
+			String postEnforceEnvironment = postEnforce == null ? null : postEnforce.environment();
+			PostInvocationEnforcementAttribute post = attributeFactory.createPostInvocationAttribute(postEnforceSubject,
+					postEnforceAction, postEnforceResource, postEnforceEnvironment);
 			attrs.add(post);
 		}
 
@@ -81,8 +71,7 @@ public class PolicyEnforcementMethodSecurityMetadataSource
 	 * {@link org.springframework.security.access.prepost.PrePostAnnotationSecurityMetadataSource #findAnnotation(Method, Class)}
 	 * the logic is the same as for @PreAuthorize and @PostAuthorize.
 	 */
-	private <A extends Annotation> A findAnnotation(Method method, Class<?> targetClass,
-			Class<A> annotationClass) {
+	private <A extends Annotation> A findAnnotation(Method method, Class<?> targetClass, Class<A> annotationClass) {
 		// The method may be on an interface, but we need attributes from the target
 		// class.
 		// If the target class is null, the method will be unchanged.
@@ -104,8 +93,7 @@ public class PolicyEnforcementMethodSecurityMetadataSource
 
 		// Check the class-level (note declaringClass, not targetClass, which may not
 		// actually implement the method)
-		annotation = AnnotationUtils.findAnnotation(specificMethod.getDeclaringClass(),
-				annotationClass);
+		annotation = AnnotationUtils.findAnnotation(specificMethod.getDeclaringClass(), annotationClass);
 
 		if (annotation != null) {
 			return annotation;

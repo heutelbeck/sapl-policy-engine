@@ -22,24 +22,19 @@ import reactor.core.publisher.Flux;
 /**
  * Checks for non equality of two values.
  *
- * Grammar:
- * Comparison returns Expression:
- * 	  Prefixed (({NotEquals.left=current} '!=') right=Prefixed)? ;
+ * Grammar: Comparison returns Expression: Prefixed (({NotEquals.left=current} '!=')
+ * right=Prefixed)? ;
  */
 public class NotEqualsImplCustom extends NotEqualsImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody,
-				relativeNode);
-		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody,
-				relativeNode);
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
 		return Flux.combineLatest(left, right, this::notEqual).distinctUntilChanged();
 	}
 
-	private Optional<JsonNode> notEqual(Optional<JsonNode> left,
-			Optional<JsonNode> right) {
+	private Optional<JsonNode> notEqual(Optional<JsonNode> left, Optional<JsonNode> right) {
 		if (!left.isPresent() && !right.isPresent()) {
 			return Value.ofFalse();
 		}
@@ -47,8 +42,7 @@ public class NotEqualsImplCustom extends NotEqualsImpl {
 			return Value.ofTrue();
 		}
 		if (left.get().isNumber() && right.get().isNumber()) {
-			return Value.of(
-					left.get().decimalValue().compareTo(right.get().decimalValue()) != 0);
+			return Value.of(left.get().decimalValue().compareTo(right.get().decimalValue()) != 0);
 		}
 		else {
 			return Value.of(!left.get().equals(right.get()));

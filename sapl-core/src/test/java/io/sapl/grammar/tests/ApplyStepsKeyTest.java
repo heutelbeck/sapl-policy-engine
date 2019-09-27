@@ -50,49 +50,40 @@ public class ApplyStepsKeyTest {
 		node.set(KEY, JSON.textNode(value));
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(node));
 
-		ResultNode expectedResult = new JsonNodeWithParentObject(
-				Optional.of(JSON.textNode(value)), Optional.of(node), KEY);
+		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.of(JSON.textNode(value)), Optional.of(node),
+				KEY);
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
 		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
-				.subscribe(result -> assertEquals(
-						"Key step applied to object should return the value of the attribute",
+				.subscribe(result -> assertEquals("Key step applied to object should return the value of the attribute",
 						expectedResult, result));
 	}
 
 	@Test
 	public void applyToNullNode() {
-		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(
-				Value.undefined());
+		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(Value.undefined());
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(),
-				previousResult.getNode(), KEY);
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
-				.subscribe(result -> assertEquals(
-						"Accessing null object should yield undefined.", expectedResult,
-						result));
+		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), KEY);
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(
+				result -> assertEquals("Accessing null object should yield undefined.", expectedResult, result));
 	}
 
 	@Test
 	public void applyToObjectWithoutKey() {
-		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(
-				Optional.of(JSON.objectNode()));
+		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(Optional.of(JSON.objectNode()));
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(),
-				previousResult.getNode(), KEY);
+		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), KEY);
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
-				.subscribe(result -> assertEquals(
-						"Accessing empty object should yield undefined.", expectedResult,
-						result));
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(
+				result -> assertEquals("Accessing empty object should yield undefined.", expectedResult, result));
 	}
 
 	@Test
@@ -125,22 +116,19 @@ public class ApplyStepsKeyTest {
 		array.add(object);
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
 
-		JsonNodeWithParentObject expectedResultNode = new JsonNodeWithParentObject(
-				Optional.of(value), Optional.of(object), KEY);
+		JsonNodeWithParentObject expectedResultNode = new JsonNodeWithParentObject(Optional.of(value),
+				Optional.of(object), KEY);
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
 		expectedResultSet.add(expectedResultNode);
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
-				.subscribe(result -> {
-					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
-							.create(((ArrayResultNode) result).getNodes());
-					assertEquals(
-							"Key step applied to array node should return ArrayResultNode with results",
-							expectedResultSet, resultSet);
-				});
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Key step applied to array node should return ArrayResultNode with results", expectedResultSet,
+					resultSet);
+		});
 	}
 
 	@Test
@@ -155,20 +143,16 @@ public class ApplyStepsKeyTest {
 		ResultNode previousResult = new ArrayResultNode(listIn);
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(
-				Optional.of(JSON.textNode(value)), Optional.of(node), KEY));
+		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.textNode(value)), Optional.of(node), KEY));
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
-				.subscribe(result -> {
-					Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
-							.create(((ArrayResultNode) result).getNodes());
-					assertEquals(
-							"Key step applied to ArrayResultNode should return an array with the correct values",
-							expectedResultSet, resultSet);
-				});
+		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Key step applied to ArrayResultNode should return an array with the correct values",
+					expectedResultSet, resultSet);
+		});
 
 	}
 

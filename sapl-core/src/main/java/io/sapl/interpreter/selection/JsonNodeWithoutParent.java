@@ -68,15 +68,14 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, boolean isBody) {
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx,
+			boolean isBody) {
 		return applyFilterWithRelativeNode(function, arguments, each, ctx, isBody, null);
 	}
 
 	@Override
-	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments,
-			boolean each, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
+			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (each) {
 			return applyFilterToEachItem(node, function, arguments, ctx, isBody);
 		}
@@ -86,8 +85,7 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public boolean sameReference(AbstractAnnotatedJsonNode other)
-			throws PolicyEvaluationException {
+	public boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException {
 		throw new PolicyEvaluationException(REFERENCE_CANNOT_BE_COMPARED);
 	}
 

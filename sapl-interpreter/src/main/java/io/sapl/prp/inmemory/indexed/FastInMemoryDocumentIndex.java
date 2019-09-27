@@ -27,8 +27,7 @@ public class FastInMemoryDocumentIndex implements InMemoryDocumentIndex {
 	AtomicBoolean live = new AtomicBoolean(false);
 
 	@Override
-	public void insert(String documentKey, String document)
-			throws PolicyEvaluationException {
+	public void insert(String documentKey, String document) throws PolicyEvaluationException {
 		parsedDocuments.put(documentKey, INTERPRETER.parse(document));
 	}
 
@@ -38,8 +37,8 @@ public class FastInMemoryDocumentIndex implements InMemoryDocumentIndex {
 	}
 
 	@Override
-	public PolicyRetrievalResult retrievePolicies(Request request,
-			FunctionContext functionCtx, Map<String, JsonNode> variables) {
+	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
+			Map<String, JsonNode> variables) {
 		if (live.get()) {
 			return index.retrievePolicies(request, functionCtx, variables);
 		}

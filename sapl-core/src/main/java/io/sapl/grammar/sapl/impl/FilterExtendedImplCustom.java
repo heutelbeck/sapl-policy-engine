@@ -32,17 +32,15 @@ import reactor.core.publisher.Flux;
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> apply(Optional<JsonNode> unfilteredRootNode,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> apply(Optional<JsonNode> unfilteredRootNode, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		final JsonNode result = unfilteredRootNode.get().deepCopy();
 		if (statements != null && !statements.isEmpty()) {
-			final List<FluxProvider<Optional<JsonNode>>> fluxProviders = new ArrayList<>(
-					statements.size());
+			final List<FluxProvider<Optional<JsonNode>>> fluxProviders = new ArrayList<>(statements.size());
 			for (FilterStatement statement : statements) {
 				final String function = String.join(".", statement.getFsteps());
 				fluxProviders.add(node -> applyFilterStatement(node, statement.getTarget().getSteps(),
-						statement.isEach(), function, statement.getArguments(),
-						ctx, isBody, relativeNode));
+						statement.isEach(), function, statement.getArguments(), ctx, isBody, relativeNode));
 			}
 			return DependentStreamsUtil.nestedSwitchMap(Optional.of(result), fluxProviders);
 		}
@@ -62,8 +60,7 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

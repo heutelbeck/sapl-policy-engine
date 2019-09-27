@@ -30,8 +30,7 @@ import reactor.core.publisher.Flux;
  * policy information point providing the according REST endpoints.
  */
 @NoArgsConstructor
-@PolicyInformationPoint(name = HttpPolicyInformationPoint.NAME,
-		description = HttpPolicyInformationPoint.DESCRIPTION)
+@PolicyInformationPoint(name = HttpPolicyInformationPoint.NAME, description = HttpPolicyInformationPoint.DESCRIPTION)
 @Slf4j
 public class HttpPolicyInformationPoint {
 
@@ -61,54 +60,47 @@ public class HttpPolicyInformationPoint {
 	}
 
 	@Attribute(docs = GET_DOCS)
-	public Flux<JsonNode> get(@Text @JsonObject JsonNode value,
-			Map<String, JsonNode> variables) {
-		return executeReactiveRequest(value, GET).doOnNext(
-				jsonNode -> LOGGER.trace("http.get({}) returned {}", value, jsonNode));
+	public Flux<JsonNode> get(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) {
+		return executeReactiveRequest(value, GET)
+				.doOnNext(jsonNode -> LOGGER.trace("http.get({}) returned {}", value, jsonNode));
 	}
 
 	@Attribute(docs = POST_DOCS)
-	public Flux<JsonNode> post(@Text @JsonObject JsonNode value,
-			Map<String, JsonNode> variables) {
-		return executeReactiveRequest(value, POST).doOnNext(
-				jsonNode -> LOGGER.trace("http.post({}) returned {}", value, jsonNode));
+	public Flux<JsonNode> post(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) {
+		return executeReactiveRequest(value, POST)
+				.doOnNext(jsonNode -> LOGGER.trace("http.post({}) returned {}", value, jsonNode));
 	}
 
 	@Attribute(docs = PUT_DOCS)
-	public Flux<JsonNode> put(@Text @JsonObject JsonNode value,
-			Map<String, JsonNode> variables) {
-		return executeReactiveRequest(value, PUT).doOnNext(
-				jsonNode -> LOGGER.trace("http.put({}) returned {}", value, jsonNode));
+	public Flux<JsonNode> put(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) {
+		return executeReactiveRequest(value, PUT)
+				.doOnNext(jsonNode -> LOGGER.trace("http.put({}) returned {}", value, jsonNode));
 	}
 
 	@Attribute(docs = PATCH_DOCS)
-	public Flux<JsonNode> patch(@Text @JsonObject JsonNode value,
-			Map<String, JsonNode> variables) {
-		return executeReactiveRequest(value, PATCH).doOnNext(
-				jsonNode -> LOGGER.trace("http.patch({}) returned {}", value, jsonNode));
+	public Flux<JsonNode> patch(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) {
+		return executeReactiveRequest(value, PATCH)
+				.doOnNext(jsonNode -> LOGGER.trace("http.patch({}) returned {}", value, jsonNode));
 	}
 
 	@Attribute(docs = DELETE_DOCS)
-	public Flux<JsonNode> delete(@Text @JsonObject JsonNode value,
-			Map<String, JsonNode> variables) {
-		return executeReactiveRequest(value, DELETE).doOnNext(
-				jsonNode -> LOGGER.trace("http.delete({}) returned {}", value, jsonNode));
+	public Flux<JsonNode> delete(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) {
+		return executeReactiveRequest(value, DELETE)
+				.doOnNext(jsonNode -> LOGGER.trace("http.delete({}) returned {}", value, jsonNode));
 	}
 
-	private Flux<JsonNode> executeReactiveRequest(@JsonObject @Text JsonNode value,
-			HttpMethod httpMethod) {
+	private Flux<JsonNode> executeReactiveRequest(@JsonObject @Text JsonNode value, HttpMethod httpMethod) {
 		try {
 			final RequestSpecification saplRequest = getRequestSpecification(value);
-			return getRequestExecutor().executeReactiveRequest(saplRequest, httpMethod)
-					.onErrorMap(IOException.class, AttributeException::new);
+			return getRequestExecutor().executeReactiveRequest(saplRequest, httpMethod).onErrorMap(IOException.class,
+					AttributeException::new);
 		}
 		catch (AttributeException e) {
 			return Flux.error(e);
 		}
 	}
 
-	private RequestSpecification getRequestSpecification(@JsonObject @Text JsonNode value)
-			throws AttributeException {
+	private RequestSpecification getRequestSpecification(@JsonObject @Text JsonNode value) throws AttributeException {
 		if (value.isTextual()) {
 			final RequestSpecification saplRequest = new RequestSpecification();
 			saplRequest.setUrl(value);
@@ -119,8 +111,7 @@ public class HttpPolicyInformationPoint {
 				return RequestSpecification.from(value);
 			}
 			catch (JsonProcessingException e) {
-				throw new AttributeException(OBJECT_NO_HTTP_REQUEST_OBJECT_SPECIFICATION,
-						e);
+				throw new AttributeException(OBJECT_NO_HTTP_REQUEST_OBJECT_SPECIFICATION, e);
 			}
 		}
 	}

@@ -26,16 +26,14 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 	}
 
 	@Override
-	public Object decide(Authentication authentication, Object object,
-			Collection<ConfigAttribute> attributes, Object returnedObject) {
-		PolicyBasedPostInvocationEnforcementAttribute pia = findPostInvocationEnforcementAttribute(
-				attributes);
+	public Object decide(Authentication authentication, Object object, Collection<ConfigAttribute> attributes,
+			Object returnedObject) {
+		PolicyBasedPostInvocationEnforcementAttribute pia = findPostInvocationEnforcementAttribute(attributes);
 		if (pia == null) {
 			return returnedObject;
 		}
 		else {
-			return postAdvice.after(authentication, (MethodInvocation) object, pia,
-					returnedObject);
+			return postAdvice.after(authentication, (MethodInvocation) object, pia, returnedObject);
 		}
 	}
 

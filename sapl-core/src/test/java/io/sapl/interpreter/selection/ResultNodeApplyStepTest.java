@@ -40,12 +40,10 @@ public class ResultNodeApplyStepTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.ZERO);
 
-		ResultNode expectedResult = new JsonNodeWithoutParent(
-				Optional.of(JSON.nullNode()));
+		ResultNode expectedResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
 
 		resultNode.applyStep(step, ctx, false, Optional.empty()).take(1)
-				.subscribe(result -> assertEquals(
-						"applyStep on ArrayResultNode should return correct ResultNode",
+				.subscribe(result -> assertEquals("applyStep on ArrayResultNode should return correct ResultNode",
 						expectedResult, result));
 	}
 
@@ -58,13 +56,12 @@ public class ResultNodeApplyStepTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.ZERO);
 
-		ResultNode expectedResult = new JsonNodeWithParentArray(
-				Optional.of(JSON.nullNode()), Optional.of(array), 0);
+		ResultNode expectedResult = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array), 0);
 
 		resultNode.applyStep(step, ctx, false, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
-						"applyStep on AbstractAnnotatedJsonNode should return correct ResultNode",
-						expectedResult, result));
+						"applyStep on AbstractAnnotatedJsonNode should return correct ResultNode", expectedResult,
+						result));
 	}
 
 }

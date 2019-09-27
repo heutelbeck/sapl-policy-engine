@@ -71,8 +71,7 @@ public class URLSpecificationTest {
 
 	@Test
 	public void pathAndQueryString_onFullSpec_shouldReturnCorrectPathWithQueryString() {
-		assertThat(fullSpec.pathAndQueryString(),
-				is("/rest/api/data?name=foo&value=bar"));
+		assertThat(fullSpec.pathAndQueryString(), is("/rest/api/data?name=foo&value=bar"));
 	}
 
 	@Test

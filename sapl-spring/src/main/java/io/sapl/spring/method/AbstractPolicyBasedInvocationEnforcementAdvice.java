@@ -71,8 +71,8 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		}
 	}
 
-	protected Object retrieveSubjet(Authentication authentication,
-			AbstractPolicyBasedEnforcementAttribute attr, EvaluationContext ctx) {
+	protected Object retrieveSubjet(Authentication authentication, AbstractPolicyBasedEnforcementAttribute attr,
+			EvaluationContext ctx) {
 		if (attr.getSubjectExpression() == null) {
 			// no explicit subject declared => use the authentication object to indicate
 			// the
@@ -91,9 +91,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 			return mapper.valueToTree(expr.getValue(ctx));
 		}
 		catch (EvaluationException e) {
-			throw new IllegalArgumentException(
-					"Failed to evaluate expression '" + expr.getExpressionString() + "'",
-					e);
+			throw new IllegalArgumentException("Failed to evaluate expression '" + expr.getExpressionString() + "'", e);
 		}
 	}
 
@@ -115,15 +113,14 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 	}
 
 	protected static Optional<HttpServletRequest> retrieveRequestObject() {
-		final RequestAttributes requestAttributes = RequestContextHolder
-				.getRequestAttributes();
+		final RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
 		final HttpServletRequest httpRequest = requestAttributes != null
 				? ((ServletRequestAttributes) requestAttributes).getRequest() : null;
 		return Optional.ofNullable(httpRequest);
 	}
 
-	protected Object retrieveAction(MethodInvocation mi,
-			AbstractPolicyBasedEnforcementAttribute attr, EvaluationContext ctx) {
+	protected Object retrieveAction(MethodInvocation mi, AbstractPolicyBasedEnforcementAttribute attr,
+			EvaluationContext ctx) {
 		if (attr.getActionExpression() == null) {
 			// no explicit action declared => derive action from MethodInvocation
 			return retrieveAction(mi);
@@ -158,8 +155,8 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		return actionNode;
 	}
 
-	protected Object retrieveResource(MethodInvocation mi,
-			AbstractPolicyBasedEnforcementAttribute attr, EvaluationContext ctx) {
+	protected Object retrieveResource(MethodInvocation mi, AbstractPolicyBasedEnforcementAttribute attr,
+			EvaluationContext ctx) {
 		if (attr.getResourceExpression() == null) {
 			// no explicit action declared => derive action from MethodInvocation
 			return retrieveResource(mi);
@@ -185,8 +182,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		return resourceNode;
 	}
 
-	protected Object retrieveEnvironment(AbstractPolicyBasedEnforcementAttribute attr,
-			EvaluationContext ctx) {
+	protected Object retrieveEnvironment(AbstractPolicyBasedEnforcementAttribute attr, EvaluationContext ctx) {
 		if (attr.getEnvironmentExpression() == null) {
 			return null;
 		}

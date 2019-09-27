@@ -31,8 +31,7 @@ public class FastIndexContainer implements IndexContainer {
 	public FastIndexContainer(boolean compilant, final List<Variable> variableOrder,
 			final Map<DisjunctiveFormula, Bitmask> relatedCandidates,
 			final List<Set<DisjunctiveFormula>> relatedFormulas,
-			final Map<DisjunctiveFormula, Set<SAPL>> relatedDocuments,
-			final AuxiliaryMatrix initialMatrix) {
+			final Map<DisjunctiveFormula, Set<SAPL>> relatedDocuments, final AuxiliaryMatrix initialMatrix) {
 		isCompilant = compilant;
 		this.variableOrder = ImmutableList.copyOf(variableOrder);
 		this.relatedCandidates = ImmutableMap.copyOf(relatedCandidates);
@@ -42,8 +41,7 @@ public class FastIndexContainer implements IndexContainer {
 	}
 
 	@Override
-	public PolicyRetrievalResult match(final FunctionContext functionCtx,
-			final VariableContext variableCtx) {
+	public PolicyRetrievalResult match(final FunctionContext functionCtx, final VariableContext variableCtx) {
 		Set<DisjunctiveFormula> result = new HashSet<>();
 		final boolean[] hasError = { false };
 
@@ -64,8 +62,8 @@ public class FastIndexContainer implements IndexContainer {
 				if (handleErrorHarshly(outcome)) {
 					return new PolicyRetrievalResult(fetchPolicies(result), true);
 				}
-				processVariable(candidates, variable, outcome, matrix,
-						satisfiedCandidates, insignificantCandidates, hasError, result);
+				processVariable(candidates, variable, outcome, matrix, satisfiedCandidates, insignificantCandidates,
+						hasError, result);
 			}
 		}
 		if (isCompilant) {
@@ -73,11 +71,9 @@ public class FastIndexContainer implements IndexContainer {
 			inspectedVariables.forEachSetBit(index -> {
 				Variable variable = variableOrder.get(index);
 				if (isPartOfCandidates(variable, insignificantCandidates)) {
-					Optional<Boolean> outcome = variable.evaluate(functionCtx,
-							variableCtx);
+					Optional<Boolean> outcome = variable.evaluate(functionCtx, variableCtx);
 					if (!outcome.isPresent()) {
-						removeCandidatesRelatedToVariable(variable, satisfiedCandidates,
-								insignificantCandidates);
+						removeCandidatesRelatedToVariable(variable, satisfiedCandidates, insignificantCandidates);
 						hasError[0] = true;
 					}
 				}
@@ -87,8 +83,7 @@ public class FastIndexContainer implements IndexContainer {
 		return new PolicyRetrievalResult(fetchPolicies(result), hasError[0]);
 	}
 
-	protected Bitmask checkDispensableRelatingToCandidate(
-			final Bitmask dispensableCandidates, AuxiliaryMatrix matrix) {
+	protected Bitmask checkDispensableRelatingToCandidate(final Bitmask dispensableCandidates, AuxiliaryMatrix matrix) {
 		final Bitmask result = new Bitmask();
 		dispensableCandidates.forEachSetBit(index -> {
 			if (matrix.decrementAndGetRemainingOccurrencesOfClause(index) == 0) {
@@ -98,9 +93,8 @@ public class FastIndexContainer implements IndexContainer {
 		return result;
 	}
 
-	protected void eliminateCandidates(final Bitmask candidates,
-			final Bitmask unsatisfiableCandidates, final Bitmask satisfiableCandidates,
-			final Bitmask dispensableCandidates) {
+	protected void eliminateCandidates(final Bitmask candidates, final Bitmask unsatisfiableCandidates,
+			final Bitmask satisfiableCandidates, final Bitmask dispensableCandidates) {
 		candidates.andNot(unsatisfiableCandidates);
 		candidates.andNot(satisfiableCandidates);
 		candidates.andNot(dispensableCandidates);
@@ -108,8 +102,7 @@ public class FastIndexContainer implements IndexContainer {
 
 	protected Set<DisjunctiveFormula> fetchFormulas(final Bitmask satisfiableCandidates) {
 		final Set<DisjunctiveFormula> result = new HashSet<>();
-		satisfiableCandidates
-				.forEachSetBit(index -> result.addAll(relatedFormulas.get(index)));
+		satisfiableCandidates.forEachSetBit(index -> result.addAll(relatedFormulas.get(index)));
 		return result;
 	}
 
@@ -121,11 +114,11 @@ public class FastIndexContainer implements IndexContainer {
 		return result;
 	}
 
-	protected Bitmask findDispensableCandidates(final Bitmask candidates,
-			final Bitmask satisfiableCandidates, final AuxiliaryMatrix matrix) {
+	protected Bitmask findDispensableCandidates(final Bitmask candidates, final Bitmask satisfiableCandidates,
+			final AuxiliaryMatrix matrix) {
 		final Bitmask result = new Bitmask();
-		satisfiableCandidates.forEachSetBit(index -> result
-				.or(identifyDispensableRelatingToCandidate(candidates, index, matrix)));
+		satisfiableCandidates
+				.forEachSetBit(index -> result.or(identifyDispensableRelatingToCandidate(candidates, index, matrix)));
 		return result;
 	}
 
@@ -138,11 +131,10 @@ public class FastIndexContainer implements IndexContainer {
 		return result;
 	}
 
-	protected Bitmask findSatisfiableCandidates(final Bitmask candidates,
-			final Variable variable, boolean value, final AuxiliaryMatrix matrix) {
+	protected Bitmask findSatisfiableCandidates(final Bitmask candidates, final Variable variable, boolean value,
+			final AuxiliaryMatrix matrix) {
 		final Bitmask result = new Bitmask();
-		Bitmask affectedCandidates = findUnsatisfiableCandidates(candidates, variable,
-				!value);
+		Bitmask affectedCandidates = findUnsatisfiableCandidates(candidates, variable, !value);
 		affectedCandidates.forEachSetBit(index -> {
 			if (matrix.decrementAndGetRemainingLiteralsOfClause(index) == 0) {
 				result.set(index);
@@ -151,8 +143,7 @@ public class FastIndexContainer implements IndexContainer {
 		return result;
 	}
 
-	protected Bitmask findUnsatisfiableCandidates(final Bitmask candidates,
-			final Variable variable, boolean value) {
+	protected Bitmask findUnsatisfiableCandidates(final Bitmask candidates, final Variable variable, boolean value) {
 		Bitmask result = new Bitmask(candidates);
 		if (value) {
 			result.and(variable.getUnsatisfiedCandidatesWhenTrue());
@@ -171,8 +162,8 @@ public class FastIndexContainer implements IndexContainer {
 		return !outcome.isPresent() && !isCompilant;
 	}
 
-	protected Bitmask identifyDispensableRelatingToCandidate(final Bitmask candidates,
-			int index, final AuxiliaryMatrix matrix) {
+	protected Bitmask identifyDispensableRelatingToCandidate(final Bitmask candidates, int index,
+			final AuxiliaryMatrix matrix) {
 		Bitmask result = new Bitmask();
 		for (DisjunctiveFormula formula : relatedFormulas.get(index)) {
 			Bitmask affectedCandidates = new Bitmask(candidates);
@@ -183,32 +174,25 @@ public class FastIndexContainer implements IndexContainer {
 		return result;
 	}
 
-	protected boolean isPartOfCandidates(final Variable variable,
-			final Bitmask candidates) {
+	protected boolean isPartOfCandidates(final Variable variable, final Bitmask candidates) {
 		return variable.getCandidates().intersects(candidates);
 	}
 
-	protected void processVariable(final Bitmask candidates, final Variable variable,
-			Optional<Boolean> outcome, final AuxiliaryMatrix matrix,
-			final Bitmask satisfiedCandidates, final Bitmask insignificantCandidates,
+	protected void processVariable(final Bitmask candidates, final Variable variable, Optional<Boolean> outcome,
+			final AuxiliaryMatrix matrix, final Bitmask satisfiedCandidates, final Bitmask insignificantCandidates,
 			final boolean[] hasError, final Set<DisjunctiveFormula> result) {
 		if (handleErrorGracefully(outcome)) {
-			removeCandidatesRelatedToVariable(variable, candidates, satisfiedCandidates,
-					insignificantCandidates);
+			removeCandidatesRelatedToVariable(variable, candidates, satisfiedCandidates, insignificantCandidates);
 			hasError[0] = true;
 			return;
 		}
 		boolean value = outcome.get();
 
-		Bitmask unsatisfiableCandidates = findUnsatisfiableCandidates(candidates,
-				variable, value);
-		Bitmask satisfiableCandidates = findSatisfiableCandidates(candidates, variable,
-				value, matrix);
-		Bitmask dispensableCandidates = findDispensableCandidates(candidates,
-				satisfiableCandidates, matrix);
+		Bitmask unsatisfiableCandidates = findUnsatisfiableCandidates(candidates, variable, value);
+		Bitmask satisfiableCandidates = findSatisfiableCandidates(candidates, variable, value, matrix);
+		Bitmask dispensableCandidates = findDispensableCandidates(candidates, satisfiableCandidates, matrix);
 
-		eliminateCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates,
-				dispensableCandidates);
+		eliminateCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, dispensableCandidates);
 
 		if (isCompilant) {
 			satisfiedCandidates.or(satisfiableCandidates);
@@ -219,8 +203,7 @@ public class FastIndexContainer implements IndexContainer {
 		}
 	}
 
-	protected void removeCandidatesRelatedToVariable(final Variable variable,
-			final Bitmask... candidates) {
+	protected void removeCandidatesRelatedToVariable(final Variable variable, final Bitmask... candidates) {
 		Bitmask affectedCandidates = findRelatedCandidates(variable);
 		for (Bitmask clauses : candidates) {
 			clauses.andNot(affectedCandidates);

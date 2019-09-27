@@ -32,9 +32,7 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the application of an attribute finder step to a previous value.
  *
- * Grammar:
- * Step:
- * 	'.' ({AttributeFinderStep} '<' idSteps+=ID ('.' idSteps+=ID)* '>') ;
+ * Grammar: Step: '.' ({AttributeFinderStep} '<' idSteps+=ID ('.' idSteps+=ID)* '>') ;
  */
 public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
@@ -45,32 +43,30 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode value, EvaluationContext ctx,
-			boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode value, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return retrieveAttribute(value.asJsonWithoutAnnotations(), ctx, isBody);
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode arrayValue, EvaluationContext ctx,
-			boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode arrayValue, EvaluationContext ctx, boolean isBody,
+			Optional<JsonNode> relativeNode) {
 		return retrieveAttribute(arrayValue.asJsonWithoutAnnotations(), ctx, isBody);
 	}
 
-	private Flux<ResultNode> retrieveAttribute(Optional<JsonNode> value,
-			EvaluationContext ctx, boolean isBody) {
+	private Flux<ResultNode> retrieveAttribute(Optional<JsonNode> value, EvaluationContext ctx, boolean isBody) {
 		final String fullyQualifiedName = getFullyQualifiedName(ctx);
 		if (!isBody) {
-			return Flux.error(new PolicyEvaluationException(
-					String.format(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName)));
+			return Flux.error(
+					new PolicyEvaluationException(String.format(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName)));
 		}
 		if (!value.isPresent()) {
 			return Flux.error(new PolicyEvaluationException(UNDEFINED_VALUE));
 		}
 		final Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
-		final Flux<JsonNode> jsonNodeFlux = ctx.getAttributeCtx()
-				.evaluate(fullyQualifiedName, value.get(), variables)
-				.onErrorResume(error -> Flux.error(new PolicyEvaluationException(
-						String.format(ATTRIBUTE_RESOLUTION, fullyQualifiedName), error)));
+		final Flux<JsonNode> jsonNodeFlux = ctx.getAttributeCtx().evaluate(fullyQualifiedName, value.get(), variables)
+				.onErrorResume(error -> Flux.error(
+						new PolicyEvaluationException(String.format(ATTRIBUTE_RESOLUTION, fullyQualifiedName), error)));
 		return jsonNodeFlux.map(Optional::of).map(JsonNodeWithoutParent::new);
 	}
 
@@ -93,8 +89,7 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

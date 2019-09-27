@@ -36,8 +36,8 @@ public interface DocumentsCombinator {
 	 * applicable. A new response object is only pushed if it is different from the
 	 * previous one.
 	 */
-	Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
-			boolean errorsInTarget, Request request, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables);
+	Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
+			Request request, AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables);
 
 }

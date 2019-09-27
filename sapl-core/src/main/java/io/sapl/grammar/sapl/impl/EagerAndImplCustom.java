@@ -22,21 +22,16 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the eager boolean AND operator, written as '&' in Expressions.
  *
- * Grammar:
- * Multiplication returns Expression:
- *   Comparison (('&' {EagerAnd.left=current}) right=Comparison)* ;
+ * Grammar: Multiplication returns Expression: Comparison (('&' {EagerAnd.left=current})
+ * right=Comparison)* ;
  */
 public class EagerAndImplCustom extends EagerAndImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
-		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode)
-				.flatMap(Value::toBoolean);
-		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode)
-				.flatMap(Value::toBoolean);
-		return Flux.combineLatest(left, right, Boolean::logicalAnd).map(Value::of)
-				.distinctUntilChanged();
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+		return Flux.combineLatest(left, right, Boolean::logicalAnd).map(Value::of).distinctUntilChanged();
 	}
 
 }

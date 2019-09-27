@@ -43,8 +43,7 @@ public class ApplyStepsIndexUnionTest {
 
 	@Test
 	public void applyToNonArray() {
-		ResultNode previousResult = new JsonNodeWithoutParent(
-				Optional.of(JSON.nullNode()));
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
 
 		IndexUnionStep step = factory.createIndexUnionStep();
 		step.getIndices().add(BigDecimal.valueOf(0));
@@ -57,15 +56,14 @@ public class ApplyStepsIndexUnionTest {
 	@Test
 	public void applyToResultArray() {
 		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
-		AbstractAnnotatedJsonNode node1 = new JsonNodeWithParentObject(
-				Optional.of(JSON.nullNode()), Optional.of(JSON.objectNode()), "key1");
-		AbstractAnnotatedJsonNode node2 = new JsonNodeWithParentObject(
-				Optional.of(JSON.booleanNode(true)), Optional.of(JSON.objectNode()),
-				"key1");
+		AbstractAnnotatedJsonNode node1 = new JsonNodeWithParentObject(Optional.of(JSON.nullNode()),
+				Optional.of(JSON.objectNode()), "key1");
+		AbstractAnnotatedJsonNode node2 = new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(true)),
+				Optional.of(JSON.objectNode()), "key1");
 		listIn.add(node1);
 		listIn.add(node2);
-		listIn.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(false)),
-				Optional.of(JSON.objectNode()), "key2"));
+		listIn.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(false)), Optional.of(JSON.objectNode()),
+				"key2"));
 		ResultNode previousResult = new ArrayResultNode(listIn);
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
@@ -80,10 +78,8 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(-10));
 
 		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
-					.create(((ArrayResultNode) result).getNodes());
-			assertEquals(
-					"Index union applied to result array should return items with corresponding attribute values",
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Index union applied to result array should return items with corresponding attribute values",
 					expectedResultSet, resultSet);
 		});
 	}
@@ -97,10 +93,8 @@ public class ApplyStepsIndexUnionTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
-				Optional.of(array), 0));
-		expectedResultSet.add(new JsonNodeWithParentArray(
-				Optional.of(JSON.booleanNode(true)), Optional.of(array), 1));
+		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array), 0));
+		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(true)), Optional.of(array), 1));
 
 		IndexUnionStep step = factory.createIndexUnionStep();
 		step.getIndices().add(BigDecimal.valueOf(1));
@@ -109,10 +103,8 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(10));
 
 		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
-					.create(((ArrayResultNode) result).getNodes());
-			assertEquals(
-					"Index union applied to array node should return items with corresponding attribute values",
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Index union applied to array node should return items with corresponding attribute values",
 					expectedResultSet, resultSet);
 		});
 	}
@@ -126,20 +118,16 @@ public class ApplyStepsIndexUnionTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()),
-				Optional.of(array), 0));
-		expectedResultSet.add(new JsonNodeWithParentArray(
-				Optional.of(JSON.booleanNode(true)), Optional.of(array), 1));
+		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array), 0));
+		expectedResultSet.add(new JsonNodeWithParentArray(Optional.of(JSON.booleanNode(true)), Optional.of(array), 1));
 
 		IndexUnionStep step = factory.createIndexUnionStep();
 		step.getIndices().add(BigDecimal.valueOf(-2));
 		step.getIndices().add(BigDecimal.valueOf(0));
 
 		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset
-					.create(((ArrayResultNode) result).getNodes());
-			assertEquals(
-					"Index union applied to array node should return items with corresponding attribute values",
+			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
+			assertEquals("Index union applied to array node should return items with corresponding attribute values",
 					expectedResultSet, resultSet);
 		});
 	}

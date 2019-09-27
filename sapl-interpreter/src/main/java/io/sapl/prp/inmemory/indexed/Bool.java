@@ -74,19 +74,16 @@ public class Bool {
 		throw new IllegalStateException(BOOL_NOT_IMMUTABLE);
 	}
 
-	public boolean evaluate(final FunctionContext functionCtx,
-			final VariableContext variableCtx) throws PolicyEvaluationException {
+	public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
+			throws PolicyEvaluationException {
 		if (!isConstantExpression) {
-			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx,
-					imports);
+			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
 			try {
-				Optional<JsonNode> result = expression.evaluate(ctx, false, Optional.empty())
-						.blockFirst();
+				Optional<JsonNode> result = expression.evaluate(ctx, false, Optional.empty()).blockFirst();
 				if (result.isPresent() && result.get().isBoolean()) {
 					return result.get().asBoolean();
 				}
-				throw new PolicyEvaluationException(
-						String.format(CONDITION_NOT_BOOLEAN, result));
+				throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, result));
 			}
 			catch (RuntimeException e) {
 				throw new PolicyEvaluationException(Exceptions.unwrap(e));

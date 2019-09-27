@@ -22,17 +22,21 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
+		// @formatter:off
 		http
 			.csrf().disable()
 			.authorizeRequests().anyRequest().authenticated()
 			.and().httpBasic();
+		// @formatter:on
 	}
 
 	@Override
 	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+		// @formatter:off
 		auth.inMemoryAuthentication()
 				.withUser(clientKey).password(clientSecret)
 				.roles("PDP_CLIENT");
+		// @formatter:on
 	}
 
 	@Bean

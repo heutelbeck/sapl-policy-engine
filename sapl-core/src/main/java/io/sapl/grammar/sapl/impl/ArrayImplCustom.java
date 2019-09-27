@@ -33,8 +33,8 @@ import reactor.core.publisher.Flux;
 /**
  * Implementation of an array in SAPL.
  *
- * Grammar:
- * Array returns Value: {Array} '[' (items+=Expression (',' items+=Expression)*)? ']' ;
+ * Grammar: Array returns Value: {Array} '[' (items+=Expression (',' items+=Expression)*)?
+ * ']' ;
  */
 public class ArrayImplCustom extends ArrayImpl {
 
@@ -49,19 +49,17 @@ public class ArrayImplCustom extends ArrayImpl {
 	 * value.
 	 */
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(getItems().size());
 		for (Expression item : getItems()) {
-			itemFluxes.add(
-					item.evaluate(ctx, isBody, relativeNode).flatMap(Value::toJsonNode));
+			itemFluxes.add(item.evaluate(ctx, isBody, relativeNode).flatMap(Value::toJsonNode));
 		}
 		// handle the empty array
 		if (itemFluxes.isEmpty()) {
 			return Flux.just(Optional.of(JsonNodeFactory.instance.arrayNode()));
 		}
-		return Flux.combineLatest(itemFluxes, Function.identity())
-				.map(this::collectValuesToArrayNode).map(Optional::of);
+		return Flux.combineLatest(itemFluxes, Function.identity()).map(this::collectValuesToArrayNode)
+				.map(Optional::of);
 	}
 
 	/**
@@ -91,8 +89,7 @@ public class ArrayImplCustom extends ArrayImpl {
 	}
 
 	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports,
-			Map<String, String> imports) {
+	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
 		if (this == other) {
 			return true;
 		}

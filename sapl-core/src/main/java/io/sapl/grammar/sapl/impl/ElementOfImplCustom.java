@@ -23,24 +23,19 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 /**
- * Implements the evaluation of the 'in-array' operation.
- * It checks if a value is contained in an array.
+ * Implements the evaluation of the 'in-array' operation. It checks if a value is
+ * contained in an array.
  *
- * Grammar:
- * Comparison returns Expression:
- * 	  Prefixed (({ElementOf.left=current} 'in') right=Prefixed)? ;
+ * Grammar: Comparison returns Expression: Prefixed (({ElementOf.left=current} 'in')
+ * right=Prefixed)? ;
  */
 public class ElementOfImplCustom extends ElementOfImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> value = getLeft().evaluate(ctx, isBody,
-				relativeNode);
-		final Flux<Optional<JsonNode>> array = getRight().evaluate(ctx, isBody,
-				relativeNode);
-		return Flux.combineLatest(value, array, Tuples::of).map(this::elementOf)
-				.distinctUntilChanged();
+	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+		final Flux<Optional<JsonNode>> value = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Optional<JsonNode>> array = getRight().evaluate(ctx, isBody, relativeNode);
+		return Flux.combineLatest(value, array, Tuples::of).map(this::elementOf).distinctUntilChanged();
 	}
 
 	/**
@@ -49,19 +44,16 @@ public class ElementOfImplCustom extends ElementOfImpl {
 	 * @param tuple a tuple containing the value (T1) and the array (T2)
 	 * @return true if the value is contained in the array
 	 */
-	private Optional<JsonNode> elementOf(
-			Tuple2<Optional<JsonNode>, Optional<JsonNode>> tuple) {
-		if (!tuple.getT1().isPresent() || !tuple.getT2().isPresent()
-				|| !tuple.getT2().get().isArray()) {
+	private Optional<JsonNode> elementOf(Tuple2<Optional<JsonNode>, Optional<JsonNode>> tuple) {
+		if (!tuple.getT1().isPresent() || !tuple.getT2().isPresent() || !tuple.getT2().get().isArray()) {
 			return Value.ofFalse();
 		}
 		ArrayNode array = (ArrayNode) tuple.getT2().get();
 		for (JsonNode arrayItem : array) {
 			// numerically equivalent numbers may be noted differently in JSON.
 			// This equality is checked for here as well.
-			if (tuple.getT1().get().equals(arrayItem) || (tuple.getT1().get().isNumber()
-					&& arrayItem.isNumber() && tuple.getT1().get().decimalValue()
-							.compareTo(arrayItem.decimalValue()) == 0)) {
+			if (tuple.getT1().get().equals(arrayItem) || (tuple.getT1().get().isNumber() && arrayItem.isNumber()
+					&& tuple.getT1().get().decimalValue().compareTo(arrayItem.decimalValue()) == 0)) {
 				return Value.ofTrue();
 			}
 		}

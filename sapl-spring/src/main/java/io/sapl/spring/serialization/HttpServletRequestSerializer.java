@@ -18,8 +18,8 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequest> {
 
 	@Override
-	public void serialize(HttpServletRequest value, JsonGenerator gen,
-			SerializerProvider serializers) throws IOException {
+	public void serialize(HttpServletRequest value, JsonGenerator gen, SerializerProvider serializers)
+			throws IOException {
 		gen.writeStartObject();
 		gen.writeStringField("characterEncoding", value.getCharacterEncoding());
 		gen.writeStringField("Content-Type", value.getContentType());
@@ -51,8 +51,7 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 		writeParameters(value, gen);
 	}
 
-	private void writeHeaders(HttpServletRequest value, JsonGenerator gen)
-			throws IOException {
+	private void writeHeaders(HttpServletRequest value, JsonGenerator gen) throws IOException {
 		Enumeration<String> headerNames = value.getHeaderNames();
 		if (headerNames.hasMoreElements()) {
 			gen.writeObjectFieldStart("headers");
@@ -71,8 +70,7 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 		}
 	}
 
-	private void writeCookies(HttpServletRequest value, JsonGenerator gen)
-			throws IOException {
+	private void writeCookies(HttpServletRequest value, JsonGenerator gen) throws IOException {
 		if (value.getCookies() != null && value.getCookies().length > 0) {
 			gen.writeArrayFieldStart("cookies");
 			for (Cookie cookie : value.getCookies()) {
@@ -82,8 +80,7 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 		}
 	}
 
-	private void writeLocales(HttpServletRequest value, JsonGenerator gen)
-			throws IOException {
+	private void writeLocales(HttpServletRequest value, JsonGenerator gen) throws IOException {
 		gen.writeStringField("locale", value.getLocale().toString());
 		Enumeration<Locale> locales = value.getLocales();
 		if (locales.hasMoreElements()) {
@@ -95,8 +92,7 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 		}
 	}
 
-	private void writeParameters(HttpServletRequest value, JsonGenerator gen)
-			throws IOException {
+	private void writeParameters(HttpServletRequest value, JsonGenerator gen) throws IOException {
 		gen.writeObjectFieldStart("parameters");
 		for (Entry<String, String[]> entry : value.getParameterMap().entrySet()) {
 			gen.writeArrayFieldStart(entry.getKey());

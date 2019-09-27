@@ -38,8 +38,7 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
-public class FilesystemPolicyRetrievalPoint
-		implements PolicyRetrievalPoint {
+public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 	private static final String POLICY_FILE_GLOB_PATTERN = "*.sapl";
 
@@ -66,8 +65,7 @@ public class FilesystemPolicyRetrievalPoint
 			this.path = System.getProperty("user.home") + policyPath.substring(1);
 		}
 		else if (policyPath.startsWith("~")) {
-			throw new UnsupportedOperationException(
-					"Home dir expansion not implemented for explicit usernames");
+			throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
 		}
 		else {
 			this.path = policyPath;
@@ -83,14 +81,13 @@ public class FilesystemPolicyRetrievalPoint
 		final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter(
 				POLICY_FILE_REGEX_PATTERN);
 		dirWatcherScheduler = Schedulers.newElastic("policyWatcher");
-		final Flux<WatchEvent<Path>> dirWatcherFlux = Flux
-				.<WatchEvent<Path>>push(sink -> {
-					adapter.setSink(sink);
-					directoryWatcher.watch(adapter);
-				}).doOnNext(event -> {
-					updateIndex(event);
-					dirWatcherEventProcessor.onNext(event);
-				}).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler);
+		final Flux<WatchEvent<Path>> dirWatcherFlux = Flux.<WatchEvent<Path>>push(sink -> {
+			adapter.setSink(sink);
+			directoryWatcher.watch(adapter);
+		}).doOnNext(event -> {
+			updateIndex(event);
+			dirWatcherEventProcessor.onNext(event);
+		}).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler);
 
 		dirWatcherFluxSubscription = dirWatcherFlux.subscribe();
 	}
@@ -99,12 +96,10 @@ public class FilesystemPolicyRetrievalPoint
 		try {
 			lock.lock();
 
-			try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path),
-					POLICY_FILE_GLOB_PATTERN)) {
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path), POLICY_FILE_GLOB_PATTERN)) {
 				for (Path filePath : stream) {
 					LOGGER.info("load: {}", filePath);
-					final SAPL saplDocument = interpreter
-							.parse(Files.newInputStream(filePath));
+					final SAPL saplDocument = interpreter.parse(Files.newInputStream(filePath));
 					parsedDocIdx.put(filePath.toString(), saplDocument);
 				}
 			}
@@ -128,8 +123,7 @@ public class FilesystemPolicyRetrievalPoint
 			final String absoluteFileName = absoluteFilePath.toString();
 			if (kind == ENTRY_CREATE) {
 				LOGGER.info("adding {} to index", fileName);
-				final SAPL saplDocument = interpreter
-						.parse(Files.newInputStream(absoluteFilePath));
+				final SAPL saplDocument = interpreter.parse(Files.newInputStream(absoluteFilePath));
 				parsedDocIdx.put(absoluteFileName, saplDocument);
 			}
 			else if (kind == ENTRY_DELETE) {
@@ -138,13 +132,11 @@ public class FilesystemPolicyRetrievalPoint
 			}
 			else if (kind == ENTRY_MODIFY) {
 				LOGGER.info("updating {} in index", fileName);
-				final SAPL saplDocument = interpreter
-						.parse(Files.newInputStream(absoluteFilePath));
+				final SAPL saplDocument = interpreter.parse(Files.newInputStream(absoluteFilePath));
 				parsedDocIdx.put(absoluteFileName, saplDocument);
 			}
 			else {
-				LOGGER.error("unknown kind of directory watch event: {}",
-						kind != null ? kind.name() : "null");
+				LOGGER.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
 			}
 		}
 		catch (IOException | PolicyEvaluationException e) {
@@ -156,8 +148,8 @@ public class FilesystemPolicyRetrievalPoint
 	}
 
 	@Override
-	public Flux<PolicyRetrievalResult> retrievePolicies(Request request,
-			FunctionContext functionCtx, Map<String, JsonNode> variables) {
+	public Flux<PolicyRetrievalResult> retrievePolicies(Request request, FunctionContext functionCtx,
+			Map<String, JsonNode> variables) {
 		return dirWatcherEventProcessor.map(event -> {
 			try {
 				lock.lock();

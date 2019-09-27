@@ -9,7 +9,7 @@ import org.springframework.security.core.Authentication;
  */
 public interface PostInvocationEnforcementAdvice extends AopInfrastructureBean {
 
-	Object after(Authentication authentication, MethodInvocation mi,
-			PolicyBasedPostInvocationEnforcementAttribute pia, Object returnedObject);
+	Object after(Authentication authentication, MethodInvocation mi, PolicyBasedPostInvocationEnforcementAttribute pia,
+			Object returnedObject);
 
 }

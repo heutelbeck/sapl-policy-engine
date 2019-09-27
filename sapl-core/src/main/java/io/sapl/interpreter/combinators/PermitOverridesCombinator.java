@@ -23,13 +23,12 @@ import reactor.core.publisher.Flux;
 public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCombinator {
 
 	@Override
-	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
-			boolean errorsInTarget, Request request, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
+	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
+			Request request, AttributeContext attributeCtx, FunctionContext functionCtx,
+			Map<String, JsonNode> systemVariables) {
 
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
-			return errorsInTarget ? Flux.just(Response.INDETERMINATE)
-					: Flux.just(Response.NOT_APPLICABLE);
+			return errorsInTarget ? Flux.just(Response.INDETERMINATE) : Flux.just(Response.NOT_APPLICABLE);
 		}
 
 		final VariableContext variableCtx;
@@ -41,14 +40,12 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 		}
 		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>(
-				matchingSaplDocuments.size());
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
 			responseFluxes.add(document.evaluate(evaluationCtx));
 		}
 
-		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(
-				errorsInTarget);
+		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(errorsInTarget);
 		return Flux.combineLatest(responseFluxes, responses -> {
 			responseAccumulator.addSingleResponses(responses);
 			return responseAccumulator.getCombinedResponse();
@@ -71,17 +68,14 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 		}
 
 		if (matchingPolicies.isEmpty()) {
-			return errorsInTarget ? Flux.just(Response.INDETERMINATE)
-					: Flux.just(Response.NOT_APPLICABLE);
+			return errorsInTarget ? Flux.just(Response.INDETERMINATE) : Flux.just(Response.NOT_APPLICABLE);
 		}
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>(
-				matchingPolicies.size());
+		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
 			responseFluxes.add(policy.evaluate(ctx));
 		}
-		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(
-				errorsInTarget);
+		final ResponseAccumulator responseAccumulator = new ResponseAccumulator(errorsInTarget);
 		return Flux.combineLatest(responseFluxes, responses -> {
 			responseAccumulator.addSingleResponses(responses);
 			return responseAccumulator.getCombinedResponse();
@@ -109,8 +103,7 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 			permitCount = 0;
 			transformation = false;
 			obligationAdvice = new ObligationAdviceCollector();
-			response = errorsInTarget ? Response.INDETERMINATE
-					: Response.NOT_APPLICABLE;
+			response = errorsInTarget ? Response.INDETERMINATE : Response.NOT_APPLICABLE;
 		}
 
 		void addSingleResponses(Object... responses) {
@@ -131,12 +124,10 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 				obligationAdvice.add(Decision.PERMIT, newResponse);
 				response = newResponse;
 			}
-			else if (newDecision == Decision.INDETERMINATE
-					&& response.getDecision() != Decision.PERMIT) {
+			else if (newDecision == Decision.INDETERMINATE && response.getDecision() != Decision.PERMIT) {
 				response = Response.INDETERMINATE;
 			}
-			else if (newDecision == Decision.DENY
-					&& response.getDecision() != Decision.INDETERMINATE
+			else if (newDecision == Decision.DENY && response.getDecision() != Decision.INDETERMINATE
 					&& response.getDecision() != Decision.PERMIT) {
 				obligationAdvice.add(Decision.DENY, newResponse);
 				response = Response.DENY;

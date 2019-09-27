@@ -48,8 +48,7 @@ public class GeoProjection {
 
 	public GeoProjection(String source, String dest) throws FunctionException {
 		try {
-			mathTransform = CRS.findMathTransform(CRS.decode(source), CRS.decode(dest),
-					false);
+			mathTransform = CRS.findMathTransform(CRS.decode(source), CRS.decode(dest), false);
 		}
 		catch (FactoryException e) {
 			throw new FunctionException(CRS_COULD_NOT_INITIALIZE, e);

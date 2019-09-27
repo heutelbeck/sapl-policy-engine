@@ -23,8 +23,7 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 
-@FunctionLibrary(name = StandardFunctionLibrary.NAME,
-		description = StandardFunctionLibrary.DESCRIPTION)
+@FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION)
 public class StandardFunctionLibrary {
 
 	public static final String NAME = "standard";

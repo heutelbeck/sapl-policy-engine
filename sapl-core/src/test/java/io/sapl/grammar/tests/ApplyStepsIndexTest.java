@@ -49,8 +49,7 @@ public class ApplyStepsIndexTest {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
 		for (int i = 0; i < 10; i++) {
 			numberArray.add(JSON.numberNode(BigDecimal.valueOf(i)));
-			list.add(new JsonNodeWithParentArray(
-					Optional.of(JSON.numberNode(BigDecimal.valueOf(i))),
+			list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(i))),
 					Optional.of(numberArray), i));
 		}
 		resultArray = new ArrayResultNode(list);
@@ -58,8 +57,7 @@ public class ApplyStepsIndexTest {
 
 	@Test
 	public void applyToNonArrayNode() {
-		ResultNode previousResult = new JsonNodeWithoutParent(
-				Optional.of(JSON.objectNode()));
+		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.objectNode()));
 
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(0));
@@ -73,16 +71,14 @@ public class ApplyStepsIndexTest {
 		int index = 5;
 
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(numberArray));
-		ResultNode expectedResult = new JsonNodeWithParentArray(
-				Optional.of(JSON.numberNode(BigDecimal.valueOf(index))),
+		ResultNode expectedResult = new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(index))),
 				Optional.of(numberArray), index);
 
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
 		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
-				.subscribe(result -> assertEquals(
-						"Index step applied to array node should return corresponding item",
+				.subscribe(result -> assertEquals("Index step applied to array node should return corresponding item",
 						expectedResult, result));
 	}
 
@@ -104,8 +100,7 @@ public class ApplyStepsIndexTest {
 		int index = -2;
 
 		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(numberArray));
-		ResultNode expectedResult = new JsonNodeWithParentArray(
-				Optional.of(JSON.numberNode(BigDecimal.valueOf(8))),
+		ResultNode expectedResult = new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(8))),
 				Optional.of(numberArray), 8);
 
 		IndexStep step = factory.createIndexStep();
@@ -113,8 +108,8 @@ public class ApplyStepsIndexTest {
 
 		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
-						"Negative index step applied to array node should return corresponding item",
-						expectedResult, result));
+						"Negative index step applied to array node should return corresponding item", expectedResult,
+						result));
 	}
 
 	@Test
@@ -141,8 +136,7 @@ public class ApplyStepsIndexTest {
 		step.setIndex(BigDecimal.valueOf(index));
 
 		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
-				.subscribe(result -> assertEquals(
-						"Index step applied to result array should return corresponding item",
+				.subscribe(result -> assertEquals("Index step applied to result array should return corresponding item",
 						expectedResult, result));
 	}
 
@@ -171,8 +165,8 @@ public class ApplyStepsIndexTest {
 
 		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
 				.subscribe(result -> assertEquals(
-						"Negative index step applied to result array should return corresponding item",
-						expectedResult, result));
+						"Negative index step applied to result array should return corresponding item", expectedResult,
+						result));
 	}
 
 	@Test
