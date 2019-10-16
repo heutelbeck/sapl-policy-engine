@@ -72,17 +72,16 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 		LOGGER.debug("reading config from jar {}", configFolderUrl);
 		final String[] jarPathElements = configFolderUrl.toString().split("!");
 		final String jarFilePath = jarPathElements[0].substring("jar:file:".length());
-		String dirPath = "";
+		final StringBuilder dirPath = new StringBuilder();
 		for (int i = 1; i < jarPathElements.length; i++) {
-			dirPath += jarPathElements[i];
+			dirPath.append(jarPathElements[i]);
 		}
-		if (dirPath.startsWith(File.separator)) {
-			dirPath = dirPath.substring(1);
+		if (dirPath.charAt(0) == File.separatorChar) {
+			dirPath.deleteCharAt(0);
 		}
-		final String configFilePath = dirPath + File.separator + CONFIG_FILE_GLOB_PATTERN;
+		final String configFilePath = dirPath.append(File.separatorChar).append(CONFIG_FILE_GLOB_PATTERN).toString();
 
-		try {
-			ZipFile zipFile = new ZipFile(jarFilePath);
+		try (ZipFile zipFile = new ZipFile(jarFilePath)) {
 			Enumeration<? extends ZipEntry> e = zipFile.entries();
 
 			while (e.hasMoreElements()) {

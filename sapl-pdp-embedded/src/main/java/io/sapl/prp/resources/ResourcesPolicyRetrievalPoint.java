@@ -77,23 +77,23 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		LOGGER.debug("reading policies from jar {}", policiesFolderUrl);
 		final String[] jarPathElements = policiesFolderUrl.toString().split("!");
 		final String jarFilePath = jarPathElements[0].substring("jar:file:".length());
-		String policiesDirPath = "";
+		final StringBuilder policiesDirPath = new StringBuilder();
 		for (int i = 1; i < jarPathElements.length; i++) {
-			policiesDirPath += jarPathElements[i];
+			policiesDirPath.append(jarPathElements[i]);
 		}
-		if (policiesDirPath.startsWith(File.separator)) {
-			policiesDirPath = policiesDirPath.substring(1);
+		if (policiesDirPath.charAt(0) == File.separatorChar) {
+			policiesDirPath.deleteCharAt(0);
 		}
+		final String policiesDirPathStr = policiesDirPath.toString();
 
 		final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
-		try {
-			ZipFile zipFile = new ZipFile(jarFilePath);
+		try (ZipFile zipFile = new ZipFile(jarFilePath)) {
 			Enumeration<? extends ZipEntry> e = zipFile.entries();
 
 			while (e.hasMoreElements()) {
 				ZipEntry entry = e.nextElement();
-				if (!entry.isDirectory() && entry.getName().startsWith(policiesDirPath)
+				if (!entry.isDirectory() && entry.getName().startsWith(policiesDirPathStr)
 						&& entry.getName().endsWith(POLICY_FILE_SUFFIX)) {
 					LOGGER.info("load: {}", entry.getName());
 					BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
