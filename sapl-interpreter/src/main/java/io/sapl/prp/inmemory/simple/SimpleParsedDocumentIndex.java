@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.Request;
+import io.sapl.api.pdp.AuthSubscription;
 import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
@@ -21,7 +21,7 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 	Map<String, SAPL> publishedDocuments = new ConcurrentHashMap<>();
 
 	@Override
-	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
+	public PolicyRetrievalResult retrievePolicies(AuthSubscription authSubscription, FunctionContext functionCtx,
 			Map<String, JsonNode> variables) {
 
 		final List<SAPL> result = new ArrayList<>();
@@ -29,7 +29,7 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 
 		EvaluationContext evaluationCtx = null;
 		try {
-			final VariableContext variableCtx = new VariableContext(request, variables);
+			final VariableContext variableCtx = new VariableContext(authSubscription, variables);
 			evaluationCtx = new EvaluationContext(functionCtx, variableCtx);
 		}
 		catch (PolicyEvaluationException e) {

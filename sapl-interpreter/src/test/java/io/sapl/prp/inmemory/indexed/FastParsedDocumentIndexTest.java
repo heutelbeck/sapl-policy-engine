@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
-import io.sapl.api.pdp.Request;
+import io.sapl.api.pdp.AuthSubscription;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
@@ -62,10 +62,10 @@ public class FastParsedDocumentIndexTest {
 		prp.put("1", document);
 		bindings.put("x0", false);
 		bindings.put("x1", false);
-		Request request = createRequestObject();
+		AuthSubscription authSubscription = createRequestObject();
 
 		// when
-		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(authSubscription, functionCtx, variables);
 
 		// then
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
@@ -83,10 +83,10 @@ public class FastParsedDocumentIndexTest {
 		bindings.put("x0", true);
 		bindings.put("x1", true);
 		prp.remove("1");
-		Request request = createRequestObject();
+		AuthSubscription authSubscription = createRequestObject();
 
 		// when
-		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(authSubscription, functionCtx, variables);
 
 		// then
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
@@ -101,18 +101,18 @@ public class FastParsedDocumentIndexTest {
 		SAPL document = interpreter.parse(definition);
 		prp.put("1", document);
 		bindings.put("x0", false);
-		Request request = createRequestObject();
+		AuthSubscription authSubscription = createRequestObject();
 
 		// when
 		prp.updateFunctionContext(functionCtx);
-		PolicyRetrievalResult result = prp.retrievePolicies(request, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(authSubscription, functionCtx, variables);
 
 		// then
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
 		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
 	}
 
-	private Request createRequestObject() {
+	private AuthSubscription createRequestObject() {
 		ObjectNode resource = json.objectNode();
 		for (Map.Entry<String, Boolean> entry : bindings.entrySet()) {
 			Boolean value = entry.getValue();
@@ -120,7 +120,7 @@ public class FastParsedDocumentIndexTest {
 				resource.put(entry.getKey(), value);
 			}
 		}
-		return new Request(NullNode.getInstance(), NullNode.getInstance(), resource, NullNode.getInstance());
+		return new AuthSubscription(NullNode.getInstance(), NullNode.getInstance(), resource, NullNode.getInstance());
 	}
 
 	private static Set<String> getVariables() {

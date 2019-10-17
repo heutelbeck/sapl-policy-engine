@@ -21,7 +21,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * The request object defines the request tuple of objects. Each request consists of:
+ * The authorization subscription object defines the tuple of objects constituting a SAPL
+ * authorization subscription. Each authorization subscription consists of:
  * <ul>
  * <li>a subject describing the entity which is requesting permission</li>
  * <li>an action describing for which activity the subject is requesting permission</li>
@@ -38,7 +39,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(Include.NON_NULL)
-public class Request {
+public class AuthSubscription {
 
 	private JsonNode subject;
 

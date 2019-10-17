@@ -15,7 +15,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.Request;
+import io.sapl.api.pdp.AuthSubscription;
 import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.Expression;
@@ -85,12 +85,12 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 	}
 
 	@Override
-	public PolicyRetrievalResult retrievePolicies(Request request, FunctionContext functionCtx,
+	public PolicyRetrievalResult retrievePolicies(AuthSubscription authSubscription, FunctionContext functionCtx,
 			Map<String, JsonNode> variables) {
 		lazyInit(Preconditions.checkNotNull(functionCtx));
 		PolicyRetrievalResult result;
 		try {
-			VariableContext variableCtx = new VariableContext(request, variables);
+			VariableContext variableCtx = new VariableContext(authSubscription, variables);
 			result = documentIndex.match(functionCtx, variableCtx);
 		}
 		catch (PolicyEvaluationException e) {

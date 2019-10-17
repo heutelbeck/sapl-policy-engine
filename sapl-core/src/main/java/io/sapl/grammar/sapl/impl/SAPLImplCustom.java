@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.AuthDecision;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.WildcardImport;
@@ -28,19 +28,19 @@ public class SAPLImplCustom extends SAPLImpl {
 
 	private static final String NO_TARGET_MATCH = "Target not matching.";
 
-	private static final Response INDETERMINATE = Response.INDETERMINATE;
+	private static final AuthDecision INDETERMINATE = AuthDecision.INDETERMINATE;
 
 	/**
-	 * Checks whether the SAPL document matches a Request by evaluating the document's
-	 * target expression. No custom variables are provided and imports are extracted from
-	 * the document.
+	 * Checks whether the SAPL document matches a AuthSubscription by evaluating the
+	 * document's target expression. No custom variables are provided and imports are
+	 * extracted from the document.
 	 * @param ctx the evaluation context in which the document's target expression is be
 	 * evaluated. It must contain
 	 * <ul>
 	 * <li>the function context, as functions can be used in the target expression</li>
-	 * <li>the variable context holding the four request variables 'subject', 'action',
-	 * 'resource' and 'environment' combined with system variables from the PDP
-	 * configuration</li>
+	 * <li>the variable context holding the four authorization subscription variables
+	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
+	 * from the PDP configuration</li>
 	 * </ul>
 	 * @return {@code true} if the target expression evaluates to {@code true},
 	 * {@code false} otherwise.
@@ -57,21 +57,21 @@ public class SAPLImplCustom extends SAPLImpl {
 
 	/**
 	 * Evaluates the body of the SAPL document (containing a policy set or a policy)
-	 * within the given evaluation context and returns a {@link Flux} of {@link Response}
-	 * objects.
+	 * within the given evaluation context and returns a {@link Flux} of
+	 * {@link AuthDecision} objects.
 	 * @param ctx the evaluation context in which the document's body is evaluated. It
 	 * must contain
 	 * <ul>
 	 * <li>the attribute context</li>
 	 * <li>the function context</li>
-	 * <li>the variable context holding the four request variables 'subject', 'action',
-	 * 'resource' and 'environment' combined with system variables from the PDP
-	 * configuration</li>
+	 * <li>the variable context holding the four authorization subscription variables
+	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
+	 * from the PDP configuration</li>
 	 * </ul>
-	 * @return a {@link Flux} of {@link Response} objects.
+	 * @return a {@link Flux} of {@link AuthDecision} objects.
 	 */
 	@Override
-	public Flux<Response> evaluate(EvaluationContext ctx) {
+	public Flux<AuthDecision> evaluate(EvaluationContext ctx) {
 		LOGGER.trace("| | |-- SAPL Evaluate: {} ({})", getPolicyElement().getSaplName(),
 				getPolicyElement().getClass().getName());
 		try {
@@ -79,12 +79,12 @@ public class SAPLImplCustom extends SAPLImpl {
 				final Map<String, String> imports = fetchFunctionAndPipImports(ctx);
 				final EvaluationContext evaluationCtx = new EvaluationContext(ctx.getAttributeCtx(),
 						ctx.getFunctionCtx(), ctx.getVariableCtx().copy(), imports);
-				return getPolicyElement().evaluate(evaluationCtx).doOnNext(this::logResponse);
+				return getPolicyElement().evaluate(evaluationCtx).doOnNext(this::logAuthDecision);
 			}
 			else {
 				LOGGER.trace("| | |-- NOT_APPLICABLE. Cause: " + NO_TARGET_MATCH);
 				LOGGER.trace("| |");
-				return Flux.just(Response.NOT_APPLICABLE);
+				return Flux.just(AuthDecision.NOT_APPLICABLE);
 			}
 		}
 		catch (PolicyEvaluationException e) {
@@ -94,7 +94,7 @@ public class SAPLImplCustom extends SAPLImpl {
 		}
 	}
 
-	private void logResponse(Response r) {
+	private void logAuthDecision(AuthDecision r) {
 		LOGGER.trace("| | |-- {}. Document: {} Cause: {}", r.getDecision(), getPolicyElement().getSaplName(), r);
 		LOGGER.trace("| |");
 	}

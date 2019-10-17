@@ -16,8 +16,8 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
-import io.sapl.api.pdp.Request
-import io.sapl.api.pdp.Response
+import io.sapl.api.pdp.AuthSubscription
+import io.sapl.api.pdp.AuthDecision
 import io.sapl.interpreter.DefaultSAPLInterpreter
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
@@ -45,7 +45,7 @@ class TemporalFunctionLibraryTest {
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>())
 	static final JsonNodeFactory JSON = JsonNodeFactory.instance
 
-    static final String request = '''
+    static final String authSubscription = '''
 		{
 		    "subject": "somebody",
 		    "action": "read",
@@ -54,14 +54,14 @@ class TemporalFunctionLibraryTest {
 		}
 	'''
 
-    static Request requestObject
+    static AuthSubscription authSubscriptionObj
 
 	@Before
 	def void init() {
         FUNCTION_CTX.loadLibrary(new StandardFunctionLibrary())
 		FUNCTION_CTX.loadLibrary(new TemporalFunctionLibrary())
         ATTRIBUTE_CTX.loadPolicyInformationPoint(new ClockPolicyInformationPoint())
-        requestObject = MAPPER.readValue(request, Request)
+        authSubscriptionObj = MAPPER.readValue(authSubscription, AuthSubscription)
 	}
 	
 	@Test
@@ -95,10 +95,10 @@ class TemporalFunctionLibraryTest {
 			    time.before("UTC".<clock.now>, time.plusSeconds("UTC".<clock.now>, 10));
 		'''
 
-        val expectedResponse = Response.PERMIT
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+        val expectedAuthDecision = AuthDecision.PERMIT
+        val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("temporal functions not working as expected", response, equalTo(expectedResponse))
+        assertThat("temporal functions not working as expected", authDecision, equalTo(expectedAuthDecision))
     }
 
     @Test
@@ -111,10 +111,10 @@ class TemporalFunctionLibraryTest {
 			    time.after("UTC".<clock.now>, time.plusSeconds("UTC".<clock.now>, 10));
 		'''
 
-        val expectedResponse = Response.NOT_APPLICABLE
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+        val expectedAuthDecision = AuthDecision.NOT_APPLICABLE
+        val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("temporal functions not working as expected", response, equalTo(expectedResponse))
+        assertThat("temporal functions not working as expected", authDecision, equalTo(expectedAuthDecision))
     }
 
     @Test
@@ -127,15 +127,15 @@ class TemporalFunctionLibraryTest {
 			    time.dayOfWeekFrom("UTC".<clock.now>) == "SUNDAY";
 		'''
 
-        var Response expectedResponse
+        var AuthDecision expectedAuthDecision
         if (DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)) == DayOfWeek.SUNDAY) {
-            expectedResponse = Response.PERMIT
+            expectedAuthDecision = AuthDecision.PERMIT
         } else {
-            expectedResponse = Response.NOT_APPLICABLE
+            expectedAuthDecision = AuthDecision.NOT_APPLICABLE
         }
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+        val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("dayOfWeek() not working as expected", response, equalTo(expectedResponse))
+        assertThat("dayOfWeek() not working as expected", authDecision, equalTo(expectedAuthDecision))
     }
 
     @Test
@@ -148,10 +148,10 @@ class TemporalFunctionLibraryTest {
 			    standard.length(time.localDateTime("UTC".<clock.now>)) in [16, 19];
 		'''
 
-        val expectedResponse = Response.PERMIT
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+        val expectedAuthDecision = AuthDecision.PERMIT
+        val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("localDateTime() not working as expected", response, equalTo(expectedResponse))
+        assertThat("localDateTime() not working as expected", authDecision, equalTo(expectedAuthDecision))
     }
 
     @Test
@@ -164,10 +164,10 @@ class TemporalFunctionLibraryTest {
 			    standard.length(time.localTime("UTC".<clock.now>)) in [5, 8];
 		'''
 
-        val expectedResponse = Response.PERMIT
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+        val expectedAuthDecision = AuthDecision.PERMIT
+        val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("localTime() not working as expected", response, equalTo(expectedResponse))
+        assertThat("localTime() not working as expected", authDecision, equalTo(expectedAuthDecision))
     }
 
     @Test
@@ -181,10 +181,10 @@ class TemporalFunctionLibraryTest {
 			    hour >= 0 && hour <= 23;
 		'''
 
-        val expectedResponse = Response.PERMIT
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+        val expectedAuthDecision = AuthDecision.PERMIT
+        val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("localHour() not working as expected", response, equalTo(expectedResponse))
+        assertThat("localHour() not working as expected", authDecision, equalTo(expectedAuthDecision))
     }
 
     @Test
@@ -198,10 +198,10 @@ class TemporalFunctionLibraryTest {
 			    minute >= 0 && minute <= 59;
 		'''
 
-        val expectedResponse = Response.PERMIT
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+        val expectedAuthDecision = AuthDecision.PERMIT
+        val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("localMinute() not working as expected", response, equalTo(expectedResponse))
+        assertThat("localMinute() not working as expected", authDecision, equalTo(expectedAuthDecision))
     }
 
     @Test
@@ -215,9 +215,9 @@ class TemporalFunctionLibraryTest {
 			    second >= 0 && second <= 59;
 		'''
 
-        val expectedResponse = Response.PERMIT
-        val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+        val expectedAuthDecision = AuthDecision.PERMIT
+        val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("localSecond() not working as expected", response, equalTo(expectedResponse))
+        assertThat("localSecond() not working as expected", authDecision, equalTo(expectedAuthDecision))
     }
 }

@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import io.sapl.api.interpreter.PolicyEvaluationException
 import io.sapl.api.pdp.Decision
-import io.sapl.api.pdp.Request
+import io.sapl.api.pdp.AuthSubscription
 import io.sapl.interpreter.DefaultSAPLInterpreter
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
@@ -524,7 +524,7 @@ class GeoFunctionLibraryTest {
 	}
 	
 	def Decision getDecision(String policyDefinition) {
-		return INTERPRETER.evaluate(new Request(subject, null, resource, null), policyDefinition, 
+		return INTERPRETER.evaluate(new AuthSubscription(subject, null, resource, null), policyDefinition,
 			ATTRIBUTE_CTX, FUNCTION_CTX, variables).blockFirst().getDecision();
 	}
 }

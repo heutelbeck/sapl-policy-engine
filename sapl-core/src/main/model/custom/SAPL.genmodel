@@ -6,9 +6,28 @@
     copyrightFields="false" runtimeVersion="2.12">
   <genPackages prefix="Sapl" basePackage="io.sapl.grammar" disposableProviderFactory="true"
       fileExtensions="sapl" ecorePackage="SAPL.ecore#/">
+    <genDataTypes ecoreDataType="SAPL.ecore#//EvaluationContext"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//JsonNode"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//JsonNodeFlux"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//AuthDecisionFlux"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//DecisionFlux"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//PolicyEvaluationException"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//ResultNodeFlux"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//ArrayResultNode"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//StringMap"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//AbstractAnnotatedJsonNode"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//OptionalJsonNodeFlux"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//OptionalJsonNode"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//AuthSubscription"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//FunctionContext"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//AuthDecision"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//Decision"/>
     <genClasses ecoreClass="SAPL.ecore#//SAPL">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//SAPL/imports"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//SAPL/policyElement"/>
+      <genOperations ecoreOperation="SAPL.ecore#//SAPL/fetchFunctionImports">
+        <genParameters ecoreParameter="SAPL.ecore#//SAPL/fetchFunctionImports/functionCtx"/>
+      </genOperations>
     </genClasses>
     <genClasses ecoreClass="SAPL.ecore#//Import">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//Import/libSteps"/>
@@ -32,6 +51,10 @@
     </genClasses>
     <genClasses ecoreClass="SAPL.ecore#//PolicyBody">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//PolicyBody/statements"/>
+      <genOperations ecoreOperation="SAPL.ecore#//PolicyBody/evaluate">
+        <genParameters ecoreParameter="SAPL.ecore#//PolicyBody/evaluate/entitlement"/>
+        <genParameters ecoreParameter="SAPL.ecore#//PolicyBody/evaluate/ctx"/>
+      </genOperations>
     </genClasses>
     <genClasses ecoreClass="SAPL.ecore#//Statement"/>
     <genClasses ecoreClass="SAPL.ecore#//ValueDefinition">
@@ -42,7 +65,6 @@
     <genClasses ecoreClass="SAPL.ecore#//BasicExpression">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//BasicExpression/filter"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//BasicExpression/subtemplate"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//BasicExpression/steps"/>
     </genClasses>
     <genClasses ecoreClass="SAPL.ecore#//BasicRelative">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//BasicRelative/steps"/>
@@ -50,14 +72,34 @@
     <genClasses ecoreClass="SAPL.ecore#//Arguments">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Arguments/args"/>
     </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//Step"/>
+    <genClasses ecoreClass="SAPL.ecore#//Step">
+      <genOperations ecoreOperation="SAPL.ecore#//Step/apply">
+        <genParameters ecoreParameter="SAPL.ecore#//Step/apply/previousResult"/>
+        <genParameters ecoreParameter="SAPL.ecore#//Step/apply/ctx"/>
+        <genParameters ecoreParameter="SAPL.ecore#//Step/apply/isBody"/>
+        <genParameters ecoreParameter="SAPL.ecore#//Step/apply/relativeNode"/>
+      </genOperations>
+      <genOperations ecoreOperation="SAPL.ecore#//Step/apply.1">
+        <genParameters ecoreParameter="SAPL.ecore#//Step/apply.1/previousResult"/>
+        <genParameters ecoreParameter="SAPL.ecore#//Step/apply.1/ctx"/>
+        <genParameters ecoreParameter="SAPL.ecore#//Step/apply.1/isBody"/>
+        <genParameters ecoreParameter="SAPL.ecore#//Step/apply.1/relativeNode"/>
+      </genOperations>
+    </genClasses>
     <genClasses ecoreClass="SAPL.ecore#//UnionStep"/>
     <genClasses ecoreClass="SAPL.ecore#//Value"/>
     <genClasses ecoreClass="SAPL.ecore#//Pair">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//Pair/key"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Pair/value"/>
     </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//FilterComponent"/>
+    <genClasses ecoreClass="SAPL.ecore#//FilterComponent">
+      <genOperations ecoreOperation="SAPL.ecore#//FilterComponent/apply">
+        <genParameters ecoreParameter="SAPL.ecore#//FilterComponent/apply/unfilteredRootNode"/>
+        <genParameters ecoreParameter="SAPL.ecore#//FilterComponent/apply/ctx"/>
+        <genParameters ecoreParameter="SAPL.ecore#//FilterComponent/apply/isBody"/>
+        <genParameters ecoreParameter="SAPL.ecore#//FilterComponent/apply/relativeNode"/>
+      </genOperations>
+    </genClasses>
     <genClasses ecoreClass="SAPL.ecore#//FilterStatement">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//FilterStatement/each"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//FilterStatement/target"/>
@@ -71,72 +113,31 @@
     <genClasses ecoreClass="SAPL.ecore#//Condition">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Condition/expression"/>
     </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//Plus">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Plus/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Plus/right"/>
+    <genClasses ecoreClass="SAPL.ecore#//BinaryOperator">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//BinaryOperator/left"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//BinaryOperator/right"/>
     </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//Minus">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Minus/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Minus/right"/>
+    <genClasses ecoreClass="SAPL.ecore#//UnaryOperator">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//UnaryOperator/expression"/>
     </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//Or">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Or/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Or/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//EagerOr">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//EagerOr/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//EagerOr/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//Multi">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Multi/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Multi/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//Div">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Div/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Div/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//And">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//And/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//And/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//EagerAnd">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//EagerAnd/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//EagerAnd/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//Equals">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Equals/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Equals/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//Regex">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Regex/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Regex/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//Less">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Less/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Less/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//LessEquals">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//LessEquals/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//LessEquals/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//More">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//More/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//More/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//MoreEquals">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//MoreEquals/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//MoreEquals/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//ElementOf">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//ElementOf/left"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//ElementOf/right"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//Not">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//Not/expression"/>
-    </genClasses>
-    <genClasses ecoreClass="SAPL.ecore#//UnaryMinus">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//UnaryMinus/expression"/>
-    </genClasses>
+    <genClasses ecoreClass="SAPL.ecore#//Plus"/>
+    <genClasses ecoreClass="SAPL.ecore#//Minus"/>
+    <genClasses ecoreClass="SAPL.ecore#//Or"/>
+    <genClasses ecoreClass="SAPL.ecore#//EagerOr"/>
+    <genClasses ecoreClass="SAPL.ecore#//Multi"/>
+    <genClasses ecoreClass="SAPL.ecore#//Div"/>
+    <genClasses ecoreClass="SAPL.ecore#//And"/>
+    <genClasses ecoreClass="SAPL.ecore#//EagerAnd"/>
+    <genClasses ecoreClass="SAPL.ecore#//Equals"/>
+    <genClasses ecoreClass="SAPL.ecore#//NotEquals"/>
+    <genClasses ecoreClass="SAPL.ecore#//Regex"/>
+    <genClasses ecoreClass="SAPL.ecore#//Less"/>
+    <genClasses ecoreClass="SAPL.ecore#//LessEquals"/>
+    <genClasses ecoreClass="SAPL.ecore#//More"/>
+    <genClasses ecoreClass="SAPL.ecore#//MoreEquals"/>
+    <genClasses ecoreClass="SAPL.ecore#//ElementOf"/>
+    <genClasses ecoreClass="SAPL.ecore#//Not"/>
+    <genClasses ecoreClass="SAPL.ecore#//UnaryMinus"/>
     <genClasses ecoreClass="SAPL.ecore#//BasicGroup">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//BasicGroup/expression"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//BasicGroup/steps"/>
@@ -171,7 +172,7 @@
     <genClasses ecoreClass="SAPL.ecore#//IndexStep">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//IndexStep/index"/>
     </genClasses>
-        <genClasses ecoreClass="SAPL.ecore#//ArraySlicingStep">
+    <genClasses ecoreClass="SAPL.ecore#//ArraySlicingStep">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//ArraySlicingStep/index"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//ArraySlicingStep/to"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//ArraySlicingStep/step"/>
@@ -197,6 +198,7 @@
     <genClasses ecoreClass="SAPL.ecore#//TrueLiteral"/>
     <genClasses ecoreClass="SAPL.ecore#//FalseLiteral"/>
     <genClasses ecoreClass="SAPL.ecore#//NullLiteral"/>
+    <genClasses ecoreClass="SAPL.ecore#//UndefinedLiteral"/>
     <genClasses ecoreClass="SAPL.ecore#//StringLiteral">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//StringLiteral/string"/>
     </genClasses>
@@ -210,6 +212,33 @@
     </genClasses>
     <genClasses ecoreClass="SAPL.ecore#//FilterExtended">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//FilterExtended/statements"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="SAPL.ecore#//Hashable">
+      <genOperations ecoreOperation="SAPL.ecore#//Hashable/hash">
+        <genParameters ecoreParameter="SAPL.ecore#//Hashable/hash/imports"/>
+      </genOperations>
+      <genOperations ecoreOperation="SAPL.ecore#//Hashable/isEqualTo">
+        <genParameters ecoreParameter="SAPL.ecore#//Hashable/isEqualTo/other"/>
+        <genParameters ecoreParameter="SAPL.ecore#//Hashable/isEqualTo/otherImports"/>
+        <genParameters ecoreParameter="SAPL.ecore#//Hashable/isEqualTo/imports"/>
+      </genOperations>
+    </genClasses>
+    <genClasses image="false" ecoreClass="SAPL.ecore#//Evaluable">
+      <genOperations ecoreOperation="SAPL.ecore#//Evaluable/evaluate">
+        <genParameters ecoreParameter="SAPL.ecore#//Evaluable/evaluate/ctx"/>
+        <genParameters ecoreParameter="SAPL.ecore#//Evaluable/evaluate/isBody"/>
+        <genParameters ecoreParameter="SAPL.ecore#//Evaluable/evaluate/relativeNode"/>
+      </genOperations>
+    </genClasses>
+    <genClasses image="false" ecoreClass="SAPL.ecore#//Matchable">
+      <genOperations ecoreOperation="SAPL.ecore#//Matchable/matches">
+        <genParameters ecoreParameter="SAPL.ecore#//Matchable/matches/ctx"/>
+      </genOperations>
+    </genClasses>
+    <genClasses image="false" ecoreClass="SAPL.ecore#//AuthDecisionEvaluable">
+      <genOperations ecoreOperation="SAPL.ecore#//AuthDecisionEvaluable/evaluate">
+        <genParameters ecoreParameter="SAPL.ecore#//AuthDecisionEvaluable/evaluate/ctx"/>
+      </genOperations>
     </genClasses>
   </genPackages>
 </genmodel:GenModel>

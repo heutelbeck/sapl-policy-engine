@@ -23,8 +23,8 @@ package io.sapl.api.pdp;
  * INDETERMINATE means that an error occurred during the decision process. Access must be
  * denied in this case.
  *
- * NOT_APPLICABLE means no policies were found matching the request. Access must be denied
- * in this case.
+ * NOT_APPLICABLE means no policies were found matching the authorization subscription.
+ * Access must be denied in this case.
  */
 public enum Decision {
 

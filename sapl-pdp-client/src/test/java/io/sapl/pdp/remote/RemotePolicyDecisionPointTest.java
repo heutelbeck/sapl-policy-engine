@@ -12,12 +12,12 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.pdp.AuthDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.Request;
-import io.sapl.api.pdp.Response;
-import io.sapl.api.pdp.multirequest.IdentifiableResponse;
-import io.sapl.api.pdp.multirequest.MultiRequest;
-import io.sapl.api.pdp.multirequest.MultiResponse;
+import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.multisubscription.IdentifiableAuthDecision;
+import io.sapl.api.pdp.multisubscription.MultiAuthSubscription;
+import io.sapl.api.pdp.multisubscription.MultiAuthDecision;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -39,64 +39,64 @@ public class RemotePolicyDecisionPointTest {
 	private final String clientSecret = "Fa4zvYQdiwHZVXh";
 
 	@Test
-	public void sendSingleRequest() {
-		final Request simpleRequest = new Request(JSON.textNode("willi"), JSON.textNode("test-read"),
-				JSON.textNode("something"), JSON.nullNode());
+	public void sendSingleSubscription() {
+		final AuthSubscription simpleAuthSubscription = new AuthSubscription(JSON.textNode("willi"),
+				JSON.textNode("test-read"), JSON.textNode("something"), JSON.nullNode());
 		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
-		final Flux<Response> decideFlux = pdp.decide(simpleRequest);
-		StepVerifier.create(decideFlux).expectNext(Response.PERMIT).thenCancel().verify();
+		final Flux<AuthDecision> decideFlux = pdp.decide(simpleAuthSubscription);
+		StepVerifier.create(decideFlux).expectNext(AuthDecision.PERMIT).thenCancel().verify();
 	}
 
 	@Test
-	public void sendMultiRequestReceiveSeparately() {
+	public void sendMultiSubscriptionReceiveSeparately() {
 		final Collection<GrantedAuthority> authorities = Collections
 				.singletonList(new SimpleGrantedAuthority("TESTER"));
 		final Authentication authentication = new UsernamePasswordAuthenticationToken("Reactor", null, authorities);
 
-		final MultiRequest multiRequest = new MultiRequest()
-				.addRequest("requestId_1", authentication, "test-read", "heartBeatData")
-				.addRequest("requestId_2", authentication, "test-read", "bloodPressureData");
+		final MultiAuthSubscription multiAuthSubscription = new MultiAuthSubscription()
+				.addAuthSubscription("subscriptionId_1", authentication, "test-read", "heartBeatData")
+				.addAuthSubscription("subscriptionId_2", authentication, "test-read", "bloodPressureData");
 
 		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
-		final Flux<IdentifiableResponse> decideFlux = pdp.decide(multiRequest);
-		StepVerifier.create(decideFlux).expectNextMatches(response -> {
-			if (response.getRequestId().equals("requestId_1")) {
-				return response.getResponse().equals(Response.PERMIT);
+		final Flux<IdentifiableAuthDecision> decideFlux = pdp.decide(multiAuthSubscription);
+		StepVerifier.create(decideFlux).expectNextMatches(iad -> {
+			if (iad.getAuthSubscriptionId().equals("subscriptionId_1")) {
+				return iad.getAuthDecision().equals(AuthDecision.PERMIT);
 			}
-			else if (response.getRequestId().equals("requestId_2")) {
-				return response.getResponse().equals(Response.DENY);
-			}
-			else {
-				throw new IllegalStateException("Invalid request id: " + response.getRequestId());
-			}
-		}).expectNextMatches(response -> {
-			if (response.getRequestId().equals("requestId_1")) {
-				return response.getResponse().equals(Response.PERMIT);
-			}
-			else if (response.getRequestId().equals("requestId_2")) {
-				return response.getResponse().equals(Response.DENY);
+			else if (iad.getAuthSubscriptionId().equals("subscriptionId_2")) {
+				return iad.getAuthDecision().equals(AuthDecision.DENY);
 			}
 			else {
-				throw new IllegalStateException("Invalid request id: " + response.getRequestId());
+				throw new IllegalStateException("Invalid subscription id: " + iad.getAuthSubscriptionId());
+			}
+		}).expectNextMatches(iad -> {
+			if (iad.getAuthSubscriptionId().equals("subscriptionId_1")) {
+				return iad.getAuthDecision().equals(AuthDecision.PERMIT);
+			}
+			else if (iad.getAuthSubscriptionId().equals("subscriptionId_2")) {
+				return iad.getAuthDecision().equals(AuthDecision.DENY);
+			}
+			else {
+				throw new IllegalStateException("Invalid subscription id: " + iad.getAuthSubscriptionId());
 			}
 		}).thenCancel().verify();
 	}
 
 	@Test
-	public void sendMultiRequestReceiveAll() {
+	public void sendMultiSubscriptionReceiveAll() {
 		final Collection<GrantedAuthority> authorities = Collections
 				.singletonList(new SimpleGrantedAuthority("TESTER"));
 		final Authentication authentication = new UsernamePasswordAuthenticationToken("Reactor", null, authorities);
 
-		final MultiRequest multiRequest = new MultiRequest()
-				.addRequest("requestId_1", authentication, "test-read", "heartBeatData")
-				.addRequest("requestId_2", authentication, "test-read", "bloodPressureData");
+		final MultiAuthSubscription multiAuthSubscription = new MultiAuthSubscription()
+				.addAuthSubscription("subscriptionId_1", authentication, "test-read", "heartBeatData")
+				.addAuthSubscription("subscriptionId_2", authentication, "test-read", "bloodPressureData");
 
 		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
-		final Flux<MultiResponse> multiResponseFlux = pdp.decideAll(multiRequest);
-		StepVerifier.create(multiResponseFlux)
-				.expectNextMatches(response -> response.isAccessPermittedForRequestWithId("requestId_1")
-						&& response.getDecisionForRequestWithId("requestId_2") == Decision.DENY)
+		final Flux<MultiAuthDecision> multiDecisionFlux = pdp.decideAll(multiAuthSubscription);
+		StepVerifier.create(multiDecisionFlux).expectNextMatches(
+				multiAuthDecision -> multiAuthDecision.isAccessPermittedForSubscriptionWithId("subscriptionId_1")
+						&& multiAuthDecision.getDecisionForSubscriptionWithId("subscriptionId_2") == Decision.DENY)
 				.thenCancel().verify();
 	}
 

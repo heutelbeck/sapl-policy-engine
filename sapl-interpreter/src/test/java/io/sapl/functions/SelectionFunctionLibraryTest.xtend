@@ -17,8 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import io.sapl.api.interpreter.PolicyEvaluationException
 import io.sapl.api.pdp.Decision
-import io.sapl.api.pdp.Request
-import io.sapl.api.pdp.Response
+import io.sapl.api.pdp.AuthSubscription
+import io.sapl.api.pdp.AuthDecision
 import io.sapl.functions.SelectionFunctionLibrary
 import io.sapl.interpreter.DefaultSAPLInterpreter
 import io.sapl.interpreter.functions.AnnotationFunctionContext
@@ -43,7 +43,7 @@ class SelectionFunctionLibraryTest {
 	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>());
 
-	static final String request = '''
+	static final String authSubscription = '''
 		{  
 		    "subject": {  
 		        "id": "12345"
@@ -76,12 +76,12 @@ class SelectionFunctionLibraryTest {
 			"environment": {	}
 		}
 	''';
-	static Request requestObject
+	static AuthSubscription authSubscriptionObj
 
 	@Before
 	def void init() {
 		FUNCTION_CTX.loadLibrary(new SelectionFunctionLibrary());
-		requestObject = MAPPER.readValue(request, Request)
+		authSubscriptionObj = MAPPER.readValue(authSubscription, AuthSubscription)
 	}
 
 	@Test
@@ -93,11 +93,11 @@ class SelectionFunctionLibraryTest {
 				selection.apply(resource._content, _selector) == "name3";
 		''';
 
-		val expectedResponse = Response.PERMIT
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.PERMIT
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("apply function not working as expected", response, equalTo(expectedResponse))
+		assertThat("apply function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -109,11 +109,11 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records");
 		''';
 
-		val expectedResponse = Response.NOT_APPLICABLE
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.NOT_APPLICABLE
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("match function not working as expected", response, equalTo(expectedResponse))
+		assertThat("match function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -125,11 +125,11 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records");
 		''';
 
-		val expectedResponse = Response.PERMIT
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.PERMIT
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("match function not working as expected", response, equalTo(expectedResponse))
+		assertThat("match function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -141,11 +141,11 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.personal.firstname");
 		''';
 
-		val expectedResponse = Response.NOT_APPLICABLE
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.NOT_APPLICABLE
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("match function not working as expected", response, equalTo(expectedResponse))
+		assertThat("match function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -157,11 +157,11 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records[:-1]");
 		''';
 
-		val expectedResponse = Response.NOT_APPLICABLE
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.NOT_APPLICABLE
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("match function not working as expected", response, equalTo(expectedResponse))
+		assertThat("match function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -173,11 +173,11 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records[:-1]");
 		''';
 
-		val expectedResponse = Response.PERMIT
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.PERMIT
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("match function not working as expected", response, equalTo(expectedResponse))
+		assertThat("match function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -189,11 +189,11 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records[?(@.value>250)]");
 		''';
 
-		val expectedResponse = Response.NOT_APPLICABLE
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.NOT_APPLICABLE
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("match function not working as expected", response, equalTo(expectedResponse))
+		assertThat("match function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -205,11 +205,11 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records[?(@.value>250)]");
 		''';
 
-		val expectedResponse = Response.PERMIT
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.PERMIT
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("match function not working as expected", response, equalTo(expectedResponse))
+		assertThat("match function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -221,11 +221,11 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@");
 		''';
 
-		val expectedResponse = Response.PERMIT
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.PERMIT
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("match function not working as expected", response, equalTo(expectedResponse))
+		assertThat("match function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -237,11 +237,11 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@");
 		''';
 
-		val expectedResponse = Response.PERMIT
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.PERMIT
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("match function not working as expected", response, equalTo(expectedResponse))
+		assertThat("match function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -253,11 +253,11 @@ class SelectionFunctionLibraryTest {
 				selection.match(resource._content, _selector, "@.records");
 		''';
 
-		val expectedResponse = Response.NOT_APPLICABLE
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.NOT_APPLICABLE
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("match function not working as expected", response, equalTo(expectedResponse))
+		assertThat("match function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -267,11 +267,11 @@ class SelectionFunctionLibraryTest {
 			permit selection.equal(resource._content, "@.records[-1].name","@.records[2].name")
 		''';
 
-		val expectedResponse = Response.PERMIT
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.PERMIT
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("equals function not working as expected", response, equalTo(expectedResponse))
+		assertThat("equals function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -281,11 +281,11 @@ class SelectionFunctionLibraryTest {
 			permit selection.equal(resource._content, "@","@")
 		''';
 
-		val expectedResponse = Response.PERMIT
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.PERMIT
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("equals function not working as expected", response, equalTo(expectedResponse))
+		assertThat("equals function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -295,11 +295,11 @@ class SelectionFunctionLibraryTest {
 			permit selection.equal(resource._content, "@.dummy","@.personal.firstname")
 		''';
 
-		val expectedResponse = Response.NOT_APPLICABLE
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.NOT_APPLICABLE
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("equals function not working as expected", response, equalTo(expectedResponse))
+		assertThat("equals function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 
 	@Test
@@ -309,10 +309,10 @@ class SelectionFunctionLibraryTest {
 			permit selection.equal(resource._content, "@.records[:-1].name","@.records[0:2].name")
 		''';
 
-		val expectedResponse = Response.PERMIT
-		val response = INTERPRETER.evaluate(requestObject, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
+		val expectedAuthDecision = AuthDecision.PERMIT
+		val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("equals function not working as expected", response, equalTo(expectedResponse))
+		assertThat("equals function not working as expected", authDecision, equalTo(expectedAuthDecision))
 	}
 }

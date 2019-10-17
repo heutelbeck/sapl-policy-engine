@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.Request;
+import io.sapl.api.pdp.AuthSubscription;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
@@ -39,32 +39,33 @@ public class VariableContext {
 
 	private Map<String, JsonNode> variables = new HashMap<>();
 
-	public VariableContext(Request request) throws PolicyEvaluationException {
-		this(request, null);
+	public VariableContext(AuthSubscription authSubscription) throws PolicyEvaluationException {
+		this(authSubscription, null);
 	}
 
-	public VariableContext(Request request, Map<String, JsonNode> defaultVariables) throws PolicyEvaluationException {
-		if (request != null) {
-			if (request.getSubject() != null) {
-				variables.put(SUBJECT, request.getSubject());
+	public VariableContext(AuthSubscription authSubscription, Map<String, JsonNode> defaultVariables)
+			throws PolicyEvaluationException {
+		if (authSubscription != null) {
+			if (authSubscription.getSubject() != null) {
+				variables.put(SUBJECT, authSubscription.getSubject());
 			}
 			else {
 				variables.put(SUBJECT, JSON.nullNode());
 			}
-			if (request.getAction() != null) {
-				variables.put(ACTION, request.getAction());
+			if (authSubscription.getAction() != null) {
+				variables.put(ACTION, authSubscription.getAction());
 			}
 			else {
 				variables.put(ACTION, JSON.nullNode());
 			}
-			if (request.getResource() != null) {
-				variables.put(RESOURCE, request.getResource());
+			if (authSubscription.getResource() != null) {
+				variables.put(RESOURCE, authSubscription.getResource());
 			}
 			else {
 				variables.put(RESOURCE, JSON.nullNode());
 			}
-			if (request.getEnvironment() != null) {
-				variables.put(ENVIRONMENT, request.getEnvironment());
+			if (authSubscription.getEnvironment() != null) {
+				variables.put(ENVIRONMENT, authSubscription.getEnvironment());
 			}
 			else {
 				variables.put(ENVIRONMENT, JSON.nullNode());

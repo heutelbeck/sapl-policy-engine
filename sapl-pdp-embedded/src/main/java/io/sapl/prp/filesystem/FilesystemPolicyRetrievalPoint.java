@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
-import io.sapl.api.pdp.Request;
+import io.sapl.api.pdp.AuthSubscription;
 import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
@@ -148,12 +148,12 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	}
 
 	@Override
-	public Flux<PolicyRetrievalResult> retrievePolicies(Request request, FunctionContext functionCtx,
+	public Flux<PolicyRetrievalResult> retrievePolicies(AuthSubscription authSubscription, FunctionContext functionCtx,
 			Map<String, JsonNode> variables) {
 		return dirWatcherEventProcessor.map(event -> {
 			try {
 				lock.lock();
-				return parsedDocIdx.retrievePolicies(request, functionCtx, variables);
+				return parsedDocIdx.retrievePolicies(authSubscription, functionCtx, variables);
 			}
 			finally {
 				lock.unlock();

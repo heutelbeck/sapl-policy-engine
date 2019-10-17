@@ -33,15 +33,15 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class Response {
+public class AuthDecision {
 
-	public static final Response PERMIT = new Response(Decision.PERMIT);
+	public static final AuthDecision PERMIT = new AuthDecision(Decision.PERMIT);
 
-	public static final Response DENY = new Response(Decision.DENY);
+	public static final AuthDecision DENY = new AuthDecision(Decision.DENY);
 
-	public static final Response INDETERMINATE = new Response(Decision.INDETERMINATE);
+	public static final AuthDecision INDETERMINATE = new AuthDecision(Decision.INDETERMINATE);
 
-	public static final Response NOT_APPLICABLE = new Response(Decision.NOT_APPLICABLE);
+	public static final AuthDecision NOT_APPLICABLE = new AuthDecision(Decision.NOT_APPLICABLE);
 
 	Decision decision;
 
@@ -58,7 +58,7 @@ public class Response {
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<ArrayNode> advices = Optional.empty();
 
-	public Response(Decision decision) {
+	public AuthDecision(Decision decision) {
 		this.decision = requireNonNull(decision);
 	}
 
@@ -70,7 +70,7 @@ public class Response {
 		if (o == null || o.getClass() != this.getClass()) {
 			return false;
 		}
-		final Response other = (Response) o;
+		final AuthDecision other = (AuthDecision) o;
 		if (!Objects.equals(getDecision(), other.getDecision())) {
 			return false;
 		}

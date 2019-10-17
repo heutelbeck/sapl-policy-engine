@@ -8,10 +8,10 @@ import org.springframework.security.core.Authentication;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.pdp.AuthSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.Request;
-import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.AuthDecision;
 import io.sapl.spring.constraints.ConstraintHandlerService;
 import io.sapl.spring.method.AbstractPolicyBasedInvocationEnforcementAdvice;
 import lombok.extern.slf4j.Slf4j;
@@ -43,30 +43,31 @@ public class PolicyBasedPreInvocationEnforcementAdvice extends AbstractPolicyBas
 		Object resource = retrieveResource(mi, attr, ctx);
 		Object environment = retrieveEnvironment(attr, ctx);
 
-		Request request = new Request(mapper.valueToTree(subject), mapper.valueToTree(action),
-				mapper.valueToTree(resource), mapper.valueToTree(environment));
+		AuthSubscription authSubscription = new AuthSubscription(mapper.valueToTree(subject),
+				mapper.valueToTree(action), mapper.valueToTree(resource), mapper.valueToTree(environment));
 
-		Response response = pdp.decide(request).blockFirst();
+		AuthDecision authDecision = pdp.decide(authSubscription).blockFirst();
 
-		LOGGER.debug("REQUEST  : ACTION={} RESOURCE={} SUBJ={} ENV={}", request.getAction(), request.getResource(),
-				request.getSubject(), request.getEnvironment());
-		LOGGER.debug("RESPONSE : {} - {}", response == null ? "null" : response.getDecision(), response);
+		LOGGER.debug("SUBSCRIPTION  : ACTION={} RESOURCE={} SUBJ={} ENV={}", authSubscription.getAction(),
+				authSubscription.getResource(), authSubscription.getSubject(), authSubscription.getEnvironment());
+		LOGGER.debug("AUTH_DECISION : {} - {}", authDecision == null ? "null" : authDecision.getDecision(),
+				authDecision);
 
-		if (response != null && response.getResource().isPresent()) {
-			LOGGER.warn("Cannot handle a response declaring a new resource in @PreEnforce. Deny access!");
+		if (authDecision != null && authDecision.getResource().isPresent()) {
+			LOGGER.warn("Cannot handle a authorization decision declaring a new resource in @PreEnforce. Deny access!");
 			return false;
 		}
-		if (response == null || response.getDecision() != Decision.PERMIT) {
+		if (authDecision == null || authDecision.getDecision() != Decision.PERMIT) {
 			return false;
 		}
 
 		try {
-			constraintHandlers.handleObligations(response);
+			constraintHandlers.handleObligations(authDecision);
 		}
 		catch (AccessDeniedException e) {
 			return false;
 		}
-		constraintHandlers.handleAdvices(response);
+		constraintHandlers.handleAdvices(authDecision);
 		return true;
 	}
 

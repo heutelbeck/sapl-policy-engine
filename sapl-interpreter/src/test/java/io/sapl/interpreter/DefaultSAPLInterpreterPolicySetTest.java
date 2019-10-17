@@ -27,9 +27,9 @@ import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.functions.FunctionException;
+import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.Request;
-import io.sapl.api.pdp.Response;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -42,7 +42,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
-	private Request request;
+	private AuthSubscription authSubscription;
 
 	private AttributeContext attributeCtx;
 
@@ -50,7 +50,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Before
 	public void init() throws FunctionException {
-		request = new Request(null, null, null, null);
+		authSubscription = new AuthSubscription(null, null, null, null);
 		attributeCtx = new AnnotationAttributeContext();
 		functionCtx = new AnnotationFunctionContext();
 		functionCtx.loadLibrary(new FilterFunctionLibrary());
@@ -59,54 +59,54 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	@Test
 	public void setPermit() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp\" permit";
-		Response expected = Response.PERMIT;
-		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+		AuthDecision expected = AuthDecision.PERMIT;
+		AuthDecision actual = INTERPRETER
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("simple policy set should evaluate to permit", expected, actual);
 	}
 
 	@Test
 	public void setDeny() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp\" deny";
-		Response expected = Response.DENY;
-		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+		AuthDecision expected = AuthDecision.DENY;
+		AuthDecision actual = INTERPRETER
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("simple policy set should evaluate to deny", expected, actual);
 	}
 
 	@Test
 	public void setNotApplicable() {
 		String policySet = "set \"tests\" deny-overrides " + "for true == false " + "policy \"testp\" deny";
-		Response expected = Response.NOT_APPLICABLE;
-		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+		AuthDecision expected = AuthDecision.NOT_APPLICABLE;
+		AuthDecision actual = INTERPRETER
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("simple policy set should evaluate to not applicable", expected, actual);
 	}
 
 	@Test
 	public void noApplicablePolicies() {
 		String policySet = "set \"tests\" deny-overrides " + "for true " + "policy \"testp\" deny true == false";
-		Response expected = Response.NOT_APPLICABLE;
-		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+		AuthDecision expected = AuthDecision.NOT_APPLICABLE;
+		AuthDecision actual = INTERPRETER
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("set with no applicable policies should evaluate to not applicable", expected, actual);
 	}
 
 	@Test
 	public void setIndeterminate() {
 		String policySet = "set \"tests\" deny-overrides" + "for \"a\" > 4 " + "policy \"testp\" permit";
-		Response expected = Response.INDETERMINATE;
-		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+		AuthDecision expected = AuthDecision.INDETERMINATE;
+		AuthDecision actual = INTERPRETER
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("simple policy set should evaluate to indeterminate", expected, actual);
 	}
 
 	@Test
 	public void denyOverridesPermitAndDeny() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit " + "policy \"testp2\" deny";
-		Response expected = Response.DENY;
-		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+		AuthDecision expected = AuthDecision.DENY;
+		AuthDecision actual = INTERPRETER
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("algorithm should return deny if any policy evaluates to deny", expected, actual);
 	}
 
@@ -114,9 +114,9 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void denyOverridesPermitAndNotApplicableAndDeny() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
 				+ "policy \"testp2\" permit true == false " + "policy \"testp3\" deny";
-		Response expected = Response.DENY;
-		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+		AuthDecision expected = AuthDecision.DENY;
+		AuthDecision actual = INTERPRETER
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("algorithm should return deny if any policy evaluates to deny", expected, actual);
 	}
 
@@ -124,9 +124,9 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void denyOverridesPermitAndIntederminateAndDeny() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
 				+ "policy \"testp2\" permit \"a\" < 5 " + "policy \"testp3\" deny";
-		Response expected = Response.DENY;
-		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+		AuthDecision expected = AuthDecision.DENY;
+		AuthDecision actual = INTERPRETER
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("algorithm should return deny if any policy evaluates to deny", expected, actual);
 	}
 
@@ -136,7 +136,8 @@ public class DefaultSAPLInterpreterPolicySetTest {
 				+ "policy \"testp1\" permit transform true |- replace(false)";
 		Optional<BooleanNode> expected = Optional.of(JsonNodeFactory.instance.booleanNode(false));
 		Optional<JsonNode> actual = INTERPRETER
-				.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst().getResource();
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
+				.getResource();
 		assertEquals("imports for policy set must be available in policies", expected, actual);
 	}
 
@@ -144,9 +145,9 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void importsDuplicatesByPolicySet() {
 		String policySet = "import filter.replace " + "import filter.replace " + "set \"tests\" deny-overrides "
 				+ "policy \"testp1\" permit where true;";
-		Response expected = Response.INDETERMINATE;
-		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+		AuthDecision expected = AuthDecision.INDETERMINATE;
+		AuthDecision actual = INTERPRETER
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("imports for policy set must not contain duplicates", expected, actual);
 	}
 
@@ -155,7 +156,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 		String policySet = "set \"tests\" deny-overrides " + "var var1 = true; "
 				+ "policy \"testp1\" permit var1 == true";
 		Decision expected = Decision.PERMIT;
-		Decision actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		Decision actual = INTERPRETER.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst().getDecision();
 		assertEquals("variables defined for policy set must be available in policies", expected, actual);
 	}
@@ -163,9 +164,9 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	@Test
 	public void variablesOnSetLevelError() {
 		String policySet = "set \"tests\" deny-overrides " + "var var1 = true / null; " + "policy \"testp1\" permit";
-		Response expected = Response.INDETERMINATE;
-		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+		AuthDecision expected = AuthDecision.INDETERMINATE;
+		AuthDecision actual = INTERPRETER
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("error in policy set variable definition should lead to indeterminate", expected, actual);
 	}
 
@@ -175,7 +176,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 				+ "policy \"testp1\" permit where var var1 = 10; var1 == 10; "
 				+ "policy \"testp2\" deny where !(var1 == true);";
 		Decision expected = Decision.PERMIT;
-		Decision actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		Decision actual = INTERPRETER.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 				.blockFirst().getDecision();
 		assertEquals("it should be possible to overwrite a variable in a policy", expected, actual);
 	}
@@ -183,9 +184,9 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	@Test
 	public void subjectAsVariable() {
 		String policySet = "set \"test\" deny-overrides " + "var subject = null;  " + "policy \"test\" permit";
-		Response expected = Response.INDETERMINATE;
-		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+		AuthDecision expected = AuthDecision.INDETERMINATE;
+		AuthDecision actual = INTERPRETER
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("'subject' as variable name should evaluate to indeterminate", expected, actual);
 	}
 
@@ -193,9 +194,9 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void variablesInPolicyMustNotLeakIntoNextPolicy() {
 		String policySet = "set \"test\" deny-overrides " + "var ps1 = true; "
 				+ "policy \"pol1\" permit where var p1 = 10; p1 == 10; " + "policy \"pol2\" deny where p1 == 10;";
-		Response expected = Response.INDETERMINATE;
-		Response actual = INTERPRETER.evaluate(request, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+		AuthDecision expected = AuthDecision.INDETERMINATE;
+		AuthDecision actual = INTERPRETER
+				.evaluate(authSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("variable p1 from policy pol1 should not be defined in policy pol2", expected, actual);
 	}
 

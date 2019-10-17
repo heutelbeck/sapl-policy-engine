@@ -17,8 +17,8 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.pdp.Request;
-import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthSubscription;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
@@ -48,18 +48,18 @@ public interface SAPLInterpreter {
 
 	/**
 	 * Convenience method for unit tests which evaluates a String representing a SAPL
-	 * document (containing a policy set or policy) against a Request object within a
-	 * given attribute context and function context and returns a {@link Flux} of
-	 * {@link Response} objects.
-	 * @param request the Request object
+	 * document (containing a policy set or policy) against an authorization subscription
+	 * object within a given attribute context and function context and returns a
+	 * {@link Flux} of {@link AuthDecision} objects.
+	 * @param authSubscription the authorization subscription object
 	 * @param saplDefinition the String representing the SAPL document
 	 * @param attributeCtx the attribute context
 	 * @param functionCtx the function context
 	 * @param systemVariables the system variables, a Map between the variable name and
 	 * its value
-	 * @return A {@link Flux} of {@link Response} objects.
+	 * @return A {@link Flux} of {@link AuthDecision} objects.
 	 */
-	Flux<Response> evaluate(Request request, String saplDefinition, AttributeContext attributeCtx,
+	Flux<AuthDecision> evaluate(AuthSubscription authSubscription, String saplDefinition, AttributeContext attributeCtx,
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables);
 
 	/**

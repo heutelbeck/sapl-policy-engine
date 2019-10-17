@@ -9,9 +9,9 @@ v2.0, 2019-06-07
 == Introduction
 
 SAPL (Structure and Agency Policy Language) describes both a *domain specific language (DSL)* for expressing access control policies and a *publish/subscribe protocol* based on http://json.org/[JSON].
-Policies expressed in the SAPL policy language describe conditions for access control in applications and distributed systems. The underlying policy engine implements a variant of Attribute-based Access control (ABAC) which is centered around data streams and reactive programming patterns. Namely, the SAPL policy engine implements Attribute Stream-based Access control (ASBAC). 
+Policies expressed in the SAPL policy language describe conditions for access control in applications and distributed systems. The underlying policy engine implements a variant of Attribute-based Access control (ABAC) which is centered around data streams and reactive programming patterns. Namely, the SAPL policy engine implements Attribute Stream-based Access Control (ASBAC).
 
-A typical scenario for the application of SAPL would be a subject (e.g., a user or system) attempting to take an action (e.g., read or cancel an order) on a protected resource (e.g., a domain object of an application or a file). The subject makes a subscription request to the system (e.g., an application) for executing the action on the resource. The system implements a *policy enforcement point (PEP)* protecting the resources. The PEP collects information about the subject, action, resource, and potential other relevant data in an authorization request and sends it to a *policy decision point (PDP)* which checks SAPL policies in order to decide whether access to the resource should be permitted as requested. This decision is packed in a response and sent back to the PEP which accordingly either grants access according to the decision or prevents access to the resource. All data sources for the decision are subscribed to by the PDP and new decisions are sent to the PEP whenever indicated by the policies and data sources.
+A typical scenario for the application of SAPL would be a subject (e.g., a user or system) attempting to take an action (e.g., read or cancel an order) on a protected resource (e.g., a domain object of an application or a file). The subject makes a subscription request to the system (e.g., an application) for executing the action on the resource. The system implements a *policy enforcement point (PEP)* protecting the resources. The PEP collects information about the subject, action, resource, and potential other relevant data in an authorization subscription request and sends it to a *policy decision point (PDP)* which checks SAPL policies in order to decide whether access to the resource should be permitted as requested. This decision is packed in an authorization decision object and sent back to the PEP which accordingly either grants access according to the decision or prevents access to the resource. All data sources for the decision are subscribed to by the PDP and new decisions are sent to the PEP whenever indicated by the policies and data sources.
 
 There exist several proprietary platform dependent or standardized languages, such as http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html[XACML] for expressing policies. SAPL brings a number of advantages over these solutions:
 
@@ -23,17 +23,17 @@ There exist several proprietary platform dependent or standardized languages, su
 * *Transformation and Filtering*. SAPL allows transforming resources and filtering data from resources (e.g., blacken the first digits of a credit card number, or hiding of birth dates by assigning individuals into age groups). 
 * *Designed for a session and data stream-based applications*. SAPL is designed to offer low-latency authorization for interactive applications and data streams.
 * *Designed for a RESTful World with JSON*. SAPL is designed to be easily integrated with modern JSON-based APIs. The core data model of SAPL is JSON offering easy reasoning over such data and simple access to external attributes from RESTful JSON APIs.
-* *Supports Multi-Requests*. SAPL allows to bundle multiple authorization requests into one multi-request thus further reducing connection time and latency.
+* *Supports Multi-Subscriptions*. SAPL allows to bundle multiple authorization subscriptions into one multi-subscription thus further reducing connection time and latency.
         
 The following sections will explain the basic concepts of SAPL policies and show how to easily integrate SAPL in a Java application. Afterwards the different parts of SAPL are explained in more detail.
 
 
-=== Authorization Requests
+=== Authorization Subscriptions
 
-A SAPL authorization request is a JSON object, i.e., a set of name/value pairs or _attributes_. It contains attributes with the names `subject`, `action`, `resource` and `environment`. The values of these attributes may be any arbitrary JSON value, e.g.:
+A SAPL authorization subscription is a JSON object, i.e., a set of name/value pairs or _attributes_. It contains attributes with the names `subject`, `action`, `resource` and `environment`. The values of these attributes may be any arbitrary JSON value, e.g.:
 
 [source,json]
-.Introduction - Sample Request
+.Introduction - Sample Authorization Subscription
 ----
 {
   "subject"     : { 
@@ -47,7 +47,7 @@ A SAPL authorization request is a JSON object, i.e., a set of name/value pairs o
 }
 ----
 
-This request expresses the intent of the user `alice`, with the given attributes, to `HTTP:GET` the resource at `\https://medical.org/api/patients/123`. Such a SAPL request may be issued in a RESTful API by a PEP in front of the request handlers of the API.
+This authorization subscription expresses the intent of the user `alice`, with the given attributes, to `HTTP:GET` the resource at `\https://medical.org/api/patients/123`. Such a SAPL authorization subscription may be issued in a RESTful API by a PEP in front of the request handlers of the API.
  
 === Structure of a SAPL Policy
 
@@ -75,31 +75,31 @@ where // <3>
   resource == "https://medical.org/api/patients/123";
 ----
 
-<1> declares the policy with the name `permit_alice_get_patient123`. The JSON values of the request object are bound to the variables `subject`, `action`, `resource` and `environment` and can be directly accessed in the policy. The syntax `.name` accesses attributes of a nested JSON object.
+<1> declares the policy with the name `permit_alice_get_patient123`. The JSON values of the authorization subscription object are bound to the variables `subject`, `action`, `resource` and `environment` and can be directly accessed in the policy. The syntax `.name` accesses attributes of a nested JSON object.
 
 <2> declares that if the resource is a string starting with `https://medical.org/api/patients` (using the regular expression operator `=~`) and the conditions of the `where` clause applies, the subject will be permitted access to the resource. Note, that the `where` clause is only evaluated if the condition of the target expression evaluates to `true`.
 
 <3> starts the `where` clause (policy body) consisting of a list of statements. The policy body evaluates to `true` if all statements evaluate to `true`.
 
-=== Authorization Responses
+=== Authorization Decisions
 
-The SAPL response to the authorization request is a JSON object as well. It contains the attribute `decision` as well as the optional attributes `resource`, `obligation` and `advice`. For the introductory sample request with the preceding policy a SAPL response would look as follows:
+The SAPL authorization decision to the authorization subscription is a JSON object as well. It contains the attribute `decision` as well as the optional attributes `resource`, `obligation` and `advice`. For the introductory sample authorization subscription with the preceding policy a SAPL authorization decision would look as follows:
 
 '''
 
 [source,json]
-.Introduction - Sample Response
+.Introduction - Sample Authorization Decision
 ----
 {
   "decision"   : "PERMIT"
 }
 ----
 
-This response is evaluated by the PEP to grant or deny access.
+This authorization decision is evaluated by the PEP to grant or deny access.
 
 === Accessing Attributes
 
-In many use-cases, all required information for making a decision may be contained in the request object. However, the PEP is usually not aware of the specifics of the access policies and may not have access to all information required for making the decision. In this case, the PDP is able to access external attributes. The following example shows how accessing attributes is expressed in SAPL.
+In many use-cases, all required information for making a decision may be contained in the authorization subscription object. However, the PEP is usually not aware of the specifics of the access policies and may not have access to all information required for making the decision. In this case, the PDP is able to access external attributes. The following example shows how accessing attributes is expressed in SAPL.
 
 Extending the example above, in a real world application there will be multiple patients and multiple users. Thus policies need to be worded in a more abstract way. In a natural language, a suitable policy could be _Permit doctors to HTTP:GET data from any patient_. The policy addresses the profile attribute of the subject, stored externally. SAPL allows to express this policy as follows:
 
@@ -116,9 +116,9 @@ where
   subject.username.<user.profile>.function == "doctor";
 ----
 
-In _line 4_ a regular expression is used for identifying a request to any patient's data (operator `=~`). The request resource must match this pattern for the policy to apply.
+In _line 4_ a regular expression is used for identifying a request to any patient's data (operator `=~`). The authorization subscription resource must match this pattern for the policy to apply.
 
-The policy assumes that the user's function is not provided in the request but stored in the user's profile. Accordingly _line 6_ accesses the attribute `user.profile` (using an attribute finder step `.<finder.name>`) to retrieve the profile for the user with the username provided in `subject.username`. The fetched profile is a JSON object with a property named `function` which can be compared to `"doctor"`.
+The policy assumes that the user's function is not provided in the authorization subscription but stored in the user's profile. Accordingly _line 6_ accesses the attribute `user.profile` (using an attribute finder step `.<finder.name>`) to retrieve the profile for the user with the username provided in `subject.username`. The fetched profile is a JSON object with a property named `function` which can be compared to `"doctor"`.
 
 _Line 6_ is placed in the policy body (starting with `where`) instead of the target expression. The reason for this location is that the target expression block is also used for indexing policies efficiently and therefore needs to be evaluated quickly. Hence it is not allowed to include conditions which may need to call an external service.
 
@@ -184,8 +184,8 @@ import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.Request;
-import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthDecision;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder.IndexType;
 import reactor.core.publisher.Flux;
@@ -203,11 +203,11 @@ catch (IOException | URISyntaxException | PolicyEvaluationException |
 }
 
 JsonNodeFactory JSON = JsonNodeFactory.instance;
-Request request = new Request(JSON.textNode("admin"), JSON.textNode("an_action"),
-                              JSON.textNode("a_resource"), null);
+AuthSubscription authSubscription = new AuthSubscription(JSON.textNode("admin"),
+    JSON.textNode("an_action"), JSON.textNode("a_resource"), null);
 
-Flux<Response> responses = pdp.decide(request);
-responses.subscribe(response -> System.out.println(response.getDecision()));
+Flux<AuthDecision> authDecisions = pdp.decide(authSubscription);
+authDecisions.subscribe(authDecision -> System.out.println(authDecision.getDecision()));
 ----
 The console output should be `PERMIT`. With subject set to `"alice"` instead of `"admin"`, the output should be `DENY`.
 
@@ -220,18 +220,18 @@ image::SAPL_Architecture.svg[SAPL Architecture]
 
 === Policy Enforcement Point (PEP)
 
-The PEP is a software entity which intercepts actions taken by users within an application. Its task is to obtain a decision whether the requested action should be allowed and accordingly either let the application process the action or deny access. For this purpose the PEP includes data describing the request context (like the subject, the resource, the action and other environment information) in a request object which the PEP hands over to a PDP. The PEP subsequently receives a response object containing a decision as well as optionally a resource, obligations and advice. 
+The PEP is a software entity which intercepts actions taken by users within an application. Its task is to obtain a decision whether the requested action should be allowed and accordingly either let the application process the action or deny access. For this purpose the PEP includes data describing the subscription context (like the subject, the resource, the action and other environment information) in an authorization subscription object which the PEP hands over to a PDP. The PEP subsequently receives an authorization decision object containing a decision as well as optionally a resource, obligations and advice.
 
-The PEP must let the application process the action if and only if the decision is `PERMIT`. If the response object also contains an `obligation` the PEP must fulfill this obligation. Proper fulfillment is an additional requirement for granting access. In case the decision is not `PERMIT` or the obligation cannot be fulfilled, access has to be denied. Since policies may contain instructions to alter the resource (like blackening certain information, e.g., credit card numbers) the PEP should ensure that the application only reveals the resource contained in the response object if one is returned. 
+The PEP must let the application process the action if and only if the decision is `PERMIT`. If the authorization decision object also contains an `obligation` the PEP must fulfill this obligation. Proper fulfillment is an additional requirement for granting access. In case the decision is not `PERMIT` or the obligation cannot be fulfilled, access has to be denied. Since policies may contain instructions to alter the resource (like blackening certain information, e.g., credit card numbers) the PEP should ensure that the application only reveals the resource contained in the authorization decision object if one is returned.
 
 [NOTE]
-A PEP strongly depends on the application domain. SAPL comes with a default PEP implementation using a passed in constraint handler service to handle obligations and advices contained in a response. In the future, more generic PEPs integrating with various platforms (e.g., spring security) will be provided.
+A PEP strongly depends on the application domain. SAPL comes with a default PEP implementation using a passed in constraint handler service to handle obligations and advices contained in an authorization decision. In the future, more generic PEPs integrating with various platforms (e.g., spring security) will be provided.
 
 === Policy Decision Point (PDP)
 
-The PDP has to make an authorization decision based on a request object and the access policies which it receives from a *Policy Retrieval Point (PRP)* connected to a policy store. Beginning with the request object the PDP fetches policy sets and policies matching the request, evaluates them and combines the results to create and return a response object. As there may be multiple matching policies which might evaluate to different results the PDP needs to be configured with a *combining algorithm* (e.g., `permit-overrides` stating that the decision will be `permit` if any applicable policy evaluates to `permit`).
+The PDP has to make an authorization decision based on an authorization subscription object and the access policies which it receives from a *Policy Retrieval Point (PRP)* connected to a policy store. Beginning with the authorization subscription object the PDP fetches policy sets and policies matching the authorization subscription, evaluates them and combines the results to create and return an authorization decision object. As there may be multiple matching policies which might evaluate to different results the PDP needs to be configured with a *combining algorithm* (e.g., `permit-overrides` stating that the decision will be `permit` if any applicable policy evaluates to `permit`).
 
-A policy may refer to attributes which are not included in the request object and have to be obtained from external *Policy Information Points (PIP)*. The PDP fetches those attributes while evaluating the policy. To be able to access external PIPs the PDP can be extended by custom attribute finders. Policies might also contain functions not included in the default SAPL implementation. Such custom functions can be added through *Policy Function Providers (PFP)*.
+A policy may refer to attributes which are not included in the authorization subscription object and have to be obtained from external *Policy Information Points (PIP)*. The PDP fetches those attributes while evaluating the policy. To be able to access external PIPs the PDP can be extended by custom attribute finders. Policies might also contain functions not included in the default SAPL implementation. Such custom functions can be added through *Policy Function Providers (PFP)*.
 
 SAPL provides two simple PDP implementations: An *embedded PDP* with an embedded PRP which can be integrated easily into a Java application and a *remote PDP client* which obtains decisions through a RESTful interface.  
 
@@ -240,17 +240,17 @@ SAPL provides two simple PDP implementations: An *embedded PDP* with an embedded
 The PAP is an entity which allows managing policies contained in the policy store. In the embedded PDP with the Resources PRP the policy store can be a simple folder within the local file system containing `.sapl` files. Therefore any access to files in this folder (e.g., FTP or SSH) can be seen as a very simple PAP. The PAP may be a separate application or be included in an existing administration panel.
 
 
-== Request / Response Protocol
+== Publish / Subscribe Protocol
 
-The PDP receives a request from a PEP and sends a response. Both request and response are JSON objects consisting of name/value pairs (also called attributes) with predefined names. A PEP must be able to create a request and to process a response object.
+The PDP receives an authorization subscription from a PEP and sends an authorization decision. Both subscription and decision are JSON objects consisting of name/value pairs (also called attributes) with predefined names. A PEP must be able to create an authorization subscription and to process an authorization decision object.
 
-=== SAPL Request
+=== SAPL Authorization Subscription
 
-A SAPL request contains attributes with the names `subject`, `resource`, `action` and `environment`. Each attribute value can be any JSON value (i.e., an object, an array, a number, a string, `true`, `false` or `null`).
+A SAPL authorization subscription contains attributes with the names `subject`, `resource`, `action` and `environment`. Each attribute value can be any JSON value (i.e., an object, an array, a number, a string, `true`, `false` or `null`).
 
-=== SAPL Response
+=== SAPL Authorization Decision
 
-The SAPL response contains the attributes `decision`, `resource`, `obligation` and `advice`.
+The SAPL authorization decision contains the attributes `decision`, `resource`, `obligation` and `advice`.
 
 ==== Decision
 
@@ -258,28 +258,28 @@ The `decision` tells the PEP whether to grant or deny access. Access should be g
 
 * `"PERMIT"`: Access must be granted.
 * `"DENY"`: Access must be denied.
-* `"NOT_APPLICABLE"`: A decision could not be made because no policy is applicable to the request.
+* `"NOT_APPLICABLE"`: A decision could not be made because no policy is applicable to the authorization subscription.
 * `"INDETERMINATE"`: A decision could not be made because an error occurred.
 
 ==== Resource
 
-The PEP knows which resource it requested access for. Thus there usually is no need for returning this resource in the response object. However SAPL policies may contain a `transform` statement describing how the resource needs to be altered before it is returned to the subject seeking permission. This can be used to remove or blacken certain parts of the resource document (e.g., a policy could allow doctors to view patient data but remove any bank account details as they can only be accessed by the accounting department). If a policy which evaluates to `PERMIT` contains a `transform` statement, the response attribute `resource` contains the transformed resource. Otherwise there will not be a `resource` attribute in the response object.
+The PEP knows which resource it requested access for. Thus there usually is no need for returning this resource in the authorization decision object. However SAPL policies may contain a `transform` statement describing how the resource needs to be altered before it is returned to the subject seeking permission. This can be used to remove or blacken certain parts of the resource document (e.g., a policy could allow doctors to view patient data but remove any bank account details as they can only be accessed by the accounting department). If a policy which evaluates to `PERMIT` contains a `transform` statement, the authorization decision attribute `resource` contains the transformed resource. Otherwise there will not be a `resource` attribute in the authorization decision object.
 
 ==== Obligation
 
-The value of `obligation` contains assignments which the PEP must fulfill before granting or denying access. As there can be multiple policies applicable to the request with different obligations, the `obligation` value in the response object is an array containing a list of tasks. If the PEP is not able to fulfill these tasks access must not be granted. The array items can be any JSON value (e.g., a string or an object). Consequently the PEP must know how to identify and process the obligations contained in the policies. An `obligation` attribute is only included in the response object if there is at least one obligation.
+The value of `obligation` contains assignments which the PEP must fulfill before granting or denying access. As there can be multiple policies applicable to the authorization subscription with different obligations, the `obligation` value in the authorization decision object is an array containing a list of tasks. If the PEP is not able to fulfill these tasks access must not be granted. The array items can be any JSON value (e.g., a string or an object). Consequently the PEP must know how to identify and process the obligations contained in the policies. An `obligation` attribute is only included in the authorization decision object if there is at least one obligation.
 
-A response could, for example, contain the obligation to create a log entry.
+A authorization decision could, for example, contain the obligation to create a log entry.
 
 ==== Advice
 
-The value of `advice` is an array with assignments for the PEP as well and works similar to obligations except for one difference: The fulfillment of the tasks is no requirement for granting access. I.e., in case the `decision` is `PERMIT`, the PEP should also grant access if it can not fulfill the tasks contained in `advice`. An `advice` attribute is only included in the response object if there is at least one advice.
+The value of `advice` is an array with assignments for the PEP as well and works similar to obligations except for one difference: The fulfillment of the tasks is no requirement for granting access. I.e., in case the `decision` is `PERMIT`, the PEP should also grant access if it can not fulfill the tasks contained in `advice`. An `advice` attribute is only included in the authorization decision object if there is at least one advice.
 
 In addition to the obligation to create a log entry, a policy could specify the advice to inform the system administrator via email about the access.
 
 === Policy Evaluation
 
-To come to the final decision included in the response object, the PDP evaluates all existing policy sets and top level policies (i.e., policies which are not part of a policy set) against the request and combines the results. Each individual policy set and policy evaluates to `PERMIT`, `DENY`, `NOT_APPLICABLE` or `INDETERMINATE` (see <<evaluation,below>>). The PDP can be configured with a *combining algorithm* which determines how to deal with multiple results. E.g., if access should only be granted if at least one policy evaluates to `PERMIT` and should be denied otherwise, the algorithm `deny-unless-permit` could be used.
+To come to the final decision included in the authorization decision object, the PDP evaluates all existing policy sets and top level policies (i.e., policies which are not part of a policy set) against the authorization subscription and combines the results. Each individual policy set and policy evaluates to `PERMIT`, `DENY`, `NOT_APPLICABLE` or `INDETERMINATE` (see <<evaluation,below>>). The PDP can be configured with a *combining algorithm* which determines how to deal with multiple results. E.g., if access should only be granted if at least one policy evaluates to `PERMIT` and should be denied otherwise, the algorithm `deny-unless-permit` could be used.
 
 Available combining algorithms for the PDP are:
 
@@ -294,58 +294,58 @@ The algorithm `first-applicable` is not available for the PDP since the PDP's co
 The combining algorithms are described in more detail <<combining-algorithms,later>>.
 
 
-== Multi-Requests
+== Multi-Subscriptions
 
-SAPL allows for bundling multiple requests into one multi-request. A multi-request is a JSON object with the following structure:
+SAPL allows for bundling multiple authorization subscriptions into one multi-subscription. A multi-subscription is a JSON object with the following structure:
 
 [source,json]
-.Multi-Requests - JSON Structure
+.Multi-Subscriptions - JSON Structure
 ----
 {
-  "subjects"     : ["bs@simpsons.com", "ms@simpsons.com"],
-  "actions"      : ["read"],
-  "resources"    : ["file://example/med/record/patient/BartSimpson",
-                    "file://example/med/record/patient/MaggieSimpson"],
-  "environments" : [],
+  "subjects"          : ["bs@simpsons.com", "ms@simpsons.com"],
+  "actions"           : ["read"],
+  "resources"         : ["file://example/med/record/patient/BartSimpson",
+                         "file://example/med/record/patient/MaggieSimpson"],
+  "environments"      : [],
 
-  "requests"     : {
-                     "req-1" : { "subjectId": 0, "actionId": 0, "resourceId": 0 },
-                     "req-2" : { "subjectId": 1, "actionId": 0, "resourceId": 1 }
-                   }
+  "authSubscriptions" : {
+                          "id-1" : { "subjectId": 0, "actionId": 0, "resourceId": 0 },
+                          "id-2" : { "subjectId": 1, "actionId": 0, "resourceId": 1 }
+                        }
 }
 ----
 
-It contains distinct lists of all subjects, actions, resources and environments referenced by the single requests being part of the multi-request. The requests themselves are stored in a map of request IDs pointing to an object defining a request by providing indexes into the four lists mentioned before.
+It contains distinct lists of all subjects, actions, resources and environments referenced by the single authorization subscriptions being part of the multi-subscription. The authorization subscriptions themselves are stored in a map of subscription IDs pointing to an object defining an authorization subscription by providing indexes into the four lists mentioned before.
 
-The multi-request shown in the example above contains two requests. The user `bs@simpsons.com` wants to `read` the file `file://example/med/record/patient/BartSimpson` and the user `ms@simpsons.com` wants to `read` the file `file://example/med/record/patient/MaggieSimpson`.
+The multi-subscription shown in the example above contains two authorization subscriptions. The user `bs@simpsons.com` wants to `read` the file `file://example/med/record/patient/BartSimpson` and the user `ms@simpsons.com` wants to `read` the file `file://example/med/record/patient/MaggieSimpson`.
 
-The SAPL PDP processes all individual requests contained in the multi-request in parallel and either returns the related responses as soon as they are available or it collects all the responses of the individual requests and returns them as a multi-response. In both cases the responses are associated with the request IDs of the related request. The following listings show the JSON structures of the two response types:
+The SAPL PDP processes all individual authorization subscriptions contained in the multi-subscription in parallel and either returns the related authorization decisions as soon as they are available or it collects all the authorization decisions of the individual authorization subscriptions and returns them as a multi-decision. In both cases the authorization decisions are associated with the subscription IDs of the related authorization subscription. The following listings show the JSON structures of the two authorization decision types:
 
 [source,json]
-.Single Response with Associated Request ID - JSON Structure
+.Single Authorization Decision with Associated Subscription ID - JSON Structure
 ----
 {
-  "requestId" : "req-1",
-  "response"  : {
-                  "decision" : "PERMIT",
-                  "resource" : { ... }
-                }
+  "authSubscriptionId" : "id-1",
+  "authDecision"       : {
+                           "decision" : "PERMIT",
+                           "resource" : { ... }
+                         }
 }
 ----
 
 [source,json]
-.Multi-Response - JSON Structure
+.Multi-Decision - JSON Structure
 ----
 {
-  "responses" : {
-                  "req-1" : {
-                              "decision" : "PERMIT",
-                              "resource" : { ... }
-                            },
-                  "req-2" : {
-                              "decision" : "DENY"
-                            }
-                }
+  "authDecisions" : {
+                      "id-1" : {
+                                 "decision" : "PERMIT",
+                                 "resource" : { ... }
+                               },
+                      "id-2" : {
+                                 "decision" : "DENY"
+                               }
+                    }
 }
 ----
 
@@ -353,7 +353,7 @@ The SAPL PDP processes all individual requests contained in the multi-request in
 
 SAPL defines a feature-rich domain specific language (DSL) for creating access policies. 
 
-Those access policies describe when access requests will be granted and when access will be denied. The underlying concept to describe these permissions is an attribute-based access control model (ABAC): A SAPL request is a JSON object with the attributes `subject`, `action`, `resource` and `environment` each with an assigned JSON value. Each of these values may be a JSON object itself containing multiple attributes. Policies can make use of boolean conditions referring to those attributes (e.g., `subject.username == "admin"`).
+Those access policies describe when access requests will be granted and when access will be denied. The underlying concept to describe these permissions is an attribute-based access control model (ABAC): A SAPL authorization subscription is a JSON object with the attributes `subject`, `action`, `resource` and `environment` each with an assigned JSON value. Each of these values may be a JSON object itself containing multiple attributes. Policies can make use of boolean conditions referring to those attributes (e.g., `subject.username == "admin"`).
 
 However a role based access control (RBAC) system in which permissions are assigned to a certain role and roles can be assigned to users can be created with SAPL as well. 
 
@@ -459,7 +459,7 @@ policy "sample"
 
 [[policy]]
 
-This section describes the elements of a SAPL policy in more detail. A policy contains an entitlement (`permit` or `deny`) and can be evaluated against a request. If the conditions in the target expression and in the body are fulfilled, the policy evaluates to its entitlement. Otherwise it evaluates to `NOT_APPLICABLE` (if one of the conditions is not satisfied) or `INDETERMINATE` (if an error occurred).
+This section describes the elements of a SAPL policy in more detail. A policy contains an entitlement (`permit` or `deny`) and can be evaluated against an authorization subscription. If the conditions in the target expression and in the body are fulfilled, the policy evaluates to its entitlement. Otherwise it evaluates to `NOT_APPLICABLE` (if one of the conditions is not satisfied) or `INDETERMINATE` (if an error occurred).
 
 A SAPL policy starts with the keyword `policy`.
 
@@ -469,7 +469,7 @@ The keyword `policy` is followed by the policy name. The name is a string _ident
 
 ==== Entitlement
 
-SAPL expects an entitlement specification. This can either be `permit` or `deny`. The entitlement is the value which the policy evaluates to if the policy is applicable to the request, i.e., if both the conditions in the policy's target expression and in the policy body are satisfied.
+SAPL expects an entitlement specification. This can either be `permit` or `deny`. The entitlement is the value which the policy evaluates to if the policy is applicable to the authorization subscription, i.e., if both the conditions in the policy's target expression and in the policy body are satisfied.
 
 [NOTE]
 Since multiple policies can be applicable and the combining algorithm can be chosen, it might make a difference whether there is an explicit `deny`-policy or whether there is just no permitting policy for a certain situation.
@@ -478,9 +478,9 @@ Since multiple policies can be applicable and the combining algorithm can be cho
 
 Subsequent to the entitlement, an *optional* target expression can be specified. This is a condition for applying the policy, hence an expression which must evaluate to either `true` or `false`. Which elements are allowed in SAPL expressions is described <<expressions,below>>. 
 
-If the target expression evaluates to `true` for a certain request, the policy _matches_ this request. A missing target expression makes the policy match any request.
+If the target expression evaluates to `true` for a certain authorization subscription, the policy _matches_ this subscription. A missing target expression makes the policy match any subscription.
 
-A matching policy whose conditions in the body evaluate to `true` is called _applicable_ to a request and returns its entitlement. Both target expression and body define conditions which must be satisfied for the policy to be applicable. Although they seem to serve a similar purpose there is an important difference: For a request the target expression of each top level document is checked in order to select policies matching the request from a possibly large set of policy documents. Indexing mechanisms may be used to fulfill this task efficiently.
+A matching policy whose conditions in the body evaluate to `true` is called _applicable_ to an authorization subscription and returns its entitlement. Both target expression and body define conditions which must be satisfied for the policy to be applicable. Although they seem to serve a similar purpose there is an important difference: For an authorization subscription the target expression of each top level document is checked in order to select policies matching the subscription from a possibly large set of policy documents. Indexing mechanisms may be used to fulfill this task efficiently.
 
 Accordingly, there are two limitations regarding the elements allowed in the target:
 
@@ -489,7 +489,7 @@ Accordingly, there are two limitations regarding the elements allowed in the tar
 
 ==== Body
 
-The policy body is *optional* and starts with the keyword `where`. It contains one or more statements each of which must evaluate to `true` for the policy to apply to a certain request. Accordingly the body extends the condition in the target expression and further limits the policy's applicability.
+The policy body is *optional* and starts with the keyword `where`. It contains one or more statements each of which must evaluate to `true` for the policy to apply to a certain authorization subscription. Accordingly the body extends the condition in the target expression and further limits the policy's applicability.
 
 A statement within the body can either be a variable assignment which makes a variable available under a certain name (and always evaluates to `true`)
 
@@ -507,7 +507,7 @@ Each statement is concluded with a semicolon `;`.
 
 There are no restrictions on the syntax elements allowed in the policy body. Lazy evaluation is used for the conjunction of the statements - i.e., if one statement evaluates to `false`, the policy returns the deicision `NOT_APPLICABLE`, even if future statements would cause an error.
 
-If the body is missing (or does not contain any condition statement) the policy is applicable to any request which the policy matches (i.e., for which the target expression evaluates to `true`).
+If the body is missing (or does not contain any condition statement) the policy is applicable to any authorization subscription which the policy matches (i.e., for which the target expression evaluates to `true`).
 
 ===== Variable Assignment
 
@@ -533,17 +533,17 @@ An *optional* obligation expression contains a task which the PEP must fulfill b
 
 A common situation in which obligations are useful are _Break the Glass Scenarios_. Assuming in case of an emergency a doctor should also have access to medical records that she normally cannot read. However this emergency access has to be logged in order to prevent abuse. In this situation, logging is a requirement for granting access and therefore must be commanded in an obligation.
 
-Obligations are only returned in the response if the decision is `PERMIT` or `DENY`. The PDP simply collects all obligations from policies evaluating to one of these entitlements. Depending on the final decision, the obligations and advice which belong to this decision are included in the response object. It does not matter if the obligation is described with a string (like `"create_emergency_access_log"`) or an object (like `{ "task" : "create_log", "content" : "emergency_access" }`) or another JSON value - only the PEP must be implemented in a way that it knows how to process these obligations.
+Obligations are only returned in the authorization decision if the decision is `PERMIT` or `DENY`. The PDP simply collects all obligations from policies evaluating to one of these entitlements. Depending on the final decision, the obligations and advice which belong to this decision are included in the authorization decision object. It does not matter if the obligation is described with a string (like `"create_emergency_access_log"`) or an object (like `{ "task" : "create_log", "content" : "emergency_access" }`) or another JSON value - only the PEP must be implemented in a way that it knows how to process these obligations.
 
 ==== Advice
 
 An *optional* advice expression is treated similarly to an obligation expression. Unlike obligations, fulfilling the described tasks in advice is not a requirement for granting or denying access. The advice expression consists of the keyword `advice` followed by any expression.
 
-If the final decision is `PERMIT` or `DENY`, advice from all policies evaluating to this decision is included in the response object by the PDP. 
+If the final decision is `PERMIT` or `DENY`, advice from all policies evaluating to this decision is included in the authorization decision object by the PDP.
 
 ==== Transformation
 
-An *optional* transformation statement is preluded with the keyword `transform` and followed by an expression. If a transformation statement is supplied and the policy evaluates to `permit`, the result of evaluating the expression will be returned as `resource` in the response object.
+An *optional* transformation statement is preluded with the keyword `transform` and followed by an expression. If a transformation statement is supplied and the policy evaluates to `permit`, the result of evaluating the expression will be returned as `resource` in the authorization decision object.
 
 Accordingly, a transformation statement might be used to hide certain information (e.g., _a doctor can access patient data but should not see bank account details_). This can be reached by applying a filter to the original resource which removes or blackens certain attributes. Thus SAPL allows for *fine grained* or *field level* access control without the need to treat each attribute as a resource and write an own policy for it.
 
@@ -565,7 +565,7 @@ It is not possible to combine multiple transformation statements through multipl
 
 === SAPL Policy Set
 
-While a policy can either be a top level SAPL document or be contained in a policy set, policy sets are always top level documents. I.e., for evaluating a request, the PDP evaluates any existing policy set. Policy sets are evaluated against a request by checking their target expression, if applicable evaluating their policies and if necessary combining multiple decision according to a combining algorithm specified in the policy set. Finally, similar to policies, policy sets evaluate to either `PERMIT`, `DENY`, `NOT_APPLICABLE` or `INDETERMINATE`.
+While a policy can either be a top level SAPL document or be contained in a policy set, policy sets are always top level documents. I.e., for evaluating an authorization subscription, the PDP evaluates any existing policy set. Policy sets are evaluated against an authorization subscription by checking their target expression, if applicable evaluating their policies and if necessary combining multiple decision according to a combining algorithm specified in the policy set. Finally, similar to policies, policy sets evaluate to either `PERMIT`, `DENY`, `NOT_APPLICABLE` or `INDETERMINATE`.
 
 Policy sets are used to structure multiple policies and provide an order for the policies they contain. Thus their policies can be evaluated one after another.
 
@@ -592,7 +592,7 @@ The combining algorithms are described in more detail <<combining-algorithms,lat
 
 ==== Target Expression
 
-Subsequent to the combining algorithm, an *optional* target expression can be specified. The target expression is a condition for applying the policy set. It starts with the keyword `for` followed by an expression which must evaluate to either `true` or `false`. If the condition evaluates to `true` for a certain request the policy set _matches_ this request. In case the target expression is missing the policy set matches any request.
+Subsequent to the combining algorithm, an *optional* target expression can be specified. The target expression is a condition for applying the policy set. It starts with the keyword `for` followed by an expression which must evaluate to either `true` or `false`. If the condition evaluates to `true` for a certain authorization subscription the policy set _matches_ this subscription. In case the target expression is missing the policy set matches any authorization subscription.
 
 The policy sets' target expression is used to select matching policy sets from a large collection of policy documents before evaluating them. As this needs to be done efficiently, there are no <<attribute finder steps>> allowed at this place. 
 
@@ -712,7 +712,7 @@ A *basic expression* is either a
 [[basic-relative]]
 
 * *Value Expression*: a value explicitly defined in the corresponding JSON notation (e.g. `"a value"`)
-* *Identifier Expression*: the name of a variable or of a request attribute (`subject`, `resource`, `action` or `environment`)
+* *Identifier Expression*: the name of a variable or of a authorization subscription attribute (`subject`, `resource`, `action` or `environment`)
 * *Function Expression*: a function call (e.g. `simple.get_minimum(resource.array)`)
 * *Relative Expression*: `@`, which refers to a certain value depending on the context
 * *Grouped Expression*: any expression enclosed in parantheses, e.g. `(1 + 1)`
@@ -747,7 +747,7 @@ For arrays the items can be any expression, e.g.
 ===== Identifier Expressions
 
 
-A basic identifier expression consists of the name of a variable or the name of a request attribute (i.e., `subject`, `resource`, `action` or `environment`).
+A basic identifier expression consists of the name of a variable or the name of an authorization subscription attribute (i.e., `subject`, `resource`, `action` or `environment`).
 
 It evaluates to the variable's or the attribute's value.
 
@@ -1087,7 +1087,7 @@ Applied to an object
 
 ====== Attribute Finder `.<finder.name>`
 
-In SAPL it is possible to receive attributes which are not contained in the request. Those attributes can be provided by external PIPs and obtained through attribute finders. An attribute finder is called via the selection step `.<finder.name>`. `finder.name` either is a fully qualified attribute finder name or can be a shorter name if imports are used (the finder name or the library alias followed by a period `.` and the finder name). 
+In SAPL it is possible to receive attributes which are not contained in the authorization subscription. Those attributes can be provided by external PIPs and obtained through attribute finders. An attribute finder is called via the selection step `.<finder.name>`. `finder.name` either is a fully qualified attribute finder name or can be a shorter name if imports are used (the finder name or the library alias followed by a period `.` and the finder name).
 
 The attribute finder receives the result of the previous selection as an argument and returns a JSON value. 
 
@@ -1288,17 +1288,17 @@ would evaluate to:
 ****
 
 
-== Request Evaluation
+== Authorization Subscription Evaluation
 
 [[evaluation]]
 
-For any authorization request the PDP evaluates each top level SAPL document against the request and combines the decisions. If a top level document is a policy set, it contains multiple policies which have to be evaluated first. Their decisions are combined to form an evaluation decision for the policy set. Finally a resource might be added to the final result as well as obligations and advice.
+For any authorization subscription the PDP evaluates each top level SAPL document against the subscription and combines the decisions. If a top level document is a policy set, it contains multiple policies which have to be evaluated first. Their decisions are combined to form an evaluation decision for the policy set. Finally a resource might be added to the final result as well as obligations and advice.
 
 The underlying concept assumes that during evaluation, a decision is assigned to each document. This process will be explained in the following sections.
 
 === Policy
 
-Evaluating a policy against a request means assigning a value of `NOT_APPLICABLE`, `INDETERMINATE`, `PERMIT` and `DENY` to it. The assigned value depends on the result of evaluating the policy's target and condition (which are conditions that can either be `true` or `false`):
+Evaluating a policy against an authorization subscription means assigning a value of `NOT_APPLICABLE`, `INDETERMINATE`, `PERMIT` and `DENY` to it. The assigned value depends on the result of evaluating the policy's target and condition (which are conditions that can either be `true` or `false`):
 
 [cols="a,a,a"]
 .Policy Evaluation Table
@@ -1352,11 +1352,11 @@ A decision value (`NOT_APPLICABLE`, `INDETERMINATE`, `PERMIT` or `DENY`) can als
 // Todo: In XACML, Policy set can also be not applicable if evaluation of target is indeterminate and combining algorithm evaluates to not-applicable. Would be a part for the PRP (set errorsInTarget Flag)
 |===
 
-=== Request
+=== Authorization Subscription
 
-The value which is assigned to the request, i.e., the final authorization decision to be returned by the PDP, is the result of applying a combining algorithm to the values assigned to all top level SAPL documents.
+The value which is assigned to the authorization subscription, i.e., the final authorization decision to be returned by the PDP, is the result of applying a combining algorithm to the values assigned to all top level SAPL documents.
 
-Finally in case the decision is `PERMIT` and there is a `transform` statement, the transformed resource is added to the response. Additionally there might be obligation and advice contained in the policies which has to be added to the response.
+Finally in case the decision is `PERMIT` and there is a `transform` statement, the transformed resource is added to the authorization decision. Additionally there might be obligation and advice contained in the policies which has to be added to the authorization decision.
 
 
 === Combining Algorithm
@@ -1365,7 +1365,7 @@ Finally in case the decision is `PERMIT` and there is a `transform` statement, t
 There are two layers with possibly multiple decisions which finally need to be consolidated in a single decision:
 
 * A policy set might contain multiple policies evaluating to different decisions. There must be a final decision for the policy set (_Policy Combination_).
-* The PDP might know multiple policy sets and policies which may evaluate to different decisions. In the end the PDP has to include a final decision in the SAPL response (_Document Combination_).
+* The PDP might know multiple policy sets and policies which may evaluate to different decisions. In the end the PDP has to include a final decision in the SAPL authorization decision (_Document Combination_).
 
 A combining algorithm describes how to come to the final decision. Both the PDP itself and each policy set have to be configured with a combining algorithm.
 
@@ -1456,13 +1456,13 @@ It works as follows:
 
 === Transformation
 
-A policy with entitlement `permit` can contain a transformation statement. If the decision is `PERMIT` and there is a policy evaluating to `PERMIT` with transformation, the result of evaluating the expression after the keyword `transform` is returned as `resource` in the response.
+A policy with entitlement `permit` can contain a transformation statement. If the decision is `PERMIT` and there is a policy evaluating to `PERMIT` with transformation, the result of evaluating the expression after the keyword `transform` is returned as `resource` in the authorization decision.
 
 The combining algorithms ensure that transformation is always unambiguous. Consequently, there either is exactly one transformation or none.
 
 === Obligation / Advice
 
-Finally obligation and advice might be added to the response. Both of them can be defined for each individual policy. If a final decision is `PERMIT` there can be multiple policies and policy sets evaluating to `PERMIT`, each of them containing an obligation and/or advice statement - same goes for `DENY`. The final response with a certain decision has to contain all obligation and advice from policy documents evaluating to this decision.
+Finally obligation and advice might be added to the authorization decision. Both of them can be defined for each individual policy. If a final decision is `PERMIT` there can be multiple policies and policy sets evaluating to `PERMIT`, each of them containing an obligation and/or advice statement - same goes for `DENY`. The final authorization decision with a certain decision has to contain all obligation and advice from policy documents evaluating to this decision.
 
 On the two levels (PDP and policy set), collection of obligation and advice works as follows:
 
@@ -1513,7 +1513,7 @@ Each parameter can be annotated with any number of `@Array`, `@Bool`, `@Int`, `@
 
 [[attribute-finders]]
 
-Attribute finders are used to receive attributes which are not included in the request context from external PIPs. Just like in `subject.age`, the selection step `.age` selects the attribute ``age``s value, `subject.<user.age>` could be used to fetch an `age` attribute which is not included in `subject` but can be obtained from a PIP named `user`.
+Attribute finders are used to receive attributes which are not included in the authorization subscription context from external PIPs. Just like in `subject.age`, the selection step `.age` selects the attribute ``age``s value, `subject.<user.age>` could be used to fetch an `age` attribute which is not included in `subject` but can be obtained from a PIP named `user`.
 
 Attribute finders are organized in libraries as well and follow the same naming conventions as functions, including the use of imports. An attribute finder library constitutes a PIP (e.g., `user`) and can contain any number of attributes (e.g., `age`). They are called by a selection step applied to any value, e.g., `subject.<user.age>`. The attribute finder step receives the previous selection result (in the example: `subject`) and returns the requested attribute.
 

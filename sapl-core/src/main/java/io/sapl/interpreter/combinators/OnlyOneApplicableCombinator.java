@@ -7,8 +7,8 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.Request;
-import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthSubscription;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
@@ -20,20 +20,20 @@ import reactor.core.publisher.Flux;
 public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyCombinator {
 
 	@Override
-	public Flux<Response> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
-			Request request, AttributeContext attributeCtx, FunctionContext functionCtx,
+	public Flux<AuthDecision> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
+			AuthSubscription authSubscription, AttributeContext attributeCtx, FunctionContext functionCtx,
 			Map<String, JsonNode> systemVariables) {
 
 		if (errorsInTarget || matchingSaplDocuments.size() > 1) {
-			return Flux.just(Response.INDETERMINATE);
+			return Flux.just(AuthDecision.INDETERMINATE);
 		}
 		else if (matchingSaplDocuments.size() == 1) {
 			final VariableContext variableCtx;
 			try {
-				variableCtx = new VariableContext(request, systemVariables);
+				variableCtx = new VariableContext(authSubscription, systemVariables);
 			}
 			catch (PolicyEvaluationException e) {
-				return Flux.just(Response.INDETERMINATE);
+				return Flux.just(AuthDecision.INDETERMINATE);
 			}
 			final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 
@@ -41,29 +41,29 @@ public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyC
 			return matchingDocument.evaluate(evaluationCtx);
 		}
 		else {
-			return Flux.just(Response.NOT_APPLICABLE);
+			return Flux.just(AuthDecision.NOT_APPLICABLE);
 		}
 	}
 
 	@Override
-	public Flux<Response> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
+	public Flux<AuthDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		Policy matchingPolicy = null;
 		for (Policy policy : policies) {
 			try {
 				if (policy.matches(ctx)) {
 					if (matchingPolicy != null) {
-						return Flux.just(Response.INDETERMINATE);
+						return Flux.just(AuthDecision.INDETERMINATE);
 					}
 					matchingPolicy = policy;
 				}
 			}
 			catch (PolicyEvaluationException e) {
-				return Flux.just(Response.INDETERMINATE);
+				return Flux.just(AuthDecision.INDETERMINATE);
 			}
 		}
 
 		if (matchingPolicy == null) {
-			return Flux.just(Response.NOT_APPLICABLE);
+			return Flux.just(AuthDecision.NOT_APPLICABLE);
 		}
 
 		return matchingPolicy.evaluate(ctx);

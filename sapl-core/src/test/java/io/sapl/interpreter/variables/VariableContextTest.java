@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.Request;
+import io.sapl.api.pdp.AuthSubscription;
 
 public class VariableContextTest {
 
@@ -49,10 +49,10 @@ public class VariableContextTest {
 
 	private static final String VAR_ID = "var";
 
-	private static final Request REQUEST_OBJECT = new Request(SUBJECT_NODE, ACTION_NODE, RESOURCE_NODE,
-			ENVIRONMENT_NODE);
+	private static final AuthSubscription AUTH_SUBSCRIPTION = new AuthSubscription(SUBJECT_NODE, ACTION_NODE,
+			RESOURCE_NODE, ENVIRONMENT_NODE);
 
-	private static final Request EMPTY_REQUEST_OBJECT = new Request(null, null, null, null);
+	private static final AuthSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthSubscription(null, null, null, null);
 
 	@Test
 	public void emtpyInitializationTest() {
@@ -61,8 +61,8 @@ public class VariableContextTest {
 	}
 
 	@Test
-	public void requestInitializationTest() throws PolicyEvaluationException {
-		VariableContext ctx = new VariableContext(REQUEST_OBJECT);
+	public void authSubscriptionInitializationTest() throws PolicyEvaluationException {
+		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
 		assertTrue("context was not created or did not remember values",
 				ctx != null && ctx.get("subject").equals(SUBJECT_NODE) && ctx.get("action").equals(ACTION_NODE)
 						&& ctx.get("resource").equals(RESOURCE_NODE)
@@ -70,8 +70,8 @@ public class VariableContextTest {
 	}
 
 	@Test
-	public void emptyRequestInitializationTest() throws PolicyEvaluationException {
-		VariableContext ctx = new VariableContext(EMPTY_REQUEST_OBJECT);
+	public void emptyauthSubscriptionInitializationTest() throws PolicyEvaluationException {
+		VariableContext ctx = new VariableContext(EMPTY_AUTH_SUBSCRIPTION);
 		assertTrue("context was not created or did not remember values",
 				ctx != null && ctx.get("subject").equals(NULL_NODE) && ctx.get("action").equals(NULL_NODE)
 						&& ctx.get("resource").equals(NULL_NODE) && ctx.get("environment").equals(NULL_NODE));
@@ -79,20 +79,20 @@ public class VariableContextTest {
 
 	@Test
 	public void notExistsTest() throws PolicyEvaluationException {
-		VariableContext ctx = new VariableContext(REQUEST_OBJECT);
+		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
 		assertFalse("var should not be existing in freshly created context", ctx.exists(VAR_ID));
 	}
 
 	@Test
 	public void existsTest() throws PolicyEvaluationException {
-		VariableContext ctx = new VariableContext(REQUEST_OBJECT);
+		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
 		ctx.put(VAR_ID, VAR_NODE);
 		assertTrue("var should be existing in freshly created context", ctx.get(VAR_ID).equals(VAR_NODE));
 	}
 
 	@Test
 	public void doubleRegistrationOverwrite() throws PolicyEvaluationException {
-		VariableContext ctx = new VariableContext(REQUEST_OBJECT);
+		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
 		ctx.put(VAR_ID, VAR_NODE);
 		ctx.put(VAR_ID, VAR_NODE_NEW);
 		assertTrue("", ctx.get(VAR_ID).equals(VAR_NODE_NEW));
@@ -100,7 +100,7 @@ public class VariableContextTest {
 
 	@Test(expected = PolicyEvaluationException.class)
 	public void failGetUndefined() throws PolicyEvaluationException {
-		VariableContext ctx = new VariableContext(REQUEST_OBJECT);
+		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
 		ctx.get(VAR_ID);
 	}
 

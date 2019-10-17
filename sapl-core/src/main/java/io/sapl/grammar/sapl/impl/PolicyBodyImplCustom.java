@@ -7,8 +7,8 @@ import java.util.Optional;
 import org.eclipse.emf.common.util.EList;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.pdp.AuthDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.Response;
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Statement;
 import io.sapl.grammar.sapl.ValueDefinition;
@@ -33,12 +33,13 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	 * <ul>
 	 * <li>the attribute context</li>
 	 * <li>the function context</li>
-	 * <li>the variable context holding the four request variables 'subject', 'action',
-	 * 'resource' and 'environment' combined with system variables from the PDP
-	 * configuration and other variables e.g. obtained from the containing policy set</li>
+	 * <li>the variable context holding the four authorization subscription variables
+	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
+	 * from the PDP configuration and other variables e.g. obtained from the containing
+	 * policy set</li>
 	 * <li>the import mapping for functions and attribute finders</li>
 	 * </ul>
-	 * @return A {@link Flux} of {@link Response} objects.
+	 * @return A {@link Flux} of {@link AuthDecision} objects.
 	 */
 	@Override
 	public Flux<Decision> evaluate(Decision entitlement, EvaluationContext ctx) {

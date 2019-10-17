@@ -17,8 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import io.sapl.api.interpreter.PolicyEvaluationException
 import io.sapl.api.pdp.Decision
-import io.sapl.api.pdp.Request
-import io.sapl.api.pdp.Response
+import io.sapl.api.pdp.AuthSubscription
+import io.sapl.api.pdp.AuthDecision
 import io.sapl.functions.FilterFunctionLibrary
 import io.sapl.functions.SelectionFunctionLibrary
 import io.sapl.interpreter.DefaultSAPLInterpreter
@@ -56,7 +56,7 @@ class DefaultSAPLInterpreterTransformationTest {
 	@Test
 	def void simpleTransformationWithComment() throws PolicyEvaluationException {
 		assertThat("simple transformation with comment not working as expected", INTERPRETER.evaluate(
-			new Request(null, null, null, null),
+			new AuthSubscription(null, null, null, null),
 			'''
 				policy "test" 
 					permit 
@@ -67,18 +67,18 @@ class DefaultSAPLInterpreterTransformationTest {
 			ATTRIBUTE_CTX,
 			FUNCTION_CTX,
 			SYSTEM_VARIABLES
-		).blockFirst(), equalTo(new Response(Decision.PERMIT, Optional.of(MAPPER.readValue('''
+		).blockFirst(), equalTo(new AuthDecision(Decision.PERMIT, Optional.of(MAPPER.readValue('''
 			"teststring"
 		''', JsonNode)), Optional.empty(), Optional.empty())));
 	}
 
 	@Test
 	def void simpleFiltering() throws PolicyEvaluationException {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":"teststring"
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -91,19 +91,19 @@ class DefaultSAPLInterpreterTransformationTest {
 			"XXXXXXXXXX"
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("simple filtering not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 	@Test
 	def void simpleArrayCondition() throws PolicyEvaluationException {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":[1,2,3,4,5]
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -116,15 +116,15 @@ class DefaultSAPLInterpreterTransformationTest {
 			[1,3,4,5]
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("simple filtering not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 		
 	@Test
 	def void conditionTransformation() throws PolicyEvaluationException {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":{
 					"array":[
@@ -143,7 +143,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					]
 				}
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -169,15 +169,15 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("transformation with condition not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 	@Test
 	def void conditionSubtemplateFiltering() {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":{
 					"array":[
@@ -196,7 +196,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					]
 				}
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -222,15 +222,15 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("transformation with condition, subtemplate and simple filtering not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 	@Test
 	def void conditionFilteringRules() {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":{
 					"array":[
@@ -249,7 +249,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					]
 				}
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -277,15 +277,15 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("transformation with several filtering rules not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 	@Test
 	def void arrayLast() {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":{
 					"array":[
@@ -297,7 +297,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					]
 				}
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -314,15 +314,15 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("array slicing (last element) not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 	@Test
 	def void arraySlicing1() {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":{
 					"array":[
@@ -334,7 +334,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					]
 				}
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -355,15 +355,15 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("array slicing not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 	@Test
 	def void arraySlicing2() {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":{
 					"array":[
@@ -375,7 +375,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					]
 				}
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -395,15 +395,15 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("array slicing not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 	@Test
 	def void arrayExpressionMultipleIndices() {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":{
 					"array":[
@@ -416,7 +416,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					"a_number":1
 				}
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -436,15 +436,15 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("array selection by expression and multiple indices not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 	@Test
 	def void arrayExplicitEach() {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":{
 					"array":[
@@ -452,7 +452,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					]
 				}
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -471,15 +471,15 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("array with explicit each not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 	@Test
 	def void arrayMultidimensional() {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":{
 					"array":[
@@ -489,7 +489,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					]
 				}
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -510,15 +510,15 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("filtering through object arrays not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 	@Test
 	def void recursiveDescent() {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":{
 					"array":[
@@ -528,7 +528,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					]
 				}
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -541,15 +541,15 @@ class DefaultSAPLInterpreterTransformationTest {
 			["1","2","3"]
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("recursive descent operator not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 	@Test
 	def void recursiveDescentInFilterRemove() {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":{
 					"array":[
@@ -560,7 +560,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					"value":"4"
 				}
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -581,15 +581,15 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("recursive descent operator in filter (remove) not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 	@Test
 	def void filterReplace() {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"resource":{
 					"array":[
@@ -600,7 +600,7 @@ class DefaultSAPLInterpreterTransformationTest {
 					"name":"Tom Doe"
 				}
 			}
-		''', Request);
+		''', AuthSubscription);
 
 		val policyDefinition = '''
 			policy "test" 
@@ -622,10 +622,10 @@ class DefaultSAPLInterpreterTransformationTest {
 			}
 		''', JsonNode);
 
-		val expectedResponse = new Response(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 		assertThat("function replace() applied with recursive descent selector not working as expected",
-			INTERPRETER.evaluate(request, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 
 }

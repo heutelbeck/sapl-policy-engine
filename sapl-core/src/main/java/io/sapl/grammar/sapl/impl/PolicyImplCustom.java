@@ -6,8 +6,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.pdp.AuthDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.Response;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -29,21 +29,22 @@ public class PolicyImplCustom extends PolicyImpl {
 
 	/**
 	 * Evaluates the body of the policy within the given evaluation context and returns a
-	 * {@link Flux} of {@link Response} objects.
+	 * {@link Flux} of {@link AuthDecision} objects.
 	 * @param ctx the evaluation context in which the policy's body is evaluated. It must
 	 * contain
 	 * <ul>
 	 * <li>the attribute context</li>
 	 * <li>the function context</li>
-	 * <li>the variable context holding the four request variables 'subject', 'action',
-	 * 'resource' and 'environment' combined with system variables from the PDP
-	 * configuration and other variables e.g. obtained from the containing policy set</li>
+	 * <li>the variable context holding the four authorization subscription variables
+	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
+	 * from the PDP configuration and other variables e.g. obtained from the containing
+	 * policy set</li>
 	 * <li>the import mapping for functions and attribute finders</li>
 	 * </ul>
-	 * @return A {@link Flux} of {@link Response} objects.
+	 * @return A {@link Flux} of {@link AuthDecision} objects.
 	 */
 	@Override
-	public Flux<Response> evaluate(EvaluationContext ctx) {
+	public Flux<AuthDecision> evaluate(EvaluationContext ctx) {
 		final EvaluationContext policyCtx = ctx.copy();
 		final Decision entitlement = PERMIT.equals(getEntitlement()) ? Decision.PERMIT : Decision.DENY;
 		final Flux<Decision> decisionFlux = getBody() != null ? getBody().evaluate(entitlement, policyCtx)
@@ -54,20 +55,20 @@ public class PolicyImplCustom extends PolicyImpl {
 				return evaluateObligationsAndAdvice(policyCtx).map(obligationsAndAdvice -> {
 					final Optional<ArrayNode> obligations = obligationsAndAdvice.getT1();
 					final Optional<ArrayNode> advice = obligationsAndAdvice.getT2();
-					return new Response(decision, Optional.empty(), obligations, advice);
+					return new AuthDecision(decision, Optional.empty(), obligations, advice);
 				});
 			}
 			else {
-				return Flux.just(new Response(decision));
+				return Flux.just(new AuthDecision(decision));
 			}
-		}).flatMap(response -> {
-			final Decision decision = response.getDecision();
+		}).flatMap(authDecision -> {
+			final Decision decision = authDecision.getDecision();
 			if (decision == Decision.PERMIT) {
-				return evaluateTransformation(policyCtx).map(
-						resource -> new Response(decision, resource, response.getObligations(), response.getAdvices()));
+				return evaluateTransformation(policyCtx).map(resource -> new AuthDecision(decision, resource,
+						authDecision.getObligations(), authDecision.getAdvices()));
 			}
 			else {
-				return Flux.just(response);
+				return Flux.just(authDecision);
 			}
 		}).onErrorReturn(INDETERMINATE);
 	}

@@ -5,7 +5,7 @@ import java.util.List;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.AuthDecision;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ import reactor.core.publisher.Flux;
 public class FirstApplicableCombinator implements PolicyCombinator {
 
 	@Override
-	public Flux<Response> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
+	public Flux<AuthDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		final List<Policy> matchingPolicies = new ArrayList<>();
 		for (Policy policy : policies) {
 			try {
@@ -25,26 +25,25 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 				}
 			}
 			catch (PolicyEvaluationException e) {
-				return Flux.just(Response.INDETERMINATE);
+				return Flux.just(AuthDecision.INDETERMINATE);
 			}
 		}
 
 		if (matchingPolicies.isEmpty()) {
-			return Flux.just(Response.NOT_APPLICABLE);
+			return Flux.just(AuthDecision.NOT_APPLICABLE);
 		}
 
-		final List<Flux<Response>> responseFluxes = new ArrayList<>(matchingPolicies.size());
+		final List<Flux<AuthDecision>> authDecisionFluxes = new ArrayList<>(matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
-			responseFluxes.add(policy.evaluate(ctx));
+			authDecisionFluxes.add(policy.evaluate(ctx));
 		}
-		return Flux.combineLatest(responseFluxes, responses -> {
-			for (Object response : responses) {
-				final Response resp = (Response) response;
-				if (resp.getDecision() != Decision.NOT_APPLICABLE) {
-					return resp;
+		return Flux.combineLatest(authDecisionFluxes, authDecisions -> {
+			for (Object authDecision : authDecisions) {
+				if (((AuthDecision) authDecision).getDecision() != Decision.NOT_APPLICABLE) {
+					return (AuthDecision) authDecision;
 				}
 			}
-			return Response.NOT_APPLICABLE;
+			return AuthDecision.NOT_APPLICABLE;
 		}).distinctUntilChanged();
 	}
 

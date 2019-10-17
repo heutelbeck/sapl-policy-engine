@@ -15,10 +15,10 @@ import org.springframework.web.filter.GenericFilterBean;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.pdp.AuthSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.Request;
-import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.AuthDecision;
 import io.sapl.spring.constraints.ConstraintHandlerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,22 +41,23 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-		Response saplResponse = pdp.decide(buildRequest(authentication, req, req)).blockFirst();
+		AuthDecision authDecision = pdp.decide(buildRequest(authentication, req, req)).blockFirst();
 
-		LOGGER.trace("PDP response: {}", saplResponse);
+		LOGGER.trace("PDP decision: {}", authDecision);
 
-		if (saplResponse == null || saplResponse.getDecision() != Decision.PERMIT) {
+		if (authDecision == null || authDecision.getDecision() != Decision.PERMIT) {
 			LOGGER.trace("User was not authorized for this action. Decision was: {}",
-					saplResponse == null ? "null" : saplResponse.getDecision());
+					authDecision == null ? "null" : authDecision.getDecision());
 			throw new AccessDeniedException("Current User may not perform this action.");
 		}
-		constraintHandlers.handleObligations(saplResponse);
-		constraintHandlers.handleAdvices(saplResponse);
+		constraintHandlers.handleObligations(authDecision);
+		constraintHandlers.handleAdvices(authDecision);
 		chain.doFilter(req, response);
 	}
 
-	private Request buildRequest(Object subject, Object action, Object resource) {
-		return new Request(mapper.valueToTree(subject), mapper.valueToTree(action), mapper.valueToTree(resource), null);
+	private AuthSubscription buildRequest(Object subject, Object action, Object resource) {
+		return new AuthSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
+				mapper.valueToTree(resource), null);
 	}
 
 }

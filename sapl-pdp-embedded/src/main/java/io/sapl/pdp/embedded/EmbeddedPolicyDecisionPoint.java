@@ -12,14 +12,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthSubscription;
 import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.Request;
-import io.sapl.api.pdp.Response;
-import io.sapl.api.pdp.multirequest.IdentifiableRequest;
-import io.sapl.api.pdp.multirequest.IdentifiableResponse;
-import io.sapl.api.pdp.multirequest.MultiRequest;
-import io.sapl.api.pdp.multirequest.MultiResponse;
+import io.sapl.api.pdp.multisubscription.IdentifiableAuthSubscription;
+import io.sapl.api.pdp.multisubscription.IdentifiableAuthDecision;
+import io.sapl.api.pdp.multisubscription.MultiAuthDecision;
+import io.sapl.api.pdp.multisubscription.MultiAuthSubscription;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalPoint;
@@ -62,69 +62,69 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
-	public Flux<Response> decide(Request request) {
+	public Flux<AuthDecision> decide(AuthSubscription authSubscription) {
 		LOGGER.trace("|---------------------------");
-		LOGGER.trace("|-- PDP Request: {}", request);
+		LOGGER.trace("|-- PDP AuthSubscription: {}", authSubscription);
 
 		final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider.getVariables();
 		final Flux<DocumentsCombinator> combinatorFlux = configurationProvider.getDocumentsCombinator();
 
-		return Flux.combineLatest(variablesFlux, combinatorFlux,
-				(variables, combinator) -> prp.retrievePolicies(request, functionCtx, variables).switchMap(result -> {
+		return Flux.combineLatest(variablesFlux, combinatorFlux, (variables, combinator) -> prp
+				.retrievePolicies(authSubscription, functionCtx, variables).switchMap(result -> {
 					final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
 					final boolean errorsInTarget = result.isErrorsInTarget();
-					LOGGER.trace("|-- Combine documents of request: {}", request);
-					return (Flux<Response>) combinator.combineMatchingDocuments(matchingDocuments, errorsInTarget,
-							request, attributeCtx, functionCtx, variables);
+					LOGGER.trace("|-- Combine documents of authSubscription: {}", authSubscription);
+					return (Flux<AuthDecision>) combinator.combineMatchingDocuments(matchingDocuments, errorsInTarget,
+							authSubscription, attributeCtx, functionCtx, variables);
 				})).flatMap(Function.identity()).distinctUntilChanged();
 	}
 
 	@Override
-	public Flux<IdentifiableResponse> decide(MultiRequest multiRequest) {
-		if (multiRequest.hasRequests()) {
-			final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = createIdentifiableResponseFluxes(
-					multiRequest, true);
-			return Flux.merge(identifiableResponseFluxes);
+	public Flux<IdentifiableAuthDecision> decide(MultiAuthSubscription multiAuthSubscription) {
+		if (multiAuthSubscription.hasAuthSubscriptions()) {
+			final List<Flux<IdentifiableAuthDecision>> identifiableAuthDecisionFluxes = createIdentifiableAuthDecisionFluxes(
+					multiAuthSubscription, true);
+			return Flux.merge(identifiableAuthDecisionFluxes);
 		}
-		return Flux.just(IdentifiableResponse.INDETERMINATE);
+		return Flux.just(IdentifiableAuthDecision.INDETERMINATE);
 	}
 
 	@Override
-	public Flux<MultiResponse> decideAll(MultiRequest multiRequest) {
-		if (multiRequest.hasRequests()) {
-			final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = createIdentifiableResponseFluxes(
-					multiRequest, false);
-			return Flux.combineLatest(identifiableResponseFluxes, this::collectResponses);
+	public Flux<MultiAuthDecision> decideAll(MultiAuthSubscription multiAuthSubscription) {
+		if (multiAuthSubscription.hasAuthSubscriptions()) {
+			final List<Flux<IdentifiableAuthDecision>> identifiableAuthDecisionFluxes = createIdentifiableAuthDecisionFluxes(
+					multiAuthSubscription, false);
+			return Flux.combineLatest(identifiableAuthDecisionFluxes, this::collectAuthDecisions);
 		}
-		return Flux.just(MultiResponse.indeterminate());
+		return Flux.just(MultiAuthDecision.indeterminate());
 	}
 
-	private List<Flux<IdentifiableResponse>> createIdentifiableResponseFluxes(
-			Iterable<IdentifiableRequest> multiRequest, boolean useSeparateSchedulers) {
+	private List<Flux<IdentifiableAuthDecision>> createIdentifiableAuthDecisionFluxes(
+			Iterable<IdentifiableAuthSubscription> multiDecision, boolean useSeparateSchedulers) {
 		final Scheduler schedulerForMerge = useSeparateSchedulers ? Schedulers.newElastic("pdp") : null;
-		final List<Flux<IdentifiableResponse>> identifiableResponseFluxes = new ArrayList<>();
-		for (IdentifiableRequest identifiableRequest : multiRequest) {
-			final String requestId = identifiableRequest.getRequestId();
-			final Request request = identifiableRequest.getRequest();
-			final Flux<IdentifiableResponse> identifiableResponseFlux = decide(request)
-					.map(response -> new IdentifiableResponse(requestId, response));
+		final List<Flux<IdentifiableAuthDecision>> identifiableAuthDecisionFluxes = new ArrayList<>();
+		for (IdentifiableAuthSubscription identifiableAuthSubscription : multiDecision) {
+			final String subscriptionId = identifiableAuthSubscription.getAuthSubscriptionId();
+			final AuthSubscription authSubscription = identifiableAuthSubscription.getAuthSubscription();
+			final Flux<IdentifiableAuthDecision> identifiableAuthDecisionFlux = decide(authSubscription)
+					.map(authDecision -> new IdentifiableAuthDecision(subscriptionId, authDecision));
 			if (useSeparateSchedulers) {
-				identifiableResponseFluxes.add(identifiableResponseFlux.subscribeOn(schedulerForMerge));
+				identifiableAuthDecisionFluxes.add(identifiableAuthDecisionFlux.subscribeOn(schedulerForMerge));
 			}
 			else {
-				identifiableResponseFluxes.add(identifiableResponseFlux);
+				identifiableAuthDecisionFluxes.add(identifiableAuthDecisionFlux);
 			}
 		}
-		return identifiableResponseFluxes;
+		return identifiableAuthDecisionFluxes;
 	}
 
-	private MultiResponse collectResponses(Object[] values) {
-		final MultiResponse multiResponse = new MultiResponse();
+	private MultiAuthDecision collectAuthDecisions(Object[] values) {
+		final MultiAuthDecision multiAuthDecision = new MultiAuthDecision();
 		for (Object value : values) {
-			IdentifiableResponse ir = (IdentifiableResponse) value;
-			multiResponse.setResponseForRequestWithId(ir.getRequestId(), ir.getResponse());
+			IdentifiableAuthDecision ir = (IdentifiableAuthDecision) value;
+			multiAuthDecision.setAuthDecisionForSubscriptionWithId(ir.getAuthSubscriptionId(), ir.getAuthDecision());
 		}
-		return multiResponse;
+		return multiAuthDecision;
 	}
 
 	public static Builder builder() throws FunctionException, AttributeException {

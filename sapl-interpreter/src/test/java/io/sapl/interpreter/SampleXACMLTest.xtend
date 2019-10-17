@@ -17,8 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import io.sapl.api.interpreter.PolicyEvaluationException
 import io.sapl.api.pdp.Decision
-import io.sapl.api.pdp.Request
-import io.sapl.api.pdp.Response
+import io.sapl.api.pdp.AuthSubscription
+import io.sapl.api.pdp.AuthDecision
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
@@ -45,7 +45,7 @@ class SampleXACMLTest {
 	 static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(
 		new HashMap<String, JsonNode>());
 		
-	 static Request request_example_two;
+	 static AuthSubscription authSubscription_example_two;
 
 	@Before
 	def void init() {
@@ -55,7 +55,7 @@ class SampleXACMLTest {
 		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(new MockXACMLPatientProfilePIP());
 		
-		io.sapl.interpreter.SampleXACMLTest.request_example_two = MAPPER.readValue('''
+		io.sapl.interpreter.SampleXACMLTest.authSubscription_example_two = MAPPER.readValue('''
 			{
 				"subject": {
 					"id": "CN=Julius Hibbert",
@@ -80,7 +80,7 @@ class SampleXACMLTest {
 					"current_date": "2010-01-11"
 				}
 			}
-		''', Request)
+		''', AuthSubscription)
 	}
 	
 	def String policyExampleOne() {
@@ -95,30 +95,30 @@ class SampleXACMLTest {
 
 	@Test
 	def void exampleOne() throws PolicyEvaluationException {
-		val request_object = MAPPER.readValue('''
+		val authSubscription_object = MAPPER.readValue('''
 			{
 				"subject": "bs@simpsons.com",
 				"resource": "file://example/med/record/patient/BartSimpson",
 				"action": "read"
 			}
-		''', Request)
+		''', AuthSubscription)
 
-		val expectedResponse = Response.NOT_APPLICABLE
+		val expectedAuthDecision = AuthDecision.NOT_APPLICABLE
 
 		assertThat("XACML example one not working as expected",
-			INTERPRETER.evaluate(request_object, policyExampleOne(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription_object, policyExampleOne(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 	
 	@Test
 	def void exampleOnePermit() throws PolicyEvaluationException {
-		val request_object = MAPPER.readValue('''
+		val authSubscription_object = MAPPER.readValue('''
 			{
 				"subject": "abc@Med.example.com",
 				"resource": "file://example/med/record/patient/BartSimpson",
 				"action": "read"
 			}
-		''', Request)
+		''', AuthSubscription)
 
 		val policyDefinition = '''
 			policy "SimplePolicy1"
@@ -128,11 +128,11 @@ class SampleXACMLTest {
 			permit subject =~ "(?i).*@med\\.example\\.com"
 		''';
 
-		val expectedResponse = Response.PERMIT
+		val expectedAuthDecision = AuthDecision.PERMIT
 
 		assertThat("XACML example one not working as expected",
-			INTERPRETER.evaluate(request_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 	
 	def String policyExampleTwoRule1() {
@@ -154,16 +154,16 @@ class SampleXACMLTest {
 	
 	@Test
 	def void exampleTwoRule1() throws PolicyEvaluationException {
-		val expectedResponse = Response.NOT_APPLICABLE
+		val expectedAuthDecision = AuthDecision.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 1 not working as expected",
-			INTERPRETER.evaluate(request_example_two, policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription_example_two, policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 	
 	@Test
 	def void exampleTwoRule1Permit() throws PolicyEvaluationException {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"subject": {
 					"id": "alice",
@@ -188,13 +188,13 @@ class SampleXACMLTest {
 					"current_date": "2010-01-11"
 				}
 			}
-		''', Request)
+		''', AuthSubscription)
 		
-		val expectedResponse = Response.PERMIT
+		val expectedAuthDecision = AuthDecision.PERMIT
 		
 		assertThat("XACML example two rule 1 not working as expected",
-			INTERPRETER.evaluate(request, policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 	
 	def String policyExampleTwoRule2() {
@@ -218,16 +218,16 @@ class SampleXACMLTest {
 	
 	@Test
 	def void exampleTwoRule2() throws PolicyEvaluationException {
-		val expectedResponse = Response.NOT_APPLICABLE
+		val expectedAuthDecision = AuthDecision.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 2 not working as expected",
-			INTERPRETER.evaluate(request_example_two, policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription_example_two, policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 	
 	@Test
 	def void exampleTwoRule2Permit() throws PolicyEvaluationException {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"subject": {
 					"id": "john",
@@ -252,13 +252,13 @@ class SampleXACMLTest {
 					"current_date": "2010-01-11"
 				}
 			}
-		''', Request)
+		''', AuthSubscription)
 		
-		val expectedResponse = Response.PERMIT
+		val expectedAuthDecision = AuthDecision.PERMIT
 		
 		assertThat("XACML example two rule 2 not working as expected",
-			INTERPRETER.evaluate(request, policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 	
 	def String policyExampleTwoRule3() {
@@ -285,16 +285,16 @@ class SampleXACMLTest {
 	
 	@Test
 	def void exampleTwoRule3() throws PolicyEvaluationException {
-		val expectedResponse = Response.NOT_APPLICABLE
+		val expectedAuthDecision = AuthDecision.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 3 not working as expected",
-			INTERPRETER.evaluate(request_example_two, policyExampleTwoRule3(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription_example_two, policyExampleTwoRule3(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 	
 	@Test
 	def void exampleTwoRule3Permit() throws PolicyEvaluationException {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"subject": {
 					"id": "CN=Julius Hibbert",
@@ -322,7 +322,7 @@ class SampleXACMLTest {
 					"current_date": "2010-01-11"
 				}
 			}
-		''', Request)
+		''', AuthSubscription)
 		
 		val expectedObligation = MAPPER.readValue('''
 			[
@@ -334,11 +334,11 @@ class SampleXACMLTest {
 			]
 		''', ArrayNode)
 		
-		val expectedResponse = new Response(Decision.PERMIT, Optional.empty, Optional.of(expectedObligation), Optional.empty)
+		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.empty, Optional.of(expectedObligation), Optional.empty)
 		
 		assertThat("XACML example two rule 3 not working as expected",
-			INTERPRETER.evaluate(request, policyExampleTwoRule3(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyExampleTwoRule3(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 	
 	def String policyExampleTwoRule4() {
@@ -362,17 +362,17 @@ class SampleXACMLTest {
 	
 	@Test
 	def void exampleTwoRule4() throws PolicyEvaluationException {
-		val request = request_example_two
-		val expectedResponse = Response.NOT_APPLICABLE
+		val authSubscription = authSubscription_example_two
+		val expectedAuthDecision = AuthDecision.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 4 not working as expected",
-			INTERPRETER.evaluate(request, policyExampleTwoRule4(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyExampleTwoRule4(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 	
 	@Test
 	def void exampleTwoRule4Deny() throws PolicyEvaluationException {
-		val request = MAPPER.readValue('''
+		val authSubscription = MAPPER.readValue('''
 			{
 				"subject": {
 					"id": "admin",
@@ -400,12 +400,12 @@ class SampleXACMLTest {
 					"current_date": "2010-01-11"
 				}
 			}
-		''', Request)
+		''', AuthSubscription)
 		
-		val expectedResponse = Response.DENY
+		val expectedAuthDecision = AuthDecision.DENY
 		
 		assertThat("XACML example two rule 4 not working as expected",
-			INTERPRETER.evaluate(request, policyExampleTwoRule4(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedResponse));
+			INTERPRETER.evaluate(authSubscription, policyExampleTwoRule4(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthDecision));
 	}
 }

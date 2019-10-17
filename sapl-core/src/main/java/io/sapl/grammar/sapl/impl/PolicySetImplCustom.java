@@ -9,7 +9,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.Response;
+import io.sapl.api.pdp.AuthDecision;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.interpreter.DependentStreamsUtil;
 import io.sapl.interpreter.EvaluationContext;
@@ -30,21 +30,21 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
 	/**
 	 * Evaluates the body of the policy set within the given evaluation context and
-	 * returns a {@link Flux} of {@link Response} objects.
+	 * returns a {@link Flux} of {@link AuthDecision} objects.
 	 * @param ctx the evaluation context in which the policy set's body is evaluated. It
 	 * must contain
 	 * <ul>
 	 * <li>the attribute context</li>
 	 * <li>the function context</li>
-	 * <li>the variable context holding the four request variables 'subject', 'action',
-	 * 'resource' and 'environment' combined with system variables from the PDP
-	 * configuration</li>
+	 * <li>the variable context holding the four authorization subscription variables
+	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
+	 * from the PDP configuration</li>
 	 * <li>the import mapping for functions and attribute finders</li>
 	 * </ul>
-	 * @return A {@link Flux} of {@link Response} objects.
+	 * @return A {@link Flux} of {@link AuthDecision} objects.
 	 */
 	@Override
-	public Flux<Response> evaluate(EvaluationContext ctx) {
+	public Flux<AuthDecision> evaluate(EvaluationContext ctx) {
 		final Map<String, JsonNode> variables = new HashMap<>();
 		final List<FluxProvider<Void>> fluxProviders = new ArrayList<>(getValueDefinitions().size());
 		for (ValueDefinition valueDefinition : getValueDefinitions()) {
