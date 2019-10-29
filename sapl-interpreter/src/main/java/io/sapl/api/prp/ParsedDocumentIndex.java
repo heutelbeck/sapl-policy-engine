@@ -4,7 +4,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 
@@ -18,7 +18,7 @@ public interface ParsedDocumentIndex {
 
 	void setLiveMode();
 
-	PolicyRetrievalResult retrievePolicies(AuthSubscription authSubscription, FunctionContext functionCtx,
+	PolicyRetrievalResult retrievePolicies(AuthorizationSubscription authzSubscription, FunctionContext functionCtx,
 			Map<String, JsonNode> variables);
 
 }

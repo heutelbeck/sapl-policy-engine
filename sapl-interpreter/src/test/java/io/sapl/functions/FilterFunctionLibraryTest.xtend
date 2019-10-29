@@ -18,8 +18,8 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import io.sapl.api.functions.FunctionException
 import io.sapl.api.pdp.Decision
-import io.sapl.api.pdp.AuthSubscription
-import io.sapl.api.pdp.AuthDecision
+import io.sapl.api.pdp.AuthorizationSubscription
+import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.interpreter.DefaultSAPLInterpreter
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
@@ -153,7 +153,7 @@ class FilterFunctionLibraryTest {
 	
 	@Test
 	def void blackenInPolicy() {
-		val authSubscription = MAPPER.readValue('''
+		val authzSubscription = MAPPER.readValue('''
 			{
 				"resource": {
 					"array": [
@@ -163,7 +163,7 @@ class FilterFunctionLibraryTest {
 					"key1": "abcde"
 				}
 			}
-		''', AuthSubscription)
+		''', AuthorizationSubscription)
 
 		val policyDefinition = '''
 			policy "test" 
@@ -184,11 +184,11 @@ class FilterFunctionLibraryTest {
 			}
 		''', JsonNode);
 
-		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
+		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
 			Optional.empty())
-		val authDecision = INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+		val authzDecision = INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("builtin function blacken() not working as expected", authDecision, equalTo(expectedAuthDecision))
+		assertThat("builtin function blacken() not working as expected", authzDecision, equalTo(expectedAuthzDecision))
 	}
 	
 	@Test
@@ -201,7 +201,7 @@ class FilterFunctionLibraryTest {
 
 	@Test
 	def void replaceInPolicy() {
-		val authSubscription = MAPPER.readValue('''
+		val authzSubscription = MAPPER.readValue('''
 			{
 				"resource": {
 					"array": [
@@ -211,7 +211,7 @@ class FilterFunctionLibraryTest {
 					"key1": "abcde"
 				}
 			}
-		''', AuthSubscription)
+		''', AuthorizationSubscription)
 
 		val policyDefinition = '''
 			policy "test" 
@@ -233,10 +233,10 @@ class FilterFunctionLibraryTest {
 			}
 		''', JsonNode);
 
-		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
+		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
 			Optional.empty())
-		val authDecision = INTERPRETER.evaluate(authSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+		val authzDecision = INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-		assertThat("builtin function replace() not working as expected", authDecision, equalTo(expectedAuthDecision))
+		assertThat("builtin function replace() not working as expected", authzDecision, equalTo(expectedAuthzDecision))
 	}
 }

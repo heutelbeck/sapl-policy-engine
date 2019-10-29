@@ -15,10 +15,10 @@ import org.springframework.web.filter.GenericFilterBean;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.constraints.ConstraintHandlerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,22 +41,22 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-		AuthDecision authDecision = pdp.decide(buildRequest(authentication, req, req)).blockFirst();
+		AuthorizationDecision authzDecision = pdp.decide(buildRequest(authentication, req, req)).blockFirst();
 
-		LOGGER.trace("PDP decision: {}", authDecision);
+		LOGGER.trace("PDP decision: {}", authzDecision);
 
-		if (authDecision == null || authDecision.getDecision() != Decision.PERMIT) {
+		if (authzDecision == null || authzDecision.getDecision() != Decision.PERMIT) {
 			LOGGER.trace("User was not authorized for this action. Decision was: {}",
-					authDecision == null ? "null" : authDecision.getDecision());
+					authzDecision == null ? "null" : authzDecision.getDecision());
 			throw new AccessDeniedException("Current User may not perform this action.");
 		}
-		constraintHandlers.handleObligations(authDecision);
-		constraintHandlers.handleAdvices(authDecision);
+		constraintHandlers.handleObligations(authzDecision);
+		constraintHandlers.handleAdvices(authzDecision);
 		chain.doFilter(req, response);
 	}
 
-	private AuthSubscription buildRequest(Object subject, Object action, Object resource) {
-		return new AuthSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
+	private AuthorizationSubscription buildRequest(Object subject, Object action, Object resource) {
+		return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
 				mapper.valueToTree(resource), null);
 	}
 

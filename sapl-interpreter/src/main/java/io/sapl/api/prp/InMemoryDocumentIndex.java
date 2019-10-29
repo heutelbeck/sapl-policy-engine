@@ -4,7 +4,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.functions.FunctionContext;
 
 public interface InMemoryDocumentIndex {
@@ -19,7 +19,7 @@ public interface InMemoryDocumentIndex {
 
 	void setLiveMode();
 
-	PolicyRetrievalResult retrievePolicies(AuthSubscription authSubscription, FunctionContext functionCtx,
+	PolicyRetrievalResult retrievePolicies(AuthorizationSubscription authzSubscription, FunctionContext functionCtx,
 			Map<String, JsonNode> variables);
 
 }

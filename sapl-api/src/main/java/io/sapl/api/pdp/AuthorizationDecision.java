@@ -33,15 +33,15 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class AuthDecision {
+public class AuthorizationDecision {
 
-	public static final AuthDecision PERMIT = new AuthDecision(Decision.PERMIT);
+	public static final AuthorizationDecision PERMIT = new AuthorizationDecision(Decision.PERMIT);
 
-	public static final AuthDecision DENY = new AuthDecision(Decision.DENY);
+	public static final AuthorizationDecision DENY = new AuthorizationDecision(Decision.DENY);
 
-	public static final AuthDecision INDETERMINATE = new AuthDecision(Decision.INDETERMINATE);
+	public static final AuthorizationDecision INDETERMINATE = new AuthorizationDecision(Decision.INDETERMINATE);
 
-	public static final AuthDecision NOT_APPLICABLE = new AuthDecision(Decision.NOT_APPLICABLE);
+	public static final AuthorizationDecision NOT_APPLICABLE = new AuthorizationDecision(Decision.NOT_APPLICABLE);
 
 	Decision decision;
 
@@ -58,7 +58,7 @@ public class AuthDecision {
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<ArrayNode> advices = Optional.empty();
 
-	public AuthDecision(Decision decision) {
+	public AuthorizationDecision(Decision decision) {
 		this.decision = requireNonNull(decision);
 	}
 
@@ -70,7 +70,7 @@ public class AuthDecision {
 		if (o == null || o.getClass() != this.getClass()) {
 			return false;
 		}
-		final AuthDecision other = (AuthDecision) o;
+		final AuthorizationDecision other = (AuthorizationDecision) o;
 		if (!Objects.equals(getDecision(), other.getDecision())) {
 			return false;
 		}

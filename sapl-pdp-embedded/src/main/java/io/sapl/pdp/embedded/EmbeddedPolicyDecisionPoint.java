@@ -12,14 +12,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.AuthDecision;
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.multisubscription.IdentifiableAuthSubscription;
-import io.sapl.api.pdp.multisubscription.IdentifiableAuthDecision;
-import io.sapl.api.pdp.multisubscription.MultiAuthDecision;
-import io.sapl.api.pdp.multisubscription.MultiAuthSubscription;
+import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationSubscription;
+import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
+import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalPoint;
@@ -62,69 +62,71 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
-	public Flux<AuthDecision> decide(AuthSubscription authSubscription) {
+	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
 		LOGGER.trace("|---------------------------");
-		LOGGER.trace("|-- PDP AuthSubscription: {}", authSubscription);
+		LOGGER.trace("|-- PDP AuthorizationSubscription: {}", authzSubscription);
 
 		final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider.getVariables();
 		final Flux<DocumentsCombinator> combinatorFlux = configurationProvider.getDocumentsCombinator();
 
 		return Flux.combineLatest(variablesFlux, combinatorFlux, (variables, combinator) -> prp
-				.retrievePolicies(authSubscription, functionCtx, variables).switchMap(result -> {
+				.retrievePolicies(authzSubscription, functionCtx, variables).switchMap(result -> {
 					final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
 					final boolean errorsInTarget = result.isErrorsInTarget();
-					LOGGER.trace("|-- Combine documents of authSubscription: {}", authSubscription);
-					return (Flux<AuthDecision>) combinator.combineMatchingDocuments(matchingDocuments, errorsInTarget,
-							authSubscription, attributeCtx, functionCtx, variables);
+					LOGGER.trace("|-- Combine documents of authzSubscription: {}", authzSubscription);
+					return (Flux<AuthorizationDecision>) combinator.combineMatchingDocuments(matchingDocuments,
+							errorsInTarget, authzSubscription, attributeCtx, functionCtx, variables);
 				})).flatMap(Function.identity()).distinctUntilChanged();
 	}
 
 	@Override
-	public Flux<IdentifiableAuthDecision> decide(MultiAuthSubscription multiAuthSubscription) {
-		if (multiAuthSubscription.hasAuthSubscriptions()) {
-			final List<Flux<IdentifiableAuthDecision>> identifiableAuthDecisionFluxes = createIdentifiableAuthDecisionFluxes(
-					multiAuthSubscription, true);
-			return Flux.merge(identifiableAuthDecisionFluxes);
+	public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
+		if (multiAuthzSubscription.hasAuthorizationSubscriptions()) {
+			final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = createIdentifiableAuthzDecisionFluxes(
+					multiAuthzSubscription, true);
+			return Flux.merge(identifiableAuthzDecisionFluxes);
 		}
-		return Flux.just(IdentifiableAuthDecision.INDETERMINATE);
+		return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
 	}
 
 	@Override
-	public Flux<MultiAuthDecision> decideAll(MultiAuthSubscription multiAuthSubscription) {
-		if (multiAuthSubscription.hasAuthSubscriptions()) {
-			final List<Flux<IdentifiableAuthDecision>> identifiableAuthDecisionFluxes = createIdentifiableAuthDecisionFluxes(
-					multiAuthSubscription, false);
-			return Flux.combineLatest(identifiableAuthDecisionFluxes, this::collectAuthDecisions);
+	public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
+		if (multiAuthzSubscription.hasAuthorizationSubscriptions()) {
+			final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = createIdentifiableAuthzDecisionFluxes(
+					multiAuthzSubscription, false);
+			return Flux.combineLatest(identifiableAuthzDecisionFluxes, this::collectAuthorizationDecisions);
 		}
-		return Flux.just(MultiAuthDecision.indeterminate());
+		return Flux.just(MultiAuthorizationDecision.indeterminate());
 	}
 
-	private List<Flux<IdentifiableAuthDecision>> createIdentifiableAuthDecisionFluxes(
-			Iterable<IdentifiableAuthSubscription> multiDecision, boolean useSeparateSchedulers) {
+	private List<Flux<IdentifiableAuthorizationDecision>> createIdentifiableAuthzDecisionFluxes(
+			Iterable<IdentifiableAuthorizationSubscription> multiDecision, boolean useSeparateSchedulers) {
 		final Scheduler schedulerForMerge = useSeparateSchedulers ? Schedulers.newElastic("pdp") : null;
-		final List<Flux<IdentifiableAuthDecision>> identifiableAuthDecisionFluxes = new ArrayList<>();
-		for (IdentifiableAuthSubscription identifiableAuthSubscription : multiDecision) {
-			final String subscriptionId = identifiableAuthSubscription.getAuthSubscriptionId();
-			final AuthSubscription authSubscription = identifiableAuthSubscription.getAuthSubscription();
-			final Flux<IdentifiableAuthDecision> identifiableAuthDecisionFlux = decide(authSubscription)
-					.map(authDecision -> new IdentifiableAuthDecision(subscriptionId, authDecision));
+		final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = new ArrayList<>();
+		for (IdentifiableAuthorizationSubscription identifiableAuthzSubscription : multiDecision) {
+			final String subscriptionId = identifiableAuthzSubscription.getAuthorizationSubscriptionId();
+			final AuthorizationSubscription authzSubscription = identifiableAuthzSubscription
+					.getAuthorizationSubscription();
+			final Flux<IdentifiableAuthorizationDecision> identifiableAuthzDecisionFlux = decide(authzSubscription)
+					.map(authzDecision -> new IdentifiableAuthorizationDecision(subscriptionId, authzDecision));
 			if (useSeparateSchedulers) {
-				identifiableAuthDecisionFluxes.add(identifiableAuthDecisionFlux.subscribeOn(schedulerForMerge));
+				identifiableAuthzDecisionFluxes.add(identifiableAuthzDecisionFlux.subscribeOn(schedulerForMerge));
 			}
 			else {
-				identifiableAuthDecisionFluxes.add(identifiableAuthDecisionFlux);
+				identifiableAuthzDecisionFluxes.add(identifiableAuthzDecisionFlux);
 			}
 		}
-		return identifiableAuthDecisionFluxes;
+		return identifiableAuthzDecisionFluxes;
 	}
 
-	private MultiAuthDecision collectAuthDecisions(Object[] values) {
-		final MultiAuthDecision multiAuthDecision = new MultiAuthDecision();
+	private MultiAuthorizationDecision collectAuthorizationDecisions(Object[] values) {
+		final MultiAuthorizationDecision multiAuthzDecision = new MultiAuthorizationDecision();
 		for (Object value : values) {
-			IdentifiableAuthDecision ir = (IdentifiableAuthDecision) value;
-			multiAuthDecision.setAuthDecisionForSubscriptionWithId(ir.getAuthSubscriptionId(), ir.getAuthDecision());
+			IdentifiableAuthorizationDecision ir = (IdentifiableAuthorizationDecision) value;
+			multiAuthzDecision.setAuthorizationDecisionForSubscriptionWithId(ir.getAuthorizationSubscriptionId(),
+					ir.getAuthorizationDecision());
 		}
-		return multiAuthDecision;
+		return multiAuthzDecision;
 	}
 
 	public static Builder builder() throws FunctionException, AttributeException {

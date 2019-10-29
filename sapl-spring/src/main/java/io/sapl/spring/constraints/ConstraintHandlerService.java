@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pep.ConstraintHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,15 +26,15 @@ public class ConstraintHandlerService {
 	private final List<ConstraintHandler> constraintHandlers;
 
 	/**
-	 * Checks if for all obligations in a authDecision at least one obligation handler is
-	 * registered.
-	 * @param authDecision a PDP AuthDecision
-	 * @return true, if for all obligations in a authDecision at least one obligation
+	 * Checks if for all obligations in a authorization decision at least one obligation
 	 * handler is registered.
+	 * @param authzDecision a PDP AuthorizationDecision
+	 * @return true, if for all obligations in a authorization decision at least one
+	 * obligation handler is registered.
 	 */
-	public boolean handlersForObligationsAvailable(AuthDecision authDecision) {
-		if (authDecision.getObligations().isPresent()) {
-			for (JsonNode obligation : authDecision.getObligations().get()) {
+	public boolean handlersForObligationsAvailable(AuthorizationDecision authzDecision) {
+		if (authzDecision.getObligations().isPresent()) {
+			for (JsonNode obligation : authzDecision.getObligations().get()) {
 				if (!atLeastOneHandlerForConstraintIsPresent(obligation)) {
 					LOGGER.warn("No obligation handler found for: {}", obligation);
 					return false;
@@ -45,17 +45,17 @@ public class ConstraintHandlerService {
 	}
 
 	/**
-	 * Attempts to handle all obligations of the authDecision and throws
+	 * Attempts to handle all obligations of the authorization decision and throws
 	 * AccessDeniedException on failure.
-	 * @param authDecision a PDP authDecision
+	 * @param authzDecision a PDP authorization decision
 	 * @throws AccessDeniedException if obligation handling fails.
 	 */
-	public void handleObligations(AuthDecision authDecision) {
-		if (!handlersForObligationsAvailable(authDecision)) {
+	public void handleObligations(AuthorizationDecision authzDecision) {
+		if (!handlersForObligationsAvailable(authzDecision)) {
 			throw new AccessDeniedException("Obligation handlers missing.");
 		}
-		if (authDecision.getObligations().isPresent()) {
-			for (JsonNode obligation : authDecision.getObligations().get()) {
+		if (authzDecision.getObligations().isPresent()) {
+			for (JsonNode obligation : authzDecision.getObligations().get()) {
 				if (!handleConstraint(obligation)) {
 					String message = String.format(FAILED_TO_HANDLE_OBLIGATION, obligation);
 					LOGGER.warn(message);
@@ -66,13 +66,13 @@ public class ConstraintHandlerService {
 	}
 
 	/**
-	 * Makes a best effort to handle all advices of the authDecision based on registered
-	 * constraint handlers.
-	 * @param authDecision a PDP authDecision
+	 * Makes a best effort to handle all advices of the authorization decision based on
+	 * registered constraint handlers.
+	 * @param authzDecision a PDP authorization decision
 	 */
-	public void handleAdvices(AuthDecision authDecision) {
-		if (authDecision.getAdvices().isPresent()) {
-			for (JsonNode advice : authDecision.getAdvices().get()) {
+	public void handleAdvices(AuthorizationDecision authzDecision) {
+		if (authzDecision.getAdvices().isPresent()) {
+			for (JsonNode advice : authzDecision.getAdvices().get()) {
 				if (!handleConstraint(advice)) {
 					LOGGER.warn("Failed to handle advice: {}", advice);
 				}

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="sapl" nsURI="http://sapl.io/sapl/SAPL" nsPrefix="sapl">
-  <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable #//AuthDecisionEvaluable">
+  <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable #//AuthorizationDecisionEvaluable">
     <eOperations name="fetchFunctionImports" eType="#//StringMap" eExceptions="#//PolicyEvaluationException">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value="The method returns a map of full qualified function names by their short names (or library alias plus short name) for all function imports of the SAPL document depending on the functions available in the given function context.&#xA;&#xA;@param functionCtx &#xA;&#x9;&#x9;the function context&#xA;@returns &#xA;&#x9;&#x9;a map of full qualified function names by their short names for all function imports of the SAPL document.&#xA;@throws PolicyEvaluationException in case an error occurs while evaluating the import statements and creating the map"/>
@@ -18,7 +18,7 @@
         upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="functionName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="PolicyElement" eSuperTypes="#//Matchable #//AuthDecisionEvaluable">
+  <eClassifiers xsi:type="ecore:EClass" name="PolicyElement" eSuperTypes="#//Matchable #//AuthorizationDecisionEvaluable">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="saplName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="targetExpression" eType="#//Expression"
         containment="true"/>
@@ -278,11 +278,11 @@
       <eParameters name="ctx" eType="#//EvaluationContext"/>
     </eOperations>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="AuthDecisionEvaluable" abstract="true"
+  <eClassifiers xsi:type="ecore:EClass" name="AuthorizationDecisionEvaluable" abstract="true"
       interface="true">
-    <eOperations name="evaluate" lowerBound="1" eType="#//AuthDecisionFlux">
+    <eOperations name="evaluate" lowerBound="1" eType="#//AuthorizationDecisionFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method returns a Flux of AuthDecisions for the object that can be evaluated to a SAPL authorization decision.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@returns&#xA;&#x9;&#x9;a Flux of SAPL authorization decisions"/>
+        <details key="documentation" value="The method returns a Flux of AuthorizationDecisions for the object that can be evaluated to a SAPL authorization decision.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@returns&#xA;&#x9;&#x9;a Flux of SAPL authorization decisions"/>
       </eAnnotations>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
     </eOperations>
@@ -291,7 +291,7 @@
   <eClassifiers xsi:type="ecore:EDataType" name="JsonNode" instanceClassName="com.fasterxml.jackson.databind.JsonNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="JsonNodeFlux" instanceTypeName="reactor.core.publisher.Flux&lt;com.fasterxml.jackson.databind.JsonNode>"
       serializable="false"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="AuthDecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.pdp.AuthDecision>"
+  <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationDecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.pdp.AuthorizationDecision>"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="DecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.pdp.Decision>"
       serializable="false"/>
@@ -303,11 +303,11 @@
   <eClassifiers xsi:type="ecore:EDataType" name="AbstractAnnotatedJsonNode" instanceClassName="io.sapl.interpreter.selection.AbstractAnnotatedJsonNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="OptionalJsonNodeFlux" instanceTypeName="reactor.core.publisher.Flux&lt;java.util.Optional&lt;com.fasterxml.jackson.databind.JsonNode>>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="OptionalJsonNode" instanceTypeName="java.util.Optional&lt;com.fasterxml.jackson.databind.JsonNode>"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="AuthSubscription" instanceClassName="io.sapl.api.pdp.AuthSubscription"
+  <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationSubscription" instanceClassName="io.sapl.api.pdp.AuthorizationSubscription"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="FunctionContext" instanceClassName="io.sapl.interpreter.functions.FunctionContext"
       serializable="false"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="AuthDecision" instanceClassName="io.sapl.api.pdp.AuthDecision"
+  <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationDecision" instanceClassName="io.sapl.api.pdp.AuthorizationDecision"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Decision" instanceClassName="io.sapl.api.pdp.Decision"/>
 </ecore:EPackage>

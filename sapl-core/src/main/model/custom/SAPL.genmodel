@@ -9,7 +9,7 @@
     <genDataTypes ecoreDataType="SAPL.ecore#//EvaluationContext"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//JsonNode"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//JsonNodeFlux"/>
-    <genDataTypes ecoreDataType="SAPL.ecore#//AuthDecisionFlux"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//AuthorizationDecisionFlux"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//DecisionFlux"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//PolicyEvaluationException"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//ResultNodeFlux"/>
@@ -18,9 +18,9 @@
     <genDataTypes ecoreDataType="SAPL.ecore#//AbstractAnnotatedJsonNode"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//OptionalJsonNodeFlux"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//OptionalJsonNode"/>
-    <genDataTypes ecoreDataType="SAPL.ecore#//AuthSubscription"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//AuthorizationSubscription"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//FunctionContext"/>
-    <genDataTypes ecoreDataType="SAPL.ecore#//AuthDecision"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//AuthorizationDecision"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//Decision"/>
     <genClasses ecoreClass="SAPL.ecore#//SAPL">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//SAPL/imports"/>
@@ -235,9 +235,9 @@
         <genParameters ecoreParameter="SAPL.ecore#//Matchable/matches/ctx"/>
       </genOperations>
     </genClasses>
-    <genClasses image="false" ecoreClass="SAPL.ecore#//AuthDecisionEvaluable">
-      <genOperations ecoreOperation="SAPL.ecore#//AuthDecisionEvaluable/evaluate">
-        <genParameters ecoreParameter="SAPL.ecore#//AuthDecisionEvaluable/evaluate/ctx"/>
+    <genClasses image="false" ecoreClass="SAPL.ecore#//AuthorizationDecisionEvaluable">
+      <genOperations ecoreOperation="SAPL.ecore#//AuthorizationDecisionEvaluable/evaluate">
+        <genParameters ecoreParameter="SAPL.ecore#//AuthorizationDecisionEvaluable/evaluate/ctx"/>
       </genOperations>
     </genClasses>
   </genPackages>

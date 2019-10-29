@@ -9,7 +9,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.interpreter.DependentStreamsUtil;
 import io.sapl.interpreter.EvaluationContext;
@@ -30,7 +30,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
 	/**
 	 * Evaluates the body of the policy set within the given evaluation context and
-	 * returns a {@link Flux} of {@link AuthDecision} objects.
+	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
 	 * @param ctx the evaluation context in which the policy set's body is evaluated. It
 	 * must contain
 	 * <ul>
@@ -41,10 +41,10 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	 * from the PDP configuration</li>
 	 * <li>the import mapping for functions and attribute finders</li>
 	 * </ul>
-	 * @return A {@link Flux} of {@link AuthDecision} objects.
+	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthDecision> evaluate(EvaluationContext ctx) {
+	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
 		final Map<String, JsonNode> variables = new HashMap<>();
 		final List<FluxProvider<Void>> fluxProviders = new ArrayList<>(getValueDefinitions().size());
 		for (ValueDefinition valueDefinition : getValueDefinitions()) {

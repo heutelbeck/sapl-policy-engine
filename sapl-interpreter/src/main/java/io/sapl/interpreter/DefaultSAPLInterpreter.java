@@ -30,8 +30,8 @@ import io.sapl.api.interpreter.DocumentAnalysisResult;
 import io.sapl.api.interpreter.DocumentType;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
-import io.sapl.api.pdp.AuthDecision;
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicySet;
@@ -48,7 +48,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
-	private static final AuthDecision INDETERMINATE = AuthDecision.INDETERMINATE;
+	private static final AuthorizationDecision INDETERMINATE = AuthorizationDecision.INDETERMINATE;
 
 	private static final String DUMMY_RESOURCE_URI = "policy:/apolicy.sapl";
 
@@ -102,7 +102,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	}
 
 	@Override
-	public Flux<AuthDecision> evaluate(AuthSubscription authSubscription, String saplDefinition,
+	public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDefinition,
 			AttributeContext attributeCtx, FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
 		final SAPL saplDocument;
 		try {
@@ -114,7 +114,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		}
 
 		try {
-			final VariableContext variableCtx = new VariableContext(authSubscription, systemVariables);
+			final VariableContext variableCtx = new VariableContext(authzSubscription, systemVariables);
 			final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 			return saplDocument.evaluate(evaluationCtx).onErrorReturn(INDETERMINATE);
 		}

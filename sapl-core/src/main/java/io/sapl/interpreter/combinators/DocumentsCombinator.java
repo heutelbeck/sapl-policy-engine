@@ -5,8 +5,8 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.pdp.AuthDecision;
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
@@ -29,17 +29,17 @@ public interface DocumentsCombinator {
 	 * @param matchingSaplDocuments the SAPL documents
 	 * @param errorsInTarget true if there was an error evaluating the document's target
 	 * expression. A combining algorithm may make use of this information
-	 * @param authSubscription the authorization subscription object
+	 * @param authzSubscription the authorization subscription object
 	 * @param attributeCtx the attribute context
 	 * @param functionCtx the function context
 	 * @param systemVariables the system variables
-	 * @return a {@link Flux} of {@link AuthDecision} objects containing the combined
-	 * decision, the combined obligation and advice and a transformed resource if
+	 * @return a {@link Flux} of {@link AuthorizationDecision} objects containing the
+	 * combined decision, the combined obligation and advice and a transformed resource if
 	 * applicable. A new authorization decision object is only pushed if it is different
 	 * from the previous one.
 	 */
-	Flux<AuthDecision> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
-			AuthSubscription authSubscription, AttributeContext attributeCtx, FunctionContext functionCtx,
+	Flux<AuthorizationDecision> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
+			AuthorizationSubscription authzSubscription, AttributeContext attributeCtx, FunctionContext functionCtx,
 			Map<String, JsonNode> systemVariables);
 
 }

@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
@@ -39,33 +39,33 @@ public class VariableContext {
 
 	private Map<String, JsonNode> variables = new HashMap<>();
 
-	public VariableContext(AuthSubscription authSubscription) throws PolicyEvaluationException {
-		this(authSubscription, null);
+	public VariableContext(AuthorizationSubscription authzSubscription) throws PolicyEvaluationException {
+		this(authzSubscription, null);
 	}
 
-	public VariableContext(AuthSubscription authSubscription, Map<String, JsonNode> defaultVariables)
+	public VariableContext(AuthorizationSubscription authzSubscription, Map<String, JsonNode> defaultVariables)
 			throws PolicyEvaluationException {
-		if (authSubscription != null) {
-			if (authSubscription.getSubject() != null) {
-				variables.put(SUBJECT, authSubscription.getSubject());
+		if (authzSubscription != null) {
+			if (authzSubscription.getSubject() != null) {
+				variables.put(SUBJECT, authzSubscription.getSubject());
 			}
 			else {
 				variables.put(SUBJECT, JSON.nullNode());
 			}
-			if (authSubscription.getAction() != null) {
-				variables.put(ACTION, authSubscription.getAction());
+			if (authzSubscription.getAction() != null) {
+				variables.put(ACTION, authzSubscription.getAction());
 			}
 			else {
 				variables.put(ACTION, JSON.nullNode());
 			}
-			if (authSubscription.getResource() != null) {
-				variables.put(RESOURCE, authSubscription.getResource());
+			if (authzSubscription.getResource() != null) {
+				variables.put(RESOURCE, authzSubscription.getResource());
 			}
 			else {
 				variables.put(RESOURCE, JSON.nullNode());
 			}
-			if (authSubscription.getEnvironment() != null) {
-				variables.put(ENVIRONMENT, authSubscription.getEnvironment());
+			if (authzSubscription.getEnvironment() != null) {
+				variables.put(ENVIRONMENT, authzSubscription.getEnvironment());
 			}
 			else {
 				variables.put(ENVIRONMENT, JSON.nullNode());

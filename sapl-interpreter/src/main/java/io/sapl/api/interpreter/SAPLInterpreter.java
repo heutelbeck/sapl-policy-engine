@@ -17,8 +17,8 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.pdp.AuthDecision;
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
@@ -50,17 +50,17 @@ public interface SAPLInterpreter {
 	 * Convenience method for unit tests which evaluates a String representing a SAPL
 	 * document (containing a policy set or policy) against an authorization subscription
 	 * object within a given attribute context and function context and returns a
-	 * {@link Flux} of {@link AuthDecision} objects.
-	 * @param authSubscription the authorization subscription object
+	 * {@link Flux} of {@link AuthorizationDecision} objects.
+	 * @param authzSubscription the authorization subscription object
 	 * @param saplDefinition the String representing the SAPL document
 	 * @param attributeCtx the attribute context
 	 * @param functionCtx the function context
 	 * @param systemVariables the system variables, a Map between the variable name and
 	 * its value
-	 * @return A {@link Flux} of {@link AuthDecision} objects.
+	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
-	Flux<AuthDecision> evaluate(AuthSubscription authSubscription, String saplDefinition, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables);
+	Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDefinition,
+			AttributeContext attributeCtx, FunctionContext functionCtx, Map<String, JsonNode> systemVariables);
 
 	/**
 	 * Method which analyzes a String containing a SAPL document.

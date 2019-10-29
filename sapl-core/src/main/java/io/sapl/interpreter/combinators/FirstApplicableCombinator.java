@@ -5,7 +5,7 @@ import java.util.List;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ import reactor.core.publisher.Flux;
 public class FirstApplicableCombinator implements PolicyCombinator {
 
 	@Override
-	public Flux<AuthDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
+	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		final List<Policy> matchingPolicies = new ArrayList<>();
 		for (Policy policy : policies) {
 			try {
@@ -25,25 +25,25 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 				}
 			}
 			catch (PolicyEvaluationException e) {
-				return Flux.just(AuthDecision.INDETERMINATE);
+				return Flux.just(AuthorizationDecision.INDETERMINATE);
 			}
 		}
 
 		if (matchingPolicies.isEmpty()) {
-			return Flux.just(AuthDecision.NOT_APPLICABLE);
+			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 		}
 
-		final List<Flux<AuthDecision>> authDecisionFluxes = new ArrayList<>(matchingPolicies.size());
+		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
-			authDecisionFluxes.add(policy.evaluate(ctx));
+			authzDecisionFluxes.add(policy.evaluate(ctx));
 		}
-		return Flux.combineLatest(authDecisionFluxes, authDecisions -> {
-			for (Object authDecision : authDecisions) {
-				if (((AuthDecision) authDecision).getDecision() != Decision.NOT_APPLICABLE) {
-					return (AuthDecision) authDecision;
+		return Flux.combineLatest(authzDecisionFluxes, authzDecisions -> {
+			for (Object authzDecision : authzDecisions) {
+				if (((AuthorizationDecision) authzDecision).getDecision() != Decision.NOT_APPLICABLE) {
+					return (AuthorizationDecision) authzDecision;
 				}
 			}
-			return AuthDecision.NOT_APPLICABLE;
+			return AuthorizationDecision.NOT_APPLICABLE;
 		}).distinctUntilChanged();
 	}
 

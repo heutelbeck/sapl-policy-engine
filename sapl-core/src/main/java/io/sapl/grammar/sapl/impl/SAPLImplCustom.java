@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.WildcardImport;
@@ -28,11 +28,11 @@ public class SAPLImplCustom extends SAPLImpl {
 
 	private static final String NO_TARGET_MATCH = "Target not matching.";
 
-	private static final AuthDecision INDETERMINATE = AuthDecision.INDETERMINATE;
+	private static final AuthorizationDecision INDETERMINATE = AuthorizationDecision.INDETERMINATE;
 
 	/**
-	 * Checks whether the SAPL document matches a AuthSubscription by evaluating the
-	 * document's target expression. No custom variables are provided and imports are
+	 * Checks whether the SAPL document matches a AuthorizationSubscription by evaluating
+	 * the document's target expression. No custom variables are provided and imports are
 	 * extracted from the document.
 	 * @param ctx the evaluation context in which the document's target expression is be
 	 * evaluated. It must contain
@@ -58,7 +58,7 @@ public class SAPLImplCustom extends SAPLImpl {
 	/**
 	 * Evaluates the body of the SAPL document (containing a policy set or a policy)
 	 * within the given evaluation context and returns a {@link Flux} of
-	 * {@link AuthDecision} objects.
+	 * {@link AuthorizationDecision} objects.
 	 * @param ctx the evaluation context in which the document's body is evaluated. It
 	 * must contain
 	 * <ul>
@@ -68,10 +68,10 @@ public class SAPLImplCustom extends SAPLImpl {
 	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
 	 * from the PDP configuration</li>
 	 * </ul>
-	 * @return a {@link Flux} of {@link AuthDecision} objects.
+	 * @return a {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthDecision> evaluate(EvaluationContext ctx) {
+	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
 		LOGGER.trace("| | |-- SAPL Evaluate: {} ({})", getPolicyElement().getSaplName(),
 				getPolicyElement().getClass().getName());
 		try {
@@ -79,12 +79,12 @@ public class SAPLImplCustom extends SAPLImpl {
 				final Map<String, String> imports = fetchFunctionAndPipImports(ctx);
 				final EvaluationContext evaluationCtx = new EvaluationContext(ctx.getAttributeCtx(),
 						ctx.getFunctionCtx(), ctx.getVariableCtx().copy(), imports);
-				return getPolicyElement().evaluate(evaluationCtx).doOnNext(this::logAuthDecision);
+				return getPolicyElement().evaluate(evaluationCtx).doOnNext(this::logAuthzDecision);
 			}
 			else {
 				LOGGER.trace("| | |-- NOT_APPLICABLE. Cause: " + NO_TARGET_MATCH);
 				LOGGER.trace("| |");
-				return Flux.just(AuthDecision.NOT_APPLICABLE);
+				return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 			}
 		}
 		catch (PolicyEvaluationException e) {
@@ -94,7 +94,7 @@ public class SAPLImplCustom extends SAPLImpl {
 		}
 	}
 
-	private void logAuthDecision(AuthDecision r) {
+	private void logAuthzDecision(AuthorizationDecision r) {
 		LOGGER.trace("| | |-- {}. Document: {} Cause: {}", r.getDecision(), getPolicyElement().getSaplName(), r);
 		LOGGER.trace("| |");
 	}

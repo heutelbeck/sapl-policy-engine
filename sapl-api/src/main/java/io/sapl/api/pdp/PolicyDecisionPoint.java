@@ -1,8 +1,8 @@
 package io.sapl.api.pdp;
 
-import io.sapl.api.pdp.multisubscription.IdentifiableAuthDecision;
-import io.sapl.api.pdp.multisubscription.MultiAuthSubscription;
-import io.sapl.api.pdp.multisubscription.MultiAuthDecision;
+import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
+import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
 import reactor.core.publisher.Flux;
 
 /**
@@ -20,33 +20,33 @@ public interface PolicyDecisionPoint {
 	/**
 	 * Takes an authorization subscription object and returns a {@link Flux} emitting
 	 * matching authorization decisions.
-	 * @param authSubscription the SAPL authorization subscription object
+	 * @param authzSubscription the SAPL authorization subscription object
 	 * @return a {@link Flux} emitting the authorization decisions for the given
 	 * authorization subscription. New authorization decisions are only added to the
 	 * stream if they are different from the preceding authorization decision.
 	 */
-	Flux<AuthDecision> decide(AuthSubscription authSubscription);
+	Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription);
 
 	/**
-	 * Multi-subscription variant of {@link #decide(AuthSubscription)}.
-	 * @param multiAuthSubscription the multi-subscription object containing the subjects,
-	 * actions, resources and environments of the authorization subscriptions to be
-	 * evaluated by the PDP.
+	 * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
+	 * @param multiAuthzSubscription the multi-subscription object containing the
+	 * subjects, actions, resources and environments of the authorization subscriptions to
+	 * be evaluated by the PDP.
 	 * @return a {@link Flux} emitting authorization decisions for the given authorization
 	 * subscriptions as soon as they are available. Related authorization decisions and
 	 * authorization subscriptions have the same id.
 	 */
-	Flux<IdentifiableAuthDecision> decide(MultiAuthSubscription multiAuthSubscription);
+	Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription);
 
 	/**
-	 * Multi-subscription variant of {@link #decide(AuthSubscription)}.
-	 * @param multiAuthSubscription the multi-subscription object containing the subjects,
-	 * actions, resources and environments of the authorization subscriptions to be
-	 * evaluated by the PDP.
+	 * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
+	 * @param multiAuthzSubscription the multi-subscription object containing the
+	 * subjects, actions, resources and environments of the authorization subscriptions to
+	 * be evaluated by the PDP.
 	 * @return a {@link Flux} emitting authorization decisions for the given authorization
 	 * subscriptions as soon as at least one authorization decision for each authorization
 	 * subscription is available.
 	 */
-	Flux<MultiAuthDecision> decideAll(MultiAuthSubscription multiAuthSubscription);
+	Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription);
 
 }

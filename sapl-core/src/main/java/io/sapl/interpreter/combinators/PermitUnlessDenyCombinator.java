@@ -8,8 +8,8 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.AuthDecision;
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.SAPL;
@@ -23,37 +23,37 @@ import reactor.core.publisher.Flux;
 public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCombinator {
 
 	@Override
-	public Flux<AuthDecision> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments, boolean errorsInTarget,
-			AuthSubscription authSubscription, AttributeContext attributeCtx, FunctionContext functionCtx,
-			Map<String, JsonNode> systemVariables) {
+	public Flux<AuthorizationDecision> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
+			boolean errorsInTarget, AuthorizationSubscription authzSubscription, AttributeContext attributeCtx,
+			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
 
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
-			return Flux.just(AuthDecision.PERMIT);
+			return Flux.just(AuthorizationDecision.PERMIT);
 		}
 
 		final VariableContext variableCtx;
 		try {
-			variableCtx = new VariableContext(authSubscription, systemVariables);
+			variableCtx = new VariableContext(authzSubscription, systemVariables);
 		}
 		catch (PolicyEvaluationException e) {
-			return Flux.just(AuthDecision.INDETERMINATE);
+			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
 		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 
-		final List<Flux<AuthDecision>> authDecisionFluxes = new ArrayList<>(matchingSaplDocuments.size());
+		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
-			authDecisionFluxes.add(document.evaluate(evaluationCtx));
+			authzDecisionFluxes.add(document.evaluate(evaluationCtx));
 		}
 
-		final AuthDecisionAccumulator authDecisionAccumulator = new AuthDecisionAccumulator();
-		return Flux.combineLatest(authDecisionFluxes, authDecisions -> {
-			authDecisionAccumulator.addSingleDecisions(authDecisions);
-			return authDecisionAccumulator.getCombinedAuthDecision();
+		final AuthorizationDecisionAccumulator accumulator = new AuthorizationDecisionAccumulator();
+		return Flux.combineLatest(authzDecisionFluxes, authzDecisions -> {
+			accumulator.addSingleDecisions(authzDecisions);
+			return accumulator.getCombinedAuthorizationDecision();
 		}).distinctUntilChanged();
 	}
 
 	@Override
-	public Flux<AuthDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
+	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		final List<Policy> matchingPolicies = new ArrayList<>();
 		for (Policy policy : policies) {
 			try {
@@ -67,23 +67,23 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 		}
 
 		if (matchingPolicies.isEmpty()) {
-			return Flux.just(AuthDecision.PERMIT);
+			return Flux.just(AuthorizationDecision.PERMIT);
 		}
 
-		final List<Flux<AuthDecision>> authDecisionFluxes = new ArrayList<>(matchingPolicies.size());
+		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
-			authDecisionFluxes.add(policy.evaluate(ctx));
+			authzDecisionFluxes.add(policy.evaluate(ctx));
 		}
-		final AuthDecisionAccumulator authDecisionAccumulator = new AuthDecisionAccumulator();
-		return Flux.combineLatest(authDecisionFluxes, authDecisions -> {
-			authDecisionAccumulator.addSingleDecisions(authDecisions);
-			return authDecisionAccumulator.getCombinedAuthDecision();
+		final AuthorizationDecisionAccumulator accumulator = new AuthorizationDecisionAccumulator();
+		return Flux.combineLatest(authzDecisionFluxes, authzDecisions -> {
+			accumulator.addSingleDecisions(authzDecisions);
+			return accumulator.getCombinedAuthorizationDecision();
 		}).distinctUntilChanged();
 	}
 
-	private static class AuthDecisionAccumulator {
+	private static class AuthorizationDecisionAccumulator {
 
-		private AuthDecision authDecision;
+		private AuthorizationDecision authzDecision;
 
 		private int permitCount;
 
@@ -91,7 +91,7 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 
 		private ObligationAdviceCollector obligationAdvice;
 
-		AuthDecisionAccumulator() {
+		AuthorizationDecisionAccumulator() {
 			init();
 		}
 
@@ -99,45 +99,46 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 			permitCount = 0;
 			transformation = false;
 			obligationAdvice = new ObligationAdviceCollector();
-			authDecision = AuthDecision.PERMIT;
+			authzDecision = AuthorizationDecision.PERMIT;
 		}
 
-		void addSingleDecisions(Object... authDecisions) {
+		void addSingleDecisions(Object... authzDecisions) {
 			init();
-			for (Object decision : authDecisions) {
-				addSingleDecision((AuthDecision) decision);
+			for (Object decision : authzDecisions) {
+				addSingleDecision((AuthorizationDecision) decision);
 			}
 		}
 
-		private void addSingleDecision(AuthDecision newAuthDecision) {
-			if (newAuthDecision.getDecision() == Decision.DENY) {
-				obligationAdvice.add(Decision.DENY, newAuthDecision);
-				authDecision = AuthDecision.DENY;
+		private void addSingleDecision(AuthorizationDecision newAuthzDecision) {
+			if (newAuthzDecision.getDecision() == Decision.DENY) {
+				obligationAdvice.add(Decision.DENY, newAuthzDecision);
+				authzDecision = AuthorizationDecision.DENY;
 			}
-			else if (newAuthDecision.getDecision() == Decision.PERMIT && authDecision.getDecision() != Decision.DENY) {
+			else if (newAuthzDecision.getDecision() == Decision.PERMIT
+					&& authzDecision.getDecision() != Decision.DENY) {
 				permitCount += 1;
-				if (newAuthDecision.getResource().isPresent()) {
+				if (newAuthzDecision.getResource().isPresent()) {
 					transformation = true;
 				}
 
-				obligationAdvice.add(Decision.PERMIT, newAuthDecision);
-				authDecision = newAuthDecision;
+				obligationAdvice.add(Decision.PERMIT, newAuthzDecision);
+				authzDecision = newAuthzDecision;
 			}
 		}
 
-		AuthDecision getCombinedAuthDecision() {
-			if (authDecision.getDecision() == Decision.PERMIT) {
+		AuthorizationDecision getCombinedAuthorizationDecision() {
+			if (authzDecision.getDecision() == Decision.PERMIT) {
 				if (permitCount > 1 && transformation) {
-					return AuthDecision.DENY;
+					return AuthorizationDecision.DENY;
 				}
 				else {
-					return new AuthDecision(Decision.PERMIT, authDecision.getResource(),
+					return new AuthorizationDecision(Decision.PERMIT, authzDecision.getResource(),
 							obligationAdvice.get(Type.OBLIGATION, Decision.PERMIT),
 							obligationAdvice.get(Type.ADVICE, Decision.PERMIT));
 				}
 			}
 			else {
-				return new AuthDecision(Decision.DENY, authDecision.getResource(),
+				return new AuthorizationDecision(Decision.DENY, authzDecision.getResource(),
 						obligationAdvice.get(Type.OBLIGATION, Decision.DENY),
 						obligationAdvice.get(Type.ADVICE, Decision.DENY));
 			}

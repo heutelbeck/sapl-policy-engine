@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +29,7 @@ public class PolicyImplCustom extends PolicyImpl {
 
 	/**
 	 * Evaluates the body of the policy within the given evaluation context and returns a
-	 * {@link Flux} of {@link AuthDecision} objects.
+	 * {@link Flux} of {@link AuthorizationDecision} objects.
 	 * @param ctx the evaluation context in which the policy's body is evaluated. It must
 	 * contain
 	 * <ul>
@@ -41,10 +41,10 @@ public class PolicyImplCustom extends PolicyImpl {
 	 * policy set</li>
 	 * <li>the import mapping for functions and attribute finders</li>
 	 * </ul>
-	 * @return A {@link Flux} of {@link AuthDecision} objects.
+	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthDecision> evaluate(EvaluationContext ctx) {
+	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
 		final EvaluationContext policyCtx = ctx.copy();
 		final Decision entitlement = PERMIT.equals(getEntitlement()) ? Decision.PERMIT : Decision.DENY;
 		final Flux<Decision> decisionFlux = getBody() != null ? getBody().evaluate(entitlement, policyCtx)
@@ -55,20 +55,20 @@ public class PolicyImplCustom extends PolicyImpl {
 				return evaluateObligationsAndAdvice(policyCtx).map(obligationsAndAdvice -> {
 					final Optional<ArrayNode> obligations = obligationsAndAdvice.getT1();
 					final Optional<ArrayNode> advice = obligationsAndAdvice.getT2();
-					return new AuthDecision(decision, Optional.empty(), obligations, advice);
+					return new AuthorizationDecision(decision, Optional.empty(), obligations, advice);
 				});
 			}
 			else {
-				return Flux.just(new AuthDecision(decision));
+				return Flux.just(new AuthorizationDecision(decision));
 			}
-		}).flatMap(authDecision -> {
-			final Decision decision = authDecision.getDecision();
+		}).flatMap(authzDecision -> {
+			final Decision decision = authzDecision.getDecision();
 			if (decision == Decision.PERMIT) {
-				return evaluateTransformation(policyCtx).map(resource -> new AuthDecision(decision, resource,
-						authDecision.getObligations(), authDecision.getAdvices()));
+				return evaluateTransformation(policyCtx).map(resource -> new AuthorizationDecision(decision, resource,
+						authzDecision.getObligations(), authzDecision.getAdvices()));
 			}
 			else {
-				return Flux.just(authDecision);
+				return Flux.just(authzDecision);
 			}
 		}).onErrorReturn(INDETERMINATE);
 	}

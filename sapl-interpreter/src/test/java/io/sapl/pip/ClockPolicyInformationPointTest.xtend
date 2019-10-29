@@ -16,8 +16,8 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import io.sapl.api.pdp.Decision
-import io.sapl.api.pdp.AuthSubscription
-import io.sapl.api.pdp.AuthDecision
+import io.sapl.api.pdp.AuthorizationSubscription
+import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.functions.StandardFunctionLibrary
 import io.sapl.interpreter.DefaultSAPLInterpreter
 import io.sapl.interpreter.functions.AnnotationFunctionContext
@@ -43,7 +43,7 @@ class ClockPolicyInformationPointTest {
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>())
 	static final ClockPolicyInformationPoint PIP = new ClockPolicyInformationPoint()
 
-    static final String authSubscription = '''
+    static final String authzSubscription = '''
 		{
 		    "subject": "somebody",
 		    "action": "read",
@@ -52,13 +52,13 @@ class ClockPolicyInformationPointTest {
 		}
 	'''
 
-    static AuthSubscription authSubscriptionObj
+    static AuthorizationSubscription authzSubscriptionObj
 
 	@Before
 	def void init() {
         FUNCTION_CTX.loadLibrary(new StandardFunctionLibrary())
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(PIP)
-        authSubscriptionObj = MAPPER.readValue(authSubscription, AuthSubscription)
+        authzSubscriptionObj = MAPPER.readValue(authzSubscription, AuthorizationSubscription)
 	}
 
     @Test
@@ -71,10 +71,10 @@ class ClockPolicyInformationPointTest {
 			    standard.length("UTC".<clock.now>) > 1;
 		'''
 
-        val expectedAuthDecision = AuthDecision.PERMIT
-        val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+        val expectedAuthzDecision = AuthorizationDecision.PERMIT
+        val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("now in UTC time zone should return a string of length > 1", authDecision, equalTo(expectedAuthDecision))
+        assertThat("now in UTC time zone should return a string of length > 1", authzDecision, equalTo(expectedAuthzDecision))
     }
 
     @Test
@@ -87,10 +87,10 @@ class ClockPolicyInformationPointTest {
 			    standard.length("ECT".<clock.now>) > 1;
 		'''
 
-        val expectedAuthDecision = AuthDecision.PERMIT
-        val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+        val expectedAuthzDecision = AuthorizationDecision.PERMIT
+        val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("now in ECT time zone should return a string of length  > 1", authDecision, equalTo(expectedAuthDecision))
+        assertThat("now in ECT time zone should return a string of length  > 1", authzDecision, equalTo(expectedAuthzDecision))
     }
 
     @Test
@@ -103,10 +103,10 @@ class ClockPolicyInformationPointTest {
 			    standard.length("Europe/Berlin".<clock.now>) > 1;
 		'''
 
-        val expectedAuthDecision = AuthDecision.PERMIT
-        val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+        val expectedAuthzDecision = AuthorizationDecision.PERMIT
+        val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("now in Europe/Berlin time zone should return a string of length > 1", authDecision, equalTo(expectedAuthDecision))
+        assertThat("now in Europe/Berlin time zone should return a string of length > 1", authzDecision, equalTo(expectedAuthzDecision))
     }
 
     @Test
@@ -120,9 +120,9 @@ class ClockPolicyInformationPointTest {
 			    length > 1;
 		'''
 
-        val expectedAuthDecision = AuthDecision.PERMIT
-        val authDecision = INTERPRETER.evaluate(authSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
+        val expectedAuthzDecision = AuthorizationDecision.PERMIT
+        val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst()
 
-        assertThat("now in the system's time zone should return a string of length > 1", authDecision, equalTo(expectedAuthDecision))
+        assertThat("now in the system's time zone should return a string of length > 1", authzDecision, equalTo(expectedAuthzDecision))
     }
 }

@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -40,10 +40,11 @@ public class OnlyOneApplicableTest {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private static final AuthSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthSubscription(null, null, null, null);
+	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthorizationSubscription(null, null,
+			null, null);
 
-	private static final AuthSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthSubscription(null, null,
-			JSON.booleanNode(true), null);
+	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
+			null, null, JSON.booleanNode(true), null);
 
 	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 

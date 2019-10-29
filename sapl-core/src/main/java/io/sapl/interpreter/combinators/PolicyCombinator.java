@@ -2,7 +2,7 @@ package io.sapl.interpreter.combinators;
 
 import java.util.List;
 
-import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -30,11 +30,11 @@ public interface PolicyCombinator {
 	 * policy set</li>
 	 * <li>the import mapping for functions and attribute finders</li>
 	 * </ul>
-	 * @return a {@link Flux} of {@link AuthDecision} objects containing the combined
-	 * decision, the combined obligation and advice and a transformed resource if
+	 * @return a {@link Flux} of {@link AuthorizationDecision} objects containing the
+	 * combined decision, the combined obligation and advice and a transformed resource if
 	 * applicable. A new authorization decision object is only pushed if it is different
 	 * from the previous one.
 	 */
-	Flux<AuthDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx);
+	Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx);
 
 }

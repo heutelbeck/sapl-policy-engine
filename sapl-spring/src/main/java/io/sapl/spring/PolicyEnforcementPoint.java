@@ -6,13 +6,13 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.AuthSubscription;
-import io.sapl.api.pdp.multisubscription.IdentifiableAuthDecision;
-import io.sapl.api.pdp.multisubscription.MultiAuthDecision;
-import io.sapl.api.pdp.multisubscription.MultiAuthSubscription;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
+import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
 import io.sapl.spring.constraints.ConstraintHandlerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +27,7 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class PolicyEnforcementPoint {
 
-	private static final AuthDecision DENY = AuthDecision.DENY;
+	private static final AuthorizationDecision DENY = AuthorizationDecision.DENY;
 
 	private final PolicyDecisionPoint pdp;
 
@@ -52,7 +52,7 @@ public class PolicyEnforcementPoint {
 	 * deny} otherwise.
 	 */
 	public Flux<Decision> enforce(Object subject, Object action, Object resource, Object environment) {
-		return execute(subject, action, resource, environment, false).map(AuthDecision::getDecision);
+		return execute(subject, action, resource, environment, false).map(AuthorizationDecision::getDecision);
 
 	}
 
@@ -80,44 +80,46 @@ public class PolicyEnforcementPoint {
 	 * for a decision. In case of {@link Decision#PERMIT permit}, obligation and advice
 	 * handlers are invoked. If all obligations can be fulfilled, the original
 	 * authorization decision emitted by the PDP is passed through. Emits an
-	 * {@link AuthDecision authorization decision} containing {@link Decision#DENY deny}
-	 * and no resource otherwise. Authorization decisions are only emitted if they are
-	 * different from the preceding one.
+	 * {@link AuthorizationDecision authorization decision} containing
+	 * {@link Decision#DENY deny} and no resource otherwise. Authorization decisions are
+	 * only emitted if they are different from the preceding one.
 	 * @param subject the subject, will be serialized into JSON.
 	 * @param action the action, will be serialized into JSON.
 	 * @param resource the resource, will be serialized into JSON.
 	 * @param environment the environment, will be serialized into JSON.
 	 * @return a Flux emitting the original decision of the PDP, if the PDP returned a
 	 * decision containing {@link Decision#PERMIT permit} and all obligations could be
-	 * fulfilled, an {@link AuthDecision authorization decision} containing
+	 * fulfilled, an {@link AuthorizationDecision authorization decision} containing
 	 * {@link Decision#DENY deny} and no resource otherwise.
 	 */
-	public Flux<AuthDecision> filterEnforce(Object subject, Object action, Object resource, Object environment) {
+	public Flux<AuthorizationDecision> filterEnforce(Object subject, Object action, Object resource,
+			Object environment) {
 		return execute(subject, action, resource, environment, true);
 	}
 
-	private Flux<AuthDecision> execute(Object subject, Object action, Object resource, Object environment,
+	private Flux<AuthorizationDecision> execute(Object subject, Object action, Object resource, Object environment,
 			boolean supportResourceTransformation) {
-		AuthSubscription authSubscription = buildRequest(subject, action, resource, environment);
-		final Flux<AuthDecision> decisionFlux = pdp.decide(authSubscription);
-		return decisionFlux.map(authDecision -> {
-			LOGGER.debug("SUBSCRIPTION  : ACTION={} RESOURCE={} SUBJ={} ENV={}", authSubscription.getAction(),
-					authSubscription.getResource(), authSubscription.getSubject(), authSubscription.getEnvironment());
-			LOGGER.debug("AUTH_DECISION : {} - {}", authDecision == null ? "null" : authDecision.getDecision(),
-					authDecision);
+		AuthorizationSubscription authzSubscription = buildRequest(subject, action, resource, environment);
+		final Flux<AuthorizationDecision> decisionFlux = pdp.decide(authzSubscription);
+		return decisionFlux.map(authzDecision -> {
+			LOGGER.debug("SUBSCRIPTION   : ACTION={} RESOURCE={} SUBJ={} ENV={}", authzSubscription.getAction(),
+					authzSubscription.getResource(), authzSubscription.getSubject(),
+					authzSubscription.getEnvironment());
+			LOGGER.debug("AUTHZ_DECISION : {} - {}", authzDecision == null ? "null" : authzDecision.getDecision(),
+					authzDecision);
 
-			if (authDecision == null || authDecision.getDecision() != Decision.PERMIT) {
+			if (authzDecision == null || authzDecision.getDecision() != Decision.PERMIT) {
 				return DENY;
 			}
-			if (!supportResourceTransformation && authDecision.getResource().isPresent()) {
+			if (!supportResourceTransformation && authzDecision.getResource().isPresent()) {
 				LOGGER.debug("PDP returned a new resource value. "
 						+ "This PEP cannot handle resource replacement. Thus, deny access.");
 				return DENY;
 			}
 			try {
-				constraintHandlers.handleObligations(authDecision);
-				constraintHandlers.handleAdvices(authDecision);
-				return authDecision;
+				constraintHandlers.handleObligations(authzDecision);
+				constraintHandlers.handleAdvices(authzDecision);
+				return authzDecision;
 			}
 			catch (AccessDeniedException e) {
 				LOGGER.debug("PEP failed to fulfill PDP obligations ({}). Access denied by policy enforcement point.",
@@ -132,70 +134,73 @@ public class PolicyEnforcementPoint {
 	 * for a decision. In case of {@link Decision#PERMIT permit}, obligation and advice
 	 * handlers are invoked. If all obligations can be fulfilled, the original
 	 * authorization decision emitted by the PDP is passed through. Emits an
-	 * {@link AuthDecision authorization decision} containing {@link Decision#DENY deny}
-	 * and no resource otherwise. Authorization decisions are only emitted if they are
-	 * different from the preceding one.
+	 * {@link AuthorizationDecision authorization decision} containing
+	 * {@link Decision#DENY deny} and no resource otherwise. Authorization decisions are
+	 * only emitted if they are different from the preceding one.
 	 * @param subject the subject, will be serialized into JSON.
 	 * @param action the action, will be serialized into JSON.
 	 * @param resource the resource, will be serialized into JSON.
 	 * @return a Flux emitting the original decision of the PDP, if the PDP returned a
 	 * decision containing {@link Decision#PERMIT permit} and all obligations could be
-	 * fulfilled, an {@link AuthDecision authorization decision} containing
+	 * fulfilled, an {@link AuthorizationDecision authorization decision} containing
 	 * {@link Decision#DENY deny} and no resource otherwise.
 	 */
-	public Flux<AuthDecision> filterEnforce(Object subject, Object action, Object resource) {
+	public Flux<AuthorizationDecision> filterEnforce(Object subject, Object action, Object resource) {
 		return filterEnforce(subject, action, resource, null);
 	}
 
 	/**
-	 * Sends the given {@code multiAuthSubscription} to the PDP which emits
-	 * {@link IdentifiableAuthDecision identifiable authorization decisions} as soon as
-	 * they are available. Each authorization decision is handled as follows: If its
-	 * decision is {@link Decision#PERMIT permit}, obligation and advice handlers are
+	 * Sends the given {@code multiAuthzSubscription} to the PDP which emits
+	 * {@link IdentifiableAuthorizationDecision identifiable authorization decisions} as
+	 * soon as they are available. Each authorization decision is handled as follows: If
+	 * its decision is {@link Decision#PERMIT permit}, obligation and advice handlers are
 	 * invoked. If all obligations can be fulfilled, the original authorization decision
 	 * is left as is. If its decision is not {@link Decision#PERMIT permit} or if not all
 	 * obligations can be fulfilled, the authorization decision is replaced by an
 	 * authorization decision containing {@link Decision#DENY deny} and no resource.
-	 * @param multiAuthSubscription the multi-subscription to be sent to the PDP.
-	 * @return a Flux emitting {@link IdentifiableAuthDecision identifiable authorization
-	 * decisions} which may differ from the original ones emitted by the PDP after having
-	 * handled the obligations.
+	 * @param multiAuthzSubscription the multi-subscription to be sent to the PDP.
+	 * @return a Flux emitting {@link IdentifiableAuthorizationDecision identifiable
+	 * authorization decisions} which may differ from the original ones emitted by the PDP
+	 * after having handled the obligations.
 	 */
-	public Flux<IdentifiableAuthDecision> filterEnforce(MultiAuthSubscription multiAuthSubscription) {
-		final Flux<IdentifiableAuthDecision> identifiableAuthDecisionFluxFlux = pdp.decide(multiAuthSubscription);
-		return identifiableAuthDecisionFluxFlux.map(iad -> {
+	public Flux<IdentifiableAuthorizationDecision> filterEnforce(
+			MultiAuthorizationSubscription multiAuthzSubscription) {
+		final Flux<IdentifiableAuthorizationDecision> identifiableAuthzDecisionFlux = pdp
+				.decide(multiAuthzSubscription);
+		return identifiableAuthzDecisionFlux.map(iad -> {
 			LOGGER.debug("SUBSCRIPTION      : {}",
-					multiAuthSubscription.getAuthSubscriptionWithId(iad.getAuthSubscriptionId()));
-			LOGGER.debug("ORIGINAL DECISION : {}", iad.getAuthDecision());
+					multiAuthzSubscription.getAuthorizationSubscriptionWithId(iad.getAuthorizationSubscriptionId()));
+			LOGGER.debug("ORIGINAL DECISION : {}", iad.getAuthorizationDecision());
 			return handle(iad);
 		});
 	}
 
 	/**
-	 * Sends the given {@code multiAuthSubscription} to the PDP which emits related
-	 * {@link MultiAuthDecision multi-decisions}. Each authorization decision in the
-	 * multi-decision is handled as follows: If its decision is {@link Decision#PERMIT
+	 * Sends the given {@code multiAuthzSubscription} to the PDP which emits related
+	 * {@link MultiAuthorizationDecision multi-decisions}. Each authorization decision in
+	 * the multi-decision is handled as follows: If its decision is {@link Decision#PERMIT
 	 * permit}, obligation and advice handlers are invoked. If all obligations can be
 	 * fulfilled, the original authorization decision is left as is. If its decision is
 	 * not {@link Decision#PERMIT permit} or if not all obligations can be fulfilled, the
 	 * authorization decision is replaced by an authorization decision containing
-	 * {@link Decision#DENY deny} and no resource. {@link MultiAuthDecision}s are only
-	 * emitted if they are different from the preceding one.
-	 * @param multiAuthSubscription the multi-subscription to be sent to the PDP.
-	 * @return a Flux emitting {@link MultiAuthDecision multi-decisions} which may differ
-	 * from the original ones emitted by the PDP after having handled the obligations.
+	 * {@link Decision#DENY deny} and no resource. {@link MultiAuthorizationDecision}s are
+	 * only emitted if they are different from the preceding one.
+	 * @param multiAuthzSubscription the multi-subscription to be sent to the PDP.
+	 * @return a Flux emitting {@link MultiAuthorizationDecision multi-decisions} which
+	 * may differ from the original ones emitted by the PDP after having handled the
+	 * obligations.
 	 */
-	public Flux<MultiAuthDecision> filterEnforceAll(MultiAuthSubscription multiAuthSubscription) {
-		final Flux<MultiAuthDecision> multiDecisionFlux = pdp.decideAll(multiAuthSubscription);
+	public Flux<MultiAuthorizationDecision> filterEnforceAll(MultiAuthorizationSubscription multiAuthzSubscription) {
+		final Flux<MultiAuthorizationDecision> multiDecisionFlux = pdp.decideAll(multiAuthzSubscription);
 		return multiDecisionFlux.map(multiDecision -> {
-			LOGGER.debug("SUBSCRIPTION      : {}", multiAuthSubscription);
+			LOGGER.debug("SUBSCRIPTION      : {}", multiAuthzSubscription);
 			LOGGER.debug("ORIGINAL DECISION : {}", multiDecision);
 
-			final MultiAuthDecision resultMultiDecision = new MultiAuthDecision();
-			for (IdentifiableAuthDecision identifiableAuthDecision : multiDecision) {
-				final IdentifiableAuthDecision handledDecision = handle(identifiableAuthDecision);
-				resultMultiDecision.setAuthDecisionForSubscriptionWithId(handledDecision.getAuthSubscriptionId(),
-						handledDecision.getAuthDecision());
+			final MultiAuthorizationDecision resultMultiDecision = new MultiAuthorizationDecision();
+			for (IdentifiableAuthorizationDecision identifiableAuthzDecision : multiDecision) {
+				final IdentifiableAuthorizationDecision handledDecision = handle(identifiableAuthzDecision);
+				resultMultiDecision.setAuthorizationDecisionForSubscriptionWithId(
+						handledDecision.getAuthorizationSubscriptionId(), handledDecision.getAuthorizationDecision());
 			}
 
 			LOGGER.debug("RETURNED DECISION : {}", resultMultiDecision);
@@ -203,29 +208,29 @@ public class PolicyEnforcementPoint {
 		}).distinctUntilChanged();
 	}
 
-	private AuthSubscription buildRequest(Object subject, Object action, Object resource, Object environment) {
+	private AuthorizationSubscription buildRequest(Object subject, Object action, Object resource, Object environment) {
 		final JsonNode subjectNode = mapper.valueToTree(subject);
 		final JsonNode actionNode = mapper.valueToTree(action);
 		final JsonNode resourceNode = mapper.valueToTree(resource);
 		final JsonNode environmentNode = mapper.valueToTree(environment);
-		return new AuthSubscription(subjectNode, actionNode, resourceNode, environmentNode);
+		return new AuthorizationSubscription(subjectNode, actionNode, resourceNode, environmentNode);
 	}
 
-	private IdentifiableAuthDecision handle(IdentifiableAuthDecision identifiableAuthDecision) {
-		final String subscriptionId = identifiableAuthDecision.getAuthSubscriptionId();
-		final AuthDecision authDecision = identifiableAuthDecision.getAuthDecision();
-		if (authDecision == null || authDecision.getDecision() != Decision.PERMIT) {
-			return new IdentifiableAuthDecision(subscriptionId, DENY);
+	private IdentifiableAuthorizationDecision handle(IdentifiableAuthorizationDecision identifiableAuthzDecision) {
+		final String subscriptionId = identifiableAuthzDecision.getAuthorizationSubscriptionId();
+		final AuthorizationDecision authzDecision = identifiableAuthzDecision.getAuthorizationDecision();
+		if (authzDecision == null || authzDecision.getDecision() != Decision.PERMIT) {
+			return new IdentifiableAuthorizationDecision(subscriptionId, DENY);
 		}
 		try {
-			constraintHandlers.handleObligations(authDecision);
-			constraintHandlers.handleAdvices(authDecision);
-			return identifiableAuthDecision;
+			constraintHandlers.handleObligations(authzDecision);
+			constraintHandlers.handleAdvices(authzDecision);
+			return identifiableAuthzDecision;
 		}
 		catch (AccessDeniedException e) {
 			LOGGER.debug("PEP failed to fulfill PDP obligations ({}). Access denied by policy enforcement point.",
 					e.getLocalizedMessage());
-			return new IdentifiableAuthDecision(subscriptionId, DENY);
+			return new IdentifiableAuthorizationDecision(subscriptionId, DENY);
 		}
 	}
 

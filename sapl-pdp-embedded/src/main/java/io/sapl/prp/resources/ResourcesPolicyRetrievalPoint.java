@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
@@ -124,9 +124,9 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	}
 
 	@Override
-	public Flux<PolicyRetrievalResult> retrievePolicies(AuthSubscription authSubscription, FunctionContext functionCtx,
-			Map<String, JsonNode> variables) {
-		return Flux.just(parsedDocIdx.retrievePolicies(authSubscription, functionCtx, variables))
+	public Flux<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
+			FunctionContext functionCtx, Map<String, JsonNode> variables) {
+		return Flux.just(parsedDocIdx.retrievePolicies(authzSubscription, functionCtx, variables))
 				.doOnNext(this::logMatching);
 	}
 

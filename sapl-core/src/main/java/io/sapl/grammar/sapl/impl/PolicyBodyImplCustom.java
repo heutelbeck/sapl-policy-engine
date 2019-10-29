@@ -7,7 +7,7 @@ import java.util.Optional;
 import org.eclipse.emf.common.util.EList;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Statement;
@@ -39,7 +39,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	 * policy set</li>
 	 * <li>the import mapping for functions and attribute finders</li>
 	 * </ul>
-	 * @return A {@link Flux} of {@link AuthDecision} objects.
+	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
 	public Flux<Decision> evaluate(Decision entitlement, EvaluationContext ctx) {

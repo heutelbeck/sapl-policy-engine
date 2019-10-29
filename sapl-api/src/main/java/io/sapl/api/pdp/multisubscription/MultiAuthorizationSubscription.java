@@ -25,23 +25,24 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.Value;
 
 /**
  * A multi-subscription holds a list of subjects, a list of actions, a list of resources,
- * a list of environments (which are the elements of a {@link AuthSubscription SAPL
- * authorization subscription}) and a map holding subscription IDs and corresponding
- * {@link AuthSubscriptionElements authorization subscription elements}. It provides
- * methods to {@link #addAuthSubscription(String, Object, Object, Object, Object) add}
+ * a list of environments (which are the elements of a {@link AuthorizationSubscription
+ * SAPL authorization subscription}) and a map holding subscription IDs and corresponding
+ * {@link AuthorizationSubscriptionElements authorization subscription elements}. It
+ * provides methods to
+ * {@link #addAuthorizationSubscription(String, Object, Object, Object, Object) add}
  * single authorization subscriptions and to {@link #iterator() iterate} over all the
  * authorization subscriptions.
  *
- * @see AuthSubscription
+ * @see AuthorizationSubscription
  */
 @Value
 @JsonInclude(NON_EMPTY)
-public class MultiAuthSubscription implements Iterable<IdentifiableAuthSubscription> {
+public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuthorizationSubscription> {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	static {
@@ -58,23 +59,23 @@ public class MultiAuthSubscription implements Iterable<IdentifiableAuthSubscript
 
 	private List<Object> environments = new ArrayList<>();
 
-	private Map<String, AuthSubscriptionElements> authSubscriptions = new HashMap<>();
+	private Map<String, AuthorizationSubscriptionElements> authorizationSubscriptions = new HashMap<>();
 
 	/**
 	 * Convenience method to add an authorization subscription without environment data.
-	 * Calls {@link #addAuthSubscription(String, Object, Object, Object)
-	 * addAuthSubscription(subscriptionId, subject, action, resource, null)}.
+	 * Calls {@link #addAuthorizationSubscription(String, Object, Object, Object)
+	 * addAuthorizationSubscription(subscriptionId, subject, action, resource, null)}.
 	 * @param subscriptionId the id identifying the authorization subscription to be
 	 * added.
 	 * @param subject the subject of the authorization subscription to be added.
 	 * @param action the action of the authorization subscription to be added.
 	 * @param resource the resource of the authorization subscription to be added.
-	 * @return this {@code MultiAuthSubscription} instance to support chaining of multiple
-	 * calls to {@code addAuthSubscription}.
+	 * @return this {@code MultiAuthorizationSubscription} instance to support chaining of
+	 * multiple calls to {@code addAuthorizationSubscription}.
 	 */
-	public MultiAuthSubscription addAuthSubscription(String subscriptionId, Object subject, Object action,
-			Object resource) {
-		return addAuthSubscription(subscriptionId, subject, action, resource, null);
+	public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId, Object subject,
+			Object action, Object resource) {
+		return addAuthorizationSubscription(subscriptionId, subject, action, resource, null);
 	}
 
 	/**
@@ -88,11 +89,11 @@ public class MultiAuthSubscription implements Iterable<IdentifiableAuthSubscript
 	 * @param action the action of the authorization subscription to be added.
 	 * @param resource the resource of the authorization subscription to be added.
 	 * @param environment the environment of the authorization subscription to be added.
-	 * @return this {@code MultiAuthSubscription} instance to support chaining of multiple
-	 * calls to {@code addAuthSubscription}.
+	 * @return this {@code MultiAuthorizationSubscription} instance to support chaining of
+	 * multiple calls to {@code addAuthorizationSubscription}.
 	 */
-	public MultiAuthSubscription addAuthSubscription(String subscriptionId, Object subject, Object action,
-			Object resource, Object environment) {
+	public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId, Object subject,
+			Object action, Object resource, Object environment) {
 		requireNonNull(subscriptionId, "subscriptionId must not be null");
 
 		final Integer subjectId = ensureIsElementOfListAndReturnIndex(subject, subjects);
@@ -100,8 +101,8 @@ public class MultiAuthSubscription implements Iterable<IdentifiableAuthSubscript
 		final Integer resourceId = ensureIsElementOfListAndReturnIndex(resource, resources);
 		final Integer environmentId = ensureIsElementOfListAndReturnIndex(environment, environments);
 
-		authSubscriptions.put(subscriptionId,
-				new AuthSubscriptionElements(subjectId, actionId, resourceId, environmentId));
+		authorizationSubscriptions.put(subscriptionId,
+				new AuthorizationSubscriptionElements(subjectId, actionId, resourceId, environmentId));
 		return this;
 	}
 
@@ -118,8 +119,8 @@ public class MultiAuthSubscription implements Iterable<IdentifiableAuthSubscript
 	 * @return {@code true} if this multi-subscription holds at least one authorization
 	 * subscription, {@code false} otherwise.
 	 */
-	public boolean hasAuthSubscriptions() {
-		return !authSubscriptions.isEmpty();
+	public boolean hasAuthorizationSubscriptions() {
+		return !authorizationSubscriptions.isEmpty();
 	}
 
 	/**
@@ -128,60 +129,61 @@ public class MultiAuthSubscription implements Iterable<IdentifiableAuthSubscript
 	 * @param subscriptionId the ID of the authorization subscription to be returned.
 	 * @return the authorization subscription related to the given ID or {@code null}.
 	 */
-	public AuthSubscription getAuthSubscriptionWithId(String subscriptionId) {
-		final AuthSubscriptionElements subscriptionElements = authSubscriptions.get(subscriptionId);
+	public AuthorizationSubscription getAuthorizationSubscriptionWithId(String subscriptionId) {
+		final AuthorizationSubscriptionElements subscriptionElements = authorizationSubscriptions.get(subscriptionId);
 		if (subscriptionElements != null) {
-			return toAuthSubscription(subscriptionElements);
+			return toAuthzSubscription(subscriptionElements);
 		}
 		return null;
 	}
 
 	/**
 	 * @return an {@link Iterator iterator} providing access to the
-	 * {@link IdentifiableAuthSubscription identifiable authorization subscriptions}
-	 * created from the data held by this multi-subscription.
+	 * {@link IdentifiableAuthorizationSubscription identifiable authorization
+	 * subscriptions} created from the data held by this multi-subscription.
 	 */
 	@Override
-	public Iterator<IdentifiableAuthSubscription> iterator() {
-		final Iterator<Map.Entry<String, AuthSubscriptionElements>> subscriptionIterator = authSubscriptions
+	public Iterator<IdentifiableAuthorizationSubscription> iterator() {
+		final Iterator<Map.Entry<String, AuthorizationSubscriptionElements>> subscriptionIterator = authorizationSubscriptions
 				.entrySet().iterator();
-		return new Iterator<IdentifiableAuthSubscription>() {
+		return new Iterator<IdentifiableAuthorizationSubscription>() {
 			@Override
 			public boolean hasNext() {
 				return subscriptionIterator.hasNext();
 			}
 
 			@Override
-			public IdentifiableAuthSubscription next() {
-				final Map.Entry<String, AuthSubscriptionElements> entry = subscriptionIterator.next();
+			public IdentifiableAuthorizationSubscription next() {
+				final Map.Entry<String, AuthorizationSubscriptionElements> entry = subscriptionIterator.next();
 				final String id = entry.getKey();
-				final AuthSubscriptionElements subscriptionElements = entry.getValue();
-				final AuthSubscription authSubscription = toAuthSubscription(subscriptionElements);
-				return new IdentifiableAuthSubscription(id, authSubscription);
+				final AuthorizationSubscriptionElements subscriptionElements = entry.getValue();
+				final AuthorizationSubscription authzSubscription = toAuthzSubscription(subscriptionElements);
+				return new IdentifiableAuthorizationSubscription(id, authzSubscription);
 			}
 		};
 	}
 
 	@Override
 	public String toString() {
-		final StringBuilder sb = new StringBuilder("MultiAuthSubscription {");
-		for (IdentifiableAuthSubscription subscription : this) {
-			sb.append("\n\t[").append("REQ-ID: ").append(subscription.getAuthSubscriptionId()).append(" | ")
-					.append("SUBJECT: ").append(subscription.getAuthSubscription().getSubject()).append(" | ")
-					.append("ACTION: ").append(subscription.getAuthSubscription().getAction()).append(" | ")
-					.append("RESOURCE: ").append(subscription.getAuthSubscription().getResource()).append(" | ")
-					.append("ENVIRONMENT: ").append(subscription.getAuthSubscription().getEnvironment()).append(']');
+		final StringBuilder sb = new StringBuilder("MultiAuthorizationSubscription {");
+		for (IdentifiableAuthorizationSubscription subscription : this) {
+			sb.append("\n\t[").append("REQ-ID: ").append(subscription.getAuthorizationSubscriptionId()).append(" | ")
+					.append("SUBJECT: ").append(subscription.getAuthorizationSubscription().getSubject()).append(" | ")
+					.append("ACTION: ").append(subscription.getAuthorizationSubscription().getAction()).append(" | ")
+					.append("RESOURCE: ").append(subscription.getAuthorizationSubscription().getResource())
+					.append(" | ").append("ENVIRONMENT: ")
+					.append(subscription.getAuthorizationSubscription().getEnvironment()).append(']');
 		}
 		sb.append("\n}");
 		return sb.toString();
 	}
 
-	private AuthSubscription toAuthSubscription(AuthSubscriptionElements subscriptionElements) {
+	private AuthorizationSubscription toAuthzSubscription(AuthorizationSubscriptionElements subscriptionElements) {
 		final Object subject = subjects.get(subscriptionElements.getSubjectId());
 		final Object action = actions.get(subscriptionElements.getActionId());
 		final Object resource = resources.get(subscriptionElements.getResourceId());
 		final Object environment = environments.get(subscriptionElements.getEnvironmentId());
-		return new AuthSubscription(MAPPER.valueToTree(subject), MAPPER.valueToTree(action),
+		return new AuthorizationSubscription(MAPPER.valueToTree(subject), MAPPER.valueToTree(action),
 				MAPPER.valueToTree(resource), MAPPER.valueToTree(environment));
 	}
 

@@ -17,8 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import io.sapl.api.interpreter.PolicyEvaluationException
 import io.sapl.api.pdp.Decision
-import io.sapl.api.pdp.AuthSubscription
-import io.sapl.api.pdp.AuthDecision
+import io.sapl.api.pdp.AuthorizationSubscription
+import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.functions.FilterFunctionLibrary
 import io.sapl.interpreter.DefaultSAPLInterpreter
 import io.sapl.interpreter.functions.AnnotationFunctionContext
@@ -63,7 +63,7 @@ class SampleOurPuppetTest {
 		// about the patient for this task (e.g. skin resistance might vary depending on age and gender).
 		// In the personal data section, age will be rounded to step of 5 and only the first digit of zip code is shown.
 		// Gender is shown, all other values are removed.
-		val authSubscription = '''
+		val authzSubscription = '''
 		{  
 		    "subject":{  
 		        "id":"123456789012345678901212345678901234567890121234567890123456789012",
@@ -93,7 +93,7 @@ class SampleOurPuppetTest {
 				      "ipAddress":"10.10.10.254"
 				  }
 		}''';
-		val authSubscription_object = MAPPER.readValue(authSubscription, AuthSubscription)
+		val authzSubscription_object = MAPPER.readValue(authzSubscription, AuthorizationSubscription)
 
 		val policyDefinition = '''
 			policy "annotators_anonymize_patient" 
@@ -127,17 +127,17 @@ class SampleOurPuppetTest {
 		} catch (Exception e) {
 		}
 
-		val expectedAuthDecision = new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
 
 		assertThat("anonymizing patient data for annotators not working as expected",
-			INTERPRETER.evaluate(authSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(expectedAuthDecision));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(expectedAuthzDecision));
 	}
 
 	@Test
 	def void patientdataDoctor() throws PolicyEvaluationException {
 
-		val authSubscription = '''
+		val authzSubscription = '''
 		{  
 		    "subject":{  
 		        "id":"123456789012345678901212345678901234567890121234567890123456789012",
@@ -167,7 +167,7 @@ class SampleOurPuppetTest {
 				      "ipAddress":"10.10.10.254"
 				  }
 		}''';
-		val authSubscription_object = MAPPER.readValue(authSubscription, AuthSubscription)
+		val authzSubscription_object = MAPPER.readValue(authzSubscription, AuthorizationSubscription)
 
 		val policyDefinition = '''
 			policy "doctors_hide_icd10" 
@@ -196,8 +196,8 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("anonymizing patient data for doctors not working as expected",
-			INTERPRETER.evaluate(authSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
 	}
 
 	@Test
@@ -205,7 +205,7 @@ class SampleOurPuppetTest {
 		// There is a history of annotated contexts with sensordata, status, puppetreaction etc. for a patient.
 		// This data might be used by a doctor in a consultation. However, a family member shall only have access
 		// to the status of the latest entry.
-		val authSubscription = '''
+		val authzSubscription = '''
 		{  
 		    "subject":{  
 		        "id":"123456789012345678901212345678901234567890121234567890123456789012",
@@ -260,7 +260,7 @@ class SampleOurPuppetTest {
 				      "ipAddress":"10.10.10.254"
 				  }
 		}''';
-		val authSubscription_object = MAPPER.readValue(authSubscription, AuthSubscription)
+		val authzSubscription_object = MAPPER.readValue(authzSubscription, AuthorizationSubscription)
 
 		val policyDefinition = '''
 		policy "familymembers_truncate_situations" 
@@ -303,13 +303,13 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("truncating detected situations for familymembers not working as expected",
-			INTERPRETER.evaluate(authSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
 	}
 
 	@Test
 	def void situationsCaregiver() throws PolicyEvaluationException {
-		val authSubscription = '''
+		val authzSubscription = '''
 		{  
 		    "subject":{  
 		        "id":"123456789012345678901212345678901234567890121234567890123456789012",
@@ -364,7 +364,7 @@ class SampleOurPuppetTest {
 				      "ipAddress":"10.10.10.254"
 				  }
 		}''';
-		val authSubscription_object = MAPPER.readValue(authSubscription, AuthSubscription)
+		val authzSubscription_object = MAPPER.readValue(authzSubscription, AuthorizationSubscription)
 
 		// Assume professional_caregivers can view each entry, but without sensordata and puppet action
 		val policyDefinition = '''
@@ -400,13 +400,13 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("truncating detected situations for professional caregivers not working as expected",
-			INTERPRETER.evaluate(authSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
 	}
 
 	@Test
 	def void situationsPuppetIntroducer() throws PolicyEvaluationException {
-		val authSubscription = '''
+		val authzSubscription = '''
 		{  
 		    "subject":{  
 		        "id":"123456789012345678901212345678901234567890121234567890123456789012",
@@ -461,7 +461,7 @@ class SampleOurPuppetTest {
 				      "ipAddress":"10.10.10.254"
 				  }
 		}''';
-		val authSubscription_object = MAPPER.readValue(authSubscription, AuthSubscription)
+		val authzSubscription_object = MAPPER.readValue(authzSubscription, AuthorizationSubscription)
 
 		// Let's assume puppet introducers can access only the contexts from the same day:
 		val policyDefinition = '''
@@ -495,7 +495,7 @@ class SampleOurPuppetTest {
 
 		Hooks.onOperatorDebug()
 		assertThat("truncating detected situations for puppetintroducers not working as expected",
-			INTERPRETER.evaluate(authSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(new AuthDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			equalTo(new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
 	}
 }

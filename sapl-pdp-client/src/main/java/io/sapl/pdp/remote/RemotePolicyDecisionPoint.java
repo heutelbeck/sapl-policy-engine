@@ -12,12 +12,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
-import io.sapl.api.pdp.AuthDecision;
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.multisubscription.IdentifiableAuthDecision;
-import io.sapl.api.pdp.multisubscription.MultiAuthDecision;
-import io.sapl.api.pdp.multisubscription.MultiAuthSubscription;
+import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
+import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
 import io.sapl.webclient.RequestSpecification;
 import io.sapl.webclient.WebClientRequestExecutor;
 import reactor.core.publisher.Flux;
@@ -53,36 +53,36 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	@Override
-	public Flux<AuthDecision> decide(AuthSubscription authSubscription) {
-		final RequestSpecification requestSpec = getRequestSpecification(authSubscription);
+	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
+		final RequestSpecification requestSpec = getRequestSpecification(authzSubscription);
 		return new WebClientRequestExecutor().executeReactiveRequest(requestSpec, POST)
-				.map(jsonNode -> mapper.convertValue(jsonNode, AuthDecision.class))
-				.onErrorResume(error -> Flux.just(AuthDecision.INDETERMINATE));
+				.map(jsonNode -> mapper.convertValue(jsonNode, AuthorizationDecision.class))
+				.onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE));
 	}
 
 	@Override
-	public Flux<IdentifiableAuthDecision> decide(MultiAuthSubscription multiAuthSubscription) {
-		final RequestSpecification requestSpec = getRequestSpecification(multiAuthSubscription, false);
+	public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
+		final RequestSpecification requestSpec = getRequestSpecification(multiAuthzSubscription, false);
 		return new WebClientRequestExecutor().executeReactiveRequest(requestSpec, POST)
-				.map(jsonNode -> mapper.convertValue(jsonNode, IdentifiableAuthDecision.class))
-				.onErrorResume(error -> Flux.just(IdentifiableAuthDecision.INDETERMINATE));
+				.map(jsonNode -> mapper.convertValue(jsonNode, IdentifiableAuthorizationDecision.class))
+				.onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE));
 	}
 
 	@Override
-	public Flux<MultiAuthDecision> decideAll(MultiAuthSubscription multiAuthSubscription) {
-		final RequestSpecification requestSpec = getRequestSpecification(multiAuthSubscription, true);
+	public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
+		final RequestSpecification requestSpec = getRequestSpecification(multiAuthzSubscription, true);
 		return new WebClientRequestExecutor().executeReactiveRequest(requestSpec, POST)
-				.map(jsonNode -> mapper.convertValue(jsonNode, MultiAuthDecision.class))
-				.onErrorResume(error -> Flux.just(MultiAuthDecision.indeterminate()));
+				.map(jsonNode -> mapper.convertValue(jsonNode, MultiAuthorizationDecision.class))
+				.onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate()));
 	}
 
-	private RequestSpecification getRequestSpecification(AuthSubscription authSubscription) {
-		return getRequestSpecification(authSubscription, PDP_PATH_SINGLE_DECIDE);
+	private RequestSpecification getRequestSpecification(AuthorizationSubscription authzSubscription) {
+		return getRequestSpecification(authzSubscription, PDP_PATH_SINGLE_DECIDE);
 	}
 
-	private RequestSpecification getRequestSpecification(MultiAuthSubscription multiAuthSubscription,
+	private RequestSpecification getRequestSpecification(MultiAuthorizationSubscription multiAuthzSubscription,
 			boolean decisionsForAllSubscriptions) {
-		return getRequestSpecification(multiAuthSubscription,
+		return getRequestSpecification(multiAuthzSubscription,
 				decisionsForAllSubscriptions ? PDP_PATH_MULTI_DECIDE_ALL : PDP_PATH_MULTI_DECIDE);
 	}
 

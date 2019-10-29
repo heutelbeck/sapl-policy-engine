@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationSubscription;
 
 public class VariableContextTest {
 
@@ -49,10 +49,11 @@ public class VariableContextTest {
 
 	private static final String VAR_ID = "var";
 
-	private static final AuthSubscription AUTH_SUBSCRIPTION = new AuthSubscription(SUBJECT_NODE, ACTION_NODE,
-			RESOURCE_NODE, ENVIRONMENT_NODE);
+	private static final AuthorizationSubscription AUTH_SUBSCRIPTION = new AuthorizationSubscription(SUBJECT_NODE,
+			ACTION_NODE, RESOURCE_NODE, ENVIRONMENT_NODE);
 
-	private static final AuthSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthSubscription(null, null, null, null);
+	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthorizationSubscription(null, null,
+			null, null);
 
 	@Test
 	public void emtpyInitializationTest() {
@@ -61,7 +62,7 @@ public class VariableContextTest {
 	}
 
 	@Test
-	public void authSubscriptionInitializationTest() throws PolicyEvaluationException {
+	public void authzSubscriptionInitializationTest() throws PolicyEvaluationException {
 		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
 		assertTrue("context was not created or did not remember values",
 				ctx != null && ctx.get("subject").equals(SUBJECT_NODE) && ctx.get("action").equals(ACTION_NODE)
@@ -70,7 +71,7 @@ public class VariableContextTest {
 	}
 
 	@Test
-	public void emptyauthSubscriptionInitializationTest() throws PolicyEvaluationException {
+	public void emptyauthzSubscriptionInitializationTest() throws PolicyEvaluationException {
 		VariableContext ctx = new VariableContext(EMPTY_AUTH_SUBSCRIPTION);
 		assertTrue("context was not created or did not remember values",
 				ctx != null && ctx.get("subject").equals(NULL_NODE) && ctx.get("action").equals(NULL_NODE)

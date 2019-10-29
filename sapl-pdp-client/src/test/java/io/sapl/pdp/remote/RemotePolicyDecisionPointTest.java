@@ -12,12 +12,12 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.AuthSubscription;
-import io.sapl.api.pdp.multisubscription.IdentifiableAuthDecision;
-import io.sapl.api.pdp.multisubscription.MultiAuthSubscription;
-import io.sapl.api.pdp.multisubscription.MultiAuthDecision;
+import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
+import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -40,11 +40,11 @@ public class RemotePolicyDecisionPointTest {
 
 	@Test
 	public void sendSingleSubscription() {
-		final AuthSubscription simpleAuthSubscription = new AuthSubscription(JSON.textNode("willi"),
+		final AuthorizationSubscription simpleAuthzSubscription = new AuthorizationSubscription(JSON.textNode("willi"),
 				JSON.textNode("test-read"), JSON.textNode("something"), JSON.nullNode());
 		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
-		final Flux<AuthDecision> decideFlux = pdp.decide(simpleAuthSubscription);
-		StepVerifier.create(decideFlux).expectNext(AuthDecision.PERMIT).thenCancel().verify();
+		final Flux<AuthorizationDecision> decideFlux = pdp.decide(simpleAuthzSubscription);
+		StepVerifier.create(decideFlux).expectNext(AuthorizationDecision.PERMIT).thenCancel().verify();
 	}
 
 	@Test
@@ -53,31 +53,31 @@ public class RemotePolicyDecisionPointTest {
 				.singletonList(new SimpleGrantedAuthority("TESTER"));
 		final Authentication authentication = new UsernamePasswordAuthenticationToken("Reactor", null, authorities);
 
-		final MultiAuthSubscription multiAuthSubscription = new MultiAuthSubscription()
-				.addAuthSubscription("subscriptionId_1", authentication, "test-read", "heartBeatData")
-				.addAuthSubscription("subscriptionId_2", authentication, "test-read", "bloodPressureData");
+		final MultiAuthorizationSubscription multiAuthzSubscription = new MultiAuthorizationSubscription()
+				.addAuthorizationSubscription("subscriptionId_1", authentication, "test-read", "heartBeatData")
+				.addAuthorizationSubscription("subscriptionId_2", authentication, "test-read", "bloodPressureData");
 
 		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
-		final Flux<IdentifiableAuthDecision> decideFlux = pdp.decide(multiAuthSubscription);
+		final Flux<IdentifiableAuthorizationDecision> decideFlux = pdp.decide(multiAuthzSubscription);
 		StepVerifier.create(decideFlux).expectNextMatches(iad -> {
-			if (iad.getAuthSubscriptionId().equals("subscriptionId_1")) {
-				return iad.getAuthDecision().equals(AuthDecision.PERMIT);
+			if (iad.getAuthorizationSubscriptionId().equals("subscriptionId_1")) {
+				return iad.getAuthorizationDecision().equals(AuthorizationDecision.PERMIT);
 			}
-			else if (iad.getAuthSubscriptionId().equals("subscriptionId_2")) {
-				return iad.getAuthDecision().equals(AuthDecision.DENY);
+			else if (iad.getAuthorizationSubscriptionId().equals("subscriptionId_2")) {
+				return iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY);
 			}
 			else {
-				throw new IllegalStateException("Invalid subscription id: " + iad.getAuthSubscriptionId());
+				throw new IllegalStateException("Invalid subscription id: " + iad.getAuthorizationSubscriptionId());
 			}
 		}).expectNextMatches(iad -> {
-			if (iad.getAuthSubscriptionId().equals("subscriptionId_1")) {
-				return iad.getAuthDecision().equals(AuthDecision.PERMIT);
+			if (iad.getAuthorizationSubscriptionId().equals("subscriptionId_1")) {
+				return iad.getAuthorizationDecision().equals(AuthorizationDecision.PERMIT);
 			}
-			else if (iad.getAuthSubscriptionId().equals("subscriptionId_2")) {
-				return iad.getAuthDecision().equals(AuthDecision.DENY);
+			else if (iad.getAuthorizationSubscriptionId().equals("subscriptionId_2")) {
+				return iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY);
 			}
 			else {
-				throw new IllegalStateException("Invalid subscription id: " + iad.getAuthSubscriptionId());
+				throw new IllegalStateException("Invalid subscription id: " + iad.getAuthorizationSubscriptionId());
 			}
 		}).thenCancel().verify();
 	}
@@ -88,15 +88,15 @@ public class RemotePolicyDecisionPointTest {
 				.singletonList(new SimpleGrantedAuthority("TESTER"));
 		final Authentication authentication = new UsernamePasswordAuthenticationToken("Reactor", null, authorities);
 
-		final MultiAuthSubscription multiAuthSubscription = new MultiAuthSubscription()
-				.addAuthSubscription("subscriptionId_1", authentication, "test-read", "heartBeatData")
-				.addAuthSubscription("subscriptionId_2", authentication, "test-read", "bloodPressureData");
+		final MultiAuthorizationSubscription multiAuthzSubscription = new MultiAuthorizationSubscription()
+				.addAuthorizationSubscription("subscriptionId_1", authentication, "test-read", "heartBeatData")
+				.addAuthorizationSubscription("subscriptionId_2", authentication, "test-read", "bloodPressureData");
 
 		final RemotePolicyDecisionPoint pdp = new RemotePolicyDecisionPoint(host, port, clientKey, clientSecret);
-		final Flux<MultiAuthDecision> multiDecisionFlux = pdp.decideAll(multiAuthSubscription);
+		final Flux<MultiAuthorizationDecision> multiDecisionFlux = pdp.decideAll(multiAuthzSubscription);
 		StepVerifier.create(multiDecisionFlux).expectNextMatches(
-				multiAuthDecision -> multiAuthDecision.isAccessPermittedForSubscriptionWithId("subscriptionId_1")
-						&& multiAuthDecision.getDecisionForSubscriptionWithId("subscriptionId_2") == Decision.DENY)
+				multiAuthzDecision -> multiAuthzDecision.isAccessPermittedForSubscriptionWithId("subscriptionId_1")
+						&& multiAuthzDecision.getDecisionForSubscriptionWithId("subscriptionId_2") == Decision.DENY)
 				.thenCancel().verify();
 	}
 

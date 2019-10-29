@@ -5,7 +5,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.AuthDecision;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +16,7 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
 
 	protected static final String CANNOT_ASSIGN_UNDEFINED_TO_A_VAL = "Cannot assign undefined to a val.";
 
-	protected static final AuthDecision INDETERMINATE = AuthDecision.INDETERMINATE;
+	protected static final AuthorizationDecision INDETERMINATE = AuthorizationDecision.INDETERMINATE;
 
 	private static final String CONDITION_NOT_BOOLEAN = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
 

@@ -3,7 +3,7 @@ package io.sapl.api.prp;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.sapl.api.pdp.AuthSubscription;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.functions.FunctionContext;
 import reactor.core.publisher.Flux;
 
@@ -18,7 +18,7 @@ public interface PolicyRetrievalPoint {
 	 * policy sets having a target expression that matches the given authorization
 	 * subscription. The given function context and variables constitute the environment
 	 * the target expressions are evaluated in.
-	 * @param authSubscription the authorization subscription for which matching policies
+	 * @param authzSubscription the authorization subscription for which matching policies
 	 * are to be retrieved.
 	 * @param functionCtx the function context being part of the target expression's
 	 * evaluation environment.
@@ -28,7 +28,7 @@ public interface PolicyRetrievalPoint {
 	 * matching policies or policy sets. New results are only added to the stream if they
 	 * are different from the preceding result.
 	 */
-	Flux<PolicyRetrievalResult> retrievePolicies(AuthSubscription authSubscription, FunctionContext functionCtx,
-			Map<String, JsonNode> variables);
+	Flux<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
+			FunctionContext functionCtx, Map<String, JsonNode> variables);
 
 }
