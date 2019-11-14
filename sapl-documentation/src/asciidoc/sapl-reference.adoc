@@ -485,7 +485,7 @@ A matching policy whose conditions in the body evaluate to `true` is called _app
 Accordingly, there are two limitations regarding the elements allowed in the target:
 
 * As lazy evaluation deviates from boolean logic and prevents effective indexing, the logical operators `&&` and `||` may not be used. Instead, the target needs to make use of the operators `&` and `|`, for which eager evaluation is applied.
-* <<attribute finder steps, Attribute finder steps>> which have access to environment variables and may contact external PIPs are not allowed in the target. Yet functions may be used because their output only depends on the arguments passed.
+* <<attribute-finders,Attribute finder steps>> which have access to environment variables and may contact external PIPs are not allowed in the target. Yet functions may be used because their output only depends on the arguments passed.
 
 ==== Body
 
@@ -560,7 +560,7 @@ transform
 
 The example would remove the attribute `someValue` and blacken the value of the attribute `anotherValue`. The filtering functions are described in more detail <<filtering,below>>.
 
-It is not possible to combine multiple transformation statements through multiple policies. Each combining algorithm in SAPL will not return the decision `PERMIT` if there are more than one policies evaluating to `PERMIT` and at least one of them contains a transformation statement (this is called _transformation uncertainty_). For more details, <<combining-algorithmns,see below>>.
+It is not possible to combine multiple transformation statements through multiple policies. Each combining algorithm in SAPL will not return the decision `PERMIT` if there are more than one policies evaluating to `PERMIT` and at least one of them contains a transformation statement (this is called _transformation uncertainty_). For more details, <<combining-algorithms,see below>>.
 
 
 === SAPL Policy Set
@@ -594,7 +594,7 @@ The combining algorithms are described in more detail <<combining-algorithms,lat
 
 Subsequent to the combining algorithm, an *optional* target expression can be specified. The target expression is a condition for applying the policy set. It starts with the keyword `for` followed by an expression which must evaluate to either `true` or `false`. If the condition evaluates to `true` for a certain authorization subscription the policy set _matches_ this subscription. In case the target expression is missing the policy set matches any authorization subscription.
 
-The policy sets' target expression is used to select matching policy sets from a large collection of policy documents before evaluating them. As this needs to be done efficiently, there are no <<attribute finder steps>> allowed at this place. 
+The policy sets' target expression is used to select matching policy sets from a large collection of policy documents before evaluating them. As this needs to be done efficiently, there are no <<attribute-finders,attribute finder steps>> allowed at this place.
 
 ==== Variable Assignments
 
@@ -1360,7 +1360,8 @@ Finally in case the decision is `PERMIT` and there is a `transform` statement, t
 
 
 === Combining Algorithm
-[[combining-algorithms]
+
+[[combining-algorithms]]
 
 There are two layers with possibly multiple decisions which finally need to be consolidated in a single decision:
 
