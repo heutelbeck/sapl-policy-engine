@@ -26,7 +26,6 @@ import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.ReplayProcessor;
 import reactor.core.scheduler.Scheduler;
@@ -48,8 +47,6 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 	private PolicyDecisionPointConfiguration config;
 
 	private Scheduler dirWatcherScheduler;
-
-	private Disposable dirWatcherFluxSubscription;
 
 	private ReplayProcessor<WatchEvent<Path>> dirWatcherEventProcessor = ReplayProcessor
 			.cacheLastOrDefault(InitialWatchEvent.INSTANCE);
@@ -79,7 +76,7 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 			dirWatcherEventProcessor.onNext(event);
 		}).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler);
 
-		dirWatcherFluxSubscription = dirWatcherFlux.subscribe();
+		dirWatcherFlux.subscribe();
 	}
 
 	private void initializeConfig() {

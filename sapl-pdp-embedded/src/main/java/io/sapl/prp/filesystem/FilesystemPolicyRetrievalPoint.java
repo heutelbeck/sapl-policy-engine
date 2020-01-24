@@ -24,14 +24,13 @@ import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.directorywatcher.DirectoryWatchEventFluxSinkAdapter;
-import io.sapl.directorywatcher.InitialWatchEvent;
 import io.sapl.directorywatcher.DirectoryWatcher;
+import io.sapl.directorywatcher.InitialWatchEvent;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.ReplayProcessor;
 import reactor.core.scheduler.Scheduler;
@@ -54,8 +53,6 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 	private Scheduler dirWatcherScheduler;
 
-	private Disposable dirWatcherFluxSubscription;
-
 	private ReplayProcessor<WatchEvent<Path>> dirWatcherEventProcessor = ReplayProcessor
 			.cacheLastOrDefault(InitialWatchEvent.INSTANCE);
 
@@ -63,11 +60,9 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 			@NonNull ParsedDocumentIndex parsedDocumentIndex) {
 		if (policyPath.startsWith("~" + File.separator)) {
 			this.path = System.getProperty("user.home") + policyPath.substring(1);
-		}
-		else if (policyPath.startsWith("~")) {
+		} else if (policyPath.startsWith("~")) {
 			throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
-		}
-		else {
+		} else {
 			this.path = policyPath;
 		}
 
@@ -89,7 +84,7 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 			dirWatcherEventProcessor.onNext(event);
 		}).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler);
 
-		dirWatcherFluxSubscription = dirWatcherFlux.subscribe();
+		dirWatcherFlux.subscribe();
 	}
 
 	private void initializeIndex() {
@@ -104,11 +99,9 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 				}
 			}
 			parsedDocIdx.setLiveMode();
-		}
-		catch (IOException | PolicyEvaluationException e) {
+		} catch (IOException | PolicyEvaluationException e) {
 			LOGGER.error("Error while initializing the document index.", e);
-		}
-		finally {
+		} finally {
 			lock.unlock();
 		}
 	}
@@ -125,24 +118,19 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 				LOGGER.info("adding {} to index", fileName);
 				final SAPL saplDocument = interpreter.parse(Files.newInputStream(absoluteFilePath));
 				parsedDocIdx.put(absoluteFileName, saplDocument);
-			}
-			else if (kind == ENTRY_DELETE) {
+			} else if (kind == ENTRY_DELETE) {
 				LOGGER.info("removing {} from index", fileName);
 				parsedDocIdx.remove(absoluteFileName);
-			}
-			else if (kind == ENTRY_MODIFY) {
+			} else if (kind == ENTRY_MODIFY) {
 				LOGGER.info("updating {} in index", fileName);
 				final SAPL saplDocument = interpreter.parse(Files.newInputStream(absoluteFilePath));
 				parsedDocIdx.put(absoluteFileName, saplDocument);
-			}
-			else {
+			} else {
 				LOGGER.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
 			}
-		}
-		catch (IOException | PolicyEvaluationException e) {
+		} catch (IOException | PolicyEvaluationException e) {
 			LOGGER.error("Error while updating the document index.", e);
-		}
-		finally {
+		} finally {
 			lock.unlock();
 		}
 	}
@@ -154,8 +142,7 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 			try {
 				lock.lock();
 				return parsedDocIdx.retrievePolicies(authzSubscription, functionCtx, variables);
-			}
-			finally {
+			} finally {
 				lock.unlock();
 			}
 		});
