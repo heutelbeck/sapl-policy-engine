@@ -1,16 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright © 2017 Dominic Heutelbeck (dheutelbeck@ftk.de) Licensed under 
-	the Apache License, Version 2.0 (the "License"); you may not use this file 
-	except in compliance with the License. You may obtain a copy of the License 
-	at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable 
-	law or agreed to in writing, software distributed under the License is distributed 
-	on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either 
-	express or implied. See the License for the specific language governing permissions 
-	and limitations under the License. -->
+<!--
+
+    Copyright © 2020 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
 <!-- Update all child project versions to the actual parent pom version: 
 	mvn versions:update-child-modules -N -->
-<!-- Check and - if necessary - correct the license headers of all source 
-	files mvn com.mycila:license-maven-plugin:format -->
+<!-- correct the license headers of all source files mvn license:format -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -34,7 +42,7 @@
 		</developer>
 	</developers>
 
-	<inceptionYear>2019</inceptionYear>
+	<inceptionYear>2020</inceptionYear>
 
 	<licenses>
 		<license>
@@ -47,12 +55,11 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.8</java.version>
 		<xtextVersion>2.18.0</xtextVersion>
-		<version.license-maven-plugin>1.10</version.license-maven-plugin>
+		<version.license-maven-plugin>3.0</version.license-maven-plugin>
 		<version.maven-javadoc-plugin>3.1.0</version.maven-javadoc-plugin>
-		<version.maven-source-plugin>3.1.0</version.maven-source-plugin>
 		<version.junit>4.12</version.junit>
-		<version.lombok>1.18.8</version.lombok>
-		<version.springboot>2.1.5.RELEASE</version.springboot>
+		<version.lombok>1.18.10</version.lombok>
+		<version.springboot>2.2.4.RELEASE</version.springboot>
 		<version.powermock>2.0.2</version.powermock>
 		<version.mockito>2.28.2</version.mockito>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
@@ -189,6 +196,18 @@
 					</configuration>
 				</plugin>
 				<plugin>
+  					<groupId>org.apache.maven.plugins</groupId>
+  					<artifactId>maven-source-plugin</artifactId>
+  					<executions>
+    					<execution>
+      						<id>attach-sources</id>
+      						<goals>
+        						<goal>jar</goal>
+      						</goals>
+    					</execution>
+  					</executions>
+				</plugin>
+				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
 					<version>2.22.1</version>
@@ -252,6 +271,51 @@
 				</plugin>
 			</plugins>
 		</pluginManagement>
+		<plugins>
+			<plugin>
+			    <groupId>com.mycila</groupId>
+    			<artifactId>license-maven-plugin</artifactId>
+				<version>${version.license-maven-plugin}</version>
+			    <configuration>
+	   	     		<header>APACHE-2.txt</header>
+    			    <properties>
+       		     		<owner>Dominic Heutelbeck</owner>
+            			<email>dominic.heutelbeck@gmail.com</email>
+        			</properties>
+        			<excludes>
+            			<exclude>**/README</exclude>
+            			<exclude>src/test/resources/**</exclude>
+            			<exclude>src/test/xtend-gen/**</exclude>
+            			<exclude>src/test/xtext-gen/**</exclude>
+            			<exclude>src/main/xtend-gen/**</exclude>
+            			<exclude>src/main/xtext-gen/**</exclude>
+            			<exclude>src/main/emf-gen/**</exclude>
+	        	    	<exclude>src/main/resources/**</exclude>
+	        	    	<exclude>.gitattributes</exclude>
+	        	    	<exclude>src/main/java/io/sapl/grammar/web/SAPLWebSetup.xtend</exclude>
+	        	    	<exclude>src/main/java/io/sapl/grammar/web/SAPLWebModule.xtend</exclude>
+	        	    	<exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
+    		    	</excludes>
+    		    	<mapping>
+    		    		<adoc>DOUBLESLASH_STYLE</adoc>
+    		    		<ad>DOUBLESLASH_STYLE</ad>
+    					<xtend>JAVADOC_STYLE</xtend>
+    					<mwe2>JAVADOC_STYLE</mwe2>
+    					<ecore>XML_STYLE</ecore>
+    					<genmodel>XML_STYLE</genmodel>
+    					<xtext>JAVADOC_STYLE</xtext>
+    					<config>SCRIPT_STYLE</config>
+					</mapping>
+    			</configuration>
+    			<executions>
+	        		<execution>
+            			<goals>
+	                		<goal>check</goal>
+    	        		</goals>
+			        </execution>
+    			</executions>
+			</plugin>
+		</plugins>
 	</build>
 
 	<repositories>

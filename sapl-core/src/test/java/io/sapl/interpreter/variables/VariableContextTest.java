@@ -1,5 +1,5 @@
 /**
- * Copyright © 2017 Dominic Heutelbeck (dheutelbeck@ftk.de)
+ * Copyright © 2019 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
