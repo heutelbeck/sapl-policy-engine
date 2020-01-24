@@ -78,19 +78,19 @@ public class WebClientRequestExecutor {
 			}
 			else if (httpMethod == POST) {
 				return webClient.post().uri(urlSpec.pathAndQueryString())
-						.contentType(MediaType.APPLICATION_JSON_UTF8)
+						.contentType(MediaType.APPLICATION_JSON)
 						.accept(MediaType.APPLICATION_STREAM_JSON)
 						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-						.syncBody(getBody(requestSpec))
+						.bodyValue(getBody(requestSpec))
 						.retrieve()
 						.bodyToFlux(JsonNode.class);
 			}
 			else if (httpMethod == PUT) {
 				return webClient.put().uri(urlSpec.pathAndQueryString())
-						.contentType(MediaType.APPLICATION_JSON_UTF8)
+						.contentType(MediaType.APPLICATION_JSON)
 						.accept(MediaType.APPLICATION_STREAM_JSON)
 						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-						.syncBody(getBody(requestSpec))
+						.bodyValue(getBody(requestSpec))
 						.retrieve()
 						.bodyToFlux(JsonNode.class);
 			}
@@ -103,10 +103,10 @@ public class WebClientRequestExecutor {
 			}
 			else if (httpMethod == PATCH) {
 				return webClient.patch().uri(urlSpec.pathAndQueryString())
-						.contentType(MediaType.APPLICATION_JSON_UTF8)
+						.contentType(MediaType.APPLICATION_JSON)
 						.accept(MediaType.APPLICATION_STREAM_JSON)
 						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-						.syncBody(getBody(requestSpec))
+						.bodyValue(getBody(requestSpec))
 						.retrieve()
 						.bodyToFlux(JsonNode.class);
 			}
@@ -145,10 +145,10 @@ public class WebClientRequestExecutor {
 			// @formatter:off
 			final ClientResponse response = webClient.post()
 					.uri(urlSpec.pathAndQueryString())
-					.contentType(MediaType.APPLICATION_JSON_UTF8)
+					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON)
 					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-					.syncBody(getBody(requestSpec)).exchange().block();
+					.bodyValue(getBody(requestSpec)).exchange().block();
 			// @formatter:on
 			if (response == null) {
 				throw new IOException("HTTP POST request returned null");
@@ -165,10 +165,10 @@ public class WebClientRequestExecutor {
 			// @formatter:off
 			final ClientResponse response = webClient.put()
 					.uri(urlSpec.pathAndQueryString())
-					.contentType(MediaType.APPLICATION_JSON_UTF8)
+					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON)
 					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-					.syncBody(getBody(requestSpec)).exchange().block();
+					.bodyValue(getBody(requestSpec)).exchange().block();
 			// @formatter:on
 			if (response == null) {
 				throw new IOException("HTTP PUT request returned null");
@@ -203,10 +203,10 @@ public class WebClientRequestExecutor {
 			// @formatter:off
 			final ClientResponse response = webClient.patch()
 					.uri(urlSpec.pathAndQueryString())
-					.contentType(MediaType.APPLICATION_JSON_UTF8)
+					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON)
 					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-					.syncBody(getBody(requestSpec)).exchange().block();
+					.bodyValue(getBody(requestSpec)).exchange().block();
 			// @formatter:on
 			if (response == null) {
 				throw new IOException("HTTP PATCH request returned null");
