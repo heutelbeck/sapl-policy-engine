@@ -61,16 +61,6 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 		}
 	}
 
-	private Flux<Boolean> sequentialSwitchMap(Boolean input, List<FluxProvider<Boolean>> fluxProviders) {
-		Flux<Boolean> flux = fluxProviders.isEmpty() ? Flux.just(input) : fluxProviders.get(0).getFlux(input);
-		for (int i = 1; i < fluxProviders.size(); i++) {
-			final int idx = i;
-			flux = flux.switchMap(currentResult -> currentResult ? fluxProviders.get(idx).getFlux(Boolean.TRUE)
-					: Flux.just(Boolean.FALSE));
-		}
-		return flux;
-	}
-
 	private Flux<Boolean> nestedSwitchMap(Boolean currentResult, List<FluxProvider<Boolean>> fluxProviders, int idx) {
 		if (idx < fluxProviders.size() && currentResult) {
 			return fluxProviders.get(idx).getFlux(Boolean.TRUE)

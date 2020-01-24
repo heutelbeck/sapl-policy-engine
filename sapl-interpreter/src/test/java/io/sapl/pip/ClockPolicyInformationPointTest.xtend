@@ -15,7 +15,6 @@ package io.sapl.pip
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
-import io.sapl.api.pdp.Decision
 import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.functions.StandardFunctionLibrary
@@ -27,7 +26,6 @@ import io.sapl.interpreter.pip.AttributeContext
 import java.util.Collections
 import java.util.HashMap
 import java.util.Map
-import java.util.Optional
 import org.junit.Before
 import org.junit.Test
 

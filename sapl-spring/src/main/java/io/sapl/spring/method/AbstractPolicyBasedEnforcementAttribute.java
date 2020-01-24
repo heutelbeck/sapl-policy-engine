@@ -15,6 +15,8 @@ import lombok.Getter;
 @EqualsAndHashCode
 public abstract class AbstractPolicyBasedEnforcementAttribute implements ConfigAttribute {
 
+	private static final long serialVersionUID = -2697854599354396960L;
+
 	private static final SpelExpressionParser PARSER = new SpelExpressionParser();
 
 	private final Expression subjectExpression;
