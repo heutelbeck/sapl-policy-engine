@@ -66,7 +66,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 			// return sequentialSwitchMap(Boolean.TRUE, fluxProviders)
 			return nestedSwitchMap(Boolean.TRUE, fluxProviders, 0)
 					.map(result -> result ? entitlement : Decision.NOT_APPLICABLE).onErrorResume(error -> {
-						LOGGER.error("Error in policy body evaluation: {}", error.getMessage());
+						LOGGER.debug("Error in policy body evaluation: {}", error.getMessage());
 						return Flux.just(Decision.INDETERMINATE);
 					});
 		}
@@ -104,7 +104,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 				}
 			}
 			catch (PolicyEvaluationException e) {
-				LOGGER.error("Error in value definition evaluation: {}", e.getMessage());
+				LOGGER.debug("Error in value definition evaluation: {}", e.getMessage());
 				return Flux.error(e);
 			}
 		});

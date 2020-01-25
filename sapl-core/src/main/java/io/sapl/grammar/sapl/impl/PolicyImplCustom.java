@@ -94,7 +94,7 @@ public class PolicyImplCustom extends PolicyImpl {
 		if (getObligation() != null) {
 			final ArrayNode obligationArr = JSON.arrayNode();
 			obligationsFlux = getObligation().evaluate(evaluationCtx, true, Optional.empty())
-					.doOnError(error -> LOGGER.error(OBLIGATIONS_ERROR, error)).map(obligation -> {
+					.doOnError(error -> LOGGER.debug(OBLIGATIONS_ERROR, error)).map(obligation -> {
 						obligation.ifPresent(obligationArr::add);
 						return obligationArr.size() > 0 ? Optional.of(obligationArr) : Optional.empty();
 					});
@@ -107,7 +107,7 @@ public class PolicyImplCustom extends PolicyImpl {
 		if (getAdvice() != null) {
 			final ArrayNode adviceArr = JSON.arrayNode();
 			adviceFlux = getAdvice().evaluate(evaluationCtx, true, Optional.empty())
-					.doOnError(error -> LOGGER.error(ADVICE_ERROR, error)).map(advice -> {
+					.doOnError(error -> LOGGER.debug(ADVICE_ERROR, error)).map(advice -> {
 						advice.ifPresent(adviceArr::add);
 						return adviceArr.size() > 0 ? Optional.of(adviceArr) : Optional.empty();
 					});
@@ -122,7 +122,7 @@ public class PolicyImplCustom extends PolicyImpl {
 	private Flux<Optional<JsonNode>> evaluateTransformation(EvaluationContext evaluationCtx) {
 		if (getTransformation() != null) {
 			return getTransformation().evaluate(evaluationCtx, true, Optional.empty())
-					.doOnError(error -> LOGGER.error(TRANSFORMATION_ERROR, error));
+					.doOnError(error -> LOGGER.debug(TRANSFORMATION_ERROR, error));
 		}
 		else {
 			return Flux.just(Optional.empty());

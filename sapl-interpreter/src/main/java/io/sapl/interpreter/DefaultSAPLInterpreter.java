@@ -112,7 +112,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			saplDocument = parse(saplDefinition);
 		}
 		catch (PolicyEvaluationException e) {
-			LOGGER.error("Error in policy parsing: {}", e.getMessage());
+			LOGGER.debug("Error in policy parsing: {}", e.getMessage());
 			return Flux.just(INDETERMINATE);
 		}
 

@@ -110,7 +110,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 				ZipEntry entry = e.nextElement();
 				if (!entry.isDirectory() && entry.getName().startsWith(policiesDirPathStr)
 						&& entry.getName().endsWith(POLICY_FILE_SUFFIX)) {
-					LOGGER.info("load: {}", entry.getName());
+					LOGGER.debug("load: {}", entry.getName());
 					BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
 					String fileContentsStr = IOUtils.toString(bis, StandardCharsets.UTF_8);
 					bis.close();
@@ -131,7 +131,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		Path policiesDirectoryPath = Paths.get(policiesFolderUrl.toURI());
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(policiesDirectoryPath, POLICY_FILE_GLOB_PATTERN)) {
 			for (Path filePath : stream) {
-				LOGGER.info("load: {}", filePath);
+				LOGGER.debug("load: {}", filePath);
 				final SAPL saplDocument = interpreter.parse(Files.newInputStream(filePath));
 				this.parsedDocIdx.put(filePath.toString(), saplDocument);
 			}

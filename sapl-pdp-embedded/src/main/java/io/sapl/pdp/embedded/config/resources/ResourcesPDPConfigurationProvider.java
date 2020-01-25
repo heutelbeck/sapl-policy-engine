@@ -102,7 +102,7 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 			while (e.hasMoreElements()) {
 				ZipEntry entry = e.nextElement();
 				if (!entry.isDirectory() && entry.getName().equals(configFilePath)) {
-					LOGGER.info("load: {}", entry.getName());
+					LOGGER.debug("load: {}", entry.getName());
 					BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
 					String fileContentsStr = IOUtils.toString(bis, StandardCharsets.UTF_8);
 					bis.close();
@@ -121,7 +121,7 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 		Path configDirectoryPath = Paths.get(configFolderUrl.toURI());
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE_GLOB_PATTERN)) {
 			for (Path filePath : stream) {
-				LOGGER.info("load: {}", filePath);
+				LOGGER.debug("load: {}", filePath);
 				this.config = MAPPER.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
 				break;
 			}

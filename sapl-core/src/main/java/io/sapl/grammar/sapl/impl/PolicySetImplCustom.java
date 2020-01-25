@@ -107,7 +107,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 				}
 			}
 			catch (PolicyEvaluationException e) {
-				LOGGER.error("Value definition evaluation failed: {}", e.getMessage());
+				LOGGER.debug("Value definition evaluation failed: {}", e.getMessage());
 				return Flux.error(e);
 			}
 		});
