@@ -32,13 +32,11 @@ package io.sapl.interpreter.pip.geo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Collection;
 import java.util.LinkedList;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -108,14 +106,6 @@ public class KMLTest {
 			assertEquals("Wrong exception thrown when trying to access a non existing KML-file.",
 					KMLImport.UNABLE_TO_PARSE_KML, e.getMessage());
 		}
-	}
-
-	@Test
-	@Ignore("Unit tests shouldn't depend on resources only accessible via the internet.")
-	public void httpImportTest() throws FunctionException, AttributeException {
-		KMLImport kml = new KMLImport("https://developers.google.com/kml/documentation/KML_Samples.kml");
-		assertTrue("Only an empty response object is created when retrieving KML-file from the web.",
-				kml.toGeoPIPResponse().toString().length() > 0);
 	}
 
 	@Test

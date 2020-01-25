@@ -92,7 +92,7 @@ public class KMLImport {
 	}
 
 	private ObjectNode retrieveGeometries() throws FunctionException, AttributeException {
-		if (kmlSource.contains("http://") || kmlSource.contains("https://")) {
+		if (kmlSource.contains("http://") || kmlSource.contains("https://") || kmlSource.contains("file://")) {
 			return formatCollection((Collection<?>) getKmlFromWeb().getAttribute(ATT_FEATURE));
 		}
 		else {
