@@ -27,7 +27,6 @@ import org.eclipse.xtext.testing.validation.ValidationTestHelper
 import org.junit.Test
 import org.junit.runner.RunWith
 
-
 /**
  * tests for custom validator class SAPLValidator
  */
