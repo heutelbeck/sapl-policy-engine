@@ -82,6 +82,7 @@
 		<module>sapl-spring-boot-autoconfigure</module>
 		<module>sapl-spring-boot-starter</module>
 		<module>sapl-webclient</module>
+		<module>sapl-ethereum</module>
 	</modules>
 
 	<dependencyManagement>
