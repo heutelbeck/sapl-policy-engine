@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2020 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
+    Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.8</java.version>
-		<xtextVersion>2.18.0</xtextVersion>
+		<xtextVersion>2.20.0</xtextVersion>
 		<version.license-maven-plugin>3.0</version.license-maven-plugin>
 		<version.maven-javadoc-plugin>3.1.0</version.maven-javadoc-plugin>
 		<version.junit>4.12</version.junit>
@@ -280,7 +280,7 @@
 	   	     		<header>APACHE-2.txt</header>
     			    <properties>
        		     		<owner>Dominic Heutelbeck</owner>
-            			<email>dominic.heutelbeck@gmail.com</email>
+            			<email>dominic@heutelbeck.com</email>
         			</properties>
         			<excludes>
             			<exclude>**/README</exclude>
@@ -307,6 +307,7 @@
     					<config>SCRIPT_STYLE</config>
 					</mapping>
     			</configuration>
+    			<!-- Uncomment if check shall be done every build 
     			<executions>
 	        		<execution>
             			<goals>
@@ -314,6 +315,7 @@
     	        		</goals>
 			        </execution>
     			</executions>
+    			-->
 			</plugin>
 			<plugin>
   				<groupId>org.apache.maven.plugins</groupId>
@@ -366,6 +368,27 @@
 					</tags>
                 </configuration>
             </plugin>
+            <plugin>
+    	   		<groupId>org.commonjava.maven.plugins</groupId>
+  				<artifactId>directory-maven-plugin</artifactId>
+    			<version>0.3.1</version>
+    			<executions>
+        			<execution>
+            			<id>directories</id>
+            			<goals>
+                			<goal>directory-of</goal>
+            			</goals>
+            			<phase>check</phase>
+            			<configuration>
+                			<property>sapl.basedir</property>
+                			<project>
+                    			<groupId>io.sapl</groupId>
+								<artifactId>sapl-policy-engine</artifactId>
+                			</project>
+            			</configuration>
+        			</execution>
+    			</executions>
+			</plugin>
 		</plugins>
 	</build>
 

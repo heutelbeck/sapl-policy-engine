@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2020 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
+    Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -67,7 +67,8 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
+
+ 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
 			<scope>provided</scope>
