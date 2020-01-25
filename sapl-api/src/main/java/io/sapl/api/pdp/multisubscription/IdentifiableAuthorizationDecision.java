@@ -20,7 +20,6 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 

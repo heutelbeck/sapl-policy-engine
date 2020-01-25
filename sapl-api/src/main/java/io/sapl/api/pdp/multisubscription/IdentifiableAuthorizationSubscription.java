@@ -17,7 +17,6 @@ package io.sapl.api.pdp.multisubscription;
 
 import static java.util.Objects.requireNonNull;
 
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.Getter;
 import lombok.ToString;

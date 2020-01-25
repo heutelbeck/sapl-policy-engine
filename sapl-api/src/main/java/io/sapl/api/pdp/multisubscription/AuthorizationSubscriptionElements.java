@@ -19,9 +19,7 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.Value;
 
 /**
