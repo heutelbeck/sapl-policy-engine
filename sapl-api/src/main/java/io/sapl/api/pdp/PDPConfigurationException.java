@@ -15,22 +15,41 @@
  */
 package io.sapl.api.pdp;
 
+/**
+ * Indicates an error during PDP configuration
+ * */
 public class PDPConfigurationException extends Exception {
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = -6103041704294876849L;
 
+	/**
+	 * Create a new PDPConfigurationException
+	 */
 	public PDPConfigurationException() {
 		super();
 	}
 
+	/**
+	 * Create a new PDPConfigurationException
+	 * @param message a message
+	 */
 	public PDPConfigurationException(String message) {
 		super(message);
 	}
 
+	/**
+	 * Create a new PDPConfigurationException
+	 * @param message a message
+	 * @param cause causing Throwable
+	 */
 	public PDPConfigurationException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
+	/**
+	 * Create a new PDPConfigurationException
+	 * @param cause causing Throwable
+	 */
 	public PDPConfigurationException(Throwable cause) {
 		super(cause);
 	}

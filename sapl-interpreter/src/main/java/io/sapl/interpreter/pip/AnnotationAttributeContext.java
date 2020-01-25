@@ -1,5 +1,5 @@
 /**
- * Copyright © 2017 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
+ * Copyright © 2020 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,9 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
+/**
+ * This Class holds the different attribute finders and PIPs as a context during evaluation.
+ */
 @NoArgsConstructor
 public class AnnotationAttributeContext implements AttributeContext {
 
@@ -65,6 +68,11 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	private Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
 
+	/**
+	 * Create the attribute context from a list of PIPs 
+	 * @param policyInformationPoints a list of PIPs
+	 * @throws AttributeException when loading the PIPs fails
+	 */
 	public AnnotationAttributeContext(Object... policyInformationPoints) throws AttributeException {
 		for (Object pip : policyInformationPoints) {
 			loadPolicyInformationPoint(pip);
@@ -209,6 +217,9 @@ public class AnnotationAttributeContext implements AttributeContext {
 		}
 	}
 
+	/**
+	 * Metadata for attribute finders.
+	 */
 	@Data
 	@AllArgsConstructor
 	public static class AttributeFinderMetadata {

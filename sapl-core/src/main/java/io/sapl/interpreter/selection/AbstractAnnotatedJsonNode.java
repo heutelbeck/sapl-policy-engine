@@ -1,5 +1,5 @@
 /**
- * Copyright © 2019 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
+ * Copyright © 2020 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,6 +56,10 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 
 	protected Optional<JsonNode> parent;
 
+	/**
+	 * Create from an optional node
+	 * @param node base node
+	 */
 	public AbstractAnnotatedJsonNode(Optional<JsonNode> node) {
 		this.node = node;
 		this.parent = Optional.empty();
@@ -97,7 +101,6 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 * finder steps are only allowed if set to true)
 	 * @return a flux of {@link Void} instances, each indicating a finished application of
 	 * the function to each item of the parent array node
-	 * @throws PolicyEvaluationException
 	 */
 	@SuppressWarnings("unchecked")
 	protected static Flux<Void> applyFilterToEachItem(Optional<JsonNode> parentNode, String function,

@@ -15,22 +15,41 @@
  */
 package io.sapl.api.functions;
 
+/**
+ * Indicates an error during function context setup or function evaluation.
+ */
 public class FunctionException extends Exception {
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1235630787233584513L;
 
+	/**
+	 * Create a new FunctionException 
+	 */
 	public FunctionException() {
 		super();
 	}
 
+	/**
+	 * Create a new FunctionException 
+	 * @param message a message
+	 */
 	public FunctionException(String message) {
 		super(message);
 	}
 
+	/**
+	 * Create a new FunctionException 
+	 * @param message a message
+	 * @param cause causing Throwable
+	 */
 	public FunctionException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
+	/**
+	 * Create a new FunctionException 
+	 * @param cause causing Throwable
+	 */
 	public FunctionException(Throwable cause) {
 		super(cause);
 	}

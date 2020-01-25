@@ -28,22 +28,35 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * Container for a decision
+ */
+@Getter
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
-@ToString
 public class AuthorizationDecision {
 
+	/**
+	 * Premade PERMIT decision object
+	 */
 	public static final AuthorizationDecision PERMIT = new AuthorizationDecision(Decision.PERMIT);
 
+	/**
+	 * Premade DENY decision object
+	 */
 	public static final AuthorizationDecision DENY = new AuthorizationDecision(Decision.DENY);
 
+	/**
+	 * Premade INDETERMINATE decision object
+	 */
 	public static final AuthorizationDecision INDETERMINATE = new AuthorizationDecision(Decision.INDETERMINATE);
 
+	/**
+	 * Premade NOT_APPLICABLE decision object
+	 */
 	public static final AuthorizationDecision NOT_APPLICABLE = new AuthorizationDecision(Decision.NOT_APPLICABLE);
 
 	Decision decision;
@@ -61,6 +74,9 @@ public class AuthorizationDecision {
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<ArrayNode> advices = Optional.empty();
 
+	/**
+	 * @param decision the decision
+	 */
 	public AuthorizationDecision(Decision decision) {
 		this.decision = requireNonNull(decision);
 	}

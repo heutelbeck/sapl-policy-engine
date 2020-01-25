@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2017 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
+    Copyright © 2020 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -31,19 +31,6 @@
     <packaging>jar</packaging>
 
     <name>SAPL PDP Server</name>
-
-    <organization>
-        <name>Dominic Heutelbeck</name>
-    </organization>
-
-    <inceptionYear>2017</inceptionYear>
-
-    <licenses>
-        <license>
-            <name>Apache 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
-        </license>
-    </licenses>
 
     <properties>
         <jetty.plugin.version>9.3.9.v20160517</jetty.plugin.version>

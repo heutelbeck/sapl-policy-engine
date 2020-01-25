@@ -1,5 +1,5 @@
 /**
- * Copyright © 2017 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
+ * Copyright © 2020 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
+/**
+ * Context to hold functions libraries during policy evaluation. *
+ */
 @NoArgsConstructor
 public class AnnotationFunctionContext implements FunctionContext {
 
@@ -56,6 +59,11 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	private Map<String, Collection<String>> libraries = new HashMap<>();
 
+	/**
+	 * Create context from a list of function libraries.
+	 * @param libraries list of function libraries
+	 * @throws FunctionException if loading libraries fails
+	 */
 	public AnnotationFunctionContext(Object... libraries) throws FunctionException {
 		for (Object library : libraries) {
 			loadLibrary(library);
@@ -180,6 +188,9 @@ public class AnnotationFunctionContext implements FunctionContext {
 		}
 	}
 
+	/**
+	 * Metadata for individual functions.
+	 */
 	@Data
 	@AllArgsConstructor
 	public static class FunctionMetadata {

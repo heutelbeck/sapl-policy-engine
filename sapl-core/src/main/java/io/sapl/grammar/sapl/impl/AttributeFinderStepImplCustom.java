@@ -1,5 +1,5 @@
 /**
- * Copyright © 2019 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
+ * Copyright © 2020 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the application of an attribute finder step to a previous value.
  *
- * Grammar: Step: '.' ({AttributeFinderStep} '<' idSteps+=ID ('.' idSteps+=ID)* '>') ;
+ * Grammar: Step: &#39;.&#39; ({AttributeFinderStep} &#39;&lt;&#39; idSteps+=ID (&#39;.&#39; idSteps+=ID)* &#39;&gt;&#39;) ;
  */
 public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 

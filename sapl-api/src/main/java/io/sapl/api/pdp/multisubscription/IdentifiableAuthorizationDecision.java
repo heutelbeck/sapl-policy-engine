@@ -35,7 +35,10 @@ import lombok.Value;
 @AllArgsConstructor
 @JsonInclude(NON_NULL)
 public class IdentifiableAuthorizationDecision {
-
+	
+	public static IdentifiableAuthorizationDecision INDETERMINATE = new IdentifiableAuthorizationDecision(null,
+			AuthorizationDecision.INDETERMINATE);
+	
 	private String authorizationSubscriptionId;
 
 	private AuthorizationDecision authorizationDecision;
@@ -44,8 +47,5 @@ public class IdentifiableAuthorizationDecision {
 		authorizationSubscriptionId = null;
 		authorizationDecision = null;
 	}
-
-	public static IdentifiableAuthorizationDecision INDETERMINATE = new IdentifiableAuthorizationDecision(null,
-			AuthorizationDecision.INDETERMINATE);
 
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2019 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
+ * Copyright © 2020 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,9 +27,9 @@ public class DependentStreamsUtil {
 	 * Combines a list of dependent fluxes by sequentially applying the {@code switchMap}
 	 * operator. E.g. given the four fluxes f1, f2, f3, and f4, a flux that results from
 	 * calling <pre>
-	 * f1.switchMap(f1Item -> f2)
-	 *   .switchMap(f2Item -> f3)
-	 *   .switchMap(f3Item -> f4);
+	 * f1.switchMap(f1Item -&gt; f2)
+	 *   .switchMap(f2Item -&gt; f3)
+	 *   .switchMap(f3Item -&gt; f4);
 	 * </pre> is returned.
 	 *
 	 * Because the fluxes may not only depend on the fact that the preceding flux has
@@ -38,9 +38,9 @@ public class DependentStreamsUtil {
 	 * providers accepting the emitted value of the preceding flux. E.g. given the four
 	 * flux providers fp1, fp2, fp3 and fp4 providing the fluxes f1, f2, f3, and f4 this
 	 * method returns a flux that results from calling <pre>
-	 * fp1.getFlux(input).switchMap(f1Item -> fp2.getFlux(f1Item))
-	 *                   .switchMap(f2Item -> fp3.getFlux(f2item))
-	 *                   .switchMap(f3Item -> fp4.getFlux(f3Item));
+	 * fp1.getFlux(input).switchMap(f1Item -&gt; fp2.getFlux(f1Item))
+	 *                   .switchMap(f2Item -&gt; fp3.getFlux(f2item))
+	 *                   .switchMap(f3Item -&gt; fp4.getFlux(f3Item));
 	 * </pre>
 	 *
 	 * If no flux providers are passed in, a flux emitting just the given {@code input}
@@ -81,9 +81,9 @@ public class DependentStreamsUtil {
 	 * Combines a list of dependent fluxes by recursively applying the {@code switchMap}
 	 * operator. E.g. given the four fluxes f1, f2, f3, and f4, a flux that results from
 	 * calling <pre>
-	 * f1.switchMap(f1Item ->
-	 *              f2.switchMap(f2Item ->
-	 *                           f3.switchMap(f3Item -> f4)));
+	 * f1.switchMap(f1Item -&gt;
+	 *              f2.switchMap(f2Item -&gt;
+	 *                           f3.switchMap(f3Item -&gt; f4)));
 	 * </pre> is returned.
 	 *
 	 * Because the fluxes may not only depend on the fact that the preceding flux has
@@ -92,9 +92,9 @@ public class DependentStreamsUtil {
 	 * providers accepting the emitted value of the preceding flux. E.g. given the four
 	 * flux providers fp1, fp2, fp3 and fp4 providing the fluxes f1, f2, f3, and f4 this
 	 * method returns a flux that results from calling <pre>
-	 * fp1.getFlux(input).switchMap(f1Item -> fp2.getFlux(f1Item)
-	 *                              .switchMap(f2Item -> fp3.getFlux(f2item)
-	 *                                         .switchMap(f3Item -> fp4.getFlux(f3Item))));
+	 * fp1.getFlux(input).switchMap(f1Item -&gt; fp2.getFlux(f1Item)
+	 *                              .switchMap(f2Item -&gt; fp3.getFlux(f2item)
+	 *                                         .switchMap(f3Item -&gt; fp4.getFlux(f3Item))));
 	 * </pre>
 	 *
 	 * If no flux providers are passed in, a flux emitting just the given {@code input}

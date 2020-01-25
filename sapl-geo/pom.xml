@@ -27,10 +27,7 @@
 	</parent>
 	<artifactId>sapl-geo</artifactId>
 	<name>SAPL Geo</name>
-	<organization>
-		<name>Dominic Heutelbeck</name>
-	</organization>
-
+	
 	<properties>
 		<geotools.version>20.2</geotools.version>
 		<geojson-jackson.version>1.8</geojson-jackson.version>

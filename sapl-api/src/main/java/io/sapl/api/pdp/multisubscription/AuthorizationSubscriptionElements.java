@@ -21,10 +21,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.Value;
 
 /**
- * Data structure holding IDs for the elements of an {@link AuthorizationSubscription SAPL
+ * Data structure holding IDs for the elements of an {@link AuthorizationSubscription} SAPL
  * authorization subscription).
  */
 @Value

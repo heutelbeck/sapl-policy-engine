@@ -15,22 +15,41 @@
  */
 package io.sapl.api.interpreter;
 
+/**
+ * Exception indicating a problem during policy evaluation
+ */
 public class PolicyEvaluationException extends Exception {
 
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * Create a new PolicyEvaluationException 
+	 */
 	public PolicyEvaluationException() {
 		super();
 	}
 
+	/**
+	 * Create a new PolicyEvaluationException 
+	 * @param message a message
+	 */
 	public PolicyEvaluationException(String message) {
 		super(message);
 	}
 
+	/**
+	 * Create a new PolicyEvaluationException 
+	 * @param message a message
+	 * @param cause causing Throwable
+	 */
 	public PolicyEvaluationException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
+	/**
+	 * Create a new PolicyEvaluationException 
+	 * @param cause causing Throwable
+	 */
 	public PolicyEvaluationException(Throwable cause) {
 		super(cause);
 	}

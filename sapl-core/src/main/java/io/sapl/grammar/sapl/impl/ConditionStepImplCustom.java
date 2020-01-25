@@ -1,5 +1,5 @@
 /**
- * Copyright © 2019 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
+ * Copyright © 2020 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,13 +46,13 @@ import reactor.core.publisher.Flux;
  * item) and an object (then it checks each attribute value). Condition must be an
  * expression, in which relative expressions starting with @ can be used.
  *
- * @ evaluates to the current array item or attribute value for which the condition is
+ * {@literal @} evaluates to the current array item or attribute value for which the condition is
  * evaluated and can be followed by further selection steps.
  *
  * As attributes have no order, the sorting of the result array of a condition step
  * applied to an object is not specified.
  *
- * Example: Applied to the array [1, 2, 3, 4, 5], the selection step [?(@ > 2)] returns
+ * Example: Applied to the array [1, 2, 3, 4, 5], the selection step [?({@literal @} &gt; 2)] returns
  * the array [3, 4, 5] (containing all values that are greater than 2).
  *
  * Grammar: Step: ... | '[' Subscript ']' | ... Subscript returns Step: ... |

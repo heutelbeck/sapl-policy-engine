@@ -21,13 +21,24 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Annotation to indicate that a class is a function library.
+ * 
+ * The name defaults to the class name if not explicitly declared as a parameter.
+ */
 @Inherited
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface FunctionLibrary {
 
+	/**
+	 * @return the library name
+	 */
 	String name() default "";
 
+	/**
+	 * @return a string describing the library
+	 */
 	String description() default "";
 
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2019 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
+ * Copyright © 2020 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the lazy boolean AND operator, written as '&&' in Expressions.
+ * Implements the lazy boolean AND operator, written as '&amp;&amp;' in Expressions.
  *
- * Grammar: Multiplication returns Expression: Comparison (({And.left=current} '&&')
+ * Grammar: Multiplication returns Expression: Comparison (({And.left=current} '&amp;&amp;')
  * right=Comparison)* ;
  */
 public class AndImplCustom extends AndImpl {

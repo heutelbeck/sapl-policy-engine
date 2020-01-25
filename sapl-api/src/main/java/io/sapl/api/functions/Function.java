@@ -20,12 +20,23 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Declares a method in a class to be a function library usable within SAPL policies.
+ * 
+ *  The name defaults to the method name if not explicitly declared as a parameter.
+ */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Function {
 
+	/**
+	 * @return the function name.
+	 */
 	String name() default "";
 
+	/**
+	 * @return function documentation
+	 */
 	String docs() default "";
 
 }

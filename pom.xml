@@ -316,6 +316,7 @@
     			</executions>
 			</plugin>
 			<plugin>
+			    <groupId>org.apache.maven.plugins</groupId>			
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.1.1</version>
                 <executions>
@@ -328,7 +329,28 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <additionalparam>-Xdoclint:none</additionalparam>
+                	<doclint>none</doclint>
+                	<sourceFileExcludes>
+        				<sourceFileExclude>**/emf-gen/*.java</sourceFileExclude>
+					</sourceFileExcludes>
+                    <tags>
+                    	<tag>
+							<name>returns</name>
+							<placement>X</placement>
+						</tag>
+            			<tag>
+							<name>ordered</name>
+							<placement>X</placement>
+						</tag>
+            			<tag>
+							<name>generated</name>
+							<placement>X</placement>
+						</tag>
+            			<tag>
+							<name>model</name>
+							<placement>X</placement>
+						</tag>
+					</tags>
                 </configuration>
             </plugin>
 		</plugins>

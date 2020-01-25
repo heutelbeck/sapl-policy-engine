@@ -1,5 +1,5 @@
 /**
- * Copyright © 2019 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
+ * Copyright © 2020 Dominic Heutelbeck (dominic.heutelbeck@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,7 +62,6 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 	 * @param relativeNode the node a relative expression would point to
 	 * @return a Flux of JsonNodes that are the result after evaluating the steps, filter
 	 * and sub-template
-	 * @throws PolicyEvaluationException
 	 */
 	protected Flux<Optional<JsonNode>> evaluateStepsFilterSubtemplate(Optional<JsonNode> resultBeforeSteps,
 			EList<Step> steps, EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
