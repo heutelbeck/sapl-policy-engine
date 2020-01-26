@@ -1056,8 +1056,10 @@ public class EthereumPolicyInformationPoint {
 	}
 
 	private static Duration getPollingInterval(Map<String, JsonNode> variables) {
-		if (variables != null && variables.containsKey(ETH_POLLING_INTERVAL)) {
-			return Duration.ofMillis(variables.get(ETH_POLLING_INTERVAL).asLong(DEFAULT_ETH_POLLING_INTERVAL));
+		if (variables != null) {
+			JsonNode pollingInterval = variables.get(ETH_POLLING_INTERVAL);
+			if (pollingInterval != null && pollingInterval.isLong())
+				return Duration.ofMillis(pollingInterval.asLong(DEFAULT_ETH_POLLING_INTERVAL));
 		}
 		return Duration.ofMillis(DEFAULT_ETH_POLLING_INTERVAL);
 	}

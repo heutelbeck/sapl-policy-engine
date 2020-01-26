@@ -195,8 +195,9 @@ public class EthereumPipFunctions {
 
 		// If no credentials where found in policy, they will be loaded from the
 		// pdp.json
-		if (variables.containsKey(ETHEREUM_WALLET)) {
-			return retrieveCredentials(variables.get(ETHEREUM_WALLET));
+		JsonNode wallet = variables.get(ETHEREUM_WALLET);
+		if (wallet != null) {
+			return retrieveCredentials(wallet);
 		}
 
 		throw new AttributeException(NO_CREDENTIALS_WARNING);
@@ -210,7 +211,7 @@ public class EthereumPipFunctions {
 				return WalletUtils.loadCredentials(walletPassword, walletFile);
 			}
 			catch (IOException | CipherException e) {
-				throw new AttributeException(CREDENTIALS_LOADING_ERROR);
+				throw new AttributeException(CREDENTIALS_LOADING_ERROR, e);
 			}
 		}
 
@@ -499,16 +500,16 @@ public class EthereumPipFunctions {
 				case "bytes32":
 					return new Bytes32(binaryValue);
 				default:
-					LOGGER.warn(
-							"The type with the name " + solidityType + " couldn't be found. " + DEFAULT_RETURN_WARNING);
+					LOGGER.warn("The type with the name {} couldn't be found. " + DEFAULT_RETURN_WARNING, solidityType);
 					return DEFAULT_RETURN_TYPE;
 
 				}
 			}
 			catch (IOException | StringIndexOutOfBoundsException e) {
-				LOGGER.warn("The type " + solidityType + " with value " + value
-						+ " coudn't be generated. Please make sure that you used correct spelling and the "
-						+ "value is correctly provided for this type. " + DEFAULT_RETURN_WARNING);
+				LOGGER.warn(
+						"The type {} with value {} coudn't be generated. Please make sure that you used correct spelling and the "
+								+ "value is correctly provided for this type. " + DEFAULT_RETURN_WARNING,
+						solidityType, value);
 				return DEFAULT_RETURN_TYPE;
 			}
 
@@ -527,7 +528,7 @@ public class EthereumPipFunctions {
 			JsonNode dbp = saplObject.get(inputName);
 			if (dbp.isTextual()) {
 				String dbpName = dbp.textValue();
-				if (dbpName.equals(EARLIEST) || dbpName.equals(LATEST) || dbpName.equals(PENDING))
+				if (EARLIEST.equals(dbpName) || LATEST.equals(dbpName) || PENDING.equals(dbpName))
 					return DefaultBlockParameter.valueOf(dbpName);
 			}
 			if (dbp.isBigInteger())
