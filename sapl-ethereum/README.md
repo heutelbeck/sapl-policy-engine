@@ -63,7 +63,7 @@ This function was added to provide a simple, user-friendly way of retreiving inf
 
  - "fromAccount":  (Optional) The account which the request is send from
  - "contractAddress":    The address of the contract that should be called
- - "function**Name**": The name of the function that should be called
+ - "functionName": The name of the function that should be called
  - "inputParams":  The type and value of all input params that the called function requires in the same order as in the function declaration
  - "outputParams": The type of all output params that the function returns in the same order as in the function declaration.
 
@@ -222,10 +222,10 @@ This method can be used to see if a transaction was sent and accepted by the net
 
 **Output**: This method returns true if the transaction has taken place and false otherwise.
 
-##Methods for advanced users
+## Methods for advanced users
 Now we'll come to the methods that bring additional options for getting data from the blockchain. They sometimes need advanced knowledge of Ethereum or the Web3j API, but also many easy-to-use functions can be found here. We will stick to the same grouping the JSON-RPC API uses for these methods.
 
-###Methods from web3
+### Methods from web3
 There are only two methods from web3 included here. The method clientVersion simply returns the version of the client and the method sha3 can calculate the keccak-256 hash of a given data.
 
 #### clientVersion
@@ -253,7 +253,7 @@ The version of the client that the node is running on.
 ```
 
 
-###Methods from net
+### Methods from net
 There are three methods returning information about the connection to the network. The method netVersion returns the identification number of the network the client is connected to. Thereby 1 refers to the mainnet, 3 to Ropsten testnet, 4 to Rinkeby testnet and 42 to Kovan testnet. Other network ids can be assigned to private testnets. The method listening only verifies if the client is listening for network connections and the method peerCount returns the number of connected peers.
 #### netVersion
 **Input**: None.
@@ -281,7 +281,7 @@ There are three methods returning information about the connection to the networ
 ```
 
 
-###Eth methods for general information about the blockchain
+### Eth methods for general information about the blockchain
 As the eth methods are by far the largest section, we will group them by topics in multiple sections. We will start with the methods, that provide general information about the blockchain the client is connected to. These methods are protocolVersion, which returns the current Ethereum protocol used, syncing, which simply states if the client is still syncing with the network and gasPrice, which returns the median gas price of the latest blocks in Wei.
 #### protocolVersion
 **Input**: None.
@@ -308,7 +308,7 @@ As the eth methods are by far the largest section, we will group them by topics 
 20000
 ```
 
-###Eth methods for mining
+### Eth methods for mining
 This group includes all methods that most securely are related to mining. They are not very likely to be included in a policy, but still implemented for completion. The first method is coinbase, which returns the address that would receive the mining rewards of the client. Then there is the method mining, which only returns whether the client is actively mining or not. The hashrate method gives information about how many hashes the client processes in its mining per second. Finally, the work method returns information important for mining about the latest block.
 #### coinbase
 **Input**: None.
@@ -349,7 +349,7 @@ This group includes all methods that most securely are related to mining. They a
 ```
 
 
-###Eth methods for accounts
+### Eth methods for accounts
 This section lists all methods that can give information about accounts. There is the accounts method, that returns a list of all addresses owned by the client. The transactionCount method returns the number of transactions, that have been sent from an account. The balance method returns the balance of a given account.
 
 ####  accounts
@@ -398,7 +398,7 @@ This section lists all methods that can give information about accounts. There i
 ```
 
 
-###Eth methods for smart contracts
+### Eth methods for smart contracts
 Apart from the contract method presented above, there are some more useful ways of getting information from a contract. The storage method can be used to access any saved variable from a contract's storage. Calculating the exact position can be complicated and is explained in [JsonRpc]. The code method returns the code of a smart contract. The call method is similar to  the contract method and can be used to get a function result from a smart contract. The difference is, that with call one has to provide a transaction including the encoded function, what is more complicated. Furthermore the result is not being decoded, so the user has to work with the encoded return data.
 #### storage
 **Input**: The address of the contract, the position of the stored value and an optional default block parameter.
@@ -455,7 +455,7 @@ Apart from the contract method presented above, there are some more useful ways 
 ```
 
 
-###Eth methods for transactions
+### Eth methods for transactions
 Now we will look at all methods relating to transactions. The estimateGas method tells how much gas a transaction presumably will require. The sign method calculates an Ethereum specific signature, that is required to send a state changing transaction. It requires that the address to sign with is unlocked in the client. 
 The methods that are called transactionByHash, transactionByBlockHashAndIndex and transactionByBlockNumberAndIndex all return a full transaction object with all information about the transaction, while using different input values to do so. The method pendingTransactions returns a list with all transactions, that have been broadcasted in the network, but not mined yet. The method transactionReceipt returns the receipt of a transaction.
 
@@ -612,7 +612,7 @@ The methods that are called transactionByHash, transactionByBlockHashAndIndex an
 }
 ```
 
-###Eth methods for blocks and uncles
+### Eth methods for blocks and uncles
 There are various methods for getting information about blocks and uncles. The blockNumber method gives us the number of the most recent block. The methods blockTransactionCountByHash and blockTransactionCountByNumber both tell us the number of transactions in a given block. The methods uncleCountByHash and uncleCountByBlockNumber return the number of included uncles of a block. The methods blockByHash and blockByNumber both return a complete block with all information contained in it. They can contain the full transactions or only the transaction hashes. The methods uncleByBlockHashAndIndex and uncleByBlockNumberAndIndex both return a full uncle object, that is similar to a block but doesn't contain transactions. 
 
 #### blockNumber
@@ -760,7 +760,7 @@ There are various methods for getting information about blocks and uncles. The b
 
 **Output**: Same as in uncleByBlockHashAndIndex.
 
-###Eth methods for filters
+### Eth methods for filters
 There are three methods which all provide the logs of a certain range of blocks. The method ethFilterChanges returns only the new logs since the last poll for a given filter id. The method ethFilterLogs always returns all logs that match a filter with a given id. The method logs is like ethFilterLogs but receives a complete filter object as input and not just and id. 
 
 
@@ -817,7 +817,7 @@ There are three methods which all provide the logs of a certain range of blocks.
 ```
 **Output**: Same as in ethFilterLogs.
 
-###Whisper methods
+### Whisper methods
 We already introduced the whisper protocol. The shhVersion method returns the version of the current whisper protocol. The method hasIdentity tells us if a client has a certain whisper identity. The methods shhFilterChanges and messages both return the logs of a whisper filter. Just like with the eth filter methods, shhFilterChanges only gets new logs, while messages returns all logs matching the filter.
 ####  shhVersion
 **Input**: None.
