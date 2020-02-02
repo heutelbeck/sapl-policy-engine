@@ -52,11 +52,27 @@ Please note that you can define the interval in which the EthPIP requests inform
 }
 ```
 
+## How to access the PIP in a policy
+It is quite easy to access the PIP in a policy. The request has to be put in angle brackets with the name of the PIP and the name of the method, separated by a dot. 
+
+```
+policy "example_policy"
+permit
+  action=="anAction" & resource=="someResource"
+where
+  subject.ethereumAddress.<ethereum.balance> >= 1234567890;
+```
+
+The result of the call can be used just like any value in the SAPL policies. For more information about the SAPL policies in general refer to the [SAPL documentation](https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-documentation/src/asciidoc/sapl-reference.adoc).
+
+
 ## User-friendly methods
 Now we will explain how to use the methods included in this policy information point. In this section we will look at the user friendly methods that don't require deep understanding of the **Web3j API** or the Ethereum blockchain. You can use them by just looking at the code of a smart contract or by using basic information like transaction hashes and addresses. If you have no clue of these things yet, you can start at the official [Ethereum Website](https://ethereum.org/what-is-ethereum/).
 
 If you are already an advanced Ethereum user and want to get even more options to receive information from the blockchain there will be a section with advanced methods later on.
 
+
+---
 #### contract
 
 This function was added to provide a simple, user-friendly way of retreiving information from a contract on the Ethereum Blockchain. It needs to receive a JsonNode with the following information:
@@ -203,7 +219,7 @@ This scheme is also helpful when calling different functions from a contract.
 In this case you would check `subject.function**Name** == "nameOfTheFunction"` in the where-section.
 
 
-
+---
 #### transaction
 This method can be used to see if a transaction was sent and accepted by the network. Therefore, it needs to know the hash, the sender, the recipient and the value of the transaction.
 
@@ -228,6 +244,8 @@ Now we'll come to the methods that bring additional options for getting data fro
 ### Methods from web3
 There are only two methods from web3 included here. The method clientVersion simply returns the version of the client and the method sha3 can calculate the keccak-256 hash of a given data.
 
+
+---
 #### clientVersion
 **Input**: None.
 
@@ -238,7 +256,7 @@ The version of the client that the node is running on.
 "besu/v1.3.5/linux-x86_64/oracle_openjdk-java-11"
 ```
 
-
+---
 #### sha3
 **Input**: The hex value that should be hashed.
 
@@ -255,6 +273,8 @@ The version of the client that the node is running on.
 
 ### Methods from net
 There are three methods returning information about the connection to the network. The method netVersion returns the identification number of the network the client is connected to. Thereby 1 refers to the mainnet, 3 to Ropsten testnet, 4 to Rinkeby testnet and 42 to Kovan testnet. Other network ids can be assigned to private testnets. The method listening only verifies if the client is listening for network connections and the method peerCount returns the number of connected peers.
+
+---
 #### netVersion
 **Input**: None.
 
@@ -264,13 +284,13 @@ There are three methods returning information about the connection to the networ
 "1"
 ```
 
-
+---
 #### listening
 **Input**: None.
 
 **Output**: Returns true if the client is actively listening for network connections and false otherwise.
 
-
+---
 #### peerCount
 **Input**: None.
 
@@ -283,6 +303,8 @@ There are three methods returning information about the connection to the networ
 
 ### Eth methods for general information about the blockchain
 As the eth methods are by far the largest section, we will group them by topics in multiple sections. We will start with the methods, that provide general information about the blockchain the client is connected to. These methods are protocolVersion, which returns the current Ethereum protocol used, syncing, which simply states if the client is still syncing with the network and gasPrice, which returns the median gas price of the latest blocks in Wei.
+
+---
 #### protocolVersion
 **Input**: None.
 
@@ -292,13 +314,13 @@ As the eth methods are by far the largest section, we will group them by topics 
 "0x3f"
 ```
 
-
+---
 #### syncing
 **Input**: None.
 
 **Output**: True if the client is still syncing with the network and false otherwise.
 
-
+---
 #### gasPrice
 **Input**: None.
 
@@ -310,6 +332,8 @@ As the eth methods are by far the largest section, we will group them by topics 
 
 ### Eth methods for mining
 This group includes all methods that most securely are related to mining. They are not very likely to be included in a policy, but still implemented for completion. The first method is coinbase, which returns the address that would receive the mining rewards of the client. Then there is the method mining, which only returns whether the client is actively mining or not. The hashrate method gives information about how many hashes the client processes in its mining per second. Finally, the work method returns information important for mining about the latest block.
+
+---
 #### coinbase
 **Input**: None.
 
@@ -319,12 +343,13 @@ This group includes all methods that most securely are related to mining. They a
 "0xfe3b557e8fb62b89f4916b721be55ceb828dbd73"
 ```
 
+---
 ####  mining
 **Input**: None.
 
 **Output**: True if the client is actively mining and false otherwise.
 
-
+---
 ####  hashrate
 **Input**: None.
 
@@ -334,7 +359,7 @@ This group includes all methods that most securely are related to mining. They a
 254
 ```
 
-
+---
 ####  work
 **Input**: None.
 
@@ -352,6 +377,7 @@ This group includes all methods that most securely are related to mining. They a
 ### Eth methods for accounts
 This section lists all methods that can give information about accounts. There is the accounts method, that returns a list of all addresses owned by the client. The transactionCount method returns the number of transactions, that have been sent from an account. The balance method returns the balance of a given account.
 
+---
 ####  accounts
 **Input**: None.
 
@@ -364,6 +390,8 @@ This section lists all methods that can give information about accounts. There i
  "0xd1ff1c01710000000000000000000000d1ff1c01710000000000000000000000"
 ]
 ```
+
+---
 ####  balance
 **Input**: The address of the account that should be queried and optionally the default block parameter.
 
@@ -379,7 +407,7 @@ This section lists all methods that can give information about accounts. There i
 5436700000000000000000
 ```
 
-
+---
 ####  transactionCount
 **Input**: The address of the account that the transaction count should be retrieved from. Both contract accounts and externally owned accounts can be queried.
 
@@ -400,6 +428,8 @@ This section lists all methods that can give information about accounts. There i
 
 ### Eth methods for smart contracts
 Apart from the contract method presented above, there are some more useful ways of getting information from a contract. The storage method can be used to access any saved variable from a contract's storage. Calculating the exact position can be complicated and is explained in [JsonRpc]. The code method returns the code of a smart contract. The call method is similar to  the contract method and can be used to get a function result from a smart contract. The difference is, that with call one has to provide a transaction including the encoded function, what is more complicated. Furthermore the result is not being decoded, so the user has to work with the encoded return data.
+
+---
 #### storage
 **Input**: The address of the contract, the position of the stored value and an optional default block parameter.
 
@@ -417,7 +447,7 @@ Apart from the contract method presented above, there are some more useful ways 
 "0x000000000000000000000000fe3b557e8fb62b89f4916b721be55ceb828dbd73"
 ```
 
-
+---
 #### code
 **Input**: The address of the smart contract.
 
@@ -431,7 +461,7 @@ Apart from the contract method presented above, there are some more useful ways 
 "0x608060405234801561001057600080fd5b50600436106100575760003560e01c8063a87430ba1461005c578063b6a5d7de14610096578063f0b37c04146100be578063f851a440146100e4578063fe9fbb8014610108575b600080fd5b6100826004803603602081101561007257600080fd5b50356001600160a01b031661012e565b604080519115158252519081900360200190f35b6100bc600480360360208110156100ac57600080fd5b50356001600160a01b0316610143565b005b6100bc600480360360208110156100d457600080fd5b50356001600160a01b03166101b3565b6100ec61021d565b604080516001600160a01b039092168252519081900360200190f35b6100826004803603602081101561011e57600080fd5b50356001600160a01b031661022c565b60016020526000908152604090205460ff1681565b6000546001600160a01b0316331461018c5760405162461bcd60e51b815260040180806020018281038252602381526020018061024b6023913960400191505060405180910390fd5b6001600160a01b03166000908152600160208190526040909120805460ff19169091179055565b6000546001600160a01b031633146101fc5760405162461bcd60e51b815260040180806020018281038252602581526020018061026e6025913960400191505060405180910390fd5b6001600160a01b03166000908152600160205260409020805460ff19169055565b6000546001600160a01b031681565b6001600160a01b031660009081526001602052604090205460ff169056fe4f6e6c79207468652061646d696e2063616e20617574686f72697a652075736572732e4f6e6c79207468652061646d696e2063616e20756e617574686f72697a652075736572732ea265627a7a723058205e648b3c949b765bf920a00b4306109e0fdb1a2204a85a0c9ed7cf171576562464736f6c63430005090032"
 ```
 
-
+---
 #### call
 **Input**: The input has to include a node called transaction that contains the sender, the contract and the encoded function that should be called from the contract.
 
@@ -459,6 +489,7 @@ Apart from the contract method presented above, there are some more useful ways 
 Now we will look at all methods relating to transactions. The estimateGas method tells how much gas a transaction presumably will require. The sign method calculates an Ethereum specific signature, that is required to send a state changing transaction. It requires that the address to sign with is unlocked in the client. 
 The methods that are called transactionByHash, transactionByBlockHashAndIndex and transactionByBlockNumberAndIndex all return a full transaction object with all information about the transaction, while using different input values to do so. The method pendingTransactions returns a list with all transactions, that have been broadcasted in the network, but not mined yet. The method transactionReceipt returns the receipt of a transaction.
 
+---
 #### estimateGas
 **Input**: A complete transaction object with sender, recipient and data.
 
@@ -482,7 +513,7 @@ The methods that are called transactionByHash, transactionByBlockHashAndIndex an
 ```
 
 
-
+---
 #### sign
 **Input**: The address that the data should be signed with and the hash of the data that should be signed. Normally used to sign transactions. The address to sign with has to be unlocked in the client.
 
@@ -501,7 +532,7 @@ The methods that are called transactionByHash, transactionByBlockHashAndIndex an
 ```
 
 
-
+---
 #### transactionByHash
 **Input**: The hash of the transaction that should be retrieved.
 
@@ -540,7 +571,7 @@ The methods that are called transactionByHash, transactionByBlockHashAndIndex an
 }
 ```
 
-
+---
 #### transactionByBlockHashAndIndex
 **Input**: The hash of the block the transaction has been mined in and the position in the transaction list.
 
@@ -554,7 +585,7 @@ The methods that are called transactionByHash, transactionByBlockHashAndIndex an
 
 **Output**: Same as in transactionByHash.
 
-
+---
 #### transactionByBlockNumberAndIndex
 **Input**: The default block parameter of the block and the position in the transaction list.
 
@@ -568,6 +599,7 @@ The methods that are called transactionByHash, transactionByBlockHashAndIndex an
 
 **Output**: Same as in transactionByHash.
 
+---
 #### pendingTransactions
 **Input**: None.
 
@@ -578,6 +610,7 @@ The methods that are called transactionByHash, transactionByBlockHashAndIndex an
 ```
 
 
+---
 #### transactionReceipt
 **Input**: Only the hash of the corresponding transaction.
 
@@ -615,6 +648,7 @@ The methods that are called transactionByHash, transactionByBlockHashAndIndex an
 ### Eth methods for blocks and uncles
 There are various methods for getting information about blocks and uncles. The blockNumber method gives us the number of the most recent block. The methods blockTransactionCountByHash and blockTransactionCountByNumber both tell us the number of transactions in a given block. The methods uncleCountByHash and uncleCountByBlockNumber return the number of included uncles of a block. The methods blockByHash and blockByNumber both return a complete block with all information contained in it. They can contain the full transactions or only the transaction hashes. The methods uncleByBlockHashAndIndex and uncleByBlockNumberAndIndex both return a full uncle object, that is similar to a block but doesn't contain transactions. 
 
+---
 #### blockNumber
 **Input**: None.
 
@@ -624,6 +658,7 @@ There are various methods for getting information about blocks and uncles. The b
 4716
 ```
 
+---
 ####  blockTransactionCountByHash
 **Input**: The hash of the block in question.
 
@@ -640,7 +675,7 @@ There are various methods for getting information about blocks and uncles. The b
 32
 ```
 
-
+---
 ####  blockTransactionCountByNumber
 **Input**: The default block parameter of the block in question.
 
@@ -650,6 +685,7 @@ There are various methods for getting information about blocks and uncles. The b
 **Output**: Same as in blockTransactionCountByHash.
 
 
+---
 ####  uncleCountByBlockHash
 **Input**: The hash of the block in question.
 
@@ -663,6 +699,7 @@ There are various methods for getting information about blocks and uncles. The b
 2
 ```
 
+---
 ####  uncleCountByBlockNumber
 **Input**: Only the default block parameter of the block in question.
 
@@ -671,7 +708,7 @@ There are various methods for getting information about blocks and uncles. The b
 ```
 **Output**: Same as in uncleCountByBlockHash.
 
-
+---
 ####  blockByHash
 **Input**: The hash of the block and a variable stating if the complete transactions should be returned (true) or only their hashes (false).
 
@@ -708,7 +745,7 @@ There are various methods for getting information about blocks and uncles. The b
 "gasUsed":0,
 "timestamp":1579928934,
 "transactions":[],
-"uncles"[],
+"uncles":[],
 "sealFields":null,
 "nonceRaw":"0xae1decfb4cd67a77",
 "gasUsedRaw":"0x0",
@@ -721,6 +758,7 @@ There are various methods for getting information about blocks and uncles. The b
 }
 ```
 
+---
 ####  blockByNumber
 **Input**: The default block parameter of the block and a variable stating if the complete transactions should be returned (true) or only their hashes (false).
 
@@ -733,7 +771,7 @@ There are various methods for getting information about blocks and uncles. The b
 
 **Output**:  Same as in blockByHash.
 
-
+---
 ####  uncleByBlockHashAndIndex
 **Input**: 
 
@@ -748,6 +786,7 @@ There are various methods for getting information about blocks and uncles. The b
 **Output**: The complete uncle block which is like a normal block but without transactions.
 
 
+---
 ####  uncleByBlockNumberAndIndex
 **Input**: The default block parameter and the position of the uncle in the uncles list.
 
@@ -760,10 +799,11 @@ There are various methods for getting information about blocks and uncles. The b
 
 **Output**: Same as in uncleByBlockHashAndIndex.
 
+
 ### Eth methods for filters
 There are three methods which all provide the logs of a certain range of blocks. The method ethFilterChanges returns only the new logs since the last poll for a given filter id. The method ethFilterLogs always returns all logs that match a filter with a given id. The method logs is like ethFilterLogs but receives a complete filter object as input and not just and id. 
 
-
+---
 #### ethFilterChanges
 **Input**: The identification number of the filter. The filter has to be created in the client first.
 
@@ -795,11 +835,13 @@ There are three methods which all provide the logs of a certain range of blocks.
 ]
 ```
 
+---
 #### ethFilterLogs
 **Input**:  Same as in ethFilterChanges.
 
 **Output**: Same as in ethFilterChanges, only that each time the complete list of logs that occurred since the starting block of the filter is returned.
 
+---
 #### logs
 **Input**: This method receives a complete filter object instead of a filter id.
 
@@ -817,8 +859,11 @@ There are three methods which all provide the logs of a certain range of blocks.
 ```
 **Output**: Same as in ethFilterLogs.
 
+
 ### Whisper methods
 We already introduced the whisper protocol. The shhVersion method returns the version of the current whisper protocol. The method hasIdentity tells us if a client has a certain whisper identity. The methods shhFilterChanges and messages both return the logs of a whisper filter. Just like with the eth filter methods, shhFilterChanges only gets new logs, while messages returns all logs matching the filter.
+
+---
 ####  shhVersion
 **Input**: None.
 
@@ -828,6 +873,7 @@ We already introduced the whisper protocol. The shhVersion method returns the ve
 "2"
 ```
 
+---
 ####  hasIdentity
 **Input**: The whisper identity that should be verified.
 
@@ -836,7 +882,7 @@ We already introduced the whisper protocol. The shhVersion method returns the ve
 ```
 **Output**: True if the client holds this identity and false otherwise.
 
-
+---
 #### shhFilterChanges
 **Input**: The number of the filter that should be queried.
 
@@ -871,7 +917,7 @@ We already introduced the whisper protocol. The shhVersion method returns the ve
 ```
 
 
-
+---
 #### messages
 **Input**: Same as shhFilterChanges.
 
