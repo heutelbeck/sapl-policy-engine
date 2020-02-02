@@ -63,7 +63,7 @@ where
   subject.ethereumAddress.<ethereum.balance> >= 1234567890;
 ```
 
-The result of the call can be used just like any value in the SAPL policies. For more information about the SAPL policies in general refer to the [SAPL documentation](https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-documentation/src/asciidoc/sapl-reference.adoc).
+The result of the call can be used just like any value in the SAPL policies. For more information about the SAPL policies in general refer to the [SAPL documentation](https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-documentation/src/asciidoc/sapl-reference.adoc#policy-structure).
 
 
 ## User-friendly methods
