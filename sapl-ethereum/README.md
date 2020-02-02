@@ -53,7 +53,7 @@ Please note that you can define the interval in which the EthPIP requests inform
 ```
 
 ## User-friendly methods
-Now we will explain how to use the methods included in this policy information point. In this section we will look at the user friendly methods that don't require deep understanding of the **Web3j API** or the Ethereum blockchain. You can use them by just looking at the code of a smart contract or by using basic informations like transaction hashes and addresses. If you have no clue of these things yet, you can start at the official [Ethereum Website](https://ethereum.org/what-is-ethereum/).
+Now we will explain how to use the methods included in this policy information point. In this section we will look at the user friendly methods that don't require deep understanding of the **Web3j API** or the Ethereum blockchain. You can use them by just looking at the code of a smart contract or by using basic information like transaction hashes and addresses. If you have no clue of these things yet, you can start at the official [Ethereum Website](https://ethereum.org/what-is-ethereum/).
 
 If you are already an advanced Ethereum user and want to get even more options to receive information from the blockchain there will be a section with advanced methods later on.
 
