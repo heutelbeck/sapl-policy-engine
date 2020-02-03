@@ -66,7 +66,7 @@ image::ClientServerArchitecture.png[]
 
 To get the `+SAPLServlet+` loaded the `+sapl-web+` module comes with a Spring configuration `+XtextServletConfiguration+` that can be included by the main application configuration.
 
-Figure 1 are also shows 'Xtext Backend Services', which are responsible for all language-dependent functionality that relies on parsing, validaten, et cetera. For example, the class `+SAPLValidator+` in sapl-core module implements the Custom Validation rules regarding the target expression. More information regarding the provided services can be found here: https://www.eclipse.org/Xtext/documentation/330_web_support.html[Xtext Web Editor Support].
+Figure 1 are also shows 'Xtext Backend Services', which are responsible for all language-dependent functionality that relies on parsing, validation, etc. For example, the class `+SAPLValidator+` in sapl-core module implements the Custom Validation rules regarding the target expression. More information regarding the provided services can be found here: https://www.eclipse.org/Xtext/documentation/330_web_support.html[Xtext Web Editor Support].
 
 == External Dependencies
 * Editor library: Code Mirror

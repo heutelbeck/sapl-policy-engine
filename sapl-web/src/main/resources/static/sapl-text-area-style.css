@@ -1,4 +1,3 @@
-
 #xtext-editor {
 	display: block;
 	top: 0;
@@ -8,11 +7,13 @@
 	padding: 4px;
 	border: 1px solid #aaa;
 }
+
 div.CodeMirror span.CodeMirror-matchingbracket {
 	color: #1b1af9;
-    font-weight: bold;
+	font-weight: bold;
 }
+
 div.CodeMirror span.CodeMirror-nonmatchingbracket {
 	color: #ff2727;
-    font-weight: bold;
+	font-weight: bold;
 }

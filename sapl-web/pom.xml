@@ -16,7 +16,8 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
@@ -24,11 +25,13 @@
 		<artifactId>sapl-policy-engine</artifactId>
 		<version>2.0.0-SNAPSHOT</version>
 	</parent>
-	<name>SAPL Generic Web Integration</name>
+
+	<name>SAPL Vaadin 14 Editor</name>
 	<artifactId>sapl-web</artifactId>
 	<packaging>jar</packaging>
 	<properties>
 		<asciidoc.version>1.5.5</asciidoc.version>
+		<vaadin.version>14.1.5</vaadin.version>
 	</properties>
 
 	<dependencyManagement>
@@ -36,7 +39,7 @@
 			<dependency>
 				<groupId>com.vaadin</groupId>
 				<artifactId>vaadin-bom</artifactId>
-				<version>8.7.0</version>
+				<version>${vaadin.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -49,12 +52,14 @@
 			<artifactId>sapl-core</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-ide</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-
+		
+		<!-- TODO: reduce scope of dependency. vaadin starter is probably too big -->
 		<dependency>
 			<groupId>com.vaadin</groupId>
 			<artifactId>vaadin-spring-boot-starter</artifactId>
@@ -64,32 +69,20 @@
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.xbase.web</artifactId>
 			<version>${xtextVersion}</version>
-			<!-- remove as soon as version higher than 2.16.0 (${xtextVersion}) is available in repos accessed by the build -->
-			<exclusions>
-				<exclusion>
-					<groupId>org.eclipse.xtend</groupId>
-					<artifactId>org.eclipse.xtend.lib</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.web.servlet</artifactId>
 			<version>${xtextVersion}</version>
-			<!-- remove as soon as version higher than 2.16.0 (${xtextVersion}) is available in repos accessed by the build -->
-			<exclusions>
-				<exclusion>
-					<groupId>org.eclipse.xtend</groupId>
-					<artifactId>org.eclipse.xtend.lib</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.eclipse.xtend</groupId>
 			<artifactId>org.eclipse.xtend.lib</artifactId>
 			<version>${xtextVersion}</version>
 		</dependency>
-		<dependency>
+		<!--<dependency>
 			<groupId>org.webjars</groupId>
 			<artifactId>requirejs</artifactId>
 			<version>2.2.0</version>
@@ -113,7 +106,7 @@
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-annotations</artifactId>
 			<scope>provided</scope>
-		</dependency>
+		</dependency>-->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>

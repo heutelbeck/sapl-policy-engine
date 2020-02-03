@@ -21,9 +21,8 @@ import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.boot.web.servlet.filter.OrderedFormContentFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.filter.HiddenHttpMethodFilter;
 
-@EnableAutoConfiguration
+
 @Configuration
 public class XtextServletConfiguration {
 
@@ -31,6 +30,11 @@ public class XtextServletConfiguration {
 	public static ServletRegistrationBean<SAPLServlet> xTextRegistrationBean() {
 		ServletRegistrationBean<SAPLServlet> registration = new ServletRegistrationBean<>(new SAPLServlet(),
 				"/xtext-service/*");
+		System.out.println("REGISTER BEAN!");
+		System.out.println("REGISTER BEAN!");
+		System.out.println("REGISTER BEAN!");
+		System.out.println("REGISTER BEAN!");
+		System.out.println("REGISTER BEAN!");
 		registration.setName("XtextServices");
 		registration.setAsyncSupported(true);
 		return registration;
@@ -42,12 +46,12 @@ public class XtextServletConfiguration {
 		registration.setEnabled(false);
 		return registration;
 	}
-
-	@Bean
-	public static FilterRegistrationBean<HiddenHttpMethodFilter> registration2(HiddenHttpMethodFilter filter) {
-		FilterRegistrationBean<HiddenHttpMethodFilter> registration = new FilterRegistrationBean<>(filter);
-		registration.setEnabled(false);
-		return registration;
-	}
+//TODO: add back in. security ???
+//	@Bean
+//	public static FilterRegistrationBean<HiddenHttpMethodFilter> registration2(HiddenHttpMethodFilter filter) {
+//		FilterRegistrationBean<HiddenHttpMethodFilter> registration = new FilterRegistrationBean<>(filter);
+//		registration.setEnabled(false);
+//		return registration;
+//	}
 
 }
