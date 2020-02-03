@@ -922,3 +922,4 @@ We already introduced the whisper protocol. The shhVersion method returns the ve
 **Input**: Same as shhFilterChanges.
 
 **Output**: Same as shhFilterChanges, but all logs matching the given filter are returned and not only the new ones. 
+
