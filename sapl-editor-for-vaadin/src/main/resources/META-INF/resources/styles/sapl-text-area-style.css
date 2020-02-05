@@ -1,0 +1,47 @@
+#xtext-editor {
+	display: block;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	border: 1px solid #aaa;
+}
+
+div.CodeMirror span.CodeMirror-matchingbracket {
+	color: #1b1af9;
+	font-weight: bold;
+}
+
+div.CodeMirror span.CodeMirror-nonmatchingbracket {
+	color: #ff2727;
+	font-weight: bold;
+}
+
+.CodeMirror pre.CodeMirrot-line, .CodeMirror pre.CodeMirrot-line  {
+	white-space: pre-wrap;
+}
+
+.status-wrapper {
+	display: block;
+    bottom: 0;
+    left: 0;
+    right: 0;
+	height: 20px;
+	margin-top: 10px;
+}
+
+#dirty-indicator {
+	display: inline;
+	color: #e8e8e8;
+	padding: 1px 8px 1px 8px;
+	border: 1px solid #ccc;
+	margin-left: 10px;
+}
+
+#dirty-indicator.dirty {
+	background-color: #88e;
+}
+
+#status {
+	display: inline;
+}

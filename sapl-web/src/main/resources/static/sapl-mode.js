@@ -1,4 +1,4 @@
-define("SaplJSHighlighting", ["codemirror", "codemirror/addon/mode/simple"], function(CodeMirror, SimpleMode) {
+define("sapl-mode", ["codemirror", "codemirror/addon/mode/simple"], function(CodeMirror, SimpleMode) {
 	var keywords = "advice|as|deny|each|false|for|import|in|null|obligation|permit|policy|set|transform|true|undefined|var|where";
 	CodeMirror.defineSimpleMode("xtext/sapl", {
 		start: [

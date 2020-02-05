@@ -26,25 +26,9 @@
 		<version>2.0.0-SNAPSHOT</version>
 	</parent>
 
-	<name>SAPL Vaadin 14 Editor</name>
+	<name>SAPL Web integration</name>
 	<artifactId>sapl-web</artifactId>
 	<packaging>jar</packaging>
-	<properties>
-		<asciidoc.version>1.5.5</asciidoc.version>
-		<vaadin.version>14.1.5</vaadin.version>
-	</properties>
-
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>com.vaadin</groupId>
-				<artifactId>vaadin-bom</artifactId>
-				<version>${vaadin.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
 
 	<dependencies>
 		<dependency>
@@ -58,99 +42,34 @@
 			<artifactId>sapl-ide</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		
-		<!-- TODO: reduce scope of dependency. vaadin starter is probably too big -->
-		<dependency>
-			<groupId>com.vaadin</groupId>
-			<artifactId>vaadin-spring-boot-starter</artifactId>
-		</dependency>
 
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.xbase.web</artifactId>
 			<version>${xtextVersion}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.web.servlet</artifactId>
 			<version>${xtextVersion}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.eclipse.xtend</groupId>
 			<artifactId>org.eclipse.xtend.lib</artifactId>
 			<version>${xtextVersion}</version>
 		</dependency>
-		<!--<dependency>
-			<groupId>org.webjars</groupId>
-			<artifactId>requirejs</artifactId>
-			<version>2.2.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.webjars</groupId>
-			<artifactId>requirejs-text</artifactId>
-			<version>2.0.15</version>
-		</dependency>
-		<dependency>
-			<groupId>org.webjars</groupId>
-			<artifactId>jquery</artifactId>
-			<version>2.2.3</version>
-		</dependency>
-		<dependency>
-			<groupId>org.webjars.npm</groupId>
-			<artifactId>codemirror</artifactId>
-			<version>5.39.2</version>
-		</dependency>
+
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-annotations</artifactId>
-			<scope>provided</scope>
-		</dependency>-->
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
 	</dependencies>
 
 	<build>
 		<plugins>
-			<plugin>
-				<groupId>org.asciidoctor</groupId>
-				<artifactId>asciidoctor-maven-plugin</artifactId>
-				<version>${asciidoc.version}</version>
-				<executions>
-					<execution>
-						<id>asciidoc-to-html</id>
-						<phase>generate-resources</phase>
-						<goals>
-							<goal>process-asciidoc</goal>
-						</goals>
-						<configuration>
-							<backend>html5</backend>
-							<sourceHighlighter>coderay</sourceHighlighter>
-							<attributes>
-								<imagesdir>./images</imagesdir>
-								<toc>left</toc>
-								<icons>font</icons>
-								<sectanchors>true</sectanchors>
-								<idprefix />
-								<idseparator>-</idseparator>
-								<docinfo1>true</docinfo1>
-							</attributes>
-						</configuration>
-					</execution>
-				</executions>
-				<configuration>
-					<sourceDirectory>src/asciidoc</sourceDirectory>
-					<attributes>
-						<endpoint-url>http://docs.openconjurer.org</endpoint-url>
-						<sourcedir>${project.build.sourceDirectory}</sourcedir>
-						<project-version>${project.version}</project-version>
-					</attributes>
-				</configuration>
-			</plugin>
 			<plugin>
 				<groupId>org.eclipse.xtend</groupId>
 				<artifactId>xtend-maven-plugin</artifactId>
@@ -215,42 +134,5 @@
 				</configuration>
 			</plugin>
 		</plugins>
-		<pluginManagement>
-			<plugins>
-				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
-				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
-					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.asciidoctor
-										</groupId>
-										<artifactId>
-											asciidoctor-maven-plugin
-										</artifactId>
-										<versionRange>
-											[1.5.5,)
-										</versionRange>
-										<goals>
-											<goal>
-												process-asciidoc
-											</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore></ignore>
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
-					</configuration>
-				</plugin>
-			</plugins>
-		</pluginManagement>
 	</build>
 </project>

@@ -83,6 +83,7 @@
 		<module>sapl-spring-boot-starter</module>
 		<module>sapl-webclient</module>
 		<module>sapl-ethereum</module>
+		<module>sapl-editor-for-vaadin</module>		
 	</modules>
 
 	<dependencyManagement>
