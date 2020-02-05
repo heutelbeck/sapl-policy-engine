@@ -1,23 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
-    <groupId>io.sapl</groupId>
+ 	<parent>
+        <groupId>io.sapl</groupId>
+        <artifactId>sapl-policy-engine</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+    
     <artifactId>sapl-editor-for-vaadin</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
     <name>SAPL Editor for Vaadin</name>
     <description>Integration of the XText-based editor for SAPL for the Vaadin platform</description>
 
     <properties>
         <vaadin.version>14.1.16</vaadin.version>
-		<xtextVersion>2.20.0</xtextVersion>
-
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-
         <drivers.dir>${project.basedir}/drivers</drivers.dir>
-
         <jetty.version>9.4.15.v20190215</jetty.version>
     </properties>
     <organization>
@@ -130,7 +125,9 @@
     <build>
         <defaultGoal>jetty:run</defaultGoal>
         <plugins>
-        			<!-- The CSS and JS resources of the xtext web dependency have to copied 
+        	<!-- TODO: reduce amount of files copied -->
+        
+        	<!-- The CSS and JS resources of the xtext web dependency have to copied 
 				to the matching frontend folder -->
 
 			<!-- First unpack the files from the JAR -->
