@@ -19,6 +19,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import io.sapl.interpreter.pip.EthereumPolicyInformationPoint;
 import io.sapl.interpreter.pip.GeoPolicyInformationPoint;
 import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.pip.http.HttpPolicyInformationPoint;
@@ -60,6 +61,18 @@ public class PolicyInformationPointsAutoConfiguration {
 		public ClockPolicyInformationPoint clockPolicyInformationPoint() {
 			LOGGER.info("Clock PIP present. Loading.");
 			return new ClockPolicyInformationPoint();
+		}
+
+	}
+
+	@Configuration
+	@ConditionalOnClass(io.sapl.interpreter.pip.EthereumPolicyInformationPoint.class)
+	public static class EthereumConfiguration {
+
+		@Bean
+		public EthereumPolicyInformationPoint ethereumPolicyInformationPoint() {
+			LOGGER.info("Ethereum PIP present. Loading.");
+			return new EthereumPolicyInformationPoint();
 		}
 
 	}
