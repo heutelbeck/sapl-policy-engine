@@ -125,10 +125,9 @@
     <build>
         <defaultGoal>jetty:run</defaultGoal>
         <plugins>
-        	<!-- TODO: reduce amount of files copied -->
-        
         	<!-- The CSS and JS resources of the xtext web dependency have to copied 
-				to the matching frontend folder -->
+				to the matching frontend folder CSS and images are hard coded into the HTML 
+				template of the webcomponent JS file-->
 
 			<!-- First unpack the files from the JAR -->
 			<plugin>
@@ -184,48 +183,38 @@
 				<executions>
 					<execution>
 						<id>copy-resources-js</id>
-						<!-- here the phase you need -->
 						<phase>prepare-package</phase>
 						<goals>
 							<goal>copy-resources</goal>
 						</goals>
 						<configuration>
-							<outputDirectory>${project.build.directory}/classes/META-INF/resources/frontend</outputDirectory>
+							<outputDirectory>${project.build.directory}/classes/META-INF/frontend</outputDirectory>
 							<resources>
 								<resource>
 									<directory>${project.build.directory}/xtext/META-INF/resources/xtext/${xtextVersion}</directory>
-								</resource>
-							</resources>
-						</configuration>
-					</execution>
-					<execution>
-						<id>copy-resources-css</id>
-						<!-- here the phase you need -->
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>copy-resources</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>${project.build.directory}/classes/META-INF/resources/styles/</outputDirectory>
-							<resources>
-								<resource>
-									<directory>${project.build.directory}/xtext/META-INF/resources/xtext/${xtextVersion}</directory>
+									<includes>
+       									<include>xtext-codemirror.min.js</include>
+       								</includes>
+									<filtering>false</filtering>								
 								</resource>
 							</resources>
 						</configuration>
 					</execution>
 					<execution>
 						<id>copy-resources-sapl</id>
-						<!-- here the phase you need -->
 						<phase>prepare-package</phase>
 						<goals>
 							<goal>copy-resources</goal>
 						</goals>
 						<configuration>
-							<outputDirectory>${project.build.directory}/classes/META-INF/resources/frontend/</outputDirectory>
+							<outputDirectory>${project.build.directory}/classes/META-INF/frontend/</outputDirectory>
 							<resources>
 								<resource>
 									<directory>${project.build.directory}/sapl/static</directory>
+									<includes>
+       									<include>sapl-mode.js</include>
+       								</includes>
+									<filtering>false</filtering>								
 								</resource>
 							</resources>
 						</configuration>
