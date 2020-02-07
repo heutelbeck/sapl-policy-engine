@@ -124,58 +124,9 @@
 		      </exclusion>
 		    </exclusions> 
 		</dependency>
-
-		
-		
-	</dependencies>
 	
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>io.spring.javaformat</groupId>
-				<artifactId>spring-javaformat-maven-plugin</artifactId>
-			</plugin>
-			
+	</dependencies>
 
-			<plugin>
-                <groupId>org.jacoco</groupId>
-			    <artifactId>jacoco-maven-plugin</artifactId>
-			    <version>0.8.5</version>
-			    <executions>
-			        <execution>
-			            <goals>
-			                <goal>prepare-agent</goal>
-			            </goals>
-			        </execution>
-			        <execution>
-			            <id>report</id>
-			            <phase>prepare-package</phase>
-			            <goals>
-			                <goal>report</goal>
-			            </goals>
-			        </execution>
-			        <execution>
-			            <id>jacoco-check</id>
-			            <goals>
-			                <goal>check</goal>
-			            </goals>
-			            <configuration>
-			                <rules>
-			                    <rule>
-			                        <limits>
-			                            <limit>
-			                                <minimum>0.8</minimum>
-			                            </limit>
-			                        </limits>
-			                    </rule>
-			                </rules>
-			            </configuration>
-			        </execution>
-			    </executions>
-			</plugin>
-			
-		</plugins>
-	</build>
 
 
 </project>
