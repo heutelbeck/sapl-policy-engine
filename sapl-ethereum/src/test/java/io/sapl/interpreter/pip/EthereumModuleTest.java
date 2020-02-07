@@ -64,8 +64,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.reactivex.Flowable;
 
-@PrepareForTest({ Web3j.class, EthereumPipFunctions.class, org.web3j.protocol.core.methods.request.Transaction.class })
 @RunWith(PowerMockRunner.class)
+@PrepareForTest({ Web3j.class, EthereumPipFunctions.class, org.web3j.protocol.core.methods.request.Transaction.class })
 public class EthereumModuleTest {
 
 	private static final String WRONG_NAME = "wrongName";
@@ -1033,4 +1033,3 @@ public class EthereumModuleTest {
 	}
 
 }
-

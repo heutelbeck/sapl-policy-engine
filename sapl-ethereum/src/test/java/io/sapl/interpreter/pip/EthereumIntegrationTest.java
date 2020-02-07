@@ -78,6 +78,7 @@ import reactor.test.StepVerifier;
  *
  * For these tests to be applied automatically, the maven profile integration-tests has to be activated.
  */
+
 public class EthereumIntegrationTest {
 
 	private static final String TRANSACTION = "transaction";
@@ -769,4 +770,3 @@ public class EthereumIntegrationTest {
 	}
 
 }
-
