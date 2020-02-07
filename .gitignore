@@ -12,6 +12,7 @@ events/
 **/xtend-gen/
 **/xtext-gen/
 **/emf-gen/
+**/node_modules/
 **/VAADIN/widgetsets/
 **/VAADIN/themes/**/addons.scss
 **/VAADIN/themes/**/styles.css
