@@ -1536,4 +1536,3 @@ public class EthereumPipFunctionsTest {
 	}
 
 }
-
