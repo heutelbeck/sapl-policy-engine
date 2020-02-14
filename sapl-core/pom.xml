@@ -29,7 +29,7 @@
 	<artifactId>sapl-core</artifactId>
 	<packaging>jar</packaging>
 
-	<dependencies>		
+	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-api</artifactId>
@@ -78,14 +78,14 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
- 		<dependency>
+		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-		</dependency> 
+		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
@@ -285,6 +285,31 @@
 									</pluginExecutionFilter>
 									<action>
 										<ignore></ignore>
+									</action>
+								</pluginExecution>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>
+											org.codehaus.mojo
+										</groupId>
+										<artifactId>
+											build-helper-maven-plugin
+										</artifactId>
+										<versionRange>
+											[3.0.0,)
+										</versionRange>
+										<goals>
+											<goal>add-source</goal>
+											<goal>add-resource</goal>
+											<goal>add-test-source</goal>
+											<goal>add-test-resource</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute>
+											<runOnIncremental>true</runOnIncremental>
+											<runOnConfiguration>true</runOnConfiguration>
+										</execute>
 									</action>
 								</pluginExecution>
 							</pluginExecutions>
