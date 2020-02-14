@@ -1,21 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-
-    Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
--->
+<!-- Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com) Licensed 
+	under the Apache License, Version 2.0 (the "License"); you may not use this 
+	file except in compliance with the License. You may obtain a copy of the 
+	License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by 
+	applicable law or agreed to in writing, software distributed under the License 
+	is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+	KIND, either express or implied. See the License for the specific language 
+	governing permissions and limitations under the License. -->
 <!-- Update all child project versions to the actual parent pom version: 
 	mvn versions:update-child-modules -N -->
 <!-- correct the license headers of all source files mvn license:format -->
@@ -83,7 +74,7 @@
 		<module>sapl-spring-boot-starter</module>
 		<module>sapl-webclient</module>
 		<module>sapl-ethereum</module>
-		<module>sapl-editor-for-vaadin</module>		
+		<module>sapl-editor-for-vaadin</module>
 	</modules>
 
 	<dependencyManagement>
@@ -198,16 +189,16 @@
 					</configuration>
 				</plugin>
 				<plugin>
-  					<groupId>org.apache.maven.plugins</groupId>
-  					<artifactId>maven-source-plugin</artifactId>
-  					<executions>
-    					<execution>
-      						<id>attach-sources</id>
-      						<goals>
-        						<goal>jar</goal>
-      						</goals>
-    					</execution>
-  					</executions>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-source-plugin</artifactId>
+					<executions>
+						<execution>
+							<id>attach-sources</id>
+							<goals>
+								<goal>jar</goal>
+							</goals>
+						</execution>
+					</executions>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
@@ -264,7 +255,10 @@
 										</goals>
 									</pluginExecutionFilter>
 									<action>
-										<ignore></ignore>
+										<execute>
+											<runOnIncremental>true</runOnIncremental>
+											<runOnConfiguration>true</runOnConfiguration>
+										</execute>
 									</action>
 								</pluginExecution>
 							</pluginExecutions>
@@ -275,121 +269,114 @@
 		</pluginManagement>
 		<plugins>
 			<plugin>
-			    <groupId>com.mycila</groupId>
-    			<artifactId>license-maven-plugin</artifactId>
+				<groupId>com.mycila</groupId>
+				<artifactId>license-maven-plugin</artifactId>
 				<version>${version.license-maven-plugin}</version>
-			    <configuration>
-	   	     		<header>APACHE-2.txt</header>
-    			    <properties>
-       		     		<owner>Dominic Heutelbeck</owner>
-            			<email>dominic@heutelbeck.com</email>
-        			</properties>
-        			<excludes>
-            			<exclude>**/README</exclude>
-            			<exclude>src/test/resources/**</exclude>
-            			<exclude>src/test/xtend-gen/**</exclude>
-            			<exclude>src/test/xtext-gen/**</exclude>
-            			<exclude>src/main/xtend-gen/**</exclude>
-            			<exclude>src/main/xtext-gen/**</exclude>
-            			<exclude>src/main/emf-gen/**</exclude>
-	        	    	<exclude>src/main/resources/**</exclude>
-	        	    	<exclude>.gitattributes</exclude>
-	        	    	<exclude>src/main/java/io/sapl/grammar/web/SAPLWebSetup.xtend</exclude>
-	        	    	<exclude>src/main/java/io/sapl/grammar/web/SAPLWebModule.xtend</exclude>
-	        	    	<exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
-    		    	</excludes>
-    		    	<mapping>
-    		    		<adoc>DOUBLESLASH_STYLE</adoc>
-    		    		<ad>DOUBLESLASH_STYLE</ad>
-    					<xtend>JAVADOC_STYLE</xtend>
-    					<mwe2>JAVADOC_STYLE</mwe2>
-    					<ecore>XML_STYLE</ecore>
-    					<genmodel>XML_STYLE</genmodel>
-    					<xtext>JAVADOC_STYLE</xtext>
-    					<config>SCRIPT_STYLE</config>
+				<configuration>
+					<header>APACHE-2.txt</header>
+					<properties>
+						<owner>Dominic Heutelbeck</owner>
+						<email>dominic@heutelbeck.com</email>
+					</properties>
+					<excludes>
+						<exclude>**/README</exclude>
+						<exclude>src/test/resources/**</exclude>
+						<exclude>src/test/xtend-gen/**</exclude>
+						<exclude>src/test/xtext-gen/**</exclude>
+						<exclude>src/main/xtend-gen/**</exclude>
+						<exclude>src/main/xtext-gen/**</exclude>
+						<exclude>src/main/emf-gen/**</exclude>
+						<exclude>src/main/resources/**</exclude>
+						<exclude>.gitattributes</exclude>
+						<exclude>src/main/java/io/sapl/grammar/web/SAPLWebSetup.xtend</exclude>
+						<exclude>src/main/java/io/sapl/grammar/web/SAPLWebModule.xtend</exclude>
+						<exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
+					</excludes>
+					<mapping>
+						<adoc>DOUBLESLASH_STYLE</adoc>
+						<ad>DOUBLESLASH_STYLE</ad>
+						<xtend>JAVADOC_STYLE</xtend>
+						<mwe2>JAVADOC_STYLE</mwe2>
+						<ecore>XML_STYLE</ecore>
+						<genmodel>XML_STYLE</genmodel>
+						<xtext>JAVADOC_STYLE</xtext>
+						<config>SCRIPT_STYLE</config>
 					</mapping>
-    			</configuration>
-    			<!-- Uncomment if check shall be done every build 
-    			<executions>
-	        		<execution>
-            			<goals>
-	                		<goal>check</goal>
-    	        		</goals>
-			        </execution>
-    			</executions>
-    			-->
+				</configuration>
+				<!-- Uncomment if check shall be done every build <executions> <execution> 
+					<goals> <goal>check</goal> </goals> </execution> </executions> -->
 			</plugin>
 			<plugin>
-  				<groupId>org.apache.maven.plugins</groupId>
-  				<artifactId>maven-source-plugin</artifactId>
-		        <version>3.2.0</version>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>3.2.0</version>
 				<executions>
-    				<execution>
-      					<id>attach-sources</id>
-      					<goals>
-        					<goal>jar</goal>
-      					</goals>
-    				</execution>
-  				</executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
-			    <groupId>org.apache.maven.plugins</groupId>			
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.1.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadoc</id>
-                        <phase>deploy</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                	<doclint>none</doclint>
-                	<sourceFileExcludes>
-        				<sourceFileExclude>**/emf-gen/*.java</sourceFileExclude>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.1.1</version>
+				<executions>
+					<execution>
+						<id>attach-javadoc</id>
+						<phase>deploy</phase>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<doclint>none</doclint>
+					<sourceFileExcludes>
+						<sourceFileExclude>**/emf-gen/*.java</sourceFileExclude>
 					</sourceFileExcludes>
-                    <tags>
-                    	<tag>
+					<tags>
+						<tag>
 							<name>returns</name>
 							<placement>X</placement>
 						</tag>
-            			<tag>
+						<tag>
 							<name>ordered</name>
 							<placement>X</placement>
 						</tag>
-            			<tag>
+						<tag>
 							<name>generated</name>
 							<placement>X</placement>
 						</tag>
-            			<tag>
+						<tag>
 							<name>model</name>
 							<placement>X</placement>
 						</tag>
 					</tags>
-                </configuration>
-            </plugin>
-            <plugin>
-    	   		<groupId>org.commonjava.maven.plugins</groupId>
-  				<artifactId>directory-maven-plugin</artifactId>
-    			<version>0.3.1</version>
-    			<executions>
-        			<execution>
-            			<id>directories</id>
-            			<goals>
-                			<goal>directory-of</goal>
-            			</goals>
-            			<phase>check</phase>
-            			<configuration>
-                			<property>sapl.basedir</property>
-                			<project>
-                    			<groupId>io.sapl</groupId>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.commonjava.maven.plugins</groupId>
+				<artifactId>directory-maven-plugin</artifactId>
+				<version>0.3.1</version>
+				<executions>
+					<execution>
+						<id>directories</id>
+						<goals>
+							<goal>directory-of</goal>
+						</goals>
+						<phase>check</phase>
+						<configuration>
+							<property>sapl.basedir</property>
+							<project>
+								<groupId>io.sapl</groupId>
 								<artifactId>sapl-policy-engine</artifactId>
-                			</project>
-            			</configuration>
-        			</execution>
-    			</executions>
+							</project>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
