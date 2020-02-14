@@ -75,7 +75,7 @@ public class FastIndexCreationStrategy implements IndexCreationStrategy {
 			}
 		}
 		for (VariableInfo variableInfo : boolToVariableInfo.values()) {
-			double sum = variableInfo.getClauseRelevancesList().stream().mapToDouble(Double::new).sum();
+			double sum = variableInfo.getClauseRelevancesList().stream().mapToDouble(Double::doubleValue).sum();
 			sum /= variableInfo.getNumberOfPositives() + variableInfo.getNumberOfNegatives();
 			variableInfo.setRelevance(sum);
 		}
