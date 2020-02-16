@@ -152,7 +152,7 @@
 			    <version>4.5.11</version>
 			    <configuration>
 			        <packageName>io.sapl.interpreter.pip.contracts</packageName>
-			        <sourceDestination>target/generated-test-sources/contracts</sourceDestination>
+			        <sourceDestination>/${project.basedir}/target/generated-test-sources/contracts</sourceDestination>
 			        <nativeJavaType>true</nativeJavaType>
 			        <outputFormat>java</outputFormat>
 			        <soliditySourceFiles>
