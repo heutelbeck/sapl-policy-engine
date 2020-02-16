@@ -181,7 +181,7 @@
 		            	<id>add-contracts</id>
 		            	<phase>initialize</phase>
 		            	<goals>
-		                	<goal>add-source</goal>
+		                	<goal>add-test-source</goal>
 		            	</goals>
 		            	<configuration>
 		                	<sources>
