@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.web3j.abi.FunctionEncoder;
@@ -132,15 +131,11 @@ import org.web3j.abi.datatypes.generated.Uint80;
 import org.web3j.abi.datatypes.generated.Uint88;
 import org.web3j.abi.datatypes.generated.Uint96;
 import org.web3j.abi.datatypes.primitive.Char;
-import org.web3j.crypto.CipherException;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.request.EthFilter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.pip.AttributeException;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -153,18 +148,6 @@ public class EthereumPipFunctions {
 	private static final String VALUE = "value";
 
 	private static final String TYPE = "type";
-
-	private static final String ETHEREUM_WALLET = "ethereumWallet";
-
-	private static final String WALLET_PASS = "walletPassword";
-
-	private static final String WALLET_FILE = "walletFile";
-
-	private static final String NO_CREDENTIALS_WARNING = "Could not load Credentials. Please ensure that your "
-			+ "credentials are annotated correctly either in the policy or in the pdp.json file.";
-
-	private static final String CREDENTIALS_LOADING_ERROR = ETHEREUM_WALLET + " has been found, but the credentials "
-			+ "couldn't be retrieved. Please ensure your Password and Wallet File Path were correct.";
 
 	private static final String DEFAULT_BLOCK_PARAMETER = "defaultBlockParameter";
 
@@ -198,40 +181,6 @@ public class EthereumPipFunctions {
 	 */
 	protected static DefaultBlockParameter getDefaultBlockParameter(JsonNode saplObject) {
 		return createDefaultBlockParameter(saplObject, DEFAULT_BLOCK_PARAMETER);
-	}
-
-	public static Credentials loadCredentials(JsonNode saplObject, Map<String, JsonNode> variables)
-			throws AttributeException {
-
-		// First trying to load Credentials that only apply with the given policy.
-		if (saplObject.has(ETHEREUM_WALLET)) {
-			return retrieveCredentials(saplObject.get(ETHEREUM_WALLET));
-		}
-
-		// If no credentials where found in policy, they will be loaded from the
-		// pdp.json
-		JsonNode wallet = variables.get(ETHEREUM_WALLET);
-		if (wallet != null) {
-			return retrieveCredentials(wallet);
-		}
-
-		throw new AttributeException(NO_CREDENTIALS_WARNING);
-	}
-
-	private static Credentials retrieveCredentials(JsonNode ethereumWallet) throws AttributeException {
-		if (ethereumWallet.has(WALLET_PASS) && ethereumWallet.has(WALLET_FILE)) {
-			String walletPassword = ethereumWallet.get(WALLET_PASS).textValue();
-			String walletFile = ethereumWallet.get(WALLET_FILE).textValue();
-			try {
-				return WalletUtils.loadCredentials(walletPassword, walletFile);
-			}
-			catch (IOException | CipherException e) {
-				throw new AttributeException(CREDENTIALS_LOADING_ERROR, e);
-			}
-		}
-
-		throw new AttributeException(NO_CREDENTIALS_WARNING);
-
 	}
 
 	protected static org.web3j.protocol.core.methods.request.Transaction getTransactionFromJson(
