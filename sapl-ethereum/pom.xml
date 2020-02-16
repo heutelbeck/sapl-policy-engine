@@ -156,7 +156,7 @@
 			        <nativeJavaType>true</nativeJavaType>
 			        <outputFormat>java</outputFormat>
 			        <soliditySourceFiles>
-			            <directory>src/test/resources/solidity</directory>
+			            <directory>/${project.basedir}/src/test/resources/solidity</directory>
 			            <includes>
 			                <include>**/*.sol</include>
 			            </includes>
