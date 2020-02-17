@@ -152,11 +152,11 @@
 			    <version>4.5.11</version>
 			    <configuration>
 			        <packageName>io.sapl.interpreter.pip.contracts</packageName>
-			        <sourceDestination>/${project.basedir}/target/generated-test-sources/contracts</sourceDestination>
+			        <sourceDestination>${project.basedir}/target/generated-test-sources/contracts</sourceDestination>
 			        <nativeJavaType>true</nativeJavaType>
 			        <outputFormat>java</outputFormat>
 			        <soliditySourceFiles>
-			            <directory>/${project.basedir}/src/test/resources/solidity</directory>
+			            <directory>${project.basedir}/src/test/resources/solidity</directory>
 			            <includes>
 			                <include>**/*.sol</include>
 			            </includes>

@@ -43,12 +43,17 @@ EthereumPolicyInformationPoint ethPip = new EthereumPolicyInformationPoint(web3j
 
 ```
 
-Please note that you can define the interval in which the EthPIP requests information from the blockchain. By default an interval of 5 seconds is used, as by now the intermediate time between new blocks on the Ethereum mainnet is at about 12 seconds, rendering it unnecessary to aim for higher accuracy. If you want to adjust this polling interval you can do so in the PDP configuration file `pdp.json`. Just add a variable with the key `ethPollingInterval` and the time between polls in milliseconds:
+Please note that you can define the interval in which the EthPIP requests information from the blockchain. By default an interval of 5 seconds is used, as by now the intermediate time between new blocks on the Ethereum mainnet is at about 12 seconds, rendering it unnecessary to aim for higher accuracy. If you want to adjust this polling interval you can do so in the PDP configuration file `pdp.json`. First add a variable called `ethPipConfig`. Then add a variable with the key `ethPollingInterval` and the time between polls in milliseconds to this config variable:
 
 ```json
 {
-    "algorithm": "DENY_UNLESS_PERMIT",
-    "variables": {"ethPollingInterval":1000}
+  "algorithm": "DENY_UNLESS_PERMIT",
+  "variables": {
+                "ethPipConfig": {
+                                 "ethPollingInterval":1000
+                                 }
+  
+  }
 }
 ```
 

@@ -72,6 +72,8 @@ import reactor.core.publisher.Mono;
 @PolicyInformationPoint(name = "ethereum", description = "Connects to the Ethereum Blockchain.")
 public class EthereumPolicyInformationPoint {
 
+	private static final String ETH_PIP_CONFIG = "ethPipConfig";
+
 	private static final long DEFAULT_ETH_POLLING_INTERVAL = 5000L;
 
 	private static final String ADDRESS = "address";
@@ -1072,9 +1074,12 @@ public class EthereumPolicyInformationPoint {
 
 	private static Duration getPollingInterval(Map<String, JsonNode> variables) {
 		if (variables != null) {
-			JsonNode pollingInterval = variables.get(ETH_POLLING_INTERVAL);
-			if (pollingInterval != null && pollingInterval.isLong())
-				return Duration.ofMillis(pollingInterval.asLong(DEFAULT_ETH_POLLING_INTERVAL));
+			JsonNode ethPipConfig = variables.get(ETH_PIP_CONFIG);
+			if (ethPipConfig != null) {
+				JsonNode pollingInterval = variables.get(ETH_POLLING_INTERVAL);
+				if (pollingInterval != null && pollingInterval.isLong())
+					return Duration.ofMillis(pollingInterval.asLong(DEFAULT_ETH_POLLING_INTERVAL));
+			}
 		}
 		return Duration.ofMillis(DEFAULT_ETH_POLLING_INTERVAL);
 	}
