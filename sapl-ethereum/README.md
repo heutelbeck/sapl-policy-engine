@@ -66,9 +66,9 @@ If you need a special configuration for your Web3j, you can just add a Web3j Bea
 
 ```java
 @Bean
-	public Web3j web3j() {
-		return Web3j.build(new HttpService("http://localhost:7545"));
-	}
+public Web3j web3j() {
+	return Web3j.build(new HttpService("http://localhost:7545"));
+}
 ```
 
 ### Adjusting the polling interval
