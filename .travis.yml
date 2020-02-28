@@ -10,6 +10,8 @@ jdk:
 install: true
 env:
   - SONAR_HOST=https://sonar.ftk.de NODE_VERSION=12
+git:
+  depth: false
 script:
   # exit script when error occurs
   - set -e
