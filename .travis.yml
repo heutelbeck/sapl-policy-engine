@@ -9,9 +9,12 @@ jdk:
 # skip "mvn install -skipTexts=true" before building
 install: true
 env:
-  - SONAR_HOST=http://sonar.ftk.de:9000
+  - SONAR_HOST=https://sonar.ftk.de  NODE_VERSION=12
 script:
+  # exit script when error occurs
   - set -e
+  # set specific node version
+  - nvm use $NODE_VERSION
   - cp .travis.settings.xml $HOME/.m2/settings.xml
   - bash ./.travis.build.sh
 
