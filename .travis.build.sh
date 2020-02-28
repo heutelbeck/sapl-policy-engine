@@ -21,10 +21,6 @@ if [ -z "${TRAVIS}" ]; then
     TRAVIS_BRANCH="local"
     TRAVIS_PULL_REQUEST="false"
 fi
-# install node for building the Vaadin 14 application
-cd sapl-server-ce
-mvn com.github.eirslett:frontend-maven-plugin:1.7.6:install-node-and-npm -DnodeVersion="v12.14.0"
-cd ..
 if [ "${TRAVIS_BRANCH}" == "master" ]; then
     if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then
         echo "Building master"
