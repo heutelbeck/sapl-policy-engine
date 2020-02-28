@@ -3,7 +3,9 @@
 In this documentation you will find an introduction on how to use the **EthereumPolicyInformationPoint (EthPIP)**. This is a general attribute finder created to facilitate access to information from the Ethereum blockchain environment inside Sapl policies. For more information about using a **Policy Decision Point (PDP)** with an attribute finder in general and on how to access it inside a policy please refer to the [SAPL Documentation](https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-documentation/src/asciidoc/sapl-reference.adoc). 
 
 ## The EthereumPolicyInformationPoint
-To get started, you have to include the dependency of the **sapl-ethereum** module in the `pom.xml` of your maven project like this:
+
+### Getting started
+To use the Ethereum Policy Information Point, you have to include the dependency of the **sapl-ethereum** module in the `pom.xml` of your maven project like this:
 
 ```xml
 <dependency>
@@ -43,12 +45,44 @@ EthereumPolicyInformationPoint ethPip = new EthereumPolicyInformationPoint(web3j
 
 ```
 
-Please note that you can define the interval in which the EthPIP requests information from the blockchain. By default an interval of 5 seconds is used, as by now the intermediate time between new blocks on the Ethereum mainnet is at about 12 seconds, rendering it unnecessary to aim for higher accuracy. If you want to adjust this polling interval you can do so in the PDP configuration file `pdp.json`. Just add a variable with the key `ethPollingInterval` and the time between polls in milliseconds:
+### Getting started with Spring Boot
+You can autoconfigure the use of your Policy Decision Point and your Ethereum PIP when using Spring Boot. To do so, just add the following dependencies:
+
+```xml
+<dependency>
+      <groupId>io.sapl</groupId>
+      <artifactId>sapl-spring-boot-starter</artifactId>
+      <version>2.0.0-SNAPSHOT</version>
+</dependency>
+
+<dependency>
+      <groupId>io.sapl</groupId>
+      <artifactId>sapl-ethereum</artifactId>
+      <version>2.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+If you need a special configuration for your Web3j, you can just add a Web3j Bean to your Spring Boot Application. The Ethereum PIP will automatically use the Web3j from your application.
+
+```java
+@Bean
+public Web3j web3j() {
+	return Web3j.build(new HttpService("http://localhost:7545"));
+}
+```
+
+### Adjusting the polling interval
+Please note that you can define the interval in which the Ethereum PIP requests information from the blockchain. By default an interval of 5 seconds is used, as by now the intermediate time between new blocks on the Ethereum mainnet is at about 12 seconds, rendering it unnecessary to aim for higher accuracy. If you want to adjust this polling interval you can do so in the PDP configuration file `pdp.json`. First add a variable called `ethPipConfig`. Then add a variable with the key `ethPollingInterval` and the time between polls in milliseconds to this config variable:
 
 ```json
 {
-    "algorithm": "DENY_UNLESS_PERMIT",
-    "variables": {"ethPollingInterval":1000}
+  "algorithm": "DENY_UNLESS_PERMIT",
+  "variables": {
+                "ethPipConfig": {
+                                 "ethPollingInterval":1000
+                                 }
+  
+  }
 }
 ```
 

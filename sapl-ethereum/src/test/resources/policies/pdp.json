@@ -1,4 +1,9 @@
 {
   "algorithm": "DENY_UNLESS_PERMIT",
-  "variables": {"ethPollingInterval":1000}
+  "variables": {
+                "ethPipConfig": {
+                                 "ethPollingInterval":1000
+                                 }
+  
+  }
 }

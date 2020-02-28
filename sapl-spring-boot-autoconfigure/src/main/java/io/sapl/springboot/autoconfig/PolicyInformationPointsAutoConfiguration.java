@@ -18,6 +18,7 @@ package io.sapl.springboot.autoconfig;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.web3j.protocol.Web3j;
 
 import io.sapl.interpreter.pip.EthereumPolicyInformationPoint;
 import io.sapl.interpreter.pip.GeoPolicyInformationPoint;
@@ -70,8 +71,13 @@ public class PolicyInformationPointsAutoConfiguration {
 	public static class EthereumConfiguration {
 
 		@Bean
-		public EthereumPolicyInformationPoint ethereumPolicyInformationPoint() {
+		public EthereumPolicyInformationPoint ethereumPolicyInformationPoint(Web3j web3j) {
 			LOGGER.info("Ethereum PIP present. Loading.");
+			if (web3j != null) {
+				LOGGER.info("Web3j found. Using Web3j present in application.");
+				return new EthereumPolicyInformationPoint(web3j);
+			}
+			LOGGER.info("No Web3j present in application. Using default Web3j");
 			return new EthereumPolicyInformationPoint();
 		}
 

@@ -111,9 +111,7 @@
 										</versionRange>
 										<goals>
 											<goal>add-source</goal>
-											<goal>add-resource</goal>
-											<goal>add-test-source</goal>
-											<goal>add-test-resource</goal>
+											<goal>add-resource</goal>										
 										</goals>
 									</pluginExecutionFilter>
 									<action>
