@@ -19,7 +19,11 @@ script:
   - nvm use $NODE_VERSION
   # prepare settings.xml: add nexus credentials from environment variables
   - sed -e "s/{NEXUS_USERNAME}/$NEXUS_USERNAME/g" -e "s/{NEXUS_PASSWORD}/$NEXUS_PASSWORD/g" <.travis.settings.xml >$HOME/.m2/settings.xml
-  - bash ./.travis.build.sh
+  # build all modules using maven
+  # - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar --batch-mode -Dsonar.host.url=${SONAR_HOST} -Dsonar.login=${SONAR_TOKEN}
+  # deploy to nexus repo
+  - mvn deploy -DskipTests=true -Dmaven.javadoc.skip=true --batch-mode
+#  - bash ./.travis.build.sh
 
 # Cache local maven repository to speed up build
 # Remove packages from local maven repository before caching to avoid errors when refactoring maven structure
