@@ -17,7 +17,8 @@ script:
   - set -e
   # set specific node version
   - nvm use $NODE_VERSION
-  - cp .travis.settings.xml $HOME/.m2/settings.xml
+  # prepare settings.xml: add nexus credentials from environment variables
+  - sed -e "s/{NEXUS_USERNAME}/$NEXUS_USERNAME/g" -e "s/{NEXUS_PASSWORD}/$NEXUS_PASSWORD/g" <.travis.settings.xml >$HOME/.m2/settings.xml
   - bash ./.travis.build.sh
 
 # Cache local maven repository to speed up build
