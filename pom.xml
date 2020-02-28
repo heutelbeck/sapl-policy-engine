@@ -460,7 +460,7 @@
 		</profile>
 	</profiles>
 
-	<distributionManagement>
+<distributionManagement>
 		<repository>
 			<id>openconjurer-public</id>
 			<name>OpenConjurer Nexus Maven Release Repository</name>
