@@ -9,7 +9,7 @@ jdk:
 # skip "mvn install -skipTexts=true" before building
 install: true
 env:
-  - SONAR_HOST=https://sonar.ftk.de  NODE_VERSION=12
+  - SONAR_HOST=https://sonar.ftk.de NODE_VERSION=12
 script:
   # exit script when error occurs
   - set -e
