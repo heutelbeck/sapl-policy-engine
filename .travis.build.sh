@@ -15,9 +15,6 @@
 # limitations under the License.
 #
 
-# fail fast
-set -e
-
 if [ -z "${TRAVIS}" ]; then
     echo "Local build - set TRAVIS=true for testing travis' behavior"
     TRAVIS_BRANCH="local"
