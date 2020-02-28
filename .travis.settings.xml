@@ -30,15 +30,5 @@
 			<username>{NEXUS_USERNAME}</username>
 			<password>{NEXUS_PASSWORD}</password>
 		</server>
-		<server>
-			<id>openconjurer-private</id>
-			<username>{NEXUS_USERNAME}</username>
-			<password>{NEXUS_PASSWORD}</password>
-		</server>
-		<server>
-			<id>openconjurer-private-snapshots</id>
-			<username>{NEXUS_USERNAME}</username>
-			<password>{NEXUS_PASSWORD}</password>
-		</server>
 	</servers>
 </settings>
