@@ -33,7 +33,7 @@
 	<description>The developer documentation for the SAPL policy language and policy engine.</description>
 
 	<properties>
-		<version.asciidoctor>1.5.7.1</version.asciidoctor>
+		<asciidoc.version>1.6.0</asciidoc.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
@@ -42,7 +42,7 @@
 			<plugin>
 				<groupId>org.asciidoctor</groupId>
 				<artifactId>asciidoctor-maven-plugin</artifactId>
-				<version>${version.asciidoctor}</version>
+				<version>${asciidoc.version}</version>
 				<executions>
 					<execution>
 						<id>asciidoc-to-html</id>
