@@ -24,39 +24,41 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JavaScript;
 import com.vaadin.flow.component.dependency.NpmPackage;
 
+import reactor.core.publisher.ConnectableFlux;
+import reactor.core.publisher.DirectProcessor;
+
 @Tag("sapl-editor")
 @JavaScript("jquery/dist/jquery.min.js")
 @JavaScript("./sapl-editor.js")
 @NpmPackage(value = "jquery", version = "3.4.1")
 @NpmPackage(value = "codemirror", version = "5.51.0")
 public class SaplEditor extends Component {
-
-	public interface DocumentChangedListener {
-		void onDocumentChanged(String newValue);
-	}
 	
-	private List<DocumentChangedListener> documentChangedListeners = new ArrayList<>();
+	private DirectProcessor<String> documentChangedProcessor;
+	private ConnectableFlux<String> documentChangedFlux;
 	
 	public SaplEditor(SaplEditorConfiguration config) {
 		getElement().setProperty("hasLineNumbers", config.HasLineNumbers);
 		getElement().setProperty("autoCloseBrackets", config.AutoCloseBrackets);
 		getElement().setProperty("matchBrackets", config.MatchBrackets);
 		getElement().setProperty("textUpdateDelay", config.TextUpdateDelay);
+		
+		this.documentChangedProcessor = DirectProcessor.create();
+		this.documentChangedFlux = documentChangedProcessor.publish();
+		this.documentChangedFlux.connect();
 	}
 	
 	@ClientCallable
 	public void onDocumentChanged(String newValue) {
-		for(DocumentChangedListener listener : this.documentChangedListeners) {
-			listener.onDocumentChanged(newValue);
-		}
-	}
-	
-	public void addDocumentChangedListener(DocumentChangedListener listener) {
-		this.documentChangedListeners.add(listener);
+		this.documentChangedProcessor.onNext(newValue);
 	}
 	
 	public void setValue(String value) {
 		getElement().setProperty("document", value);
+	}
+	
+	public ConnectableFlux<String> getDocumentChangedFlux() {
+		return this.documentChangedFlux;
 	}
 
 }
