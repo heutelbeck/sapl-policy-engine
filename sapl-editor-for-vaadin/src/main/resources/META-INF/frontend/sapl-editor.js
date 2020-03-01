@@ -2,11 +2,18 @@ import { LitElement, html } from 'lit-element';
 
 class SAPLEditor extends LitElement {
 
-	  static get properties() {
-		    return {
-		      document2: { type: String }
-		    }
-		  }
+	constructor() {
+		  super();
+      this.document = "";
+  }
+
+
+	
+  static get properties() {
+      return {
+        document: { type: String }
+      }
+    }
 	
 	
 	connectedCallback() {
@@ -28,13 +35,16 @@ class SAPLEditor extends LitElement {
 				matchBrackets:				true,
 				enableValidationService:	true
 			});
-			
-			if(!_this.__document2) {
-				_this.__document2 = "Hello";
-			}
 
-			_this.editor.doc.setValue(_this.__document2);
+			_this.editor.doc.setValue(_this.document);
+			_this.editor.doc.on("change", function(doc, changeObj) {
+				_this.onDocumentChanged(doc.getValue());
+			});
 		});
+	}
+	
+	onDocumentChanged(value) {
+		this.$server.onDocumentChanged(value);
 	}
 
 	render() {

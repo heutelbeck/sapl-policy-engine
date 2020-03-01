@@ -15,7 +15,11 @@
  */
 package io.sapl.vaadin;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.vaadin.flow.component.AbstractSinglePropertyField;
+import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JavaScript;
 import com.vaadin.flow.component.dependency.NpmPackage;
@@ -27,8 +31,25 @@ import com.vaadin.flow.component.dependency.NpmPackage;
 @NpmPackage(value = "codemirror", version = "5.51.0")
 public class SaplEditor extends  AbstractSinglePropertyField<SaplEditor, String> {
 
+	public interface DocumentChangedListener {
+		void onDocumentChanged(String newValue);
+	}
+	
+	private List<DocumentChangedListener> documentChangedListeners = new ArrayList<>();
+	
 	public SaplEditor() {
 		super("document", "", false);
+	}
+	
+	@ClientCallable
+	public void onDocumentChanged(String newValue) {
+		for(DocumentChangedListener listener : this.documentChangedListeners) {
+			listener.onDocumentChanged(newValue);
+		}
+	}
+	
+	public void addDocumentChangedListener(DocumentChangedListener listener) {
+		this.documentChangedListeners.add(listener);
 	}
 
 }
