@@ -8,15 +8,14 @@ class SAPLEditor extends LitElement {
       this.xtextLang = "sapl";
   }
 
-
-	
   static get properties() {
       return {
         document: { type: String },
         hasLineNumbers: {type: Boolean },
         autoCloseBrackets: {type: Boolean },
         matchBrackets: {type: Boolean },
-        xtextLang: { type: String }
+        xtextLang: { type: String },
+        textUpdateDelay: { type: Number }
       }
     }
 	
@@ -38,7 +37,8 @@ class SAPLEditor extends LitElement {
 				showCursorWhenSelecting: 	true,
 				autoCloseBrackets:			_this.autoCloseBrackets,
 				matchBrackets:				_this.matchBrackets,
-				enableValidationService:	true
+        enableValidationService:	true,
+        textUpdateDelay: _this.textUpdateDelay
 			});
 
 			_this.editor.doc.setValue(_this.document);

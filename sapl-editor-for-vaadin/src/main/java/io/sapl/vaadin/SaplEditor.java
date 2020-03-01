@@ -41,6 +41,7 @@ public class SaplEditor extends Component {
 		getElement().setProperty("hasLineNumbers", config.HasLineNumbers);
 		getElement().setProperty("autoCloseBrackets", config.AutoCloseBrackets);
 		getElement().setProperty("matchBrackets", config.MatchBrackets);
+		getElement().setProperty("textUpdateDelay", config.TextUpdateDelay);
 	}
 	
 	@ClientCallable
