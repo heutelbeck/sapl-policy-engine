@@ -1,18 +1,24 @@
-export class SAPLEditor extends HTMLElement {
+import { LitElement, html } from 'lit-element';
+
+class SAPLEditor extends LitElement {
+
+	  static get properties() {
+		    return {
+		      document2: { type: String }
+		    }
+		  }
 	
-	constructor() {
-		super();
-		this.shadow = this.attachShadow({mode: 'open'});
-		this.shadow.innerHTML = SAPLEditor.template();
-	}	
 	
 	connectedCallback() {
+		super.connectedCallback();
+		
 		var _this = this;
+
 		require(["codemirror/addon/edit/matchbrackets",
 				 "codemirror/addon/edit/closebrackets", 
 				 "./sapl-mode", "./xtext-codemirror.min"], function(addon1, addon2, mode, xtext) {
 			_this.editor = xtext.createEditor({
-				document: 					_this.shadow,
+				document: 					_this.shadowRoot,
 				xtextLang : 				"sapl",
 				sendFullText : 				true,
 				syntaxDefinition: 			mode,
@@ -22,51 +28,17 @@ export class SAPLEditor extends HTMLElement {
 				matchBrackets:				true,
 				enableValidationService:	true
 			});
-			if(!_this.document) {
-				_this.setDocument("");
+			
+			if(!_this.__document2) {
+				_this.__document2 = "Hello";
 			}
-			_this.editor.doc.setValue(_this.document);
-			_this.editor.doc.on("change", function(doc, changeObj) {
-				_this.setDocument(doc.getValue());
-			});
+
+			_this.editor.doc.setValue(_this.__document2);
 		});
 	}
-	
-	setDocument(document) {
-		this.setAttribute('document', document);		
-	}
-	
-	set document(document) {
-		this.setDocument(document);
-		if(this.editor) {
-			this.editor.doc.setValue(document);
-		}
-	}
-	
-	get document() {
-		return this.getAttribute('document');
-	}
 
-	static get observedAttributes() {
-		return ['document'];
-	}
-
-	attributeChangedCallback(attrName, oldVal, newVal) {
-	    switch (attrName) {
-	      case 'document':
-  	    	  this.dispatchEvent(new Event("document-changed"));
-	    }
-	}
-	  
-	/*
-	 * Embedded CSS: 
-	 * codemirror.css
-	 * show-hint.css
-	 * xtext-codemirror.css
-	 * sapl-text-area-style.css
-	 */
-	static template () {
-		    return `
+	render() {
+		    return html`
 <style>
 /* BASICS */
 
@@ -556,4 +528,4 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {
 		  }
 }
 
-window.customElements.define('sapl-editor', SAPLEditor);
+customElements.define('sapl-editor', SAPLEditor);
