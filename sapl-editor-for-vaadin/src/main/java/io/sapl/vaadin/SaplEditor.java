@@ -37,8 +37,10 @@ public class SaplEditor extends Component {
 	
 	private List<DocumentChangedListener> documentChangedListeners = new ArrayList<>();
 	
-	public SaplEditor() {
-
+	public SaplEditor(SaplEditorConfiguration config) {
+		getElement().setProperty("hasLineNumbers", config.HasLineNumbers);
+		getElement().setProperty("autoCloseBrackets", config.AutoCloseBrackets);
+		getElement().setProperty("matchBrackets", config.MatchBrackets);
 	}
 	
 	@ClientCallable

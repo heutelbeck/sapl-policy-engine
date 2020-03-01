@@ -5,13 +5,18 @@ class SAPLEditor extends LitElement {
 	constructor() {
 		  super();
       this.document = "";
+      this.xtextLang = "sapl";
   }
 
 
 	
   static get properties() {
       return {
-        document: { type: String }
+        document: { type: String },
+        hasLineNumbers: {type: Boolean },
+        autoCloseBrackets: {type: Boolean },
+        matchBrackets: {type: Boolean },
+        xtextLang: { type: String }
       }
     }
 	
@@ -26,13 +31,13 @@ class SAPLEditor extends LitElement {
 				 "./sapl-mode", "./xtext-codemirror.min"], function(addon1, addon2, mode, xtext) {
 			_this.editor = xtext.createEditor({
 				document: 					_this.shadowRoot,
-				xtextLang : 				"sapl",
+				xtextLang : 				_this.xtextLang,
 				sendFullText : 				true,
 				syntaxDefinition: 			mode,
-				lineNumbers:  				true,
+				lineNumbers:  				_this.hasLineNumbers,
 				showCursorWhenSelecting: 	true,
-				autoCloseBrackets:			true,
-				matchBrackets:				true,
+				autoCloseBrackets:			_this.autoCloseBrackets,
+				matchBrackets:				_this.matchBrackets,
 				enableValidationService:	true
 			});
 
@@ -533,7 +538,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {
 	display: inline;
 }
 </style>
-<div id="xtext-editor" data-editor-xtext-lang="sapl"/>
+<div id="xtext-editor" data-editor-xtext-lang="${this.xtextLang}"/>
 		      `;
 		  }
 }
