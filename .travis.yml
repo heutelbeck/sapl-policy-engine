@@ -1,9 +1,3 @@
-# Prepare environment for building docker images
-sudo: required
-
-services:
-  - docker
-
 # setup environment for java
 language: java
 
@@ -13,10 +7,7 @@ jdk:
 env:
   - SONAR_HOST=https://sonar.ftk.de NODE_VERSION=12
 
-# skip "mvn install -skipTexts=true" before building
 install: true
-#install:
-#  - nvm install $NODE_VERSION
 
 git:
   lfs_skip_smudge: true
