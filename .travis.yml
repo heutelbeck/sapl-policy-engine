@@ -8,7 +8,7 @@ services:
 language: java
 
 jdk:
-  - oraclejdk8
+  - openjdk8
 
 env:
   - SONAR_HOST=https://sonar.ftk.de NODE_VERSION=12
