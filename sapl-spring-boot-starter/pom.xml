@@ -68,56 +68,57 @@
 	<build>
 		<plugins>
 			<plugin>
-			    <groupId>com.mycila</groupId>
-    			<artifactId>license-maven-plugin</artifactId>
+				<groupId>com.mycila</groupId>
+				<artifactId>license-maven-plugin</artifactId>
 				<version>3.0</version>
-			    <configuration>
-	   	     		<header>../APACHE-2.txt</header>
-    			    <properties>
-       		     		<owner>Dominic Heutelbeck</owner>
-            			<email>dominic@heutelbeck.com</email>
-        			</properties>
-        			<excludes>
-            			<exclude>**/README</exclude>
-            			<exclude>src/test/resources/**</exclude>
-	        	    	<exclude>src/main/resources/**</exclude>
-    		    	</excludes>
-    			</configuration>
-    			<executions>
-	        		<execution>
-            			<goals>
-	                		<goal>check</goal>
-    	        		</goals>
-			        </execution>
-    			</executions>
+				<configuration>
+					<header>../APACHE-2.txt</header>
+					<properties>
+						<owner>Dominic Heutelbeck</owner>
+						<email>dominic@heutelbeck.com</email>
+					</properties>
+					<excludes>
+						<exclude>**/README</exclude>
+						<exclude>src/test/resources/**</exclude>
+						<exclude>src/main/resources/**</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-javadoc</id>
-                        <phase>deploy</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <additionalparam>-Xdoclint:none</additionalparam>
-                </configuration>
-            </plugin>
-           	<plugin>
-  				<groupId>org.apache.maven.plugins</groupId>
-  				<artifactId>maven-source-plugin</artifactId>
+				<artifactId>maven-javadoc-plugin</artifactId>
 				<executions>
-    				<execution>
-      					<id>attach-sources</id>
-      					<goals>
-        					<goal>jar</goal>
-      					</goals>
-    				</execution>
-  				</executions>
-			</plugin>            
+					<execution>
+						<id>attach-javadoc</id>
+						<phase>deploy</phase>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<source>8</source>
+					<additionalparam>-Xdoclint:none</additionalparam>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 

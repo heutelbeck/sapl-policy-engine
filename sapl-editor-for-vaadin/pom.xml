@@ -339,6 +339,7 @@
                         <configuration>
                             <quiet>true</quiet>
                             <additionalparam>-Xdoclint:none</additionalparam>
+                            <source>8</source>
                         </configuration>
                     </plugin>
                     <plugin>
