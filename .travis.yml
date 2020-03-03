@@ -1,3 +1,6 @@
+# Prepare environment for building docker images
+sudo: required
+
 # setup environment for java
 language: java
 
