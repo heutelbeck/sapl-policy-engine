@@ -1,9 +1,6 @@
 # Prepare environment for building docker images
 sudo: required
 
-services:
-  - docker
-
 # setup environment for java
 language: java
 
@@ -11,12 +8,9 @@ jdk:
   - openjdk12
 
 env:
-  - SONAR_HOST=https://sonar.ftk.de
+  - SONAR_HOST=https://sonar.ftk.de NODE_VERSION=12
 
-# skip "mvn install -skipTexts=true" before building
 install: true
-#install:
-#  - nvm install $NODE_VERSION
 
 git:
   lfs_skip_smudge: true
@@ -25,6 +19,8 @@ git:
 script:
   # exit script when error occurs
   - set -e
+  # Install Node
+  - nvm use $NODE_VERSION
   # prepare settings.xml: add nexus credentials from environment variables
   - cp .travis.settings.xml $HOME/.m2/settings.xml
   # build all modules using maven
