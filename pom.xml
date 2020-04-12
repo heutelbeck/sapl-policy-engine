@@ -46,15 +46,15 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>1.8</java.version>
-		<xtextVersion>2.20.0</xtextVersion>
+		<xtextVersion>2.21.0</xtextVersion>
 		<version.license-maven-plugin>3.0</version.license-maven-plugin>
 		<version.maven-javadoc-plugin>3.1.0</version.maven-javadoc-plugin>
 		<version.junit>4.12</version.junit>
 		<version.lombok>1.18.12</version.lombok>
-		<version.springboot>2.2.4.RELEASE</version.springboot>
-		<version.powermock>2.0.2</version.powermock>
+		<version.springboot>2.2.6.RELEASE</version.springboot>
+		<version.powermock>2.0.7</version.powermock>
 		<version.mockito>2.28.2</version.mockito>
-		<version.vaadin>14.1.16</version.vaadin>
+		<version.vaadin>14.1.22</version.vaadin>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 	</properties>
