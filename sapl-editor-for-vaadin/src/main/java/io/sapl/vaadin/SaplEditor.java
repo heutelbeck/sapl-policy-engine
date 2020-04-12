@@ -23,6 +23,9 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JavaScript;
 import com.vaadin.flow.component.dependency.NpmPackage;
+import com.vaadin.flow.dom.Element;
+
+import elemental.json.JsonArray;
 
 @Tag("sapl-editor")
 @JavaScript("jquery/dist/jquery.min.js")
@@ -34,10 +37,11 @@ public class SaplEditor extends Component {
 	private List<DocumentChangedListener> documentChangedListeners;
 	
 	public SaplEditor(SaplEditorConfiguration config) {
-		getElement().setProperty("hasLineNumbers", config.HasLineNumbers);
-		getElement().setProperty("autoCloseBrackets", config.AutoCloseBrackets);
-		getElement().setProperty("matchBrackets", config.MatchBrackets);
-		getElement().setProperty("textUpdateDelay", config.TextUpdateDelay);
+		Element element = getElement();
+		element.setProperty("hasLineNumbers", config.HasLineNumbers);
+		element.setProperty("autoCloseBrackets", config.AutoCloseBrackets);
+		element.setProperty("matchBrackets", config.MatchBrackets);
+		element.setProperty("textUpdateDelay", config.TextUpdateDelay);
 		
 		this.documentChangedListeners = new ArrayList<>();
 	}
@@ -49,12 +53,25 @@ public class SaplEditor extends Component {
 		}
 	}
 	
+	@ClientCallable
+	public void onValidation(JsonArray issues) {
+		// TODO: parse json object into java class
+		System.out.println("onValidation:");
+		System.out.println("issues: " + issues);
+	}
+	
 	public void setValue(String value) {
-		getElement().setProperty("document", value);
+		Element element = getElement();
+		element.setProperty("document", value);
 	}
 	
 	public void addListener(DocumentChangedListener listener) {
 		this.documentChangedListeners.add(listener);
+	}
+	
+	public void validateDocument() {
+		Element element = getElement();
+		element.callJsFunction("validateDocument", element);
 	}
 
 }

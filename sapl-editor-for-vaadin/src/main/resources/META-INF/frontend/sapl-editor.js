@@ -47,9 +47,20 @@ class SAPLEditor extends LitElement {
 			});
 		});
 	}
+		
+	validateDocument(element) {
+		var _this = this;
+		var lxtextServices = element.editor.xtextServices;
+		lxtextServices.validationService.setState(undefined);
+		lxtextServices.validate().done(function(result) {		
+			var issues = result.issues;	
+			_this.$server.onValidation(issues);
+		});
+	}
 	
 	onDocumentChanged(value) {
-		this.$server.onDocumentChanged(value);
+		var _this = this;
+		_this.$server.onDocumentChanged(value);
 	}
 
 	render() {
