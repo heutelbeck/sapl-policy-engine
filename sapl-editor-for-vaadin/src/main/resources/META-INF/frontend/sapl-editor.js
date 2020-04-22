@@ -1,72 +1,70 @@
-export class SAPLEditor extends HTMLElement {
-	
+import { LitElement, html } from 'lit-element';
+
+class SAPLEditor extends LitElement {
+
 	constructor() {
-		super();
-		this.shadow = this.attachShadow({mode: 'open'});
-		this.shadow.innerHTML = SAPLEditor.template();
-	}	
+		  super();
+      this.document = "";
+      this.xtextLang = "sapl";
+  }
+
+  static get properties() {
+      return {
+        document: { type: String },
+        hasLineNumbers: {type: Boolean },
+        autoCloseBrackets: {type: Boolean },
+        matchBrackets: {type: Boolean },
+        xtextLang: { type: String },
+        textUpdateDelay: { type: Number }
+      }
+    }
+	
 	
 	connectedCallback() {
+		super.connectedCallback();
+		
 		var _this = this;
+
 		require(["codemirror/addon/edit/matchbrackets",
 				 "codemirror/addon/edit/closebrackets", 
 				 "./sapl-mode", "./xtext-codemirror.min"], function(addon1, addon2, mode, xtext) {
 			_this.editor = xtext.createEditor({
-				document: 					_this.shadow,
-				xtextLang : 				"sapl",
+				document: 					_this.shadowRoot,
+				xtextLang : 				_this.xtextLang,
 				sendFullText : 				true,
 				syntaxDefinition: 			mode,
-				lineNumbers:  				true,
+				lineNumbers:  				_this.hasLineNumbers,
 				showCursorWhenSelecting: 	true,
-				autoCloseBrackets:			true,
-				matchBrackets:				true,
-				enableValidationService:	true
+				autoCloseBrackets:			_this.autoCloseBrackets,
+				matchBrackets:				_this.matchBrackets,
+        enableValidationService:	true,
+        textUpdateDelay: _this.textUpdateDelay
 			});
-			if(!_this.document) {
-				_this.setDocument("");
-			}
+
 			_this.editor.doc.setValue(_this.document);
 			_this.editor.doc.on("change", function(doc, changeObj) {
-				_this.setDocument(doc.getValue());
+				_this.onDocumentChanged(doc.getValue());
 			});
 		});
 	}
-	
-	setDocument(document) {
-		this.setAttribute('document', document);		
+		
+	validateDocument(element) {
+		var _this = this;
+		var lxtextServices = element.editor.xtextServices;
+		lxtextServices.validationService.setState(undefined);
+		lxtextServices.validate().done(function(result) {		
+			var issues = result.issues;	
+			_this.$server.onValidation(issues);
+		});
 	}
 	
-	set document(document) {
-		this.setDocument(document);
-		if(this.editor) {
-			this.editor.doc.setValue(document);
-		}
-	}
-	
-	get document() {
-		return this.getAttribute('document');
+	onDocumentChanged(value) {
+		var _this = this;
+		_this.$server.onDocumentChanged(value);
 	}
 
-	static get observedAttributes() {
-		return ['document'];
-	}
-
-	attributeChangedCallback(attrName, oldVal, newVal) {
-	    switch (attrName) {
-	      case 'document':
-  	    	  this.dispatchEvent(new Event("document-changed"));
-	    }
-	}
-	  
-	/*
-	 * Embedded CSS: 
-	 * codemirror.css
-	 * show-hint.css
-	 * xtext-codemirror.css
-	 * sapl-text-area-style.css
-	 */
-	static template () {
-		    return `
+	render() {
+		    return html`
 <style>
 /* BASICS */
 
@@ -551,9 +549,9 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {
 	display: inline;
 }
 </style>
-<div id="xtext-editor" data-editor-xtext-lang="sapl"/>
+<div id="xtext-editor" data-editor-xtext-lang="${this.xtextLang}"/>
 		      `;
 		  }
 }
 
-window.customElements.define('sapl-editor', SAPLEditor);
+customElements.define('sapl-editor', SAPLEditor);

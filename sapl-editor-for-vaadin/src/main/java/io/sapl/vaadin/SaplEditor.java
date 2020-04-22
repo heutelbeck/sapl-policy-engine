@@ -15,20 +15,63 @@
  */
 package io.sapl.vaadin;
 
-import com.vaadin.flow.component.AbstractSinglePropertyField;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.vaadin.flow.component.ClientCallable;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JavaScript;
 import com.vaadin.flow.component.dependency.NpmPackage;
+import com.vaadin.flow.dom.Element;
+
+import elemental.json.JsonArray;
 
 @Tag("sapl-editor")
 @JavaScript("jquery/dist/jquery.min.js")
 @JavaScript("./sapl-editor.js")
 @NpmPackage(value = "jquery", version = "3.4.1")
 @NpmPackage(value = "codemirror", version = "5.51.0")
-public class SaplEditor extends  AbstractSinglePropertyField<SaplEditor, String> {
-
-	public SaplEditor() {
-		super("document", "", false);
+public class SaplEditor extends Component {
+	
+	private List<DocumentChangedListener> documentChangedListeners;
+	
+	public SaplEditor(SaplEditorConfiguration config) {
+		Element element = getElement();
+		element.setProperty("hasLineNumbers", config.HasLineNumbers);
+		element.setProperty("autoCloseBrackets", config.AutoCloseBrackets);
+		element.setProperty("matchBrackets", config.MatchBrackets);
+		element.setProperty("textUpdateDelay", config.TextUpdateDelay);
+		
+		this.documentChangedListeners = new ArrayList<>();
+	}
+	
+	@ClientCallable
+	public void onDocumentChanged(String newValue) {
+		for (DocumentChangedListener listener : documentChangedListeners) {
+			listener.onDocumentChanged(new DocumentChangedEvent(newValue));
+		}
+	}
+	
+	@ClientCallable
+	public void onValidation(JsonArray issues) {
+		// TODO: parse json object into java class
+		System.out.println("onValidation:");
+		System.out.println("issues: " + issues);
+	}
+	
+	public void setValue(String value) {
+		Element element = getElement();
+		element.setProperty("document", value);
+	}
+	
+	public void addListener(DocumentChangedListener listener) {
+		this.documentChangedListeners.add(listener);
+	}
+	
+	public void validateDocument() {
+		Element element = getElement();
+		element.callJsFunction("validateDocument", element);
 	}
 
 }
