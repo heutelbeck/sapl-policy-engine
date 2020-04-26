@@ -73,5 +73,10 @@ public class SaplEditor extends Component {
 		Element element = getElement();
 		element.callJsFunction("validateDocument", element);
 	}
-
+	
+	@ClientCallable
+	public void onFirstUpdated() {
+		Element element = getElement();
+		element.callJsFunction("onFirstUpdated", element);
+	}
 }
