@@ -18,8 +18,11 @@ class SAPLEditor extends LitElement {
         textUpdateDelay: { type: Number }
       }
     }
-	
-	
+  
+  firstUpdated(changedProperties) {
+	  this.$server.onFirstUpdated();
+  }
+
 	connectedCallback() {
 		super.connectedCallback();
 		
@@ -47,15 +50,20 @@ class SAPLEditor extends LitElement {
 			});
 		});
 	}
-		
-	validateDocument(element) {
+	
+	onFirstUpdated(element) {
+		console.log('onFirstUpdated');
 		var _this = this;
-		var lxtextServices = element.editor.xtextServices;
-		lxtextServices.validationService.setState(undefined);
-		lxtextServices.validate().done(function(result) {		
-			var issues = result.issues;	
-			_this.$server.onValidation(issues);
-		});
+		var _services = element.editor.xtextServices;
+		_services.originalValidate = _services.validate;
+		
+		_services.validate = function(addParam) {
+			var services = this;		
+			return services.originalValidate(addParam).done(function(result){
+				var issues = result.issues;	
+				_this.$server.onValidation(issues);
+			});
+		}
 	}
 	
 	onDocumentChanged(value) {
