@@ -38,10 +38,10 @@ public class SaplEditor extends Component {
 	
 	public SaplEditor(SaplEditorConfiguration config) {
 		Element element = getElement();
-		element.setProperty("hasLineNumbers", config.HasLineNumbers);
-		element.setProperty("autoCloseBrackets", config.AutoCloseBrackets);
-		element.setProperty("matchBrackets", config.MatchBrackets);
-		element.setProperty("textUpdateDelay", config.TextUpdateDelay);
+		element.setProperty("hasLineNumbers", config.isHasLineNumbers());
+		element.setProperty("autoCloseBrackets", config.isAutoCloseBrackets());
+		element.setProperty("matchBrackets", config.isMatchBrackets());
+		element.setProperty("textUpdateDelay", config.getTextUpdateDelay());
 		
 		this.documentChangedListeners = new ArrayList<>();
 	}
