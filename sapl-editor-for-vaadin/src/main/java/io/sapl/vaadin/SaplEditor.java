@@ -109,6 +109,15 @@ public class SaplEditor extends Component {
 	public void addDocumentChangedListener(DocumentChangedListener listener) {
 		this.documentChangedListeners.add(listener);
 	}
+	
+	/**
+	 * Removes a registered document changed listener.
+	 * 
+	 * @param listener The registered listener that should be removed.
+	 */
+	public void removeDocumentChangedListener(DocumentChangedListener listener) {
+		this.documentChangedListeners.remove(listener);
+	}
 
 	/**
 	 * Registers a validation finished listener. The validation changed event will
@@ -119,5 +128,14 @@ public class SaplEditor extends Component {
 	 */
 	public void addValidationFinishedListener(ValidationFinishedListener listener) {
 		this.validationFinishedListeners.add(listener);
+	}
+	
+	/**
+	 * Removes a registered validation finished listener.
+	 * 
+	 * @param listener The registered listener that should be removed.
+	 */
+	public void removeValidationFinishedListener(ValidationFinishedListener listener) {
+		this.validationFinishedListeners.remove(listener);
 	}
 }
