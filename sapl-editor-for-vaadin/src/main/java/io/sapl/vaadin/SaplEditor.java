@@ -28,6 +28,7 @@ import com.vaadin.flow.dom.Element;
 import elemental.json.JsonArray;
 import elemental.json.JsonObject;
 
+@SuppressWarnings("serial")
 @Tag("sapl-editor")
 @JavaScript("jquery/dist/jquery.min.js")
 @JavaScript("./sapl-editor.js")
@@ -109,7 +110,7 @@ public class SaplEditor extends Component {
 	public void addDocumentChangedListener(DocumentChangedListener listener) {
 		this.documentChangedListeners.add(listener);
 	}
-	
+
 	/**
 	 * Removes a registered document changed listener.
 	 * 
@@ -129,7 +130,7 @@ public class SaplEditor extends Component {
 	public void addValidationFinishedListener(ValidationFinishedListener listener) {
 		this.validationFinishedListeners.add(listener);
 	}
-	
+
 	/**
 	 * Removes a registered validation finished listener.
 	 * 

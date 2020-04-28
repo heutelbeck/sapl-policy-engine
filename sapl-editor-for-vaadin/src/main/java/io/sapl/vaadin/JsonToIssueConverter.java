@@ -5,7 +5,7 @@ import org.eclipse.xtext.diagnostics.Severity;
 import elemental.json.JsonObject;
 
 public abstract class JsonToIssueConverter {
-	
+
 	private static final String DESCRIPTION = "description";
 	private static final String SEVERITY = "severity";
 	private static final String LINE = "line";
@@ -15,11 +15,11 @@ public abstract class JsonToIssueConverter {
 
 	public static Issue Convert(JsonObject jsonObject) {
 		Issue issue = new Issue();
-		
-		if(jsonObject.hasKey(DESCRIPTION))
+
+		if (jsonObject.hasKey(DESCRIPTION))
 			issue.setDescription(jsonObject.getString(DESCRIPTION));
-		
-		if(jsonObject.hasKey(SEVERITY)) {
+
+		if (jsonObject.hasKey(SEVERITY)) {
 			String severityString = jsonObject.getString(SEVERITY);
 			Severity severity = Severity.INFO;
 			switch (severityString) {
@@ -37,20 +37,20 @@ public abstract class JsonToIssueConverter {
 			}
 			issue.setSeverity(severity);
 		}
-		
-		if(jsonObject.hasKey(LINE))
+
+		if (jsonObject.hasKey(LINE))
 			issue.setLine((int) jsonObject.getNumber(LINE));
-		
-		if(jsonObject.hasKey(COLUMN))
+
+		if (jsonObject.hasKey(COLUMN))
 			issue.setColumn((int) jsonObject.getNumber(COLUMN));
-		
-		if(jsonObject.hasKey(OFFSET))
+
+		if (jsonObject.hasKey(OFFSET))
 			issue.setOffset((int) jsonObject.getNumber(OFFSET));
-		
-		if(jsonObject.hasKey(LENGTH))
+
+		if (jsonObject.hasKey(LENGTH))
 			issue.setLength((int) jsonObject.getNumber(LENGTH));
-		
+
 		return issue;
 	}
-	
+
 }
