@@ -2,6 +2,9 @@ package io.sapl.vaadin;
 
 import lombok.Data;
 
+/**
+ * Configuration object to initialize the SAPL Editor.
+ */
 @Data
 public class SaplEditorConfiguration {
 	private boolean hasLineNumbers = true;

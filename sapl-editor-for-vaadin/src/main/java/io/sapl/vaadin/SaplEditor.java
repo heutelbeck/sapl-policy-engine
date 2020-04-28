@@ -34,30 +34,37 @@ import elemental.json.JsonObject;
 @NpmPackage(value = "jquery", version = "3.4.1")
 @NpmPackage(value = "codemirror", version = "5.51.0")
 public class SaplEditor extends Component {
-	
+
+	private String document;
 	private List<DocumentChangedListener> documentChangedListeners;
 	private List<ValidationFinishedListener> validationFinishedListeners;
-	
+
 	public SaplEditor(SaplEditorConfiguration config) {
 		Element element = getElement();
 		element.setProperty("hasLineNumbers", config.isHasLineNumbers());
 		element.setProperty("autoCloseBrackets", config.isAutoCloseBrackets());
 		element.setProperty("matchBrackets", config.isMatchBrackets());
 		element.setProperty("textUpdateDelay", config.getTextUpdateDelay());
-		
+
 		this.documentChangedListeners = new ArrayList<>();
 		this.validationFinishedListeners = new ArrayList<>();
 	}
-	
+
 	@ClientCallable
-	public void onDocumentChanged(String newValue) {
+	private void onFirstUpdated() {
+		Element element = getElement();
+		element.callJsFunction("onFirstUpdated", element);
+	}
+
+	@ClientCallable
+	private void onDocumentChanged(String newValue) {
 		for (DocumentChangedListener listener : documentChangedListeners) {
 			listener.onDocumentChanged(new DocumentChangedEvent(newValue));
 		}
 	}
-	
+
 	@ClientCallable
-	public void onValidation(JsonArray jsonIssues) {	
+	public void onValidation(JsonArray jsonIssues) {
 		List<Issue> issues = new ArrayList<Issue>();
 		Integer length = jsonIssues.length();
 		for (int i = 0; i < length; i++) {
@@ -65,34 +72,50 @@ public class SaplEditor extends Component {
 			Issue issue = JsonToIssueConverter.Convert(jsonIssue);
 			issues.add(issue);
 		}
-		
+
 		for (ValidationFinishedListener listener : validationFinishedListeners) {
 			Issue[] issueArray = issues.toArray(new Issue[0]);
 			listener.onValidationFinished(new ValidationFinishedEvent(issueArray));
 		}
 	}
-	
-	public void setValue(String value) {
+
+	/**
+	 * Sets the current document for the editor.
+	 * 
+	 * @param document The current document.
+	 */
+	public void setDocument(String document) {
 		Element element = getElement();
-		element.setProperty("document", value);
+		element.setProperty("document", document);
 	}
-	
-	public void addListener(DocumentChangedListener listener) {
+
+	/**
+	 * Returns the current document from the editor.
+	 * 
+	 * @return The current document from the editor.
+	 */
+	public String getDocument() {
+		return document;
+	}
+
+	/**
+	 * Registers a document changed listener. The document changed event will be
+	 * raised when the document was changed in the editor.
+	 * 
+	 * @param listener The listener that will be called upon event invocation.
+	 */
+	public void addDocumentChangedListener(DocumentChangedListener listener) {
 		this.documentChangedListeners.add(listener);
 	}
-	
-	public void addListener(ValidationFinishedListener listener) {
+
+	/**
+	 * Registers a validation finished listener. The validation changed event will
+	 * be raised after the document was changed and the validation took place. The
+	 * event object contains a list with all validation issues of the document.
+	 * 
+	 * @param listener
+	 */
+	public void addValidationFinishedListener(ValidationFinishedListener listener) {
 		this.validationFinishedListeners.add(listener);
-	}
-	
-	public void validateDocument() {
-		Element element = getElement();
-		element.callJsFunction("validateDocument", element);
-	}
-	
-	@ClientCallable
-	public void onFirstUpdated() {
-		Element element = getElement();
-		element.callJsFunction("onFirstUpdated", element);
 	}
 }

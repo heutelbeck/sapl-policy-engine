@@ -2,77 +2,77 @@ import { LitElement, html } from 'lit-element';
 
 class SAPLEditor extends LitElement {
 
-	constructor() {
-		  super();
-      this.document = "";
-      this.xtextLang = "sapl";
+  constructor() {
+    super();
+    this.document = "";
+    this.xtextLang = "sapl";
   }
 
   static get properties() {
-      return {
-        document: { type: String },
-        hasLineNumbers: {type: Boolean },
-        autoCloseBrackets: {type: Boolean },
-        matchBrackets: {type: Boolean },
-        xtextLang: { type: String },
-        textUpdateDelay: { type: Number }
-      }
+    return {
+      document: { type: String },
+      hasLineNumbers: { type: Boolean },
+      autoCloseBrackets: { type: Boolean },
+      matchBrackets: { type: Boolean },
+      xtextLang: { type: String },
+      textUpdateDelay: { type: Number }
     }
-  
-  firstUpdated(changedProperties) {
-	  this.$server.onFirstUpdated();
   }
 
-	connectedCallback() {
-		super.connectedCallback();
-		
-		var _this = this;
+  firstUpdated(changedProperties) {
+    this.$server.onFirstUpdated();
+  }
 
-		require(["codemirror/addon/edit/matchbrackets",
-				 "codemirror/addon/edit/closebrackets", 
-				 "./sapl-mode", "./xtext-codemirror.min"], function(addon1, addon2, mode, xtext) {
-			_this.editor = xtext.createEditor({
-				document: 					_this.shadowRoot,
-				xtextLang : 				_this.xtextLang,
-				sendFullText : 				true,
-				syntaxDefinition: 			mode,
-				lineNumbers:  				_this.hasLineNumbers,
-				showCursorWhenSelecting: 	true,
-				autoCloseBrackets:			_this.autoCloseBrackets,
-				matchBrackets:				_this.matchBrackets,
-        enableValidationService:	true,
-        textUpdateDelay: _this.textUpdateDelay
-			});
+  connectedCallback() {
+    super.connectedCallback();
 
-			_this.editor.doc.setValue(_this.document);
-			_this.editor.doc.on("change", function(doc, changeObj) {
-				_this.onDocumentChanged(doc.getValue());
-			});
-		});
-	}
-	
-	onFirstUpdated(element) {
-		console.log('onFirstUpdated');
-		var _this = this;
-		var _services = element.editor.xtextServices;
-		_services.originalValidate = _services.validate;
-		
-		_services.validate = function(addParam) {
-			var services = this;		
-			return services.originalValidate(addParam).done(function(result){
-				var issues = result.issues;	
-				_this.$server.onValidation(issues);
-			});
-		}
-	}
-	
-	onDocumentChanged(value) {
-		var _this = this;
-		_this.$server.onDocumentChanged(value);
-	}
+    var _this = this;
 
-	render() {
-		    return html`
+    require(["codemirror/addon/edit/matchbrackets",
+      "codemirror/addon/edit/closebrackets",
+      "./sapl-mode", "./xtext-codemirror.min"], function (addon1, addon2, mode, xtext) {
+        _this.editor = xtext.createEditor({
+          document: _this.shadowRoot,
+          xtextLang: _this.xtextLang,
+          sendFullText: true,
+          syntaxDefinition: mode,
+          lineNumbers: _this.hasLineNumbers,
+          showCursorWhenSelecting: true,
+          autoCloseBrackets: _this.autoCloseBrackets,
+          matchBrackets: _this.matchBrackets,
+          enableValidationService: true,
+          textUpdateDelay: _this.textUpdateDelay
+        });
+
+        _this.editor.doc.setValue(_this.document);
+        _this.editor.doc.on("change", function (doc, changeObj) {
+          _this.onDocumentChanged(doc.getValue());
+        });
+      });
+  }
+
+  onFirstUpdated(element) {
+    console.log('onFirstUpdated');
+    var _this = this;
+    var _services = element.editor.xtextServices;
+    _services.originalValidate = _services.validate;
+
+    _services.validate = function (addParam) {
+      var services = this;
+      return services.originalValidate(addParam).done(function (result) {
+        var issues = result.issues;
+        _this.$server.onValidation(issues);
+      });
+    }
+  }
+
+  onDocumentChanged(value) {
+    var _this = this;
+    _this.$server.onDocumentChanged(value);
+  }
+
+  render() {
+    return html`
 <style>
 /* BASICS */
 
@@ -559,7 +559,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {
 </style>
 <div id="xtext-editor" data-editor-xtext-lang="${this.xtextLang}"/>
 		      `;
-		  }
+  }
 }
 
 customElements.define('sapl-editor', SAPLEditor);
