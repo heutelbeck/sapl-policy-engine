@@ -26,35 +26,35 @@ class SAPLEditor extends LitElement {
   connectedCallback() {
     super.connectedCallback();
 
-    var _this = this;
+    var self = this;
 
     require(["codemirror/addon/edit/matchbrackets",
       "codemirror/addon/edit/closebrackets",
       "./sapl-mode", "./xtext-codemirror.min"], function (addon1, addon2, mode, xtext) {
-        _this.editor = xtext.createEditor({
-          document: _this.shadowRoot,
-          xtextLang: _this.xtextLang,
+        self.editor = xtext.createEditor({
+          document: self.shadowRoot,
+          xtextLang: self.xtextLang,
           sendFullText: true,
           syntaxDefinition: mode,
-          lineNumbers: _this.hasLineNumbers,
+          lineNumbers: self.hasLineNumbers,
           showCursorWhenSelecting: true,
-          autoCloseBrackets: _this.autoCloseBrackets,
-          matchBrackets: _this.matchBrackets,
+          autoCloseBrackets: self.autoCloseBrackets,
+          matchBrackets: self.matchBrackets,
           enableValidationService: true,
-          textUpdateDelay: _this.textUpdateDelay
+          textUpdateDelay: self.textUpdateDelay
         });
 
-        _this.editor.doc.setValue(_this.document);
-        _this.editor.doc.on("change", function (doc, changeObj) {
+        self.editor.doc.setValue(self.document);
+        self.editor.doc.on("change", function (doc, changeObj) {
           var value = doc.getValue();
-          _this.onDocumentChanged(value);
+          self.onDocumentChanged(value);
         });
       });
   }
 
   onFirstUpdated(element) {
     console.log('onFirstUpdated');
-    var _this = this;
+    var self = this;
     var _services = element.editor.xtextServices;
     _services.originalValidate = _services.validate;
 
@@ -62,7 +62,7 @@ class SAPLEditor extends LitElement {
       var services = this;
       return services.originalValidate(addParam).done(function (result) {
         var issues = result.issues;
-        _this.$server.onValidation(issues);
+        self.$server.onValidation(issues);
       });
     }
   }
