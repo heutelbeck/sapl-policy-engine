@@ -46,7 +46,8 @@ class SAPLEditor extends LitElement {
 
         _this.editor.doc.setValue(_this.document);
         _this.editor.doc.on("change", function (doc, changeObj) {
-          _this.onDocumentChanged(doc.getValue());
+          var value = doc.getValue();
+          _this.onDocumentChanged(value);
         });
       });
   }
@@ -67,8 +68,15 @@ class SAPLEditor extends LitElement {
   }
 
   onDocumentChanged(value) {
-    var _this = this;
-    _this.$server.onDocumentChanged(value);
+    this.document = value;
+    this.$server.onDocumentChanged(value);
+  }
+
+  setEditorDocument(element, document) {
+    this.document = document;
+    if(element.editor !== undefined) {
+      element.editor.doc.setValue(document);
+    }
   }
 
   render() {

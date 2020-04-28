@@ -58,13 +58,14 @@ public class SaplEditor extends Component {
 
 	@ClientCallable
 	private void onDocumentChanged(String newValue) {
+		document = newValue;
 		for (DocumentChangedListener listener : documentChangedListeners) {
 			listener.onDocumentChanged(new DocumentChangedEvent(newValue));
 		}
 	}
 
 	@ClientCallable
-	public void onValidation(JsonArray jsonIssues) {
+	private void onValidation(JsonArray jsonIssues) {
 		List<Issue> issues = new ArrayList<Issue>();
 		Integer length = jsonIssues.length();
 		for (int i = 0; i < length; i++) {
@@ -85,8 +86,9 @@ public class SaplEditor extends Component {
 	 * @param document The current document.
 	 */
 	public void setDocument(String document) {
+		this.document = document;
 		Element element = getElement();
-		element.setProperty("document", document);
+		element.callJsFunction("setEditorDocument", element, document);
 	}
 
 	/**
