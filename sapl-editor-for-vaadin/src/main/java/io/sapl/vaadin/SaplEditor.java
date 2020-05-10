@@ -52,12 +52,6 @@ public class SaplEditor extends Component {
 	}
 
 	@ClientCallable
-	private void onFirstUpdated() {
-		Element element = getElement();
-		element.callJsFunction("onFirstUpdated", element);
-	}
-
-	@ClientCallable
 	private void onDocumentChanged(String newValue) {
 		document = newValue;
 		for (DocumentChangedListener listener : documentChangedListeners) {
