@@ -15,12 +15,9 @@ class SAPLEditor extends LitElement {
       autoCloseBrackets: { type: Boolean },
       matchBrackets: { type: Boolean },
       xtextLang: { type: String },
-      textUpdateDelay: { type: Number }
+      textUpdateDelay: { type: Number },
+      editor: { type: Object },
     }
-  }
-
-  firstUpdated(changedProperties) {
-    this.$server.onFirstUpdated();
   }
 
   connectedCallback() {
@@ -44,6 +41,8 @@ class SAPLEditor extends LitElement {
           textUpdateDelay: self.textUpdateDelay
         });
 
+        self.registerValidationCallback(self.editor);
+
         self.editor.doc.setValue(self.document);
         self.editor.doc.on("change", function (doc, changeObj) {
           var value = doc.getValue();
@@ -52,13 +51,12 @@ class SAPLEditor extends LitElement {
       });
   }
 
-  onFirstUpdated(element) {
-    console.log('onFirstUpdated');
+  registerValidationCallback(editor) {
     var self = this;
-    var _services = element.editor.xtextServices;
-    _services.originalValidate = _services.validate;
 
-    _services.validate = function (addParam) {
+    var xTextServices = editor.xtextServices;
+    xTextServices.originalValidate = xTextServices.validate;
+    xTextServices.validate = function (addParam) {
       var services = this;
       return services.originalValidate(addParam).done(function (result) {
         var issues = result.issues;
