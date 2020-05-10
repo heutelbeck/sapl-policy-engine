@@ -41,13 +41,13 @@ class SAPLEditor extends LitElement {
           textUpdateDelay: self.textUpdateDelay
         });
 
-        self.registerValidationCallback(self.editor);
-
         self.editor.doc.setValue(self.document);
         self.editor.doc.on("change", function (doc, changeObj) {
           var value = doc.getValue();
           self.onDocumentChanged(value);
         });
+
+        self.registerValidationCallback(self.editor);
       });
   }
 
@@ -59,15 +59,25 @@ class SAPLEditor extends LitElement {
     xTextServices.validate = function (addParam) {
       var services = this;
       return services.originalValidate(addParam).done(function (result) {
-        var issues = result.issues;
-        self.$server.onValidation(issues);
+        if(self.$server !== undefined) {
+          var issues = result.issues;
+          self.$server.onValidation(issues);
+        }
+        else {
+          throw "Connection between editor and server could not be established. (onValidation)";
+        }
       });
     }
   }
 
   onDocumentChanged(value) {
     this.document = value;
-    this.$server.onDocumentChanged(value);
+    if(this.$server !== undefined) {
+      this.$server.onDocumentChanged(value);
+    }
+    else {
+      throw "Connection between editor and server could not be established. (onDocumentChanged)";
+    }
   }
 
   setEditorDocument(element, document) {
