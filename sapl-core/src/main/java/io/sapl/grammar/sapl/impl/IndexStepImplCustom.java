@@ -59,8 +59,8 @@ public class IndexStepImplCustom extends IndexStepImpl {
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		final JsonNode previousResultNode = previousResult.getNode().get();
 		if (!previousResultNode.isArray()) {
-			throw new PolicyEvaluationException(
-					String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), previousResultNode.getNodeType()));
+			throw new PolicyEvaluationException(INDEX_ACCESS_TYPE_MISMATCH, getIndex(),
+					previousResultNode.getNodeType());
 		}
 
 		final int arrayLength = previousResultNode.size();
