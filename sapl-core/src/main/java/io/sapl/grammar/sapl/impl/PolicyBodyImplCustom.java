@@ -39,20 +39,23 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	protected static final String CANNOT_ASSIGN_UNDEFINED_TO_A_VAL = "Cannot assign undefined to a val.";
 
 	/**
-	 * Evaluates all statements of this policy body within the given evaluation context
-	 * and returns a {@link Flux} of {@link Decision} objects.
+	 * Evaluates all statements of this policy body within the given evaluation
+	 * context and returns a {@link Flux} of {@link Decision} objects.
+	 * 
 	 * @param entitlement the entitlement of the enclosing policy.
-	 * @param ctx the evaluation context in which the statements are evaluated. It must
-	 * contain
-	 * <ul>
-	 * <li>the attribute context</li>
-	 * <li>the function context</li>
-	 * <li>the variable context holding the four authorization subscription variables
-	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
-	 * from the PDP configuration and other variables e.g. obtained from the containing
-	 * policy set</li>
-	 * <li>the import mapping for functions and attribute finders</li>
-	 * </ul>
+	 * @param ctx         the evaluation context in which the statements are
+	 *                    evaluated. It must contain
+	 *                    <ul>
+	 *                    <li>the attribute context</li>
+	 *                    <li>the function context</li>
+	 *                    <li>the variable context holding the four authorization
+	 *                    subscription variables 'subject', 'action', 'resource' and
+	 *                    'environment' combined with system variables from the PDP
+	 *                    configuration and other variables e.g. obtained from the
+	 *                    containing policy set</li>
+	 *                    <li>the import mapping for functions and attribute
+	 *                    finders</li>
+	 *                    </ul>
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
@@ -69,8 +72,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 						LOGGER.debug("Error in policy body evaluation: {}", error.getMessage());
 						return Flux.just(Decision.INDETERMINATE);
 					});
-		}
-		else {
+		} else {
 			return Flux.just(entitlement);
 		}
 	}
@@ -86,8 +88,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	private Flux<Boolean> evaluateStatement(Statement statement, EvaluationContext evaluationCtx) {
 		if (statement instanceof ValueDefinition) {
 			return evaluateValueDefinition((ValueDefinition) statement, evaluationCtx);
-		}
-		else {
+		} else {
 			return evaluateCondition((Condition) statement, evaluationCtx);
 		}
 	}
@@ -98,12 +99,10 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 				if (evaluatedValue.isPresent()) {
 					evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
 					return Flux.just(Boolean.TRUE);
-				}
-				else {
+				} else {
 					return Flux.error(new PolicyEvaluationException(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL));
 				}
-			}
-			catch (PolicyEvaluationException e) {
+			} catch (PolicyEvaluationException e) {
 				LOGGER.debug("Error in value definition evaluation: {}", e.getMessage());
 				return Flux.error(e);
 			}
@@ -114,9 +113,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 		return condition.getExpression().evaluate(evaluationCtx, true, Optional.empty()).flatMap(statementResult -> {
 			if (statementResult.isPresent() && statementResult.get().isBoolean()) {
 				return Flux.just(statementResult.get().asBoolean());
-			}
-			else {
-				return Flux.error(new PolicyEvaluationException(String.format(STATEMENT_NOT_BOOLEAN, statementResult)));
+			} else {
+				return Flux.error(new PolicyEvaluationException(STATEMENT_NOT_BOOLEAN, statementResult));
 			}
 		});
 	}

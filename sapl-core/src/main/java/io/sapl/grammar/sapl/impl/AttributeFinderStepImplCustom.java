@@ -61,7 +61,7 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 		final String fullyQualifiedName = getFullyQualifiedName(ctx);
 		if (!isBody) {
 			return Flux.error(
-					new PolicyEvaluationException(String.format(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName)));
+					new PolicyEvaluationException(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName));
 		}
 		if (!value.isPresent()) {
 			return Flux.error(new PolicyEvaluationException(UNDEFINED_VALUE));
@@ -69,7 +69,7 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 		final Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
 		final Flux<JsonNode> jsonNodeFlux = ctx.getAttributeCtx().evaluate(fullyQualifiedName, value.get(), variables)
 				.onErrorResume(error -> Flux.error(
-						new PolicyEvaluationException(String.format(ATTRIBUTE_RESOLUTION, fullyQualifiedName), error)));
+						new PolicyEvaluationException(error, ATTRIBUTE_RESOLUTION, fullyQualifiedName)));
 		return jsonNodeFlux.map(Optional::of).map(JsonNodeWithoutParent::new);
 	}
 

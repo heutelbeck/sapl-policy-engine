@@ -53,9 +53,8 @@ public class RegexImplCustom extends RegexImpl {
 		}
 		try {
 			return Value.fluxOf(Pattern.matches(tuple.getT2(), tuple.getT1().get().asText()));
-		}
-		catch (PatternSyntaxException e) {
-			return Flux.error(new PolicyEvaluationException(String.format(REGEX_SYNTAX_ERROR, tuple.getT2()), e));
+		} catch (PatternSyntaxException e) {
+			return Flux.error(new PolicyEvaluationException(e, REGEX_SYNTAX_ERROR, tuple.getT2()));
 		}
 	}
 

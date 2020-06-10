@@ -33,7 +33,8 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of an index step to a previous array value, e.g. 'arr[2]'.
+ * Implements the application of an index step to a previous array value, e.g.
+ * 'arr[2]'.
  *
  * Grammar: Step: '[' Subscript ']' ;
  *
@@ -50,8 +51,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
@@ -74,7 +74,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 			index += arrayLength;
 		}
 		if (index < 0 || index >= arrayLength) {
-			throw new PolicyEvaluationException(String.format(INDEX_ACCESS_NOT_FOUND, index));
+			throw new PolicyEvaluationException(INDEX_ACCESS_NOT_FOUND, index);
 		}
 		return index;
 	}
@@ -84,8 +84,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}

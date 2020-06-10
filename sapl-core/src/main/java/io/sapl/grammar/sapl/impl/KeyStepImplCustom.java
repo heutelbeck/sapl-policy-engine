@@ -34,7 +34,8 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of a key step to a previous value, e.g 'value.name'.
+ * Implements the application of a key step to a previous value, e.g
+ * 'value.name'.
  *
  * Grammar: Step: '.' ({KeyStep} id=ID) ;
  */
@@ -47,8 +48,7 @@ public class KeyStepImplCustom extends KeyStepImpl {
 			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
@@ -63,17 +63,13 @@ public class KeyStepImplCustom extends KeyStepImpl {
 				return new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), id);
 			}
 			return new JsonNodeWithParentObject(Optional.of(previousResultNode.get(id)), previousResult.getNode(), id);
-		}
-		else if (previousResultNode.isArray()) {
+		} else if (previousResultNode.isArray()) {
 			return applyToJsonArray(previousResultNode);
-		}
-		else if (previousResultNode.isTextual()) {
+		} else if (previousResultNode.isTextual()) {
 			return new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), id);
-		}
-		else if (previousResultNode.isNull()) {
-			throw new PolicyEvaluationException(String.format(KEY_ACCESS_TYPE_MISMATCH, id));
-		}
-		else {
+		} else if (previousResultNode.isNull()) {
+			throw new PolicyEvaluationException(KEY_ACCESS_TYPE_MISMATCH, id);
+		} else {
 			return new JsonNodeWithoutParent(Optional.empty());
 		}
 	}

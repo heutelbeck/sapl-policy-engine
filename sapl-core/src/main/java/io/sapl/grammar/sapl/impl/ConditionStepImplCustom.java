@@ -41,19 +41,21 @@ import reactor.core.publisher.Flux;
  * Implements the conditional subscript of an array (or object), written as
  * '[?(Condition)]'.
  *
- * [?(Condition)] returns an array containing all array items (or attribute values) for
- * which Condition evaluates to true. Can be applied to both an array (then it checks each
- * item) and an object (then it checks each attribute value). Condition must be an
- * expression, in which relative expressions starting with @ can be used.
+ * [?(Condition)] returns an array containing all array items (or attribute
+ * values) for which Condition evaluates to true. Can be applied to both an
+ * array (then it checks each item) and an object (then it checks each attribute
+ * value). Condition must be an expression, in which relative expressions
+ * starting with @ can be used.
  *
- * {@literal @} evaluates to the current array item or attribute value for which the condition is
- * evaluated and can be followed by further selection steps.
+ * {@literal @} evaluates to the current array item or attribute value for which
+ * the condition is evaluated and can be followed by further selection steps.
  *
- * As attributes have no order, the sorting of the result array of a condition step
- * applied to an object is not specified.
+ * As attributes have no order, the sorting of the result array of a condition
+ * step applied to an object is not specified.
  *
- * Example: Applied to the array [1, 2, 3, 4, 5], the selection step [?({@literal @} &gt; 2)] returns
- * the array [3, 4, 5] (containing all values that are greater than 2).
+ * Example: Applied to the array [1, 2, 3, 4, 5], the selection step
+ * [?({@literal @} &gt; 2)] returns the array [3, 4, 5] (containing all values
+ * that are greater than 2).
  *
  * Grammar: Step: ... | '[' Subscript ']' | ... Subscript returns Step: ... |
  * {ConditionStep} '?' '(' expression=Expression ')' | ...
@@ -65,14 +67,17 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	private static final String CONDITION_ACCESS_TYPE_MISMATCH = "Type mismatch. Condition access is only possible for array or object, but got '%s'.";
 
 	/**
-	 * Applies the conditional subscript to an abstract annotated JsonNode, which can
-	 * either be an array or an object.
+	 * Applies the conditional subscript to an abstract annotated JsonNode, which
+	 * can either be an array or an object.
+	 * 
 	 * @param previousResult the array or object
-	 * @param ctx the evaluation context
-	 * @param isBody a flag indicating whether the expression is part of a policy body
-	 * @param relativeNode the relative node (not needed here)
-	 * @return a flux of ArrayResultNodes containing the elements/attribute values of the
-	 * original array/object for which the condition expression evaluates to true
+	 * @param ctx            the evaluation context
+	 * @param isBody         a flag indicating whether the expression is part of a
+	 *                       policy body
+	 * @param relativeNode   the relative node (not needed here)
+	 * @return a flux of ArrayResultNodes containing the elements/attribute values
+	 *         of the original array/object for which the condition expression
+	 *         evaluates to true
 	 */
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
@@ -84,13 +89,11 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		final JsonNode previousResultNode = optPreviousResultNode.get();
 		if (previousResultNode.isArray()) {
 			return handleArrayNode(previousResultNode, ctx, isBody);
-		}
-		else if (previousResultNode.isObject()) {
+		} else if (previousResultNode.isObject()) {
 			return handleObjectNode(previousResultNode, ctx, isBody);
-		}
-		else {
-			return Flux.error(new PolicyEvaluationException(
-					String.format(CONDITION_ACCESS_TYPE_MISMATCH, Value.typeOf(previousResult.getNode()))));
+		} else {
+			return Flux.error(new PolicyEvaluationException(CONDITION_ACCESS_TYPE_MISMATCH,
+					Value.typeOf(previousResult.getNode())));
 		}
 	}
 
@@ -104,7 +107,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			return Flux.just(new ArrayResultNode(new ArrayList<>()));
 		}
 		// the indices of the elements in the arrayNode correspond to the indices of the
-		// flux results, because combineLatest() preserves the order of the given list of
+		// flux results, because combineLatest() preserves the order of the given list
+		// of
 		// fluxes in the results array passed to the combinator function
 		return Flux.combineLatest(itemFluxes, results -> {
 			final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
@@ -122,7 +126,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	}
 
 	private Flux<ResultNode> handleObjectNode(JsonNode objectNode, EvaluationContext ctx, boolean isBody) {
-		// create three parallel lists collecting the field names and field values of the
+		// create three parallel lists collecting the field names and field values of
+		// the
 		// object and the fluxes providing the evaluated conditions for the field values
 		final List<String> fieldNames = new ArrayList<>();
 		final List<JsonNode> fieldValues = new ArrayList<>();
@@ -160,12 +165,14 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 
 	/**
 	 * Applies the conditional subscript to an array.
+	 * 
 	 * @param previousResult the array
-	 * @param ctx the evaluation context
-	 * @param isBody a flag indicating whether the expression is part of a policy body
-	 * @param relativeNode the relative node (not needed here)
-	 * @return a flux of ArrayResultNodes containing the elements of the original array
-	 * for which the condition expression evaluates to true
+	 * @param ctx            the evaluation context
+	 * @param isBody         a flag indicating whether the expression is part of a
+	 *                       policy body
+	 * @param relativeNode   the relative node (not needed here)
+	 * @return a flux of ArrayResultNodes containing the elements of the original
+	 *         array for which the condition expression evaluates to true
 	 */
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
@@ -182,7 +189,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		if (conditionResultFluxes.isEmpty()) {
 			return Flux.just(new ArrayResultNode(new ArrayList<>()));
 		}
-		// the indices of the elements in the arrayElements list correspond to the indices
+		// the indices of the elements in the arrayElements list correspond to the
+		// indices
 		// of the flux results, because combineLatest() preserves the order of the given
 		// list of fluxes in the results array passed to the combinator function
 		return Flux.combineLatest(conditionResultFluxes, Function.identity()).flatMap(results -> {

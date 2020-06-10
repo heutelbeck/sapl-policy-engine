@@ -23,14 +23,15 @@ public class PolicyEvaluationException extends Exception {
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * Create a new PolicyEvaluationException 
+	 * Create a new PolicyEvaluationException
 	 */
 	public PolicyEvaluationException() {
 		super();
 	}
 
 	/**
-	 * Create a new PolicyEvaluationException 
+	 * Create a new PolicyEvaluationException
+	 * 
 	 * @param message a message
 	 */
 	public PolicyEvaluationException(String message) {
@@ -38,16 +39,39 @@ public class PolicyEvaluationException extends Exception {
 	}
 
 	/**
-	 * Create a new PolicyEvaluationException 
+	 * Create a new PolicyEvaluationException
+	 * 
+	 * @param format format string
+	 * @param args   arguments for format string
+	 */
+	public PolicyEvaluationException(String format, Object... args) {
+		super(String.format(format, args));
+	}
+
+	/**
+	 * Create a new PolicyEvaluationException
+	 * 
+	 * @param format format string
+	 * @param cause  causing Throwable
+	 * @param args   arguments for format string
+	 */
+	public PolicyEvaluationException(Throwable cause, String format, Object... args) {
+		super(String.format(format, args), cause);
+	}
+
+	/**
+	 * Create a new PolicyEvaluationException
+	 * 
 	 * @param message a message
-	 * @param cause causing Throwable
+	 * @param cause   causing Throwable
 	 */
 	public PolicyEvaluationException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
 	/**
-	 * Create a new PolicyEvaluationException 
+	 * Create a new PolicyEvaluationException
+	 * 
 	 * @param cause causing Throwable
 	 */
 	public PolicyEvaluationException(Throwable cause) {

@@ -76,8 +76,7 @@ public class Bool {
 		}
 		if (isConstantExpression) {
 			return Objects.equals(constant, other.constant);
-		}
-		else {
+		} else {
 			return expression.isEqualTo(other.expression, other.imports, imports);
 		}
 	}
@@ -98,9 +97,8 @@ public class Bool {
 				if (result.isPresent() && result.get().isBoolean()) {
 					return result.get().asBoolean();
 				}
-				throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, result));
-			}
-			catch (RuntimeException e) {
+				throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result);
+			} catch (RuntimeException e) {
 				throw new PolicyEvaluationException(Exceptions.unwrap(e));
 			}
 		}
@@ -114,8 +112,7 @@ public class Bool {
 			h = 59 * h + Objects.hashCode(isConstantExpression);
 			if (isConstantExpression) {
 				h = 59 * h + Objects.hashCode(constant);
-			}
-			else {
+			} else {
 				h = 59 * h + expression.hash(imports);
 			}
 			hash = h;

@@ -41,14 +41,13 @@ public class BasicIdentifierImplCustom extends BasicIdentifierImpl {
 	@Override
 	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
 		if (!ctx.getVariableCtx().exists(getIdentifier())) {
-			return Flux.error(new PolicyEvaluationException(String.format(UNBOUND_VARIABLE, getIdentifier())));
+			return Flux.error(new PolicyEvaluationException(UNBOUND_VARIABLE, getIdentifier()));
 		}
 
 		try {
 			final JsonNode resultBeforeSteps = ctx.getVariableCtx().get(getIdentifier());
 			return evaluateStepsFilterSubtemplate(Optional.of(resultBeforeSteps), steps, ctx, isBody, relativeNode);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}

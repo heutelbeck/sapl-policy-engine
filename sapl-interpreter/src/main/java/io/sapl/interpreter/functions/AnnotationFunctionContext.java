@@ -61,6 +61,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	/**
 	 * Create context from a list of function libraries.
+	 * 
 	 * @param libraries list of function libraries
 	 * @throws FunctionException if loading libraries fails
 	 */
@@ -74,7 +75,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 	public Optional<JsonNode> evaluate(String function, ArrayNode parameters) throws FunctionException {
 		final FunctionMetadata metadata = functions.get(function);
 		if (metadata == null) {
-			throw new FunctionException(String.format(UNKNOWN_FUNCTION, function));
+			throw new FunctionException(UNKNOWN_FUNCTION, function);
 		}
 
 		final Object[] args;
@@ -89,23 +90,20 @@ public class AnnotationFunctionContext implements FunctionContext {
 					arrayParam[i] = parameter;
 				}
 				args[0] = arrayParam;
-			}
-			else if (metadata.getPararmeterCardinality() == parameters.size()) {
+			} else if (metadata.getPararmeterCardinality() == parameters.size()) {
 				args = new Object[parameters.size()];
 				for (int i = 0; i < parameters.size(); i++) {
 					final JsonNode parameter = parameters.get(i);
 					ParameterTypeValidator.validateType(parameter, funParams[i]);
 					args[i] = parameter;
 				}
-			}
-			else {
-				throw new FunctionException(String.format(ILLEGAL_NUMBER_OF_PARAMETERS,
-						metadata.getPararmeterCardinality(), parameters.size()));
+			} else {
+				throw new FunctionException(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getPararmeterCardinality(),
+						parameters.size());
 			}
 
 			return Optional.ofNullable((JsonNode) metadata.getFunction().invoke(metadata.getLibrary(), args));
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			throw new FunctionException(e);
 		}
 	}
@@ -151,9 +149,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (parameters == 1 && parameterType.isArray()) {
 				// functions with a variable number of arguments
 				parameters = -1;
-			}
-			else if (!JsonNode.class.isAssignableFrom(parameterType)) {
-				throw new FunctionException(String.format(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName()));
+			} else if (!JsonNode.class.isAssignableFrom(parameterType)) {
+				throw new FunctionException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
 			}
 		}
 		libMeta.documentation.put(funName, funAnnotation.docs());
@@ -182,8 +179,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 		Collection<String> libs = libraries.get(libraryName);
 		if (libs != null) {
 			return libs;
-		}
-		else {
+		} else {
 			return new HashSet<>();
 		}
 	}

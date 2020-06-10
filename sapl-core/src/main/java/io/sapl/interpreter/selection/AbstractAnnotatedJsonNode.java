@@ -58,6 +58,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 
 	/**
 	 * Create from an optional node
+	 * 
 	 * @param node base node
 	 */
 	public AbstractAnnotatedJsonNode(Optional<JsonNode> node) {
@@ -77,37 +78,38 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 
 	/**
 	 * Removes each item from a JsonNode.
+	 * 
 	 * @param parentNode the parent JsonNode node
 	 * @throws PolicyEvaluationException in case the parentNode is no array
 	 */
 	protected static void removeEachItem(Optional<JsonNode> parentNode) throws PolicyEvaluationException {
 		if (!parentNode.isPresent() || !parentNode.get().isArray()) {
-			throw new PolicyEvaluationException(String.format(FILTER_EACH_NO_ARRAY,
-					parentNode.isPresent() ? parentNode.get().getNodeType() : "undefined"));
-		}
-		else {
+			throw new PolicyEvaluationException(FILTER_EACH_NO_ARRAY,
+					parentNode.isPresent() ? parentNode.get().getNodeType() : "undefined");
+		} else {
 			((ArrayNode) parentNode.get()).removeAll();
 		}
 	}
 
 	/**
-	 * Replaces each item of an array by the result of evaluating a filter function for
-	 * the item.
+	 * Replaces each item of an array by the result of evaluating a filter function
+	 * for the item.
+	 * 
 	 * @param parentNode the parent JsonNode (must be an array node)
-	 * @param function name of the filter function
-	 * @param arguments arguments to be passed to the function as a JSON array
-	 * @param ctx the evaluation context
-	 * @param isBody true if the expression occurs within the policy body (attribute
-	 * finder steps are only allowed if set to true)
-	 * @return a flux of {@link Void} instances, each indicating a finished application of
-	 * the function to each item of the parent array node
+	 * @param function   name of the filter function
+	 * @param arguments  arguments to be passed to the function as a JSON array
+	 * @param ctx        the evaluation context
+	 * @param isBody     true if the expression occurs within the policy body
+	 *                   (attribute finder steps are only allowed if set to true)
+	 * @return a flux of {@link Void} instances, each indicating a finished
+	 *         application of the function to each item of the parent array node
 	 */
 	@SuppressWarnings("unchecked")
 	protected static Flux<Void> applyFilterToEachItem(Optional<JsonNode> parentNode, String function,
 			Arguments arguments, EvaluationContext ctx, boolean isBody) {
 		if (!parentNode.isPresent() || !parentNode.get().isArray()) {
-			return Flux.error(new PolicyEvaluationException(String.format(FILTER_EACH_NO_ARRAY,
-					parentNode.isPresent() ? parentNode.get().getNodeType() : "undefined")));
+			return Flux.error(new PolicyEvaluationException(FILTER_EACH_NO_ARRAY,
+					parentNode.isPresent() ? parentNode.get().getNodeType() : "undefined"));
 		}
 
 		final ArrayNode arrayNode = (ArrayNode) parentNode.get();
@@ -127,8 +129,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 						final Optional<JsonNode> optParamNode = (Optional<JsonNode>) paramNode;
 						if (optParamNode.isPresent()) {
 							argumentsArray.add(optParamNode.get());
-						}
-						else {
+						} else {
 							return Flux.<Void>error(
 									new PolicyEvaluationException(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION));
 						}
@@ -138,21 +139,17 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 								argumentsArray);
 						if (modifiedChildNode.isPresent()) {
 							arrayNode.set(i, modifiedChildNode.get());
-						}
-						else {
+						} else {
 							return Flux.<Void>error(new PolicyEvaluationException(
 									UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT));
 						}
-					}
-					catch (FunctionException e) {
-						return Flux.<Void>error(
-								new PolicyEvaluationException(String.format(FILTER_FUNCTION_EVALUATION, function), e));
+					} catch (FunctionException e) {
+						return Flux.<Void>error(new PolicyEvaluationException(e, FILTER_FUNCTION_EVALUATION, function));
 					}
 				}
 				return Flux.just(Void.INSTANCE);
 			}).flatMap(Function.identity());
-		}
-		else {
+		} else {
 			try {
 				for (int i = 0; i < arrayNode.size(); i++) {
 					final JsonNode childNode = arrayNode.get(i);
@@ -162,29 +159,28 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 							argumentsArray);
 					if (modifiedChildNode.isPresent()) {
 						arrayNode.set(i, modifiedChildNode.get());
-					}
-					else {
+					} else {
 						return Flux.error(new PolicyEvaluationException(
 								UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT));
 					}
 				}
 				return Flux.just(Void.INSTANCE);
-			}
-			catch (FunctionException e) {
-				return Flux
-						.error(new PolicyEvaluationException(String.format(FILTER_FUNCTION_EVALUATION, function), e));
+			} catch (FunctionException e) {
+				return Flux.error(new PolicyEvaluationException(e, FILTER_FUNCTION_EVALUATION, function));
 			}
 		}
 	}
 
 	/**
 	 * Applies a function to a JSON node and returns a flux of the results.
-	 * @param optNode the JSON node to apply the function to
-	 * @param function the name of the function
-	 * @param arguments other arguments to be passed to the function as a JSON array
-	 * @param ctx the evaluation context
-	 * @param isBody true if the expression occurs within the policy body (attribute
-	 * finder steps are only allowed if set to true)
+	 * 
+	 * @param optNode      the JSON node to apply the function to
+	 * @param function     the name of the function
+	 * @param arguments    other arguments to be passed to the function as a JSON
+	 *                     array
+	 * @param ctx          the evaluation context
+	 * @param isBody       true if the expression occurs within the policy body
+	 *                     (attribute finder steps are only allowed if set to true)
 	 * @param relativeNode the node a relative expression evaluates to
 	 * @return a flux of the results as JsonNodes
 	 */
@@ -210,29 +206,25 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 					if (!optParamNode.isPresent()) {
 						return Flux.<Optional<JsonNode>>error(
 								new PolicyEvaluationException(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION));
-					}
-					else {
+					} else {
 						argumentsArray.add(optParamNode.get());
 					}
 				}
 				try {
 					return Flux.just(ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray));
-				}
-				catch (FunctionException e) {
+				} catch (FunctionException e) {
 					return Flux.<Optional<JsonNode>>error(
-							new PolicyEvaluationException(String.format(FILTER_FUNCTION_EVALUATION, function), e));
+							new PolicyEvaluationException(e, FILTER_FUNCTION_EVALUATION, function));
 				}
 			}).flatMap(Function.identity());
-		}
-		else {
+		} else {
 			try {
 				final ArrayNode argumentsArray = JSON.arrayNode();
 				argumentsArray.add(node);
 				return Flux.just(ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray));
-			}
-			catch (FunctionException e) {
+			} catch (FunctionException e) {
 				return Flux
-						.error(new PolicyEvaluationException(String.format(FILTER_FUNCTION_EVALUATION, function), e));
+						.error(new PolicyEvaluationException(e, FILTER_FUNCTION_EVALUATION, function));
 			}
 		}
 	}
@@ -245,28 +237,32 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 
 	/**
 	 * Applies a filter function to this JSON node.
-	 * @param function the name of the filter function
-	 * @param arguments other arguments to be passed to the function as a JSON array
-	 * @param each true if the selected node should be treated as an array and the filter
-	 * function should be applied to each of its items
-	 * @param ctx the evaluation context
-	 * @param isBody true if the expression occurs within the policy body (attribute
-	 * finder steps are only allowed if set to true)
+	 * 
+	 * @param function     the name of the filter function
+	 * @param arguments    other arguments to be passed to the function as a JSON
+	 *                     array
+	 * @param each         true if the selected node should be treated as an array
+	 *                     and the filter function should be applied to each of its
+	 *                     items
+	 * @param ctx          the evaluation context
+	 * @param isBody       true if the expression occurs within the policy body
+	 *                     (attribute finder steps are only allowed if set to true)
 	 * @param relativeNode the node a relative expression evaluates to
-	 * @return a flux of {@link Void} instances, each indicating a finished application of
-	 * the function
+	 * @return a flux of {@link Void} instances, each indicating a finished
+	 *         application of the function
 	 */
 	public abstract Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
 			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode);
 
 	/**
-	 * The method checks whether two AbstractAnnotatedJsonNodes reference the same nodes
-	 * in a structure, considering the parent nodes and access information. Cannot be
-	 * applied to a JsonNodeWithoutParent.
+	 * The method checks whether two AbstractAnnotatedJsonNodes reference the same
+	 * nodes in a structure, considering the parent nodes and access information.
+	 * Cannot be applied to a JsonNodeWithoutParent.
+	 * 
 	 * @param other the other annotated JSON node
 	 * @return true if the annotated JSON node references the same node
 	 * @throws PolicyEvaluationException in case the annotated JSON node is a
-	 * JsonNodeWithoutParent
+	 *                                   JsonNodeWithoutParent
 	 */
 	public abstract boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException;
 

@@ -34,7 +34,8 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of a wildcard step to a previous value, e.g 'value.*'.
+ * Implements the application of a wildcard step to a previous value, e.g
+ * 'value.*'.
  *
  * Grammar: Step: '.' ({WildcardStep} '*') ;
  */
@@ -47,8 +48,7 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
@@ -56,12 +56,11 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		final Optional<JsonNode> previousResultNode = previousResult.getNode();
 		if (!previousResultNode.isPresent()) {
-			throw new PolicyEvaluationException(String.format(WILDCARD_ACCESS_TYPE_MISMATCH, "undefined"));
+			throw new PolicyEvaluationException(WILDCARD_ACCESS_TYPE_MISMATCH, "undefined");
 		}
 		if (previousResultNode.get().isArray()) {
 			return previousResult;
-		}
-		else if (previousResultNode.get().isObject()) {
+		} else if (previousResultNode.get().isObject()) {
 			final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 			final Iterator<String> iterator = previousResultNode.get().fieldNames();
 			while (iterator.hasNext()) {
@@ -70,10 +69,8 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 						previousResultNode, key));
 			}
 			return new ArrayResultNode(resultList);
-		}
-		else {
-			throw new PolicyEvaluationException(
-					String.format(WILDCARD_ACCESS_TYPE_MISMATCH, previousResultNode.get().getNodeType()));
+		} else {
+			throw new PolicyEvaluationException(WILDCARD_ACCESS_TYPE_MISMATCH, previousResultNode.get().getNodeType());
 		}
 	}
 

@@ -36,13 +36,13 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of an array slicing step to a previous array value, e.g.
- * 'arr[4:12:2]'.
+ * Implements the application of an array slicing step to a previous array
+ * value, e.g. 'arr[4:12:2]'.
  *
  * Grammar: Step: '[' Subscript ']' ;
  *
- * Subscript returns Step: {ArraySlicingStep} index=JSONNUMBER? ':' to=JSONNUMBER? (':'
- * step=JSONNUMBER)? ;
+ * Subscript returns Step: {ArraySlicingStep} index=JSONNUMBER? ':'
+ * to=JSONNUMBER? (':' step=JSONNUMBER)? ;
  */
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
@@ -55,16 +55,15 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
 		if (!previousResult.getNode().isPresent() || !previousResult.getNode().get().isArray()) {
-			throw new PolicyEvaluationException(String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(),
-					previousResult.getNode().isPresent() ? previousResult.getNode().get().getNodeType() : "undefined"));
+			throw new PolicyEvaluationException(INDEX_ACCESS_TYPE_MISMATCH, getIndex(),
+					previousResult.getNode().isPresent() ? previousResult.getNode().get().getNodeType() : "undefined");
 		}
 
 		final List<Integer> nodeIndices = resolveIndex(previousResult.getNode().get());
@@ -81,8 +80,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 			Optional<JsonNode> relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
@@ -122,8 +120,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 					returnIndices.add(i);
 				}
 			}
-		}
-		else {
+		} else {
 			index = index == null ? BigDecimal.valueOf(value.size() - 1L) : index;
 			to = to == null ? BigDecimal.valueOf(-1) : to;
 			if (index.compareTo(to) > 0) {

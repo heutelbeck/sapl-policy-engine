@@ -37,10 +37,11 @@ import reactor.core.publisher.Flux;
  * Implements the expression subscript of an array (or object), written as
  * '[(Expression)]'.
  *
- * Returns the value of an attribute with a key or an array item with an index specified
- * by an expression. Expression must evaluate to a string or a number. If Expression
- * evaluates to a string, the selection can only be applied to an object. If Expression
- * evaluates to a number, the selection can only be applied to an array.
+ * Returns the value of an attribute with a key or an array item with an index
+ * specified by an expression. Expression must evaluate to a string or a number.
+ * If Expression evaluates to a string, the selection can only be applied to an
+ * object. If Expression evaluates to a number, the selection can only be
+ * applied to an array.
  *
  * Example: The expression step can be used to refer to custom variables
  * (object.array[(anIndex+2)]) or apply custom functions
@@ -57,17 +58,19 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 
 	/**
 	 * Applies the expression subscript to an abstract annotated JsonNode, which can
-	 * either be an array or an object. If it is an array, the expression must evaluate to
-	 * an integer which is used as the index to access the required array element. If it
-	 * is an object, the expression must evaluate to a string which is used as the name of
-	 * the attribute to be returned.
+	 * either be an array or an object. If it is an array, the expression must
+	 * evaluate to an integer which is used as the index to access the required
+	 * array element. If it is an object, the expression must evaluate to a string
+	 * which is used as the name of the attribute to be returned.
+	 * 
 	 * @param previousResult the array or object
-	 * @param ctx the evaluation context
-	 * @param isBody a flag indicating whether the expression is part of a policy body
-	 * @param relativeNode the relative node (not needed here)
-	 * @return a flux of ArrayResultNodes containing the element/attribute value of the
-	 * original array/object corresponding to the integer/string result (index/attribute
-	 * name) retrieved by evaluating the expression
+	 * @param ctx            the evaluation context
+	 * @param isBody         a flag indicating whether the expression is part of a
+	 *                       policy body
+	 * @param relativeNode   the relative node (not needed here)
+	 * @return a flux of ArrayResultNodes containing the element/attribute value of
+	 *         the original array/object corresponding to the integer/string result
+	 *         (index/attribute name) retrieved by evaluating the expression
 	 */
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
@@ -75,8 +78,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 		return getExpression().evaluate(ctx, isBody, relativeNode).flatMap(expressionResult -> {
 			try {
 				return Flux.just(handleExpressionResultFor(previousResult, expressionResult));
-			}
-			catch (PolicyEvaluationException e) {
+			} catch (PolicyEvaluationException e) {
 				return Flux.error(e);
 			}
 		});
@@ -89,40 +91,34 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 		if (result.isNumber()) {
 			if (previousResultNode.isPresent() && previousResultNode.get().isArray()) {
 				return handleArrayIndex(previousResultNode.get(), result);
-			}
-			else {
+			} else {
 				// FIXME:
 				// Maybe another message would be helpful. The problem here is not that
 				// the
 				// result type does not match, but the node the subscript is applied to is
 				// either undefined or not an array.
-				throw new PolicyEvaluationException(
-						String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+				throw new PolicyEvaluationException(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType());
 			}
-		}
-		else if (result.isTextual()) {
+		} else if (result.isTextual()) {
 			if (previousResultNode.isPresent()) {
 				return handleAttributeName(previousResultNode.get(), result);
-			}
-			else {
+			} else {
 				// FIXME:
 				// Maybe another message would be helpful. The problem here is not that
 				// the
 				// result type does not match, but the node the subscript is applied to is
 				// undefined.
-				throw new PolicyEvaluationException(
-						String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+				throw new PolicyEvaluationException(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType());
 			}
-		}
-		else {
-			throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+		} else {
+			throw new PolicyEvaluationException(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType());
 		}
 	}
 
 	private ResultNode handleArrayIndex(JsonNode previousResult, JsonNode result) throws PolicyEvaluationException {
 		final int index = result.asInt();
 		if (!previousResult.has(index)) {
-			throw new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
+			throw new PolicyEvaluationException(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index);
 		}
 		return new JsonNodeWithParentArray(Optional.of(previousResult.get(index)), Optional.of(previousResult), index);
 	}
@@ -137,15 +133,18 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	}
 
 	/**
-	 * Applies the expression subscript to an array. The expression must evaluate to an
-	 * integer. This integer is used as the index to access the required array element.
+	 * Applies the expression subscript to an array. The expression must evaluate to
+	 * an integer. This integer is used as the index to access the required array
+	 * element.
+	 * 
 	 * @param previousResult the array
-	 * @param ctx the evaluation context
-	 * @param isBody a flag indicating whether the expression is part of a policy body
-	 * @param relativeNode the relative node (not needed here)
-	 * @return a flux of ArrayResultNodes containing the element of the original array at
-	 * the position corresponding to the integer result retrieved by evaluating the
-	 * expression
+	 * @param ctx            the evaluation context
+	 * @param isBody         a flag indicating whether the expression is part of a
+	 *                       policy body
+	 * @param relativeNode   the relative node (not needed here)
+	 * @return a flux of ArrayResultNodes containing the element of the original
+	 *         array at the position corresponding to the integer result retrieved
+	 *         by evaluating the expression
 	 */
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
@@ -160,14 +159,11 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 			int index = result.asInt();
 			List<AbstractAnnotatedJsonNode> nodes = previousResult.getNodes();
 			if (index < 0 || index >= nodes.size()) {
-				return Flux
-						.error(new PolicyEvaluationException(String.format(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index)));
+				return Flux.error(new PolicyEvaluationException(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
 			}
 			return Flux.just(nodes.get(index));
-		}
-		else {
-			return Flux.error(new PolicyEvaluationException(
-					String.format(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType())));
+		} else {
+			return Flux.error(new PolicyEvaluationException(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
 		}
 	}
 
