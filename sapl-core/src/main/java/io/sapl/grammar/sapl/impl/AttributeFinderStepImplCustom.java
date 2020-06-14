@@ -107,6 +107,7 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 				return false;
 			}
 		}
+		// TODO: compare arguments
 		return true;
 	}
 
