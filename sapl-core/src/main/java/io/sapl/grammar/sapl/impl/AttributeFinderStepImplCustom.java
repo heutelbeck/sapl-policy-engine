@@ -18,11 +18,8 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
@@ -35,7 +32,8 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the application of an attribute finder step to a previous value.
  *
- * Grammar: Step: &#39;.&#39; ({AttributeFinderStep} &#39;&lt;&#39; idSteps+=ID (&#39;.&#39; idSteps+=ID)* &#39;&gt;&#39;) ;
+ * Grammar: Step: &#39;.&#39; ({AttributeFinderStep} &#39;&lt;&#39; idSteps+=ID
+ * (&#39;.&#39; idSteps+=ID)* &#39;&gt;&#39;) ;
  */
 public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
@@ -47,30 +45,27 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode value, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		return retrieveAttribute(value.asJsonWithoutAnnotations(), ctx, isBody);
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode arrayValue, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode arrayValue, EvaluationContext ctx, boolean isBody, Val relativeNode) {
 		return retrieveAttribute(arrayValue.asJsonWithoutAnnotations(), ctx, isBody);
 	}
 
-	private Flux<ResultNode> retrieveAttribute(Optional<JsonNode> value, EvaluationContext ctx, boolean isBody) {
+	private Flux<ResultNode> retrieveAttribute(Val value, EvaluationContext ctx, boolean isBody) {
 		final String fullyQualifiedName = getFullyQualifiedName(ctx);
 		if (!isBody) {
-			return Flux.error(
-					new PolicyEvaluationException(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName));
+			return Flux.error(new PolicyEvaluationException(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName));
 		}
-		if (!value.isPresent()) {
+		if (value.isUndefined()) {
 			return Flux.error(new PolicyEvaluationException(UNDEFINED_VALUE));
 		}
-		final Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
-		final Flux<JsonNode> jsonNodeFlux = ctx.getAttributeCtx().evaluate(fullyQualifiedName, value.get(), variables)
-				.onErrorResume(error -> Flux.error(
-						new PolicyEvaluationException(error, ATTRIBUTE_RESOLUTION, fullyQualifiedName)));
-		return jsonNodeFlux.map(Optional::of).map(JsonNodeWithoutParent::new);
+		final Flux<Val> jsonNodeFlux = ctx.getAttributeCtx().evaluate(fullyQualifiedName, value, ctx, getArguments())
+				.onErrorResume(error -> Flux
+						.error(new PolicyEvaluationException(error, ATTRIBUTE_RESOLUTION, fullyQualifiedName)));
+		return jsonNodeFlux.map(JsonNodeWithoutParent::new);
 	}
 
 	private String getFullyQualifiedName(EvaluationContext ctx) {

@@ -17,18 +17,17 @@ package io.sapl.interpreter.selection;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Step;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.Void;
 import lombok.AllArgsConstructor;
@@ -50,24 +49,22 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 
 	protected static final String UNDEFINED_VALUES_CANNOT_BE_ADDED_TO_RESULTS_IN_JSON_FORMAT = "Undefined values cannot be added to results in JSON format.";
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	protected Val node;
 
-	protected Optional<JsonNode> node;
-
-	protected Optional<JsonNode> parent;
+	protected Val parent;
 
 	/**
 	 * Create from an optional node
 	 * 
 	 * @param node base node
 	 */
-	public AbstractAnnotatedJsonNode(Optional<JsonNode> node) {
+	public AbstractAnnotatedJsonNode(Val node) {
 		this.node = node;
-		this.parent = Optional.empty();
+		this.parent = Val.undefined();
 	}
 
 	@Override
-	public Optional<JsonNode> asJsonWithoutAnnotations() {
+	public Val asJsonWithoutAnnotations() {
 		return node;
 	}
 
@@ -82,10 +79,10 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 * @param parentNode the parent JsonNode node
 	 * @throws PolicyEvaluationException in case the parentNode is no array
 	 */
-	protected static void removeEachItem(Optional<JsonNode> parentNode) throws PolicyEvaluationException {
-		if (!parentNode.isPresent() || !parentNode.get().isArray()) {
+	protected static void removeEachItem(Val parentNode) throws PolicyEvaluationException {
+		if (parentNode.isUndefined() || !parentNode.get().isArray()) {
 			throw new PolicyEvaluationException(FILTER_EACH_NO_ARRAY,
-					parentNode.isPresent() ? parentNode.get().getNodeType() : "undefined");
+					parentNode.isDefined() ? parentNode.get().getNodeType() : "undefined");
 		} else {
 			((ArrayNode) parentNode.get()).removeAll();
 		}
@@ -104,40 +101,33 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 * @return a flux of {@link Void} instances, each indicating a finished
 	 *         application of the function to each item of the parent array node
 	 */
-	@SuppressWarnings("unchecked")
-	protected static Flux<Void> applyFilterToEachItem(Optional<JsonNode> parentNode, String function,
-			Arguments arguments, EvaluationContext ctx, boolean isBody) {
-		if (!parentNode.isPresent() || !parentNode.get().isArray()) {
+	protected static Flux<Void> applyFilterToEachItem(Val parentNode, String function, Arguments arguments,
+			EvaluationContext ctx, boolean isBody) {
+		if (parentNode.isUndefined() || !parentNode.get().isArray()) {
 			return Flux.error(new PolicyEvaluationException(FILTER_EACH_NO_ARRAY,
-					parentNode.isPresent() ? parentNode.get().getNodeType() : "undefined"));
+					parentNode.isUndefined() ? parentNode.get().getNodeType() : "undefined"));
 		}
 
 		final ArrayNode arrayNode = (ArrayNode) parentNode.get();
 
 		final String fullyQualifiedName = ctx.getImports().getOrDefault(function, function);
 		if (arguments != null && !arguments.getArgs().isEmpty()) {
-			final List<Flux<Optional<JsonNode>>> parameterFluxes = new ArrayList<>(arguments.getArgs().size());
+			final List<Flux<Val>> parameterFluxes = new ArrayList<>(arguments.getArgs().size());
 			for (Expression argument : arguments.getArgs()) {
 				parameterFluxes.add(argument.evaluate(ctx, isBody, parentNode));
 			}
 			return Flux.combineLatest(parameterFluxes, paramNodes -> {
 				for (int i = 0; i < arrayNode.size(); i++) {
 					final JsonNode childNode = arrayNode.get(i);
-					final ArrayNode argumentsArray = JSON.arrayNode();
-					argumentsArray.add(childNode);
+					final Val[] argumentsArray = new Val[paramNodes.length + 1];
+					argumentsArray[0] = Val.of(childNode);
+					int j = 1;
 					for (Object paramNode : paramNodes) {
-						final Optional<JsonNode> optParamNode = (Optional<JsonNode>) paramNode;
-						if (optParamNode.isPresent()) {
-							argumentsArray.add(optParamNode.get());
-						} else {
-							return Flux.<Void>error(
-									new PolicyEvaluationException(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION));
-						}
+						argumentsArray[j++] = (Val) paramNode;
 					}
 					try {
-						final Optional<JsonNode> modifiedChildNode = ctx.getFunctionCtx().evaluate(fullyQualifiedName,
-								argumentsArray);
-						if (modifiedChildNode.isPresent()) {
+						final Val modifiedChildNode = ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray);
+						if (modifiedChildNode.isDefined()) {
 							arrayNode.set(i, modifiedChildNode.get());
 						} else {
 							return Flux.<Void>error(new PolicyEvaluationException(
@@ -152,12 +142,9 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 		} else {
 			try {
 				for (int i = 0; i < arrayNode.size(); i++) {
-					final JsonNode childNode = arrayNode.get(i);
-					final ArrayNode argumentsArray = JSON.arrayNode();
-					argumentsArray.add(childNode);
-					final Optional<JsonNode> modifiedChildNode = ctx.getFunctionCtx().evaluate(fullyQualifiedName,
-							argumentsArray);
-					if (modifiedChildNode.isPresent()) {
+					final Val modifiedChildNode = ctx.getFunctionCtx().evaluate(fullyQualifiedName,
+							new Val[] { Val.of(arrayNode.get(i)) });
+					if (modifiedChildNode.isDefined()) {
 						arrayNode.set(i, modifiedChildNode.get());
 					} else {
 						return Flux.error(new PolicyEvaluationException(
@@ -184,54 +171,43 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 * @param relativeNode the node a relative expression evaluates to
 	 * @return a flux of the results as JsonNodes
 	 */
-	@SuppressWarnings("unchecked")
-	public static Flux<Optional<JsonNode>> applyFilterToNode(Optional<JsonNode> optNode, String function,
-			Arguments arguments, EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		if (!optNode.isPresent()) {
+	public static Flux<Val> applyFilterToNode(Val optNode, String function, Arguments arguments, EvaluationContext ctx,
+			boolean isBody, Val relativeNode) {
+		if (optNode.isUndefined()) {
 			return Flux.error(new PolicyEvaluationException(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION));
 		}
-		final JsonNode node = optNode.get();
+
 		final String fullyQualifiedName = ctx.getImports().getOrDefault(function, function);
+
 		if (arguments != null && !arguments.getArgs().isEmpty()) {
-			final List<Flux<Optional<JsonNode>>> parameterFluxes = new ArrayList<>(arguments.getArgs().size());
+			final List<Flux<Val>> parameterFluxes = new ArrayList<>(arguments.getArgs().size());
 			for (Expression argument : arguments.getArgs()) {
 				parameterFluxes.add(argument.evaluate(ctx, isBody, relativeNode));
 			}
-
 			return Flux.combineLatest(parameterFluxes, paramNodes -> {
-				final ArrayNode argumentsArray = JSON.arrayNode();
-				argumentsArray.add(node);
-				for (Object paramNode : paramNodes) {
-					final Optional<JsonNode> optParamNode = (Optional<JsonNode>) paramNode;
-					if (!optParamNode.isPresent()) {
-						return Flux.<Optional<JsonNode>>error(
-								new PolicyEvaluationException(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION));
-					} else {
-						argumentsArray.add(optParamNode.get());
-					}
+				final Val[] parmeters = new Val[paramNodes.length + 1];
+				parmeters[0] = optNode;
+				int j = 1;
+				for (Object param : paramNodes) {
+					parmeters[j++] = (Val) param;
 				}
 				try {
-					return Flux.just(ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray));
+					return Flux.just(ctx.getFunctionCtx().evaluate(fullyQualifiedName, parmeters));
 				} catch (FunctionException e) {
-					return Flux.<Optional<JsonNode>>error(
-							new PolicyEvaluationException(e, FILTER_FUNCTION_EVALUATION, function));
+					return Flux.<Val>error(new PolicyEvaluationException(e, FILTER_FUNCTION_EVALUATION, function));
 				}
 			}).flatMap(Function.identity());
 		} else {
 			try {
-				final ArrayNode argumentsArray = JSON.arrayNode();
-				argumentsArray.add(node);
-				return Flux.just(ctx.getFunctionCtx().evaluate(fullyQualifiedName, argumentsArray));
+				return Flux.just(ctx.getFunctionCtx().evaluate(fullyQualifiedName, new Val[] { optNode }));
 			} catch (FunctionException e) {
-				return Flux
-						.error(new PolicyEvaluationException(e, FILTER_FUNCTION_EVALUATION, function));
+				return Flux.error(new PolicyEvaluationException(e, FILTER_FUNCTION_EVALUATION, function));
 			}
 		}
 	}
 
 	@Override
-	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody, Val relativeNode) {
 		return step.apply(this, ctx, isBody, relativeNode);
 	}
 
@@ -252,7 +228,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 *         application of the function
 	 */
 	public abstract Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode);
+			EvaluationContext ctx, boolean isBody, Val relativeNode);
 
 	/**
 	 * The method checks whether two AbstractAnnotatedJsonNodes reference the same

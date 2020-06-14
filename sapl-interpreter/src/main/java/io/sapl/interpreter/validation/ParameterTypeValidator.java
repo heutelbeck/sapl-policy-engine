@@ -19,6 +19,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Parameter;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.validation.Array;
 import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.Int;
@@ -26,12 +27,20 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
+import io.sapl.grammar.sapl.impl.Val;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ParameterTypeValidator {
 
 	private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type.";
+
+	public static void validateType(Val val, Parameter type) throws IllegalParameterType {
+		if (val.isUndefined()) {
+			throw new IllegalParameterType(ILLEGAL_PARAMETER_TYPE);
+		}
+		validateType(val.get(), type);
+	}
 
 	public static void validateType(JsonNode node, Parameter type) throws IllegalParameterType {
 		Annotation[] annotations = type.getAnnotations();
@@ -54,5 +63,4 @@ public class ParameterTypeValidator {
 			throw new IllegalParameterType(ILLEGAL_PARAMETER_TYPE);
 		}
 	}
-
 }

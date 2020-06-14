@@ -20,7 +20,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -81,9 +80,9 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	 */
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
-		final Optional<JsonNode> optPreviousResultNode = previousResult.getNode();
-		if (!optPreviousResultNode.isPresent()) {
+			Val relativeNode) {
+		final Val optPreviousResultNode = previousResult.getNode();
+		if (optPreviousResultNode.isUndefined()) {
 			return Flux.error(new PolicyEvaluationException("undefined value during conditional step evaluation."));
 		}
 		final JsonNode previousResultNode = optPreviousResultNode.get();
@@ -93,15 +92,15 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			return handleObjectNode(previousResultNode, ctx, isBody);
 		} else {
 			return Flux.error(new PolicyEvaluationException(CONDITION_ACCESS_TYPE_MISMATCH,
-					Value.typeOf(previousResult.getNode())));
+					Val.typeOf(previousResult.getNode())));
 		}
 	}
 
 	private Flux<ResultNode> handleArrayNode(JsonNode arrayNode, EvaluationContext ctx, boolean isBody) {
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(arrayNode.size());
-		IntStream.range(0, arrayNode.size()).forEach(idx -> itemFluxes.add(
-				getExpression().evaluate(ctx, isBody, Optional.of(arrayNode.get(idx))).flatMap(Value::toJsonNode)));
+		IntStream.range(0, arrayNode.size()).forEach(idx -> itemFluxes
+				.add(getExpression().evaluate(ctx, isBody, Val.of(arrayNode.get(idx))).flatMap(Val::toJsonNode)));
 		// handle the empty array
 		if (itemFluxes.isEmpty()) {
 			return Flux.just(new ArrayResultNode(new ArrayList<>()));
@@ -117,8 +116,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			IntStream.range(0, results.length).forEach(idx -> {
 				final JsonNode result = (JsonNode) results[idx];
 				if (result.isBoolean() && result.asBoolean()) {
-					resultList.add(
-							new JsonNodeWithParentArray(Optional.of(arrayNode.get(idx)), Optional.of(arrayNode), idx));
+					resultList.add(new JsonNodeWithParentArray(Val.of(arrayNode.get(idx)), Val.of(arrayNode), idx));
 				}
 			});
 			return new ArrayResultNode(resultList);
@@ -138,7 +136,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			final JsonNode fieldValue = objectNode.get(fieldName);
 			fieldNames.add(fieldName);
 			fieldValues.add(fieldValue);
-			valueFluxes.add(getExpression().evaluate(ctx, isBody, Optional.of(fieldValue)).flatMap(Value::toJsonNode));
+			valueFluxes.add(getExpression().evaluate(ctx, isBody, Val.of(fieldValue)).flatMap(Val::toJsonNode));
 		}
 		// handle the empty object
 		if (valueFluxes.isEmpty()) {
@@ -155,8 +153,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			IntStream.range(0, results.length).forEach(idx -> {
 				final JsonNode result = (JsonNode) results[idx];
 				if (result.isBoolean() && result.asBoolean()) {
-					resultList.add(new JsonNodeWithParentObject(Optional.of(fieldValues.get(idx)),
-							Optional.of(objectNode), fieldNames.get(idx)));
+					resultList.add(new JsonNodeWithParentObject(Val.of(fieldValues.get(idx)), Val.of(objectNode),
+							fieldNames.get(idx)));
 				}
 			});
 			return new ArrayResultNode(resultList);
@@ -176,11 +174,11 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	 */
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		// create two parallel lists collecting the elements of the array
 		// and the fluxes providing the evaluated conditions for these elements
 		final List<AbstractAnnotatedJsonNode> arrayElements = new ArrayList<>(previousResult.getNodes().size());
-		final List<Flux<Optional<JsonNode>>> conditionResultFluxes = new ArrayList<>(previousResult.getNodes().size());
+		final List<Flux<Val>> conditionResultFluxes = new ArrayList<>(previousResult.getNodes().size());
 		for (AbstractAnnotatedJsonNode arrayElement : previousResult) {
 			arrayElements.add(arrayElement);
 			conditionResultFluxes.add(getExpression().evaluate(ctx, isBody, arrayElement.getNode()));
@@ -198,9 +196,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			// iterate over all condition results and collect the array elements
 			// related to a result representing true
 			for (int idx = 0; idx < results.length; idx++) {
-				@SuppressWarnings("unchecked")
-				Optional<JsonNode> optionalResult = ((Optional<JsonNode>) results[idx]);
-				if (!optionalResult.isPresent()) {
+				Val optionalResult = ((Val) results[idx]);
+				if (optionalResult.isUndefined()) {
 					return Flux.error(new PolicyEvaluationException(UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS));
 				}
 				final JsonNode result = optionalResult.get();

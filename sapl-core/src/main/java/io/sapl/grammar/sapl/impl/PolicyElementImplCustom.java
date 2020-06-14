@@ -15,10 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Expression;
@@ -67,9 +63,8 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
 			return true;
 		} else {
 			try {
-				final Optional<JsonNode> expressionResult = targetExpression.evaluate(ctx, false, Optional.empty())
-						.blockFirst();
-				if (expressionResult.isPresent() && expressionResult.get().isBoolean()) {
+				final Val expressionResult = targetExpression.evaluate(ctx, false, Val.undefined()).blockFirst();
+				if (expressionResult.isDefined() && expressionResult.get().isBoolean()) {
 					LOGGER.trace("| | | |-- {}", expressionResult.get().asBoolean() ? "MATCH" : "NO MATCH");
 					LOGGER.trace("| | |");
 					return expressionResult.get().asBoolean();

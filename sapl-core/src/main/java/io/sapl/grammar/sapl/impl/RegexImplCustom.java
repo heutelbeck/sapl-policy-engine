@@ -15,11 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
@@ -38,21 +35,21 @@ public class RegexImplCustom extends RegexImpl {
 	private static final String REGEX_SYNTAX_ERROR = "Syntax error in regular expression '%s'.";
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<String> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toString);
+	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+		final Flux<Val> left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<String> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Val::toText);
 		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().flatMap(this::matchRegexp);
 	}
 
-	private Flux<Optional<JsonNode>> matchRegexp(Tuple2<Optional<JsonNode>, String> tuple) {
-		if (!tuple.getT1().isPresent()) {
-			return Value.fluxOfFalse();
+	private Flux<Val> matchRegexp(Tuple2<Val, String> tuple) {
+		if (tuple.getT1().isUndefined()) {
+			return Val.fluxOfFalse();
 		}
 		if (!tuple.getT1().get().isTextual()) {
-			return Value.fluxOfFalse();
+			return Val.fluxOfFalse();
 		}
 		try {
-			return Value.fluxOf(Pattern.matches(tuple.getT2(), tuple.getT1().get().asText()));
+			return Val.fluxOf(Pattern.matches(tuple.getT2(), tuple.getT1().get().asText()));
 		} catch (PatternSyntaxException e) {
 			return Flux.error(new PolicyEvaluationException(e, REGEX_SYNTAX_ERROR, tuple.getT2()));
 		}

@@ -17,12 +17,11 @@ package io.sapl.grammar.tests;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pip.AttributeException;
+import io.sapl.grammar.sapl.Arguments;
+import io.sapl.grammar.sapl.impl.Val;
+import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import reactor.core.publisher.Flux;
@@ -30,14 +29,12 @@ import reactor.core.publisher.Flux;
 public class MockAttributeContext implements AttributeContext {
 
 	@Override
-	public Flux<JsonNode> evaluate(String attribute, JsonNode value, Map<String, JsonNode> variables) {
+	public Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments) {
 		if ("ATTRIBUTE".equals(attribute)) {
-			return Flux.just(JsonNodeFactory.instance.textNode(attribute));
-		}
-		else if ("EXCEPTION".equals(attribute)) {
+			return Flux.just(Val.of(attribute));
+		} else if ("EXCEPTION".equals(attribute)) {
 			return Flux.error(new AttributeException());
-		}
-		else {
+		} else {
 			return Flux.just(value);
 		}
 	}

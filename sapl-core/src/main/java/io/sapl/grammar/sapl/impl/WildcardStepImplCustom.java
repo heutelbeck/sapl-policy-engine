@@ -19,11 +19,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
@@ -45,7 +42,7 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {
@@ -54,8 +51,8 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		final Optional<JsonNode> previousResultNode = previousResult.getNode();
-		if (!previousResultNode.isPresent()) {
+		final Val previousResultNode = previousResult.getNode();
+		if (previousResultNode.isUndefined()) {
 			throw new PolicyEvaluationException(WILDCARD_ACCESS_TYPE_MISMATCH, "undefined");
 		}
 		if (previousResultNode.get().isArray()) {
@@ -65,7 +62,7 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 			final Iterator<String> iterator = previousResultNode.get().fieldNames();
 			while (iterator.hasNext()) {
 				final String key = iterator.next();
-				resultList.add(new JsonNodeWithParentObject(Optional.of(previousResultNode.get().get(key)),
+				resultList.add(new JsonNodeWithParentObject(Val.of(previousResultNode.get().get(key)),
 						previousResultNode, key));
 			}
 			return new ArrayResultNode(resultList);
@@ -76,7 +73,7 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		return Flux.just(previousResult);
 	}
 

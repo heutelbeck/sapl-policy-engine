@@ -18,7 +18,6 @@ package io.sapl.grammar.sapl.impl;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -74,7 +73,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	 */
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		return getExpression().evaluate(ctx, isBody, relativeNode).flatMap(expressionResult -> {
 			try {
 				return Flux.just(handleExpressionResultFor(previousResult, expressionResult));
@@ -84,15 +83,15 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 		});
 	}
 
-	private ResultNode handleExpressionResultFor(AbstractAnnotatedJsonNode previousResult, Optional<JsonNode> optResult)
+	private ResultNode handleExpressionResultFor(AbstractAnnotatedJsonNode previousResult, Val optResult)
 			throws PolicyEvaluationException {
 		JsonNode result = optResult.orElseThrow(() -> new PolicyEvaluationException("undefined value"));
-		final Optional<JsonNode> previousResultNode = previousResult.getNode();
+		final Val previousResultNode = previousResult.getNode();
 		if (result.isNumber()) {
-			if (previousResultNode.isPresent() && previousResultNode.get().isArray()) {
+			if (previousResultNode.isDefined() && previousResultNode.get().isArray()) {
 				return handleArrayIndex(previousResultNode.get(), result);
 			} else {
-				// FIXME:
+				// TODO:
 				// Maybe another message would be helpful. The problem here is not that
 				// the
 				// result type does not match, but the node the subscript is applied to is
@@ -100,10 +99,10 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 				throw new PolicyEvaluationException(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType());
 			}
 		} else if (result.isTextual()) {
-			if (previousResultNode.isPresent()) {
+			if (previousResultNode.isDefined()) {
 				return handleAttributeName(previousResultNode.get(), result);
 			} else {
-				// FIXME:
+				// TODO:
 				// Maybe another message would be helpful. The problem here is not that
 				// the
 				// result type does not match, but the node the subscript is applied to is
@@ -120,16 +119,15 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 		if (!previousResult.has(index)) {
 			throw new PolicyEvaluationException(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index);
 		}
-		return new JsonNodeWithParentArray(Optional.of(previousResult.get(index)), Optional.of(previousResult), index);
+		return new JsonNodeWithParentArray(Val.of(previousResult.get(index)), Val.of(previousResult), index);
 	}
 
 	private ResultNode handleAttributeName(JsonNode previousResult, JsonNode result) {
 		final String attribute = result.asText();
 		if (!previousResult.has(attribute)) {
-			return new JsonNodeWithParentObject(Optional.empty(), Optional.of(previousResult), attribute);
+			return new JsonNodeWithParentObject(Val.undefined(), Val.of(previousResult), attribute);
 		}
-		return new JsonNodeWithParentObject(Optional.of(previousResult.get(attribute)), Optional.of(previousResult),
-				attribute);
+		return new JsonNodeWithParentObject(Val.of(previousResult.get(attribute)), Val.of(previousResult), attribute);
 	}
 
 	/**
@@ -148,9 +146,8 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	 */
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
-		return getExpression().evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations())
-				.flatMap(Value::toJsonNode)
+			Val relativeNode) {
+		return getExpression().evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations()).flatMap(Val::toJsonNode)
 				.flatMap(expressionResult -> handleExpressionResultFor(previousResult, expressionResult));
 	}
 

@@ -17,7 +17,6 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.eclipse.emf.common.util.EList;
 
@@ -94,9 +93,9 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	}
 
 	private Flux<Boolean> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx) {
-		return valueDefinition.getEval().evaluate(evaluationCtx, true, Optional.empty()).flatMap(evaluatedValue -> {
+		return valueDefinition.getEval().evaluate(evaluationCtx, true, Val.undefined()).flatMap(evaluatedValue -> {
 			try {
-				if (evaluatedValue.isPresent()) {
+				if (evaluatedValue.isDefined()) {
 					evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
 					return Flux.just(Boolean.TRUE);
 				} else {
@@ -110,8 +109,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	}
 
 	private Flux<Boolean> evaluateCondition(Condition condition, EvaluationContext evaluationCtx) {
-		return condition.getExpression().evaluate(evaluationCtx, true, Optional.empty()).flatMap(statementResult -> {
-			if (statementResult.isPresent() && statementResult.get().isBoolean()) {
+		return condition.getExpression().evaluate(evaluationCtx, true, Val.undefined()).flatMap(statementResult -> {
+			if (statementResult.isDefined() && statementResult.get().isBoolean()) {
 				return Flux.just(statementResult.get().asBoolean());
 			} else {
 				return Flux.error(new PolicyEvaluationException(STATEMENT_NOT_BOOLEAN, statementResult));

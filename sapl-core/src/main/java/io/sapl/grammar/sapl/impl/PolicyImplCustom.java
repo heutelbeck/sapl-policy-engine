@@ -43,19 +43,21 @@ public class PolicyImplCustom extends PolicyImpl {
 	private static final String PERMIT = "permit";
 
 	/**
-	 * Evaluates the body of the policy within the given evaluation context and returns a
-	 * {@link Flux} of {@link AuthorizationDecision} objects.
-	 * @param ctx the evaluation context in which the policy's body is evaluated. It must
-	 * contain
-	 * <ul>
-	 * <li>the attribute context</li>
-	 * <li>the function context</li>
-	 * <li>the variable context holding the four authorization subscription variables
-	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
-	 * from the PDP configuration and other variables e.g. obtained from the containing
-	 * policy set</li>
-	 * <li>the import mapping for functions and attribute finders</li>
-	 * </ul>
+	 * Evaluates the body of the policy within the given evaluation context and
+	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
+	 * 
+	 * @param ctx the evaluation context in which the policy's body is evaluated. It
+	 *            must contain
+	 *            <ul>
+	 *            <li>the attribute context</li>
+	 *            <li>the function context</li>
+	 *            <li>the variable context holding the four authorization
+	 *            subscription variables 'subject', 'action', 'resource' and
+	 *            'environment' combined with system variables from the PDP
+	 *            configuration and other variables e.g. obtained from the
+	 *            containing policy set</li>
+	 *            <li>the import mapping for functions and attribute finders</li>
+	 *            </ul>
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
@@ -72,8 +74,7 @@ public class PolicyImplCustom extends PolicyImpl {
 					final Optional<ArrayNode> advice = obligationsAndAdvice.getT2();
 					return new AuthorizationDecision(decision, Optional.empty(), obligations, advice);
 				});
-			}
-			else {
+			} else {
 				return Flux.just(new AuthorizationDecision(decision));
 			}
 		}).flatMap(authzDecision -> {
@@ -81,8 +82,7 @@ public class PolicyImplCustom extends PolicyImpl {
 			if (decision == Decision.PERMIT) {
 				return evaluateTransformation(policyCtx).map(resource -> new AuthorizationDecision(decision, resource,
 						authzDecision.getObligations(), authzDecision.getAdvices()));
-			}
-			else {
+			} else {
 				return Flux.just(authzDecision);
 			}
 		}).onErrorReturn(INDETERMINATE);
@@ -93,26 +93,24 @@ public class PolicyImplCustom extends PolicyImpl {
 		Flux<Optional<ArrayNode>> obligationsFlux;
 		if (getObligation() != null) {
 			final ArrayNode obligationArr = JSON.arrayNode();
-			obligationsFlux = getObligation().evaluate(evaluationCtx, true, Optional.empty())
+			obligationsFlux = getObligation().evaluate(evaluationCtx, true, Val.undefined())
 					.doOnError(error -> LOGGER.debug(OBLIGATIONS_ERROR, error)).map(obligation -> {
-						obligation.ifPresent(obligationArr::add);
+						obligation.ifDefined(obligationArr::add);
 						return obligationArr.size() > 0 ? Optional.of(obligationArr) : Optional.empty();
 					});
-		}
-		else {
+		} else {
 			obligationsFlux = Flux.just(Optional.empty());
 		}
 
 		Flux<Optional<ArrayNode>> adviceFlux;
 		if (getAdvice() != null) {
 			final ArrayNode adviceArr = JSON.arrayNode();
-			adviceFlux = getAdvice().evaluate(evaluationCtx, true, Optional.empty())
+			adviceFlux = getAdvice().evaluate(evaluationCtx, true, Val.undefined())
 					.doOnError(error -> LOGGER.debug(ADVICE_ERROR, error)).map(advice -> {
-						advice.ifPresent(adviceArr::add);
+						advice.ifDefined(adviceArr::add);
 						return adviceArr.size() > 0 ? Optional.of(adviceArr) : Optional.empty();
 					});
-		}
-		else {
+		} else {
 			adviceFlux = Flux.just(Optional.empty());
 		}
 
@@ -121,10 +119,9 @@ public class PolicyImplCustom extends PolicyImpl {
 
 	private Flux<Optional<JsonNode>> evaluateTransformation(EvaluationContext evaluationCtx) {
 		if (getTransformation() != null) {
-			return getTransformation().evaluate(evaluationCtx, true, Optional.empty())
-					.doOnError(error -> LOGGER.debug(TRANSFORMATION_ERROR, error));
-		}
-		else {
+			return getTransformation().evaluate(evaluationCtx, true, Val.undefined())
+					.doOnError(error -> LOGGER.debug(TRANSFORMATION_ERROR, error)).map(Val::optional);
+		} else {
 			return Flux.just(Optional.empty());
 		}
 	}

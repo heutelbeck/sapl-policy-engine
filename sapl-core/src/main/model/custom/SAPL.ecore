@@ -1,21 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-
-    Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
--->
 <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="sapl" nsURI="http://sapl.io/sapl/SAPL" nsPrefix="sapl">
   <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable #//AuthorizationDecisionEvaluable">
@@ -98,7 +81,7 @@
       <eParameters name="previousResult" eType="#//AbstractAnnotatedJsonNode"/>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
       <eParameters name="isBody" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
-      <eParameters name="relativeNode" eType="#//OptionalJsonNode"/>
+      <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
     <eOperations name="apply" lowerBound="1" eType="#//ResultNodeFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
@@ -107,7 +90,7 @@
       <eParameters name="previousResult" eType="#//ArrayResultNode"/>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
       <eParameters name="isBody" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
-      <eParameters name="relativeNode" eType="#//OptionalJsonNode"/>
+      <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="UnionStep" eSuperTypes="#//Step"/>
@@ -118,14 +101,14 @@
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="FilterComponent" eSuperTypes="#//Hashable">
-    <eOperations name="apply" lowerBound="1" eType="#//OptionalJsonNodeFlux">
+    <eOperations name="apply" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value="The method applies the filter to a JSON tree and returns a Flux providing the filtered trees.&#xA;&#xA;@param unfilteredRootNode &#xA;&#x9;&#x9;the root node of the tree to be filtered&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param isBody&#xA;&#x9;&#x9;true if the expression occurs within the policy body (attribute&#xA;&#x9;&#x9;finder steps are only allowed if set to true)&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the filtered tree"/>
       </eAnnotations>
-      <eParameters name="unfilteredRootNode" eType="#//OptionalJsonNode"/>
+      <eParameters name="unfilteredRootNode" eType="#//Val"/>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
       <eParameters name="isBody" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
-      <eParameters name="relativeNode" eType="#//OptionalJsonNode"/>
+      <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="FilterStatement" eSuperTypes="#//Hashable">
@@ -205,6 +188,8 @@
   <eClassifiers xsi:type="ecore:EClass" name="AttributeFinderStep" eSuperTypes="#//Step">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="idSteps" unique="false"
         upperBound="-1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="arguments" eType="#//Arguments"
+        containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="RecursiveKeyStep" eSuperTypes="#//Step">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="id" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
@@ -277,13 +262,13 @@
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Evaluable" abstract="true" interface="true">
-    <eOperations name="evaluate" lowerBound="1" eType="#//OptionalJsonNodeFlux">
+    <eOperations name="evaluate" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value="The method returns a Flux of JsonNodes for the evaluation of the expression within a given evaluation context.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@param isBody &#xA;&#x9;&#x9;true if the expression occurs inside of the policy body. Needs to be specified because &#xA;&#x9;&#x9;certain steps (like attribute finder steps) are not allowed in the target expression.&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;a Flux of JsonNode results of evaluating the expression"/>
       </eAnnotations>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
       <eParameters name="isBody" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
-      <eParameters name="relativeNode" eType="#//OptionalJsonNode"/>
+      <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Matchable" abstract="true" interface="true">
@@ -318,8 +303,8 @@
   <eClassifiers xsi:type="ecore:EDataType" name="ArrayResultNode" instanceClassName="io.sapl.interpreter.selection.ArrayResultNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="StringMap" instanceTypeName="java.util.Map&lt;java.lang.String, java.lang.String>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="AbstractAnnotatedJsonNode" instanceClassName="io.sapl.interpreter.selection.AbstractAnnotatedJsonNode"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="OptionalJsonNodeFlux" instanceTypeName="reactor.core.publisher.Flux&lt;java.util.Optional&lt;com.fasterxml.jackson.databind.JsonNode>>"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="OptionalJsonNode" instanceTypeName="java.util.Optional&lt;com.fasterxml.jackson.databind.JsonNode>"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="ValFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.grammar.sapl.impl.Val>"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="Val" instanceClassName="io.sapl.grammar.sapl.impl.Val"/>
   <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationSubscription" instanceClassName="io.sapl.api.pdp.AuthorizationSubscription"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="FunctionContext" instanceClassName="io.sapl.interpreter.functions.FunctionContext"

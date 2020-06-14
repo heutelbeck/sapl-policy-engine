@@ -22,13 +22,13 @@ import java.time.ZoneId;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
+import io.sapl.grammar.sapl.impl.Val;
 import lombok.NoArgsConstructor;
 import reactor.core.publisher.Flux;
 
@@ -40,15 +40,13 @@ public class ClockPolicyInformationPoint {
 
 	public static final String DESCRIPTION = "Policy Information Point and attributes for retrieving current date and time information";
 
-	@Attribute(
-			docs = "Returns the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with time offset.")
-	public Flux<JsonNode> now(@Text JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
+	@Attribute(docs = "Returns the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with time offset.")
+	public Flux<Val> now(@Text Val value, Map<String, JsonNode> variables) throws AttributeException {
 		try {
-			final ZoneId zoneId = convertToZoneId(value);
+			final ZoneId zoneId = convertToZoneId(value.get());
 			final OffsetDateTime now = Instant.now().atZone(zoneId).toOffsetDateTime();
-			return Flux.just(JsonNodeFactory.instance.textNode(now.toString()));
-		}
-		catch (Exception e) {
+			return Val.fluxOf(now.toString());
+		} catch (Exception e) {
 			throw new AttributeException("Exception while converting the given value to a ZoneId.", e);
 		}
 	}
@@ -58,21 +56,17 @@ public class ClockPolicyInformationPoint {
 		final String zoneIdStr = text.length() == 0 ? "system" : text;
 		if ("system".equals(zoneIdStr)) {
 			return ZoneId.systemDefault();
-		}
-		else if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {
+		} else if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {
 			return ZoneId.of(zoneIdStr, ZoneId.SHORT_IDS);
 		}
 		return ZoneId.of(zoneIdStr);
 	}
 
-	@Attribute(
-			docs = "Emits every x seconds the current UTC date and time as an ISO-8601 string. x is the passed number value.")
-	public Flux<JsonNode> ticker(@Number JsonNode value, Map<String, JsonNode> variables) throws AttributeException {
+	@Attribute(docs = "Emits every x seconds the current UTC date and time as an ISO-8601 string. x is the passed number value.")
+	public Flux<Val> ticker(@Number Val value, Map<String, JsonNode> variables) throws AttributeException {
 		try {
-			return Flux.interval(Duration.ofSeconds(value.asLong()))
-					.map(i -> JsonNodeFactory.instance.textNode(Instant.now().toString()));
-		}
-		catch (Exception e) {
+			return Flux.interval(Duration.ofSeconds(value.get().asLong())).map(i -> Val.of(Instant.now().toString()));
+		} catch (Exception e) {
 			throw new AttributeException("Exception while creating the next ticker value.", e);
 		}
 	}

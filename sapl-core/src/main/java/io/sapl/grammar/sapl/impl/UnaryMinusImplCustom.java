@@ -16,9 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.math.BigDecimal;
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -26,9 +23,9 @@ import reactor.core.publisher.Flux;
 public class UnaryMinusImplCustom extends UnaryMinusImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return getExpression().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal).map(BigDecimal::negate)
-				.map(Value::of).distinctUntilChanged();
+	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+		return getExpression().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBigDecimal).map(BigDecimal::negate)
+				.map(Val::of).distinctUntilChanged();
 	}
 
 }

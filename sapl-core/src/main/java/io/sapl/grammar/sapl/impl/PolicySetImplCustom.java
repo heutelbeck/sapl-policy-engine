@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -46,16 +45,18 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	/**
 	 * Evaluates the body of the policy set within the given evaluation context and
 	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
-	 * @param ctx the evaluation context in which the policy set's body is evaluated. It
-	 * must contain
-	 * <ul>
-	 * <li>the attribute context</li>
-	 * <li>the function context</li>
-	 * <li>the variable context holding the four authorization subscription variables
-	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
-	 * from the PDP configuration</li>
-	 * <li>the import mapping for functions and attribute finders</li>
-	 * </ul>
+	 * 
+	 * @param ctx the evaluation context in which the policy set's body is
+	 *            evaluated. It must contain
+	 *            <ul>
+	 *            <li>the attribute context</li>
+	 *            <li>the function context</li>
+	 *            <li>the variable context holding the four authorization
+	 *            subscription variables 'subject', 'action', 'resource' and
+	 *            'environment' combined with system variables from the PDP
+	 *            configuration</li>
+	 *            <li>the import mapping for functions and attribute finders</li>
+	 *            </ul>
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
@@ -95,18 +96,16 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
 	private Flux<Void> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx,
 			Map<String, JsonNode> variables) {
-		return valueDefinition.getEval().evaluate(evaluationCtx, true, Optional.empty()).flatMap(evaluatedValue -> {
+		return valueDefinition.getEval().evaluate(evaluationCtx, true, Val.undefined()).flatMap(evaluatedValue -> {
 			try {
-				if (evaluatedValue.isPresent()) {
+				if (evaluatedValue.isDefined()) {
 					evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
 					variables.put(valueDefinition.getName(), evaluatedValue.get());
 					return Flux.just(Void.INSTANCE);
-				}
-				else {
+				} else {
 					return Flux.error(new PolicyEvaluationException(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL));
 				}
-			}
-			catch (PolicyEvaluationException e) {
+			} catch (PolicyEvaluationException e) {
 				LOGGER.debug("Value definition evaluation failed: {}", e.getMessage());
 				return Flux.error(e);
 			}

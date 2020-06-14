@@ -18,11 +18,8 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
@@ -36,8 +33,8 @@ import reactor.core.publisher.Flux;
 public class BasicGroupImplCustom extends BasicGroupImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> evaluatedExpressions = getExpression().evaluate(ctx, isBody, relativeNode);
+	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+		final Flux<Val> evaluatedExpressions = getExpression().evaluate(ctx, isBody, relativeNode);
 		return evaluatedExpressions
 				.switchMap(value -> evaluateStepsFilterSubtemplate(value, getSteps(), ctx, isBody, relativeNode));
 	}

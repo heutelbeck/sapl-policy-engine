@@ -18,10 +18,11 @@ package io.sapl.pdp.embedded;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.api.validation.Text;
+import io.sapl.grammar.sapl.impl.Val;
 import reactor.core.publisher.Flux;
 
 @PolicyInformationPoint(name = TestPIP.NAME, description = TestPIP.DESCRIPTION)
@@ -31,11 +32,9 @@ public class TestPIP {
 
 	public static final String DESCRIPTION = "Policy information Point for testing";
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	@Attribute
-	public Flux<JsonNode> upper(JsonNode value, Map<String, JsonNode> variables) {
-		return Flux.just(JSON.textNode(value.asText().toUpperCase()));
+	public Flux<Val> upper(@Text Val value, Map<String, JsonNode> variables) {
+		return Flux.just(Val.of(value.get().asText().toUpperCase()));
 	}
 
 }

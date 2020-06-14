@@ -20,12 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.core.TreeNode;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
@@ -52,7 +50,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {
@@ -61,15 +59,15 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isPresent() || !previousResult.getNode().get().isArray()) {
+		if (previousResult.getNode().isUndefined() || !previousResult.getNode().get().isArray()) {
 			throw new PolicyEvaluationException(INDEX_ACCESS_TYPE_MISMATCH, getIndex(),
-					previousResult.getNode().isPresent() ? previousResult.getNode().get().getNodeType() : "undefined");
+					previousResult.getNode().isDefined() ? previousResult.getNode().get().getNodeType() : "undefined");
 		}
 
 		final List<Integer> nodeIndices = resolveIndex(previousResult.getNode().get());
 		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>(nodeIndices.size());
 		for (Integer idx : nodeIndices) {
-			list.add(new JsonNodeWithParentArray(Optional.of(previousResult.getNode().get().get(idx)),
+			list.add(new JsonNodeWithParentArray(Val.of(previousResult.getNode().get().get(idx)),
 					previousResult.getNode(), idx));
 		}
 		return new ArrayResultNode(list);
@@ -77,7 +75,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {

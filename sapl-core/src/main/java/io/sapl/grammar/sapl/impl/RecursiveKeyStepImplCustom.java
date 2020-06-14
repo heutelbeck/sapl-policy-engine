@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -46,25 +45,24 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		return Flux.just(apply(previousResult));
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) {
-		if (!previousResult.getNode().isPresent()
+		if (previousResult.getNode().isUndefined()
 				|| (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject())) {
-			return new JsonNodeWithoutParent(Optional.empty());
+			return new JsonNodeWithoutParent(Val.undefined());
 		}
 		return new ArrayResultNode(resolveRecursive(previousResult.getNode().get()));
 	}
 
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
@@ -72,10 +70,9 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
-			if (child.getNode().isPresent()) {
+			if (child.getNode().isDefined()) {
 				resultList.addAll(resolveRecursive(child.getNode().get()));
-			}
-			else {
+			} else {
 				// this case should never happen, because undefined values cannot be added
 				// to an array
 				throw new PolicyEvaluationException(UNDEFINED_ARRAY_ELEMENT);
@@ -87,7 +84,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 	private List<AbstractAnnotatedJsonNode> resolveRecursive(JsonNode node) {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		if (node.has(id)) {
-			resultList.add(new JsonNodeWithParentObject(Optional.of(node.get(id)), Optional.of(node), id));
+			resultList.add(new JsonNodeWithParentObject(Val.of(node.get(id)), Val.of(node), id));
 		}
 		for (JsonNode child : node) {
 			resultList.addAll(resolveRecursive(child));

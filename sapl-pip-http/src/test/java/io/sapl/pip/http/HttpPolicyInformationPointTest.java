@@ -35,11 +35,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.HttpMethod;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.net.HttpHeaders;
 
 import io.sapl.api.pip.AttributeException;
+import io.sapl.grammar.sapl.impl.Val;
+import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.webclient.RequestSpecification;
 import io.sapl.webclient.WebClientRequestExecutor;
@@ -50,9 +51,7 @@ public class HttpPolicyInformationPointTest {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private static final ObjectMapper MAPPER = new ObjectMapper();
-
-	private JsonNode actualRequestSpec;
+	private Val actualRequestSpec;
 
 	private JsonNode result;
 
@@ -66,9 +65,8 @@ public class HttpPolicyInformationPointTest {
 				+ "\"" + HttpHeaders.ACCEPT + "\" : \"application/stream+json\", " + "\"" + HttpHeaders.ACCEPT_CHARSET
 				+ "\" : \"" + StandardCharsets.UTF_8 + "\" " + "}, " + "\"rawBody\" : \"hello world\" " + "}";
 
-		actualRequestSpec = MAPPER.readValue(request, JsonNode.class);
+		actualRequestSpec = Val.ofJsonString(request);
 		result = JSON.textNode("result");
-
 		final Map<String, String> headerProperties = new HashMap<>();
 		headerProperties.put(HttpHeaders.ACCEPT, "application/stream+json");
 		headerProperties.put(HttpHeaders.ACCEPT_CHARSET, StandardCharsets.UTF_8.toString());
@@ -87,12 +85,10 @@ public class HttpPolicyInformationPointTest {
 	public void postRequest() throws AttributeException, IOException {
 		final HttpPolicyInformationPoint pip = new HttpPolicyInformationPoint(requestExecutor);
 		final AnnotationAttributeContext attributeCtx = new AnnotationAttributeContext();
+		final EvaluationContext evalCtx = new EvaluationContext();
 		attributeCtx.loadPolicyInformationPoint(pip);
-		final Map<String, JsonNode> variables = new HashMap<>();
-		final JsonNode returnedAttribute = attributeCtx.evaluate("http.post", actualRequestSpec, variables)
-				.blockFirst();
-
-		assertEquals("return value not matching", result, returnedAttribute);
+		Val returnedAttribute = attributeCtx.evaluate("http.post", actualRequestSpec, evalCtx, null).blockFirst();
+		assertEquals("return value not matching", Val.of(result), returnedAttribute);
 		verify(requestExecutor).executeReactiveRequest(eq(expectedRequestSpec), eq(POST));
 	}
 

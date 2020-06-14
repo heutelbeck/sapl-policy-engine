@@ -15,23 +15,19 @@
  */
 package io.sapl.interpreter.functions;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.grammar.sapl.impl.Val;
 
 @FunctionLibrary(name = MockLibrary.NAME, description = "docs of my lib")
 public class MockLibrary {
 
 	public static final String NAME = "test.lib";
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	@Function(docs = "docs for helloTest")
-	public static JsonNode helloTest() {
+	public static Val helloTest() {
 
-		return JSON.textNode("HELLO TEST");
+		return Val.of("HELLO TEST");
 	}
 
 }

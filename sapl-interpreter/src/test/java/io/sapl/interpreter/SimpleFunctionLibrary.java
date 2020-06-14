@@ -15,48 +15,40 @@
  */
 package io.sapl.interpreter;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
+import io.sapl.grammar.sapl.impl.Val;
 
 @FunctionLibrary(name = "simple", description = "some simple functions")
 public class SimpleFunctionLibrary {
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	@Function
-	public JsonNode length(JsonNode parameter) throws FunctionException {
-		JsonNode result = null;
+	public Val length(Val parameter) throws FunctionException {
+		Val result = Val.undefined();
 		if (parameter.isArray()) {
-			result = JSON.numberNode(parameter.size());
-		}
-		else if (parameter.isTextual()) {
-			result = JSON.numberNode(parameter.asText().length());
-		}
-		else {
-			throw new FunctionException(
-					"length() parameter must be a string or an array, found " + parameter.getNodeType() + ".");
+			result = Val.of(parameter.get().size());
+		} else if (parameter.isTextual()) {
+			result = Val.of(parameter.get().asText().length());
+		} else {
+			throw new FunctionException("length() parameter must be a string or an array, found " + parameter + ".");
 		}
 		return result;
 	}
 
 	@Function
-	public JsonNode append(@Text @Number JsonNode... parameters) throws FunctionException {
+	public Val append(@Text @Number Val... parameters) throws FunctionException {
 		StringBuilder builder = new StringBuilder();
-		for (JsonNode parameter : parameters) {
+		for (Val parameter : parameters) {
 			if (parameter.isTextual()) {
-				builder.append(parameter.asText());
-			}
-			else if (parameter.isNumber()) {
-				builder.append(parameter.asInt());
+				builder.append(parameter.get().asText());
+			} else if (parameter.isNumber()) {
+				builder.append(parameter.get().asInt());
 			}
 		}
-		return JSON.textNode(builder.toString());
+		return Val.of(builder.toString());
 	}
 
 }

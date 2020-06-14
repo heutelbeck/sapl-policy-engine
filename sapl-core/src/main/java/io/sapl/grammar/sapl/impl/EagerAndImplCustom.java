@@ -15,10 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
@@ -31,10 +27,10 @@ import reactor.core.publisher.Flux;
 public class EagerAndImplCustom extends EagerAndImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
-		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
-		return Flux.combineLatest(left, right, Boolean::logicalAnd).map(Value::of).distinctUntilChanged();
+	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
+		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
+		return Flux.combineLatest(left, right, Boolean::logicalAnd).map(Val::of).distinctUntilChanged();
 	}
 
 }

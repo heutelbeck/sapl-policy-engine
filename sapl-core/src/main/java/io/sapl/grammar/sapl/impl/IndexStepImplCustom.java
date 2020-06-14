@@ -18,7 +18,6 @@ package io.sapl.grammar.sapl.impl;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -48,7 +47,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {
@@ -65,7 +64,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 
 		final int arrayLength = previousResultNode.size();
 		int index = computeAndValidateIndex(arrayLength);
-		return new JsonNodeWithParentArray(Optional.of(previousResultNode.get(index)), previousResult.getNode(), index);
+		return new JsonNodeWithParentArray(Val.of(previousResultNode.get(index)), previousResult.getNode(), index);
 	}
 
 	private int computeAndValidateIndex(int arrayLength) throws PolicyEvaluationException {
@@ -81,7 +80,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {

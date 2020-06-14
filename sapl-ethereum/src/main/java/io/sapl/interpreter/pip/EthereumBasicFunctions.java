@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.grammar.sapl.impl.Val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -38,8 +39,8 @@ public class EthereumBasicFunctions {
 	private EthereumBasicFunctions() {
 	}
 
-	protected static JsonNode convertToJsonNode(Object o) {
-		return mapper.convertValue(o, JsonNode.class);
+	protected static Val toVal(Object o) {
+		return Val.of(mapper.convertValue(o, JsonNode.class));
 	}
 
 	protected static BigInteger getBigIntFrom(JsonNode saplObject, String bigIntegerName) {

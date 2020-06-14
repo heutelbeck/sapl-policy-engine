@@ -15,6 +15,7 @@
  */
 package io.sapl.interpreter.variables;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertFalse;
@@ -23,34 +24,28 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.grammar.sapl.impl.Val;
 
 public class VariableContextTest {
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final Val SUBJECT_NODE = Val.of("subject");
 
-	private static final JsonNode SUBJECT_NODE = JSON.textNode("subject");
+	private static final Val ACTION_NODE = Val.of("action");
 
-	private static final JsonNode ACTION_NODE = JSON.textNode("action");
+	private static final Val RESOURCE_NODE = Val.of("resource");
 
-	private static final JsonNode RESOURCE_NODE = JSON.textNode("resource");
+	private static final Val ENVIRONMENT_NODE = Val.of("environment");
 
-	private static final JsonNode ENVIRONMENT_NODE = JSON.textNode("environment");
+	private static final Val VAR_NODE = Val.of("var");
 
-	private static final JsonNode NULL_NODE = JSON.nullNode();
-
-	private static final JsonNode VAR_NODE = JSON.textNode("var");
-
-	private static final JsonNode VAR_NODE_NEW = JSON.textNode("var_new");
+	private static final Val VAR_NODE_NEW = Val.of("var_new");
 
 	private static final String VAR_ID = "var";
 
-	private static final AuthorizationSubscription AUTH_SUBSCRIPTION = new AuthorizationSubscription(SUBJECT_NODE,
-			ACTION_NODE, RESOURCE_NODE, ENVIRONMENT_NODE);
+	private static final AuthorizationSubscription AUTH_SUBSCRIPTION = new AuthorizationSubscription(SUBJECT_NODE.get(),
+			ACTION_NODE.get(), RESOURCE_NODE.get(), ENVIRONMENT_NODE.get());
 
 	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthorizationSubscription(null, null,
 			null, null);
@@ -74,8 +69,8 @@ public class VariableContextTest {
 	public void emptyauthzSubscriptionInitializationTest() throws PolicyEvaluationException {
 		VariableContext ctx = new VariableContext(EMPTY_AUTH_SUBSCRIPTION);
 		assertTrue("context was not created or did not remember values",
-				ctx != null && ctx.get("subject").equals(NULL_NODE) && ctx.get("action").equals(NULL_NODE)
-						&& ctx.get("resource").equals(NULL_NODE) && ctx.get("environment").equals(NULL_NODE));
+				ctx != null && ctx.get("subject").equals(Val.ofNull()) && ctx.get("action").equals(Val.ofNull())
+						&& ctx.get("resource").equals(Val.ofNull()) && ctx.get("environment").equals(Val.ofNull()));
 	}
 
 	@Test
@@ -87,22 +82,22 @@ public class VariableContextTest {
 	@Test
 	public void existsTest() throws PolicyEvaluationException {
 		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
-		ctx.put(VAR_ID, VAR_NODE);
+		ctx.put(VAR_ID, VAR_NODE.get());
 		assertTrue("var should be existing in freshly created context", ctx.get(VAR_ID).equals(VAR_NODE));
 	}
 
 	@Test
 	public void doubleRegistrationOverwrite() throws PolicyEvaluationException {
 		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
-		ctx.put(VAR_ID, VAR_NODE);
-		ctx.put(VAR_ID, VAR_NODE_NEW);
+		ctx.put(VAR_ID, VAR_NODE.get());
+		ctx.put(VAR_ID, VAR_NODE_NEW.get());
 		assertTrue("", ctx.get(VAR_ID).equals(VAR_NODE_NEW));
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
+	@Test
 	public void failGetUndefined() throws PolicyEvaluationException {
 		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
-		ctx.get(VAR_ID);
+		assertThat("returns undefined", ctx.get(VAR_ID), is(Val.undefined()));
 	}
 
 }

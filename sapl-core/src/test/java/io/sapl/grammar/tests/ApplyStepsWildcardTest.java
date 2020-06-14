@@ -19,7 +19,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.Test;
 
@@ -33,6 +32,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.WildcardStep;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
@@ -57,11 +57,11 @@ public class ApplyStepsWildcardTest {
 
 	@Test
 	public void applyToNullNode() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
+		ResultNode previousResult = new JsonNodeWithoutParent(Val.ofNull());
 
 		WildcardStep step = factory.createWildcardStep();
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Optional.empty()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -72,12 +72,12 @@ public class ApplyStepsWildcardTest {
 		array.add(JSON.booleanNode(true));
 		array.add(JSON.booleanNode(false));
 
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
+		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(array));
 
-		ResultNode expectedResult = new JsonNodeWithoutParent(Optional.of(array));
+		ResultNode expectedResult = new JsonNodeWithoutParent(Val.of(array));
 
 		WildcardStep step = factory.createWildcardStep();
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Wildcard step applied to an array node should return the array",
 						expectedResult, result));
 	}
@@ -85,15 +85,15 @@ public class ApplyStepsWildcardTest {
 	@Test
 	public void applyToResultArray() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithoutParent(Optional.of(JSON.arrayNode())));
-		list.add(new JsonNodeWithoutParent(Optional.of(JSON.nullNode())));
+		list.add(new JsonNodeWithoutParent(Val.of(JSON.arrayNode())));
+		list.add(new JsonNodeWithoutParent(Val.ofNull()));
 
 		ResultNode previousResult = new ArrayResultNode(list);
 
 		ResultNode expectedResult = previousResult;
 
 		WildcardStep step = factory.createWildcardStep();
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Wildcard step applied to a result array node should return the result array", expectedResult,
 						result));
@@ -106,18 +106,16 @@ public class ApplyStepsWildcardTest {
 		object.set("key2", JSON.booleanNode(true));
 		object.set("key3", JSON.booleanNode(false));
 
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(object));
+		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(object));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), Optional.of(object), "key1"));
-		expectedResultSet
-				.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(true)), Optional.of(object), "key2"));
-		expectedResultSet
-				.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(false)), Optional.of(object), "key3"));
+		expectedResultSet.add(new JsonNodeWithParentObject(Val.ofNull(), Val.of(object), "key1"));
+		expectedResultSet.add(new JsonNodeWithParentObject(Val.ofTrue(), Val.of(object), "key2"));
+		expectedResultSet.add(new JsonNodeWithParentObject(Val.ofFalse(), Val.of(object), "key3"));
 
 		WildcardStep step = factory.createWildcardStep();
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Wildcard step applied to an object should return all attribute values", expectedResultSet,
 					resultSet);
