@@ -17,12 +17,8 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -30,7 +26,8 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the boolean value 'false'.
  *
- * Grammar: BooleanLiteral returns Value: {TrueLiteral} 'true' | {FalseLiteral} 'false' ;
+ * Grammar: BooleanLiteral returns Value: {TrueLiteral} 'true' | {FalseLiteral}
+ * 'false' ;
  */
 public class FalseLiteralImplCustom extends FalseLiteralImpl {
 
@@ -38,8 +35,8 @@ public class FalseLiteralImplCustom extends FalseLiteralImpl {
 	 * Returns a constant value of false.
 	 */
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		return Flux.just(Optional.of(JsonNodeFactory.instance.booleanNode(false)));
+	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+		return Val.fluxOfFalse();
 	}
 
 	@Override

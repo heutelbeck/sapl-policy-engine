@@ -98,7 +98,7 @@ Arguments:
 	{Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
 
 Step:
-	'.' ({KeyStep} id=ID | {WildcardStep} '*' | {AttributeFinderStep} '<' idSteps+=ID ('.' idSteps+=ID)* '>') |
+	'.' ({KeyStep} id=ID | {WildcardStep} '*' | {AttributeFinderStep} '<' idSteps+=ID ('.' idSteps+=ID)* arguments=Arguments? '>') |
 	'[' Subscript ']' |
 	'..' (
 		{RecursiveKeyStep} (id=ID | '[' id=STRING ']' ) | 

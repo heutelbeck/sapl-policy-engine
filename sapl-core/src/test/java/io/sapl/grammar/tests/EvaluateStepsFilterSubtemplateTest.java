@@ -18,7 +18,6 @@ package io.sapl.grammar.tests;
 import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 
 import org.junit.Test;
 
@@ -32,6 +31,7 @@ import io.sapl.grammar.sapl.FilterSimple;
 import io.sapl.grammar.sapl.IndexStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
@@ -64,9 +64,9 @@ public class EvaluateStepsFilterSubtemplateTest {
 		step.setIndex(BigDecimal.ZERO);
 		expression.getSteps().add(step);
 
-		expression.evaluate(ctx, true, Optional.empty()).take(1)
+		expression.evaluate(ctx, true, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Index step applied to BasicValue should return correct result",
-						Optional.of(JSON.nullNode()), result));
+						Val.ofNull(), result));
 	}
 
 	@Test
@@ -78,9 +78,9 @@ public class EvaluateStepsFilterSubtemplateTest {
 		filter.getFsteps().add("EMPTY_STRING");
 		expression.setFilter(filter);
 
-		expression.evaluate(ctx, true, Optional.empty()).take(1)
+		expression.evaluate(ctx, true, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Filter applied to BasicValue should return correct result",
-						Optional.of(JSON.textNode("")), result));
+						Val.of(""), result));
 	}
 
 	@Test
@@ -92,7 +92,7 @@ public class EvaluateStepsFilterSubtemplateTest {
 		subtemplate.setValue(factory.createNullLiteral());
 		expression.setSubtemplate(subtemplate);
 
-		StepVerifier.create(expression.evaluate(ctx, true, Optional.empty()))
+		StepVerifier.create(expression.evaluate(ctx, true, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -119,9 +119,9 @@ public class EvaluateStepsFilterSubtemplateTest {
 		expectedResult.add(JSON.nullNode());
 		expectedResult.add(JSON.nullNode());
 
-		expression.evaluate(ctx, true, Optional.empty()).take(1)
+		expression.evaluate(ctx, true, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Subtemplate applied to array should return correct result",
-						Optional.of(expectedResult), result));
+						Val.of(expectedResult), result));
 	}
 
 }

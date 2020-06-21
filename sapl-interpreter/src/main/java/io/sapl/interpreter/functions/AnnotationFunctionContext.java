@@ -23,23 +23,22 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Context to hold functions libraries during policy evaluation. *
  */
+@Slf4j
 @NoArgsConstructor
 public class AnnotationFunctionContext implements FunctionContext {
 
@@ -51,7 +50,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION = "Provided class has no @FunctionLibrary annotation.";
 
-	private static final String ILLEGAL_PARAMETER_FOR_IMPORT = "Function has parameters that are not a JsonNode. Cannot be loaded. Type was: %s.";
+	private static final String ILLEGAL_PARAMETER_FOR_IMPORT = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
 
 	private Collection<LibraryDocumentation> documentation = new LinkedList<>();
 
@@ -61,6 +60,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	/**
 	 * Create context from a list of function libraries.
+	 * 
 	 * @param libraries list of function libraries
 	 * @throws FunctionException if loading libraries fails
 	 */
@@ -71,41 +71,35 @@ public class AnnotationFunctionContext implements FunctionContext {
 	}
 
 	@Override
-	public Optional<JsonNode> evaluate(String function, ArrayNode parameters) throws FunctionException {
+	public Val evaluate(String function, Val... parameters) throws FunctionException {
 		final FunctionMetadata metadata = functions.get(function);
 		if (metadata == null) {
-			throw new FunctionException(String.format(UNKNOWN_FUNCTION, function));
+			throw new FunctionException(UNKNOWN_FUNCTION, function);
 		}
-
-		final Object[] args;
+		LOGGER.trace("call function: {} - {}", function, parameters);
+		LOGGER.trace("length: {}", parameters.length);
 		final Parameter[] funParams = metadata.getFunction().getParameters();
+		LOGGER.trace("funParams.length {}", funParams.length);
 		try {
 			if (metadata.getPararmeterCardinality() == -1) {
-				args = new Object[1];
-				final JsonNode[] arrayParam = new JsonNode[parameters.size()];
-				for (int i = 0; i < parameters.size(); i++) {
-					final JsonNode parameter = parameters.get(i);
-					ParameterTypeValidator.validateType(parameter, funParams[0]);
-					arrayParam[i] = parameter;
+				LOGGER.trace("VARARGS");
+				// function is a varargs function
+				// all args are validated against the same annotation if present
+				for (int i = 0; i < parameters.length; i++) {
+					ParameterTypeValidator.validateType(parameters[i], funParams[0]);
 				}
-				args[0] = arrayParam;
-			}
-			else if (metadata.getPararmeterCardinality() == parameters.size()) {
-				args = new Object[parameters.size()];
-				for (int i = 0; i < parameters.size(); i++) {
-					final JsonNode parameter = parameters.get(i);
-					ParameterTypeValidator.validateType(parameter, funParams[i]);
-					args[i] = parameter;
+				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), new Object[] { parameters });
+			} else if (metadata.getPararmeterCardinality() == parameters.length) {
+				LOGGER.trace("NOT VARARGS");
+				for (int i = 0; i < parameters.length; i++) {
+					ParameterTypeValidator.validateType(parameters[i], funParams[i]);
 				}
+				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), (Object[]) parameters);
+			} else {
+				throw new FunctionException(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getPararmeterCardinality(),
+						parameters.length);
 			}
-			else {
-				throw new FunctionException(String.format(ILLEGAL_NUMBER_OF_PARAMETERS,
-						metadata.getPararmeterCardinality(), parameters.size()));
-			}
-
-			return Optional.ofNullable((JsonNode) metadata.getFunction().invoke(metadata.getLibrary(), args));
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			throw new FunctionException(e);
 		}
 	}
@@ -151,9 +145,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (parameters == 1 && parameterType.isArray()) {
 				// functions with a variable number of arguments
 				parameters = -1;
-			}
-			else if (!JsonNode.class.isAssignableFrom(parameterType)) {
-				throw new FunctionException(String.format(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName()));
+			} else if (!Val.class.isAssignableFrom(parameterType)) {
+				throw new FunctionException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
 			}
 		}
 		libMeta.documentation.put(funName, funAnnotation.docs());
@@ -182,8 +175,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 		Collection<String> libs = libraries.get(libraryName);
 		if (libs != null) {
 			return libs;
-		}
-		else {
+		} else {
 			return new HashSet<>();
 		}
 	}

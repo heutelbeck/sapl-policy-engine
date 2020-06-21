@@ -18,7 +18,6 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -34,7 +33,8 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of a key step to a previous value, e.g 'value.name'.
+ * Implements the application of a key step to a previous value, e.g
+ * 'value.name'.
  *
  * Grammar: Step: '.' ({KeyStep} id=ID) ;
  */
@@ -44,43 +44,38 @@ public class KeyStepImplCustom extends KeyStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isPresent()) {
-			return new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), id);
+		if (previousResult.getNode().isUndefined()) {
+			return new JsonNodeWithParentObject(Val.undefined(), previousResult.getNode(), id);
 		}
 		final JsonNode previousResultNode = previousResult.getNode().get();
 		if (previousResultNode.isObject()) {
 			if (!previousResultNode.has(id)) {
-				return new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), id);
+				return new JsonNodeWithParentObject(Val.undefined(), previousResult.getNode(), id);
 			}
-			return new JsonNodeWithParentObject(Optional.of(previousResultNode.get(id)), previousResult.getNode(), id);
-		}
-		else if (previousResultNode.isArray()) {
+			return new JsonNodeWithParentObject(Val.of(previousResultNode.get(id)), previousResult.getNode(), id);
+		} else if (previousResultNode.isArray()) {
 			return applyToJsonArray(previousResultNode);
-		}
-		else if (previousResultNode.isTextual()) {
-			return new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), id);
-		}
-		else if (previousResultNode.isNull()) {
-			throw new PolicyEvaluationException(String.format(KEY_ACCESS_TYPE_MISMATCH, id));
-		}
-		else {
-			return new JsonNodeWithoutParent(Optional.empty());
+		} else if (previousResultNode.isTextual()) {
+			return new JsonNodeWithParentObject(Val.undefined(), previousResult.getNode(), id);
+		} else if (previousResultNode.isNull()) {
+			throw new PolicyEvaluationException(KEY_ACCESS_TYPE_MISMATCH, id);
+		} else {
+			return new JsonNodeWithoutParent(Val.undefined());
 		}
 	}
 
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		return Flux.just(apply(previousResult));
 	}
 
@@ -93,7 +88,7 @@ public class KeyStepImplCustom extends KeyStepImpl {
 
 		for (JsonNode item : array) {
 			if (item.isObject() && item.has(id)) {
-				resultList.add(new JsonNodeWithParentObject(Optional.of(item.get(id)), Optional.of(item), id));
+				resultList.add(new JsonNodeWithParentObject(Val.of(item.get(id)), Val.of(item), id));
 			}
 		}
 		return new ArrayResultNode(resultList);

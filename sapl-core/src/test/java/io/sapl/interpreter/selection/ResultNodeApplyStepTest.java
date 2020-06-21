@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.Test;
 
@@ -29,6 +28,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.grammar.sapl.IndexStep;
 import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.grammar.tests.MockFunctionContext;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -49,15 +49,15 @@ public class ResultNodeApplyStepTest {
 	@Test
 	public void applyStepArrayResult() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithoutParent(Optional.of(JSON.nullNode())));
+		list.add(new JsonNodeWithoutParent(Val.ofNull()));
 		ResultNode resultNode = new ArrayResultNode(list);
 
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.ZERO);
 
-		ResultNode expectedResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
+		ResultNode expectedResult = new JsonNodeWithoutParent(Val.ofNull());
 
-		resultNode.applyStep(step, ctx, false, Optional.empty()).take(1)
+		resultNode.applyStep(step, ctx, false, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("applyStep on ArrayResultNode should return correct ResultNode",
 						expectedResult, result));
 	}
@@ -66,14 +66,14 @@ public class ResultNodeApplyStepTest {
 	public void applyStepAnnotatedJsonNode() {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
-		ResultNode resultNode = new JsonNodeWithoutParent(Optional.of(array));
+		ResultNode resultNode = new JsonNodeWithoutParent(Val.of(array));
 
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.ZERO);
 
-		ResultNode expectedResult = new JsonNodeWithParentArray(Optional.of(JSON.nullNode()), Optional.of(array), 0);
+		ResultNode expectedResult = new JsonNodeWithParentArray(Val.ofNull(), Val.of(array), 0);
 
-		resultNode.applyStep(step, ctx, false, Optional.empty()).take(1)
+		resultNode.applyStep(step, ctx, false, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"applyStep on AbstractAnnotatedJsonNode should return correct ResultNode", expectedResult,
 						result));

@@ -27,11 +27,10 @@ import java.util.Collections;
 
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.TemporalFunctionLibrary;
+import io.sapl.grammar.sapl.impl.Val;
 import reactor.test.StepVerifier;
 
 public class ClockPolicyInformationPointTickerTest {
@@ -39,12 +38,10 @@ public class ClockPolicyInformationPointTickerTest {
 	@Test
 	public void ticker() {
 		final ClockPolicyInformationPoint clockPip = new ClockPolicyInformationPoint();
-		final JsonNodeFactory json = JsonNodeFactory.instance;
 		StepVerifier.withVirtualTime(() -> {
 			try {
-				return clockPip.ticker(json.numberNode(BigDecimal.valueOf(30)), Collections.emptyMap());
-			}
-			catch (AttributeException e) {
+				return clockPip.ticker(Val.of(30L), Collections.emptyMap());
+			} catch (AttributeException e) {
 				fail(e.getMessage());
 				return null;
 			}
@@ -53,55 +50,50 @@ public class ClockPolicyInformationPointTickerTest {
 				.expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					try {
 						final LocalDateTime localDateTime = LocalDateTime.now();
-						final String actual = TemporalFunctionLibrary.localDateTime(node).textValue();
+						final String actual = TemporalFunctionLibrary.localDateTime(node).get().textValue();
 						final String expected = localDateTime.truncatedTo(ChronoUnit.SECONDS).toString();
 						assertEquals("<clock.ticker> or time.localDateTime() do not work as expected", expected,
 								actual);
-					}
-					catch (FunctionException e) {
+					} catch (FunctionException e) {
 						fail(e.getMessage());
 					}
 				}).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					try {
 						final LocalTime localTime = LocalTime.now();
-						final String actual = TemporalFunctionLibrary.localTime(node).textValue();
+						final String actual = TemporalFunctionLibrary.localTime(node).get().textValue();
 						final String expected = localTime.truncatedTo(ChronoUnit.SECONDS).toString();
 						assertEquals("<clock.ticker> or time.localTime() do not work as expected", expected, actual);
-					}
-					catch (FunctionException e) {
+					} catch (FunctionException e) {
 						fail(e.getMessage());
 					}
 				}).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					try {
 						final LocalTime localTime = LocalTime.now();
-						final Number actual = TemporalFunctionLibrary.localHour(node).numberValue();
+						final Number actual = TemporalFunctionLibrary.localHour(node).get().numberValue();
 						final Number expected = BigDecimal.valueOf(localTime.getHour());
 						assertEquals("<clock.ticker> or time.localHour() do not work as expected", expected.longValue(),
 								actual.longValue());
-					}
-					catch (FunctionException e) {
+					} catch (FunctionException e) {
 						fail(e.getMessage());
 					}
 				}).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					try {
 						final LocalTime localTime = LocalTime.now();
-						final Number actual = TemporalFunctionLibrary.localMinute(node).numberValue();
+						final Number actual = TemporalFunctionLibrary.localMinute(node).get().numberValue();
 						final Number expected = BigDecimal.valueOf(localTime.getMinute());
 						assertEquals("<clock.ticker> or time.localMinute() do not work as expected",
 								expected.longValue(), actual.longValue());
-					}
-					catch (FunctionException e) {
+					} catch (FunctionException e) {
 						fail(e.getMessage());
 					}
 				}).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					try {
 						final LocalTime localTime = LocalTime.now();
-						final Number actual = TemporalFunctionLibrary.localSecond(node).numberValue();
+						final Number actual = TemporalFunctionLibrary.localSecond(node).get().numberValue();
 						final Number expected = BigDecimal.valueOf(localTime.getSecond());
 						assertEquals("<clock.ticker> or time.localSecond() do not work as expected",
 								expected.longValue(), actual.longValue());
-					}
-					catch (FunctionException e) {
+					} catch (FunctionException e) {
 						fail(e.getMessage());
 					}
 				}).thenCancel().verify();

@@ -15,12 +15,9 @@
  */
 package io.sapl.interpreter.selection;
 
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.Void;
 import lombok.EqualsAndHashCode;
@@ -41,7 +38,7 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 
 	private static final String FILTER_ROOT_ELEMENT = "The root element cannot be filtered.";
 
-	public JsonNodeWithoutParent(Optional<JsonNode> node) {
+	public JsonNodeWithoutParent(Val node) {
 		super(node);
 	}
 
@@ -78,7 +75,7 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 
 	@Override
 	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+			EvaluationContext ctx, boolean isBody, Val relativeNode) {
 		if (each) {
 			return applyFilterToEachItem(node, function, arguments, ctx, isBody);
 		}

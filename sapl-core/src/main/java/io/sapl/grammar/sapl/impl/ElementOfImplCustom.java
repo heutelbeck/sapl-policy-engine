@@ -15,8 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Optional;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
@@ -26,30 +24,31 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 /**
- * Implements the evaluation of the 'in-array' operation. It checks if a value is
- * contained in an array.
+ * Implements the evaluation of the 'in-array' operation. It checks if a value
+ * is contained in an array.
  *
- * Grammar: Comparison returns Expression: Prefixed (({ElementOf.left=current} 'in')
- * right=Prefixed)? ;
+ * Grammar: Comparison returns Expression: Prefixed (({ElementOf.left=current}
+ * 'in') right=Prefixed)? ;
  */
 public class ElementOfImplCustom extends ElementOfImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> value = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> array = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+		final Flux<Val> value = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Val> array = getRight().evaluate(ctx, isBody, relativeNode);
 		return Flux.combineLatest(value, array, Tuples::of).map(this::elementOf).distinctUntilChanged();
 	}
 
 	/**
-	 * Checks if the value is contained in the array. 'undefined' is never contained in
-	 * any array.
+	 * Checks if the value is contained in the array. 'undefined' is never contained
+	 * in any array.
+	 * 
 	 * @param tuple a tuple containing the value (T1) and the array (T2)
 	 * @return true if the value is contained in the array
 	 */
-	private Optional<JsonNode> elementOf(Tuple2<Optional<JsonNode>, Optional<JsonNode>> tuple) {
-		if (!tuple.getT1().isPresent() || !tuple.getT2().isPresent() || !tuple.getT2().get().isArray()) {
-			return Value.ofFalse();
+	private Val elementOf(Tuple2<Val, Val> tuple) {
+		if (tuple.getT1().isUndefined() || tuple.getT2().isUndefined() || !tuple.getT2().get().isArray()) {
+			return Val.ofFalse();
 		}
 		ArrayNode array = (ArrayNode) tuple.getT2().get();
 		for (JsonNode arrayItem : array) {
@@ -57,10 +56,10 @@ public class ElementOfImplCustom extends ElementOfImpl {
 			// This equality is checked for here as well.
 			if (tuple.getT1().get().equals(arrayItem) || (tuple.getT1().get().isNumber() && arrayItem.isNumber()
 					&& tuple.getT1().get().decimalValue().compareTo(arrayItem.decimalValue()) == 0)) {
-				return Value.ofTrue();
+				return Val.ofTrue();
 			}
 		}
-		return Value.ofFalse();
+		return Val.ofFalse();
 	}
 
 }

@@ -28,7 +28,6 @@ import com.vaadin.flow.dom.Element;
 import elemental.json.JsonArray;
 import elemental.json.JsonObject;
 
-@SuppressWarnings("serial")
 @Tag("sapl-editor")
 @JavaScript("jquery/dist/jquery.min.js")
 @JavaScript("./sapl-editor.js")

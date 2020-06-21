@@ -18,7 +18,6 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -33,8 +32,8 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of a recursive index step to a previous array value, e.g.
- * 'arr..[2]'.
+ * Implements the application of a recursive index step to a previous array
+ * value, e.g. 'arr..[2]'.
  *
  * Grammar: Step: '..' ({RecursiveIndexStep} '[' index=JSONNUMBER ']') ;
  */
@@ -48,20 +47,19 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isPresent()) {
+		if (previousResult.getNode().isUndefined()) {
 			throw new PolicyEvaluationException(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE);
 		}
-		else if (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject()) {
+		if (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject()) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
 		return new ArrayResultNode(resolveRecursive(previousResult.getNode().get()));
@@ -69,11 +67,10 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
@@ -81,10 +78,9 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
 		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode target : previousResult) {
-			if (target.getNode().isPresent()) {
+			if (target.getNode().isDefined()) {
 				resultList.addAll(resolveRecursive(target.getNode().get()));
-			}
-			else {
+			} else {
 				// this case should never happen, because undefined values cannot be added
 				// to an array
 				throw new PolicyEvaluationException(UNDEFINED_ARRAY_ELEMENT);
@@ -98,7 +94,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 		int intIndex = index.intValue();
 
 		if (node.isArray() && node.has(intIndex)) {
-			resultList.add(new JsonNodeWithParentArray(Optional.of(node.get(intIndex)), Optional.of(node), intIndex));
+			resultList.add(new JsonNodeWithParentArray(Val.of(node.get(intIndex)), Val.of(node), intIndex));
 		}
 		for (JsonNode child : node) {
 			resultList.addAll(resolveRecursive(child));

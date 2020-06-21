@@ -15,12 +15,10 @@
  */
 package io.sapl.functions;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.grammar.sapl.impl.Val;
 
 @FunctionLibrary(name = FilterFunctionLibrary.NAME, description = FilterFunctionLibrary.DESCRIPTION)
 public class FilterFunctionLibrary {
@@ -63,51 +61,46 @@ public class FilterFunctionLibrary {
 
 	private static final int PARAMETERS_MAX = 4;
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	@Function(docs = BLACKEN_DOC)
-	public static JsonNode blacken(JsonNode... parameters) throws FunctionException {
+	public static Val blacken(Val... parameters) throws FunctionException {
 		if (parameters.length > PARAMETERS_MAX) {
 			throw new FunctionException(ILLEGAL_PARAMETERS_COUNT);
 		}
-		if (!parameters[0].isTextual()) {
+		if (parameters[0].isUndefined() || !parameters[0].isTextual()) {
 			throw new FunctionException(ILLEGAL_PARAMETER_STRING);
 		}
 
 		String replacement;
 		if (parameters.length == PARAMETERS_MAX) {
-			if (!parameters[THREE].isTextual()) {
+			if (parameters[THREE].isUndefined() || !parameters[THREE].isTextual()) {
 				throw new FunctionException(ILLEGAL_PARAMETER_REPLACEMENT);
 			}
-			replacement = parameters[THREE].asText();
-		}
-		else {
+			replacement = parameters[THREE].get().asText();
+		} else {
 			replacement = BLACKEN_DEFAULT_REPLACEMENT;
 		}
 
 		int discloseRight;
 		if (parameters.length >= THREE) {
-			if (!parameters[TWO].isNumber() || parameters[TWO].asInt() < 0) {
+			if (parameters[TWO].isUndefined() || !parameters[TWO].isNumber() || parameters[TWO].get().asInt() < 0) {
 				throw new FunctionException(ILLEGAL_PARAMETER_DISCLOSE_RIGHT);
 			}
-			discloseRight = parameters[TWO].asInt();
-		}
-		else {
+			discloseRight = parameters[TWO].get().asInt();
+		} else {
 			discloseRight = BLACKEN_DEFAULT_SHOW_RIGHT;
 		}
 
 		int discloseLeft;
 		if (parameters.length >= TWO) {
-			if (!parameters[ONE].isNumber() || parameters[ONE].asInt() < 0) {
+			if (parameters[ONE].isUndefined() || !parameters[ONE].isNumber() || parameters[ONE].get().asInt() < 0) {
 				throw new FunctionException(ILLEGAL_PARAMETER_DISCLOSE_LEFT);
 			}
-			discloseLeft = parameters[ONE].asInt();
-		}
-		else {
+			discloseLeft = parameters[ONE].get().asInt();
+		} else {
 			discloseLeft = BLACKEN_DEFAULT_SHOW_LEFT;
 		}
 
-		String string = parameters[ZERO].asText();
+		String string = parameters[ZERO].get().asText();
 		StringBuilder result = new StringBuilder();
 		if (discloseLeft + discloseRight < string.length()) {
 			if (discloseLeft > 0) {
@@ -120,16 +113,15 @@ public class FilterFunctionLibrary {
 			if (discloseRight > 0) {
 				result.append(string.substring(discloseLeft + replacedChars));
 			}
-		}
-		else {
+		} else {
 			result.append(string);
 		}
 
-		return JSON.textNode(result.toString());
+		return Val.of(result.toString());
 	}
 
 	@Function(docs = REPLACE_DOC)
-	public static JsonNode replace(JsonNode original, JsonNode replacement) {
+	public static Val replace(Val original, Val replacement) {
 		return replacement;
 	}
 

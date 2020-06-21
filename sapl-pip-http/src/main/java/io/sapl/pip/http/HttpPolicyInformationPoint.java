@@ -34,19 +34,18 @@ import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.webclient.RequestSpecification;
 import io.sapl.webclient.WebClientRequestExecutor;
 import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * Uses the {@link WebClientRequestExecutor} the send reactive HTTP requests to a remote
- * policy information point providing the according REST endpoints.
+ * Uses the {@link WebClientRequestExecutor} the send reactive HTTP requests to
+ * a remote policy information point providing the according REST endpoints.
  */
 @NoArgsConstructor
 @PolicyInformationPoint(name = HttpPolicyInformationPoint.NAME, description = HttpPolicyInformationPoint.DESCRIPTION)
-@Slf4j
 public class HttpPolicyInformationPoint {
 
 	static final String NAME = "http";
@@ -68,6 +67,7 @@ public class HttpPolicyInformationPoint {
 
 	/**
 	 * For Unit tests only.
+	 * 
 	 * @param requestExecutor the {@link WebClientRequestExecutor} mock
 	 */
 	HttpPolicyInformationPoint(WebClientRequestExecutor requestExecutor) {
@@ -75,57 +75,49 @@ public class HttpPolicyInformationPoint {
 	}
 
 	@Attribute(docs = GET_DOCS)
-	public Flux<JsonNode> get(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) {
-		return executeReactiveRequest(value, GET)
-				.doOnNext(jsonNode -> LOGGER.trace("http.get({}) returned {}", value, jsonNode));
+	public Flux<Val> get(@Text @JsonObject Val value, Map<String, JsonNode> variables) {
+		return executeReactiveRequest(value, GET);
 	}
 
 	@Attribute(docs = POST_DOCS)
-	public Flux<JsonNode> post(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) {
-		return executeReactiveRequest(value, POST)
-				.doOnNext(jsonNode -> LOGGER.trace("http.post({}) returned {}", value, jsonNode));
+	public Flux<Val> post(@Text @JsonObject Val value, Map<String, JsonNode> variables) {
+		return executeReactiveRequest(value, POST);
 	}
 
 	@Attribute(docs = PUT_DOCS)
-	public Flux<JsonNode> put(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) {
-		return executeReactiveRequest(value, PUT)
-				.doOnNext(jsonNode -> LOGGER.trace("http.put({}) returned {}", value, jsonNode));
+	public Flux<Val> put(@Text @JsonObject Val value, Map<String, JsonNode> variables) {
+		return executeReactiveRequest(value, PUT);
 	}
 
 	@Attribute(docs = PATCH_DOCS)
-	public Flux<JsonNode> patch(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) {
-		return executeReactiveRequest(value, PATCH)
-				.doOnNext(jsonNode -> LOGGER.trace("http.patch({}) returned {}", value, jsonNode));
+	public Flux<Val> patch(@Text @JsonObject Val value, Map<String, JsonNode> variables) {
+		return executeReactiveRequest(value, PATCH);
 	}
 
 	@Attribute(docs = DELETE_DOCS)
-	public Flux<JsonNode> delete(@Text @JsonObject JsonNode value, Map<String, JsonNode> variables) {
-		return executeReactiveRequest(value, DELETE)
-				.doOnNext(jsonNode -> LOGGER.trace("http.delete({}) returned {}", value, jsonNode));
+	public Flux<Val> delete(@Text @JsonObject Val value, Map<String, JsonNode> variables) {
+		return executeReactiveRequest(value, DELETE);
 	}
 
-	private Flux<JsonNode> executeReactiveRequest(@JsonObject @Text JsonNode value, HttpMethod httpMethod) {
+	private Flux<Val> executeReactiveRequest(Val value, HttpMethod httpMethod) {
 		try {
-			final RequestSpecification saplRequest = getRequestSpecification(value);
-			return getRequestExecutor().executeReactiveRequest(saplRequest, httpMethod).onErrorMap(IOException.class,
-					AttributeException::new);
-		}
-		catch (AttributeException e) {
+			final RequestSpecification saplRequest = getRequestSpecification(value.get());
+			return getRequestExecutor().executeReactiveRequest(saplRequest, httpMethod)
+					.onErrorMap(IOException.class, AttributeException::new).map(Val::of);
+		} catch (AttributeException e) {
 			return Flux.error(e);
 		}
 	}
 
-	private RequestSpecification getRequestSpecification(@JsonObject @Text JsonNode value) throws AttributeException {
+	private RequestSpecification getRequestSpecification(JsonNode value) throws AttributeException {
 		if (value.isTextual()) {
 			final RequestSpecification saplRequest = new RequestSpecification();
 			saplRequest.setUrl(value);
 			return saplRequest;
-		}
-		else {
+		} else {
 			try {
 				return RequestSpecification.from(value);
-			}
-			catch (JsonProcessingException e) {
+			} catch (JsonProcessingException e) {
 				throw new AttributeException(OBJECT_NO_HTTP_REQUEST_OBJECT_SPECIFICATION, e);
 			}
 		}

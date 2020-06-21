@@ -46,21 +46,24 @@ public class SAPLImplCustom extends SAPLImpl {
 	private static final AuthorizationDecision INDETERMINATE = AuthorizationDecision.INDETERMINATE;
 
 	/**
-	 * Checks whether the SAPL document matches a AuthorizationSubscription by evaluating
-	 * the document's target expression. No custom variables are provided and imports are
-	 * extracted from the document.
-	 * @param ctx the evaluation context in which the document's target expression is be
-	 * evaluated. It must contain
-	 * <ul>
-	 * <li>the function context, as functions can be used in the target expression</li>
-	 * <li>the variable context holding the four authorization subscription variables
-	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
-	 * from the PDP configuration</li>
-	 * </ul>
+	 * Checks whether the SAPL document matches a AuthorizationSubscription by
+	 * evaluating the document's target expression. No custom variables are provided
+	 * and imports are extracted from the document.
+	 * 
+	 * @param ctx the evaluation context in which the document's target expression
+	 *            is be evaluated. It must contain
+	 *            <ul>
+	 *            <li>the function context, as functions can be used in the target
+	 *            expression</li>
+	 *            <li>the variable context holding the four authorization
+	 *            subscription variables 'subject', 'action', 'resource' and
+	 *            'environment' combined with system variables from the PDP
+	 *            configuration</li>
+	 *            </ul>
 	 * @return {@code true} if the target expression evaluates to {@code true},
-	 * {@code false} otherwise.
-	 * @throws PolicyEvaluationException in case there is an error while evaluating the
-	 * target expression
+	 *         {@code false} otherwise.
+	 * @throws PolicyEvaluationException in case there is an error while evaluating
+	 *                                   the target expression
 	 */
 	@Override
 	public boolean matches(EvaluationContext ctx) throws PolicyEvaluationException {
@@ -74,15 +77,17 @@ public class SAPLImplCustom extends SAPLImpl {
 	 * Evaluates the body of the SAPL document (containing a policy set or a policy)
 	 * within the given evaluation context and returns a {@link Flux} of
 	 * {@link AuthorizationDecision} objects.
-	 * @param ctx the evaluation context in which the document's body is evaluated. It
-	 * must contain
-	 * <ul>
-	 * <li>the attribute context</li>
-	 * <li>the function context</li>
-	 * <li>the variable context holding the four authorization subscription variables
-	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
-	 * from the PDP configuration</li>
-	 * </ul>
+	 * 
+	 * @param ctx the evaluation context in which the document's body is evaluated.
+	 *            It must contain
+	 *            <ul>
+	 *            <li>the attribute context</li>
+	 *            <li>the function context</li>
+	 *            <li>the variable context holding the four authorization
+	 *            subscription variables 'subject', 'action', 'resource' and
+	 *            'environment' combined with system variables from the PDP
+	 *            configuration</li>
+	 *            </ul>
 	 * @return a {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
@@ -95,14 +100,12 @@ public class SAPLImplCustom extends SAPLImpl {
 				final EvaluationContext evaluationCtx = new EvaluationContext(ctx.getAttributeCtx(),
 						ctx.getFunctionCtx(), ctx.getVariableCtx().copy(), imports);
 				return getPolicyElement().evaluate(evaluationCtx).doOnNext(this::logAuthzDecision);
-			}
-			else {
+			} else {
 				LOGGER.trace("| | |-- NOT_APPLICABLE. Cause: " + NO_TARGET_MATCH);
 				LOGGER.trace("| |");
 				return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 			}
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED, e.getMessage());
 			LOGGER.trace("| |");
 			return Flux.just(INDETERMINATE);
@@ -123,17 +126,15 @@ public class SAPLImplCustom extends SAPLImpl {
 
 			if (anImport instanceof WildcardImport) {
 				imports.putAll(fetchWildcardImports(imports, library, functionCtx.functionsInLibrary(library)));
-			}
-			else if (anImport instanceof LibraryImport) {
+			} else if (anImport instanceof LibraryImport) {
 				final String alias = ((LibraryImport) anImport).getLibAlias();
 				imports.putAll(fetchLibraryImports(imports, library, alias, functionCtx.functionsInLibrary(library)));
-			}
-			else {
+			} else {
 				final String functionName = anImport.getFunctionName();
 				final String fullyQualified = String.join(".", library, functionName);
 
 				if (imports.containsKey(anImport.getFunctionName())) {
-					throw new PolicyEvaluationException(String.format(IMPORT_EXISTS, fullyQualified));
+					throw new PolicyEvaluationException(IMPORT_EXISTS, fullyQualified);
 				}
 				imports.put(functionName, fullyQualified);
 			}
@@ -153,21 +154,18 @@ public class SAPLImplCustom extends SAPLImpl {
 			if (anImport instanceof WildcardImport) {
 				imports.putAll(fetchWildcardImports(imports, library, functionCtx.functionsInLibrary(library)));
 				imports.putAll(fetchWildcardImports(imports, library, attributeCtx.findersInLibrary(library)));
-			}
-			else if (anImport instanceof LibraryImport) {
+			} else if (anImport instanceof LibraryImport) {
 				String alias = ((LibraryImport) anImport).getLibAlias();
 				imports.putAll(fetchLibraryImports(imports, library, alias, functionCtx.functionsInLibrary(library)));
 				imports.putAll(fetchLibraryImports(imports, library, alias, attributeCtx.findersInLibrary(library)));
-			}
-			else {
+			} else {
 				String functionName = anImport.getFunctionName();
 				String fullyQualified = String.join(".", library, functionName);
 
 				if (imports.containsKey(functionName)) {
-					throw new PolicyEvaluationException(String.format(IMPORT_EXISTS, fullyQualified));
-				}
-				else if (!functionCtx.provides(fullyQualified) && !attributeCtx.provides(fullyQualified)) {
-					throw new PolicyEvaluationException(String.format(IMPORT_NOT_FOUND, fullyQualified));
+					throw new PolicyEvaluationException(IMPORT_EXISTS, fullyQualified);
+				} else if (!functionCtx.provides(fullyQualified) && !attributeCtx.provides(fullyQualified)) {
+					throw new PolicyEvaluationException(IMPORT_NOT_FOUND, fullyQualified);
 				}
 				imports.put(functionName, fullyQualified);
 			}
@@ -181,9 +179,8 @@ public class SAPLImplCustom extends SAPLImpl {
 		final Map<String, String> returnImports = new HashMap<>(libraryItems.size(), 1.0F);
 		for (String name : libraryItems) {
 			if (imports.containsKey(name)) {
-				throw new PolicyEvaluationException(String.format(WILDCARD_IMPORT_EXISTS, library, name));
-			}
-			else {
+				throw new PolicyEvaluationException(WILDCARD_IMPORT_EXISTS, library, name);
+			} else {
 				returnImports.put(name, String.join(".", library, name));
 			}
 		}
@@ -196,9 +193,8 @@ public class SAPLImplCustom extends SAPLImpl {
 		for (String name : libraryItems) {
 			String key = String.join(".", alias, name);
 			if (imports.containsKey(key)) {
-				throw new PolicyEvaluationException(String.format(WILDCARD_IMPORT_EXISTS, library, name));
-			}
-			else {
+				throw new PolicyEvaluationException(WILDCARD_IMPORT_EXISTS, library, name);
+			} else {
 				returnImports.put(key, String.join(".", library, name));
 			}
 		}

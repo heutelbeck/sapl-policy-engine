@@ -76,13 +76,12 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 		try {
 			resource.load(policyInputStream, resourceSet.getLoadOptions());
-		}
-		catch (IOException | WrappedException e) {
-			throw new PolicyEvaluationException(String.format(PARSING_ERRORS, resource.getErrors()), e);
+		} catch (IOException | WrappedException e) {
+			throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
 		}
 
 		if (!resource.getErrors().isEmpty()) {
-			throw new PolicyEvaluationException(String.format(PARSING_ERRORS, resource.getErrors()));
+			throw new PolicyEvaluationException(PARSING_ERRORS, resource.getErrors());
 		}
 		return resource;
 	}
@@ -93,13 +92,12 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 		try (InputStream in = new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8))) {
 			resource.load(in, resourceSet.getLoadOptions());
-		}
-		catch (IOException e) {
-			throw new PolicyEvaluationException(String.format(PARSING_ERRORS, resource.getErrors()), e);
+		} catch (IOException e) {
+			throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
 		}
 
 		if (!resource.getErrors().isEmpty()) {
-			throw new PolicyEvaluationException(String.format(PARSING_ERRORS, resource.getErrors()));
+			throw new PolicyEvaluationException(PARSING_ERRORS, resource.getErrors());
 		}
 		return resource;
 	}
@@ -110,8 +108,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		final SAPL saplDocument;
 		try {
 			saplDocument = parse(saplDefinition);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			LOGGER.debug("Error in policy parsing: {}", e.getMessage());
 			return Flux.just(INDETERMINATE);
 		}
@@ -120,8 +117,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			final VariableContext variableCtx = new VariableContext(authzSubscription, systemVariables);
 			final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 			return saplDocument.evaluate(evaluationCtx).onErrorReturn(INDETERMINATE);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED, e.getMessage());
 			LOGGER.trace("| |");
 			return Flux.just(INDETERMINATE);
@@ -138,13 +134,11 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			if (sapl.getPolicyElement() instanceof PolicySet) {
 				PolicySet set = (PolicySet) sapl.getPolicyElement();
 				result = new DocumentAnalysisResult(true, set.getSaplName(), DocumentType.POLICY_SET, "");
-			}
-			else {
+			} else {
 				Policy policy = (Policy) sapl.getPolicyElement();
 				result = new DocumentAnalysisResult(true, policy.getSaplName(), DocumentType.POLICY, "");
 			}
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			result = new DocumentAnalysisResult(false, "", null, e.getMessage());
 		}
 		return result;

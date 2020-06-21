@@ -16,9 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.math.BigDecimal;
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -26,16 +23,16 @@ import reactor.core.publisher.Flux;
 /**
  * Checks for a left value being greater than a right value.
  *
- * Grammar: Comparison returns Expression: Prefixed (({More.left=current} '&gt;')
- * right=Prefixed)? ;
+ * Grammar: Comparison returns Expression: Prefixed (({More.left=current}
+ * '&gt;') right=Prefixed)? ;
  */
 public class MoreImplCustom extends MoreImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<BigDecimal> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
-		final Flux<BigDecimal> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBigDecimal);
-		return Flux.combineLatest(left, right, this::moreThan).map(Value::of).distinctUntilChanged();
+	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+		final Flux<BigDecimal> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBigDecimal);
+		final Flux<BigDecimal> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBigDecimal);
+		return Flux.combineLatest(left, right, this::moreThan).map(Val::of).distinctUntilChanged();
 	}
 
 	private Boolean moreThan(BigDecimal left, BigDecimal right) {

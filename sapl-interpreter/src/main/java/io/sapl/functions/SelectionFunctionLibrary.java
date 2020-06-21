@@ -19,7 +19,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.xtext.resource.XtextResource;
@@ -27,7 +26,6 @@ import org.eclipse.xtext.resource.XtextResourceSet;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Injector;
 
@@ -40,6 +38,7 @@ import io.sapl.api.validation.Text;
 import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.BasicRelative;
 import io.sapl.grammar.sapl.impl.StepResolver;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.grammar.services.SAPLGrammarAccess;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
@@ -71,56 +70,49 @@ public class SelectionFunctionLibrary {
 
 	private static final String DEFAULT_POLICY = "policy:/default.sapl";
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
 
 	@Function(docs = APPLY_DOC)
-	public static JsonNode apply(@JsonObject JsonNode structure, @Text JsonNode expression) throws FunctionException {
-		BasicRelative relativeExpression = parseRelative(expression.asText());
-		Optional<JsonNode> oStruct = Optional.of(structure);
+	public static Val apply(@JsonObject Val structure, @Text Val expression) throws FunctionException {
+		BasicRelative relativeExpression = parseRelative(expression.get().asText());
+		Val oStruct = structure;
 		try {
 			final ResultNode result = StepResolver
 					.resolveSteps(oStruct, relativeExpression.getSteps(), null, false, oStruct).blockFirst();
 			if (result == null) {
 				throw new FunctionException(BLOCKING_METHOD_CALL_RETURNED_NULL);
 			}
-			return result.asJsonWithoutAnnotations().orElseThrow(() -> new FunctionException("undefined result"));
-		}
-		catch (RuntimeException e) {
+			return Val
+					.of(result.asJsonWithoutAnnotations().orElseThrow(() -> new FunctionException("undefined result")));
+		} catch (RuntimeException e) {
 			throw new FunctionException(Exceptions.unwrap(e));
 		}
 	}
 
 	@Function(docs = COUNT_DOC)
-	public static JsonNode count(@JsonObject JsonNode structure, @Text JsonNode expression) throws FunctionException {
-		BasicRelative relativeExpression = parseRelative(expression.asText());
-		Optional<JsonNode> oStruct = Optional.of(structure);
+	public static Val count(@JsonObject Val structure, @Text Val expression) throws FunctionException {
+		BasicRelative relativeExpression = parseRelative(expression.get().asText());
+		Val oStruct = structure;
 		try {
 			final ResultNode result = StepResolver
 					.resolveSteps(oStruct, relativeExpression.getSteps(), null, false, oStruct).blockFirst();
 			if (result == null) {
 				throw new FunctionException(BLOCKING_METHOD_CALL_RETURNED_NULL);
+			} else if (result.isResultArray()) {
+				return Val.of(((ArrayResultNode) result).getNodes().size());
+			} else {
+				return Val.of(1L);
 			}
-			else if (result.isResultArray()) {
-				return JSON.numberNode(((ArrayResultNode) result).getNodes().size());
-			}
-			else {
-				final int one = 1;
-				return JSON.numberNode(one);
-			}
-		}
-		catch (RuntimeException e) {
+		} catch (RuntimeException e) {
 			throw new FunctionException(Exceptions.unwrap(e));
 		}
 	}
 
 	@Function(docs = MATCH_DOC)
-	public static JsonNode match(@JsonObject JsonNode structure, @Text JsonNode needle, @Text JsonNode haystack)
-			throws FunctionException {
-		BasicRelative haystackExpression = parseRelative(haystack.asText());
-		BasicRelative needleExpression = parseRelative(needle.asText());
-		Optional<JsonNode> oStruct = Optional.of(structure);
+	public static Val match(@JsonObject Val structure, @Text Val needle, @Text Val haystack) throws FunctionException {
+		BasicRelative haystackExpression = parseRelative(haystack.get().asText());
+		BasicRelative needleExpression = parseRelative(needle.get().asText());
+		Val oStruct = structure;
 
 		try {
 			ResultNode haystackResult = StepResolver
@@ -130,37 +122,31 @@ public class SelectionFunctionLibrary {
 
 			if (haystackResult == null || needleResult == null) {
 				throw new PolicyEvaluationException(BLOCKING_METHOD_CALL_RETURNED_NULL);
-			}
-			else if (haystackResult.isNodeWithoutParent()) {
-				return JSON.booleanNode(true);
-			}
-			else if (needleResult.isNodeWithoutParent()) {
-				return JSON.booleanNode(false);
-			}
-			else if (!needleResult.isResultArray()) {
-				return JSON.booleanNode(inStructure((AbstractAnnotatedJsonNode) needleResult, haystackResult));
+			} else if (haystackResult.isNodeWithoutParent()) {
+				return Val.ofTrue();
+			} else if (needleResult.isNodeWithoutParent()) {
+				return Val.ofFalse();
+			} else if (!needleResult.isResultArray()) {
+				return Val.of(inStructure((AbstractAnnotatedJsonNode) needleResult, haystackResult));
 			}
 			for (AbstractAnnotatedJsonNode node : (ArrayResultNode) needleResult) {
 				if (!inStructure(node, haystackResult)) {
-					return JSON.booleanNode(false);
+					return Val.ofFalse();
 				}
 			}
-			return JSON.booleanNode(true);
-		}
-		catch (PolicyEvaluationException e) {
+			return Val.ofTrue();
+		} catch (PolicyEvaluationException e) {
 			throw new FunctionException(e);
-		}
-		catch (RuntimeException e) {
+		} catch (RuntimeException e) {
 			throw new FunctionException(Exceptions.unwrap(e));
 		}
 	}
 
 	@Function(name = EQUAL, docs = EQUAL_DOC)
-	public static JsonNode areEqual(@JsonObject JsonNode structure, @Text JsonNode first, @Text JsonNode second)
-			throws FunctionException {
-		BasicRelative firstExpression = parseRelative(second.asText());
-		BasicRelative secondExpression = parseRelative(first.asText());
-		Optional<JsonNode> oStruct = Optional.of(structure);
+	public static Val areEqual(@JsonObject Val structure, @Text Val first, @Text Val second) throws FunctionException {
+		BasicRelative firstExpression = parseRelative(second.get().asText());
+		BasicRelative secondExpression = parseRelative(first.get().asText());
+		Val oStruct = structure;
 
 		try {
 			ResultNode firstResult = StepResolver
@@ -170,26 +156,20 @@ public class SelectionFunctionLibrary {
 
 			if (firstResult == null || secondResult == null) {
 				throw new PolicyEvaluationException(BLOCKING_METHOD_CALL_RETURNED_NULL);
-			}
-			else if (firstResult.isNodeWithoutParent() && secondResult.isNodeWithoutParent()) {
-				return JSON.booleanNode(true);
-			}
-			else if (!firstResult.isResultArray() && !secondResult.isResultArray()) {
-				return JSON.booleanNode(((AbstractAnnotatedJsonNode) firstResult)
+			} else if (firstResult.isNodeWithoutParent() && secondResult.isNodeWithoutParent()) {
+				return Val.ofTrue();
+			} else if (!firstResult.isResultArray() && !secondResult.isResultArray()) {
+				return Val.of(((AbstractAnnotatedJsonNode) firstResult)
 						.sameReference((AbstractAnnotatedJsonNode) secondResult));
-			}
-			else if (firstResult.isResultArray() && secondResult.isResultArray()) {
-				return JSON.booleanNode(allNodesInList((ArrayResultNode) firstResult, (ArrayResultNode) secondResult)
+			} else if (firstResult.isResultArray() && secondResult.isResultArray()) {
+				return Val.of(allNodesInList((ArrayResultNode) firstResult, (ArrayResultNode) secondResult)
 						&& allNodesInList((ArrayResultNode) secondResult, (ArrayResultNode) firstResult));
+			} else {
+				return Val.ofFalse();
 			}
-			else {
-				return JSON.booleanNode(false);
-			}
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			throw new FunctionException(e);
-		}
-		catch (RuntimeException e) {
+		} catch (RuntimeException e) {
 			throw new FunctionException(Exceptions.unwrap(e));
 		}
 	}
@@ -204,9 +184,7 @@ public class SelectionFunctionLibrary {
 					break;
 				}
 			}
-			if (!found) {
-				return false;
-			}
+			return found;
 		}
 		return true;
 	}
@@ -215,8 +193,7 @@ public class SelectionFunctionLibrary {
 			throws PolicyEvaluationException {
 		if (haystackResult instanceof AbstractAnnotatedJsonNode) {
 			return inNode(needleResult, (AbstractAnnotatedJsonNode) haystackResult);
-		}
-		else {
+		} else {
 			for (AbstractAnnotatedJsonNode haystackNode : (ArrayResultNode) haystackResult) {
 				if (inNode(needleResult, haystackNode)) {
 					return true;
@@ -230,8 +207,7 @@ public class SelectionFunctionLibrary {
 			throws PolicyEvaluationException {
 		if (needleResult.sameReference(haystackResult)) {
 			return true;
-		}
-		else if (needleResult.getParent().isPresent()) {
+		} else if (needleResult.getParent().isDefined()) {
 			return recursiveCheck(needleResult.getParent().get(), haystackResult.getNode().get());
 		}
 		return false;
@@ -247,8 +223,7 @@ public class SelectionFunctionLibrary {
 					return true;
 				}
 			}
-		}
-		else if (haystack.isObject()) {
+		} else if (haystack.isObject()) {
 			for (JsonNode node : (ObjectNode) haystack) {
 				if (recursiveCheck(needleParent, node)) {
 					return true;
@@ -267,8 +242,7 @@ public class SelectionFunctionLibrary {
 
 		try {
 			resource.load(in, resourceSet.getLoadOptions());
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			throw new FunctionException(e);
 		}
 		return (BasicRelative) resource.getContents().get(0);

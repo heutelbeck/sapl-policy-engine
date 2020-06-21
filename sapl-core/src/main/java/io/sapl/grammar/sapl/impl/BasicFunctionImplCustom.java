@@ -16,17 +16,14 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 
 import org.eclipse.emf.ecore.EObject;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -38,62 +35,37 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the evaluation of functions.
  *
- * Grammar: {BasicFunction} fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step*;
- * {Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
+ * Grammar: {BasicFunction} fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments
+ * steps+=Step*; {Arguments} '(' (args+=Expression (',' args+=Expression)*)?
+ * ')';
  */
 public class BasicFunctionImplCustom extends BasicFunctionImpl {
 
-	private static final String UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL = "undefined parameter value handed to function call";
-
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
 		if (getArguments() != null && !getArguments().getArgs().isEmpty()) {
 			// create a list of Fluxes containing the results of evaluating the
 			// individual argument expressions.
-			final List<Flux<Optional<JsonNode>>> arguments = new ArrayList<>(getArguments().getArgs().size());
+			final List<Flux<Val>> arguments = new ArrayList<>(getArguments().getArgs().size());
 			for (Expression argument : getArguments().getArgs()) {
 				arguments.add(argument.evaluate(ctx, isBody, relativeNode));
-			}
+			}			
 			// evaluate the function for each value assignment of the arguments
 			return Flux.combineLatest(arguments, Function.identity())
-					.switchMap(parameters -> evaluateFunction(parameters, ctx))
+					.switchMap(parameters -> evaluateFunction(Arrays.copyOf(parameters, parameters.length, Val[].class), ctx))
 					.flatMap(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, isBody,
 							relativeNode));
-		}
-		else {
+		} else {
 			// No need to evaluate arguments. Just evaluate and apply steps.
 			return evaluateFunction(null, ctx).flatMap(
 					funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, isBody, relativeNode));
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	private Flux<Optional<JsonNode>> evaluateFunction(Object[] parameters, EvaluationContext ctx) {
-		// TODO: consider to adjust function library interfaces to:
-		// - accept fluxes
-		// - accept undefined
-		// - return Mono/Flux
-		// Functions currently still operate in the 1.0.0 engine mindset.
-		//
-		// But don't forget:
-		// Functions can be used in target expressions. Therefore they must
-		// never produce a flux of multiple results by their own, only if their
-		// arguments are fluxes of multiple values (which is never the case in
-		// target expressions).
-		// It is only the functions themselves and the FunctionContext, which
-		// are non reactive. The BasicFunction expression (implemented in this
-		// class) adds reactive behavior.
-		final ArrayNode argumentsArray = JSON.arrayNode();
+	private Flux<Val> evaluateFunction(Val[] parameters, EvaluationContext ctx) {
 		try {
-			if (parameters != null) {
-				for (Object paramNode : parameters) {
-					argumentsArray.add(((Optional<JsonNode>) paramNode).orElseThrow(
-							() -> new FunctionException(UNDEFINED_PARAMETER_VALUE_HANDED_TO_FUNCTION_CALL)));
-				}
-			}
-			return Flux.just(ctx.getFunctionCtx().evaluate(functionName(ctx), argumentsArray));
-		}
-		catch (FunctionException e) {
+			return Flux.just(ctx.getFunctionCtx().evaluate(functionName(ctx), parameters));
+		} catch (FunctionException e) {
 			return Flux.error(new PolicyEvaluationException(e));
 		}
 	}

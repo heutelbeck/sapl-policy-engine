@@ -23,6 +23,7 @@ import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.pip.geo.KMLImport;
 import io.sapl.interpreter.pip.geo.PostGISConnection;
 import io.sapl.interpreter.pip.geo.TraccarConnection;
@@ -36,21 +37,18 @@ public class GeoPolicyInformationPoint {
 	public static final String DESCRIPTION = "PIP for geographical data.";
 
 	@Attribute
-	public Flux<JsonNode> traccar(JsonNode value, Map<String, JsonNode> variables)
-			throws AttributeException, FunctionException {
-		return Flux.just(new TraccarConnection(value).toGeoPIPResponse());
+	public Flux<Val> traccar(Val value, Map<String, JsonNode> variables) throws AttributeException, FunctionException {
+		return Flux.just(Val.of(new TraccarConnection(value.get()).toGeoPIPResponse()));
 	}
 
 	@Attribute
-	public Flux<JsonNode> postgis(JsonNode value, Map<String, JsonNode> variables)
-			throws AttributeException, FunctionException {
-		return Flux.just(new PostGISConnection(value).toGeoPIPResponse());
+	public Flux<Val> postgis(Val value, Map<String, JsonNode> variables) throws AttributeException, FunctionException {
+		return Flux.just(Val.of(new PostGISConnection(value.get()).toGeoPIPResponse()));
 	}
 
 	@Attribute
-	public Flux<JsonNode> kml(JsonNode value, Map<String, JsonNode> variables)
-			throws AttributeException, FunctionException {
-		return Flux.just(new KMLImport(value).toGeoPIPResponse());
+	public Flux<Val> kml(Val value, Map<String, JsonNode> variables) throws AttributeException, FunctionException {
+		return Flux.just(Val.of(new KMLImport(value.get()).toGeoPIPResponse()));
 	}
 
 }

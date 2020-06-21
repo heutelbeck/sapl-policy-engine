@@ -15,22 +15,18 @@
  */
 package io.sapl.interpreter;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.grammar.sapl.impl.Val;
 
 @FunctionLibrary(name = "string")
 public class MockXACMLStringFunctionLibrary {
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	@Function
-	public JsonNode starts_with(JsonNode string, JsonNode start) throws FunctionException {
-		String str = string.asText();
-		return JSON.booleanNode(str.startsWith(start.asText()));
+	public Val starts_with(Val string, Val start) throws FunctionException {
+		String str = string.get().asText();
+		return Val.of(str.startsWith(start.get().asText()));
 	}
 
 }

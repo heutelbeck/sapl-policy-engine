@@ -36,7 +36,26 @@ public class FunctionException extends Exception {
 	public FunctionException(String message) {
 		super(message);
 	}
+	/**
+	 * Create a new PolicyEvaluationException
+	 * 
+	 * @param format format string
+	 * @param args   arguments for format string
+	 */
+	public FunctionException(String format, Object... args) {
+		super(String.format(format, args));
+	}
 
+	/**
+	 * Create a new PolicyEvaluationException
+	 * 
+	 * @param format format string
+	 * @param cause  causing Throwable
+	 * @param args   arguments for format string
+	 */
+	public FunctionException(Throwable cause, String format, Object... args) {
+		super(String.format(format, args), cause);
+	}
 	/**
 	 * Create a new FunctionException 
 	 * @param message a message

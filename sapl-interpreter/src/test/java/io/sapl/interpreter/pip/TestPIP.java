@@ -18,11 +18,14 @@ package io.sapl.interpreter.pip;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.grammar.sapl.impl.Val;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -36,14 +39,17 @@ public class TestPIP {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	public TestPIP() {
-		LOGGER.trace("PIP: " + NAME);
+	@Attribute
+	public Flux<Val> echo(Val value, Map<String, JsonNode> variables) {
+		logVars(variables);
+		return Flux.just(value);
 	}
 
 	@Attribute
-	public Flux<JsonNode> echo(JsonNode value, Map<String, JsonNode> variables) {
+	public Flux<Val> echoRepeat(Val value, Map<String, JsonNode> variables, Flux<Val> repetitions) {
 		logVars(variables);
-		return Flux.just(value);
+		return repetitions.map(
+				n -> Val.of(StringUtils.repeat(value.orElse(JSON.textNode("undefined")).asText(), n.get().asInt())));
 	}
 
 	private void logVars(Map<String, JsonNode> variables) {
@@ -53,12 +59,12 @@ public class TestPIP {
 	}
 
 	@Attribute
-	public Flux<JsonNode> someVariableOrNull(JsonNode value, Map<String, JsonNode> variables) {
+	public Flux<Val> someVariableOrNull(Val value, Map<String, JsonNode> variables) {
 		logVars(variables);
-		if (variables.containsKey(value.asText())) {
-			return Flux.just(variables.get(value.asText()).deepCopy());
+		if (value.isDefined() && variables.containsKey(value.get().asText())) {
+			return Flux.just(Val.of(variables.get(value.get().asText()).deepCopy()));
 		}
-		return Flux.just(JSON.nullNode());
+		return Val.nullFlux();
 	}
 
 }

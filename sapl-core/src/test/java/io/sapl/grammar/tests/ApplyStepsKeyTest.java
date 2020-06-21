@@ -19,7 +19,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.Test;
 
@@ -33,7 +32,7 @@ import com.google.common.collect.Multiset;
 import io.sapl.grammar.sapl.KeyStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
-import io.sapl.grammar.sapl.impl.Value;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
@@ -63,41 +62,40 @@ public class ApplyStepsKeyTest {
 
 		ObjectNode node = JSON.objectNode();
 		node.set(KEY, JSON.textNode(value));
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(node));
+		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(node));
 
-		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.of(JSON.textNode(value)), Optional.of(node),
-				KEY);
+		ResultNode expectedResult = new JsonNodeWithParentObject(Val.of(JSON.textNode(value)), Val.of(node), KEY);
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Key step applied to object should return the value of the attribute",
 						expectedResult, result));
 	}
 
 	@Test
 	public void applyToNullNode() {
-		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(Value.undefined());
+		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(Val.undefined());
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), KEY);
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(
+		ResultNode expectedResult = new JsonNodeWithParentObject(Val.undefined(), previousResult.getNode(), KEY);
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("Accessing null object should yield undefined.", expectedResult, result));
 	}
 
 	@Test
 	public void applyToObjectWithoutKey() {
-		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(Optional.of(JSON.objectNode()));
+		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(Val.of(JSON.objectNode()));
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		ResultNode expectedResult = new JsonNodeWithParentObject(Optional.empty(), previousResult.getNode(), KEY);
+		ResultNode expectedResult = new JsonNodeWithParentObject(Val.undefined(), previousResult.getNode(), KEY);
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("Accessing empty object should yield undefined.", expectedResult, result));
 	}
 
@@ -106,14 +104,14 @@ public class ApplyStepsKeyTest {
 		ArrayNode array = JSON.arrayNode();
 		array.add(JSON.nullNode());
 		array.add(JSON.booleanNode(true));
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
+		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(array));
 
 		ResultNode expectedResult = new ArrayResultNode(new ArrayList<>());
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Key step applied to array node without objects should return empty ArrayResultNode",
 						expectedResult, result));
@@ -129,17 +127,16 @@ public class ApplyStepsKeyTest {
 		ObjectNode object = JSON.objectNode();
 		object.set(KEY, value);
 		array.add(object);
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
+		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(array));
 
-		JsonNodeWithParentObject expectedResultNode = new JsonNodeWithParentObject(Optional.of(value),
-				Optional.of(object), KEY);
+		JsonNodeWithParentObject expectedResultNode = new JsonNodeWithParentObject(Val.of(value), Val.of(object), KEY);
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
 		expectedResultSet.add(expectedResultNode);
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Key step applied to array node should return ArrayResultNode with results", expectedResultSet,
 					resultSet);
@@ -154,16 +151,16 @@ public class ApplyStepsKeyTest {
 		node.set(KEY, JSON.textNode(value));
 
 		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
-		listIn.add(new JsonNodeWithoutParent(Optional.of(node)));
+		listIn.add(new JsonNodeWithoutParent(Val.of(node)));
 		ResultNode previousResult = new ArrayResultNode(listIn);
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.textNode(value)), Optional.of(node), KEY));
+		expectedResultSet.add(new JsonNodeWithParentObject(Val.of(JSON.textNode(value)), Val.of(node), KEY));
 
 		KeyStep step = factory.createKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Key step applied to ArrayResultNode should return an array with the correct values",
 					expectedResultSet, resultSet);

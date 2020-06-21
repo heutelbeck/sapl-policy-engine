@@ -15,13 +15,11 @@
  */
 package io.sapl.interpreter.selection;
 
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.Void;
 import lombok.EqualsAndHashCode;
@@ -30,8 +28,8 @@ import lombok.Value;
 import reactor.core.publisher.Flux;
 
 /**
- * Represents a JsonNode which is the value of an attribute of an ObjectNode in the tree
- * on which the selection is performed.
+ * Represents a JsonNode which is the value of an attribute of an ObjectNode in
+ * the tree on which the selection is performed.
  */
 @Value
 @EqualsAndHashCode(callSuper = true)
@@ -40,7 +38,7 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 
 	private String attribute;
 
-	public JsonNodeWithParentObject(Optional<JsonNode> node, Optional<JsonNode> parent, String attribute) {
+	public JsonNodeWithParentObject(Val node, Val parent, String attribute) {
 		super(node, parent);
 		this.attribute = attribute;
 	}
@@ -64,8 +62,7 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 	public void removeFromTree(boolean each) throws PolicyEvaluationException {
 		if (each) {
 			removeEachItem(node);
-		}
-		else {
+		} else {
 			((ObjectNode) parent.get()).remove(attribute);
 		}
 	}
@@ -78,11 +75,10 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 
 	@Override
 	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+			EvaluationContext ctx, boolean isBody, Val relativeNode) {
 		if (each) {
 			return applyFilterToEachItem(node, function, arguments, ctx, isBody);
-		}
-		else {
+		} else {
 			return applyFilterToNode(node, function, arguments, ctx, isBody, relativeNode).map(filteredNode -> {
 				((ObjectNode) parent.get()).set(attribute, filteredNode.get());
 				return Void.INSTANCE;
@@ -92,7 +88,7 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 
 	@Override
 	public boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException {
-		return other.isNodeWithParentObject() && other.getParent().isPresent() && getParent().isPresent()
+		return other.isNodeWithParentObject() && other.getParent().isDefined() && getParent().isDefined()
 				&& other.getParent().get() == getParent().get()
 				&& getAttribute().equals(((JsonNodeWithParentObject) other).getAttribute());
 	}

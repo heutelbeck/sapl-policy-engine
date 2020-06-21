@@ -16,16 +16,16 @@
 package io.sapl.interpreter.pip;
 
 import java.util.Collection;
-import java.util.Map;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pip.AttributeException;
+import io.sapl.grammar.sapl.Arguments;
+import io.sapl.grammar.sapl.impl.Val;
+import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 public interface AttributeContext {
 
-	Flux<JsonNode> evaluate(String attribute, JsonNode value, Map<String, JsonNode> variables);
+	Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments);
 
 	Boolean provides(String function);
 

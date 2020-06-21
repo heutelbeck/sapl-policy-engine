@@ -20,35 +20,32 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.interpreter.DependentStreamsUtil;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.FluxProvider;
-import io.sapl.interpreter.DependentStreamsUtil;
 import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> apply(Optional<JsonNode> unfilteredRootNode, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<Val> apply(Val unfilteredRootNode, EvaluationContext ctx, boolean isBody, Val relativeNode) {
 		final JsonNode result = unfilteredRootNode.get().deepCopy();
 		if (statements != null && !statements.isEmpty()) {
-			final List<FluxProvider<Optional<JsonNode>>> fluxProviders = new ArrayList<>(statements.size());
+			final List<FluxProvider<Val>> fluxProviders = new ArrayList<>(statements.size());
 			for (FilterStatement statement : statements) {
 				final String function = String.join(".", statement.getFsteps());
 				fluxProviders.add(node -> applyFilterStatement(node, statement.getTarget().getSteps(),
 						statement.isEach(), function, statement.getArguments(), ctx, isBody, relativeNode));
 			}
-			return DependentStreamsUtil.nestedSwitchMap(Optional.of(result), fluxProviders);
-		}
-		else {
-			return Flux.just(Optional.of(result));
+			return DependentStreamsUtil.nestedSwitchMap(Val.of(result), fluxProviders);
+		} else {
+			return Flux.just(Val.of(result));
 		}
 	}
 

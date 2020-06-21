@@ -15,51 +15,47 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 /**
  * Checks for equality of two values.
  *
- * Grammar: Comparison returns Expression: Prefixed (({Equals.left=current} '==')
- * right=Prefixed)? ;
+ * Grammar: Comparison returns Expression: Prefixed (({Equals.left=current}
+ * '==') right=Prefixed)? ;
  */
 public class EqualsImplCustom extends EqualsImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+		final Flux<Val> left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Val> right = getRight().evaluate(ctx, isBody, relativeNode);
 		return Flux.combineLatest(left, right, this::equals).distinctUntilChanged();
 	}
 
 	/**
 	 * Compares two values
-	 * @param left a value
+	 * 
+	 * @param left  a value
 	 * @param right a value
 	 * @return true if both values are equal
 	 */
-	private Optional<JsonNode> equals(Optional<JsonNode> left, Optional<JsonNode> right) {
+	private Val equals(Val left, Val right) {
 		// if both values are undefined, they are equal
-		if (!left.isPresent() && !right.isPresent()) {
-			return Value.ofTrue();
+		if (left.isUndefined() && right.isUndefined()) {
+			return Val.ofTrue();
 		}
 		// only one value is undefined the two values are not equal
-		if (!left.isPresent() || !right.isPresent()) {
-			return Value.ofFalse();
+		if (left.isUndefined() || right.isUndefined()) {
+			return Val.ofFalse();
 		}
 		// if both values are numbers do a numerical comparison, as they may be
 		// represented differently in JSON
 		if (left.get().isNumber() && right.get().isNumber()) {
-			return Value.of(left.get().decimalValue().compareTo(right.get().decimalValue()) == 0);
-		}
-		else {
+			return Val.of(left.get().decimalValue().compareTo(right.get().decimalValue()) == 0);
+		} else {
 			// else do a deep comparison
-			return Value.of(left.get().equals(right.get()));
+			return Val.of(left.get().equals(right.get()));
 		}
 	}
 

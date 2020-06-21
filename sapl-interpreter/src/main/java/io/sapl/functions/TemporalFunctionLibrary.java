@@ -15,7 +15,6 @@
  */
 package io.sapl.functions;
 
-import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -25,15 +24,14 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import java.util.NoSuchElementException;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Text;
+import io.sapl.grammar.sapl.impl.Val;
 
 @FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION)
 public class TemporalFunctionLibrary {
@@ -74,121 +72,117 @@ public class TemporalFunctionLibrary {
 
 	private static final String PARAMETER_NOT_AN_ISO_8601_STRING = "Parameter not an ISO 8601 string";
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	@Function(docs = BEFORE_DOC)
-	public static JsonNode before(@Text JsonNode timeOne, @Text JsonNode timeTwo) throws FunctionException {
+	public static Val before(@Text Val timeOne, @Text Val timeTwo) throws FunctionException {
 		Instant t1 = nodeToInstant(timeOne);
 		Instant t2 = nodeToInstant(timeTwo);
-		return JSON.booleanNode(t1.isBefore(t2));
+		return Val.of(t1.isBefore(t2));
 	}
 
 	@Function(docs = AFTER_DOC)
-	public static JsonNode after(@Text JsonNode timeOne, @Text JsonNode timeTwo) throws FunctionException {
+	public static Val after(@Text Val timeOne, @Text Val timeTwo) throws FunctionException {
 		Instant t1 = nodeToInstant(timeOne);
 		Instant t2 = nodeToInstant(timeTwo);
-		return JSON.booleanNode(t1.isAfter(t2));
+		return Val.of(t1.isAfter(t2));
 	}
 
 	@Function(docs = BETWEEN_DOC)
-	public static JsonNode between(@Text JsonNode time, @Text JsonNode timeOne, @Text JsonNode timeTwo)
-			throws FunctionException {
+	public static Val between(@Text Val time, @Text Val timeOne, @Text Val timeTwo) throws FunctionException {
 		Instant t = nodeToInstant(time);
 		Instant t1 = nodeToInstant(timeOne);
 		Instant t2 = nodeToInstant(timeTwo);
 		boolean result = t.equals(t1) || t.equals(t2) || (t.isBefore(t2) && t.isAfter(t1));
-		return JSON.booleanNode(result);
+		return Val.of(result);
 	}
 
 	@Function(docs = PLUSNANOS_DOC)
-	public static JsonNode plusNanos(@Text JsonNode startTime, @Long JsonNode nanos) throws FunctionException {
+	public static Val plusNanos(@Text Val startTime, @Long Val nanos) throws FunctionException {
 		Instant time = nodeToInstant(startTime);
-		long duration = nanos.asLong();
-		return JSON.textNode(time.plusNanos(duration).toString());
+		long duration = nanos.get().asLong();
+		return Val.of(time.plusNanos(duration).toString());
 	}
 
 	@Function(docs = PLUSMILLIS_DOC)
-	public static JsonNode plusMillis(@Text JsonNode startTime, @Long JsonNode millis) throws FunctionException {
+	public static Val plusMillis(@Text Val startTime, @Long Val millis) throws FunctionException {
 		Instant time = nodeToInstant(startTime);
-		long duration = millis.asLong();
-		return JSON.textNode(time.plusMillis(duration).toString());
+		long duration = millis.get().asLong();
+		return Val.of(time.plusMillis(duration).toString());
 	}
 
 	@Function(docs = PLUSSECONDS_DOC)
-	public static JsonNode plusSeconds(@Text JsonNode startTime, @Long JsonNode seconds) throws FunctionException {
+	public static Val plusSeconds(@Text Val startTime, @Long Val seconds) throws FunctionException {
 		Instant time = nodeToInstant(startTime);
-		long duration = seconds.asLong();
-		return JSON.textNode(time.plusSeconds(duration).toString());
+		long duration = seconds.get().asLong();
+		return Val.of(time.plusSeconds(duration).toString());
 	}
 
 	@Function(docs = MINUSNANOS_DOC)
-	public static JsonNode minusNanos(@Text JsonNode startTime, @Long JsonNode nanos) throws FunctionException {
+	public static Val minusNanos(@Text Val startTime, @Long Val nanos) throws FunctionException {
 		Instant time = nodeToInstant(startTime);
-		long duration = nanos.asLong();
-		return JSON.textNode(time.minusNanos(duration).toString());
+		long duration = nanos.get().asLong();
+		return Val.of(time.minusNanos(duration).toString());
 	}
 
 	@Function(docs = MINUSMILLIS_DOC)
-	public static JsonNode minusMillis(@Text JsonNode startTime, @Long JsonNode millis) throws FunctionException {
+	public static Val minusMillis(@Text Val startTime, @Long Val millis) throws FunctionException {
 		Instant time = nodeToInstant(startTime);
-		long duration = millis.asLong();
-		return JSON.textNode(time.minusMillis(duration).toString());
+		long duration = millis.get().asLong();
+		return Val.of(time.minusMillis(duration).toString());
 	}
 
 	@Function(docs = MINUSSECONDS_DOC)
-	public static JsonNode minusSeconds(@Text JsonNode startTime, @Long JsonNode seconds) throws FunctionException {
+	public static Val minusSeconds(@Text Val startTime, @Long Val seconds) throws FunctionException {
 		Instant time = nodeToInstant(startTime);
-		long duration = seconds.asLong();
-		return JSON.textNode(time.minusSeconds(duration).toString());
+		long duration = seconds.get().asLong();
+		return Val.of(time.minusSeconds(duration).toString());
 	}
 
 	@Function(docs = DAYOFWEEK_DOC)
-	public static JsonNode dayOfWeekFrom(@Text JsonNode time) throws FunctionException {
+	public static Val dayOfWeekFrom(@Text Val time) throws FunctionException {
 		final Instant instant = nodeToInstant(time);
 		final OffsetDateTime utc = instant.atOffset(ZoneOffset.UTC);
-		return JSON.textNode(DayOfWeek.from(utc).toString());
+		return Val.of(DayOfWeek.from(utc).toString());
 	}
 
 	@Function(docs = LOCAL_DATE_TIME_DOC)
-	public static JsonNode localDateTime(@Text JsonNode utcDateTime) throws FunctionException {
+	public static Val localDateTime(@Text Val utcDateTime) throws FunctionException {
 		final Instant instant = nodeToInstant(utcDateTime);
 		final LocalDateTime localDateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
-		return JSON.textNode(localDateTime.truncatedTo(ChronoUnit.SECONDS).toString());
+		return Val.of(localDateTime.truncatedTo(ChronoUnit.SECONDS).toString());
 	}
 
 	@Function(docs = LOCAL_TIME_DOC)
-	public static JsonNode localTime(@Text JsonNode utcDateTime) throws FunctionException {
+	public static Val localTime(@Text Val utcDateTime) throws FunctionException {
 		final Instant instant = nodeToInstant(utcDateTime);
 		final LocalTime localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime();
-		return JSON.textNode(localTime.truncatedTo(ChronoUnit.SECONDS).toString());
+		return Val.of(localTime.truncatedTo(ChronoUnit.SECONDS).toString());
 	}
 
 	@Function(docs = LOCAL_HOUR_DOC)
-	public static JsonNode localHour(@Text JsonNode utcDateTime) throws FunctionException {
+	public static Val localHour(@Text Val utcDateTime) throws FunctionException {
 		final Instant instant = nodeToInstant(utcDateTime);
 		final LocalTime localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime();
-		return JSON.numberNode(BigDecimal.valueOf(localTime.getHour()));
+		return Val.of(localTime.getHour());
 	}
 
 	@Function(docs = LOCAL_MINUTE_DOC)
-	public static JsonNode localMinute(@Text JsonNode utcDateTime) throws FunctionException {
+	public static Val localMinute(@Text Val utcDateTime) throws FunctionException {
 		final Instant instant = nodeToInstant(utcDateTime);
 		final LocalTime localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime();
-		return JSON.numberNode(BigDecimal.valueOf(localTime.getMinute()));
+		return Val.of(localTime.getMinute());
 	}
 
 	@Function(docs = LOCAL_SECOND_DOC)
-	public static JsonNode localSecond(@Text JsonNode utcDateTime) throws FunctionException {
+	public static Val localSecond(@Text Val utcDateTime) throws FunctionException {
 		final Instant instant = nodeToInstant(utcDateTime);
 		final LocalTime localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime();
-		return JSON.numberNode(BigDecimal.valueOf(localTime.getSecond()));
+		return Val.of(localTime.getSecond());
 	}
 
-	private static Instant nodeToInstant(JsonNode time) throws FunctionException {
+	private static Instant nodeToInstant(Val time) throws FunctionException {
 		try {
-			return Instant.parse(time.asText());
-		}
-		catch (DateTimeParseException e) {
+			return Instant.parse(time.get().asText());
+		} catch (DateTimeParseException | NoSuchElementException e) {
 			throw new FunctionException(PARAMETER_NOT_AN_ISO_8601_STRING, e);
 		}
 	}

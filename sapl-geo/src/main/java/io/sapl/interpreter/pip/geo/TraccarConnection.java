@@ -96,8 +96,7 @@ public class TraccarConnection {
 	public JsonNode toGeoPIPResponse() throws AttributeException, FunctionException {
 		if (config == null) {
 			return JSON.textNode(TEST_OKAY);
-		}
-		else {
+		} else {
 			TraccarDevice device = getTraccarDevice(config.getDeviceID());
 			TraccarPosition position = getTraccarPosition(device);
 			TraccarGeofence[] geofences = getTraccarGeofences(device);
@@ -112,8 +111,7 @@ public class TraccarConnection {
 			final JsonNode response = requestExecutor.executeBlockingRequest(requestSpec, GET);
 			TraccarDevice[] devices = MAPPER.convertValue(response, TraccarDevice[].class);
 			return findDevice(devices, uniqueID);
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			throw new AttributeException(e);
 		}
 
@@ -138,8 +136,7 @@ public class TraccarConnection {
 			// Highest ID is most current position
 			Arrays.sort(traccarPositions, TraccarPosition::compareDescending);
 			return traccarPositions[0];
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			throw new AttributeException(e);
 		}
 	}
@@ -153,8 +150,7 @@ public class TraccarConnection {
 		try {
 			final JsonNode response = requestExecutor.executeBlockingRequest(requestSpec, GET);
 			return MAPPER.convertValue(response, TraccarGeofence[].class);
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			throw new AttributeException(e);
 		}
 	}
@@ -191,8 +187,7 @@ public class TraccarConnection {
 			byte[] encodedBytes = Base64.getEncoder()
 					.encode((config.getUsername() + ":" + config.getPassword()).getBytes(StandardCharsets.UTF_8));
 			headerProperties.put("Authorization", "Basic " + new String(encodedBytes, StandardCharsets.UTF_8));
-		}
-		else {
+		} else {
 			headerProperties.put("Authorization", "Basic " + config.getCredentials());
 		}
 
@@ -217,7 +212,7 @@ public class TraccarConnection {
 
 	private static TraccarDevice findDevice(TraccarDevice[] devices, String uniqueID) throws AttributeException {
 		if (devices == null) {
-			throw new AttributeException(String.format(NO_SUCH_DEVICE_FOUND, uniqueID));
+			throw new AttributeException(NO_SUCH_DEVICE_FOUND, uniqueID);
 		}
 
 		TraccarDevice returnDevice = null;
@@ -229,7 +224,7 @@ public class TraccarConnection {
 		}
 
 		if (returnDevice == null) {
-			throw new AttributeException(String.format(NO_SUCH_DEVICE_FOUND, uniqueID));
+			throw new AttributeException(NO_SUCH_DEVICE_FOUND, uniqueID);
 		}
 		return returnDevice;
 	}
