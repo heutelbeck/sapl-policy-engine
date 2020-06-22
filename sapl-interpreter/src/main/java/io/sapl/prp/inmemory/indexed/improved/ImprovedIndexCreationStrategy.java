@@ -2,12 +2,25 @@ package io.sapl.prp.inmemory.indexed.improved;
 
 import com.google.common.collect.ImmutableMap;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.prp.inmemory.indexed.*;
+import io.sapl.prp.inmemory.indexed.Bool;
+import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
+import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
+import io.sapl.prp.inmemory.indexed.IndexContainer;
+import io.sapl.prp.inmemory.indexed.IndexCreationStrategy;
+import io.sapl.prp.inmemory.indexed.Literal;
+import io.sapl.prp.inmemory.indexed.Variable;
+import io.sapl.prp.inmemory.indexed.VariableInfo;
+import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
 
     @Override
@@ -18,7 +31,7 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
         Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas = mapClauseToFormulas(
                 formulaToDocuments.keySet());
 
-        Set<ConjunctiveClause> conjunctiveClauseSet = clauseToFormulas.keySet();
+//        Set<ConjunctiveClause> conjunctiveClauseSet = clauseToFormulas.keySet();
         Map<ConjunctiveClause, Integer> numberOfFormulasWithConjunction = clauseToFormulas.entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey,
                         conjunctiveClauseSetEntry -> conjunctiveClauseSetEntry.getValue().size()));
@@ -29,7 +42,8 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
         Map<Bool, VariableInfo> variableInfo = getVariableInfo(formulaToDocuments.keySet());
         Set<Bool> boolSet = variableInfo.keySet();
 
-        return new ImprovedIndexContainer(conjunctiveClauseSet, boolSet,
+        //TODO think of making all these maps immutable
+        return new ImprovedIndexContainer(boolSet,
                 numberOfFormulasWithConjunction, conjunctionsInFormulasReferencingConjunction,
                 clauseToFormulas, formulaToDocuments, variableInfo);
     }

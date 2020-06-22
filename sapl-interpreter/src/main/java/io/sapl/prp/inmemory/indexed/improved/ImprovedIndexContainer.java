@@ -1,26 +1,33 @@
 package io.sapl.prp.inmemory.indexed.improved;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
-import io.sapl.prp.inmemory.indexed.*;
+import io.sapl.prp.inmemory.indexed.Bool;
+import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
+import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
+import io.sapl.prp.inmemory.indexed.IndexContainer;
+import io.sapl.prp.inmemory.indexed.Literal;
+import io.sapl.prp.inmemory.indexed.Variable;
+import io.sapl.prp.inmemory.indexed.VariableInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
 public class ImprovedIndexContainer implements IndexContainer {
 
-    private final Set<ConjunctiveClause> candidateSet;
     private final Set<Bool> boolSet;
 
-    //replaced by calling size() method of clause
-    //    private final Map<ConjunctiveClause, Integer> numberOfLiteralsInConjunction;
     private final Map<ConjunctiveClause, Integer> numberOfFormulasWithConjunction;
 
     private final Map<ConjunctiveClause, Set<MTuple>> conjunctionsInFormulasReferencingConjunction;
@@ -33,35 +40,61 @@ public class ImprovedIndexContainer implements IndexContainer {
 
     @Override
     public PolicyRetrievalResult match(FunctionContext functionCtx, VariableContext variableCtx) {
+        //create new candidate set, that can be modified
+        Set<ConjunctiveClause> candidateSet = new HashSet<>(conjunctiveClauseInFormula.keySet());
+        LOGGER.info("number of candidates: {}, number of predicates: {}", candidateSet.size(), boolSet.size());
+
         Map<ConjunctiveClause, Integer> trueLiteralsOfConjunction = new HashMap<>();
         Map<ConjunctiveClause, Integer> eliminatedFormulasWithConjunction = new HashMap<>();
         Set<DisjunctiveFormula> resultSet = new HashSet<>();
         boolean errorOccurred = false;
 
-        try {
-            for (Bool predicate : boolSet) {
-                if (!isReferenced(predicate)) continue;
+//        try {
+        for (VariableInfo variableInfo : variableInfo.values()) {
+//            for (Bool predicate : boolSet) {
+            Bool predicate = variableInfo.getVariable().getBool();
+            LOGGER.info("candidates remaining: {}", candidateSet.size());
+            if (!isReferenced(predicate, candidateSet)) continue;
 
-                boolean predicateEvaluationResult = isPredicateSatisfied(predicate, functionCtx, variableCtx);
-                Set<ConjunctiveClause> satisfiableCandidates = findSatisfiableCandidates(predicate, predicateEvaluationResult, trueLiteralsOfConjunction);
-                resultSet.addAll(fetchFormulas(satisfiableCandidates));
-                Set<ConjunctiveClause> unsatisfiableCandidates = findUnsatisfiableCandidates(predicate, predicateEvaluationResult);
-                Set<ConjunctiveClause> orphanedCandidates = findOrphanedCandidates(satisfiableCandidates, eliminatedFormulasWithConjunction);
-
-                candidateSet.removeAll(satisfiableCandidates);
-                candidateSet.removeAll(unsatisfiableCandidates);
-                candidateSet.removeAll(orphanedCandidates);
+            Optional<Boolean> outcome = isPredicateSatisfied(variableInfo
+                    .getVariable(), functionCtx, variableCtx);
+            if (!outcome.isPresent()) {
+                //TODO error handling
+                LOGGER.info("missing context for predicate {}", predicate);
+                Set<ConjunctiveClause> missingContextCandidates = getCandidatesContainingPredicate(predicate);
+                candidateSet.removeAll(missingContextCandidates);
+                continue;
             }
-        } catch (PolicyEvaluationException e) {
-            LOGGER.error("policy evaluation failed", e);
-            errorOccurred = true;
+
+            boolean predicateEvaluationResult = outcome.get();
+
+            Set<ConjunctiveClause> satisfiableCandidates = findSatisfiableCandidates(predicate, predicateEvaluationResult, trueLiteralsOfConjunction);
+            resultSet.addAll(fetchFormulas(satisfiableCandidates));
+            Set<ConjunctiveClause> unsatisfiableCandidates = findUnsatisfiableCandidates(predicate, predicateEvaluationResult);
+            Set<ConjunctiveClause> orphanedCandidates = findOrphanedCandidates(satisfiableCandidates, eliminatedFormulasWithConjunction);
+
+            candidateSet.removeAll(satisfiableCandidates);
+            candidateSet.removeAll(unsatisfiableCandidates);
+            candidateSet.removeAll(orphanedCandidates);
         }
+//        } catch (PolicyEvaluationException e) {
+//            LOGGER.error("policy evaluation failed", e);
+//            errorOccurred = true;
+//        }
 
         return new PolicyRetrievalResult(fetchPolicies(resultSet), errorOccurred);
     }
 
-    private boolean isPredicateSatisfied(Bool predicate, FunctionContext functionCtx,
-                                         VariableContext variableCtx) throws PolicyEvaluationException {
+    private Set<ConjunctiveClause> getCandidatesContainingPredicate(Bool predicate) {
+        VariableInfo info = this.variableInfo.get(predicate);
+        HashSet<ConjunctiveClause> clauses = new HashSet<>(info.getSetOfUnsatisfiableClausesIfFalse());
+        clauses.addAll(info.getSetOfUnsatisfiableClausesIfTrue());
+
+        return clauses;
+    }
+
+    private Optional<Boolean> isPredicateSatisfied(Variable predicate, FunctionContext functionCtx,
+                                                   VariableContext variableCtx) {
         return predicate.evaluate(functionCtx, variableCtx);
     }
 
@@ -77,11 +110,8 @@ public class ImprovedIndexContainer implements IndexContainer {
 
         for (ConjunctiveClause satisfiableCandidate : satisfiableCandidates) {
             for (MTuple mTuple : conjunctionsInFormulasReferencingConjunction.get(satisfiableCandidate)) {
-                eliminatedFormulasWithConjunction
-                        .compute(mTuple.getConjunctiveClause(),
-                                (conjunction, integer) -> integer == null ? mTuple
-                                        .getNumbersOfFormularsWithConjunctiveClaus() :
-                                        integer + mTuple.getNumbersOfFormularsWithConjunctiveClaus());
+                eliminatedFormulasWithConjunction.merge(mTuple.getConjunctiveClause(), mTuple
+                        .getNumbersOfFormularsWithConjunctiveClaus(), Integer::sum);
 
                 if (eliminatedFormulasWithConjunction.get(mTuple.getConjunctiveClause())
                         .equals(numberOfFormulasWithConjunction
@@ -110,18 +140,19 @@ public class ImprovedIndexContainer implements IndexContainer {
         Set<ConjunctiveClause> resultSet = new HashSet<>();
 
         for (ConjunctiveClause satisfiableCandidate : satisfiableCandidates) {
-            trueLiteralsOfConjunction
-                    .compute(satisfiableCandidate, (conjunction, integer) -> integer == null ? 1 : integer++);
+            trueLiteralsOfConjunction.merge(satisfiableCandidate, 1, Integer::sum);
 
             if (trueLiteralsOfConjunction.get(satisfiableCandidate)
-                    .equals(satisfiableCandidate.size()))
+                    .equals(satisfiableCandidate.size())) {
+                LOGGER.info("conjunction {} is satisfied", satisfiableCandidate);
                 resultSet.add(satisfiableCandidate);
+            }
         }
 
         return resultSet;
     }
 
-    private boolean isReferenced(Bool predicate) {
+    private boolean isReferenced(Bool predicate, Set<ConjunctiveClause> candidateSet) {
         return candidateSet.parallelStream()
                 .anyMatch(conjunction -> conjunctionContainsPredicate(conjunction, predicate));
     }

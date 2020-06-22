@@ -15,20 +15,21 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Preconditions;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+@Slf4j
 public class Bool {
 
 	static final String BOOL_NOT_IMMUTABLE = "Unable to evaluate volatile Bool in static context.";
