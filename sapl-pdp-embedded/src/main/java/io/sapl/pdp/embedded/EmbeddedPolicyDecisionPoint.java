@@ -31,8 +31,8 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationSubscription;
 import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationSubscription;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
 import io.sapl.api.pip.AttributeException;
@@ -56,6 +56,7 @@ import io.sapl.prp.filesystem.FilesystemPolicyRetrievalPoint;
 import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
@@ -64,8 +65,10 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
+	@Getter
 	private final FunctionContext functionCtx = new AnnotationFunctionContext();
 
+	@Getter
 	private final AttributeContext attributeCtx = new AnnotationAttributeContext();
 
 	private PDPConfigurationProvider configurationProvider;
@@ -126,8 +129,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 					.map(authzDecision -> new IdentifiableAuthorizationDecision(subscriptionId, authzDecision));
 			if (useSeparateSchedulers) {
 				identifiableAuthzDecisionFluxes.add(identifiableAuthzDecisionFlux.subscribeOn(schedulerForMerge));
-			}
-			else {
+			} else {
 				identifiableAuthzDecisionFluxes.add(identifiableAuthzDecisionFlux);
 			}
 		}
