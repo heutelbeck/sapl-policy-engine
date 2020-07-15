@@ -18,11 +18,8 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -30,11 +27,10 @@ import reactor.core.publisher.Flux;
 public class FilterSimpleImplCustom extends FilterSimpleImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> apply(Optional<JsonNode> unfilteredRootNode, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	public Flux<Val> apply(Val unfilteredRootNode, EvaluationContext ctx, boolean isBody, Val relativeNode) {
 		final String function = String.join(".", fsteps);
-		return applyFilterStatement(Optional.of(unfilteredRootNode.get().deepCopy()), null, each, function,
-				getArguments(), ctx, isBody, relativeNode);
+		return applyFilterStatement(Val.of(unfilteredRootNode.get().deepCopy()), null, each, function, getArguments(),
+				ctx, isBody, relativeNode);
 	}
 
 	@Override

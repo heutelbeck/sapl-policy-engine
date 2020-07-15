@@ -20,12 +20,10 @@ import static org.junit.Assert.assertEquals;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -33,6 +31,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.ArraySlicingStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
@@ -56,7 +55,7 @@ public class ApplyStepsArraySlicingTest {
 
 	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
 
-	private static Optional<JsonNode> numberArray;
+	private static Val numberArray;
 
 	private static ArrayResultNode resultArray;
 
@@ -64,11 +63,11 @@ public class ApplyStepsArraySlicingTest {
 	public void fillNumberArray() {
 
 		ArrayNode aux = JSON.arrayNode();
-		numberArray = Optional.of(aux);
+		numberArray = Val.of(aux);
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
 		for (int i = 0; i < 10; i++) {
 			aux.add(JSON.numberNode(BigDecimal.valueOf(i)));
-			list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(i))), numberArray, i));
+			list.add(new JsonNodeWithParentArray(Val.of(BigDecimal.valueOf(i)), numberArray, i));
 		}
 		resultArray = new ArrayResultNode(list);
 	}
@@ -76,17 +75,17 @@ public class ApplyStepsArraySlicingTest {
 	@Test
 	public void applySlicingToNoArray() {
 		ArraySlicingStep slicingStep = factory.createArraySlicingStep();
-		JsonNodeWithoutParent node = new JsonNodeWithoutParent(Optional.of(JSON.objectNode()));
-		StepVerifier.create(node.applyStep(slicingStep, ctx, false, Optional.empty()))
+		JsonNodeWithoutParent node = new JsonNodeWithoutParent(Val.of(JSON.objectNode()));
+		StepVerifier.create(node.applyStep(slicingStep, ctx, false, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void applySlicingToArrayNode() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(1))), numberArray, 1));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(2))), numberArray, 2));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(3))), numberArray, 3));
+		list.add(new JsonNodeWithParentArray(Val.of(1L), numberArray, 1));
+		list.add(new JsonNodeWithParentArray(Val.of(2L), numberArray, 2));
+		list.add(new JsonNodeWithParentArray(Val.of(3L), numberArray, 3));
 		ResultNode expectedResult = new ArrayResultNode(list);
 
 		applySlicingToArrayNode(1, 4, null).take(1)
@@ -97,8 +96,8 @@ public class ApplyStepsArraySlicingTest {
 	@Test
 	public void applySlicingToArrayNodeNegativeTo() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(7))), numberArray, 7));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(8))), numberArray, 8));
+		list.add(new JsonNodeWithParentArray(Val.of(7L), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(Val.of(8L), numberArray, 8));
 		ResultNode expectedResult = new ArrayResultNode(list);
 
 		applySlicingToArrayNode(7, -1, null).take(1)
@@ -110,8 +109,8 @@ public class ApplyStepsArraySlicingTest {
 	@Test
 	public void applySlicingToArrayNodeNegativeFrom() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(7))), numberArray, 7));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(8))), numberArray, 8));
+		list.add(new JsonNodeWithParentArray(Val.of(7L), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(Val.of(8L), numberArray, 8));
 		ResultNode expectedResult = new ArrayResultNode(list);
 
 		applySlicingToArrayNode(-3, 9, null).take(1)
@@ -133,9 +132,9 @@ public class ApplyStepsArraySlicingTest {
 	@Test
 	public void applySlicingToArrayNodeWithoutTo() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(7))), numberArray, 7));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(8))), numberArray, 8));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(9))), numberArray, 9));
+		list.add(new JsonNodeWithParentArray(Val.of(7L), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(Val.of(8L), numberArray, 8));
+		list.add(new JsonNodeWithParentArray(Val.of(9L), numberArray, 9));
 		ResultNode expectedResult = new ArrayResultNode(list);
 
 		applySlicingToArrayNode(7, null, null).take(1)
@@ -147,9 +146,9 @@ public class ApplyStepsArraySlicingTest {
 	@Test
 	public void applySlicingToArrayNodeWithoutFrom() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(0))), numberArray, 0));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(1))), numberArray, 1));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(2))), numberArray, 2));
+		list.add(new JsonNodeWithParentArray(Val.of(0L), numberArray, 0));
+		list.add(new JsonNodeWithParentArray(Val.of(1L), numberArray, 1));
+		list.add(new JsonNodeWithParentArray(Val.of(2L), numberArray, 2));
 		ResultNode expectedResult = new ArrayResultNode(list);
 
 		applySlicingToArrayNode(null, 3, null).take(1)
@@ -161,9 +160,9 @@ public class ApplyStepsArraySlicingTest {
 	@Test
 	public void applySlicingToArrayNodeWithNegativeFrom() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(7))), numberArray, 7));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(8))), numberArray, 8));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(9))), numberArray, 9));
+		list.add(new JsonNodeWithParentArray(Val.of(7L), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(Val.of(8L), numberArray, 8));
+		list.add(new JsonNodeWithParentArray(Val.of(9L), numberArray, 9));
 		ResultNode expectedResult = new ArrayResultNode(list);
 
 		applySlicingToArrayNode(-3, null, null).take(1)
@@ -175,16 +174,16 @@ public class ApplyStepsArraySlicingTest {
 	@Test
 	public void applySlicingToArrayNodeWithNegativeStep() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(9))), numberArray, 9));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(8))), numberArray, 8));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(7))), numberArray, 7));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(6))), numberArray, 6));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(5))), numberArray, 5));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(4))), numberArray, 4));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(3))), numberArray, 3));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(2))), numberArray, 2));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(1))), numberArray, 1));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(0))), numberArray, 0));
+		list.add(new JsonNodeWithParentArray(Val.of(9L), numberArray, 9));
+		list.add(new JsonNodeWithParentArray(Val.of(8L), numberArray, 8));
+		list.add(new JsonNodeWithParentArray(Val.of(7L), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(Val.of(6L), numberArray, 6));
+		list.add(new JsonNodeWithParentArray(Val.of(5L), numberArray, 5));
+		list.add(new JsonNodeWithParentArray(Val.of(4L), numberArray, 4));
+		list.add(new JsonNodeWithParentArray(Val.of(3L), numberArray, 3));
+		list.add(new JsonNodeWithParentArray(Val.of(2L), numberArray, 2));
+		list.add(new JsonNodeWithParentArray(Val.of(1L), numberArray, 1));
+		list.add(new JsonNodeWithParentArray(Val.of(0L), numberArray, 0));
 		ResultNode expectedResult = new ArrayResultNode(list);
 
 		applySlicingToArrayNode(null, null, -1).take(1)
@@ -196,8 +195,8 @@ public class ApplyStepsArraySlicingTest {
 	@Test
 	public void applySlicingToArrayNodeWithNegativeStepAndNegativeFrom() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(8))), numberArray, 8));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(7))), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(Val.of(8L), numberArray, 8));
+		list.add(new JsonNodeWithParentArray(Val.of(7L), numberArray, 7));
 		ResultNode expectedResult = new ArrayResultNode(list);
 
 		applySlicingToArrayNode(-2, 6, -1).take(1)
@@ -209,9 +208,9 @@ public class ApplyStepsArraySlicingTest {
 	@Test
 	public void applySlicingToArrayNodeWithNegativeStepAndNegativeFromAndTo() {
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(8))), numberArray, 8));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(7))), numberArray, 7));
-		list.add(new JsonNodeWithParentArray(Optional.of(JSON.numberNode(BigDecimal.valueOf(6))), numberArray, 6));
+		list.add(new JsonNodeWithParentArray(Val.of(8L), numberArray, 8));
+		list.add(new JsonNodeWithParentArray(Val.of(7L), numberArray, 7));
+		list.add(new JsonNodeWithParentArray(Val.of(6L), numberArray, 6));
 		ResultNode expectedResult = new ArrayResultNode(list);
 
 		applySlicingToArrayNode(-2, -5, -1).take(1)
@@ -249,7 +248,7 @@ public class ApplyStepsArraySlicingTest {
 			slicingStep.setStep(BigDecimal.valueOf(step));
 		}
 
-		return previousResult.applyStep(slicingStep, ctx, true, Optional.empty());
+		return previousResult.applyStep(slicingStep, ctx, true, Val.undefined());
 	}
 
 	@Test
@@ -266,7 +265,7 @@ public class ApplyStepsArraySlicingTest {
 		step.setIndex(BigDecimal.valueOf(3));
 		step.setTo(BigDecimal.valueOf(6));
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Slicing applied to result array should return the correct items",
 						expectedResult, result));
 	}

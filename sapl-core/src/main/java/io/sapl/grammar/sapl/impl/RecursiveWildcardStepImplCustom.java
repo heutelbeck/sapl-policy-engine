@@ -20,7 +20,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
@@ -36,8 +35,8 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of a recursive wildcard step to a previous value, e.g.
- * 'obj..*' or 'arr..[*]'.
+ * Implements the application of a recursive wildcard step to a previous value,
+ * e.g. 'obj..*' or 'arr..[*]'.
  *
  * Grammar: Step: '..' ({RecursiveWildcardStep} ('*' | '[' '*' ']' )) ;
  */
@@ -49,20 +48,19 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isPresent()) {
+		if (previousResult.getNode().isUndefined()) {
 			throw new PolicyEvaluationException(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE);
 		}
-		else if (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject()) {
+		if (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject()) {
 			throw new PolicyEvaluationException(WRONG_TYPE);
 		}
 		return new ArrayResultNode(resolveRecursive(previousResult.getNode().get()));
@@ -70,11 +68,10 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
@@ -82,11 +79,10 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		for (AbstractAnnotatedJsonNode child : previousResult) {
-			if (child.getNode().isPresent()) {
+			if (child.getNode().isDefined()) {
 				resultList.add(child);
 				resultList.addAll(resolveRecursive(child.getNode().get()));
-			}
-			else {
+			} else {
 				throw new PolicyEvaluationException(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE);
 			}
 		}
@@ -97,15 +93,14 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 		if (node.isArray()) {
 			for (int i = 0; i < node.size(); i++) {
-				resultList.add(new JsonNodeWithParentArray(Optional.of(node.get(i)), Optional.of(node), i));
+				resultList.add(new JsonNodeWithParentArray(Val.of(node.get(i)), Val.of(node), i));
 				resultList.addAll(resolveRecursive(node.get(i)));
 			}
-		}
-		else {
+		} else {
 			final Iterator<String> it = node.fieldNames();
 			while (it.hasNext()) {
 				final String key = it.next();
-				resultList.add(new JsonNodeWithParentObject(Optional.of(node.get(key)), Optional.of(node), key));
+				resultList.add(new JsonNodeWithParentObject(Val.of(node.get(key)), Val.of(node), key));
 				resultList.addAll(resolveRecursive(node.get(key)));
 			}
 		}

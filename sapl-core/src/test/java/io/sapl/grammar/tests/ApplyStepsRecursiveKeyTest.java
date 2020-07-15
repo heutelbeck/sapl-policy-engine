@@ -19,7 +19,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.Test;
 
@@ -32,6 +31,7 @@ import com.google.common.collect.Multiset;
 import io.sapl.grammar.sapl.RecursiveKeyStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
@@ -57,14 +57,14 @@ public class ApplyStepsRecursiveKeyTest {
 
 	@Test
 	public void applyToNull() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(JSON.nullNode()));
+		ResultNode previousResult = new JsonNodeWithoutParent(Val.ofNull());
 
 		RecursiveKeyStep step = factory.createRecursiveKeyStep();
 		step.setId(KEY);
 
-		ResultNode expectedResult = new JsonNodeWithoutParent(Optional.empty());
+		ResultNode expectedResult = new JsonNodeWithoutParent(Val.undefined());
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("key of undefined is undefined", expectedResult, result));
 	}
 
@@ -73,15 +73,15 @@ public class ApplyStepsRecursiveKeyTest {
 		ObjectNode object = JSON.objectNode();
 		object.set(KEY, JSON.nullNode());
 
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(object));
+		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(object));
 
 		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentObject(Optional.of(JSON.nullNode()), Optional.of(object), KEY));
+		list.add(new JsonNodeWithParentObject(Val.ofNull(), Val.of(object), KEY));
 		ResultNode expectedResult = new ArrayResultNode(list);
 
 		RecursiveKeyStep step = factory.createRecursiveKeyStep();
 		step.setId(KEY);
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1)
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Recursive key step applied to simple object should return result array with attribute value",
 						expectedResult, result));
@@ -105,19 +105,17 @@ public class ApplyStepsRecursiveKeyTest {
 
 		array.add(object2);
 
-		ResultNode previousResult = new JsonNodeWithoutParent(Optional.of(array));
+		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(array));
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet
-				.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(true)), Optional.of(object1), KEY));
-		expectedResultSet
-				.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(false)), Optional.of(object2), KEY));
-		expectedResultSet.add(new JsonNodeWithParentObject(Optional.of(JSON.arrayNode()), Optional.of(object3), KEY));
+		expectedResultSet.add(new JsonNodeWithParentObject(Val.ofTrue(), Val.of(object1), KEY));
+		expectedResultSet.add(new JsonNodeWithParentObject(Val.ofFalse(), Val.of(object2), KEY));
+		expectedResultSet.add(new JsonNodeWithParentObject(Val.of(JSON.arrayNode()), Val.of(object3), KEY));
 
 		RecursiveKeyStep step = factory.createRecursiveKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Recursive key step should return result array with attribute value", expectedResultSet,
 					resultSet);
@@ -132,21 +130,19 @@ public class ApplyStepsRecursiveKeyTest {
 		object2.set(KEY, JSON.booleanNode(false));
 
 		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
-		listIn.add(new JsonNodeWithoutParent(Optional.of(JSON.nullNode())));
-		listIn.add(new JsonNodeWithoutParent(Optional.of(object1)));
-		listIn.add(new JsonNodeWithoutParent(Optional.of(object2)));
+		listIn.add(new JsonNodeWithoutParent(Val.ofNull()));
+		listIn.add(new JsonNodeWithoutParent(Val.of(object1)));
+		listIn.add(new JsonNodeWithoutParent(Val.of(object2)));
 		ResultNode previousResult = new ArrayResultNode(listIn);
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet
-				.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(true)), Optional.of(object1), KEY));
-		expectedResultSet
-				.add(new JsonNodeWithParentObject(Optional.of(JSON.booleanNode(false)), Optional.of(object2), KEY));
+		expectedResultSet.add(new JsonNodeWithParentObject(Val.ofTrue(), Val.of(object1), KEY));
+		expectedResultSet.add(new JsonNodeWithParentObject(Val.ofFalse(), Val.of(object2), KEY));
 
 		RecursiveKeyStep step = factory.createRecursiveKeyStep();
 		step.setId(KEY);
 
-		previousResult.applyStep(step, ctx, true, Optional.empty()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
 					"Recursive key step applied to result array should return result array with values of attributes",

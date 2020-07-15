@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.grammar.sapl.impl.Val;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
@@ -51,26 +52,22 @@ public class VariableContext {
 		if (authzSubscription != null) {
 			if (authzSubscription.getSubject() != null) {
 				variables.put(SUBJECT, authzSubscription.getSubject());
-			}
-			else {
+			} else {
 				variables.put(SUBJECT, JSON.nullNode());
 			}
 			if (authzSubscription.getAction() != null) {
 				variables.put(ACTION, authzSubscription.getAction());
-			}
-			else {
+			} else {
 				variables.put(ACTION, JSON.nullNode());
 			}
 			if (authzSubscription.getResource() != null) {
 				variables.put(RESOURCE, authzSubscription.getResource());
-			}
-			else {
+			} else {
 				variables.put(RESOURCE, JSON.nullNode());
 			}
 			if (authzSubscription.getEnvironment() != null) {
 				variables.put(ENVIRONMENT, authzSubscription.getEnvironment());
-			}
-			else {
+			} else {
 				variables.put(ENVIRONMENT, JSON.nullNode());
 			}
 		}
@@ -98,12 +95,8 @@ public class VariableContext {
 		return variables.containsKey(identifier);
 	}
 
-	public JsonNode get(String identifier) throws PolicyEvaluationException {
-		JsonNode result = variables.get(identifier);
-		if (result == null) {
-			throw new PolicyEvaluationException("unbound variable " + identifier);
-		}
-		return result;
+	public Val get(String identifier) {
+		return Val.of(variables.get(identifier));
 	}
 
 	/**

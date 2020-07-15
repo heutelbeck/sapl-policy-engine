@@ -15,10 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
@@ -27,22 +23,22 @@ import reactor.util.function.Tuples;
 public class PlusImplCustom extends PlusImpl {
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
-		final Flux<Optional<JsonNode>> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Optional<JsonNode>> right = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+		final Flux<Val> left = getLeft().evaluate(ctx, isBody, relativeNode);
+		final Flux<Val> right = getRight().evaluate(ctx, isBody, relativeNode);
 		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().flatMap(this::plus);
 	}
 
-	private Flux<Optional<JsonNode>> plus(Tuple2<Optional<JsonNode>, Optional<JsonNode>> tuple) {
-		if (tuple.getT1().isPresent() && tuple.getT2().isPresent() && tuple.getT1().get().isNumber()
+	private Flux<Val> plus(Tuple2<Val, Val> tuple) {
+		if (tuple.getT1().isDefined() && tuple.getT2().isDefined() && tuple.getT1().get().isNumber()
 				&& tuple.getT2().get().isNumber()) {
-			return Value.fluxOf(tuple.getT1().get().decimalValue().add(tuple.getT2().get().decimalValue()));
+			return Val.fluxOf(tuple.getT1().get().decimalValue().add(tuple.getT2().get().decimalValue()));
 		}
 		// The left or right value (or both) is/are not numeric. The plus operator is
 		// therefore interpreted as a string concatenation operator.
 		String left = tuple.getT1().orElseGet(() -> JSON.textNode("undefined")).asText();
 		String right = tuple.getT2().orElseGet(() -> JSON.textNode("undefined")).asText();
-		return Value.fluxOf(left.concat(right));
+		return Val.fluxOf(left.concat(right));
 	}
 
 }

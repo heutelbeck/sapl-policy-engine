@@ -16,7 +16,6 @@
 package io.sapl.functions;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
@@ -25,6 +24,7 @@ import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
+import io.sapl.grammar.sapl.impl.Val;
 
 @FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION)
 public class StandardFunctionLibrary {
@@ -43,30 +43,25 @@ public class StandardFunctionLibrary {
 			+ "For NULL it returns a JSON node representing the empty string. "
 			+ "For ARRAY or OBJECT the function will return an error.";
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	@Function(docs = LENGTH_DOC)
-	public static JsonNode length(@Array @Text @JsonObject JsonNode parameter) {
-		if (parameter.isTextual()) {
-			return JSON.numberNode(parameter.textValue().length());
-		}
-		else {
-			return JSON.numberNode(parameter.size());
+	public static Val length(@Array @Text @JsonObject Val parameter) {
+		if (parameter.get().isTextual()) {
+			return Val.of(parameter.get().textValue().length());
+		} else {
+			return Val.of(parameter.get().size());
 		}
 	}
 
 	@Function(docs = NUMBER_TO_STRING_DOC)
-	public static JsonNode numberToString(@Text @Number @Bool JsonNode parameter) {
-		if (parameter.isNumber()) {
-			return JSON.textNode(parameter.numberValue().toString());
-		}
-		else if (parameter.isBoolean()) {
-			return JSON.textNode(String.valueOf(parameter.booleanValue()));
-		}
-		else if (parameter.isNull()) {
-			return JSON.textNode("");
-		}
-		else {
+	public static Val numberToString(@Text @Number @Bool Val parameter) {
+		JsonNode param = parameter.get();
+		if (param.isNumber()) {
+			return Val.of(param.numberValue().toString());
+		} else if (param.isBoolean()) {
+			return Val.of(String.valueOf(param.booleanValue()));
+		} else if (param.isNull()) {
+			return Val.of("");
+		} else {
 			return parameter;
 		}
 	}

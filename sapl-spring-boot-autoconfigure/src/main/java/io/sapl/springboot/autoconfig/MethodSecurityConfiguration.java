@@ -45,8 +45,8 @@ import io.sapl.spring.method.pre.PreInvocationEnforcementAdviceVoter;
 import lombok.RequiredArgsConstructor;
 
 @Configuration
-@EnableGlobalMethodSecurity
 @RequiredArgsConstructor
+@EnableGlobalMethodSecurity
 public class MethodSecurityConfiguration extends GlobalMethodSecurityConfiguration {
 
 	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
@@ -82,8 +82,7 @@ public class MethodSecurityConfiguration extends GlobalMethodSecurityConfigurati
 			List<AfterInvocationProvider> afterInvocationProviders = new ArrayList<>();
 			afterInvocationProviders.add(provider);
 			invocationProviderManager.setProviders(afterInvocationProviders);
-		}
-		else {
+		} else {
 			List<AfterInvocationProvider> originalProviders = invocationProviderManager.getProviders();
 			List<AfterInvocationProvider> afterInvocationProviders = new ArrayList<>();
 			afterInvocationProviders.add(provider);

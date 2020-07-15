@@ -19,11 +19,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
@@ -34,7 +31,8 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of a wildcard step to a previous value, e.g 'value.*'.
+ * Implements the application of a wildcard step to a previous value, e.g
+ * 'value.*'.
  *
  * Grammar: Step: '.' ({WildcardStep} '*') ;
  */
@@ -44,42 +42,38 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		final Optional<JsonNode> previousResultNode = previousResult.getNode();
-		if (!previousResultNode.isPresent()) {
-			throw new PolicyEvaluationException(String.format(WILDCARD_ACCESS_TYPE_MISMATCH, "undefined"));
+		final Val previousResultNode = previousResult.getNode();
+		if (previousResultNode.isUndefined()) {
+			throw new PolicyEvaluationException(WILDCARD_ACCESS_TYPE_MISMATCH, "undefined");
 		}
 		if (previousResultNode.get().isArray()) {
 			return previousResult;
-		}
-		else if (previousResultNode.get().isObject()) {
+		} else if (previousResultNode.get().isObject()) {
 			final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 			final Iterator<String> iterator = previousResultNode.get().fieldNames();
 			while (iterator.hasNext()) {
 				final String key = iterator.next();
-				resultList.add(new JsonNodeWithParentObject(Optional.of(previousResultNode.get().get(key)),
+				resultList.add(new JsonNodeWithParentObject(Val.of(previousResultNode.get().get(key)),
 						previousResultNode, key));
 			}
 			return new ArrayResultNode(resultList);
-		}
-		else {
-			throw new PolicyEvaluationException(
-					String.format(WILDCARD_ACCESS_TYPE_MISMATCH, previousResultNode.get().getNodeType()));
+		} else {
+			throw new PolicyEvaluationException(WILDCARD_ACCESS_TYPE_MISMATCH, previousResultNode.get().getNodeType());
 		}
 	}
 
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		return Flux.just(previousResult);
 	}
 

@@ -15,13 +15,11 @@
  */
 package io.sapl.interpreter.selection;
 
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Arguments;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.Void;
 import lombok.EqualsAndHashCode;
@@ -30,17 +28,17 @@ import lombok.Value;
 import reactor.core.publisher.Flux;
 
 /**
- * Represents a JsonNode which is the item of an ArrayNode in the tree on which the
- * selection is performed.
+ * Represents a JsonNode which is the item of an ArrayNode in the tree on which
+ * the selection is performed.
  */
 @Value
-@EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
 public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 
 	private int index;
 
-	public JsonNodeWithParentArray(Optional<JsonNode> node, Optional<JsonNode> parent, int index) {
+	public JsonNodeWithParentArray(Val node, Val parent, int index) {
 		super(node, parent);
 		this.index = index;
 	}
@@ -64,8 +62,7 @@ public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 	public void removeFromTree(boolean each) throws PolicyEvaluationException {
 		if (each) {
 			removeEachItem(node);
-		}
-		else {
+		} else {
 			((ArrayNode) parent.get()).remove(index);
 		}
 	}
@@ -78,11 +75,10 @@ public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 
 	@Override
 	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+			EvaluationContext ctx, boolean isBody, Val relativeNode) {
 		if (each) {
 			return applyFilterToEachItem(node, function, arguments, ctx, isBody);
-		}
-		else {
+		} else {
 			return applyFilterToNode(node, function, arguments, ctx, isBody, relativeNode).map(filteredNode -> {
 				((ArrayNode) parent.get()).set(index, filteredNode.get());
 				return Void.INSTANCE;
@@ -93,7 +89,7 @@ public class JsonNodeWithParentArray extends AbstractAnnotatedJsonNode {
 
 	@Override
 	public boolean sameReference(AbstractAnnotatedJsonNode other) throws PolicyEvaluationException {
-		return other.isNodeWithParentArray() && other.getParent().isPresent() && getParent().isPresent()
+		return other.isNodeWithParentArray() && other.getParent().isDefined() && getParent().isDefined()
 				&& other.getParent().get() == getParent().get()
 				&& ((JsonNodeWithParentArray) other).getIndex() == getIndex();
 	}

@@ -15,24 +15,20 @@
  */
 package io.sapl.interpreter;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.grammar.sapl.impl.Val;
 
 @FunctionLibrary(name = "date")
 public class MockXACMLDateFunctionLibrary {
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	@Function
-	public JsonNode diff(JsonNode type, JsonNode to, JsonNode from) throws FunctionException {
-		if ("years".equals(type.asText())) {
-			return JSON.numberNode(15);
+	public Val diff(Val type, Val to, Val from) throws FunctionException {
+		if ("years".equals(type.get().asText())) {
+			return Val.of(15L);
 		}
-		return JSON.numberNode(5);
+		return Val.of(5L);
 	}
 
 }

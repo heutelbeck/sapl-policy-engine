@@ -15,11 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Optional;
-
 import org.eclipse.emf.common.util.EList;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -40,49 +37,50 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	/**
-	 * The method takes a JSON tree, performs a number of selection steps on this tree and
-	 * applies a filter function to the selected nodes. A flux of root nodes of the
-	 * filtered tree is returned (which are the original roots in case the root nodes are
-	 * not modified).
-	 * @param rootNode the root node of the tree to be filtered
-	 * @param steps the selection steps to be applied to the root node
-	 * @param each true if the selected node should be treated as an array and the filter
-	 * function should be applied to each of its items
-	 * @param function the name of the filter function
-	 * @param arguments arguments to be passed to the function, as JSON array
-	 * @param ctx the evaluation context
-	 * @param isBody true if the expression occurs within the policy body (attribute
-	 * finder steps are only allowed if set to true)
-	 * @param relativeNode the JSON node a relative expression would evaluate to (or null
-	 * if relative expressions are not allowed)
+	 * The method takes a JSON tree, performs a number of selection steps on this
+	 * tree and applies a filter function to the selected nodes. A flux of root
+	 * nodes of the filtered tree is returned (which are the original roots in case
+	 * the root nodes are not modified).
+	 * 
+	 * @param rootNode     the root node of the tree to be filtered
+	 * @param steps        the selection steps to be applied to the root node
+	 * @param each         true if the selected node should be treated as an array
+	 *                     and the filter function should be applied to each of its
+	 *                     items
+	 * @param function     the name of the filter function
+	 * @param arguments    arguments to be passed to the function, as JSON array
+	 * @param ctx          the evaluation context
+	 * @param isBody       true if the expression occurs within the policy body
+	 *                     (attribute finder steps are only allowed if set to true)
+	 * @param relativeNode the JSON node a relative expression would evaluate to (or
+	 *                     null if relative expressions are not allowed)
 	 * @return a Flux of root nodes of the filtered tree
 	 */
-	protected Flux<Optional<JsonNode>> applyFilterStatement(Optional<JsonNode> rootNode, EList<Step> steps,
-			boolean each, String function, Arguments arguments, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+	protected Flux<Val> applyFilterStatement(Val rootNode, EList<Step> steps, boolean each, String function,
+			Arguments arguments, EvaluationContext ctx, boolean isBody, Val relativeNode) {
 		return StepResolver.resolveSteps(rootNode, steps, ctx, isBody, relativeNode).switchMap(resultNode -> {
 			if (resultNode.isNodeWithoutParent() && !each) {
 				return getFilteredRoot(resultNode, function, arguments, ctx, isBody);
-			}
-			else {
+			} else {
 				return applyFilter(resultNode, function, arguments, each, ctx, isBody).map(voidType -> rootNode);
 			}
 		});
 	}
 
 	/**
-	 * The function is used to apply a filter function to a node and receive the result.
-	 * The function is supposed to be used if filtering should be applied to the root of a
-	 * JSON tree.
-	 * @param target the selected node to be filtered
-	 * @param function the name of the filter function
+	 * The function is used to apply a filter function to a node and receive the
+	 * result. The function is supposed to be used if filtering should be applied to
+	 * the root of a JSON tree.
+	 * 
+	 * @param target    the selected node to be filtered
+	 * @param function  the name of the filter function
 	 * @param arguments arguments to be passed to the function
-	 * @param ctx the evaluation context
-	 * @param isBody true if the expression occurs within the policy body (attribute
-	 * finder steps are only allowed if set to true)
+	 * @param ctx       the evaluation context
+	 * @param isBody    true if the expression occurs within the policy body
+	 *                  (attribute finder steps are only allowed if set to true)
 	 * @return the stream of results returned by the reactive filter function
 	 */
-	private static Flux<Optional<JsonNode>> getFilteredRoot(ResultNode target, String function, Arguments arguments,
+	private static Flux<Val> getFilteredRoot(ResultNode target, String function, Arguments arguments,
 			EvaluationContext ctx, boolean isBody) {
 		if (FILTER_REMOVE.equals(function)) {
 			return Flux.error(new PolicyEvaluationException(FILTER_REMOVE_ROOT));
@@ -92,18 +90,20 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 	}
 
 	/**
-	 * Applies a filter function to a selected JSON node. The selected node is changed in
-	 * the tree. The caller must ensure that the root node will be left unchanged.
-	 * @param target the selected node to be filtered
-	 * @param function the name of the filter function
+	 * Applies a filter function to a selected JSON node. The selected node is
+	 * changed in the tree. The caller must ensure that the root node will be left
+	 * unchanged.
+	 * 
+	 * @param target    the selected node to be filtered
+	 * @param function  the name of the filter function
 	 * @param arguments arguments to be passed to the function
-	 * @param each true if the selected node should be treated as an array and the filter
-	 * function should be applied to each of its items
-	 * @param ctx the evaluation context
-	 * @param isBody true if the expression occurs within the policy body (attribute
-	 * finder steps are only allowed if set to true)
-	 * @return a flux of {@link Void} instances, each indicating a finished application of
-	 * the filter function
+	 * @param each      true if the selected node should be treated as an array and
+	 *                  the filter function should be applied to each of its items
+	 * @param ctx       the evaluation context
+	 * @param isBody    true if the expression occurs within the policy body
+	 *                  (attribute finder steps are only allowed if set to true)
+	 * @return a flux of {@link Void} instances, each indicating a finished
+	 *         application of the filter function
 	 */
 	private static Flux<Void> applyFilter(ResultNode target, String function, Arguments arguments, boolean each,
 			EvaluationContext ctx, boolean isBody) {
@@ -112,13 +112,11 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 				try {
 					target.removeFromTree(each);
 					return Flux.just(Void.INSTANCE);
-				}
-				catch (PolicyEvaluationException e) {
+				} catch (PolicyEvaluationException e) {
 					return Flux.error(e);
 				}
 			});
-		}
-		else {
+		} else {
 			return target.applyFilter(function, arguments, each, ctx, isBody);
 		}
 	}

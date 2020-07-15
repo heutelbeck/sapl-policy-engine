@@ -15,21 +15,19 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import java.util.Map;
+import java.util.Objects;
+
 import com.google.common.base.Preconditions;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-
-@Slf4j
 public class Bool {
 
 	static final String BOOL_NOT_IMMUTABLE = "Unable to evaluate volatile Bool in static context.";
@@ -77,8 +75,7 @@ public class Bool {
 		}
 		if (isConstantExpression) {
 			return Objects.equals(constant, other.constant);
-		}
-		else {
+		} else {
 			return expression.isEqualTo(other.expression, other.imports, imports);
 		}
 	}
@@ -95,13 +92,12 @@ public class Bool {
 		if (!isConstantExpression) {
 			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
 			try {
-				Optional<JsonNode> result = expression.evaluate(ctx, false, Optional.empty()).blockFirst();
-				if (result.isPresent() && result.get().isBoolean()) {
+				Val result = expression.evaluate(ctx, false, Val.undefined()).blockFirst();
+				if (result.isDefined() && result.get().isBoolean()) {
 					return result.get().asBoolean();
 				}
-				throw new PolicyEvaluationException(String.format(CONDITION_NOT_BOOLEAN, result));
-			}
-			catch (RuntimeException e) {
+				throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result);
+			} catch (RuntimeException e) {
 				throw new PolicyEvaluationException(Exceptions.unwrap(e));
 			}
 		}
@@ -115,8 +111,7 @@ public class Bool {
 			h = 59 * h + Objects.hashCode(isConstantExpression);
 			if (isConstantExpression) {
 				h = 59 * h + Objects.hashCode(constant);
-			}
-			else {
+			} else {
 				h = 59 * h + expression.hash(imports);
 			}
 			hash = h;

@@ -15,12 +15,9 @@ class SAPLEditor extends LitElement {
       autoCloseBrackets: { type: Boolean },
       matchBrackets: { type: Boolean },
       xtextLang: { type: String },
-      textUpdateDelay: { type: Number }
+      textUpdateDelay: { type: Number },
+      editor: { type: Object },
     }
-  }
-
-  firstUpdated(changedProperties) {
-    this.$server.onFirstUpdated();
   }
 
   connectedCallback() {
@@ -49,27 +46,38 @@ class SAPLEditor extends LitElement {
           var value = doc.getValue();
           self.onDocumentChanged(value);
         });
+
+        self.registerValidationCallback(self.editor);
       });
   }
 
-  onFirstUpdated(element) {
-    console.log('onFirstUpdated');
+  registerValidationCallback(editor) {
     var self = this;
-    var _services = element.editor.xtextServices;
-    _services.originalValidate = _services.validate;
 
-    _services.validate = function (addParam) {
+    var xTextServices = editor.xtextServices;
+    xTextServices.originalValidate = xTextServices.validate;
+    xTextServices.validate = function (addParam) {
       var services = this;
       return services.originalValidate(addParam).done(function (result) {
-        var issues = result.issues;
-        self.$server.onValidation(issues);
+        if(self.$server !== undefined) {
+          var issues = result.issues;
+          self.$server.onValidation(issues);
+        }
+        else {
+          throw "Connection between editor and server could not be established. (onValidation)";
+        }
       });
     }
   }
 
   onDocumentChanged(value) {
     this.document = value;
-    this.$server.onDocumentChanged(value);
+    if(this.$server !== undefined) {
+      this.$server.onDocumentChanged(value);
+    }
+    else {
+      throw "Connection between editor and server could not be established. (onDocumentChanged)";
+    }
   }
 
   setEditorDocument(element, document) {

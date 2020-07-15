@@ -23,19 +23,20 @@ import org.geotools.geojson.geom.GeometryJSON;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.GeodeticCalculator;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.io.WKTWriter;
+import org.locationtech.jts.operation.distance.DistanceOp;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.TransformException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKTReader;
-import org.locationtech.jts.io.WKTWriter;
-import org.locationtech.jts.operation.distance.DistanceOp;
 
 import io.sapl.api.functions.FunctionException;
+import io.sapl.grammar.sapl.impl.Val;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -53,18 +54,20 @@ public final class GeometryBuilder {
 
 		try {
 			return geoJsonReader.read(stringReader);
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			throw new FunctionException(UNABLE_TO_PARSE_GEOJSON, e);
 		}
+	}
+
+	public static Geometry geoOf(Val jsonGeometry) throws FunctionException {
+		return fromJsonNode(jsonGeometry.get());
 	}
 
 	public static Geometry fromWkt(String wktGeometry) throws FunctionException {
 		try {
 			WKTReader wkt = new WKTReader();
 			return wkt.read(wktGeometry);
-		}
-		catch (ParseException e) {
+		} catch (ParseException e) {
 			throw new FunctionException(UNABLE_TO_PARSE_WKT, e);
 		}
 	}
@@ -80,10 +83,13 @@ public final class GeometryBuilder {
 
 		try {
 			return mapper.readTree(geoJsonWriter.toString(geometry));
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			throw new FunctionException(UNABLE_TO_PARSE_GEOMETRY, e);
 		}
+	}
+
+	public static Val toVal(Geometry geometry) throws FunctionException {
+		return Val.of(toJsonNode(geometry));
 	}
 
 	public static JsonNode wktToJsonNode(String wktGeometry) throws FunctionException {
@@ -106,11 +112,9 @@ public final class GeometryBuilder {
 			gc.setStartingPosition(JTS.toDirectPosition(distOp.nearestPoints()[startingPointIndex], crs));
 			gc.setDestinationPosition(JTS.toDirectPosition(distOp.nearestPoints()[destinationPointIndex], crs));
 			return gc.getOrthodromicDistance();
-		}
-		catch (TransformException e) {
+		} catch (TransformException e) {
 			throw new FunctionException(GeoProjection.UNABLE_TO_TRANSFORM, e);
-		}
-		catch (FactoryException e) {
+		} catch (FactoryException e) {
 			throw new FunctionException(GeoProjection.CRS_COULD_NOT_INITIALIZE, e);
 		}
 	}

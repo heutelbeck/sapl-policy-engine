@@ -16,16 +16,13 @@
 package io.sapl.interpreter.functions;
 
 import java.util.Collection;
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.functions.FunctionException;
+import io.sapl.grammar.sapl.impl.Val;
 
 public interface FunctionContext {
 
-	Optional<JsonNode> evaluate(String function, ArrayNode parameters) throws FunctionException;
+	Val evaluate(String function, Val... parameters) throws FunctionException;
 
 	Boolean provides(String function);
 

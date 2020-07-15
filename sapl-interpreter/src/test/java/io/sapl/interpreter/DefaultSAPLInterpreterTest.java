@@ -248,6 +248,17 @@ public class DefaultSAPLInterpreterTest {
 		assertEquals("external attribute finder was allowed in target", expected, actual);
 	}
 
+	/// XXXXXXXXXXXXXXX
+	@Test
+	public void attributeFinderWithArgumentsTest() {
+		final String policyDefinition = "policy \"test\" permit where var variable = \"hello\"; variable.<sapl.pip.test.echoRepeat(2)> == (variable + variable);";
+		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
+		final AuthorizationDecision actual = INTERPRETER
+				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+				.blockFirst();
+		assertEquals("external attribute finder not evaluated as expected", expected, actual);
+	}
+
 	@Test
 	public void bodyStatementNotBoolean() {
 		final String policyDefinition = "policy \"test\" permit where null;";

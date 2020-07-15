@@ -20,12 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.core.TreeNode;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
@@ -36,13 +34,13 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of an array slicing step to a previous array value, e.g.
- * 'arr[4:12:2]'.
+ * Implements the application of an array slicing step to a previous array
+ * value, e.g. 'arr[4:12:2]'.
  *
  * Grammar: Step: '[' Subscript ']' ;
  *
- * Subscript returns Step: {ArraySlicingStep} index=JSONNUMBER? ':' to=JSONNUMBER? (':'
- * step=JSONNUMBER)? ;
+ * Subscript returns Step: {ArraySlicingStep} index=JSONNUMBER? ':'
+ * to=JSONNUMBER? (':' step=JSONNUMBER)? ;
  */
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
@@ -52,25 +50,24 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
 
 	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (!previousResult.getNode().isPresent() || !previousResult.getNode().get().isArray()) {
-			throw new PolicyEvaluationException(String.format(INDEX_ACCESS_TYPE_MISMATCH, getIndex(),
-					previousResult.getNode().isPresent() ? previousResult.getNode().get().getNodeType() : "undefined"));
+		if (previousResult.getNode().isUndefined() || !previousResult.getNode().get().isArray()) {
+			throw new PolicyEvaluationException(INDEX_ACCESS_TYPE_MISMATCH, getIndex(),
+					previousResult.getNode().isDefined() ? previousResult.getNode().get().getNodeType() : "undefined");
 		}
 
 		final List<Integer> nodeIndices = resolveIndex(previousResult.getNode().get());
 		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>(nodeIndices.size());
 		for (Integer idx : nodeIndices) {
-			list.add(new JsonNodeWithParentArray(Optional.of(previousResult.getNode().get().get(idx)),
+			list.add(new JsonNodeWithParentArray(Val.of(previousResult.getNode().get().get(idx)),
 					previousResult.getNode(), idx));
 		}
 		return new ArrayResultNode(list);
@@ -78,11 +75,10 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
@@ -122,8 +118,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 					returnIndices.add(i);
 				}
 			}
-		}
-		else {
+		} else {
 			index = index == null ? BigDecimal.valueOf(value.size() - 1L) : index;
 			to = to == null ? BigDecimal.valueOf(-1) : to;
 			if (index.compareTo(to) > 0) {

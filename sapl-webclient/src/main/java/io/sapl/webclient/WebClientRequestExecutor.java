@@ -65,57 +65,40 @@ public class WebClientRequestExecutor {
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	public Flux<JsonNode> executeReactiveRequest(RequestSpecification requestSpec, HttpMethod httpMethod) {
+		System.out.println("Executing " + httpMethod + " - " + requestSpec);
 		try {
 			final URLSpecification urlSpec = getURLSpecification(requestSpec);
 			final WebClient webClient = createWebClient(urlSpec.baseUrl());
 			// @formatter:off
 			if (httpMethod == GET) {
-				return webClient.get().uri(urlSpec.pathAndQueryString())
-						.accept(MediaType.APPLICATION_STREAM_JSON)
-						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-						.retrieve()
+				return webClient.get().uri(urlSpec.pathAndQueryString()).accept(MediaType.APPLICATION_STREAM_JSON)
+						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).retrieve()
 						.bodyToFlux(JsonNode.class);
-			}
-			else if (httpMethod == POST) {
-				return webClient.post().uri(urlSpec.pathAndQueryString())
-						.contentType(MediaType.APPLICATION_JSON)
+			} else if (httpMethod == POST) {
+				return webClient.post().uri(urlSpec.pathAndQueryString()).contentType(MediaType.APPLICATION_JSON)
 						.accept(MediaType.APPLICATION_STREAM_JSON)
-						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-						.bodyValue(getBody(requestSpec))
-						.retrieve()
-						.bodyToFlux(JsonNode.class);
-			}
-			else if (httpMethod == PUT) {
-				return webClient.put().uri(urlSpec.pathAndQueryString())
-						.contentType(MediaType.APPLICATION_JSON)
+						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).bodyValue(getBody(requestSpec))
+						.retrieve().bodyToFlux(JsonNode.class);
+			} else if (httpMethod == PUT) {
+				return webClient.put().uri(urlSpec.pathAndQueryString()).contentType(MediaType.APPLICATION_JSON)
 						.accept(MediaType.APPLICATION_STREAM_JSON)
-						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-						.bodyValue(getBody(requestSpec))
-						.retrieve()
+						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).bodyValue(getBody(requestSpec))
+						.retrieve().bodyToFlux(JsonNode.class);
+			} else if (httpMethod == DELETE) {
+				return webClient.delete().uri(urlSpec.pathAndQueryString()).accept(MediaType.APPLICATION_STREAM_JSON)
+						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).retrieve()
 						.bodyToFlux(JsonNode.class);
-			}
-			else if (httpMethod == DELETE) {
-				return webClient.delete().uri(urlSpec.pathAndQueryString())
+			} else if (httpMethod == PATCH) {
+				return webClient.patch().uri(urlSpec.pathAndQueryString()).contentType(MediaType.APPLICATION_JSON)
 						.accept(MediaType.APPLICATION_STREAM_JSON)
-						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-						.retrieve()
-						.bodyToFlux(JsonNode.class);
-			}
-			else if (httpMethod == PATCH) {
-				return webClient.patch().uri(urlSpec.pathAndQueryString())
-						.contentType(MediaType.APPLICATION_JSON)
-						.accept(MediaType.APPLICATION_STREAM_JSON)
-						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-						.bodyValue(getBody(requestSpec))
-						.retrieve()
-						.bodyToFlux(JsonNode.class);
+						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).bodyValue(getBody(requestSpec))
+						.retrieve().bodyToFlux(JsonNode.class);
 			}
 			// @formatter:on
 			else {
 				return Flux.error(new IOException("Unsupported request method " + httpMethod));
 			}
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			return Flux.error(e);
 		}
 	}
@@ -125,101 +108,78 @@ public class WebClientRequestExecutor {
 		final WebClient webClient = createWebClient(urlSpec.baseUrl());
 		if (httpMethod == GET) {
 			// @formatter:off
-			final ClientResponse response = webClient.get()
-					.uri(urlSpec.pathAndQueryString()).accept(MediaType.APPLICATION_JSON)
-					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
+			final ClientResponse response = webClient.get().uri(urlSpec.pathAndQueryString())
+					.accept(MediaType.APPLICATION_JSON).headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
 					.exchange().block();
 			// @formatter:on
 			if (response == null) {
 				throw new IOException("HTTP GET request returned null");
-			}
-			else if (response.statusCode().is2xxSuccessful()) {
+			} else if (response.statusCode().is2xxSuccessful()) {
 				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
 				return body.block();
-			}
-			else {
+			} else {
 				throw new IOException("HTTP GET request returned with status code " + response.statusCode().value());
 			}
-		}
-		else if (httpMethod == POST) {
+		} else if (httpMethod == POST) {
 			// @formatter:off
-			final ClientResponse response = webClient.post()
-					.uri(urlSpec.pathAndQueryString())
-					.contentType(MediaType.APPLICATION_JSON)
-					.accept(MediaType.APPLICATION_JSON)
-					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-					.bodyValue(getBody(requestSpec)).exchange().block();
+			final ClientResponse response = webClient.post().uri(urlSpec.pathAndQueryString())
+					.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
+					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).bodyValue(getBody(requestSpec))
+					.exchange().block();
 			// @formatter:on
 			if (response == null) {
 				throw new IOException("HTTP POST request returned null");
-			}
-			else if (response.statusCode().is2xxSuccessful()) {
+			} else if (response.statusCode().is2xxSuccessful()) {
 				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
 				return body.block();
-			}
-			else {
+			} else {
 				throw new IOException("HTTP POST request returned with status code " + response.statusCode().value());
 			}
-		}
-		else if (httpMethod == PUT) {
+		} else if (httpMethod == PUT) {
 			// @formatter:off
-			final ClientResponse response = webClient.put()
-					.uri(urlSpec.pathAndQueryString())
-					.contentType(MediaType.APPLICATION_JSON)
-					.accept(MediaType.APPLICATION_JSON)
-					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-					.bodyValue(getBody(requestSpec)).exchange().block();
+			final ClientResponse response = webClient.put().uri(urlSpec.pathAndQueryString())
+					.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
+					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).bodyValue(getBody(requestSpec))
+					.exchange().block();
 			// @formatter:on
 			if (response == null) {
 				throw new IOException("HTTP PUT request returned null");
-			}
-			else if (response.statusCode().is2xxSuccessful()) {
+			} else if (response.statusCode().is2xxSuccessful()) {
 				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
 				return body.block();
-			}
-			else {
+			} else {
 				throw new IOException("HTTP PUT request returned with status code " + response.statusCode().value());
 			}
-		}
-		else if (httpMethod == DELETE) {
+		} else if (httpMethod == DELETE) {
 			// @formatter:off
-			final ClientResponse response = webClient.delete()
-					.uri(urlSpec.pathAndQueryString()).accept(MediaType.APPLICATION_JSON)
-					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
+			final ClientResponse response = webClient.delete().uri(urlSpec.pathAndQueryString())
+					.accept(MediaType.APPLICATION_JSON).headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
 					.exchange().block();
 			// @formatter:on
 			if (response == null) {
 				throw new IOException("HTTP DELETE request returned null");
-			}
-			else if (response.statusCode().is2xxSuccessful()) {
+			} else if (response.statusCode().is2xxSuccessful()) {
 				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
 				return body.block();
-			}
-			else {
+			} else {
 				throw new IOException("HTTP DELETE request returned with status code " + response.statusCode().value());
 			}
-		}
-		else if (httpMethod == PATCH) {
+		} else if (httpMethod == PATCH) {
 			// @formatter:off
-			final ClientResponse response = webClient.patch()
-					.uri(urlSpec.pathAndQueryString())
-					.contentType(MediaType.APPLICATION_JSON)
-					.accept(MediaType.APPLICATION_JSON)
-					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-					.bodyValue(getBody(requestSpec)).exchange().block();
+			final ClientResponse response = webClient.patch().uri(urlSpec.pathAndQueryString())
+					.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
+					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).bodyValue(getBody(requestSpec))
+					.exchange().block();
 			// @formatter:on
 			if (response == null) {
 				throw new IOException("HTTP PATCH request returned null");
-			}
-			else if (response.statusCode().is2xxSuccessful()) {
+			} else if (response.statusCode().is2xxSuccessful()) {
 				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
 				return body.block();
-			}
-			else {
+			} else {
 				throw new IOException("HTTP PATCH request returned with status code " + response.statusCode().value());
 			}
-		}
-		else {
+		} else {
 			throw new IOException("Unsupported request method " + httpMethod);
 		}
 	}
@@ -247,8 +207,7 @@ public class WebClientRequestExecutor {
 			final X509Certificate[] trusted = aliases.stream().map(alias -> {
 				try {
 					return (X509Certificate) ks.getCertificate(alias);
-				}
-				catch (KeyStoreException e) {
+				} catch (KeyStoreException e) {
 					throw new RuntimeException(e);
 				}
 			}).toArray(X509Certificate[]::new);
@@ -256,11 +215,9 @@ public class WebClientRequestExecutor {
 			return SslContextBuilder.forClient().trustManager(trusted).build();
 			// return SslContextBuilder.forClient()
 			// .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-		}
-		catch (RuntimeException e) {
+		} catch (RuntimeException e) {
 			throw new SSLException(e.getCause() instanceof KeyStoreException ? e.getCause() : e);
-		}
-		catch (GeneralSecurityException e) {
+		} catch (GeneralSecurityException e) {
 			throw new IOException(e);
 		}
 	}
@@ -269,25 +226,20 @@ public class WebClientRequestExecutor {
 		final JsonNode url = requestSpec.getUrl();
 		if (url == null) {
 			throw new IOException(NO_URL_PROVIDED);
-		}
-		else if (url.isTextual()) {
+		} else if (url.isTextual()) {
 			final String urlStr = url.asText();
 			try {
 				return URLSpecification.from(urlStr);
-			}
-			catch (MalformedURLException e) {
+			} catch (MalformedURLException e) {
 				throw new IOException(BAD_URL_INFORMATION, e);
 			}
-		}
-		else if (url.isObject()) {
+		} else if (url.isObject()) {
 			try {
 				return MAPPER.treeToValue(url, URLSpecification.class);
-			}
-			catch (JsonProcessingException e) {
+			} catch (JsonProcessingException e) {
 				throw new IOException(BAD_URL_INFORMATION, e);
 			}
-		}
-		else {
+		} else {
 			throw new IOException(BAD_URL_INFORMATION);
 		}
 	}
@@ -304,11 +256,9 @@ public class WebClientRequestExecutor {
 	private static Object getBody(RequestSpecification requestSpec) throws JsonProcessingException {
 		if (requestSpec.getBody() != null) {
 			return MAPPER.writeValueAsString(requestSpec.getBody());
-		}
-		else if (requestSpec.getRawBody() != null) {
+		} else if (requestSpec.getRawBody() != null) {
 			return MAPPER.writeValueAsBytes(requestSpec.getRawBody());
-		}
-		else {
+		} else {
 			return "";
 		}
 	}

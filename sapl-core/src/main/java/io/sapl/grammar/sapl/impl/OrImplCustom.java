@@ -15,10 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -34,20 +30,20 @@ public class OrImplCustom extends OrImpl {
 	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy OR operator is not allowed in the target";
 
 	@Override
-	public Flux<Optional<JsonNode>> evaluate(EvaluationContext ctx, boolean isBody, Optional<JsonNode> relativeNode) {
+	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
 		if (!isBody) {
 			// due to the constraints in indexing policy documents, lazy evaluation is not
 			// allowed in target expressions.
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
 
-		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
 		return left.switchMap(leftResult -> {
 			if (Boolean.FALSE.equals(leftResult)) {
-				return getRight().evaluate(ctx, isBody, relativeNode).flatMap(Value::toBoolean);
+				return getRight().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
 			}
 			return Flux.just(Boolean.TRUE);
-		}).map(Value::of).distinctUntilChanged();
+		}).map(Val::of).distinctUntilChanged();
 	}
 
 }

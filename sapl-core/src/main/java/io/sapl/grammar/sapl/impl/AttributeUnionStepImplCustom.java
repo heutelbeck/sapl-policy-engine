@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.emf.ecore.EObject;
@@ -38,13 +37,13 @@ import io.sapl.interpreter.selection.ResultNode;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of an attribute union step to a previous object value, e.g.
- * 'person["firstName", "lastName"]'.
+ * Implements the application of an attribute union step to a previous object
+ * value, e.g. 'person["firstName", "lastName"]'.
  *
  * Grammar: Step: '[' Subscript ']' ;
  *
- * Subscript returns Step: {AttributeUnionStep} attributes+=STRING ',' attributes+=STRING
- * (',' attributes+=STRING)* ;
+ * Subscript returns Step: {AttributeUnionStep} attributes+=STRING ','
+ * attributes+=STRING (',' attributes+=STRING)* ;
  */
 public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 
@@ -52,11 +51,10 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.error(e);
 		}
 	}
@@ -75,7 +73,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 		while (iterator.hasNext()) {
 			final String key = iterator.next();
 			if (attributes.contains(key)) {
-				resultList.add(new JsonNodeWithParentObject(Optional.of(previousResultNode.get(key)),
+				resultList.add(new JsonNodeWithParentObject(Val.of(previousResultNode.get(key)),
 						previousResult.getNode(), key));
 			}
 		}
@@ -84,7 +82,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Optional<JsonNode> relativeNode) {
+			Val relativeNode) {
 		return Flux.error(new PolicyEvaluationException(UNION_TYPE_MISMATCH));
 	}
 

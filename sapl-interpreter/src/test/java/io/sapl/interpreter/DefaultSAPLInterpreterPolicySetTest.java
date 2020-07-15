@@ -125,8 +125,10 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void denyOverridesPermitAndIntederminateAndDeny() {
-		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
-				+ "policy \"testp2\" permit \"a\" < 5 " + "policy \"testp3\" deny";
+		String policySet = "set \"tests\" deny-overrides " + //
+				"policy \"testp1\" permit " + //
+				"policy \"testp2\" permit \"a\" < 5 " + //
+				"policy \"testp3\" deny";
 		AuthorizationDecision expected = AuthorizationDecision.DENY;
 		AuthorizationDecision actual = INTERPRETER
 				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
@@ -135,8 +137,9 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void importsInSetAvailableInPolicy() {
-		String policySet = "import filter.replace " + "set \"tests\" deny-overrides "
-				+ "policy \"testp1\" permit transform true |- replace(false)";
+		String policySet = "import filter.replace " + //
+				"set \"tests\" deny-overrides " + //
+				"policy \"testp1\" permit transform true |- replace(false)";
 		Optional<BooleanNode> expected = Optional.of(JsonNodeFactory.instance.booleanNode(false));
 		Optional<JsonNode> actual = INTERPRETER
 				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
@@ -146,8 +149,10 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void importsDuplicatesByPolicySet() {
-		String policySet = "import filter.replace " + "import filter.replace " + "set \"tests\" deny-overrides "
-				+ "policy \"testp1\" permit where true;";
+		String policySet = "import filter.replace " + //
+				"import filter.replace " + //
+				"set \"tests\" deny-overrides " + //
+				"policy \"testp1\" permit where true;";
 		AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		AuthorizationDecision actual = INTERPRETER
 				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
@@ -156,8 +161,9 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void variablesOnSetLevel() {
-		String policySet = "set \"tests\" deny-overrides " + "var var1 = true; "
-				+ "policy \"testp1\" permit var1 == true";
+		String policySet = "set \"tests\" deny-overrides " + //
+				"var var1 = true; " + //
+				"policy \"testp1\" permit var1 == true";
 		Decision expected = Decision.PERMIT;
 		Decision actual = INTERPRETER
 				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
@@ -167,7 +173,9 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void variablesOnSetLevelError() {
-		String policySet = "set \"tests\" deny-overrides " + "var var1 = true / null; " + "policy \"testp1\" permit";
+		String policySet = "set \"tests\" deny-overrides " + //
+				"var var1 = true / null; " + //
+				"policy \"testp1\" permit";
 		AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		AuthorizationDecision actual = INTERPRETER
 				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
@@ -176,9 +184,10 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void variablesOverwriteInPolicy() {
-		String policySet = "set \"tests\" deny-overrides " + "var var1 = true; "
-				+ "policy \"testp1\" permit where var var1 = 10; var1 == 10; "
-				+ "policy \"testp2\" deny where !(var1 == true);";
+		String policySet = "set \"tests\" deny-overrides " + //
+				"var var1 = true; " + //
+				"policy \"testp1\" permit where var var1 = 10; var1 == 10; " + //
+				"policy \"testp2\" deny where !(var1 == true);";
 		Decision expected = Decision.PERMIT;
 		Decision actual = INTERPRETER
 				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
@@ -188,7 +197,9 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void subjectAsVariable() {
-		String policySet = "set \"test\" deny-overrides " + "var subject = null;  " + "policy \"test\" permit";
+		String policySet = "set \"test\" deny-overrides " + //
+				"var subject = null;  " + //
+				"policy \"test\" permit";
 		AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		AuthorizationDecision actual = INTERPRETER
 				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
@@ -197,9 +208,10 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	public void variablesInPolicyMustNotLeakIntoNextPolicy() {
-		String policySet = "set \"test\" deny-overrides " + "var ps1 = true; "
-				+ "policy \"pol1\" permit where var p1 = 10; p1 == 10; " + "policy \"pol2\" deny where p1 == 10;";
-		AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
+		String policySet = "set \"test\" deny-overrides " + "var ps1 = true; " + //
+				"policy \"pol1\" permit where var p1 = 10; p1 == 10; " + //
+				"policy \"pol2\" deny where p1 == undefined;";
+		AuthorizationDecision expected = AuthorizationDecision.DENY;
 		AuthorizationDecision actual = INTERPRETER
 				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
 		assertEquals("variable p1 from policy pol1 should not be defined in policy pol2", expected, actual);

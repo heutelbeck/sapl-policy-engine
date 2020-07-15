@@ -33,8 +33,8 @@
     <genDataTypes ecoreDataType="SAPL.ecore#//ArrayResultNode"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//StringMap"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//AbstractAnnotatedJsonNode"/>
-    <genDataTypes ecoreDataType="SAPL.ecore#//OptionalJsonNodeFlux"/>
-    <genDataTypes ecoreDataType="SAPL.ecore#//OptionalJsonNode"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//ValFlux"/>
+    <genDataTypes ecoreDataType="SAPL.ecore#//Val"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//AuthorizationSubscription"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//FunctionContext"/>
     <genDataTypes ecoreDataType="SAPL.ecore#//AuthorizationDecision"/>
@@ -178,6 +178,7 @@
     <genClasses ecoreClass="SAPL.ecore#//WildcardStep"/>
     <genClasses ecoreClass="SAPL.ecore#//AttributeFinderStep">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//AttributeFinderStep/idSteps"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//AttributeFinderStep/arguments"/>
     </genClasses>
     <genClasses ecoreClass="SAPL.ecore#//RecursiveKeyStep">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute SAPL.ecore#//RecursiveKeyStep/id"/>
