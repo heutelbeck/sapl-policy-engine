@@ -68,7 +68,6 @@ public class ImprovedDocumentIndexTest {
     }
 
 
-    //TODO orphaned {3} -> false
 	@Test
 	public void test_orphaned() throws PolicyEvaluationException {
 		// given

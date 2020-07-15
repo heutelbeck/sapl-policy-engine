@@ -38,7 +38,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-//TODO why are some methods static?
 public class ImprovedIndexCreationStrategy2 implements IndexCreationStrategy {
 
     @Override
@@ -120,8 +119,8 @@ public class ImprovedIndexCreationStrategy2 implements IndexCreationStrategy {
         return boolToPredicateInfo.values();
     }
 
-    private static void createPredicateInfo(final Literal literal, final ConjunctiveClause clause,
-                                            final Map<Bool, PredicateInfo> boolToPredicateInfo) {
+    private void createPredicateInfo(final Literal literal, final ConjunctiveClause clause,
+                                     final Map<Bool, PredicateInfo> boolToPredicateInfo) {
         Bool bool = literal.getBool();
         PredicateInfo predicateInfo = boolToPredicateInfo
                 .computeIfAbsent(bool, k -> new PredicateInfo(new Predicate(bool)));
@@ -134,7 +133,7 @@ public class ImprovedIndexCreationStrategy2 implements IndexCreationStrategy {
     }
 
 
-    private static BiMap<ConjunctiveClause, Integer> createCandidateOrder(final Collection<PredicateInfo> data) {
+    private BiMap<ConjunctiveClause, Integer> createCandidateOrder(final Collection<PredicateInfo> data) {
         BiMap<ConjunctiveClause, Integer> result = HashBiMap.create();
         int i = 0;
         for (PredicateInfo predicateInfo : data) {
@@ -167,7 +166,7 @@ public class ImprovedIndexCreationStrategy2 implements IndexCreationStrategy {
     }
 
 
-    private static List<Predicate> createPredicateOrder(final Collection<PredicateInfo> predicateInfos) {
+    private List<Predicate> createPredicateOrder(final Collection<PredicateInfo> predicateInfos) {
         return predicateInfos.stream().map(PredicateInfo::getPredicate).collect(Collectors.toList());
     }
 
@@ -178,7 +177,7 @@ public class ImprovedIndexCreationStrategy2 implements IndexCreationStrategy {
         return result;
     }
 
-    private static Map<ConjunctiveClause, Set<DisjunctiveFormula>> mapClauseToFormulas(
+    private Map<ConjunctiveClause, Set<DisjunctiveFormula>> mapClauseToFormulas(
             final Collection<DisjunctiveFormula> formulas) {
         Map<ConjunctiveClause, Set<DisjunctiveFormula>> result = new HashMap<>();
 
@@ -191,8 +190,8 @@ public class ImprovedIndexCreationStrategy2 implements IndexCreationStrategy {
         return result;
     }
 
-    private static Map<DisjunctiveFormula, Bitmask> mapFormulaToClauses(final Collection<DisjunctiveFormula> formulas,
-                                                                        final Map<ConjunctiveClause, Integer> clauseToIndex) {
+    private Map<DisjunctiveFormula, Bitmask> mapFormulaToClauses(final Collection<DisjunctiveFormula> formulas,
+                                                                 final Map<ConjunctiveClause, Integer> clauseToIndex) {
         final Map<DisjunctiveFormula, Bitmask> result = new HashMap<>();
         for (DisjunctiveFormula formula : formulas) {
             for (ConjunctiveClause clause : formula.getClauses()) {
@@ -208,7 +207,7 @@ public class ImprovedIndexCreationStrategy2 implements IndexCreationStrategy {
         return result;
     }
 
-    private static Map<DisjunctiveFormula, Set<SAPL>> mapFormulaToDocuments(
+    private Map<DisjunctiveFormula, Set<SAPL>> mapFormulaToDocuments(
             final Map<String, DisjunctiveFormula> targets, final Map<String, SAPL> documents) {
         Map<DisjunctiveFormula, Set<SAPL>> result = new HashMap<>();
         for (Map.Entry<String, DisjunctiveFormula> entry : targets.entrySet()) {
@@ -219,20 +218,20 @@ public class ImprovedIndexCreationStrategy2 implements IndexCreationStrategy {
         return result;
     }
 
-    private static int[] mapIndexToNumberOfLiteralsInConjunction(final Map<Integer, ConjunctiveClause> indexToClause) {
+    private int[] mapIndexToNumberOfLiteralsInConjunction(final Map<Integer, ConjunctiveClause> indexToClause) {
         final int[] result = new int[indexToClause.size()];
         indexToClause.forEach((key, value) -> result[key] = value.size());
         return result;
     }
 
-    private static int[] mapIndexToNumberOfFormulasWithConjunction(final Map<Integer, ConjunctiveClause> indexToClause,
-                                                                   final Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas) {
+    private int[] mapIndexToNumberOfFormulasWithConjunction(final Map<Integer, ConjunctiveClause> indexToClause,
+                                                            final Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas) {
         final int[] result = new int[indexToClause.size()];
         indexToClause.forEach((key, value) -> result[key] = clauseToFormulas.get(value).size());
         return result;
     }
 
-    private static Map<Integer, Set<DisjunctiveFormula>> mapIndexToFormulas(
+    private Map<Integer, Set<DisjunctiveFormula>> mapIndexToFormulas(
             final Map<ConjunctiveClause, Integer> clauseToIndex,
             final Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas) {
 

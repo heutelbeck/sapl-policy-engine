@@ -66,37 +66,6 @@ public class FastParsedDocumentIndexTest {
 		variables = new HashMap<>();
 	}
 
-
-	@Test
-	public void put_document_without_binding() throws PolicyEvaluationException {
-		// given
-		FunctionContext functionCtx = new AnnotationFunctionContext();
-
-		String def1 = "policy \"p_0\" permit resource.x0";
-		SAPL doc1 = interpreter.parse(def1);
-		prp.put("1", doc1);
-
-		String def2 = "policy \"p_0\" permit resource.x1";
-		SAPL doc2 = interpreter.parse(def2);
-		prp.put("2", doc2);
-
-		String def3 = "policy \"p_0\" permit resource.x2";
-		SAPL doc3 = interpreter.parse(def3);
-		prp.put("3", doc3);
-
-		bindings.put("x0", true);
-		bindings.put("x1", true);
-
-		AuthorizationSubscription authzSubscription = createRequestObject();
-
-		// when
-		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables);
-
-		// then
-		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-		Assertions.assertThat(result.getMatchingDocuments()).hasSize(2).contains(doc1, doc2);
-	}
-
 	@Test
 	public void testPut() throws PolicyEvaluationException {
 		// given

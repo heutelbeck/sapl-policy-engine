@@ -15,16 +15,7 @@
  */
 package io.sapl.pdp.embedded;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -61,6 +52,14 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 @Slf4j
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
@@ -154,7 +153,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		public enum IndexType {
 
-			SIMPLE, FAST
+			SIMPLE, FAST, IMPROVED
 
 		}
 
