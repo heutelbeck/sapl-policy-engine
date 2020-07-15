@@ -4,6 +4,7 @@ import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+import io.sapl.prp.inmemory.indexed.Bitmask;
 import io.sapl.prp.inmemory.indexed.Bool;
 import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
 import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
@@ -42,7 +43,12 @@ public class ImprovedIndexContainer implements IndexContainer {
     public PolicyRetrievalResult match(FunctionContext functionCtx, VariableContext variableCtx) {
         //create new candidate set, that can be modified
         Set<ConjunctiveClause> candidateSet = new HashSet<>(conjunctiveClauseInFormula.keySet());
-        LOGGER.info("number of candidates: {}, number of predicates: {}", candidateSet.size(), boolSet.size());
+        Bitmask candidatesMask = new Bitmask();
+        // set all bits to true
+        candidatesMask.set(0, candidateSet.size());
+
+        LOGGER.info("number of candidates: {}, number of predicates: {}", candidatesMask.numberOfBitsSet(), boolSet
+                .size());
 
         Map<ConjunctiveClause, Integer> trueLiteralsOfConjunction = new HashMap<>();
         Map<ConjunctiveClause, Integer> eliminatedFormulasWithConjunction = new HashMap<>();
@@ -108,8 +114,8 @@ public class ImprovedIndexContainer implements IndexContainer {
                                                           Map<ConjunctiveClause, Integer> eliminatedFormulasWithConjunction) {
         Set<ConjunctiveClause> orphanedCandidates = new HashSet<>();
 
-        for (ConjunctiveClause satisfiableCandidate : satisfiableCandidates) {
-            for (MTuple mTuple : conjunctionsInFormulasReferencingConjunction.get(satisfiableCandidate)) {
+        for (ConjunctiveClause c : satisfiableCandidates) {
+            for (MTuple mTuple : conjunctionsInFormulasReferencingConjunction.get(c)) {
                 eliminatedFormulasWithConjunction.merge(mTuple.getConjunctiveClause(), mTuple
                         .getNumbersOfFormularsWithConjunctiveClaus(), Integer::sum);
 
@@ -122,6 +128,7 @@ public class ImprovedIndexContainer implements IndexContainer {
 
         return orphanedCandidates;
     }
+
 
     private Set<ConjunctiveClause> findUnsatisfiableCandidates(Bool predicate, boolean predicateEvaluationResult) {
         return predicateEvaluationResult ? this.variableInfo.get(predicate).getSetOfUnsatisfiableClausesIfTrue() :

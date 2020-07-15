@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+
 public class ImprovedDocumentIndexTest {
 
     @Rule
@@ -66,25 +67,28 @@ public class ImprovedDocumentIndexTest {
         variables = new HashMap<>();
     }
 
+
+    //TODO orphaned {3} -> false
 	@Test
-	public void put_document_without_binding() throws PolicyEvaluationException {
+	public void test_orphaned() throws PolicyEvaluationException {
 		// given
 		FunctionContext functionCtx = new AnnotationFunctionContext();
 
-		String def1 = "policy \"p_0\" permit resource.x0";
+		String def1 = "policy \"p_0\" permit !resource.x1";
 		SAPL doc1 = interpreter.parse(def1);
 		prp.put("1", doc1);
 
-		String def2 = "policy \"p_1\" permit resource.x1";
+		String def2 = "policy \"p_1\" permit !(resource.x0 | resource.x1)";
 		SAPL doc2 = interpreter.parse(def2);
 		prp.put("2", doc2);
 
-		String def3 = "policy \"p_2\" permit resource.x2";
+		String def3 = "policy \"p_2\" permit (resource.x1 | resource.x2)";
 		SAPL doc3 = interpreter.parse(def3);
 		prp.put("3", doc3);
 
-		bindings.put("x0", true);
-		bindings.put("x1", true);
+		bindings.put("x0", false);
+		bindings.put("x1", false);
+        bindings.put("x2", true);
 
 		AuthorizationSubscription authzSubscription = createRequestObject();
 
@@ -93,7 +97,7 @@ public class ImprovedDocumentIndexTest {
 
 		// then
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-		Assertions.assertThat(result.getMatchingDocuments()).hasSize(2).contains(doc1, doc2);
+		Assertions.assertThat(result.getMatchingDocuments()).hasSize(3).contains(doc1, doc2);
 	}
 
     @Test
