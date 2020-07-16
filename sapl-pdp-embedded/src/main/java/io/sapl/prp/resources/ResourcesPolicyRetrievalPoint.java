@@ -15,6 +15,22 @@
  */
 package io.sapl.prp.resources;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.SAPLInterpreter;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.prp.ParsedDocumentIndex;
+import io.sapl.api.prp.PolicyRetrievalPoint;
+import io.sapl.api.prp.PolicyRetrievalResult;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
+import reactor.core.publisher.Flux;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -30,24 +46,6 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import org.apache.commons.io.IOUtils;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.SAPLInterpreter;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.prp.ParsedDocumentIndex;
-import io.sapl.api.prp.PolicyRetrievalPoint;
-import io.sapl.api.prp.PolicyRetrievalResult;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-
 @Slf4j
 public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
@@ -57,7 +55,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 	private static final String POLICY_FILE_SUFFIX = ".sapl";
 
-	private ParsedDocumentIndex parsedDocIdx;
+	private final ParsedDocumentIndex parsedDocIdx;
 
 	public ResourcesPolicyRetrievalPoint() throws IOException, URISyntaxException, PolicyEvaluationException {
 		this(DEFAULT_POLICIES_PATH, new SimpleParsedDocumentIndex());

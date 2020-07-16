@@ -1,3 +1,18 @@
+/**
+ * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.prp.inmemory.indexed.improved;
 
 import io.sapl.api.prp.PolicyRetrievalResult;
@@ -5,168 +20,176 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 import io.sapl.prp.inmemory.indexed.Bitmask;
-import io.sapl.prp.inmemory.indexed.Bool;
-import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
 import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
 import io.sapl.prp.inmemory.indexed.IndexContainer;
-import io.sapl.prp.inmemory.indexed.Literal;
-import io.sapl.prp.inmemory.indexed.Variable;
-import io.sapl.prp.inmemory.indexed.VariableInfo;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Slf4j
+//@Slf4j
 @RequiredArgsConstructor
 public class ImprovedIndexContainer implements IndexContainer {
 
-    private final Set<Bool> boolSet;
-
-    private final Map<ConjunctiveClause, Integer> numberOfFormulasWithConjunction;
-
-    private final Map<ConjunctiveClause, Set<MTuple>> conjunctionsInFormulasReferencingConjunction;
-    private final Map<ConjunctiveClause, Set<DisjunctiveFormula>> conjunctiveClauseInFormula;
+    private final boolean abortOnError;
 
     private final Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments;
 
-    private final Map<Bool, VariableInfo> variableInfo;
+    private final List<Predicate> predicateOrder;
+
+    private final List<Set<DisjunctiveFormula>> relatedFormulas;
+
+    private final Map<DisjunctiveFormula, Bitmask> relatedCandidates;
+
+    private final Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction;
+
+    private final int[] numberOfLiteralsInConjunction;
+
+    private final int[] numberOfFormulasWithConjunction;
 
 
     @Override
-    public PolicyRetrievalResult match(FunctionContext functionCtx, VariableContext variableCtx) {
-        //create new candidate set, that can be modified
-        Set<ConjunctiveClause> candidateSet = new HashSet<>(conjunctiveClauseInFormula.keySet());
-        Bitmask candidatesMask = new Bitmask();
-        // set all bits to true
-        candidatesMask.set(0, candidateSet.size());
-
-        LOGGER.info("number of candidates: {}, number of predicates: {}", candidatesMask.numberOfBitsSet(), boolSet
-                .size());
-
-        Map<ConjunctiveClause, Integer> trueLiteralsOfConjunction = new HashMap<>();
-        Map<ConjunctiveClause, Integer> eliminatedFormulasWithConjunction = new HashMap<>();
-        Set<DisjunctiveFormula> resultSet = new HashSet<>();
+    public PolicyRetrievalResult match(final FunctionContext functionCtx, final VariableContext variableCtx) {
+        Set<DisjunctiveFormula> result = new HashSet<>();
         boolean errorOccurred = false;
 
-//        try {
-        for (VariableInfo variableInfo : variableInfo.values()) {
-//            for (Bool predicate : boolSet) {
-            Bool predicate = variableInfo.getVariable().getBool();
-            LOGGER.info("candidates remaining: {}", candidateSet.size());
-            if (!isReferenced(predicate, candidateSet)) continue;
+        Bitmask candidates = new Bitmask();
+        candidates.set(0, numberOfLiteralsInConjunction.length);
 
-            Optional<Boolean> outcome = isPredicateSatisfied(variableInfo
-                    .getVariable(), functionCtx, variableCtx);
+        int[] trueLiteralsOfConjunction = new int[numberOfLiteralsInConjunction.length];
+        int[] eliminatedFormulasWithConjunction = new int[numberOfLiteralsInConjunction.length];
+
+//        int candidatesEvaluated = 0;
+
+//        LOGGER.debug("match {} candidates, containing {} predicates", candidates.numberOfBitsSet(), predicateOrder
+//                .size());
+        for (Predicate predicate : predicateOrder) {
+//            LOGGER.debug("candidates {}", candidates);
+            if (!isReferenced(predicate, candidates)) continue;
+
+//            candidatesEvaluated += candidates.numberOfBitsSet();
+            Optional<Boolean> outcome = predicate.evaluate(functionCtx, variableCtx);
             if (!outcome.isPresent()) {
-                //TODO error handling
-                LOGGER.info("missing context for predicate {}", predicate);
-                Set<ConjunctiveClause> missingContextCandidates = getCandidatesContainingPredicate(predicate);
-                candidateSet.removeAll(missingContextCandidates);
-                continue;
+                if (abortOnError) {
+                    return new PolicyRetrievalResult(fetchPolicies(result), true);
+                } else {
+                    removeCandidatesRelatedToPredicate(predicate, candidates);
+                    errorOccurred = true;
+                    continue;
+                }
             }
+            boolean evaluationResult = outcome.get();
 
-            boolean predicateEvaluationResult = outcome.get();
+            Bitmask satisfiableCandidates = findSatisfiableCandidates(candidates, predicate, evaluationResult,
+                    trueLiteralsOfConjunction);
+//            LOGGER.debug("satisfied {}", satisfiableCandidates);
+            result.addAll(fetchFormulas(satisfiableCandidates));
+            Bitmask unsatisfiableCandidates = findUnsatisfiableCandidates(candidates, predicate, evaluationResult);
+//            LOGGER.debug("unsatisfied {}", unsatisfiableCandidates);
+            Bitmask orphanedCandidates = findOrphanedCandidates(candidates, satisfiableCandidates,
+                    eliminatedFormulasWithConjunction);
+            // do not use orphaned logic
+//            orphanedCandidates = new Bitmask();
+//            LOGGER.debug("orphaned {}", orphanedCandidates);
 
-            Set<ConjunctiveClause> satisfiableCandidates = findSatisfiableCandidates(predicate, predicateEvaluationResult, trueLiteralsOfConjunction);
-            resultSet.addAll(fetchFormulas(satisfiableCandidates));
-            Set<ConjunctiveClause> unsatisfiableCandidates = findUnsatisfiableCandidates(predicate, predicateEvaluationResult);
-            Set<ConjunctiveClause> orphanedCandidates = findOrphanedCandidates(satisfiableCandidates, eliminatedFormulasWithConjunction);
 
-            candidateSet.removeAll(satisfiableCandidates);
-            candidateSet.removeAll(unsatisfiableCandidates);
-            candidateSet.removeAll(orphanedCandidates);
+            eliminateCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
+
         }
-//        } catch (PolicyEvaluationException e) {
-//            LOGGER.error("policy evaluation failed", e);
-//            errorOccurred = true;
-//        }
 
-        return new PolicyRetrievalResult(fetchPolicies(resultSet), errorOccurred);
+//        LOGGER.debug("match completed, {} total candidates evaluated, returning {} formulas", candidatesEvaluated, result
+//                .size());
+        return new PolicyRetrievalResult(fetchPolicies(result), errorOccurred);
     }
 
-    private Set<ConjunctiveClause> getCandidatesContainingPredicate(Bool predicate) {
-        VariableInfo info = this.variableInfo.get(predicate);
-        HashSet<ConjunctiveClause> clauses = new HashSet<>(info.getSetOfUnsatisfiableClausesIfFalse());
-        clauses.addAll(info.getSetOfUnsatisfiableClausesIfTrue());
-
-        return clauses;
+    private void removeCandidatesRelatedToPredicate(final Predicate predicate, Bitmask candidates) {
+        Bitmask affectedCandidates = findRelatedCandidates(predicate);
+        candidates.andNot(affectedCandidates);
+//        LOGGER.info("removed {} due to missing context", affectedCandidates.numberOfBitsSet());
     }
 
-    private Optional<Boolean> isPredicateSatisfied(Variable predicate, FunctionContext functionCtx,
-                                                   VariableContext variableCtx) {
-        return predicate.evaluate(functionCtx, variableCtx);
+    protected Bitmask findRelatedCandidates(final Predicate predicate) {
+        Bitmask result = new Bitmask();
+        Set<DisjunctiveFormula> formulasContainingVariable = fetchFormulas(predicate.getConjunctions());
+        for (DisjunctiveFormula formula : formulasContainingVariable) {
+            result.or(relatedCandidates.get(formula));
+        }
+        return result;
+    }
+
+    private Bitmask findOrphanedCandidates(final Bitmask candidates, final Bitmask satisfiableCandidates,
+                                           int[] eliminatedFormulasWithConjunction) {
+        Bitmask result = new Bitmask();
+
+        satisfiableCandidates.forEachSetBit(index -> {
+            Set<CTuple> cTuples = conjunctionsInFormulasReferencingConjunction.get(index);
+            for (CTuple cTuple : cTuples) {
+                if (!candidates.isSet(cTuple.getCI())) continue;
+                eliminatedFormulasWithConjunction[cTuple.getCI()] += cTuple.getN();
+
+                // if all formular of conjunction have been eliminated
+                if (eliminatedFormulasWithConjunction[cTuple.getCI()] == numberOfFormulasWithConjunction[cTuple
+                        .getCI()])
+                    result.set(cTuple.getCI());
+            }
+        });
+
+
+        return result;
+    }
+
+    protected void eliminateCandidates(final Bitmask candidates, final Bitmask unsatisfiableCandidates,
+                                       final Bitmask satisfiableCandidates, final Bitmask orphanedCandidates) {
+        candidates.andNot(unsatisfiableCandidates);
+        candidates.andNot(satisfiableCandidates);
+        candidates.andNot(orphanedCandidates);
+    }
+
+    protected Set<DisjunctiveFormula> fetchFormulas(final Bitmask satisfiableCandidates) {
+        final Set<DisjunctiveFormula> result = new HashSet<>();
+        satisfiableCandidates.forEachSetBit(index -> result.addAll(relatedFormulas.get(index)));
+        return result;
+    }
+
+    private Bitmask findSatisfiableCandidates(final Bitmask candidates, final Predicate predicate,
+                                              final boolean evaluationResult, final int[] trueLiteralsOfConjunction) {
+        Bitmask result = new Bitmask();
+        // calling method with negated evaluation result will return satisfied clauses
+        Bitmask satisfiableCandidates = findUnsatisfiableCandidates(candidates, predicate, !evaluationResult);
+
+        satisfiableCandidates.forEachSetBit(index -> {
+            //increment number of true literals
+            trueLiteralsOfConjunction[index] += 1;
+            //if all literals in conjunction are true, add conjunction to result
+            if (trueLiteralsOfConjunction[index] == numberOfLiteralsInConjunction[index]) result.set(index);
+        });
+
+        return result;
+    }
+
+    protected boolean isReferenced(final Predicate predicate, final Bitmask candidates) {
+        return predicate.getConjunctions().intersects(candidates);
     }
 
     protected Set<SAPL> fetchPolicies(final Set<DisjunctiveFormula> formulas) {
-        return formulas.stream().map(formulaToDocuments::get)
+        return formulas.parallelStream().map(formulaToDocuments::get)
                 .flatMap(Collection::stream).collect(Collectors.toSet());
     }
 
-
-    private Set<ConjunctiveClause> findOrphanedCandidates(Set<ConjunctiveClause> satisfiableCandidates,
-                                                          Map<ConjunctiveClause, Integer> eliminatedFormulasWithConjunction) {
-        Set<ConjunctiveClause> orphanedCandidates = new HashSet<>();
-
-        for (ConjunctiveClause c : satisfiableCandidates) {
-            for (MTuple mTuple : conjunctionsInFormulasReferencingConjunction.get(c)) {
-                eliminatedFormulasWithConjunction.merge(mTuple.getConjunctiveClause(), mTuple
-                        .getNumbersOfFormularsWithConjunctiveClaus(), Integer::sum);
-
-                if (eliminatedFormulasWithConjunction.get(mTuple.getConjunctiveClause())
-                        .equals(numberOfFormulasWithConjunction
-                                .get(mTuple.getConjunctiveClause())))
-                    orphanedCandidates.add(mTuple.getConjunctiveClause());
-            }
+    protected Bitmask findUnsatisfiableCandidates(final Bitmask candidates, final Predicate predicate,
+                                                  final boolean predicateEvaluationResult) {
+        Bitmask result = new Bitmask(candidates);
+        if (predicateEvaluationResult) {
+            result.and(predicate.getFalseForTruePredicate());
+        } else {
+            result.and(predicate.getFalseForFalsePredicate());
         }
-
-        return orphanedCandidates;
-    }
-
-
-    private Set<ConjunctiveClause> findUnsatisfiableCandidates(Bool predicate, boolean predicateEvaluationResult) {
-        return predicateEvaluationResult ? this.variableInfo.get(predicate).getSetOfUnsatisfiableClausesIfTrue() :
-                this.variableInfo.get(predicate).getSetOfUnsatisfiableClausesIfFalse();
-    }
-
-    private Set<DisjunctiveFormula> fetchFormulas(Set<ConjunctiveClause> satisfiedConjunctions) {
-        return satisfiedConjunctions.stream().map(conjunctiveClauseInFormula::get).flatMap(Collection::stream)
-                .collect(Collectors.toSet());
-    }
-
-    private Set<ConjunctiveClause> findSatisfiableCandidates(Bool predicate, boolean predicateEvaluationResult,
-                                                             Map<ConjunctiveClause, Integer> trueLiteralsOfConjunction) {
-        // calling method with negated evaluation result will return satisfied clauses
-        Set<ConjunctiveClause> satisfiableCandidates = findUnsatisfiableCandidates(predicate, !predicateEvaluationResult);
-        Set<ConjunctiveClause> resultSet = new HashSet<>();
-
-        for (ConjunctiveClause satisfiableCandidate : satisfiableCandidates) {
-            trueLiteralsOfConjunction.merge(satisfiableCandidate, 1, Integer::sum);
-
-            if (trueLiteralsOfConjunction.get(satisfiableCandidate)
-                    .equals(satisfiableCandidate.size())) {
-                LOGGER.info("conjunction {} is satisfied", satisfiableCandidate);
-                resultSet.add(satisfiableCandidate);
-            }
-        }
-
-        return resultSet;
-    }
-
-    private boolean isReferenced(Bool predicate, Set<ConjunctiveClause> candidateSet) {
-        return candidateSet.parallelStream()
-                .anyMatch(conjunction -> conjunctionContainsPredicate(conjunction, predicate));
-    }
-
-    private boolean conjunctionContainsPredicate(ConjunctiveClause conjunctiveClause, Bool predicate) {
-        return conjunctiveClause.getLiterals().stream()
-                .map(Literal::getBool).collect(Collectors.toSet()).contains(predicate);
+        return result;
     }
 
 }

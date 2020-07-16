@@ -30,7 +30,7 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
 
     private FunctionContext bufferCtx;
 
-    private final IndexCreationStrategy creationStrategy = new ImprovedIndexCreationStrategy2();
+    private final IndexCreationStrategy creationStrategy = new ImprovedIndexCreationStrategy();
 
     private final Queue<Entry<String, SAPL>> documentChanges = new ConcurrentLinkedQueue<>();
 
