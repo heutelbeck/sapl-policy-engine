@@ -103,28 +103,52 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
 
     private Collection<PredicateInfo> collectPredicateInfos(Set<DisjunctiveFormula> formulas) {
         Map<Bool, PredicateInfo> boolToPredicateInfo = new HashMap<>();
+        Set<Bool> negativesGroupedByFormula = new HashSet<>();
+        Set<Bool> positivesGroupedByFormula = new HashSet<>();
 
         for (DisjunctiveFormula formula : formulas) {
+            negativesGroupedByFormula.clear();
+            positivesGroupedByFormula.clear();
             for (ConjunctiveClause clause : formula.getClauses()) {
+                List<Literal> literals = clause.getLiterals();
+                final int sizeOfClause = literals.size();
                 for (Literal literal : clause.getLiterals()) {
-                    createPredicateInfo(literal, clause, boolToPredicateInfo);
+                    createPredicateInfo(literal, clause, boolToPredicateInfo, negativesGroupedByFormula,
+                            positivesGroupedByFormula, sizeOfClause);
                 }
             }
+        }
+
+        for (PredicateInfo predicateInfo : boolToPredicateInfo.values()) {
+            double sum = predicateInfo.getClauseRelevanceList().stream().mapToDouble(Double::doubleValue).sum();
+            sum /= predicateInfo.getNumberOfPositives() + predicateInfo.getNumberOfNegatives();
+            predicateInfo.setRelevance(sum);
         }
 
         return boolToPredicateInfo.values();
     }
 
     private void createPredicateInfo(final Literal literal, final ConjunctiveClause clause,
-                                     final Map<Bool, PredicateInfo> boolToPredicateInfo) {
+                                     final Map<Bool, PredicateInfo> boolToPredicateInfo, Set<Bool> negativesGroupedByFormula, Set<Bool> positivesGroupedByFormula, int sizeOfClause) {
         Bool bool = literal.getBool();
         PredicateInfo predicateInfo = boolToPredicateInfo
                 .computeIfAbsent(bool, k -> new PredicateInfo(new Predicate(bool)));
 
+        predicateInfo.addToClauseRelevanceList(1.0 / sizeOfClause);
         if (literal.isNegated()) {
             predicateInfo.addUnsatisfiableConjunctionIfTrue(clause);
+            predicateInfo.incNumberOfNegatives();
+            if (!negativesGroupedByFormula.contains(bool)) {
+                negativesGroupedByFormula.add(bool);
+                predicateInfo.incGroupedNumberOfNegatives();
+            }
         } else {
             predicateInfo.addUnsatisfiableConjunctionIfFalse(clause);
+            predicateInfo.incNumberOfPositives();
+            if (!positivesGroupedByFormula.contains(bool)) {
+                positivesGroupedByFormula.add(bool);
+                predicateInfo.incGroupedNumberOfPositives();
+            }
         }
     }
 
@@ -162,10 +186,29 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
     }
 
 
-    private List<Predicate> createPredicateOrder(final Collection<PredicateInfo> predicateInfos) {
-        return predicateInfos.stream().map(PredicateInfo::getPredicate).collect(Collectors.toList());
+    private List<Predicate> createPredicateOrder(final Collection<PredicateInfo> data) {
+        List<PredicateInfo> predicateInfos = new ArrayList<>(data);
+        for (PredicateInfo predicateInfo : predicateInfos) {
+            predicateInfo.setScore(createScore(predicateInfo));
+
+        }
+//        Collections.sort(predicateInfos, Collections.reverseOrder());
+
+        return predicateInfos.stream().sorted(Collections.reverseOrder()).map(PredicateInfo::getPredicate)
+                .collect(Collectors.toList());
     }
 
+
+    private static double createScore(final PredicateInfo predicateInfo) {
+        final double square = 2.0;
+        final double groupedPositives = predicateInfo.getGroupedNumberOfPositives();
+        final double groupedNegatives = predicateInfo.getGroupedNumberOfNegatives();
+        final double relevance = predicateInfo.getRelevance();
+        final double costs = 1.0;
+
+        return Math.pow(relevance, square - relevance) * (groupedPositives + groupedNegatives) / costs * (square
+                - Math.pow((groupedPositives - groupedNegatives) / (groupedPositives + groupedNegatives), square));
+    }
 
     private static <T> List<T> flattenIndexMap(final Map<Integer, T> data) {
         final List<T> result = new ArrayList<>(Collections.nCopies(data.size(), null));
