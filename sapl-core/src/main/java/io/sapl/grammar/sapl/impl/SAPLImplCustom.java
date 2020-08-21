@@ -29,6 +29,7 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 public class SAPLImplCustom extends SAPLImpl {
@@ -66,8 +67,13 @@ public class SAPLImplCustom extends SAPLImpl {
 	 *                                   the target expression
 	 */
 	@Override
-	public boolean matches(EvaluationContext ctx) throws PolicyEvaluationException {
-		final Map<String, String> functionImports = fetchFunctionImports(ctx.getFunctionCtx());
+	public Mono<Boolean> matches(EvaluationContext ctx) {
+		Map<String, String> functionImports;
+		try {
+			functionImports = fetchFunctionImports(ctx.getFunctionCtx());
+		} catch (PolicyEvaluationException e) {
+			return Mono.error(e);
+		}
 		final EvaluationContext evaluationCtx = new EvaluationContext(ctx.getFunctionCtx(), ctx.getVariableCtx(),
 				functionImports);
 		return getPolicyElement().matches(evaluationCtx);
@@ -94,22 +100,23 @@ public class SAPLImplCustom extends SAPLImpl {
 	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
 		LOGGER.trace("| | |-- SAPL Evaluate: {} ({})", getPolicyElement().getSaplName(),
 				getPolicyElement().getClass().getName());
-		try {
-			if (matches(ctx)) {
-				final Map<String, String> imports = fetchFunctionAndPipImports(ctx);
-				final EvaluationContext evaluationCtx = new EvaluationContext(ctx.getAttributeCtx(),
-						ctx.getFunctionCtx(), ctx.getVariableCtx().copy(), imports);
-				return getPolicyElement().evaluate(evaluationCtx).doOnNext(this::logAuthzDecision);
-			} else {
+		return Flux.from(matches(ctx)).switchMap(matches -> {
+			if (!matches) {
 				LOGGER.trace("| | |-- NOT_APPLICABLE. Cause: " + NO_TARGET_MATCH);
 				LOGGER.trace("| |");
 				return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 			}
-		} catch (PolicyEvaluationException e) {
-			LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED, e.getMessage());
-			LOGGER.trace("| |");
-			return Flux.just(INDETERMINATE);
-		}
+			try {
+				final Map<String, String> imports = fetchFunctionAndPipImports(ctx);
+				final EvaluationContext evaluationCtx = new EvaluationContext(ctx.getAttributeCtx(),
+						ctx.getFunctionCtx(), ctx.getVariableCtx().copy(), imports);
+				return getPolicyElement().evaluate(evaluationCtx).doOnNext(this::logAuthzDecision);
+			} catch (PolicyEvaluationException e) {
+				LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED, e.getMessage());
+				LOGGER.trace("| |");
+				return Flux.just(INDETERMINATE);
+			}
+		});
 	}
 
 	private void logAuthzDecision(AuthorizationDecision r) {

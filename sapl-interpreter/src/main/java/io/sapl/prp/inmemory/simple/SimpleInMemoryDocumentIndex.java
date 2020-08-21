@@ -29,6 +29,7 @@ import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.FunctionContext;
+import reactor.core.publisher.Mono;
 
 public class SimpleInMemoryDocumentIndex implements InMemoryDocumentIndex {
 
@@ -39,7 +40,7 @@ public class SimpleInMemoryDocumentIndex implements InMemoryDocumentIndex {
 	ParsedDocumentIndex index = new SimpleParsedDocumentIndex();
 
 	@Override
-	public PolicyRetrievalResult retrievePolicies(AuthorizationSubscription authzSubscription,
+	public Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
 			FunctionContext functionCtx, Map<String, JsonNode> variables) {
 		return index.retrievePolicies(authzSubscription, functionCtx, variables);
 	}

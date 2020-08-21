@@ -109,7 +109,6 @@ public class DenyUnlessPermitTest {
 	@Test
 	public void indeterminateCondition() {
 		String policySet = "set \"tests\" deny-unless-permit" + " policy \"testp\" permit where \"a\" < 5;";
-
 		assertEquals("should return deny if the only condition is indeterminate", Decision.DENY,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
 						.blockFirst().getDecision());

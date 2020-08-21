@@ -35,6 +35,7 @@ import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.variables.VariableContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCombinator {
@@ -52,8 +53,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 		final VariableContext variableCtx;
 		try {
 			variableCtx = new VariableContext(authzSubscription, systemVariables);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
 		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
@@ -77,22 +77,19 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 
 	@Override
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		final List<Policy> matchingPolicies = new ArrayList<>();
-		for (Policy policy : policies) {
-			try {
-				if (policy.matches(ctx)) {
-					matchingPolicies.add(policy);
-				}
-			}
-			catch (PolicyEvaluationException e) {
-				// we won't further evaluate this policy
-			}
-		}
+		Mono<List<Policy>> matchingPolicies = Flux.fromIterable(policies).filterWhen(policy -> policy.matches(ctx))
+				.collectList();
+		return Flux.from(matchingPolicies)
+				.onErrorContinue(/* Ignore Errors in Target */(throwable, o) -> LOGGER
+						.trace("| |-- Ignore error in target processing {}. Cause: {}", o, throwable.getMessage()))
+				.flatMap(matches -> doCombine(matches, ctx));
+	}
 
+	private Flux<AuthorizationDecision> doCombine(List<Policy> matchingPolicies, EvaluationContext ctx) {
+		LOGGER.trace("| |-- Combining {} policies", matchingPolicies.size());
 		if (matchingPolicies.isEmpty()) {
 			return Flux.just(AuthorizationDecision.DENY);
 		}
-
 		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
 			authzDecisionFluxes.add(policy.evaluate(ctx));
@@ -140,8 +137,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 				}
 				obligationAdvice.add(Decision.PERMIT, newAuthzDecision);
 				authzDecision = newAuthzDecision;
-			}
-			else if (newAuthzDecision.getDecision() == Decision.DENY
+			} else if (newAuthzDecision.getDecision() == Decision.DENY
 					&& authzDecision.getDecision() != Decision.PERMIT) {
 				obligationAdvice.add(Decision.DENY, newAuthzDecision);
 			}
@@ -159,8 +155,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 				return new AuthorizationDecision(Decision.PERMIT, authzDecision.getResource(),
 						obligationAdvice.get(Type.OBLIGATION, Decision.PERMIT),
 						obligationAdvice.get(Type.ADVICE, Decision.PERMIT));
-			}
-			else {
+			} else {
 				return new AuthorizationDecision(Decision.DENY, authzDecision.getResource(),
 						obligationAdvice.get(Type.OBLIGATION, Decision.DENY),
 						obligationAdvice.get(Type.ADVICE, Decision.DENY));

@@ -153,10 +153,10 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	@Override
 	public Flux<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
 			FunctionContext functionCtx, Map<String, JsonNode> variables) {
-		return dirWatcherEventProcessor.map(event -> {
+		return dirWatcherEventProcessor.flatMap(event -> {
 			try {
 				lock.lock();
-				return parsedDocIdx.retrievePolicies(authzSubscription, functionCtx, variables);
+				return Flux.from(parsedDocIdx.retrievePolicies(authzSubscription, functionCtx, variables));
 			} finally {
 				lock.unlock();
 			}

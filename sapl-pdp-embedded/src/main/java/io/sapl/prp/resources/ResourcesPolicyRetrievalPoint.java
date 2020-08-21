@@ -141,7 +141,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	@Override
 	public Flux<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
 			FunctionContext functionCtx, Map<String, JsonNode> variables) {
-		return Flux.just(parsedDocIdx.retrievePolicies(authzSubscription, functionCtx, variables))
+		return Flux.from(parsedDocIdx.retrievePolicies(authzSubscription, functionCtx, variables))
 				.doOnNext(this::logMatching);
 	}
 

@@ -87,7 +87,7 @@ public class ConcurrencyTest {
 		AuthorizationSubscription authzSubscription = createRequestObject(bindings);
 
 		// when
-		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
 		// then
 		Assertions.assertThat(result).isNotNull();
@@ -108,7 +108,7 @@ public class ConcurrencyTest {
 		AuthorizationSubscription authzSubscription = createRequestObject(bindings);
 
 		// when
-		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
 		// then
 		Assertions.assertThat(result).isNotNull();
@@ -127,7 +127,7 @@ public class ConcurrencyTest {
 
 		// when
 		prp.updateFunctionContext(functionCtx);
-		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
 		// then
 		Assertions.assertThat(result).isNotNull();
