@@ -5,7 +5,7 @@ sudo: required
 language: java
 
 jdk:
-  - openjdk12
+  - oraclejdk8
 
 env:
   - SONAR_HOST=https://sonar.ftk.de NODE_VERSION=12
