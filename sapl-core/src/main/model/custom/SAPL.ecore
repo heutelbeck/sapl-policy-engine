@@ -272,8 +272,7 @@
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Matchable" abstract="true" interface="true">
-    <eOperations name="matches" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
-        eExceptions="#//PolicyEvaluationException">
+    <eOperations name="matches" eType="ecore:EDataType #//BooleanMono">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value="The method returns a flag indicating whether the object it is called on matches the current authorization subscription within the given evaluation context.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@returns &#xA;&#x9;&#x9;true if the object this method is called on matches the current authorization subscription within the given evaluation context, false otherwise.&#xA;@throws PolicyEvaluationException if an error occurs while evaluating the target expression"/>
       </eAnnotations>
@@ -304,6 +303,7 @@
   <eClassifiers xsi:type="ecore:EDataType" name="StringMap" instanceTypeName="java.util.Map&lt;java.lang.String, java.lang.String>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="AbstractAnnotatedJsonNode" instanceClassName="io.sapl.interpreter.selection.AbstractAnnotatedJsonNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="ValFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.grammar.sapl.impl.Val>"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="BooleanMono" instanceTypeName="reactor.core.publisher.Mono&lt;java.lang.Boolean>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Val" instanceClassName="io.sapl.grammar.sapl.impl.Val"/>
   <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationSubscription" instanceClassName="io.sapl.api.pdp.AuthorizationSubscription"
       serializable="false"/>

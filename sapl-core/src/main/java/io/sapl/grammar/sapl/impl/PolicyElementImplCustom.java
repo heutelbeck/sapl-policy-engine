@@ -20,7 +20,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.Exceptions;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 public class PolicyElementImplCustom extends PolicyElementImpl {
@@ -54,38 +54,24 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
 	 *                                   the target expression
 	 */
 	@Override
-	public boolean matches(EvaluationContext ctx) throws PolicyEvaluationException {
+	public Mono<Boolean> matches(EvaluationContext ctx) {
 		LOGGER.trace("| | |-- PolicyElement test match '{}'", getSaplName());
 		final Expression targetExpression = getTargetExpression();
 		if (targetExpression == null) {
 			LOGGER.trace("| | | |-- MATCH (no target expression, matches all)");
 			LOGGER.trace("| | |");
-			return true;
-		} else {
-			try {
-				final Val expressionResult = targetExpression.evaluate(ctx, false, Val.undefined()).blockFirst();
-				if (expressionResult.isDefined() && expressionResult.get().isBoolean()) {
-					LOGGER.trace("| | | |-- {}", expressionResult.get().asBoolean() ? "MATCH" : "NO MATCH");
-					LOGGER.trace("| | |");
-					return expressionResult.get().asBoolean();
-				} else {
-					LOGGER.trace("| | | |-- ERROR in target expression did not evaluate to boolean. Was: {}",
-							expressionResult);
-					LOGGER.trace("| | |");
-					throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, expressionResult);
-				}
-			} catch (RuntimeException fluxError) {
-				LOGGER.trace("| | | |-- ERROR during target expression evaluation: {} ", fluxError.getMessage());
-				LOGGER.trace("| | | |-- trace: ", fluxError);
-				LOGGER.trace("| | |");
-
-				final Throwable originalError = Exceptions.unwrap(fluxError);
-				if (originalError instanceof PolicyEvaluationException) {
-					throw (PolicyEvaluationException) originalError;
-				}
-				throw fluxError;
-			}
+			return Mono.just(Boolean.TRUE);
 		}
+		return targetExpression.evaluate(ctx, false, Val.undefined()).next().flatMap(result -> {
+			if (!result.isDefined() || !result.get().isBoolean()) {
+				LOGGER.trace("| | | |-- ERROR in target expression did not evaluate to boolean. Was: {}", result);
+				LOGGER.trace("| | |");
+				return Mono.error(new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result));
+			}
+			LOGGER.trace("| | | |-- {}", result.get().asBoolean() ? "MATCH" : "NO MATCH");
+			LOGGER.trace("| | |");
+			return Mono.just(result.get().asBoolean());
+		});
 	}
 
 }

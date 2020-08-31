@@ -18,10 +18,8 @@ package io.sapl.pdp.embedded;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -42,7 +40,6 @@ import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.SelectionFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -61,6 +58,8 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 @Slf4j
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
@@ -81,20 +80,22 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-		LOGGER.trace("|---------------------------");
+		LOGGER.trace("|--------------------------------->");
 		LOGGER.trace("|-- PDP AuthorizationSubscription: {}", authzSubscription);
 
 		final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider.getVariables();
 		final Flux<DocumentsCombinator> combinatorFlux = configurationProvider.getDocumentsCombinator();
 
-		return Flux.combineLatest(variablesFlux, combinatorFlux, (variables, combinator) -> prp
-				.retrievePolicies(authzSubscription, functionCtx, variables).switchMap(result -> {
-					final Collection<SAPL> matchingDocuments = result.getMatchingDocuments();
-					final boolean errorsInTarget = result.isErrorsInTarget();
-					LOGGER.trace("|-- Combine documents of authzSubscription: {}", authzSubscription);
-					return (Flux<AuthorizationDecision>) combinator.combineMatchingDocuments(matchingDocuments,
-							errorsInTarget, authzSubscription, attributeCtx, functionCtx, variables);
-				})).flatMap(Function.identity()).distinctUntilChanged();
+		Flux<Tuple2<Map<String, JsonNode>, DocumentsCombinator>> pdpConfiguration = Flux.combineLatest(variablesFlux,
+				combinatorFlux, (variables, combinator) -> Tuples.of(variables, combinator)).distinctUntilChanged();
+
+		Flux<AuthorizationDecision> decisions = pdpConfiguration.switchMap(config -> prp
+				.retrievePolicies(authzSubscription, functionCtx, config.getT1())
+				.switchMap(policies -> config.getT2().combineMatchingDocuments(policies.getMatchingDocuments(),
+						policies.isErrorsInTarget(), authzSubscription, attributeCtx, functionCtx, config.getT1())))
+				.distinctUntilChanged();
+		return decisions;
+
 	}
 
 	@Override
@@ -175,6 +176,11 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			return this;
 		}
 
+		public Builder withPDPConfigurationProvider(PDPConfigurationProvider configurationProvider) {
+			pdp.configurationProvider = configurationProvider;
+			return this;
+		}
+
 		public Builder withResourcePDPConfigurationProvider(String resourcePath)
 				throws PDPConfigurationException, IOException, URISyntaxException {
 			return withResourcePDPConfigurationProvider(ResourcesPDPConfigurationProvider.class, resourcePath);
@@ -198,6 +204,11 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		public Builder withPolicyInformationPoint(Object pip) throws AttributeException {
 			pdp.attributeCtx.loadPolicyInformationPoint(pip);
+			return this;
+		}
+
+		public Builder withPolicyRetrievalPoint(PolicyRetrievalPoint prp) {
+			pdp.prp = prp;
 			return this;
 		}
 

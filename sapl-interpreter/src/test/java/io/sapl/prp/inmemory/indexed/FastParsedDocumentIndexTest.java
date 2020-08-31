@@ -80,7 +80,7 @@ public class FastParsedDocumentIndexTest {
 		AuthorizationSubscription authzSubscription = createRequestObject();
 
 		// when
-		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
 		// then
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
@@ -101,7 +101,7 @@ public class FastParsedDocumentIndexTest {
 		AuthorizationSubscription authzSubscription = createRequestObject();
 
 		// when
-		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
 		// then
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
@@ -120,7 +120,7 @@ public class FastParsedDocumentIndexTest {
 
 		// when
 		prp.updateFunctionContext(functionCtx);
-		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
 		// then
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();

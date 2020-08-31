@@ -31,6 +31,7 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.variables.VariableContext;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyCombinator {
 
@@ -41,47 +42,38 @@ public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyC
 
 		if (errorsInTarget || matchingSaplDocuments.size() > 1) {
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
-		}
-		else if (matchingSaplDocuments.size() == 1) {
+		} else if (matchingSaplDocuments.size() == 1) {
 			final VariableContext variableCtx;
 			try {
 				variableCtx = new VariableContext(authzSubscription, systemVariables);
-			}
-			catch (PolicyEvaluationException e) {
+			} catch (PolicyEvaluationException e) {
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
 			}
 			final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 
 			final SAPL matchingDocument = matchingSaplDocuments.iterator().next();
 			return matchingDocument.evaluate(evaluationCtx);
-		}
-		else {
+		} else {
 			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 		}
 	}
 
 	@Override
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		Policy matchingPolicy = null;
-		for (Policy policy : policies) {
-			try {
-				if (policy.matches(ctx)) {
-					if (matchingPolicy != null) {
-						return Flux.just(AuthorizationDecision.INDETERMINATE);
-					}
-					matchingPolicy = policy;
-				}
-			}
-			catch (PolicyEvaluationException e) {
-				return Flux.just(AuthorizationDecision.INDETERMINATE);
-			}
-		}
+		Mono<List<Policy>> matchingPolicies = Flux.fromIterable(policies).filterWhen(policy -> policy.matches(ctx))
+				.collectList();
+		return Flux.from(matchingPolicies).flatMap(matches -> doCombine(matches, ctx))
+				.onErrorReturn(AuthorizationDecision.INDETERMINATE);
+	}
 
-		if (matchingPolicy == null) {
+	private Flux<AuthorizationDecision> doCombine(List<Policy> matches, EvaluationContext ctx) {
+		if (matches.isEmpty()) {
 			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 		}
-
-		return matchingPolicy.evaluate(ctx);
+		if (matches.size() > 1) {
+			return Flux.just(AuthorizationDecision.INDETERMINATE);
+		}
+		return matches.get(0).evaluate(ctx).distinctUntilChanged();
 	}
 
 }
