@@ -15,6 +15,8 @@
  */
 package io.sapl.prp.inmemory.indexed.improved;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -22,7 +24,6 @@ import io.sapl.interpreter.variables.VariableContext;
 import io.sapl.prp.inmemory.indexed.Bitmask;
 import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
 import io.sapl.prp.inmemory.indexed.IndexContainer;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -33,7 +34,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 //@Slf4j
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 public class ImprovedIndexContainer implements IndexContainer {
 
     private final boolean abortOnError;
@@ -52,6 +53,21 @@ public class ImprovedIndexContainer implements IndexContainer {
 
     private final int[] numberOfFormulasWithConjunction;
 
+    public ImprovedIndexContainer(boolean abortOnError, Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
+                                  List<Predicate> predicateOrder, List<Set<DisjunctiveFormula>> relatedFormulas,
+                                  Map<DisjunctiveFormula, Bitmask> relatedCandidates,
+                                  Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction,
+                                  int[] numberOfLiteralsInConjunction, int[] numberOfFormulasWithConjunction) {
+        this.abortOnError = abortOnError;
+        this.formulaToDocuments = ImmutableMap.copyOf(formulaToDocuments);
+        this.predicateOrder = ImmutableList.copyOf(predicateOrder);
+        this.relatedFormulas = ImmutableList.copyOf(relatedFormulas);
+        this.relatedCandidates = ImmutableMap.copyOf(relatedCandidates);
+        this.conjunctionsInFormulasReferencingConjunction = ImmutableMap
+                .copyOf(conjunctionsInFormulasReferencingConjunction);
+        this.numberOfLiteralsInConjunction = numberOfLiteralsInConjunction;
+        this.numberOfFormulasWithConjunction = numberOfFormulasWithConjunction;
+    }
 
     @Override
     public PolicyRetrievalResult match(final FunctionContext functionCtx, final VariableContext variableCtx) {
