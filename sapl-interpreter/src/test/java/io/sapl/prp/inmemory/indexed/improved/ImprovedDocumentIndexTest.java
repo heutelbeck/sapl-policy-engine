@@ -92,7 +92,7 @@ public class ImprovedDocumentIndexTest {
 		AuthorizationSubscription authzSubscription = createRequestObject();
 
 		// when
-		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables);
+		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
 		// then
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
@@ -111,7 +111,7 @@ public class ImprovedDocumentIndexTest {
         AuthorizationSubscription authzSubscription = createRequestObject();
 
         // when
-        PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables);
+        PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
         // then
         Assertions.assertThat(result.isErrorsInTarget()).isFalse();
@@ -132,7 +132,7 @@ public class ImprovedDocumentIndexTest {
         AuthorizationSubscription authzSubscription = createRequestObject();
 
         // when
-        PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables);
+        PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
         // then
         Assertions.assertThat(result.isErrorsInTarget()).isFalse();
@@ -151,7 +151,7 @@ public class ImprovedDocumentIndexTest {
 
         // when
         prp.updateFunctionContext(functionCtx);
-        PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables);
+        PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
         // then
         Assertions.assertThat(result.isErrorsInTarget()).isFalse();

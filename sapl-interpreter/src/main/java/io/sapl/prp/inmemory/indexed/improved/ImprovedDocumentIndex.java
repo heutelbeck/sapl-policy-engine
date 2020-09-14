@@ -11,9 +11,14 @@ import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+import io.sapl.prp.inmemory.indexed.Bool;
+import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
+import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
 import io.sapl.prp.inmemory.indexed.IndexContainer;
 import io.sapl.prp.inmemory.indexed.IndexCreationStrategy;
-import io.sapl.prp.inmemory.indexed.*;
+import io.sapl.prp.inmemory.indexed.Literal;
+import io.sapl.prp.inmemory.indexed.TreeWalker;
+import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -88,15 +93,20 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
     }
 
     @Override
-    public PolicyRetrievalResult retrievePolicies(AuthorizationSubscription authzSubscription,
-                                                  FunctionContext functionCtx, Map<String, JsonNode> variables) {
+    public Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
+                                                        FunctionContext functionCtx, Map<String, JsonNode> variables) {
+
+        return Mono.just(retrievePoliciesOld(authzSubscription, functionCtx, variables));
+    }
+
+    public PolicyRetrievalResult retrievePoliciesOld(AuthorizationSubscription authzSubscription,
+                                                     FunctionContext functionCtx, Map<String, JsonNode> variables) {
         lazyInit(Preconditions.checkNotNull(functionCtx));
         PolicyRetrievalResult result;
         try {
             VariableContext variableCtx = new VariableContext(authzSubscription, variables);
             result = documentIndex.match(functionCtx, variableCtx);
-        }
-        catch (PolicyEvaluationException e) {
+        } catch (PolicyEvaluationException e) {
             result = new PolicyRetrievalResult(Collections.emptyList(), true);
         }
         if (!unusableDocuments.isEmpty()) {
@@ -151,16 +161,14 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
                     updateFunctionContextReference();
                 }
                 updateDocumentReferences();
-            }
-            finally {
+            } finally {
                 functionCtxWriteLock.unlock();
                 initLatch.countDown();
             }
         }
         try {
             initLatch.await();
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
@@ -172,8 +180,7 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
                 if (entry.getValue() != null) {
                     retainDocument(entry.getKey(), entry.getValue());
                     retainTarget(entry.getKey(), entry.getValue());
-                }
-                else {
+                } else {
                     discard(entry.getKey());
                 }
             }
@@ -210,14 +217,12 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
             DisjunctiveFormula targetFormula;
             if (targetExpression == null) {
                 targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
-            }
-            else {
+            } else {
                 Map<String, String> imports = sapl.fetchFunctionImports(functionCtx);
                 targetFormula = TreeWalker.walk(targetExpression, imports);
             }
             publishedTargets.put(documentKey, targetFormula);
-        }
-        catch (PolicyEvaluationException e) {
+        } catch (PolicyEvaluationException e) {
             unusableDocuments.put(documentKey, sapl);
         }
     }
@@ -230,8 +235,7 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
                 processDocumentChanges();
                 documentSwitch.set(true);
             }
-        }
-        finally {
+        } finally {
             functionCtxReadLock.unlock();
         }
     }
@@ -244,8 +248,7 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
                 processFunctionContextChanges();
                 functionCtxSwitch.set(true);
             }
-        }
-        finally {
+        } finally {
             functionCtxWriteLock.unlock();
         }
     }
