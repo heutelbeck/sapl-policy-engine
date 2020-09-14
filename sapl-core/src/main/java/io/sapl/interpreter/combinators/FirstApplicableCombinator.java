@@ -18,38 +18,28 @@ package io.sapl.interpreter.combinators;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.interpreter.EvaluationContext;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-@Slf4j
 public class FirstApplicableCombinator implements PolicyCombinator {
 
 	@Override
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		final List<Policy> matchingPolicies = new ArrayList<>();
-		for (Policy policy : policies) {
-			try {
-				if (policy.matches(ctx)) {
-					matchingPolicies.add(policy);
-					LOGGER.trace("Matching policy: {}", policy);
-				}
-			}
-			catch (PolicyEvaluationException e) {
-				return Flux.just(AuthorizationDecision.INDETERMINATE);
-			}
-		}
+		Mono<List<Policy>> matchingPolicies = Flux.fromIterable(policies).filterWhen(policy -> policy.matches(ctx)).collectList();
+		return Flux.from(matchingPolicies).flatMap(matches -> doCombine(matches, ctx))
+				.onErrorReturn(AuthorizationDecision.INDETERMINATE);
+	}
 
-		if (matchingPolicies.isEmpty()) {
+	private Flux<AuthorizationDecision> doCombine(List<Policy> matches, EvaluationContext ctx) {
+		if (matches.isEmpty()) {
 			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 		}
-
-		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingPolicies.size());
-		for (Policy policy : matchingPolicies) {
+		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matches.size());
+		for (Policy policy : matches) {
 			authzDecisionFluxes.add(policy.evaluate(ctx));
 		}
 		return Flux.combineLatest(authzDecisionFluxes, authzDecisions -> {

@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -33,8 +34,11 @@ import io.sapl.interpreter.combinators.ObligationAdviceCollector.Type;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.variables.VariableContext;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
+@Slf4j
 public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombinator {
 
 	@Override
@@ -50,8 +54,7 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 		final VariableContext variableCtx;
 		try {
 			variableCtx = new VariableContext(authzSubscription, systemVariables);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
 		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
@@ -70,29 +73,34 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 
 	@Override
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		boolean errorsInTarget = false;
-		final List<Policy> matchingPolicies = new ArrayList<>();
-		for (Policy policy : policies) {
-			try {
-				if (policy.matches(ctx)) {
-					matchingPolicies.add(policy);
-				}
-			}
-			catch (PolicyEvaluationException e) {
-				errorsInTarget = true;
-			}
-		}
+		LOGGER.info("| |-- Combining {} policies", policies.size());
+		AtomicBoolean errorInTarget = new AtomicBoolean(false);
+		Mono<List<Policy>> matchingPolicies = Flux.fromIterable(policies).filterWhen(policy -> policy.matches(ctx))
+				.onErrorContinue((t, o) -> {
+					LOGGER.info("| |-- Error in target evaluation: {}", t.getMessage());
+					errorInTarget.set(true);
+				}).collectList();
+		return Flux.from(matchingPolicies)
+				.flatMap(matches -> doCombine(matches, ctx,errorInTarget.get())).onErrorReturn(AuthorizationDecision.INDETERMINATE);
+	}
 
+	private Flux<AuthorizationDecision> doCombine(List<Policy> matchingPolicies, EvaluationContext ctx, boolean errorInTarget) {
+		LOGGER.info("| |-- Combining {} matching policies", matchingPolicies.size());
+		if (matchingPolicies.isEmpty() && errorInTarget) {
+			LOGGER.info("| |-- No policies but some where witrh indeterminate target -> INDETERMINATE");
+			return Flux.just(AuthorizationDecision.INDETERMINATE);
+		}
+		
 		if (matchingPolicies.isEmpty()) {
-			return errorsInTarget ? Flux.just(AuthorizationDecision.INDETERMINATE)
-					: Flux.just(AuthorizationDecision.NOT_APPLICABLE);
+			LOGGER.info("| |-- No policies -> NOT_APPLICABLE");
+			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 		}
 
 		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingPolicies.size());
 		for (Policy policy : matchingPolicies) {
 			authzDecisionFluxes.add(policy.evaluate(ctx));
 		}
-		final AuthorizationDecisionAccumulator accumulator = new AuthorizationDecisionAccumulator(errorsInTarget);
+		final AuthorizationDecisionAccumulator accumulator = new AuthorizationDecisionAccumulator(errorInTarget);
 		return Flux.combineLatest(authzDecisionFluxes, authzDecisions -> {
 			accumulator.addSingleDecisions(authzDecisions);
 			return accumulator.getCombinedAuthorizationDecision();
@@ -135,11 +143,9 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 			if (newDecision == Decision.DENY) {
 				obligationAdvice.add(Decision.DENY, newAuthzDecision);
 				authzDecision = AuthorizationDecision.DENY;
-			}
-			else if (newDecision == Decision.INDETERMINATE && authzDecision.getDecision() != Decision.DENY) {
+			} else if (newDecision == Decision.INDETERMINATE && authzDecision.getDecision() != Decision.DENY) {
 				authzDecision = AuthorizationDecision.INDETERMINATE;
-			}
-			else if (newDecision == Decision.PERMIT) {
+			} else if (newDecision == Decision.PERMIT) {
 				permitCount += 1;
 				if (newAuthzDecision.getResource().isPresent()) {
 					transformation = true;
@@ -157,19 +163,16 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 			if (authzDecision.getDecision() == Decision.PERMIT) {
 				if (permitCount > 1 && transformation) {
 					return AuthorizationDecision.INDETERMINATE;
-				}
-				else {
+				} else {
 					return new AuthorizationDecision(Decision.PERMIT, authzDecision.getResource(),
 							obligationAdvice.get(Type.OBLIGATION, Decision.PERMIT),
 							obligationAdvice.get(Type.ADVICE, Decision.PERMIT));
 				}
-			}
-			else if (authzDecision.getDecision() == Decision.DENY) {
+			} else if (authzDecision.getDecision() == Decision.DENY) {
 				return new AuthorizationDecision(Decision.DENY, authzDecision.getResource(),
 						obligationAdvice.get(Type.OBLIGATION, Decision.DENY),
 						obligationAdvice.get(Type.ADVICE, Decision.DENY));
-			}
-			else {
+			} else {
 				return authzDecision;
 			}
 		}

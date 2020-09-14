@@ -37,6 +37,7 @@ import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.core.publisher.Mono;
 
 public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 
@@ -100,21 +101,20 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 	}
 
 	@Override
-	public PolicyRetrievalResult retrievePolicies(AuthorizationSubscription authzSubscription,
+	public Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
 			FunctionContext functionCtx, Map<String, JsonNode> variables) {
 		lazyInit(Preconditions.checkNotNull(functionCtx));
 		PolicyRetrievalResult result;
 		try {
 			VariableContext variableCtx = new VariableContext(authzSubscription, variables);
 			result = documentIndex.match(functionCtx, variableCtx);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			result = new PolicyRetrievalResult(Collections.emptyList(), true);
 		}
 		if (!unusableDocuments.isEmpty()) {
-			return new PolicyRetrievalResult(result.getMatchingDocuments(), true);
+			return Mono.just(new PolicyRetrievalResult(result.getMatchingDocuments(), true));
 		}
-		return result;
+		return Mono.just(result);
 	}
 
 	@Override
@@ -163,16 +163,14 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 					updateFunctionContextReference();
 				}
 				updateDocumentReferences();
-			}
-			finally {
+			} finally {
 				functionCtxWriteLock.unlock();
 				initLatch.countDown();
 			}
 		}
 		try {
 			initLatch.await();
-		}
-		catch (InterruptedException e) {
+		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
 	}
@@ -184,8 +182,7 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 				if (entry.getValue() != null) {
 					retainDocument(entry.getKey(), entry.getValue());
 					retainTarget(entry.getKey(), entry.getValue());
-				}
-				else {
+				} else {
 					discard(entry.getKey());
 				}
 			}
@@ -222,14 +219,12 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 			DisjunctiveFormula targetFormula;
 			if (targetExpression == null) {
 				targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
-			}
-			else {
+			} else {
 				Map<String, String> imports = sapl.fetchFunctionImports(functionCtx);
 				targetFormula = TreeWalker.walk(targetExpression, imports);
 			}
 			publishedTargets.put(documentKey, targetFormula);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			unusableDocuments.put(documentKey, sapl);
 		}
 	}
@@ -242,8 +237,7 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 				processDocumentChanges();
 				documentSwitch.set(true);
 			}
-		}
-		finally {
+		} finally {
 			functionCtxReadLock.unlock();
 		}
 	}
@@ -256,8 +250,7 @@ public class FastParsedDocumentIndex implements ParsedDocumentIndex {
 				processFunctionContextChanges();
 				functionCtxSwitch.set(true);
 			}
-		}
-		finally {
+		} finally {
 			functionCtxWriteLock.unlock();
 		}
 	}

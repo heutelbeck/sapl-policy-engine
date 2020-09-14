@@ -15,23 +15,7 @@
  */
 package io.sapl.prp.filesystem;
 
-import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.WatchEvent;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -50,6 +34,21 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.ReplayProcessor;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.WatchEvent;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
+
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 
 @Slf4j
 public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
@@ -153,14 +152,29 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	@Override
 	public Flux<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
 			FunctionContext functionCtx, Map<String, JsonNode> variables) {
-		return dirWatcherEventProcessor.map(event -> {
+		return dirWatcherEventProcessor.flatMap(event -> {
 			try {
 				lock.lock();
-				return parsedDocIdx.retrievePolicies(authzSubscription, functionCtx, variables);
+				return Flux.from(parsedDocIdx.retrievePolicies(authzSubscription, functionCtx, variables))
+						.doOnNext(this::logMatching);
 			} finally {
 				lock.unlock();
 			}
 		});
+	}
+
+	private void logMatching(PolicyRetrievalResult result) {
+		if (result.getMatchingDocuments().isEmpty()) {
+			LOGGER.trace("|-- Matching documents: NONE");
+		}
+		else {
+			LOGGER.trace("|-- Matching documents:");
+			for (SAPL doc : result.getMatchingDocuments()) {
+				LOGGER.trace("| |-- * {} ({})", doc.getPolicyElement().getSaplName(),
+						doc.getPolicyElement().getClass().getName());
+			}
+		}
+		LOGGER.trace("|");
 	}
 
 }

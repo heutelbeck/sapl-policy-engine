@@ -24,12 +24,23 @@ class SAPLEditor extends LitElement {
     super.connectedCallback();
 
     var self = this;
+    var shadowRoot = self.shadowRoot;
 
-    require(["codemirror/addon/edit/matchbrackets",
+    var widget_container = document.createElement("div");
+    widget_container.id = "WIDGET_CONTAINER";
+    widget_container.style.position = 'absolute';
+    widget_container.style.left = '0px';
+    widget_container.style.top = '0px';
+    widget_container.style.width = '1px';
+    widget_container.style.height = '1px';
+
+    require(["./xtext-codemirror.min",
+      "codemirror/addon/edit/matchbrackets",
       "codemirror/addon/edit/closebrackets",
-      "./sapl-mode", "./xtext-codemirror.min"], function (addon1, addon2, mode, xtext) {
+      "codemirror/addon/hint/show-hint",
+      "./sapl-mode"], function (xtext, addon1, addon2, showHint, mode) {
         self.editor = xtext.createEditor({
-          document: self.shadowRoot,
+          document: shadowRoot,
           xtextLang: self.xtextLang,
           sendFullText: true,
           syntaxDefinition: mode,
@@ -38,7 +49,11 @@ class SAPLEditor extends LitElement {
           autoCloseBrackets: self.autoCloseBrackets,
           matchBrackets: self.matchBrackets,
           enableValidationService: true,
-          textUpdateDelay: self.textUpdateDelay
+          textUpdateDelay: self.textUpdateDelay,
+          extraKeys: {"Ctrl-Space": "autocomplete"},
+          hintOptions: { 
+            container: widget_container
+          }
         });
 
         self.editor.doc.setValue(self.document);
@@ -48,6 +63,8 @@ class SAPLEditor extends LitElement {
         });
 
         self.registerValidationCallback(self.editor);
+
+        shadowRoot.appendChild(widget_container);
       });
   }
 

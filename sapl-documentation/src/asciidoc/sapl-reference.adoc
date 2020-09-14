@@ -18,14 +18,14 @@
 
 = SAPL - Structure and Agency Policy Language
 Dominic Heutelbeck
-v2.0, 2020-04-22
+v2.0-SNAPSHOT, 2020-08-31
 
 :toclevels: 4
 
 == Introduction
 
-SAPL (Structure and Agency Policy Language) describes both a *domain specific language (DSL)* for expressing access control policies and a *publish/subscribe protocol* based on http://json.org/[JSON].
-Policies expressed in the SAPL policy language describe conditions for access control in applications and distributed systems. The underlying policy engine implements a variant of Attribute-based Access control (ABAC) which is centered around data streams and reactive programming patterns. Namely, the SAPL policy engine implements Attribute Stream-based Access Control (ASBAC).
+SAPL (Streaming Attribute or Structure and Agency Policy Language) describes both a *domain specific language (DSL)* for expressing access control policies and a *publish/subscribe protocol* based on http://json.org/[JSON].
+Policies expressed in SAPL describe conditions for access control in applications and distributed systems. The underlying policy engine implements a variant of Attribute-based Access control (ABAC) which is enables processing of data streams and follows reactive programming patterns. Namely, the SAPL policy engine implements Attribute Stream-based Access Control (ASBAC).
 
 A typical scenario for the application of SAPL would be a subject (e.g., a user or system) attempting to take an action (e.g., read or cancel an order) on a protected resource (e.g., a domain object of an application or a file). The subject makes a subscription request to the system (e.g., an application) for executing the action on the resource. The system implements a *policy enforcement point (PEP)* protecting the resources. The PEP collects information about the subject, action, resource, and potential other relevant data in an authorization subscription request and sends it to a *policy decision point (PDP)* which checks SAPL policies in order to decide whether access to the resource should be permitted as requested. This decision is packed in an authorization decision object and sent back to the PEP which accordingly either grants access according to the decision or prevents access to the resource. All data sources for the decision are subscribed to by the PDP and new decisions are sent to the PEP whenever indicated by the policies and data sources.
 
@@ -156,7 +156,7 @@ SAPL provides an embedded PDP including an embedded PRP with a file system polic
 	<version>2.0.0-SNAPSHOT</version>
 </dependency>
 
-. Add the matching Maven repositories. Currentyl SAL is not yet hosted on the central repositories.:
+. Add the SAPL Maven repositories. Currently SAPL is not yet hosted on the central repositories:
 +
 [source,XML]
 .pom.xml
@@ -266,7 +266,7 @@ The PEP is a software entity which intercepts actions taken by users within an a
 The PEP must let the application process the action if and only if the decision is `PERMIT`. If the authorization decision object also contains an `obligation` the PEP must fulfill this obligation. Proper fulfillment is an additional requirement for granting access. In case the decision is not `PERMIT` or the obligation cannot be fulfilled, access has to be denied. Since policies may contain instructions to alter the resource (like blackening certain information, e.g., credit card numbers) the PEP should ensure that the application only reveals the resource contained in the authorization decision object if one is returned.
 
 [NOTE]
-A PEP strongly depends on the application domain. SAPL comes with a default PEP implementation using a passed in constraint handler service to handle obligations and advices contained in an authorization decision. In the future, more generic PEPs integrating with various platforms (e.g., spring security) will be provided.
+A PEP strongly depends on the application domain. SAPL comes with a default PEP implementation using a passed in constraint handler service to handle obligations and advice contained in an authorization decision. PEPs should be integrated with the platforms and frameworks used by the application developers. SAPL comes with an Spring Security integration and matching spring-boot-starter modules.
 
 === Policy Decision Point (PDP)
 
@@ -279,7 +279,6 @@ SAPL provides two simple PDP implementations: An *embedded PDP* with an embedded
 === Policy Administration Point (PAP)
 
 The PAP is an entity which allows managing policies contained in the policy store. In the embedded PDP with the Resources PRP the policy store can be a simple folder within the local file system containing `.sapl` files. Therefore any access to files in this folder (e.g., FTP or SSH) can be seen as a very simple PAP. The PAP may be a separate application or be included in an existing administration panel.
-
 
 == Publish / Subscribe Protocol
 
@@ -1130,7 +1129,7 @@ Applied to an object
 
 In SAPL it is possible to receive attributes which are not contained in the authorization subscription. Those attributes can be provided by external PIPs and obtained through attribute finders. An attribute finder is called via the selection step `.<finder.name>`. `finder.name` either is a fully qualified attribute finder name or can be a shorter name if imports are used (the finder name or the library alias followed by a period `.` and the finder name).
 
-The attribute finder receives the result of the previous selection as an argument and returns a JSON value. 
+The attribute finder receives the result of the previous selection as an argument and returns a JSON value.  Optionally, an attribute finder may be supplied with a list of parameters: `.<finder.name(p1,p2,...)>`.
 
 [NOTE]
 ========
@@ -1559,7 +1558,9 @@ Attribute finders are used to receive attributes which are not included in the a
 
 Attribute finders are organized in libraries as well and follow the same naming conventions as functions, including the use of imports. An attribute finder library constitutes a PIP (e.g., `user`) and can contain any number of attributes (e.g., `age`). They are called by a selection step applied to any value, e.g., `subject.<user.age>`. The attribute finder step receives the previous selection result (in the example: `subject`) and returns the requested attribute.
 
-The concept of attribute finders can be used in a flexible manner: There may be finders which take an object (like in the example above, `subject.<user.age>`) as well as attribute finders which expect a primitive value (e.g., `subject.id.<user.age>` with `id` being a number). In addition attribute finders may also return an object which can be traversed in future selection steps (e.g., `subject.<user.profile>.age`). It is even possible to join multiple attribute finder steps in one expression (e.g., `subject.<user.profile>.supervisor.<user.profile>.age`).
+The concept of attribute finders can be used in a flexible manner: There may be finders which take an object (like in the example above, `subject.<user.age>`) as well as attribute finders which expect a primitive value (e.g., `subject.id.<user.age>` with `id` being a number). In addition attribute finders may also return an object which can be traversed in future selection steps (e.g., `subject.<user.profile>.age`). It is even possible to join multiple attribute finder steps in one expression (e.g., `subject.<user.profile>.supervisor.<user.profile>.age`). 
+
+Optionally, an attribute finder may be supplied with a list of parameters: `.<finder.name(p1,p2,...)>`.
 
 Attribute finders often receive the information from external data sources such as files, databases or HTTP requests which may take a certain amount of time. Therefore they must not be used in a target expression. Attribute finders can access environment variables.
 
@@ -1590,13 +1591,3 @@ public static JsonNode userprofile(
 }
 +
 Each attribute function must have exactly one parameter which can be annotated with any number of `@Array`, `@Bool`, `@Int`, `@JsonObject`, `@Long`, `@Number` and `@Text`. The annotations describe which types are allowed for the argument passed (in case of multiple annotations each of these types is allowed).
-
-
-== Appendix: Formal EBNF grammar
-
-The SAPL syntax is described by the following grammar provided in Extended Backus–Naur form:
-
-[source,indent=0]
-----
-include::sapl-grammar.ebnf[tabsize=4]
-----  
