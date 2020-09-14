@@ -187,7 +187,6 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
             for (Path filePath : stream) {
                 LOGGER.debug("load: {}", filePath);
                 this.config = MAPPER.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
-                break;
             }
         }
     }
