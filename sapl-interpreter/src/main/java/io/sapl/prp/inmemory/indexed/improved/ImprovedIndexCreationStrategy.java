@@ -23,9 +23,11 @@ import io.sapl.prp.inmemory.indexed.Bitmask;
 import io.sapl.prp.inmemory.indexed.Bool;
 import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
 import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
+import io.sapl.prp.inmemory.indexed.improved.ordering.ExistingOrderStrategy;
 import io.sapl.prp.inmemory.indexed.IndexContainer;
 import io.sapl.prp.inmemory.indexed.IndexCreationStrategy;
 import io.sapl.prp.inmemory.indexed.Literal;
+import io.sapl.prp.inmemory.indexed.improved.ordering.PredicateOrderStrategy;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,6 +42,8 @@ import java.util.stream.Collectors;
 
 public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
 
+    private final PredicateOrderStrategy predicateOrderStrategy = new ExistingOrderStrategy();
+
     @Override
     public IndexContainer construct(final Map<String, SAPL> documents, final Map<String, DisjunctiveFormula> targets) {
         Map<String, SAPL> idToDocument = ImmutableMap.copyOf(documents);
@@ -49,7 +53,7 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
                 formulaToDocuments.keySet());
 
         Collection<PredicateInfo> predicateInfos = collectPredicateInfos(formulaToDocuments.keySet());
-        List<Predicate> predicateOrder = createPredicateOrder(predicateInfos);
+        List<Predicate> predicateOrder = predicateOrderStrategy.createPredicateOrder(predicateInfos);
 
         BiMap<ConjunctiveClause, Integer> clauseToIndex = createCandidateOrder(predicateInfos);
 
@@ -185,30 +189,6 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
         return result;
     }
 
-
-    private List<Predicate> createPredicateOrder(final Collection<PredicateInfo> data) {
-        List<PredicateInfo> predicateInfos = new ArrayList<>(data);
-        for (PredicateInfo predicateInfo : predicateInfos) {
-            predicateInfo.setScore(createScore(predicateInfo));
-
-        }
-//        Collections.sort(predicateInfos, Collections.reverseOrder());
-
-        return predicateInfos.stream().sorted(Collections.reverseOrder()).map(PredicateInfo::getPredicate)
-                .collect(Collectors.toList());
-    }
-
-
-    private static double createScore(final PredicateInfo predicateInfo) {
-        final double square = 2.0;
-        final double groupedPositives = predicateInfo.getGroupedNumberOfPositives();
-        final double groupedNegatives = predicateInfo.getGroupedNumberOfNegatives();
-        final double relevance = predicateInfo.getRelevance();
-        final double costs = 1.0;
-
-        return Math.pow(relevance, square - relevance) * (groupedPositives + groupedNegatives) / costs * (square
-                - Math.pow((groupedPositives - groupedNegatives) / (groupedPositives + groupedNegatives), square));
-    }
 
     private static <T> List<T> flattenIndexMap(final Map<Integer, T> data) {
         final List<T> result = new ArrayList<>(Collections.nCopies(data.size(), null));
