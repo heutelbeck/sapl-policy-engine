@@ -15,21 +15,7 @@
  */
 package io.sapl.springboot.autoconfig;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.Collection;
-
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -45,6 +31,18 @@ import io.sapl.spring.SAPLProperties;
 import io.sapl.spring.SAPLProperties.Remote;
 import io.sapl.spring.constraints.ConstraintHandlerService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.Collection;
 
 /**
  * This automatic configuration will provide you several beans to deal with SAPL
@@ -160,10 +158,16 @@ public class PDPAutoConfiguration {
 	}
 
 	private Builder.IndexType getIndexType() {
-		if (pdpProperties.getIndex() == SAPLProperties.PRPIndexType.FAST) {
-			return Builder.IndexType.FAST;
+		switch (pdpProperties.getIndex()){
+			case FAST:
+				return Builder.IndexType.FAST;
+			case IMPROVED:
+				return Builder.IndexType.IMPROVED;
+			case SIMPLE:
+				//fall through
+			default:
+				return Builder.IndexType.SIMPLE;
 		}
-		return Builder.IndexType.SIMPLE;
 	}
 
 	private Builder bindComponentsToPDP(Builder builder) throws AttributeException {

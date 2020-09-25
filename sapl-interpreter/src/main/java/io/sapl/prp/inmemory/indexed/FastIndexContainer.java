@@ -15,12 +15,6 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -28,6 +22,12 @@ import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public class FastIndexContainer implements IndexContainer {
 
@@ -139,8 +139,8 @@ public class FastIndexContainer implements IndexContainer {
 
 	protected Bitmask findRelatedCandidates(final Variable variable) {
 		Bitmask result = new Bitmask();
-		Set<DisjunctiveFormula> formulas = fetchFormulas(variable.getCandidates());
-		for (DisjunctiveFormula formula : formulas) {
+		Set<DisjunctiveFormula> formulasContainingVariable = fetchFormulas(variable.getCandidates());
+		for (DisjunctiveFormula formula : formulasContainingVariable) {
 			result.or(relatedCandidates.get(formula));
 		}
 		return result;
