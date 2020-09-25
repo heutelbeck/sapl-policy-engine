@@ -98,9 +98,9 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
             readConfigFromDirectory(configFolderUrl);
         }
 
-        this.path = configFolderUrl.getPath();
+        this.path = Paths.get(configFolderUrl.toURI()).toString();
 
-        final Path watchDir = Paths.get(configFolderUrl.getPath());
+        final Path watchDir = Paths.get(path);
         final DirectoryWatcher directoryWatcher = new DirectoryWatcher(watchDir);
 
         final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter(
