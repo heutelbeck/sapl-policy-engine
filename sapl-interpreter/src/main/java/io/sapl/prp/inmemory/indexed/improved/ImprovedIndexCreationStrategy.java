@@ -23,10 +23,10 @@ import io.sapl.prp.inmemory.indexed.Bitmask;
 import io.sapl.prp.inmemory.indexed.Bool;
 import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
 import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
-import io.sapl.prp.inmemory.indexed.improved.ordering.ExistingOrderStrategy;
 import io.sapl.prp.inmemory.indexed.IndexContainer;
 import io.sapl.prp.inmemory.indexed.IndexCreationStrategy;
 import io.sapl.prp.inmemory.indexed.Literal;
+import io.sapl.prp.inmemory.indexed.improved.ordering.ExistingOrderStrategy;
 import io.sapl.prp.inmemory.indexed.improved.ordering.PredicateOrderStrategy;
 
 import java.util.ArrayList;
@@ -196,29 +196,12 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
         return result;
     }
 
-    private Map<ConjunctiveClause, Set<DisjunctiveFormula>> mapClauseToFormulas(
-            final Collection<DisjunctiveFormula> formulas) {
-        Map<ConjunctiveClause, Set<DisjunctiveFormula>> result = new HashMap<>();
-
-        for (DisjunctiveFormula formula : formulas) {
-            for (ConjunctiveClause clause : formula.getClauses()) {
-                Set<DisjunctiveFormula> set = result.computeIfAbsent(clause, k -> new HashSet<>());
-                set.add(formula);
-            }
-        }
-        return result;
-    }
-
     private Map<DisjunctiveFormula, Bitmask> mapFormulaToClauses(final Collection<DisjunctiveFormula> formulas,
                                                                  final Map<ConjunctiveClause, Integer> clauseToIndex) {
         final Map<DisjunctiveFormula, Bitmask> result = new HashMap<>();
         for (DisjunctiveFormula formula : formulas) {
             for (ConjunctiveClause clause : formula.getClauses()) {
-                Bitmask associatedIndexes = result.get(formula);
-                if (associatedIndexes == null) {
-                    associatedIndexes = new Bitmask();
-                    result.put(formula, associatedIndexes);
-                }
+                Bitmask associatedIndexes = result.computeIfAbsent(formula, k -> new Bitmask());
                 Integer clauseIndex = clauseToIndex.get(clause);
                 associatedIndexes.set(clauseIndex);
             }
@@ -226,17 +209,6 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
         return result;
     }
 
-    private Map<DisjunctiveFormula, Set<SAPL>> mapFormulaToDocuments(
-            final Map<String, DisjunctiveFormula> targets, final Map<String, SAPL> documents) {
-        Map<DisjunctiveFormula, Set<SAPL>> result = new HashMap<>();
-
-        for (Map.Entry<String, DisjunctiveFormula> entry : targets.entrySet()) {
-            DisjunctiveFormula formula = entry.getValue();
-            Set<SAPL> set = result.computeIfAbsent(formula, k -> new HashSet<>());
-            set.add(documents.get(entry.getKey()));
-        }
-        return result;
-    }
 
     private int[] mapIndexToNumberOfLiteralsInConjunction(final Map<Integer, ConjunctiveClause> indexToClause) {
         final int[] result = new int[indexToClause.size()];

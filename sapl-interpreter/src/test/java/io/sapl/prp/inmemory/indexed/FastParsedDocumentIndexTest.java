@@ -81,6 +81,7 @@ public class FastParsedDocumentIndexTest {
 		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
 		// then
+		Assertions.assertThat(result).isNotNull();
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
 		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
 	}
@@ -102,8 +103,9 @@ public class FastParsedDocumentIndexTest {
 		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
 		// then
+		Assertions.assertThat(result).isNotNull();
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-		Assertions.assertThat(result.getMatchingDocuments()).hasSize(0);
+		Assertions.assertThat(result.getMatchingDocuments()).isEmpty();
 	}
 
 	@Test
@@ -121,6 +123,7 @@ public class FastParsedDocumentIndexTest {
 		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
 		// then
+		Assertions.assertThat(result).isNotNull();
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
 		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
 	}

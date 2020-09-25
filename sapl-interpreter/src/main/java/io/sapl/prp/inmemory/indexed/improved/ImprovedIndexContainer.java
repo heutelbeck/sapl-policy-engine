@@ -53,6 +53,7 @@ public class ImprovedIndexContainer implements IndexContainer {
 
     private final int[] numberOfFormulasWithConjunction;
 
+
     public ImprovedIndexContainer(boolean abortOnError, Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
                                   List<Predicate> predicateOrder, List<Set<DisjunctiveFormula>> relatedFormulas,
                                   Map<DisjunctiveFormula, Bitmask> relatedCandidates,
@@ -80,15 +81,12 @@ public class ImprovedIndexContainer implements IndexContainer {
         int[] trueLiteralsOfConjunction = new int[numberOfLiteralsInConjunction.length];
         int[] eliminatedFormulasWithConjunction = new int[numberOfLiteralsInConjunction.length];
 
-//        int candidatesEvaluated = 0;
+        List<Predicate> referencedPredicates = predicateOrder.stream()
+                .filter(predicate -> isReferenced(predicate, candidates))
+                .collect(Collectors.toList());
 
-//        LOGGER.debug("match {} candidates, containing {} predicates", candidates.numberOfBitsSet(), predicateOrder
-//                .size());
-        for (Predicate predicate : predicateOrder) {
-//            LOGGER.debug("candidates {}", candidates);
-            if (!isReferenced(predicate, candidates)) continue;
+        for (Predicate predicate : referencedPredicates) {
 
-//            candidatesEvaluated += candidates.numberOfBitsSet();
             Optional<Boolean> outcome = predicate.evaluate(functionCtx, variableCtx);
             if (!outcome.isPresent()) {
                 if (abortOnError) {
@@ -103,30 +101,21 @@ public class ImprovedIndexContainer implements IndexContainer {
 
             Bitmask satisfiableCandidates = findSatisfiableCandidates(candidates, predicate, evaluationResult,
                     trueLiteralsOfConjunction);
-//            LOGGER.debug("satisfied {}", satisfiableCandidates);
             result.addAll(fetchFormulas(satisfiableCandidates));
             Bitmask unsatisfiableCandidates = findUnsatisfiableCandidates(candidates, predicate, evaluationResult);
-//            LOGGER.debug("unsatisfied {}", unsatisfiableCandidates);
             Bitmask orphanedCandidates = findOrphanedCandidates(candidates, satisfiableCandidates,
                     eliminatedFormulasWithConjunction);
-            // do not use orphaned logic
-//            orphanedCandidates = new Bitmask();
-//            LOGGER.debug("orphaned {}", orphanedCandidates);
-
 
             eliminateCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
 
         }
 
-//        LOGGER.debug("match completed, {} total candidates evaluated, returning {} formulas", candidatesEvaluated, result
-//                .size());
         return new PolicyRetrievalResult(fetchPolicies(result), errorOccurred);
     }
 
     private void removeCandidatesRelatedToPredicate(final Predicate predicate, Bitmask candidates) {
         Bitmask affectedCandidates = findRelatedCandidates(predicate);
         candidates.andNot(affectedCandidates);
-//        LOGGER.info("removed {} due to missing context", affectedCandidates.numberOfBitsSet());
     }
 
     protected Bitmask findRelatedCandidates(final Predicate predicate) {

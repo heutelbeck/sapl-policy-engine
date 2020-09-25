@@ -18,13 +18,12 @@ public class ExistingOrderStrategy implements PredicateOrderStrategy {
             predicateInfo.setScore(createScore(predicateInfo));
 
         }
-//        Collections.sort(predicateInfos, Collections.reverseOrder());
 
         return predicateInfos.stream().sorted(Collections.reverseOrder()).map(PredicateInfo::getPredicate)
                 .collect(Collectors.toList());
     }
 
-    private static double createScore(final PredicateInfo predicateInfo) {
+    public static double createScore(final PredicateInfo predicateInfo) {
         final double square = 2.0;
         final double groupedPositives = predicateInfo.getGroupedNumberOfPositives();
         final double groupedNegatives = predicateInfo.getGroupedNumberOfNegatives();

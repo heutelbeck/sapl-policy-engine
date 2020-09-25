@@ -52,7 +52,7 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 						errorInTarget.set(true);
 					}).collectList().map(result -> new PolicyRetrievalResult(result, errorInTarget.get()));
 		} catch (PolicyEvaluationException e) {
-			return Mono.just(new PolicyRetrievalResult(new ArrayList<SAPL>(), true));
+			return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true));
 		}
 	}
 

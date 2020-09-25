@@ -15,6 +15,11 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
+import com.google.common.base.Preconditions;
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.variables.VariableContext;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,12 +27,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
-
-import com.google.common.base.Preconditions;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.variables.VariableContext;
 
 public class ConjunctiveClause {
 
@@ -81,7 +80,7 @@ public class ConjunctiveClause {
 			if (!result) {
 				return false;
 			}
-			result = result && iter.next().evaluate();
+			result =iter.next().evaluate();
 		}
 		return result;
 	}
@@ -98,7 +97,7 @@ public class ConjunctiveClause {
 			if (!result) {
 				return false;
 			}
-			result = result && iter.next().evaluate(functionCtx, variableCtx);
+			result = iter.next().evaluate(functionCtx, variableCtx);
 		}
 		return result;
 	}

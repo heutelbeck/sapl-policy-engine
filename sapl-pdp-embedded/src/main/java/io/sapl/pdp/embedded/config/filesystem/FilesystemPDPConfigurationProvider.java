@@ -15,24 +15,8 @@
  */
 package io.sapl.pdp.embedded.config.filesystem;
 
-import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.WatchEvent;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
 import io.sapl.directorywatcher.DirectoryWatchEventFluxSinkAdapter;
 import io.sapl.directorywatcher.DirectoryWatcher;
@@ -45,6 +29,21 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.ReplayProcessor;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.WatchEvent;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
+
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 
 @Slf4j
 public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvider {
@@ -100,7 +99,6 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 				for (Path filePath : stream) {
 					LOGGER.info("load: {}", filePath);
 					config = mapper.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
-					break;
 				}
 				if (config == null) {
 					config = new PolicyDecisionPointConfiguration();
@@ -160,7 +158,7 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 	public Flux<Map<String, JsonNode>> getVariables() {
 		// @formatter:off
 		return dirWatcherEventProcessor
-				.map(event -> (Map<String, JsonNode>) config.getVariables())
+				.map(event -> config.getVariables())
 				.distinctUntilChanged()
 				.doOnNext(variables -> LOGGER.trace("|-- Current PDP config: variables = {}", variables));
 		// @formatter:on

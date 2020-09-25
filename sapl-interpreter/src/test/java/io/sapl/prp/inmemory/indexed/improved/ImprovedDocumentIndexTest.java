@@ -95,6 +95,7 @@ public class ImprovedDocumentIndexTest {
 		PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
 		// then
+        Assertions.assertThat(result).isNotNull();
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
 		Assertions.assertThat(result.getMatchingDocuments()).hasSize(3).contains(doc1, doc2);
 	}
@@ -114,6 +115,7 @@ public class ImprovedDocumentIndexTest {
         PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
         // then
+        Assertions.assertThat(result).isNotNull();
         Assertions.assertThat(result.isErrorsInTarget()).isFalse();
         Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
     }
@@ -135,8 +137,9 @@ public class ImprovedDocumentIndexTest {
         PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
         // then
+        Assertions.assertThat(result).isNotNull();
         Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-        Assertions.assertThat(result.getMatchingDocuments()).hasSize(0);
+        Assertions.assertThat(result.getMatchingDocuments()).isEmpty();
     }
 
     @Test
@@ -154,6 +157,7 @@ public class ImprovedDocumentIndexTest {
         PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
 
         // then
+        Assertions.assertThat(result).isNotNull();
         Assertions.assertThat(result.isErrorsInTarget()).isFalse();
         Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
     }
