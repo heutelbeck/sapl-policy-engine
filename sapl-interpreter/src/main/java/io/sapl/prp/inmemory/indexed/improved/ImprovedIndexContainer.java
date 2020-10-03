@@ -47,7 +47,8 @@ public class ImprovedIndexContainer implements IndexContainer {
 
     private final Map<DisjunctiveFormula, Bitmask> relatedCandidates;
 
-    private final Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction;
+    //    private final Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction;
+    private final Map<Integer, long[]> conjunctionsInFormulasReferencingConjunction;
 
     private final int[] numberOfLiteralsInConjunction;
 
@@ -57,15 +58,17 @@ public class ImprovedIndexContainer implements IndexContainer {
     public ImprovedIndexContainer(boolean abortOnError, Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
                                   List<Predicate> predicateOrder, List<Set<DisjunctiveFormula>> relatedFormulas,
                                   Map<DisjunctiveFormula, Bitmask> relatedCandidates,
-                                  Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction,
+//                                  Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction,
+                                  Map<Integer, long[]> conjunctionsInFormulasReferencingConjunction,
                                   int[] numberOfLiteralsInConjunction, int[] numberOfFormulasWithConjunction) {
         this.abortOnError = abortOnError;
         this.formulaToDocuments = ImmutableMap.copyOf(formulaToDocuments);
         this.predicateOrder = ImmutableList.copyOf(predicateOrder);
         this.relatedFormulas = ImmutableList.copyOf(relatedFormulas);
         this.relatedCandidates = ImmutableMap.copyOf(relatedCandidates);
-        this.conjunctionsInFormulasReferencingConjunction = ImmutableMap
-                .copyOf(conjunctionsInFormulasReferencingConjunction);
+//        this.conjunctionsInFormulasReferencingConjunction = ImmutableMap
+//                .copyOf(conjunctionsInFormulasReferencingConjunction);
+        this.conjunctionsInFormulasReferencingConjunction = conjunctionsInFormulasReferencingConjunction;
         this.numberOfLiteralsInConjunction = numberOfLiteralsInConjunction;
         this.numberOfFormulasWithConjunction = numberOfFormulasWithConjunction;
     }
@@ -132,15 +135,22 @@ public class ImprovedIndexContainer implements IndexContainer {
         Bitmask result = new Bitmask();
 
         satisfiableCandidates.forEachSetBit(index -> {
-            Set<CTuple> cTuples = conjunctionsInFormulasReferencingConjunction.get(index);
-            for (CTuple cTuple : cTuples) {
-                if (!candidates.isSet(cTuple.getCI())) continue;
-                eliminatedFormulasWithConjunction[cTuple.getCI()] += cTuple.getN();
+//            Set<CTuple> cTuples = conjunctionsInFormulasReferencingConjunction.get(index);
+            long[] cTupleArray = conjunctionsInFormulasReferencingConjunction.get(index);
+
+//            for (CTuple cTuple : cTuples) {
+            for (int clauseIndex = 0; clauseIndex < cTupleArray.length; clauseIndex++) {
+//                if (!candidates.isSet(cTuple.getCI())) continue;
+                if (!candidates.isSet(clauseIndex)) continue;
+//                eliminatedFormulasWithConjunction[cTuple.getCI()] += cTuple.getN();
+                eliminatedFormulasWithConjunction[clauseIndex] += cTupleArray[clauseIndex];
 
                 // if all formular of conjunction have been eliminated
-                if (eliminatedFormulasWithConjunction[cTuple.getCI()] == numberOfFormulasWithConjunction[cTuple
-                        .getCI()])
-                    result.set(cTuple.getCI());
+//                if (eliminatedFormulasWithConjunction[cTuple.getCI()] == numberOfFormulasWithConjunction[cTuple
+//                        .getCI()])
+                if (eliminatedFormulasWithConjunction[clauseIndex] == numberOfFormulasWithConjunction[clauseIndex])
+//                    result.set(cTuple.getCI());
+                    result.set(clauseIndex);
             }
         });
 

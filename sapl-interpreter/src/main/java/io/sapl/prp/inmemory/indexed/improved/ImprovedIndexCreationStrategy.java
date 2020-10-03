@@ -66,7 +66,8 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
         int[] numberOfFormulasWithConjunction = mapIndexToNumberOfFormulasWithConjunction(clauseToIndex
                 .inverse(), clauseToFormulas);
 
-        Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction =
+//        Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction =
+        Map<Integer, long[]> conjunctionsInFormulasReferencingConjunction =
                 getConjunctionReferenceMap(clauseToFormulas, clauseToIndex, relatedCandidates);
 
         List<Set<DisjunctiveFormula>> relatedFormulas = flattenIndexMap(indexToTargets);
@@ -76,10 +77,12 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
                 numberOfLiteralsInConjunction, numberOfFormulasWithConjunction);
     }
 
-    private Map<Integer, Set<CTuple>> getConjunctionReferenceMap(Map<ConjunctiveClause,
+    //    private Map<Integer, Set<CTuple>> getConjunctionReferenceMap(Map<ConjunctiveClause,
+    private Map<Integer, long[]> getConjunctionReferenceMap(Map<ConjunctiveClause,
             Set<DisjunctiveFormula>> clauseToFormulas, BiMap<ConjunctiveClause, Integer> clauseToIndex,
-                                                                 Map<DisjunctiveFormula, Bitmask> formulaToClauses) {
-        Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction = new HashMap<>();
+                                                            Map<DisjunctiveFormula, Bitmask> formulaToClauses) {
+//        Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction = new HashMap<>();
+        Map<Integer, long[]> conjunctionsInFormulasReferencingConjunction = new HashMap<>();
         for (Entry<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulaEntry : clauseToFormulas
                 .entrySet()) {
 
@@ -91,15 +94,19 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
                     .or(formulaToClauses.get(formulaContainingClause)));
             clausesInSameFormulas.clear(clauseIndex);
 
-            Set<CTuple> cTupleSet = new HashSet<>();
+//            Set<CTuple> cTupleSet = new HashSet<>();
+            long[] cTupleArray = new long[clauseToIndex.size()];
+
             clausesInSameFormulas.forEachSetBit(relatedClauseIndex -> {
                 long numberOfSharedFormulas = formulasContainingClause.stream().map(formulaToClauses::get)
                         .filter(bitmask -> bitmask.isSet(relatedClauseIndex)).count();
 
-                cTupleSet.add(new CTuple(relatedClauseIndex, numberOfSharedFormulas));
+//                cTupleSet.add(new CTuple(relatedClauseIndex, numberOfSharedFormulas));
+                cTupleArray[relatedClauseIndex] = numberOfSharedFormulas;
             });
 
-            conjunctionsInFormulasReferencingConjunction.put(clauseIndex, cTupleSet);
+//            conjunctionsInFormulasReferencingConjunction.put(clauseIndex, cTupleSet);
+            conjunctionsInFormulasReferencingConjunction.put(clauseIndex, cTupleArray);
         }
         return conjunctionsInFormulasReferencingConjunction;
     }
