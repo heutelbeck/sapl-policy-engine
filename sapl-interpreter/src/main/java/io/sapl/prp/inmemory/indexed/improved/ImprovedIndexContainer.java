@@ -75,46 +75,52 @@ public class ImprovedIndexContainer implements IndexContainer {
         Set<DisjunctiveFormula> result = new HashSet<>();
         boolean errorOccurred = false;
 
-        Bitmask candidates = new Bitmask();
-        candidates.set(0, numberOfLiteralsInConjunction.length);
+        Bitmask clauseCandidates = new Bitmask();
+        clauseCandidates.set(0, numberOfLiteralsInConjunction.length);
+
+        Bitmask satisfiedCandidates = new Bitmask();
+        clauseCandidates.set(0, numberOfLiteralsInConjunction.length);
 
         int[] trueLiteralsOfConjunction = new int[numberOfLiteralsInConjunction.length];
         int[] eliminatedFormulasWithConjunction = new int[numberOfLiteralsInConjunction.length];
 
-        List<Predicate> referencedPredicates = predicateOrder.stream()
-                .filter(predicate -> isReferenced(predicate, candidates))
-                .collect(Collectors.toList());
-
-        for (Predicate predicate : referencedPredicates) {
+        for (Predicate predicate : predicateOrder) {
+            if (!isReferenced(predicate, clauseCandidates)) continue;
+//            LOGGER.debug("{} candidates out of {} left", clauseCandidates
+//                    .numberOfBitsSet(), numberOfLiteralsInConjunction.length);
 
             Optional<Boolean> outcome = predicate.evaluate(functionCtx, variableCtx);
             if (!outcome.isPresent()) {
                 if (abortOnError) {
                     return new PolicyRetrievalResult(fetchPolicies(result), true);
                 } else {
-                    removeCandidatesRelatedToPredicate(predicate, candidates);
+                    removeCandidatesRelatedToPredicate(predicate, clauseCandidates);
                     errorOccurred = true;
                     continue;
                 }
             }
             boolean evaluationResult = outcome.get();
 
-            Bitmask satisfiableCandidates = findSatisfiableCandidates(candidates, predicate, evaluationResult,
+            Bitmask satisfiableCandidates = findSatisfiableCandidates(clauseCandidates, predicate, evaluationResult,
                     trueLiteralsOfConjunction);
-            result.addAll(fetchFormulas(satisfiableCandidates));
-            Bitmask unsatisfiableCandidates = findUnsatisfiableCandidates(candidates, predicate, evaluationResult);
-            Bitmask orphanedCandidates = findOrphanedCandidates(candidates, satisfiableCandidates,
+            satisfiedCandidates.or(satisfiableCandidates);
+//            result.addAll(fetchFormulas(satisfiableCandidates));
+
+            Bitmask unsatisfiableCandidates = findUnsatisfiableCandidates(clauseCandidates, predicate, evaluationResult);
+            Bitmask orphanedCandidates = findOrphanedCandidates(clauseCandidates, satisfiableCandidates,
                     eliminatedFormulasWithConjunction);
 
-            eliminateCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
-
+            eliminateCandidates(clauseCandidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
         }
+
+        result.addAll(fetchFormulas(satisfiedCandidates));
 
         return new PolicyRetrievalResult(fetchPolicies(result), errorOccurred);
     }
 
     private void removeCandidatesRelatedToPredicate(final Predicate predicate, Bitmask candidates) {
-        Bitmask affectedCandidates = findRelatedCandidates(predicate);
+//        Bitmask affectedCandidates = findRelatedCandidates(predicate);
+        Bitmask affectedCandidates = predicate.getConjunctions();
         candidates.andNot(affectedCandidates);
     }
 

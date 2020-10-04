@@ -33,6 +33,7 @@ public class FastIndexContainer implements IndexContainer {
 
 	private final AuxiliaryMatrix initialMatrix;
 
+	//is always true
 	private final boolean isCompilant;
 
 	private final Map<DisjunctiveFormula, Bitmask> relatedCandidates;
