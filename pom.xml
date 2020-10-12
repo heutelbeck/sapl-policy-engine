@@ -49,7 +49,7 @@
 		<xtextVersion>2.21.0</xtextVersion>
 		<version.license-maven-plugin>3.0</version.license-maven-plugin>
 		<version.maven-javadoc-plugin>3.1.0</version.maven-javadoc-plugin>
-		<version.junit>4.12</version.junit>
+		<version.junit>4.13.1</version.junit>
 		<version.lombok>1.18.12</version.lombok>
 		<version.springboot>2.3.2.RELEASE</version.springboot>
 		<version.powermock>2.0.7</version.powermock>
