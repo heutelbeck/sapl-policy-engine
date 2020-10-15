@@ -3,9 +3,13 @@ package io.sapl.vaadin;
 import org.eclipse.xtext.diagnostics.Severity;
 
 import elemental.json.JsonObject;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Issue {
 	private static final String DESCRIPTION = "description";
 	private static final String SEVERITY = "severity";
