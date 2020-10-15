@@ -177,14 +177,12 @@ public class SelectionFunctionLibrary {
 	private static boolean allNodesInList(Iterable<AbstractAnnotatedJsonNode> nodes,
 			Iterable<AbstractAnnotatedJsonNode> list) throws PolicyEvaluationException {
 		for (AbstractAnnotatedJsonNode node : nodes) {
-			boolean found = false;
 			for (AbstractAnnotatedJsonNode listNode : list) {
 				if (node.sameReference(listNode)) {
-					found = true;
-					break;
+					return true;
 				}
 			}
-			return found;
+			return false;
 		}
 		return true;
 	}
