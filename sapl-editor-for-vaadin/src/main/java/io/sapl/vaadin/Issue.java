@@ -24,15 +24,14 @@ public class Issue {
 	private Integer column;
 	private Integer offset;
 	private Integer length;
-	
+
 	public Issue(JsonObject jsonObject) {
 
 		if (jsonObject.hasKey(DESCRIPTION))
-			setDescription(jsonObject.getString(DESCRIPTION));
+			description = jsonObject.getString(DESCRIPTION);
 
 		if (jsonObject.hasKey(SEVERITY)) {
 			String severityString = jsonObject.getString(SEVERITY);
-			Severity severity = Severity.INFO;
 			switch (severityString) {
 			case "error":
 				severity = Severity.ERROR;
@@ -44,22 +43,22 @@ public class Issue {
 				severity = Severity.IGNORE;
 				break;
 			default:
+				severity = Severity.INFO;
 				break;
 			}
-			setSeverity(severity);
 		}
 
 		if (jsonObject.hasKey(LINE))
-			setLine((int) jsonObject.getNumber(LINE));
+			line = (int) jsonObject.getNumber(LINE);
 
 		if (jsonObject.hasKey(COLUMN))
-			setColumn((int) jsonObject.getNumber(COLUMN));
+			column = (int) jsonObject.getNumber(COLUMN);
 
 		if (jsonObject.hasKey(OFFSET))
-			setOffset((int) jsonObject.getNumber(OFFSET));
+			offset = (int) jsonObject.getNumber(OFFSET);
 
 		if (jsonObject.hasKey(LENGTH))
-			setLength((int) jsonObject.getNumber(LENGTH));
+			length = (int) jsonObject.getNumber(LENGTH);
 	}
 
 }
