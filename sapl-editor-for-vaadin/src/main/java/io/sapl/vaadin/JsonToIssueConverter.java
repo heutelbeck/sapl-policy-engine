@@ -3,8 +3,10 @@ package io.sapl.vaadin;
 import org.eclipse.xtext.diagnostics.Severity;
 
 import elemental.json.JsonObject;
+import lombok.experimental.UtilityClass;
 
-public abstract class JsonToIssueConverter {
+@UtilityClass
+public class JsonToIssueConverter {
 
 	private static final String DESCRIPTION = "description";
 	private static final String SEVERITY = "severity";
@@ -13,7 +15,7 @@ public abstract class JsonToIssueConverter {
 	private static final String OFFSET = "offset";
 	private static final String LENGTH = "length";
 
-	public static Issue Convert(JsonObject jsonObject) {
+	public static Issue convert(JsonObject jsonObject) {
 		Issue issue = new Issue();
 
 		if (jsonObject.hasKey(DESCRIPTION))

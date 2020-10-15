@@ -60,11 +60,11 @@ public class SaplEditor extends Component {
 
 	@ClientCallable
 	private void onValidation(JsonArray jsonIssues) {
-		List<Issue> issues = new ArrayList<Issue>();
 		Integer length = jsonIssues.length();
+		List<Issue> issues = new ArrayList<Issue>(length);
 		for (int i = 0; i < length; i++) {
 			JsonObject jsonIssue = jsonIssues.getObject(i);
-			Issue issue = JsonToIssueConverter.Convert(jsonIssue);
+			Issue issue = JsonToIssueConverter.convert(jsonIssue);
 			issues.add(issue);
 		}
 
