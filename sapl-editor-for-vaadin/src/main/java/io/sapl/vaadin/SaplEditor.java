@@ -64,7 +64,7 @@ public class SaplEditor extends Component {
 		List<Issue> issues = new ArrayList<Issue>(length);
 		for (int i = 0; i < length; i++) {
 			JsonObject jsonIssue = jsonIssues.getObject(i);
-			Issue issue = JsonToIssueConverter.convert(jsonIssue);
+			Issue issue = new Issue(jsonIssue);
 			issues.add(issue);
 		}
 
