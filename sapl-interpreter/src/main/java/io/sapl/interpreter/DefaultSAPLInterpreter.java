@@ -15,20 +15,8 @@
  */
 package io.sapl.interpreter;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-
-import org.eclipse.emf.common.util.URI;
-import org.eclipse.emf.common.util.WrappedException;
-import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.resource.XtextResourceSet;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Injector;
-
 import io.sapl.api.interpreter.DocumentAnalysisResult;
 import io.sapl.api.interpreter.DocumentType;
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -43,7 +31,17 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.variables.VariableContext;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.common.util.WrappedException;
+import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.xtext.resource.XtextResourceSet;
 import reactor.core.publisher.Flux;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /**
  * The default implementation of the SAPLInterpreter interface.
@@ -76,7 +74,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 		try {
 			resource.load(policyInputStream, resourceSet.getLoadOptions());
-		} catch (IOException | WrappedException e) {
+		}
+		catch (IOException | WrappedException e) {
 			throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
 		}
 
@@ -92,7 +91,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 		try (InputStream in = new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8))) {
 			resource.load(in, resourceSet.getLoadOptions());
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
 		}
 
@@ -108,7 +108,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		final SAPL saplDocument;
 		try {
 			saplDocument = parse(saplDefinition);
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			LOGGER.debug("Error in policy parsing: {}", e.getMessage());
 			return Flux.just(INDETERMINATE);
 		}
@@ -117,7 +118,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			final VariableContext variableCtx = new VariableContext(authzSubscription, systemVariables);
 			final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
 			return saplDocument.evaluate(evaluationCtx).onErrorReturn(INDETERMINATE);
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED, e.getMessage());
 			LOGGER.trace("| |");
 			return Flux.just(INDETERMINATE);
@@ -134,11 +136,13 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			if (sapl.getPolicyElement() instanceof PolicySet) {
 				PolicySet set = (PolicySet) sapl.getPolicyElement();
 				result = new DocumentAnalysisResult(true, set.getSaplName(), DocumentType.POLICY_SET, "");
-			} else {
+			}
+			else {
 				Policy policy = (Policy) sapl.getPolicyElement();
 				result = new DocumentAnalysisResult(true, policy.getSaplName(), DocumentType.POLICY, "");
 			}
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			result = new DocumentAnalysisResult(false, "", null, e.getMessage());
 		}
 		return result;

@@ -76,7 +76,8 @@ public class FilterFunctionLibrary {
 				throw new FunctionException(ILLEGAL_PARAMETER_REPLACEMENT);
 			}
 			replacement = parameters[THREE].get().asText();
-		} else {
+		}
+		else {
 			replacement = BLACKEN_DEFAULT_REPLACEMENT;
 		}
 
@@ -86,7 +87,8 @@ public class FilterFunctionLibrary {
 				throw new FunctionException(ILLEGAL_PARAMETER_DISCLOSE_RIGHT);
 			}
 			discloseRight = parameters[TWO].get().asInt();
-		} else {
+		}
+		else {
 			discloseRight = BLACKEN_DEFAULT_SHOW_RIGHT;
 		}
 
@@ -96,7 +98,8 @@ public class FilterFunctionLibrary {
 				throw new FunctionException(ILLEGAL_PARAMETER_DISCLOSE_LEFT);
 			}
 			discloseLeft = parameters[ONE].get().asInt();
-		} else {
+		}
+		else {
 			discloseLeft = BLACKEN_DEFAULT_SHOW_LEFT;
 		}
 
@@ -113,7 +116,8 @@ public class FilterFunctionLibrary {
 			if (discloseRight > 0) {
 				result.append(string.substring(discloseLeft + replacedChars));
 			}
-		} else {
+		}
+		else {
 			result.append(string);
 		}
 

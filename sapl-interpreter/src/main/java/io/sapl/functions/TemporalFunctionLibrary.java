@@ -182,7 +182,8 @@ public class TemporalFunctionLibrary {
 	private static Instant nodeToInstant(Val time) throws FunctionException {
 		try {
 			return Instant.parse(time.get().asText());
-		} catch (DateTimeParseException | NoSuchElementException e) {
+		}
+		catch (DateTimeParseException | NoSuchElementException e) {
 			throw new FunctionException(PARAMETER_NOT_AN_ISO_8601_STRING, e);
 		}
 	}

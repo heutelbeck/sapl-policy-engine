@@ -7,10 +7,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 // tuple of a conjunction index number and the number of formulas in F(ci) containing ci .
 public class CTuple {
-    // conjunction index number
-    private final int cI;
-    // number of formulas containing conjunction
-    private final long n;
 
+	// conjunction index number
+	private final int cI;
+
+	// number of formulas containing conjunction
+	private final long n;
 
 }

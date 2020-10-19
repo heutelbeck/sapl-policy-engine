@@ -43,7 +43,6 @@ import io.sapl.pdp.embedded.config.filesystem.FilesystemPDPConfigurationProvider
 import io.sapl.pdp.embedded.config.resources.ResourcesPDPConfigurationProvider;
 import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.prp.filesystem.FilesystemPolicyRetrievalPoint;
-import io.sapl.prp.inmemory.indexed.FastParsedDocumentIndex;
 import io.sapl.prp.inmemory.indexed.improved.ImprovedDocumentIndex;
 import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
@@ -153,7 +152,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
         public enum IndexType {
 
-            SIMPLE, FAST, IMPROVED
+            SIMPLE, IMPROVED
 
         }
 
@@ -236,8 +235,6 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
         private ParsedDocumentIndex getDocumentIndex(IndexType indexType) {
             switch (indexType) {
-                case FAST:
-                    return new FastParsedDocumentIndex(pdp.functionCtx);
                 case IMPROVED:
                     return new ImprovedDocumentIndex(pdp.functionCtx);
                 case SIMPLE:

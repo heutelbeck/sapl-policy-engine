@@ -15,14 +15,13 @@
  */
 package io.sapl.api.prp;
 
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 public interface ParsedDocumentIndex {
 
@@ -34,7 +33,7 @@ public interface ParsedDocumentIndex {
 
 	void setLiveMode();
 
-	Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription, FunctionContext functionCtx,
-			Map<String, JsonNode> variables);
+	Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
+			FunctionContext functionCtx, Map<String, JsonNode> variables);
 
 }

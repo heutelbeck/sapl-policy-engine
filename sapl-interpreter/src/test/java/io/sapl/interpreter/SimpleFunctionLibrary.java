@@ -30,9 +30,11 @@ public class SimpleFunctionLibrary {
 		Val result = Val.undefined();
 		if (parameter.isArray()) {
 			result = Val.of(parameter.get().size());
-		} else if (parameter.isTextual()) {
+		}
+		else if (parameter.isTextual()) {
 			result = Val.of(parameter.get().asText().length());
-		} else {
+		}
+		else {
 			throw new FunctionException("length() parameter must be a string or an array, found " + parameter + ".");
 		}
 		return result;
@@ -44,7 +46,8 @@ public class SimpleFunctionLibrary {
 		for (Val parameter : parameters) {
 			if (parameter.isTextual()) {
 				builder.append(parameter.get().asText());
-			} else if (parameter.isNumber()) {
+			}
+			else if (parameter.isNumber()) {
 				builder.append(parameter.get().asInt());
 			}
 		}

@@ -51,7 +51,8 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 						LOGGER.info("| |-- Error in target evaluation: {}", t.getMessage());
 						errorInTarget.set(true);
 					}).collectList().map(result -> new PolicyRetrievalResult(result, errorInTarget.get()));
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true));
 		}
 	}

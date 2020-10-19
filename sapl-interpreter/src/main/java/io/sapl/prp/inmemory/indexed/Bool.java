@@ -1,12 +1,12 @@
 /**
  * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,11 +15,7 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
-import java.util.Map;
-import java.util.Objects;
-
 import com.google.common.base.Preconditions;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.impl.Val;
@@ -27,6 +23,9 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 import reactor.core.Exceptions;
+
+import java.util.Map;
+import java.util.Objects;
 
 public class Bool {
 
@@ -75,7 +74,8 @@ public class Bool {
 		}
 		if (isConstantExpression) {
 			return Objects.equals(constant, other.constant);
-		} else {
+		}
+		else {
 			return expression.isEqualTo(other.expression, other.imports, imports);
 		}
 	}
@@ -93,11 +93,12 @@ public class Bool {
 			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
 			try {
 				Val result = expression.evaluate(ctx, false, Val.undefined()).blockFirst();
-				if (result.isDefined() && result.get().isBoolean()) {
+				if (Objects.nonNull(result) && result.isDefined() && result.get().isBoolean()) {
 					return result.get().asBoolean();
 				}
 				throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result);
-			} catch (RuntimeException e) {
+			}
+			catch (RuntimeException e) {
 				throw new PolicyEvaluationException(Exceptions.unwrap(e));
 			}
 		}
@@ -111,7 +112,8 @@ public class Bool {
 			h = 59 * h + Objects.hashCode(isConstantExpression);
 			if (isConstantExpression) {
 				h = 59 * h + Objects.hashCode(constant);
-			} else {
+			}
+			else {
 				h = 59 * h + expression.hash(imports);
 			}
 			hash = h;

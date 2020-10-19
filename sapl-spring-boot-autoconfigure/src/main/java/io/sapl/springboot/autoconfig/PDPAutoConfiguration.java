@@ -159,8 +159,6 @@ public class PDPAutoConfiguration {
 
 	private Builder.IndexType getIndexType() {
 		switch (pdpProperties.getIndex()){
-			case FAST:
-				return Builder.IndexType.FAST;
 			case IMPROVED:
 				return Builder.IndexType.IMPROVED;
 			case SIMPLE:

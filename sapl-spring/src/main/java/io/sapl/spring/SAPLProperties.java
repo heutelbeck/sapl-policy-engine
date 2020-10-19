@@ -45,7 +45,7 @@ public class SAPLProperties {
 
 	public enum PRPIndexType {
 
-		SIMPLE, FAST, IMPROVED
+		SIMPLE, IMPROVED
 
 	}
 
