@@ -39,15 +39,15 @@ public class ImprovedIndexContainer implements IndexContainer {
 
     private final boolean abortOnError;
 
-    private final Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments;
+    private final ImmutableMap<DisjunctiveFormula, Set<SAPL>> formulaToDocuments;
 
-    private final List<Predicate> predicateOrder;
+    private final ImmutableList<Predicate> predicateOrder;
 
-    private final List<Set<DisjunctiveFormula>> relatedFormulas;
+    private final ImmutableList<Set<DisjunctiveFormula>> relatedFormulas;
 
-    private final Map<DisjunctiveFormula, Bitmask> relatedCandidates;
+    private final ImmutableMap<DisjunctiveFormula, Bitmask> relatedCandidates;
 
-    private final Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction;
+    private final ImmutableMap<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction;
 
     private final int[] numberOfLiteralsInConjunction;
 
@@ -86,8 +86,6 @@ public class ImprovedIndexContainer implements IndexContainer {
 
         for (Predicate predicate : predicateOrder) {
             if (!isReferenced(predicate, clauseCandidates)) continue;
-//            LOGGER.debug("{} candidates out of {} left", clauseCandidates
-//                    .numberOfBitsSet(), numberOfLiteralsInConjunction.length);
 
             Optional<Boolean> outcome = predicate.evaluate(functionCtx, variableCtx);
             if (!outcome.isPresent()) {
@@ -126,10 +124,9 @@ public class ImprovedIndexContainer implements IndexContainer {
 
     protected Bitmask findRelatedCandidates(final Predicate predicate) {
         Bitmask result = new Bitmask();
-        Set<DisjunctiveFormula> formulasContainingVariable = fetchFormulas(predicate.getConjunctions());
-        for (DisjunctiveFormula formula : formulasContainingVariable) {
-            result.or(relatedCandidates.get(formula));
-        }
+        fetchFormulas(predicate.getConjunctions()).parallelStream()
+                .forEach(formula -> result.or(relatedCandidates.get(formula)));
+
         return result;
     }
 
@@ -189,7 +186,7 @@ public class ImprovedIndexContainer implements IndexContainer {
 
     protected Set<SAPL> fetchPolicies(final Set<DisjunctiveFormula> formulas) {
         return formulas.parallelStream().map(formulaToDocuments::get)
-                .flatMap(Collection::stream).collect(Collectors.toSet());
+                .flatMap(Collection::parallelStream).collect(Collectors.toSet());
     }
 
     protected Bitmask findUnsatisfiableCandidates(final Bitmask candidates, final Predicate predicate,

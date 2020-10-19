@@ -79,7 +79,9 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
     private Map<Integer, Set<CTuple>> getConjunctionReferenceMap(Map<ConjunctiveClause,
             Set<DisjunctiveFormula>> clauseToFormulas, BiMap<ConjunctiveClause, Integer> clauseToIndex,
                                                                  Map<DisjunctiveFormula, Bitmask> formulaToClauses) {
-        Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction = new HashMap<>();
+
+        Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction = new HashMap<>(clauseToFormulas.size());
+
         for (Entry<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulaEntry : clauseToFormulas
                 .entrySet()) {
 
@@ -133,7 +135,9 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
     }
 
     private void createPredicateInfo(final Literal literal, final ConjunctiveClause clause,
-                                     final Map<Bool, PredicateInfo> boolToPredicateInfo, Set<Bool> negativesGroupedByFormula, Set<Bool> positivesGroupedByFormula, int sizeOfClause) {
+                                     final Map<Bool, PredicateInfo> boolToPredicateInfo,
+                                     Set<Bool> negativesGroupedByFormula, Set<Bool> positivesGroupedByFormula,
+                                     int sizeOfClause) {
         Bool bool = literal.getBool();
         PredicateInfo predicateInfo = boolToPredicateInfo
                 .computeIfAbsent(bool, k -> new PredicateInfo(new Predicate(bool)));
@@ -142,15 +146,13 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
         if (literal.isNegated()) {
             predicateInfo.addUnsatisfiableConjunctionIfTrue(clause);
             predicateInfo.incNumberOfNegatives();
-            if (!negativesGroupedByFormula.contains(bool)) {
-                negativesGroupedByFormula.add(bool);
+            if (negativesGroupedByFormula.add(bool)) {
                 predicateInfo.incGroupedNumberOfNegatives();
             }
         } else {
             predicateInfo.addUnsatisfiableConjunctionIfFalse(clause);
             predicateInfo.incNumberOfPositives();
-            if (!positivesGroupedByFormula.contains(bool)) {
-                positivesGroupedByFormula.add(bool);
+            if (positivesGroupedByFormula.add(bool)) {
                 predicateInfo.incGroupedNumberOfPositives();
             }
         }
