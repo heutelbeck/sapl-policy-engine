@@ -102,6 +102,7 @@
 				<version>1.4.0</version>
 				<executions>
 					<execution>
+						<?m2e ignore?>
 						<id>mwe2GenerateEMFClasses</id>
 						<phase>generate-sources</phase>
 						<goals>
@@ -120,6 +121,7 @@
 						</configuration>
 					</execution>
 					<execution>
+						<?m2e ignore?>
 						<id>mwe2Launcher</id>
 						<phase>generate-sources</phase>
 						<goals>
@@ -190,6 +192,7 @@
 				<version>1.9.1</version>
 				<executions>
 					<execution>
+						<?m2e execute onConfiguration,onIncremental?>
 						<id>add-source</id>
 						<phase>initialize</phase>
 						<goals>
@@ -214,6 +217,7 @@
 						</configuration>
 					</execution>
 					<execution>
+						<?m2e execute onConfiguration,onIncremental?>					
 						<id>add-test-source</id>
 						<phase>initialize</phase>
 						<goals>
@@ -255,64 +259,5 @@
 				</executions>
 			</plugin>
 		</plugins>
-		<pluginManagement>
-			<plugins>
-				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
-					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.codehaus.mojo
-										</groupId>
-										<artifactId>
-											exec-maven-plugin
-										</artifactId>
-										<versionRange>
-											[1.2.1,)
-										</versionRange>
-										<goals>
-											<goal>java</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore></ignore>
-									</action>
-								</pluginExecution>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.codehaus.mojo
-										</groupId>
-										<artifactId>
-											build-helper-maven-plugin
-										</artifactId>
-										<versionRange>
-											[3.0.0,)
-										</versionRange>
-										<goals>
-											<goal>add-source</goal>
-											<goal>add-resource</goal>
-											<goal>add-test-source</goal>
-											<goal>add-test-resource</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<execute>
-											<runOnIncremental>true</runOnIncremental>
-											<runOnConfiguration>true</runOnConfiguration>
-										</execute>
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
-					</configuration>
-				</plugin>
-			</plugins>
-		</pluginManagement>
 	</build>
 </project>

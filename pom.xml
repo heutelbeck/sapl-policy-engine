@@ -45,12 +45,12 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<java.version>1.8</java.version>
-		<xtextVersion>2.21.0</xtextVersion>
+		<java.version>11</java.version>
+		<xtextVersion>2.23.0</xtextVersion>
 		<version.license-maven-plugin>3.0</version.license-maven-plugin>
 		<version.maven-javadoc-plugin>3.1.0</version.maven-javadoc-plugin>
 		<version.junit>4.13.1</version.junit>
-		<version.lombok>1.18.12</version.lombok>
+		<version.lombok>1.18.16</version.lombok>
 		<version.springboot>2.3.4.RELEASE</version.springboot>
 		<version.powermock>2.0.7</version.powermock>
 		<version.mockito>2.28.2</version.mockito>
@@ -223,62 +223,6 @@
 						<useSystemClassLoader>false</useSystemClassLoader>
 					</configuration>
 				</plugin>
-				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
-					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.apache.maven.plugins
-										</groupId>
-										<artifactId>
-											maven-resources-plugin
-										</artifactId>
-										<versionRange>
-											[2.4.3,)
-										</versionRange>
-										<goals>
-											<goal>resources</goal>
-											<goal>testResources</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore></ignore>
-									</action>
-								</pluginExecution>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.codehaus.mojo
-										</groupId>
-										<artifactId>
-											build-helper-maven-plugin
-										</artifactId>
-										<versionRange>
-											[1.9.1,)
-										</versionRange>
-										<goals>
-											<goal>add-resource</goal>
-											<goal>add-source</goal>
-											<goal>add-test-resource</goal>
-											<goal>add-test-source</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<execute>
-											<runOnIncremental>true</runOnIncremental>
-											<runOnConfiguration>true</runOnConfiguration>
-										</execute>
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
-					</configuration>
-				</plugin>
 			</plugins>
 		</pluginManagement>
 		<plugins>
@@ -343,7 +287,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.1.1</version>
+				<version>3.2.0</version>
 				<executions>
 					<execution>
 						<id>attach-javadoc</id>
@@ -354,7 +298,7 @@
 					</execution>
 				</executions>
 				<configuration>
-				    <source>8</source>
+					<source>11</source>
 					<doclint>none</doclint>
 					<sourceFileExcludes>
 						<sourceFileExclude>**/emf-gen/*.java</sourceFileExclude>

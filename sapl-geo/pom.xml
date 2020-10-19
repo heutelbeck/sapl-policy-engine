@@ -135,6 +135,7 @@
 				<version>${asciidoc.version}</version>
 				<executions>
 					<execution>
+						<?m2e ignore?>
 						<id>asciidoc-to-html</id>
 						<phase>generate-resources</phase>
 						<goals>
@@ -191,6 +192,7 @@
 				<version>3.0.0</version>
 				<executions>
 					<execution>
+						<?m2e execute onConfiguration,onIncremental?>					
 						<id>add-test-source</id>
 						<phase>initialize</phase>
 						<goals>
@@ -205,44 +207,6 @@
 				</executions>
 			</plugin>
 		</plugins>
-		<pluginManagement>
-			<plugins>
-				<!--This plugin's configuration is used to store Eclipse m2e settings 
-					only. It has no influence on the Maven build itself. -->
-				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
-					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.asciidoctor
-										</groupId>
-										<artifactId>
-											asciidoctor-maven-plugin
-										</artifactId>
-										<versionRange>
-											[1.5.5,)
-										</versionRange>
-										<goals>
-											<goal>
-												process-asciidoc
-											</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore></ignore>
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
-					</configuration>
-				</plugin>
-			</plugins>
-		</pluginManagement>
 	</build>
 
 	<repositories>

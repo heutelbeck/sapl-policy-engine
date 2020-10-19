@@ -20,16 +20,15 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+
 	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starters</artifactId>
-		<version>2.2.6.RELEASE</version>
-		<relativePath />
+		<groupId>io.sapl</groupId>
+		<artifactId>sapl-policy-engine</artifactId>
+		<version>2.0.0-SNAPSHOT</version>
 	</parent>
 
-	<groupId>io.sapl</groupId>
+
 	<artifactId>sapl-spring-boot-starter</artifactId>
-	<version>2.0.0-SNAPSHOT</version>
 
 	<name>Spring Boot Starter module for the SAPL Engine</name>
 
@@ -50,13 +49,6 @@
 		<system>GitHub</system>
 		<url>https://github.com/heutelbeck/sapl-policy-engine/issues</url>
 	</issueManagement>
-
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<java.version>1.8</java.version>
-		<maven.compiler.target>${java.version}</maven.compiler.target>
-		<maven.compiler.source>${java.version}</maven.compiler.source>
-	</properties>
 
 	<dependencies>
 		<dependency>
@@ -103,8 +95,8 @@
 					</execution>
 				</executions>
 				<configuration>
-					<source>8</source>
-					<additionalparam>-Xdoclint:none</additionalparam>
+					<source>11</source>
+					<doclint>none</doclint>
 				</configuration>
 			</plugin>
 			<plugin>

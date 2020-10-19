@@ -17,100 +17,76 @@
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <parent>
-        <artifactId>sapl-policy-engine</artifactId>
-        <groupId>io.sapl</groupId>
-        <version>2.0.0-SNAPSHOT</version>
-    </parent>
-    <modelVersion>4.0.0</modelVersion>
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<parent>
+		<artifactId>sapl-policy-engine</artifactId>
+		<groupId>io.sapl</groupId>
+		<version>2.0.0-SNAPSHOT</version>
+	</parent>
+	<modelVersion>4.0.0</modelVersion>
 
-    <artifactId>sapl-ethereum</artifactId>
-    <name>SAPL Ethereum</name>
+	<artifactId>sapl-ethereum</artifactId>
+	<name>SAPL Ethereum</name>
 	<organization>
 		<name>Dominic Heutelbeck</name>
 	</organization>
-	
-	<profiles>
-		<profile>
-			<id>integration-tests</id>
-		</profile>
-		<profile>
-			<id>module-tests</id>
-			<activation>
-        		<activeByDefault>true</activeByDefault>
-    		</activation>
-    		<build>
-    			<plugins>
-      				<plugin>
-        				<groupId>org.apache.maven.plugins</groupId>
-        				<artifactId>maven-surefire-plugin</artifactId>
-        				<configuration>
-          					<excludes>
-						           <exclude>**/EthereumIntegrationTest.java</exclude>
-          					</excludes>
-        				</configuration>
-      				</plugin>
-    			</plugins>
-  			</build>
-		</profile>
-	</profiles>
-	
+
+
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-pdp-embedded</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		
+
 		<dependency>
-  			<groupId>org.web3j</groupId>
-  			<artifactId>core</artifactId>
-  			<version>4.5.11</version>
+			<groupId>org.web3j</groupId>
+			<artifactId>core</artifactId>
+			<version>4.5.11</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		
+
 		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-api</artifactId>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
 		</dependency>
-		
+
 		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-nop</artifactId>
-		    <scope>test</scope>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-nop</artifactId>
+			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.mockito</groupId>
-  			<artifactId>mockito-core</artifactId>
-  			<scope>test</scope>
+			<artifactId>mockito-core</artifactId>
+			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.powermock</groupId>
 			<artifactId>powermock-module-junit4</artifactId>
@@ -122,134 +98,101 @@
 			<artifactId>powermock-api-mockito2</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
- 			<groupId>org.testcontainers</groupId>
- 			<artifactId>testcontainers</artifactId>
- 			<version>1.12.0</version>
- 			<scope>test</scope>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers</artifactId>
+			<version>1.12.0</version>
+			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
-		    <groupId>org.springframework.boot</groupId>
-		    <artifactId>spring-boot-starter-test</artifactId>
-		    <scope>test</scope>
-		    <exclusions>
-		      <exclusion> 
-				<groupId>org.springframework.boot</groupId>
-      			<artifactId>spring-boot-starter-logging</artifactId>
-		      </exclusion>
-		    </exclusions> 
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-logging</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
-	
+
 	</dependencies>
-	
+
 	<build>
 		<plugins>
 			<plugin>
-			    <groupId>org.web3j</groupId>
-			    <artifactId>web3j-maven-plugin</artifactId>
-			    <version>4.5.11</version>
-			    <configuration>
-			        <packageName>io.sapl.interpreter.pip.contracts</packageName>
-			        <sourceDestination>${project.basedir}/target/generated-test-sources/contracts</sourceDestination>
-			        <nativeJavaType>true</nativeJavaType>
-			        <outputFormat>java</outputFormat>
-			        <soliditySourceFiles>
-			            <directory>${project.basedir}/src/test/resources/solidity</directory>
-			            <includes>
-			                <include>**/*.sol</include>
-			            </includes>
-			        </soliditySourceFiles>
-			    </configuration>
-			    <executions>
-			    	<execution>
-			    		<id>generate-contracts</id>
-			    		<phase>generate-sources</phase>
-			    		<goals>
-			    			<goal>generate-sources</goal>
-			    		</goals>
-			    	</execution>		    
-			    </executions>
+				<groupId>org.web3j</groupId>
+				<artifactId>web3j-maven-plugin</artifactId>
+				<version>4.5.11</version>
+				<configuration>
+					<packageName>io.sapl.interpreter.pip.contracts</packageName>
+					<sourceDestination>${project.basedir}/target/generated-test-sources/contracts</sourceDestination>
+					<nativeJavaType>true</nativeJavaType>
+					<outputFormat>java</outputFormat>
+					<soliditySourceFiles>
+						<directory>${project.basedir}/src/test/resources/solidity</directory>
+						<includes>
+							<include>**/*.sol</include>
+						</includes>
+					</soliditySourceFiles>
+				</configuration>
+				<executions>
+					<execution>
+						<?m2e ignore?>
+						<id>generate-contracts</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>generate-sources</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
-		        <groupId>org.codehaus.mojo</groupId>
-		        <artifactId>build-helper-maven-plugin</artifactId>
-		        <version>1.9.1</version>
-		        <executions>
-		        	<execution>
-		            	<id>add-contracts</id>
-		            	<phase>initialize</phase>
-		            	<goals>
-		                	<goal>add-test-source</goal>
-		            	</goals>
-		            	<configuration>
-		                	<sources>
-		                 		<source>target/generated-test-sources/contracts</source>
-		              		</sources>
-		           		</configuration>
-		          	</execution>
-		       	</executions>
-		    </plugin> 
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>1.9.1</version>
+				<executions>
+					<execution>
+		        		<?m2e execute onConfiguration,onIncremental?>
+						<id>add-contracts</id>
+						<phase>initialize</phase>
+						<goals>
+							<goal>add-test-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>target/generated-test-sources/contracts</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
-		<pluginManagement>
-			<plugins>
-				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
-					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.web3j
-										</groupId>
-										<artifactId>
-											web3j-maven-plugin
-										</artifactId>
-										<versionRange>
-											[4.5.11,)
-										</versionRange>
-										<goals>
-											<goal>generate-sources</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore></ignore>
-									</action>
-								</pluginExecution>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.codehaus.mojo
-										</groupId>
-										<artifactId>
-											build-helper-maven-plugin
-										</artifactId>
-										<versionRange>
-											[1.9.1,)
-										</versionRange>
-										<goals>
-											<goal>add-source</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<execute>
-											<runOnIncremental>true</runOnIncremental>
-											<runOnConfiguration>true</runOnConfiguration>
-										</execute>
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
-					</configuration>
-				</plugin>
-			</plugins>
-		</pluginManagement>
 	</build>
-
-
-
+	<profiles>
+		<profile>
+			<id>integration-tests</id>
+		</profile>
+		<profile>
+			<id>module-tests</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<excludes>
+								<exclude>**/EthereumIntegrationTest.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>
