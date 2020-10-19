@@ -80,7 +80,8 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
             Set<DisjunctiveFormula>> clauseToFormulas, BiMap<ConjunctiveClause, Integer> clauseToIndex,
                                                                  Map<DisjunctiveFormula, Bitmask> formulaToClauses) {
 
-        Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction = new HashMap<>(clauseToFormulas.size());
+        Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction =
+                new HashMap<>(clauseToFormulas.size(), 1.0F);
 
         for (Entry<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulaEntry : clauseToFormulas
                 .entrySet()) {
