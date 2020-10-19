@@ -55,7 +55,7 @@ public class DisjunctiveFormula {
     }
 
     public DisjunctiveFormula distribute(final DisjunctiveFormula formula) {
-        List<ConjunctiveClause> result = new ArrayList<>();
+        List<ConjunctiveClause> result = new ArrayList<>(clauses.size() * formula.clauses.size());
         for (ConjunctiveClause lhs : clauses) {
             for (ConjunctiveClause rhs : formula.clauses) {
                 List<Literal> literals = new ArrayList<>(lhs.size() + rhs.size());

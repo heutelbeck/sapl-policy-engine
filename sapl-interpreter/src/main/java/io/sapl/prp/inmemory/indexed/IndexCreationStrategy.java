@@ -42,7 +42,8 @@ public interface IndexCreationStrategy {
 
     default Map<DisjunctiveFormula, Set<SAPL>> mapFormulaToDocuments(
             final Map<String, DisjunctiveFormula> targets, final Map<String, SAPL> documents) {
-        Map<DisjunctiveFormula, Set<SAPL>> result = new HashMap<>();
+        Map<DisjunctiveFormula, Set<SAPL>> result = new HashMap<>(targets.size());
+
         for (Map.Entry<String, DisjunctiveFormula> entry : targets.entrySet()) {
             DisjunctiveFormula formula = entry.getValue();
             Set<SAPL> set = result.computeIfAbsent(formula, k -> new HashSet<>());

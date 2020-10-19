@@ -94,7 +94,7 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
                     .or(formulaToClauses.get(formulaContainingClause)));
             clausesInSameFormulas.clear(clauseIndex);
 
-            Set<CTuple> cTupleSet = new HashSet<>();
+            Set<CTuple> cTupleSet = new HashSet<>(clausesInSameFormulas.numberOfBitsSet());
             clausesInSameFormulas.forEachSetBit(relatedClauseIndex -> {
                 long numberOfSharedFormulas = formulasContainingClause.stream().map(formulaToClauses::get)
                         .filter(bitmask -> bitmask.isSet(relatedClauseIndex)).count();
@@ -201,7 +201,7 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
 
     private Map<DisjunctiveFormula, Bitmask> mapFormulaToClauses(final Collection<DisjunctiveFormula> formulas,
                                                                  final Map<ConjunctiveClause, Integer> clauseToIndex) {
-        final Map<DisjunctiveFormula, Bitmask> result = new HashMap<>();
+        final Map<DisjunctiveFormula, Bitmask> result = new HashMap<>(formulas.size());
         for (DisjunctiveFormula formula : formulas) {
             for (ConjunctiveClause clause : formula.getClauses()) {
                 Bitmask associatedIndexes = result.computeIfAbsent(formula, k -> new Bitmask());

@@ -25,6 +25,7 @@ public class Bitmask {
 
     private final BitSet impl;
 
+    // TODO force initial capacity?
     public Bitmask() {
         impl = new BitSet();
     }
