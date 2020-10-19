@@ -16,25 +16,27 @@ import java.util.Optional;
 @Getter
 public class Predicate {
 
-    private final Bool bool;
+	private final Bool bool;
 
-    private final Bitmask conjunctions = new Bitmask();
+	private final Bitmask conjunctions = new Bitmask();
 
-    private final Bitmask falseForTruePredicate = new Bitmask();
+	private final Bitmask falseForTruePredicate = new Bitmask();
 
-    private final Bitmask falseForFalsePredicate = new Bitmask();
+	private final Bitmask falseForFalsePredicate = new Bitmask();
 
-    public Predicate(final Bool bool) {
-        this.bool = Preconditions.checkNotNull(bool);
-    }
+	public Predicate(final Bool bool) {
+		this.bool = Preconditions.checkNotNull(bool);
+	}
 
-    public Optional<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
-        Boolean result = null;
-        try {
-            result = getBool().evaluate(functionCtx, variableCtx);
-        } catch (PolicyEvaluationException e) {
-            LOGGER.debug(Throwables.getStackTraceAsString(e));
-        }
-        return Optional.ofNullable(result);
-    }
+	public Optional<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
+		Boolean result = null;
+		try {
+			result = getBool().evaluate(functionCtx, variableCtx);
+		}
+		catch (PolicyEvaluationException e) {
+			LOGGER.debug(Throwables.getStackTraceAsString(e));
+		}
+		return Optional.ofNullable(result);
+	}
+
 }

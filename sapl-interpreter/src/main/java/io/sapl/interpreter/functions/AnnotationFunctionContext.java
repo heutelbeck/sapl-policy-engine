@@ -60,7 +60,6 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	/**
 	 * Create context from a list of function libraries.
-	 * 
 	 * @param libraries list of function libraries
 	 * @throws FunctionException if loading libraries fails
 	 */
@@ -89,17 +88,20 @@ public class AnnotationFunctionContext implements FunctionContext {
 					ParameterTypeValidator.validateType(parameters[i], funParams[0]);
 				}
 				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), new Object[] { parameters });
-			} else if (metadata.getPararmeterCardinality() == parameters.length) {
+			}
+			else if (metadata.getPararmeterCardinality() == parameters.length) {
 				LOGGER.trace("NOT VARARGS");
 				for (int i = 0; i < parameters.length; i++) {
 					ParameterTypeValidator.validateType(parameters[i], funParams[i]);
 				}
 				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), (Object[]) parameters);
-			} else {
+			}
+			else {
 				throw new FunctionException(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getPararmeterCardinality(),
 						parameters.length);
 			}
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			throw new FunctionException(e);
 		}
 	}
@@ -145,7 +147,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (parameters == 1 && parameterType.isArray()) {
 				// functions with a variable number of arguments
 				parameters = -1;
-			} else if (!Val.class.isAssignableFrom(parameterType)) {
+			}
+			else if (!Val.class.isAssignableFrom(parameterType)) {
 				throw new FunctionException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
 			}
 		}
@@ -175,7 +178,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 		Collection<String> libs = libraries.get(libraryName);
 		if (libs != null) {
 			return libs;
-		} else {
+		}
+		else {
 			return new HashSet<>();
 		}
 	}

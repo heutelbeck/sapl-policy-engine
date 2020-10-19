@@ -11,27 +11,27 @@ import java.util.stream.Collectors;
 
 public class ExistingOrderStrategy implements PredicateOrderStrategy {
 
-    @Override
-    public List<Predicate> createPredicateOrder(Collection<PredicateInfo> data) {
-        List<PredicateInfo> predicateInfos = new ArrayList<>(data);
-        for (PredicateInfo predicateInfo : predicateInfos) {
-            predicateInfo.setScore(createScore(predicateInfo));
+	@Override
+	public List<Predicate> createPredicateOrder(Collection<PredicateInfo> data) {
+		List<PredicateInfo> predicateInfos = new ArrayList<>(data);
+		for (PredicateInfo predicateInfo : predicateInfos) {
+			predicateInfo.setScore(createScore(predicateInfo));
 
-        }
+		}
 
-        return predicateInfos.stream().sorted(Collections.reverseOrder()).map(PredicateInfo::getPredicate)
-                .collect(Collectors.toList());
-    }
+		return predicateInfos.stream().sorted(Collections.reverseOrder()).map(PredicateInfo::getPredicate)
+				.collect(Collectors.toList());
+	}
 
-    public static double createScore(final PredicateInfo predicateInfo) {
-        final double square = 2.0;
-        final double groupedPositives = predicateInfo.getGroupedNumberOfPositives();
-        final double groupedNegatives = predicateInfo.getGroupedNumberOfNegatives();
-        final double relevance = predicateInfo.getRelevance();
-        final double costs = 1.0;
+	public static double createScore(final PredicateInfo predicateInfo) {
+		final double square = 2.0;
+		final double groupedPositives = predicateInfo.getGroupedNumberOfPositives();
+		final double groupedNegatives = predicateInfo.getGroupedNumberOfNegatives();
+		final double relevance = predicateInfo.getRelevance();
+		final double costs = 1.0;
 
-        return Math.pow(relevance, square - relevance) * (groupedPositives + groupedNegatives) / costs * (square
-                - Math.pow((groupedPositives - groupedNegatives) / (groupedPositives + groupedNegatives), square));
-    }
+		return Math.pow(relevance, square - relevance) * (groupedPositives + groupedNegatives) / costs * (square
+				- Math.pow((groupedPositives - groupedNegatives) / (groupedPositives + groupedNegatives), square));
+	}
 
 }

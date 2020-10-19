@@ -8,5 +8,6 @@ import java.util.List;
 
 public interface PredicateOrderStrategy {
 
-     List<Predicate> createPredicateOrder(final Collection<PredicateInfo> data);
+	List<Predicate> createPredicateOrder(final Collection<PredicateInfo> data);
+
 }

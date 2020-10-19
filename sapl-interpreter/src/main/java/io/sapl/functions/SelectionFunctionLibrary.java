@@ -15,20 +15,10 @@
  */
 package io.sapl.functions;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-
-import org.eclipse.emf.common.util.URI;
-import org.eclipse.xtext.resource.XtextResource;
-import org.eclipse.xtext.resource.XtextResourceSet;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Injector;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
@@ -43,7 +33,15 @@ import io.sapl.grammar.services.SAPLGrammarAccess;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.ResultNode;
+import org.eclipse.emf.common.util.URI;
+import org.eclipse.xtext.resource.XtextResource;
+import org.eclipse.xtext.resource.XtextResourceSet;
 import reactor.core.Exceptions;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @FunctionLibrary(name = SelectionFunctionLibrary.NAME, description = SelectionFunctionLibrary.DESCRIPTION)
 public class SelectionFunctionLibrary {
@@ -84,7 +82,8 @@ public class SelectionFunctionLibrary {
 			}
 			return Val
 					.of(result.asJsonWithoutAnnotations().orElseThrow(() -> new FunctionException("undefined result")));
-		} catch (RuntimeException e) {
+		}
+		catch (RuntimeException e) {
 			throw new FunctionException(Exceptions.unwrap(e));
 		}
 	}
@@ -98,12 +97,15 @@ public class SelectionFunctionLibrary {
 					.resolveSteps(oStruct, relativeExpression.getSteps(), null, false, oStruct).blockFirst();
 			if (result == null) {
 				throw new FunctionException(BLOCKING_METHOD_CALL_RETURNED_NULL);
-			} else if (result.isResultArray()) {
+			}
+			else if (result.isResultArray()) {
 				return Val.of(((ArrayResultNode) result).getNodes().size());
-			} else {
+			}
+			else {
 				return Val.of(1L);
 			}
-		} catch (RuntimeException e) {
+		}
+		catch (RuntimeException e) {
 			throw new FunctionException(Exceptions.unwrap(e));
 		}
 	}
@@ -122,11 +124,14 @@ public class SelectionFunctionLibrary {
 
 			if (haystackResult == null || needleResult == null) {
 				throw new PolicyEvaluationException(BLOCKING_METHOD_CALL_RETURNED_NULL);
-			} else if (haystackResult.isNodeWithoutParent()) {
+			}
+			else if (haystackResult.isNodeWithoutParent()) {
 				return Val.ofTrue();
-			} else if (needleResult.isNodeWithoutParent()) {
+			}
+			else if (needleResult.isNodeWithoutParent()) {
 				return Val.ofFalse();
-			} else if (!needleResult.isResultArray()) {
+			}
+			else if (!needleResult.isResultArray()) {
 				return Val.of(inStructure((AbstractAnnotatedJsonNode) needleResult, haystackResult));
 			}
 			for (AbstractAnnotatedJsonNode node : (ArrayResultNode) needleResult) {
@@ -135,9 +140,11 @@ public class SelectionFunctionLibrary {
 				}
 			}
 			return Val.ofTrue();
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			throw new FunctionException(e);
-		} catch (RuntimeException e) {
+		}
+		catch (RuntimeException e) {
 			throw new FunctionException(Exceptions.unwrap(e));
 		}
 	}
@@ -156,20 +163,26 @@ public class SelectionFunctionLibrary {
 
 			if (firstResult == null || secondResult == null) {
 				throw new PolicyEvaluationException(BLOCKING_METHOD_CALL_RETURNED_NULL);
-			} else if (firstResult.isNodeWithoutParent() && secondResult.isNodeWithoutParent()) {
+			}
+			else if (firstResult.isNodeWithoutParent() && secondResult.isNodeWithoutParent()) {
 				return Val.ofTrue();
-			} else if (!firstResult.isResultArray() && !secondResult.isResultArray()) {
+			}
+			else if (!firstResult.isResultArray() && !secondResult.isResultArray()) {
 				return Val.of(((AbstractAnnotatedJsonNode) firstResult)
 						.sameReference((AbstractAnnotatedJsonNode) secondResult));
-			} else if (firstResult.isResultArray() && secondResult.isResultArray()) {
+			}
+			else if (firstResult.isResultArray() && secondResult.isResultArray()) {
 				return Val.of(allNodesInList((ArrayResultNode) firstResult, (ArrayResultNode) secondResult)
 						&& allNodesInList((ArrayResultNode) secondResult, (ArrayResultNode) firstResult));
-			} else {
+			}
+			else {
 				return Val.ofFalse();
 			}
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			throw new FunctionException(e);
-		} catch (RuntimeException e) {
+		}
+		catch (RuntimeException e) {
 			throw new FunctionException(Exceptions.unwrap(e));
 		}
 	}
@@ -191,7 +204,8 @@ public class SelectionFunctionLibrary {
 			throws PolicyEvaluationException {
 		if (haystackResult instanceof AbstractAnnotatedJsonNode) {
 			return inNode(needleResult, (AbstractAnnotatedJsonNode) haystackResult);
-		} else {
+		}
+		else {
 			for (AbstractAnnotatedJsonNode haystackNode : (ArrayResultNode) haystackResult) {
 				if (inNode(needleResult, haystackNode)) {
 					return true;
@@ -205,7 +219,8 @@ public class SelectionFunctionLibrary {
 			throws PolicyEvaluationException {
 		if (needleResult.sameReference(haystackResult)) {
 			return true;
-		} else if (needleResult.getParent().isDefined()) {
+		}
+		else if (needleResult.getParent().isDefined()) {
 			return recursiveCheck(needleResult.getParent().get(), haystackResult.getNode().get());
 		}
 		return false;
@@ -221,7 +236,8 @@ public class SelectionFunctionLibrary {
 					return true;
 				}
 			}
-		} else if (haystack.isObject()) {
+		}
+		else if (haystack.isObject()) {
 			for (JsonNode node : (ObjectNode) haystack) {
 				if (recursiveCheck(needleParent, node)) {
 					return true;
@@ -240,7 +256,8 @@ public class SelectionFunctionLibrary {
 
 		try {
 			resource.load(in, resourceSet.getLoadOptions());
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw new FunctionException(e);
 		}
 		return (BasicRelative) resource.getContents().get(0);

@@ -47,7 +47,8 @@ public class StandardFunctionLibrary {
 	public static Val length(@Array @Text @JsonObject Val parameter) {
 		if (parameter.get().isTextual()) {
 			return Val.of(parameter.get().textValue().length());
-		} else {
+		}
+		else {
 			return Val.of(parameter.get().size());
 		}
 	}
@@ -57,11 +58,14 @@ public class StandardFunctionLibrary {
 		JsonNode param = parameter.get();
 		if (param.isNumber()) {
 			return Val.of(param.numberValue().toString());
-		} else if (param.isBoolean()) {
+		}
+		else if (param.isBoolean()) {
 			return Val.of(String.valueOf(param.booleanValue()));
-		} else if (param.isNull()) {
+		}
+		else if (param.isNull()) {
 			return Val.of("");
-		} else {
+		}
+		else {
 			return parameter;
 		}
 	}

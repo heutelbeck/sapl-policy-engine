@@ -13,138 +13,137 @@ import java.util.Set;
 
 public class PredicateInfo implements Comparable<PredicateInfo> {
 
-    private final Predicate predicate;
+	private final Predicate predicate;
 
-    private final Set<ConjunctiveClause> unsatisfiableConjunctionsIfFalse = new HashSet<>();
+	private final Set<ConjunctiveClause> unsatisfiableConjunctionsIfFalse = new HashSet<>();
 
-    private final Set<ConjunctiveClause> unsatisfiableConjunctionsIfTrue = new HashSet<>();
+	private final Set<ConjunctiveClause> unsatisfiableConjunctionsIfTrue = new HashSet<>();
 
-    /* required for existing variable order */
-    private int groupedNumberOfNegatives;
+	/* required for existing variable order */
+	private int groupedNumberOfNegatives;
 
-    private int groupedNumberOfPositives;
+	private int groupedNumberOfPositives;
 
-    private int numberOfNegatives;
+	private int numberOfNegatives;
 
-    private int numberOfPositives;
+	private int numberOfPositives;
 
-    private double relevance;
+	private double relevance;
 
-    private final List<Double> relevanceList = new LinkedList<>();
+	private final List<Double> relevanceList = new LinkedList<>();
 
-    private double score;
+	private double score;
 
+	public PredicateInfo(final Predicate predicate) {
+		this.predicate = Preconditions.checkNotNull(predicate);
+	}
 
-    public PredicateInfo(final Predicate predicate) {
-        this.predicate = Preconditions.checkNotNull(predicate);
-    }
+	public Set<ConjunctiveClause> getUnsatisfiableConjunctionsIfFalse() {
+		return Collections.unmodifiableSet(unsatisfiableConjunctionsIfFalse);
+	}
 
-    public Set<ConjunctiveClause> getUnsatisfiableConjunctionsIfFalse() {
-        return Collections.unmodifiableSet(unsatisfiableConjunctionsIfFalse);
-    }
+	public Set<ConjunctiveClause> getUnsatisfiableConjunctionsIfTrue() {
+		return Collections.unmodifiableSet(unsatisfiableConjunctionsIfTrue);
+	}
 
-    public Set<ConjunctiveClause> getUnsatisfiableConjunctionsIfTrue() {
-        return Collections.unmodifiableSet(unsatisfiableConjunctionsIfTrue);
-    }
+	public Predicate getPredicate() {
+		return predicate;
+	}
 
-    public Predicate getPredicate() {
-        return predicate;
-    }
+	public void addUnsatisfiableConjunctionIfFalse(ConjunctiveClause clause) {
+		unsatisfiableConjunctionsIfFalse.add(clause);
+	}
 
+	public void addUnsatisfiableConjunctionIfTrue(ConjunctiveClause clause) {
+		unsatisfiableConjunctionsIfTrue.add(clause);
+	}
 
-    public void addUnsatisfiableConjunctionIfFalse(ConjunctiveClause clause) {
-        unsatisfiableConjunctionsIfFalse.add(clause);
-    }
+	public int getGroupedNumberOfNegatives() {
+		return groupedNumberOfNegatives;
+	}
 
-    public void addUnsatisfiableConjunctionIfTrue(ConjunctiveClause clause) {
-        unsatisfiableConjunctionsIfTrue.add(clause);
-    }
+	public int getGroupedNumberOfPositives() {
+		return groupedNumberOfPositives;
+	}
 
+	public int getNumberOfNegatives() {
+		return numberOfNegatives;
+	}
 
-    public int getGroupedNumberOfNegatives() {
-        return groupedNumberOfNegatives;
-    }
+	public int getNumberOfPositives() {
+		return numberOfPositives;
+	}
 
-    public int getGroupedNumberOfPositives() {
-        return groupedNumberOfPositives;
-    }
+	public double getRelevance() {
+		return relevance;
+	}
 
-    public int getNumberOfNegatives() {
-        return numberOfNegatives;
-    }
+	public List<Double> getClauseRelevanceList() {
+		return Collections.unmodifiableList(relevanceList);
+	}
 
-    public int getNumberOfPositives() {
-        return numberOfPositives;
-    }
+	public double getScore() {
+		return score;
+	}
 
-    public double getRelevance() {
-        return relevance;
-    }
+	public void addToClauseRelevanceList(double relevanceForClause) {
+		relevanceList.add(relevanceForClause);
+	}
 
-    public List<Double> getClauseRelevanceList() {
-        return Collections.unmodifiableList(relevanceList);
-    }
+	public void incGroupedNumberOfNegatives() {
+		++groupedNumberOfNegatives;
+	}
 
-    public double getScore() {
-        return score;
-    }
+	public void incGroupedNumberOfPositives() {
+		++groupedNumberOfPositives;
+	}
 
-    public void addToClauseRelevanceList(double relevanceForClause) {
-        relevanceList.add(relevanceForClause);
-    }
+	public void incNumberOfNegatives() {
+		++numberOfNegatives;
+	}
 
-    public void incGroupedNumberOfNegatives() {
-        ++groupedNumberOfNegatives;
-    }
+	public void incNumberOfPositives() {
+		++numberOfPositives;
+	}
 
-    public void incGroupedNumberOfPositives() {
-        ++groupedNumberOfPositives;
-    }
+	public void setRelevance(double relevance) {
+		this.relevance = relevance;
+	}
 
-    public void incNumberOfNegatives() {
-        ++numberOfNegatives;
-    }
+	public void setScore(double score) {
+		this.score = score;
+	}
 
-    public void incNumberOfPositives() {
-        ++numberOfPositives;
-    }
+	@Override
+	public int compareTo(PredicateInfo o) {
+		final double epsilon = 0.000000001;
+		double lhs = getScore();
+		double rhs = o.getScore();
 
-    public void setRelevance(double relevance) {
-        this.relevance = relevance;
-    }
+		if (DoubleMath.fuzzyEquals(lhs, rhs, epsilon)) {
+			return 0;
+		}
+		if (lhs < rhs) {
+			return -1;
+		}
+		return 1;
+	}
 
-    public void setScore(double score) {
-        this.score = score;
-    }
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		PredicateInfo that = (PredicateInfo) o;
+		return compareTo(that) == 0;
+	}
 
-    @Override
-    public int compareTo(PredicateInfo o) {
-        final double epsilon = 0.000000001;
-        double lhs = getScore();
-        double rhs = o.getScore();
+	@Override
+	public int hashCode() {
+		return Objects.hash(predicate, unsatisfiableConjunctionsIfFalse, unsatisfiableConjunctionsIfTrue,
+				groupedNumberOfNegatives, groupedNumberOfPositives, numberOfNegatives, numberOfPositives, relevance,
+				relevanceList, score);
+	}
 
-        if (DoubleMath.fuzzyEquals(lhs, rhs, epsilon)) {
-            return 0;
-        }
-        if (lhs < rhs) {
-            return -1;
-        }
-        return 1;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        PredicateInfo that = (PredicateInfo) o;
-        return compareTo(that) == 0;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects
-                .hash(predicate, unsatisfiableConjunctionsIfFalse, unsatisfiableConjunctionsIfTrue,
-                        groupedNumberOfNegatives, groupedNumberOfPositives, numberOfNegatives, numberOfPositives,
-                        relevance, relevanceList, score);
-    }
 }

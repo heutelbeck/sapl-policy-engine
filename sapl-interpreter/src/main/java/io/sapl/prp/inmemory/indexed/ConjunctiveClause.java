@@ -80,7 +80,7 @@ public class ConjunctiveClause {
 			if (!result) {
 				return false;
 			}
-			result =iter.next().evaluate();
+			result = iter.next().evaluate();
 		}
 		return result;
 	}
