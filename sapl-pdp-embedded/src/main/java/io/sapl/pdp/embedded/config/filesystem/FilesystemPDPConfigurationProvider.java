@@ -70,9 +70,7 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 		path = configPath;
 		if (configPath.startsWith("~" + File.separator) || configPath.startsWith("~/")) {
 			this.path = System.getProperty("user.home") + configPath.substring(1);
-			LOGGER.info("XXXXXXXXXXXXXXXXX->{}", this.path);
 		} else if (configPath.startsWith("~")) {
-			LOGGER.info("YYYYYYY->{}", this.path);
 			throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
 		}
 
