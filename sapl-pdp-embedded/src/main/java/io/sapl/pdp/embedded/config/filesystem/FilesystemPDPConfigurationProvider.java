@@ -15,20 +15,9 @@
  */
 package io.sapl.pdp.embedded.config.filesystem;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
-import io.sapl.directorywatcher.DirectoryWatchEventFluxSinkAdapter;
-import io.sapl.directorywatcher.DirectoryWatcher;
-import io.sapl.directorywatcher.InitialWatchEvent;
-import io.sapl.interpreter.combinators.DocumentsCombinator;
-import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.ReplayProcessor;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,9 +30,21 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
-import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
+import io.sapl.directorywatcher.DirectoryWatchEventFluxSinkAdapter;
+import io.sapl.directorywatcher.DirectoryWatcher;
+import io.sapl.directorywatcher.InitialWatchEvent;
+import io.sapl.interpreter.combinators.DocumentsCombinator;
+import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.ReplayProcessor;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvider {
@@ -66,11 +67,12 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 			.cacheLastOrDefault(InitialWatchEvent.INSTANCE);
 
 	public FilesystemPDPConfigurationProvider(@NonNull String configPath) {
-		this.path = configPath;
-		if (configPath.startsWith("~" + File.separator)) {
+		path = configPath;
+		if (configPath.startsWith("~" + File.separator) || configPath.startsWith("~/")) {
 			this.path = System.getProperty("user.home") + configPath.substring(1);
-		}
-		else if (configPath.startsWith("~")) {
+			LOGGER.info("XXXXXXXXXXXXXXXXX->{}", this.path);
+		} else if (configPath.startsWith("~")) {
+			LOGGER.info("YYYYYYY->{}", this.path);
 			throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
 		}
 
@@ -104,8 +106,7 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 					config = new PolicyDecisionPointConfiguration();
 				}
 			}
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			LOGGER.error("Error while initializing the pdp configuration.", e);
 		}
 	}
@@ -120,23 +121,18 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 			if (kind == ENTRY_CREATE) {
 				LOGGER.info("reading pdp config from {}", fileName);
 				config = mapper.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
-			}
-			else if (kind == ENTRY_DELETE) {
+			} else if (kind == ENTRY_DELETE) {
 				LOGGER.info("deleted pdp config file {}. Using default configuration", fileName);
 				config = new PolicyDecisionPointConfiguration();
-			}
-			else if (kind == ENTRY_MODIFY) {
+			} else if (kind == ENTRY_MODIFY) {
 				LOGGER.info("updating pdp config from {}", fileName);
 				config = mapper.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
-			}
-			else {
+			} else {
 				LOGGER.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
 			}
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			LOGGER.error("Error while updating the pdp config.", e);
-		}
-		finally {
+		} finally {
 			lock.unlock();
 		}
 	}
@@ -144,10 +140,7 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 	@Override
 	public Flux<DocumentsCombinator> getDocumentsCombinator() {
 		// @formatter:off
-		return dirWatcherEventProcessor
-				.map(event -> config.getAlgorithm())
-				.distinctUntilChanged()
-				.map(algorithm -> {
+		return dirWatcherEventProcessor.map(event -> config.getAlgorithm()).distinctUntilChanged().map(algorithm -> {
 			LOGGER.trace("|-- Current PDP config: combining algorithm = {}", algorithm);
 			return convert(algorithm);
 		});
@@ -157,9 +150,7 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 	@Override
 	public Flux<Map<String, JsonNode>> getVariables() {
 		// @formatter:off
-		return dirWatcherEventProcessor
-				.map(event -> config.getVariables())
-				.distinctUntilChanged()
+		return dirWatcherEventProcessor.map(event -> config.getVariables()).distinctUntilChanged()
 				.doOnNext(variables -> LOGGER.trace("|-- Current PDP config: variables = {}", variables));
 		// @formatter:on
 	}

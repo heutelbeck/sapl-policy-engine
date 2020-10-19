@@ -72,7 +72,7 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 	public FilesystemPolicyRetrievalPoint(@NonNull String policyPath,
 			@NonNull ParsedDocumentIndex parsedDocumentIndex) {
-		if (policyPath.startsWith("~" + File.separator)) {
+		if (policyPath.startsWith("~" + File.separator) || policyPath.startsWith("~/")) {
 			this.path = System.getProperty("user.home") + policyPath.substring(1);
 		} else if (policyPath.startsWith("~")) {
 			throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
@@ -166,8 +166,7 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	private void logMatching(PolicyRetrievalResult result) {
 		if (result.getMatchingDocuments().isEmpty()) {
 			LOGGER.trace("|-- Matching documents: NONE");
-		}
-		else {
+		} else {
 			LOGGER.trace("|-- Matching documents:");
 			for (SAPL doc : result.getMatchingDocuments()) {
 				LOGGER.trace("| |-- * {} ({})", doc.getPolicyElement().getSaplName(),
