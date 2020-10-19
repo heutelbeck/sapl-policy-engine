@@ -231,10 +231,10 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
         functionCtxReadLock.lock();
         try {
             processDocumentChanges();
-            synchronized (documentChanges) {
-                processDocumentChanges();
-                documentSwitch.set(true);
-            }
+//            synchronized (documentChanges) {
+            processDocumentChanges();
+            documentSwitch.set(true);
+//            }
         } finally {
             functionCtxReadLock.unlock();
         }
