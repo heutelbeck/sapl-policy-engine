@@ -92,15 +92,13 @@ public class FastIndexCreationStrategy implements IndexCreationStrategy {
         if (literal.isNegated()) {
             variableInfo.addToSetOfUnsatisfiableClausesIfTrue(clause);
             variableInfo.incNumberOfNegatives();
-            if (!negativesGroupedByFormula.contains(bool)) {
-                negativesGroupedByFormula.add(bool);
+            if (negativesGroupedByFormula.add(bool)) {
                 variableInfo.incGroupedNumberOfNegatives();
             }
         } else {
             variableInfo.addToSetOfUnsatisfiableClausesIfFalse(clause);
             variableInfo.incNumberOfPositives();
-            if (!positivesGroupedByFormula.contains(bool)) {
-                positivesGroupedByFormula.add(bool);
+            if (positivesGroupedByFormula.add(bool)) {
                 variableInfo.incGroupedNumberOfPositives();
             }
         }

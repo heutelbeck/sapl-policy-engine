@@ -25,6 +25,7 @@ import io.sapl.prp.inmemory.indexed.Bitmask;
 import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
 import io.sapl.prp.inmemory.indexed.IndexContainer;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -66,8 +67,8 @@ public class ImprovedIndexContainer implements IndexContainer {
         this.relatedCandidates = ImmutableMap.copyOf(relatedCandidates);
         this.conjunctionsInFormulasReferencingConjunction = ImmutableMap
                 .copyOf(conjunctionsInFormulasReferencingConjunction);
-        this.numberOfLiteralsInConjunction = numberOfLiteralsInConjunction;
-        this.numberOfFormulasWithConjunction = numberOfFormulasWithConjunction;
+        this.numberOfLiteralsInConjunction = Arrays.stream(numberOfLiteralsInConjunction).toArray();
+        this.numberOfFormulasWithConjunction = Arrays.stream(numberOfFormulasWithConjunction).toArray();
     }
 
     @Override
