@@ -1,0 +1,17 @@
+{"properties": [
+  {
+    "name": "io.sapl.server-lt.path",
+    "type": "java.lang.String",
+    "description": "This value points to the folder on the system, where the PDP configuration and the policies reside."
+  },
+  {
+    "name": "io.sapl.server-lt.secret",
+    "type": "java.lang.String",
+    "description": "BCrypt encoded client secret."
+  },
+  {
+    "name": "io.sapl.server-lt.key",
+    "type": "java.lang.String",
+    "description": "A description for 'io.sapl.server-lt.key'"
+  }
+]}

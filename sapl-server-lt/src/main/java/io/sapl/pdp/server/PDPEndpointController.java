@@ -25,26 +25,29 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
+import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
 /**
- * REST controller providing endpoints for a policy decision point. The endpoints can be
- * connected using the client {@link io.sapl.pdp.remote.RemotePolicyDecisionPoint} in the
- * module sapl-pdp-client.
+ * REST controller providing endpoints for a policy decision point. The
+ * endpoints can be connected using the client
+ * {@link io.sapl.pdp.remote.RemotePolicyDecisionPoint} in the module
+ * sapl-pdp-client.
  */
 @RestController
-@RequestMapping("/api/pdp")
 @RequiredArgsConstructor
+@RequestMapping("/api/pdp")
 public class PDPEndpointController {
 
 	private final PolicyDecisionPoint pdp;
 
 	/**
 	 * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
-	 * @param authzSubscription the authorization subscription to be processed by the PDP.
+	 * 
+	 * @param authzSubscription the authorization subscription to be processed by
+	 *                          the PDP.
 	 * @return a flux emitting the current authorization decisions.
 	 * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
 	 */
@@ -54,12 +57,14 @@ public class PDPEndpointController {
 	}
 
 	/**
-	 * Delegates to {@link PolicyDecisionPoint#decide(MultiAuthorizationSubscription)}.
-	 * @param multiAuthzSubscription the authorization multi-subscription to be processed
-	 * by the PDP.
+	 * Delegates to
+	 * {@link PolicyDecisionPoint#decide(MultiAuthorizationSubscription)}.
+	 * 
+	 * @param multiAuthzSubscription the authorization multi-subscription to be
+	 *                               processed by the PDP.
 	 * @return a flux emitting authorization decisions related to the individual
-	 * subscriptions contained in the given {@code multiAuthzSubscription} as soon as they
-	 * are available.
+	 *         subscriptions contained in the given {@code multiAuthzSubscription}
+	 *         as soon as they are available.
 	 * @see PolicyDecisionPoint#decide(MultiAuthorizationSubscription)
 	 */
 	@PostMapping(value = "/multi-decide", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
@@ -70,12 +75,14 @@ public class PDPEndpointController {
 	}
 
 	/**
-	 * Delegates to {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
-	 * @param multiAuthzSubscription the authorization multi-subscription to be processed
-	 * by the PDP.
-	 * @return a flux emitting multi-decisions containing authorization decisions for all
-	 * the individual authorization subscriptions contained in the given
-	 * {@code multiAuthzSubscription}.
+	 * Delegates to
+	 * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
+	 * 
+	 * @param multiAuthzSubscription the authorization multi-subscription to be
+	 *                               processed by the PDP.
+	 * @return a flux emitting multi-decisions containing authorization decisions
+	 *         for all the individual authorization subscriptions contained in the
+	 *         given {@code multiAuthzSubscription}.
 	 * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
 	 */
 	@PostMapping(value = "/multi-decide-all", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)

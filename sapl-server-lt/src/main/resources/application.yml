@@ -1,0 +1,25 @@
+# configure the PDP
+io.sapl.server-lt:
+  # folder in which the configuration and policies reside on the system
+  path: ~/sapl/policies
+  key: YJidgyT2mfdkbmL
+  # BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh)
+  secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO
+
+# configure the server
+server:
+  port: 8443
+  address: localhost
+  ssl:
+    enabled: true
+    key-store-type: PKCS12
+    key-store: classpath:keystore.p12
+    key-store-password: changeme
+    key-password: changeme
+    key-alias: netty
+
+# configure  logger
+logging.level:
+  io.sapl: INFO
+  # turned off for localhost self-signed to supress useless error logs. Turn it on in production.
+  reactor.netty.tcp.TcpServer: OFF 
