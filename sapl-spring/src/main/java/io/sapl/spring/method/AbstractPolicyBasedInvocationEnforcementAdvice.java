@@ -43,9 +43,9 @@ import io.sapl.spring.constraints.ConstraintHandlerService;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Base logic for PreEnforce and PostEnforce advice classes. This class contains the logic
- * for SpEL expression evaluation and retrieving request information from the application
- * context or method invocation.
+ * Base logic for PreEnforce and PostEnforce advice classes. This class contains
+ * the logic for SpEL expression evaluation and retrieving request information
+ * from the application context or method invocation.
  */
 @RequiredArgsConstructor
 public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
@@ -68,6 +68,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 
 	/**
 	 * Set the expression handler.
+	 * 
 	 * @param expressionHandler the expression handler
 	 */
 	public void setExpressionHandler(MethodSecurityExpressionHandler expressionHandler) {
@@ -75,8 +76,9 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 	}
 
 	/**
-	 * Lazy loading of dependencies decouples security infrastructure from domain logic in
-	 * initialization. This avoids beans to become not eligible for Bean post processing.
+	 * Lazy loading of dependencies decouples security infrastructure from domain
+	 * logic in initialization. This avoids beans to become not eligible for Bean
+	 * post processing.
 	 */
 	protected void lazyLoadDepdendencies() {
 		if (pdp == null) {
@@ -97,8 +99,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 			// the
 			// subject
 			return authentication;
-		}
-		else {
+		} else {
 			// subject declared by expression
 			JsonNode exprResult = evaluateToJson(attr.getSubjectExpression(), ctx);
 			return exprResult;
@@ -108,8 +109,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 	protected JsonNode evaluateToJson(Expression expr, EvaluationContext ctx) {
 		try {
 			return mapper.valueToTree(expr.getValue(ctx));
-		}
-		catch (EvaluationException e) {
+		} catch (EvaluationException e) {
 			throw new IllegalArgumentException("Failed to evaluate expression '" + expr.getExpressionString() + "'", e);
 		}
 	}
@@ -134,7 +134,8 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 	protected static Optional<HttpServletRequest> retrieveRequestObject() {
 		final RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
 		final HttpServletRequest httpRequest = requestAttributes != null
-				? ((ServletRequestAttributes) requestAttributes).getRequest() : null;
+				? ((ServletRequestAttributes) requestAttributes).getRequest()
+				: null;
 		return Optional.ofNullable(httpRequest);
 	}
 
@@ -143,8 +144,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		if (attr.getActionExpression() == null) {
 			// no explicit action declared => derive action from MethodInvocation
 			return retrieveAction(mi);
-		}
-		else {
+		} else {
 			// action declared by expression
 			JsonNode exprResult = evaluateToJson(attr.getActionExpression(), ctx);
 			return exprResult;
@@ -165,8 +165,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 			try {
 				JsonNode json = mapper.valueToTree(o);
 				array.add(json);
-			}
-			catch (IllegalArgumentException e) {
+			} catch (IllegalArgumentException e) {
 				array.add(JsonNodeFactory.instance.nullNode());
 			}
 		}
@@ -179,8 +178,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		if (attr.getResourceExpression() == null) {
 			// no explicit action declared => derive action from MethodInvocation
 			return retrieveResource(mi);
-		}
-		else {
+		} else {
 			// declared by expression
 			JsonNode exprResult = evaluateToJson(attr.getResourceExpression(), ctx);
 			return exprResult;
@@ -204,8 +202,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 	protected Object retrieveEnvironment(AbstractPolicyBasedEnforcementAttribute attr, EvaluationContext ctx) {
 		if (attr.getEnvironmentExpression() == null) {
 			return null;
-		}
-		else {
+		} else {
 			JsonNode exprResult = evaluateToJson(attr.getEnvironmentExpression(), ctx);
 			return exprResult;
 		}

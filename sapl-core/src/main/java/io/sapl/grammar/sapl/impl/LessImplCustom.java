@@ -17,14 +17,15 @@ package io.sapl.grammar.sapl.impl;
 
 import java.math.BigDecimal;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 /**
  * Checks for a left value being less than a right value.
  *
- * Grammar: Comparison returns Expression: Prefixed (({Less.left=current} '&lt;')
- * right=Prefixed)? ;
+ * Grammar: Comparison returns Expression: Prefixed (({Less.left=current}
+ * '&lt;') right=Prefixed)? ;
  */
 public class LessImplCustom extends LessImpl {
 

@@ -63,7 +63,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.reactivex.Flowable;
-import io.sapl.grammar.sapl.impl.Val;
+import io.sapl.api.interpreter.Val;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ Web3j.class, EthereumPipFunctions.class, org.web3j.protocol.core.methods.request.Transaction.class })

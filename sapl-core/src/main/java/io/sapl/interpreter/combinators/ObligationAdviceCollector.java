@@ -63,8 +63,7 @@ public class ObligationAdviceCollector {
 		ArrayNode returnNode = obligationAdvice.get(type).get(decision);
 		if (returnNode.size() > 0) {
 			return Optional.of(returnNode);
-		}
-		else {
+		} else {
 			return Optional.empty();
 		}
 	}

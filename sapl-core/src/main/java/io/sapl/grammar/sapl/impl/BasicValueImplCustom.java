@@ -21,6 +21,7 @@ import java.util.Objects;
 
 import org.eclipse.emf.ecore.EObject;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -30,8 +31,8 @@ import reactor.core.publisher.Flux;
  *
  * Grammar: {BasicValue} value=Value steps+=Step*;
  *
- * Value: Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral |
- * UndefinedLiteral ;
+ * Value: Object | Array | NumberLiteral | StringLiteral | BooleanLiteral |
+ * NullLiteral | UndefinedLiteral ;
  */
 public class BasicValueImplCustom extends BasicValueImpl {
 

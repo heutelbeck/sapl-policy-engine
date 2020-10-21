@@ -16,6 +16,7 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
@@ -55,21 +56,21 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
 	 */
 	@Override
 	public Mono<Boolean> matches(EvaluationContext ctx) {
-		LOGGER.trace("| | |-- PolicyElement test match '{}'", getSaplName());
+		log.trace("| | |-- PolicyElement test match '{}'", getSaplName());
 		final Expression targetExpression = getTargetExpression();
 		if (targetExpression == null) {
-			LOGGER.trace("| | | |-- MATCH (no target expression, matches all)");
-			LOGGER.trace("| | |");
+			log.trace("| | | |-- MATCH (no target expression, matches all)");
+			log.trace("| | |");
 			return Mono.just(Boolean.TRUE);
 		}
 		return targetExpression.evaluate(ctx, false, Val.undefined()).next().flatMap(result -> {
 			if (!result.isDefined() || !result.get().isBoolean()) {
-				LOGGER.trace("| | | |-- ERROR in target expression did not evaluate to boolean. Was: {}", result);
-				LOGGER.trace("| | |");
+				log.trace("| | | |-- ERROR in target expression did not evaluate to boolean. Was: {}", result);
+				log.trace("| | |");
 				return Mono.error(new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result));
 			}
-			LOGGER.trace("| | | |-- {}", result.get().asBoolean() ? "MATCH" : "NO MATCH");
-			LOGGER.trace("| | |");
+			log.trace("| | | |-- {}", result.get().asBoolean() ? "MATCH" : "NO MATCH");
+			log.trace("| | |");
 			return Mono.just(result.get().asBoolean());
 		});
 	}

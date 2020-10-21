@@ -43,13 +43,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(Include.NON_NULL)
 public class AuthorizationSubscription {
-
 	private JsonNode subject;
-
 	private JsonNode action;
-
 	private JsonNode resource;
-
 	private JsonNode environment;
-
 }

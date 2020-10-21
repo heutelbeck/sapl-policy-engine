@@ -79,8 +79,8 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-        LOGGER.trace("|--------------------------------->");
-        LOGGER.trace("|-- PDP AuthorizationSubscription: {}", authzSubscription);
+        log.trace("|--------------------------------->");
+        log.trace("|-- PDP AuthorizationSubscription: {}", authzSubscription);
 
         final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider.getVariables();
         final Flux<DocumentsCombinator> combinatorFlux = configurationProvider.getDocumentsCombinator();

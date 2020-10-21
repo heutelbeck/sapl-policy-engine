@@ -64,11 +64,9 @@ public class TraccarPosition {
 	public static int compareAscending(TraccarPosition a, TraccarPosition b) {
 		if (a.getId() > b.getId()) {
 			return +1;
-		}
-		else if (a.getId() < b.getId()) {
+		} else if (a.getId() < b.getId()) {
 			return -1;
-		}
-		else {
+		} else {
 			return 0;
 		}
 	}
@@ -76,11 +74,9 @@ public class TraccarPosition {
 	public static int compareDescending(TraccarPosition a, TraccarPosition b) {
 		if (a.getId() > b.getId()) {
 			return -1;
-		}
-		else if (a.getId() < b.getId()) {
+		} else if (a.getId() < b.getId()) {
 			return +1;
-		}
-		else {
+		} else {
 			return 0;
 		}
 	}

@@ -24,8 +24,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.grammar.sapl.impl.Val;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor

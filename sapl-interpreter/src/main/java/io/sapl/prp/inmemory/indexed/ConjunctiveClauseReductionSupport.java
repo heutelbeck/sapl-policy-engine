@@ -30,8 +30,7 @@ public class ConjunctiveClauseReductionSupport {
 					data.clear();
 					data.add(literal);
 					return;
-				}
-				else {
+				} else {
 					iter.remove();
 				}
 			}
@@ -60,8 +59,7 @@ public class ConjunctiveClauseReductionSupport {
 			if (value.sharesBool(rhs)) {
 				if (value.sharesNegation(rhs)) {
 					forward.set(null);
-				}
-				else {
+				} else {
 					data.clear();
 					data.add(new Literal(new Bool(false)));
 					return true;

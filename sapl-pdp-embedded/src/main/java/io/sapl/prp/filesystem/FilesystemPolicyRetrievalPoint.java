@@ -107,14 +107,14 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 			try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path), POLICY_FILE_GLOB_PATTERN)) {
 				for (Path filePath : stream) {
-					LOGGER.info("load: {}", filePath);
+					log.info("load: {}", filePath);
 					final SAPL saplDocument = interpreter.parse(Files.newInputStream(filePath));
 					parsedDocIdx.put(filePath.toString(), saplDocument);
 				}
 			}
 			parsedDocIdx.setLiveMode();
 		} catch (IOException | PolicyEvaluationException e) {
-			LOGGER.error("Error while initializing the document index.", e);
+			log.error("Error while initializing the document index.", e);
 		} finally {
 			lock.unlock();
 		}
@@ -129,21 +129,21 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 			final Path absoluteFilePath = Paths.get(path, fileName.toString());
 			final String absoluteFileName = absoluteFilePath.toString();
 			if (kind == ENTRY_CREATE) {
-				LOGGER.info("adding {} to index", fileName);
+				log.info("adding {} to index", fileName);
 				final SAPL saplDocument = interpreter.parse(Files.newInputStream(absoluteFilePath));
 				parsedDocIdx.put(absoluteFileName, saplDocument);
 			} else if (kind == ENTRY_DELETE) {
-				LOGGER.info("removing {} from index", fileName);
+				log.info("removing {} from index", fileName);
 				parsedDocIdx.remove(absoluteFileName);
 			} else if (kind == ENTRY_MODIFY) {
-				LOGGER.info("updating {} in index", fileName);
+				log.info("updating {} in index", fileName);
 				final SAPL saplDocument = interpreter.parse(Files.newInputStream(absoluteFilePath));
 				parsedDocIdx.put(absoluteFileName, saplDocument);
 			} else {
-				LOGGER.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
+				log.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
 			}
 		} catch (IOException | PolicyEvaluationException e) {
-			LOGGER.error("Error while updating the document index.", e);
+			log.error("Error while updating the document index.", e);
 		} finally {
 			lock.unlock();
 		}
@@ -165,15 +165,15 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 	private void logMatching(PolicyRetrievalResult result) {
 		if (result.getMatchingDocuments().isEmpty()) {
-			LOGGER.trace("|-- Matching documents: NONE");
+			log.trace("|-- Matching documents: NONE");
 		} else {
-			LOGGER.trace("|-- Matching documents:");
+			log.trace("|-- Matching documents:");
 			for (SAPL doc : result.getMatchingDocuments()) {
-				LOGGER.trace("| |-- * {} ({})", doc.getPolicyElement().getSaplName(),
+				log.trace("| |-- * {} ({})", doc.getPolicyElement().getSaplName(),
 						doc.getPolicyElement().getClass().getName());
 			}
 		}
-		LOGGER.trace("|");
+		log.trace("|");
 	}
 
 }

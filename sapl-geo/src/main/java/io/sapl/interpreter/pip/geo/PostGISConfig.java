@@ -101,8 +101,7 @@ public class PostGISConfig {
 	public String buildQuery() throws AttributeException {
 		if (verifySqlArguments()) {
 			return String.format(SQL_QUERY, getIdColName(), buildGeometryExpression(), getTable(), buildConditions());
-		}
-		else {
+		} else {
 			throw new AttributeException(ARG_NOT_EXISTING);
 		}
 	}
@@ -129,8 +128,7 @@ public class PostGISConfig {
 			ResultSet cols = dbm.getColumns(null, null, getTable(), null);
 
 			return colsExist(cols, getIdColName(), getGeometryColName(), getPkColName());
-		}
-		catch (SQLException e) {
+		} catch (SQLException e) {
 			throw new AttributeException(e);
 		}
 	}
@@ -157,8 +155,7 @@ public class PostGISConfig {
 		if (getProjectionSRID() != 0) {
 			result.append(SQL_TRANSFORM).append(getGeometryColName()).append(COMMA).append(getProjectionSRID());
 			parenthesis++;
-		}
-		else {
+		} else {
 			result.append(getGeometryColName());
 		}
 

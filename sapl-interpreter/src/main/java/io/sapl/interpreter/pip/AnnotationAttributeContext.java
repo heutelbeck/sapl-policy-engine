@@ -15,23 +15,6 @@
  */
 package io.sapl.interpreter.pip;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.AttributeException;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.grammar.sapl.Arguments;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.impl.Val;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.validation.IllegalParameterType;
-import io.sapl.interpreter.validation.ParameterTypeValidator;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -43,6 +26,24 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pip.Attribute;
+import io.sapl.api.pip.AttributeException;
+import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.grammar.sapl.Arguments;
+import io.sapl.grammar.sapl.Expression;
+import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.validation.IllegalParameterType;
+import io.sapl.interpreter.validation.ParameterTypeValidator;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 /**
  * This Class holds the different attribute finders and PIPs as a context during
@@ -80,6 +81,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	/**
 	 * Create the attribute context from a list of PIPs
+	 * 
 	 * @param policyInformationPoints a list of PIPs
 	 * @throws AttributeException when loading the PIPs fails
 	 */
@@ -113,9 +115,9 @@ public class AnnotationAttributeContext implements AttributeContext {
 				argObjects[i++] = argument.evaluate(ctx, true, Val.undefined());
 			}
 			return (Flux<Val>) method.invoke(pip, argObjects);
-		}
-		catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | IllegalParameterType e) {
-			LOGGER.error(e.getMessage());
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
+				| IllegalParameterType e) {
+			log.error(e.getMessage());
 			return Flux.error(new AttributeException(e));
 		}
 	}
@@ -245,8 +247,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		Collection<String> pips = attributeNamesByPipName.get(pipName);
 		if (pips != null) {
 			return pips;
-		}
-		else {
+		} else {
 			return new HashSet<>();
 		}
 	}

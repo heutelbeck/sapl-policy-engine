@@ -20,7 +20,8 @@ import org.springframework.aop.framework.AopInfrastructureBean;
 import org.springframework.security.core.Authentication;
 
 /**
- * Performs policy enforcement and authorization logic after a method is invoked.
+ * Performs policy enforcement and authorization logic after a method is
+ * invoked.
  */
 public interface PostInvocationEnforcementAdvice extends AopInfrastructureBean {
 

@@ -17,7 +17,7 @@ package io.sapl.interpreter.functions;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.grammar.sapl.impl.Val;
+import io.sapl.api.interpreter.Val;
 
 @FunctionLibrary(name = MockLibrary.NAME, description = "docs of my lib")
 public class MockLibrary {

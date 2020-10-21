@@ -24,10 +24,10 @@ import java.util.stream.IntStream;
 
 import org.eclipse.emf.ecore.EObject;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Pair;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -74,7 +74,7 @@ public class ObjectImplCustom extends ObjectImpl {
 			final ObjectNode result = JSON.objectNode();
 			// omit undefined fields
 			IntStream.range(0, values.length)
-					.forEach(idx -> ((Val) values[idx]).ifDefined(val -> result.set(keys.get(idx), (JsonNode) val)));
+					.forEach(idx -> ((Val) values[idx]).ifDefined(val -> result.set(keys.get(idx), val)));
 			return Val.of(result);
 		});
 	}

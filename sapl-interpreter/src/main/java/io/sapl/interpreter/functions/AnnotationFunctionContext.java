@@ -27,7 +27,7 @@ import java.util.Map;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.grammar.sapl.impl.Val;
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -60,6 +60,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	/**
 	 * Create context from a list of function libraries.
+	 * 
 	 * @param libraries list of function libraries
 	 * @throws FunctionException if loading libraries fails
 	 */
@@ -75,33 +76,30 @@ public class AnnotationFunctionContext implements FunctionContext {
 		if (metadata == null) {
 			throw new FunctionException(UNKNOWN_FUNCTION, function);
 		}
-		LOGGER.trace("call function: {} - {}", function, parameters);
-		LOGGER.trace("length: {}", parameters.length);
+		log.trace("call function: {} - {}", function, parameters);
+		log.trace("length: {}", parameters.length);
 		final Parameter[] funParams = metadata.getFunction().getParameters();
-		LOGGER.trace("funParams.length {}", funParams.length);
+		log.trace("funParams.length {}", funParams.length);
 		try {
 			if (metadata.getPararmeterCardinality() == -1) {
-				LOGGER.trace("VARARGS");
+				log.trace("VARARGS");
 				// function is a varargs function
 				// all args are validated against the same annotation if present
 				for (int i = 0; i < parameters.length; i++) {
 					ParameterTypeValidator.validateType(parameters[i], funParams[0]);
 				}
 				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), new Object[] { parameters });
-			}
-			else if (metadata.getPararmeterCardinality() == parameters.length) {
-				LOGGER.trace("NOT VARARGS");
+			} else if (metadata.getPararmeterCardinality() == parameters.length) {
+				log.trace("NOT VARARGS");
 				for (int i = 0; i < parameters.length; i++) {
 					ParameterTypeValidator.validateType(parameters[i], funParams[i]);
 				}
 				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), (Object[]) parameters);
-			}
-			else {
+			} else {
 				throw new FunctionException(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getPararmeterCardinality(),
 						parameters.length);
 			}
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			throw new FunctionException(e);
 		}
 	}
@@ -147,8 +145,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (parameters == 1 && parameterType.isArray()) {
 				// functions with a variable number of arguments
 				parameters = -1;
-			}
-			else if (!Val.class.isAssignableFrom(parameterType)) {
+			} else if (!Val.class.isAssignableFrom(parameterType)) {
 				throw new FunctionException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
 			}
 		}
@@ -178,8 +175,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 		Collection<String> libs = libraries.get(libraryName);
 		if (libs != null) {
 			return libs;
-		}
-		else {
+		} else {
 			return new HashSet<>();
 		}
 	}

@@ -21,23 +21,23 @@ public class DocumentationConfiguration {
 
 	@Bean
 	public PolicyInformationPointsDocumentation pipDocumentation(PolicyDecisionPoint pdp) {
-		LOGGER.info("Provisioning PIP Documentation Bean");
+		log.info("Provisioning PIP Documentation Bean");
 		if (pdp instanceof EmbeddedPolicyDecisionPoint) {
 			EmbeddedPolicyDecisionPoint epdp = (EmbeddedPolicyDecisionPoint) pdp;
 			return new PolicyInformationPointsDocumentation(epdp.getAttributeCtx().getDocumentation());
 		}
-		LOGGER.info("PIP Documentation will be empty for non-embedded PDP implementations.");
+		log.info("PIP Documentation will be empty for non-embedded PDP implementations.");
 		return new PolicyInformationPointsDocumentation(new ArrayList<>());
 	}
 
 	@Bean
 	public FunctionLibrariesDocumentation functionDocumentation(PolicyDecisionPoint pdp) {
-		LOGGER.info("Provisioning Function Libraries Documentation Bean");
+		log.info("Provisioning Function Libraries Documentation Bean");
 		if (pdp instanceof EmbeddedPolicyDecisionPoint) {
 			EmbeddedPolicyDecisionPoint epdp = (EmbeddedPolicyDecisionPoint) pdp;
 			return new FunctionLibrariesDocumentation(epdp.getFunctionCtx().getDocumentation());
 		}
-		LOGGER.info("Function Libraries Documentation will be empty for non-embedded PDP implementations.");
+		log.info("Function Libraries Documentation will be empty for non-embedded PDP implementations.");
 		return new FunctionLibrariesDocumentation(new ArrayList<>());
 	}
 }

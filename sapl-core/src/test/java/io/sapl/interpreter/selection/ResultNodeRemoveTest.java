@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.grammar.sapl.impl.Val;
+import io.sapl.api.interpreter.Val;
 
 public class ResultNodeRemoveTest {
 

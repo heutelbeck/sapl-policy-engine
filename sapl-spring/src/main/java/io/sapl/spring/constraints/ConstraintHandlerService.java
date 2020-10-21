@@ -41,17 +41,18 @@ public class ConstraintHandlerService {
 	private final List<ConstraintHandler> constraintHandlers;
 
 	/**
-	 * Checks if for all obligations in a authorization decision at least one obligation
-	 * handler is registered.
+	 * Checks if for all obligations in a authorization decision at least one
+	 * obligation handler is registered.
+	 * 
 	 * @param authzDecision a PDP AuthorizationDecision
 	 * @return true, if for all obligations in a authorization decision at least one
-	 * obligation handler is registered.
+	 *         obligation handler is registered.
 	 */
 	public boolean handlersForObligationsAvailable(AuthorizationDecision authzDecision) {
 		if (authzDecision.getObligations().isPresent()) {
 			for (JsonNode obligation : authzDecision.getObligations().get()) {
 				if (!atLeastOneHandlerForConstraintIsPresent(obligation)) {
-					LOGGER.warn("No obligation handler found for: {}", obligation);
+					log.warn("No obligation handler found for: {}", obligation);
 					return false;
 				}
 			}
@@ -62,6 +63,7 @@ public class ConstraintHandlerService {
 	/**
 	 * Attempts to handle all obligations of the authorization decision and throws
 	 * AccessDeniedException on failure.
+	 * 
 	 * @param authzDecision a PDP authorization decision
 	 * @throws AccessDeniedException if obligation handling fails.
 	 */
@@ -73,7 +75,7 @@ public class ConstraintHandlerService {
 			for (JsonNode obligation : authzDecision.getObligations().get()) {
 				if (!handleConstraint(obligation)) {
 					String message = String.format(FAILED_TO_HANDLE_OBLIGATION, obligation);
-					LOGGER.warn(message);
+					log.warn(message);
 					throw new AccessDeniedException(message);
 				}
 			}
@@ -81,15 +83,16 @@ public class ConstraintHandlerService {
 	}
 
 	/**
-	 * Makes a best effort to handle all advices of the authorization decision based on
-	 * registered constraint handlers.
+	 * Makes a best effort to handle all advices of the authorization decision based
+	 * on registered constraint handlers.
+	 * 
 	 * @param authzDecision a PDP authorization decision
 	 */
 	public void handleAdvices(AuthorizationDecision authzDecision) {
 		if (authzDecision.getAdvices().isPresent()) {
 			for (JsonNode advice : authzDecision.getAdvices().get()) {
 				if (!handleConstraint(advice)) {
-					LOGGER.warn("Failed to handle advice: {}", advice);
+					log.warn("Failed to handle advice: {}", advice);
 				}
 			}
 		}

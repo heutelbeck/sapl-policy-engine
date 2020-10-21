@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.grammar.sapl.impl.Val;
+import io.sapl.api.interpreter.Val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -47,7 +47,7 @@ public class EthereumBasicFunctions {
 		if (saplObject.has(bigIntegerName)) {
 			return saplObject.get(bigIntegerName).bigIntegerValue();
 		}
-		LOGGER.warn(INPUT_WARNING, bigIntegerName);
+		log.warn(INPUT_WARNING, bigIntegerName);
 		return null;
 	}
 
@@ -55,7 +55,7 @@ public class EthereumBasicFunctions {
 		if (saplObject.has(booleanName)) {
 			return saplObject.get(booleanName).asBoolean();
 		}
-		LOGGER.warn(INPUT_WARNING, booleanName);
+		log.warn(INPUT_WARNING, booleanName);
 		return false;
 	}
 
@@ -63,7 +63,7 @@ public class EthereumBasicFunctions {
 		if (saplObject.has(jsonName)) {
 			return saplObject.get(jsonName);
 		}
-		LOGGER.warn(INPUT_WARNING, jsonName);
+		log.warn(INPUT_WARNING, jsonName);
 		return JSON.nullNode();
 	}
 
@@ -75,7 +75,7 @@ public class EthereumBasicFunctions {
 			}
 			return inputList;
 		}
-		LOGGER.warn("The JsonNode containing the input parameters wasn't an array as expected. "
+		log.warn("The JsonNode containing the input parameters wasn't an array as expected. "
 				+ "An empty list is being returned.");
 		return inputList;
 	}
@@ -89,7 +89,7 @@ public class EthereumBasicFunctions {
 			}
 			return returnList;
 		}
-		LOGGER.warn(INPUT_WARNING, listName);
+		log.warn(INPUT_WARNING, listName);
 		return Collections.emptyList();
 	}
 
@@ -97,7 +97,7 @@ public class EthereumBasicFunctions {
 		if (saplObject.has(stringName)) {
 			return saplObject.get(stringName).textValue();
 		}
-		LOGGER.warn(INPUT_WARNING, stringName);
+		log.warn(INPUT_WARNING, stringName);
 		return null;
 	}
 

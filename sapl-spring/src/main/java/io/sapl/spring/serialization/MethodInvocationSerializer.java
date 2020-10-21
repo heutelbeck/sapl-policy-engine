@@ -106,8 +106,7 @@ public class MethodInvocationSerializer extends JsonSerializer<MethodInvocation>
 			writeClass(gen, clazz);
 			writeInterfaces(gen, clazz);
 			clazz = clazz.getSuperclass();
-		}
-		while (clazz != null);
+		} while (clazz != null);
 	}
 
 	private void writeClass(JsonGenerator gen, Class<?> clazz) throws IOException {

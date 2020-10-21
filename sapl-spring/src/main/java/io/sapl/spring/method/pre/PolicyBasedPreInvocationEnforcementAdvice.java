@@ -23,10 +23,10 @@ import org.springframework.security.core.Authentication;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.constraints.ConstraintHandlerService;
 import io.sapl.spring.method.AbstractPolicyBasedInvocationEnforcementAdvice;
 import lombok.extern.slf4j.Slf4j;
@@ -63,13 +63,13 @@ public class PolicyBasedPreInvocationEnforcementAdvice extends AbstractPolicyBas
 
 		AuthorizationDecision authzDecision = pdp.decide(authzSubscription).blockFirst();
 
-		LOGGER.debug("SUBSCRIPTION   : ACTION={} RESOURCE={} SUBJ={} ENV={}", authzSubscription.getAction(),
+		log.debug("SUBSCRIPTION   : ACTION={} RESOURCE={} SUBJ={} ENV={}", authzSubscription.getAction(),
 				authzSubscription.getResource(), authzSubscription.getSubject(), authzSubscription.getEnvironment());
-		LOGGER.debug("AUTHZ_DECISION : {} - {}", authzDecision == null ? "null" : authzDecision.getDecision(),
+		log.debug("AUTHZ_DECISION : {} - {}", authzDecision == null ? "null" : authzDecision.getDecision(),
 				authzDecision);
 
 		if (authzDecision != null && authzDecision.getResource().isPresent()) {
-			LOGGER.warn("Cannot handle a authorization decision declaring a new resource in @PreEnforce. Deny access!");
+			log.warn("Cannot handle a authorization decision declaring a new resource in @PreEnforce. Deny access!");
 			return false;
 		}
 		if (authzDecision == null || authzDecision.getDecision() != Decision.PERMIT) {
@@ -78,8 +78,7 @@ public class PolicyBasedPreInvocationEnforcementAdvice extends AbstractPolicyBas
 
 		try {
 			constraintHandlers.handleObligations(authzDecision);
-		}
-		catch (AccessDeniedException e) {
+		} catch (AccessDeniedException e) {
 			return false;
 		}
 		constraintHandlers.handleAdvices(authzDecision);

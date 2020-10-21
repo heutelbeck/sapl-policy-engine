@@ -27,6 +27,7 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.And;
 import io.sapl.grammar.sapl.Array;
 import io.sapl.grammar.sapl.Div;
@@ -51,7 +52,6 @@ import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.StringLiteral;
 import io.sapl.grammar.sapl.UnaryMinus;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
-import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;

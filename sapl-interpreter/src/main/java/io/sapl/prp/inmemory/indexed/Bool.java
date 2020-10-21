@@ -15,17 +15,18 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
+import java.util.Map;
+import java.util.Objects;
+
 import com.google.common.base.Preconditions;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 import reactor.core.Exceptions;
-
-import java.util.Map;
-import java.util.Objects;
 
 public class Bool {
 
@@ -74,8 +75,7 @@ public class Bool {
 		}
 		if (isConstantExpression) {
 			return Objects.equals(constant, other.constant);
-		}
-		else {
+		} else {
 			return expression.isEqualTo(other.expression, other.imports, imports);
 		}
 	}
@@ -97,8 +97,7 @@ public class Bool {
 					return result.get().asBoolean();
 				}
 				throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result);
-			}
-			catch (RuntimeException e) {
+			} catch (RuntimeException e) {
 				throw new PolicyEvaluationException(Exceptions.unwrap(e));
 			}
 		}
@@ -112,8 +111,7 @@ public class Bool {
 			h = 59 * h + Objects.hashCode(isConstantExpression);
 			if (isConstantExpression) {
 				h = 59 * h + Objects.hashCode(constant);
-			}
-			else {
+			} else {
 				h = 59 * h + expression.hash(imports);
 			}
 			hash = h;

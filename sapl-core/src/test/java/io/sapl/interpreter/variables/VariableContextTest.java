@@ -25,8 +25,8 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.grammar.sapl.impl.Val;
 
 public class VariableContextTest {
 

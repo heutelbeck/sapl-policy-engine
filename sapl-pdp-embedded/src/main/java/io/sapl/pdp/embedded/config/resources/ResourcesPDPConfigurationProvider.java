@@ -117,7 +117,7 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
         dirWatcherFlux.subscribe();
 
         if (this.config == null) {
-            LOGGER.debug("config is null - using default config");
+            log.debug("config is null - using default config");
             this.config = new PolicyDecisionPointConfiguration();
         }
     }
@@ -130,26 +130,26 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 
             final Path absoluteFilePath = Paths.get(path, fileName.toString());
             if (kind == ENTRY_CREATE) {
-                LOGGER.info("reading pdp config from {}", fileName);
+                log.info("reading pdp config from {}", fileName);
                 config = MAPPER.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
             } else if (kind == ENTRY_DELETE) {
-                LOGGER.info("deleted pdp config file {}. Using default configuration", fileName);
+                log.info("deleted pdp config file {}. Using default configuration", fileName);
                 config = new PolicyDecisionPointConfiguration();
             } else if (kind == ENTRY_MODIFY) {
-                LOGGER.info("updating pdp config from {}", fileName);
+                log.info("updating pdp config from {}", fileName);
                 config = MAPPER.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
             } else {
-                LOGGER.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
+                log.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
             }
         } catch (IOException e) {
-            LOGGER.error("Error while updating the pdp config.", e);
+            log.error("Error while updating the pdp config.", e);
         } finally {
             lock.unlock();
         }
     }
 
     private void readConfigFromJar(URL configFolderUrl) {
-        LOGGER.debug("reading config from jar {}", configFolderUrl);
+        log.debug("reading config from jar {}", configFolderUrl);
         final String[] jarPathElements = configFolderUrl.toString().split("!");
         final String jarFilePath = jarPathElements[0].substring("jar:file:".length());
         final StringBuilder dirPath = new StringBuilder();
@@ -167,7 +167,7 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
             while (e.hasMoreElements()) {
                 ZipEntry entry = e.nextElement();
                 if (!entry.isDirectory() && entry.getName().equals(configFilePath)) {
-                    LOGGER.debug("load: {}", entry.getName());
+                    log.debug("load: {}", entry.getName());
                     BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
                     String fileContentsStr = IOUtils.toString(bis, StandardCharsets.UTF_8);
                     bis.close();
@@ -176,16 +176,16 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
                 }
             }
         } catch (IOException e) {
-            LOGGER.error("Error while reading config from jar", e);
+            log.error("Error while reading config from jar", e);
         }
     }
 
     private void readConfigFromDirectory(URL configFolderUrl) throws IOException, URISyntaxException {
-        LOGGER.debug("reading config from directory {}", configFolderUrl);
+        log.debug("reading config from directory {}", configFolderUrl);
         Path configDirectoryPath = Paths.get(configFolderUrl.toURI());
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE_GLOB_PATTERN)) {
             for (Path filePath : stream) {
-                LOGGER.debug("load: {}", filePath);
+                log.debug("load: {}", filePath);
                 this.config = MAPPER.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
             }
         }
@@ -203,7 +203,7 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
                 .map(event -> config.getAlgorithm())
                 .distinctUntilChanged()
                 .map(algorithm -> {
-                    LOGGER.trace("|-- Current PDP config: combining algorithm = {}", algorithm);
+                    log.trace("|-- Current PDP config: combining algorithm = {}", algorithm);
                     return convert(algorithm);
                 });
         // @formatter:on
@@ -216,7 +216,7 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
         return dirWatcherEventProcessor
                 .map(event -> config.getVariables())
                 .distinctUntilChanged()
-                .doOnNext(variables -> LOGGER.trace("|-- Current PDP config: variables = {}", variables));
+                .doOnNext(variables -> log.trace("|-- Current PDP config: variables = {}", variables));
         // @formatter:on
     }
 

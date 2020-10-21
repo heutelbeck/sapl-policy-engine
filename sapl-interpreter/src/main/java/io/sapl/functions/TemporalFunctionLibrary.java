@@ -29,9 +29,9 @@ import java.util.NoSuchElementException;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Text;
-import io.sapl.grammar.sapl.impl.Val;
 
 @FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION)
 public class TemporalFunctionLibrary {
@@ -182,8 +182,7 @@ public class TemporalFunctionLibrary {
 	private static Instant nodeToInstant(Val time) throws FunctionException {
 		try {
 			return Instant.parse(time.get().asText());
-		}
-		catch (DateTimeParseException | NoSuchElementException e) {
+		} catch (DateTimeParseException | NoSuchElementException e) {
 			throw new FunctionException(PARAMETER_NOT_AN_ISO_8601_STRING, e);
 		}
 	}

@@ -31,6 +31,7 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.ConditionStep;
 import io.sapl.grammar.sapl.More;
@@ -38,7 +39,6 @@ import io.sapl.grammar.sapl.NullLiteral;
 import io.sapl.grammar.sapl.NumberLiteral;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
-import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;

@@ -74,11 +74,11 @@ public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCom
 
 	@Override
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		LOGGER.info("| |-- Combining {} policies", policies.size());
+		log.info("| |-- Combining {} policies", policies.size());
 		AtomicBoolean errorInTarget = new AtomicBoolean(false);
 		Mono<List<Policy>> matchingPolicies = Flux.fromIterable(policies).filterWhen(policy -> policy.matches(ctx))
 				.onErrorContinue((t, o) -> {
-					LOGGER.info("| |-- Error in target evaluation: {}", t.getMessage());
+					log.info("| |-- Error in target evaluation: {}", t.getMessage());
 					errorInTarget.set(true);
 				}).collectList();
 		return Flux.from(matchingPolicies).flatMap(matches -> doCombine(matches, ctx, errorInTarget.get()))

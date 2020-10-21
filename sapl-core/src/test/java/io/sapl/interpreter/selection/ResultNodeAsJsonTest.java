@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.grammar.sapl.impl.Val;
+import io.sapl.api.interpreter.Val;
 
 public class ResultNodeAsJsonTest {
 

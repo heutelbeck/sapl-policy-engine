@@ -74,7 +74,7 @@ public class PermitUnlessDenyCombinator implements DocumentsCombinator, PolicyCo
 		Mono<List<Policy>> matchingPolicies = Flux.fromIterable(policies).filterWhen(policy -> policy.matches(ctx))
 				.collectList();
 		return Flux.from(matchingPolicies)
-				.onErrorContinue(/* Ignore Errors in Target */(throwable, o) -> LOGGER
+				.onErrorContinue(/* Ignore Errors in Target */(throwable, o) -> log
 						.trace("| |-- Ignore error in target processing {}. Cause: {}", o, throwable.getMessage()))
 				.flatMap(matches -> doCombine(matches, ctx));
 	}

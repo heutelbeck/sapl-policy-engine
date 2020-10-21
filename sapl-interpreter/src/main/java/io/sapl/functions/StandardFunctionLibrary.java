@@ -19,12 +19,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Array;
 import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
-import io.sapl.grammar.sapl.impl.Val;
 
 @FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION)
 public class StandardFunctionLibrary {
@@ -47,8 +47,7 @@ public class StandardFunctionLibrary {
 	public static Val length(@Array @Text @JsonObject Val parameter) {
 		if (parameter.get().isTextual()) {
 			return Val.of(parameter.get().textValue().length());
-		}
-		else {
+		} else {
 			return Val.of(parameter.get().size());
 		}
 	}
@@ -58,14 +57,11 @@ public class StandardFunctionLibrary {
 		JsonNode param = parameter.get();
 		if (param.isNumber()) {
 			return Val.of(param.numberValue().toString());
-		}
-		else if (param.isBoolean()) {
+		} else if (param.isBoolean()) {
 			return Val.of(String.valueOf(param.booleanValue()));
-		}
-		else if (param.isNull()) {
+		} else if (param.isNull()) {
 			return Val.of("");
-		}
-		else {
+		} else {
 			return parameter;
 		}
 	}

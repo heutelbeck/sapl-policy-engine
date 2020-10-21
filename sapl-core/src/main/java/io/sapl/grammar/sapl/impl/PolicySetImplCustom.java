@@ -23,6 +23,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.interpreter.DependentStreamsUtil;
@@ -106,7 +107,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 					return Flux.error(new PolicyEvaluationException(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL));
 				}
 			} catch (PolicyEvaluationException e) {
-				LOGGER.debug("Value definition evaluation failed: {}", e.getMessage());
+				log.debug("Value definition evaluation failed: {}", e.getMessage());
 				return Flux.error(e);
 			}
 		});

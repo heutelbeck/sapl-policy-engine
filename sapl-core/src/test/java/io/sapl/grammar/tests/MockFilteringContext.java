@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import io.sapl.api.functions.FunctionException;
-import io.sapl.grammar.sapl.impl.Val;
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 

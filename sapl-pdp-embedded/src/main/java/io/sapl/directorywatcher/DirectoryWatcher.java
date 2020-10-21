@@ -58,10 +58,10 @@ public class DirectoryWatcher {
 			}
 		}
 		catch (IOException e) {
-			LOGGER.error(e.getMessage());
+			log.error(e.getMessage());
 		}
 		catch (InterruptedException e) {
-			LOGGER.info("directory watcher thread has been interrupted");
+			log.info("directory watcher thread has been interrupted");
 			Thread.currentThread().interrupt();
 		}
 		finally {

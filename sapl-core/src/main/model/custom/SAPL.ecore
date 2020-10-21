@@ -302,9 +302,9 @@
   <eClassifiers xsi:type="ecore:EDataType" name="ArrayResultNode" instanceClassName="io.sapl.interpreter.selection.ArrayResultNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="StringMap" instanceTypeName="java.util.Map&lt;java.lang.String, java.lang.String>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="AbstractAnnotatedJsonNode" instanceClassName="io.sapl.interpreter.selection.AbstractAnnotatedJsonNode"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="ValFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.grammar.sapl.impl.Val>"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="ValFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.interpreter.Val>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="BooleanMono" instanceTypeName="reactor.core.publisher.Mono&lt;java.lang.Boolean>"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="Val" instanceClassName="io.sapl.grammar.sapl.impl.Val"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="Val" instanceClassName="io.sapl.api.interpreter.Val"/>
   <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationSubscription" instanceClassName="io.sapl.api.pdp.AuthorizationSubscription"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="FunctionContext" instanceClassName="io.sapl.interpreter.functions.FunctionContext"

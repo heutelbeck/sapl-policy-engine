@@ -1,13 +1,13 @@
 package io.sapl.prp.inmemory.indexed.improved.ordering;
 
-import io.sapl.prp.inmemory.indexed.improved.Predicate;
-import io.sapl.prp.inmemory.indexed.improved.PredicateInfo;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import io.sapl.prp.inmemory.indexed.improved.Predicate;
+import io.sapl.prp.inmemory.indexed.improved.PredicateInfo;
 
 public class ExistingOrderStrategy implements PredicateOrderStrategy {
 

@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
@@ -22,8 +23,8 @@ public class NotImplCustom extends NotImpl {
 
 	@Override
 	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		return expression.evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean).map(bool -> !bool)
-				.map(Val::of).distinctUntilChanged();
+		return expression.evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean).map(bool -> !bool).map(Val::of)
+				.distinctUntilChanged();
 	}
 
 }

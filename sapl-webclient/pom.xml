@@ -76,7 +76,7 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>sapl-api</artifactId>
+            <artifactId>sapl-pdp-api</artifactId>
             <version>${project.version}</version>
         </dependency>
 

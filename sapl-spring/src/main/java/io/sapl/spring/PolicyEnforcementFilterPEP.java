@@ -30,10 +30,10 @@ import org.springframework.web.filter.GenericFilterBean;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.constraints.ConstraintHandlerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,10 +58,10 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 
 		AuthorizationDecision authzDecision = pdp.decide(buildRequest(authentication, req, req)).blockFirst();
 
-		LOGGER.trace("PDP decision: {}", authzDecision);
+		log.trace("PDP decision: {}", authzDecision);
 
 		if (authzDecision == null || authzDecision.getDecision() != Decision.PERMIT) {
-			LOGGER.trace("User was not authorized for this action. Decision was: {}",
+			log.trace("User was not authorized for this action. Decision was: {}",
 					authzDecision == null ? "null" : authzDecision.getDecision());
 			throw new AccessDeniedException("Current User may not perform this action.");
 		}

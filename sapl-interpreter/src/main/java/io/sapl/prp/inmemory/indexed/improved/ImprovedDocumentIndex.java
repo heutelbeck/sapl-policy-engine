@@ -1,8 +1,20 @@
 package io.sapl.prp.inmemory.indexed.improved;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.prp.ParsedDocumentIndex;
@@ -19,17 +31,6 @@ import io.sapl.prp.inmemory.indexed.IndexCreationStrategy;
 import io.sapl.prp.inmemory.indexed.Literal;
 import io.sapl.prp.inmemory.indexed.TreeWalker;
 import reactor.core.publisher.Mono;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ImprovedDocumentIndex implements ParsedDocumentIndex {
 
@@ -106,8 +107,7 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
 		try {
 			VariableContext variableCtx = new VariableContext(authzSubscription, variables);
 			result = documentIndex.match(functionCtx, variableCtx);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			result = new PolicyRetrievalResult(Collections.emptyList(), true);
 		}
 		if (!unusableDocuments.isEmpty()) {
@@ -162,16 +162,14 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
 					updateFunctionContextReference();
 				}
 				updateDocumentReferences();
-			}
-			finally {
+			} finally {
 				functionCtxWriteLock.unlock();
 				initLatch.countDown();
 			}
 		}
 		try {
 			initLatch.await();
-		}
-		catch (InterruptedException e) {
+		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
 	}
@@ -183,8 +181,7 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
 				if (entry.getValue() != null) {
 					retainDocument(entry.getKey(), entry.getValue());
 					retainTarget(entry.getKey(), entry.getValue());
-				}
-				else {
+				} else {
 					discard(entry.getKey());
 				}
 			}
@@ -221,14 +218,12 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
 			DisjunctiveFormula targetFormula;
 			if (targetExpression == null) {
 				targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
-			}
-			else {
+			} else {
 				Map<String, String> imports = sapl.fetchFunctionImports(functionCtx);
 				targetFormula = TreeWalker.walk(targetExpression, imports);
 			}
 			publishedTargets.put(documentKey, targetFormula);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			unusableDocuments.put(documentKey, sapl);
 		}
 	}
@@ -241,8 +236,7 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
 			processDocumentChanges();
 			documentSwitch.set(true);
 			// }
-		}
-		finally {
+		} finally {
 			functionCtxReadLock.unlock();
 		}
 	}
@@ -255,8 +249,7 @@ public class ImprovedDocumentIndex implements ParsedDocumentIndex {
 				processFunctionContextChanges();
 				functionCtxSwitch.set(true);
 			}
-		}
-		finally {
+		} finally {
 			functionCtxWriteLock.unlock();
 		}
 	}

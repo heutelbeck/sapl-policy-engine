@@ -46,8 +46,7 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 		PolicyBasedPostInvocationEnforcementAttribute pia = findPostInvocationEnforcementAttribute(attributes);
 		if (pia == null) {
 			return returnedObject;
-		}
-		else {
+		} else {
 			return postAdvice.after(authentication, (MethodInvocation) object, pia, returnedObject);
 		}
 	}

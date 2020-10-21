@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.EvaluationContext;
@@ -94,7 +95,7 @@ public class PolicyImplCustom extends PolicyImpl {
 		if (getObligation() != null) {
 			final ArrayNode obligationArr = JSON.arrayNode();
 			obligationsFlux = getObligation().evaluate(evaluationCtx, true, Val.undefined())
-					.doOnError(error -> LOGGER.debug(OBLIGATIONS_ERROR, error)).map(obligation -> {
+					.doOnError(error -> log.debug(OBLIGATIONS_ERROR, error)).map(obligation -> {
 						obligation.ifDefined(obligationArr::add);
 						return obligationArr.size() > 0 ? Optional.of(obligationArr) : Optional.empty();
 					});
@@ -106,7 +107,7 @@ public class PolicyImplCustom extends PolicyImpl {
 		if (getAdvice() != null) {
 			final ArrayNode adviceArr = JSON.arrayNode();
 			adviceFlux = getAdvice().evaluate(evaluationCtx, true, Val.undefined())
-					.doOnError(error -> LOGGER.debug(ADVICE_ERROR, error)).map(advice -> {
+					.doOnError(error -> log.debug(ADVICE_ERROR, error)).map(advice -> {
 						advice.ifDefined(adviceArr::add);
 						return adviceArr.size() > 0 ? Optional.of(adviceArr) : Optional.empty();
 					});
@@ -120,7 +121,7 @@ public class PolicyImplCustom extends PolicyImpl {
 	private Flux<Optional<JsonNode>> evaluateTransformation(EvaluationContext evaluationCtx) {
 		if (getTransformation() != null) {
 			return getTransformation().evaluate(evaluationCtx, true, Val.undefined())
-					.doOnError(error -> LOGGER.debug(TRANSFORMATION_ERROR, error)).map(Val::optional);
+					.doOnError(error -> log.debug(TRANSFORMATION_ERROR, error)).map(Val::optional);
 		} else {
 			return Flux.just(Optional.empty());
 		}

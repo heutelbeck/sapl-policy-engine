@@ -15,20 +15,6 @@
  */
 package io.sapl.prp.inmemory.indexed.improved;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableMap;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.prp.inmemory.indexed.Bitmask;
-import io.sapl.prp.inmemory.indexed.Bool;
-import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
-import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
-import io.sapl.prp.inmemory.indexed.IndexContainer;
-import io.sapl.prp.inmemory.indexed.IndexCreationStrategy;
-import io.sapl.prp.inmemory.indexed.Literal;
-import io.sapl.prp.inmemory.indexed.improved.ordering.ExistingOrderStrategy;
-import io.sapl.prp.inmemory.indexed.improved.ordering.PredicateOrderStrategy;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,6 +25,21 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableMap;
+
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.prp.inmemory.indexed.Bitmask;
+import io.sapl.prp.inmemory.indexed.Bool;
+import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
+import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
+import io.sapl.prp.inmemory.indexed.IndexContainer;
+import io.sapl.prp.inmemory.indexed.IndexCreationStrategy;
+import io.sapl.prp.inmemory.indexed.Literal;
+import io.sapl.prp.inmemory.indexed.improved.ordering.ExistingOrderStrategy;
+import io.sapl.prp.inmemory.indexed.improved.ordering.PredicateOrderStrategy;
 
 public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
 
@@ -147,8 +148,7 @@ public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
 			if (negativesGroupedByFormula.add(bool)) {
 				predicateInfo.incGroupedNumberOfNegatives();
 			}
-		}
-		else {
+		} else {
 			predicateInfo.addUnsatisfiableConjunctionIfFalse(clause);
 			predicateInfo.incNumberOfPositives();
 			if (positivesGroupedByFormula.add(bool)) {

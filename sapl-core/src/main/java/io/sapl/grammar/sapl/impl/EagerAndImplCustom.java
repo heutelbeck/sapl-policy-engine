@@ -15,14 +15,15 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the eager boolean AND operator, written as '&amp;' in Expressions.
  *
- * Grammar: Multiplication returns Expression: Comparison (('&amp;' {EagerAnd.left=current})
- * right=Comparison)* ;
+ * Grammar: Multiplication returns Expression: Comparison (('&amp;'
+ * {EagerAnd.left=current}) right=Comparison)* ;
  */
 public class EagerAndImplCustom extends EagerAndImpl {
 

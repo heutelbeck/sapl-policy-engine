@@ -17,6 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.math.BigDecimal;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 

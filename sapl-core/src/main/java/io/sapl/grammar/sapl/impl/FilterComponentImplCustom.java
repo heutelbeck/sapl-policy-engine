@@ -20,6 +20,7 @@ import org.eclipse.emf.common.util.EList;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;

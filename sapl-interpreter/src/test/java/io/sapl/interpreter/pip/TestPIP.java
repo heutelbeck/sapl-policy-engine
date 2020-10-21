@@ -23,9 +23,9 @@ import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.grammar.sapl.impl.Val;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -54,7 +54,7 @@ public class TestPIP {
 
 	private void logVars(Map<String, JsonNode> variables) {
 		for (Entry<String, JsonNode> entry : variables.entrySet()) {
-			LOGGER.trace("env: {} value: {}", entry.getKey(), entry.getValue());
+			log.trace("env: {} value: {}", entry.getKey(), entry.getValue());
 		}
 	}
 

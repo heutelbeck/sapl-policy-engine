@@ -38,8 +38,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.net.HttpHeaders;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.AttributeException;
-import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.webclient.RequestSpecification;

@@ -15,7 +15,6 @@
  */
 package io.sapl.api.pdp.multisubscription;
 
-import static java.util.Objects.requireNonNull;
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
 import java.util.HashMap;
@@ -28,16 +27,18 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import lombok.NonNull;
 import lombok.Value;
 
 /**
- * A multi-decision holds a map of authorization subscription IDs and corresponding
- * {@link AuthorizationDecision authorization decisions}. It provides methods to
+ * A multi-decision holds a map of authorization subscription IDs and
+ * corresponding {@link AuthorizationDecision authorization decisions}. It
+ * provides methods to
  * {@link #setAuthorizationDecisionForSubscriptionWithId(String, AuthorizationDecision)}
- * add} single authorization decisions related to an authorization subscription ID, to
- * {@link #getAuthorizationDecisionForSubscriptionWithId(String) get} a single
- * authorization decision for a given authorization subscription ID and to
- * {@link #iterator() iterate} over all the authorization decisions.
+ * add} single authorization decisions related to an authorization subscription
+ * ID, to {@link #getAuthorizationDecisionForSubscriptionWithId(String) get} a
+ * single authorization decision for a given authorization subscription ID and
+ * to {@link #iterator() iterate} over all the authorization decisions.
  *
  * @see AuthorizationDecision
  */
@@ -55,66 +56,72 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
 
 	/**
 	 * @return the number of {@link AuthorizationDecision authorization decisions}
-	 * contained by this multi-decision.
+	 *         contained by this multi-decision.
 	 */
 	public int size() {
 		return authorizationDecisions.size();
 	}
 
 	/**
-	 * Adds the given tuple of subscription ID and related authorization decision to this
-	 * multi-decision.
-	 * @param subscriptionId the ID of the authorization subscription related to the given
-	 * authorization decision.
-	 * @param authzDecision the authorization decision related to the authorization
-	 * subscription with the given ID.
+	 * Adds the given tuple of subscription ID and related authorization decision to
+	 * this multi-decision.
+	 * 
+	 * @param subscriptionId the ID of the authorization subscription related to the
+	 *                       given authorization decision.
+	 * @param authzDecision  the authorization decision related to the authorization
+	 *                       subscription with the given ID.
 	 */
-	public void setAuthorizationDecisionForSubscriptionWithId(String subscriptionId,
-			AuthorizationDecision authzDecision) {
-		requireNonNull(subscriptionId, "subscriptionId must not be null");
-		requireNonNull(authzDecision, "authzDecision must not be null");
+	public void setAuthorizationDecisionForSubscriptionWithId(@NonNull String subscriptionId,
+			@NonNull AuthorizationDecision authzDecision) {
 		authorizationDecisions.put(subscriptionId, authzDecision);
 	}
 
 	/**
-	 * Retrieves the authorization decision related to the subscription with the given ID.
+	 * Retrieves the authorization decision related to the subscription with the
+	 * given ID.
+	 * 
 	 * @param subscriptionId the ID of the subscription for which the related
-	 * authorization decision has to be returned.
-	 * @return the authorization decision related to the subscription with the given ID.
+	 *                       authorization decision has to be returned.
+	 * @return the authorization decision related to the subscription with the given
+	 *         ID.
 	 */
-	public AuthorizationDecision getAuthorizationDecisionForSubscriptionWithId(String subscriptionId) {
-		requireNonNull(subscriptionId, "subscriptionId must not be null");
+	public AuthorizationDecision getAuthorizationDecisionForSubscriptionWithId(@NonNull String subscriptionId) {
 		return authorizationDecisions.get(subscriptionId);
 	}
 
 	/**
-	 * Retrieves the decision related to the authorization subscription with the given ID.
+	 * Retrieves the decision related to the authorization subscription with the
+	 * given ID.
+	 * 
 	 * @param subscriptionId the ID of the authorization subscription for which the
-	 * related decision has to be returned.
-	 * @return the decision related to the authorization subscription with the given ID.
+	 *                       related decision has to be returned.
+	 * @return the decision related to the authorization subscription with the given
+	 *         ID.
 	 */
-	public Decision getDecisionForSubscriptionWithId(String subscriptionId) {
-		requireNonNull(subscriptionId, "subscriptionId must not be null");
+	public Decision getDecisionForSubscriptionWithId(@NonNull String subscriptionId) {
 		return authorizationDecisions.get(subscriptionId).getDecision();
 	}
 
 	/**
-	 * Returns {@code true} if the decision related to the authorization subscription with
-	 * the given ID is {@link Decision#PERMIT}, {@code false} otherwise.
+	 * Returns {@code true} if the decision related to the authorization
+	 * subscription with the given ID is {@link Decision#PERMIT}, {@code false}
+	 * otherwise.
+	 * 
 	 * @param subscriptionId the ID of the authorization subscription for which the
-	 * related flag indicating whether the decision was PERMIT or not has to be returned.
-	 * @return {@code true} if the decision related to the authorization subscription with
-	 * the given ID is {@link Decision#PERMIT}, {@code false} otherwise.
+	 *                       related flag indicating whether the decision was PERMIT
+	 *                       or not has to be returned.
+	 * @return {@code true} if the decision related to the authorization
+	 *         subscription with the given ID is {@link Decision#PERMIT},
+	 *         {@code false} otherwise.
 	 */
-	public boolean isAccessPermittedForSubscriptionWithId(String subscriptionId) {
-		requireNonNull(subscriptionId, "subscriptionId must not be null");
+	public boolean isAccessPermittedForSubscriptionWithId(@NonNull String subscriptionId) {
 		return authorizationDecisions.get(subscriptionId).getDecision() == Decision.PERMIT;
 	}
 
 	/**
 	 * @return an {@link Iterator iterator} providing access to the
-	 * {@link IdentifiableAuthorizationDecision identifiable authorization decisions}
-	 * created from the data held by this multi-decision.
+	 *         {@link IdentifiableAuthorizationDecision identifiable authorization
+	 *         decisions} created from the data held by this multi-decision.
 	 */
 	@Override
 	public Iterator<IdentifiableAuthorizationDecision> iterator() {

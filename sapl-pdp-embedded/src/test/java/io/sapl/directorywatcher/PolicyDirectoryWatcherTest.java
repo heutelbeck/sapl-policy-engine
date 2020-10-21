@@ -48,7 +48,7 @@ public class PolicyDirectoryWatcherTest {
 	// @Test
 	public void watchPoliciesDirectory() throws URISyntaxException, InterruptedException {
 		Path watchDir = Paths.get(getClass().getResource("/policies").toURI());
-		LOGGER.info("watchDir: {}", watchDir);
+		log.info("watchDir: {}", watchDir);
 		final DirectoryWatcher watcher = new DirectoryWatcher(watchDir);
 		final CountDownLatch cdl = new CountDownLatch(1);
 		watcher.watch(new DirectoryWatchEventConsumer<Path>() {
@@ -57,7 +57,7 @@ public class PolicyDirectoryWatcherTest {
 
 			@Override
 			public void onEvent(WatchEvent<Path> event) {
-				LOGGER.info("watch event of kind {} for path {}", event.kind().name(), event.context().toString());
+				log.info("watch event of kind {} for path {}", event.kind().name(), event.context().toString());
 				Path filename = event.context();
 				if (filename.toString().equals("stop.sapl")) {
 					cancel();

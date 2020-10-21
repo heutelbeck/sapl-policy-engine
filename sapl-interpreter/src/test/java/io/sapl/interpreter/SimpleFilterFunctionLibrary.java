@@ -24,9 +24,9 @@ import java.time.ZonedDateTime;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Int;
 import io.sapl.api.validation.Text;
-import io.sapl.grammar.sapl.impl.Val;
 
 @FunctionLibrary(name = "simplefilter", description = "some simple filter functions")
 public class SimpleFilterFunctionLibrary {

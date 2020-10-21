@@ -21,11 +21,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.regex.Pattern;
 
+import org.locationtech.jts.geom.Geometry;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.locationtech.jts.geom.Geometry;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
@@ -68,8 +69,7 @@ public class PostGISConnection {
 	public JsonNode toGeoPIPResponse() throws FunctionException, AttributeException {
 		if (config == null) {
 			return JSON.textNode(TEST_OKAY);
-		}
-		else {
+		} else {
 			return GeoPIPResponse.builder().identifier(config.getTable()).geofences(retrieveGeometries()).build()
 					.toJsonNode();
 		}
@@ -84,8 +84,7 @@ public class PostGISConnection {
 					return formatResultSet(rs);
 				}
 			}
-		}
-		catch (SQLException e) {
+		} catch (SQLException e) {
 			throw new AttributeException(e);
 		}
 	}

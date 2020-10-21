@@ -28,9 +28,9 @@ import java.util.Collections;
 import org.junit.Test;
 
 import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.grammar.sapl.impl.Val;
 import reactor.test.StepVerifier;
 
 public class ClockPolicyInformationPointTickerTest {

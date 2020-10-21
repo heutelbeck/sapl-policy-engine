@@ -97,7 +97,7 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 		try {
 			try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path), CONFIG_FILE_GLOB_PATTERN)) {
 				for (Path filePath : stream) {
-					LOGGER.info("load: {}", filePath);
+					log.info("load: {}", filePath);
 					config = mapper.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
 				}
 				if (config == null) {
@@ -105,7 +105,7 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 				}
 			}
 		} catch (IOException e) {
-			LOGGER.error("Error while initializing the pdp configuration.", e);
+			log.error("Error while initializing the pdp configuration.", e);
 		}
 	}
 
@@ -117,19 +117,19 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 
 			final Path absoluteFilePath = Paths.get(path, fileName.toString());
 			if (kind == ENTRY_CREATE) {
-				LOGGER.info("reading pdp config from {}", fileName);
+				log.info("reading pdp config from {}", fileName);
 				config = mapper.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
 			} else if (kind == ENTRY_DELETE) {
-				LOGGER.info("deleted pdp config file {}. Using default configuration", fileName);
+				log.info("deleted pdp config file {}. Using default configuration", fileName);
 				config = new PolicyDecisionPointConfiguration();
 			} else if (kind == ENTRY_MODIFY) {
-				LOGGER.info("updating pdp config from {}", fileName);
+				log.info("updating pdp config from {}", fileName);
 				config = mapper.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
 			} else {
-				LOGGER.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
+				log.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
 			}
 		} catch (IOException e) {
-			LOGGER.error("Error while updating the pdp config.", e);
+			log.error("Error while updating the pdp config.", e);
 		} finally {
 			lock.unlock();
 		}
@@ -139,7 +139,7 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 	public Flux<DocumentsCombinator> getDocumentsCombinator() {
 		// @formatter:off
 		return dirWatcherEventProcessor.map(event -> config.getAlgorithm()).distinctUntilChanged().map(algorithm -> {
-			LOGGER.trace("|-- Current PDP config: combining algorithm = {}", algorithm);
+			log.trace("|-- Current PDP config: combining algorithm = {}", algorithm);
 			return convert(algorithm);
 		});
 		// @formatter:on
@@ -149,7 +149,7 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 	public Flux<Map<String, JsonNode>> getVariables() {
 		// @formatter:off
 		return dirWatcherEventProcessor.map(event -> config.getVariables()).distinctUntilChanged()
-				.doOnNext(variables -> LOGGER.trace("|-- Current PDP config: variables = {}", variables));
+				.doOnNext(variables -> log.trace("|-- Current PDP config: variables = {}", variables));
 		// @formatter:on
 	}
 

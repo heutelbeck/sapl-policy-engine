@@ -43,9 +43,9 @@ import org.web3j.protocol.http.HttpService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.grammar.sapl.impl.Val;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -172,7 +172,7 @@ public class EthereumPolicyInformationPoint {
 					}
 				}
 			} catch (IOException | NullPointerException | ClientConnectionException e) {
-				LOGGER.warn(VERIFY_TRANSACTION_WARNING);
+				log.warn(VERIFY_TRANSACTION_WARNING);
 			}
 			return Val.ofFalse();
 		};

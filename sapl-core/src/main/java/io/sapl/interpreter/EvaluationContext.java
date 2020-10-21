@@ -71,13 +71,15 @@ public class EvaluationContext {
 	}
 
 	/**
-	 * Creates a copy of this evaluation context. The copy references the same instance of
-	 * the attribute context and function context, but deep copies of the variable context
-	 * and imports. The attribute context and function context are created once during
-	 * startup, but the variable context and imports may be specific to a certain scope.
-	 * Before passing the evaluation context to a narrower scope, it should be copied to
-	 * make sure, the current context is not polluted by elements of the narrower scope
-	 * when after the narrower scope has been processed.
+	 * Creates a copy of this evaluation context. The copy references the same
+	 * instance of the attribute context and function context, but deep copies of
+	 * the variable context and imports. The attribute context and function context
+	 * are created once during startup, but the variable context and imports may be
+	 * specific to a certain scope. Before passing the evaluation context to a
+	 * narrower scope, it should be copied to make sure, the current context is not
+	 * polluted by elements of the narrower scope when after the narrower scope has
+	 * been processed.
+	 * 
 	 * @return a copy of this evaluation context to be passed to narrower scopes.
 	 */
 	public EvaluationContext copy() {

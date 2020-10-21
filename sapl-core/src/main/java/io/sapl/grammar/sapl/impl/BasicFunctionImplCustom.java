@@ -27,6 +27,7 @@ import org.eclipse.emf.ecore.EObject;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
@@ -49,10 +50,10 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 			final List<Flux<Val>> arguments = new ArrayList<>(getArguments().getArgs().size());
 			for (Expression argument : getArguments().getArgs()) {
 				arguments.add(argument.evaluate(ctx, isBody, relativeNode));
-			}			
+			}
 			// evaluate the function for each value assignment of the arguments
-			return Flux.combineLatest(arguments, Function.identity())
-					.switchMap(parameters -> evaluateFunction(Arrays.copyOf(parameters, parameters.length, Val[].class), ctx))
+			return Flux.combineLatest(arguments, Function.identity()).switchMap(
+					parameters -> evaluateFunction(Arrays.copyOf(parameters, parameters.length, Val[].class), ctx))
 					.flatMap(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, isBody,
 							relativeNode));
 		} else {

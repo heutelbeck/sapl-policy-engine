@@ -22,9 +22,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.grammar.sapl.impl.Val;
 import reactor.core.publisher.Flux;
 
 @PolicyInformationPoint(name = MockXACMLPatientProfilePIP.NAME)

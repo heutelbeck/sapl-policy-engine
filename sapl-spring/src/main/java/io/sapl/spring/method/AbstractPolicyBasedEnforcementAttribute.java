@@ -23,8 +23,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 /**
- * Superclass for the SAPL ConfigAttributes, taking care of initializing SpEL expression
- * upon instantiation.
+ * Superclass for the SAPL ConfigAttributes, taking care of initializing SpEL
+ * expression upon instantiation.
  */
 @Getter
 @EqualsAndHashCode

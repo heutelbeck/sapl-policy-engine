@@ -18,9 +18,10 @@ package io.sapl.api.prp;
 import java.util.Collection;
 import java.util.Iterator;
 
+import org.eclipse.emf.ecore.util.EcoreUtil;
+
 import io.sapl.grammar.sapl.SAPL;
 import lombok.AllArgsConstructor;
-import org.eclipse.emf.ecore.util.EcoreUtil;
 
 @AllArgsConstructor
 public class PolicyRetrievalResult {

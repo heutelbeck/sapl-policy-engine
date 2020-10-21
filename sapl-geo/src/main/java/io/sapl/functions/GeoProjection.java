@@ -18,13 +18,12 @@ package io.sapl.functions;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.DefaultMathTransformFactory;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.MathTransformFactory;
 import org.opengis.referencing.operation.TransformException;
-
-import org.locationtech.jts.geom.Geometry;
 
 import io.sapl.api.functions.FunctionException;
 import lombok.EqualsAndHashCode;
@@ -52,8 +51,7 @@ public class GeoProjection {
 	public GeoProjection(String source, String dest) throws FunctionException {
 		try {
 			mathTransform = CRS.findMathTransform(CRS.decode(source), CRS.decode(dest), false);
-		}
-		catch (FactoryException e) {
+		} catch (FactoryException e) {
 			throw new FunctionException(CRS_COULD_NOT_INITIALIZE, e);
 		}
 	}
@@ -62,8 +60,7 @@ public class GeoProjection {
 		try {
 			MathTransformFactory fact = new DefaultMathTransformFactory();
 			mathTransform = fact.createFromWKT(mathTransformWkt);
-		}
-		catch (FactoryException e) {
+		} catch (FactoryException e) {
 			throw new FunctionException(CRS_COULD_NOT_INITIALIZE, e);
 		}
 	}
@@ -71,8 +68,7 @@ public class GeoProjection {
 	public Geometry project(Geometry geometry) throws FunctionException {
 		try {
 			return JTS.transform(geometry, mathTransform);
-		}
-		catch (MismatchedDimensionException | TransformException e) {
+		} catch (MismatchedDimensionException | TransformException e) {
 			throw new FunctionException(UNABLE_TO_TRANSFORM, e);
 		}
 	}
@@ -80,8 +76,7 @@ public class GeoProjection {
 	public Geometry reProject(Geometry geometry) throws FunctionException {
 		try {
 			return JTS.transform(geometry, mathTransform.inverse());
-		}
-		catch (MismatchedDimensionException | TransformException e) {
+		} catch (MismatchedDimensionException | TransformException e) {
 			throw new FunctionException(UNABLE_TO_TRANSFORM, e);
 		}
 	}

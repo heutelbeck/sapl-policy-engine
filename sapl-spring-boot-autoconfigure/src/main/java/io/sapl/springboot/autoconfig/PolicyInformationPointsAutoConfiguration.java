@@ -36,7 +36,7 @@ public class PolicyInformationPointsAutoConfiguration {
 
 		@Bean
 		public HttpPolicyInformationPoint httpPolicyInformationPoint() {
-			LOGGER.info("HTTP PIP present. Loading.");
+			log.info("HTTP PIP present. Loading.");
 			return new HttpPolicyInformationPoint();
 		}
 
@@ -48,7 +48,7 @@ public class PolicyInformationPointsAutoConfiguration {
 
 		@Bean
 		public GeoPolicyInformationPoint geoPolicyInformationPoint() {
-			LOGGER.info("GEO PIP present. Loading.");
+			log.info("GEO PIP present. Loading.");
 			return new GeoPolicyInformationPoint();
 		}
 
@@ -60,7 +60,7 @@ public class PolicyInformationPointsAutoConfiguration {
 
 		@Bean
 		public ClockPolicyInformationPoint clockPolicyInformationPoint() {
-			LOGGER.info("Clock PIP present. Loading.");
+			log.info("Clock PIP present. Loading.");
 			return new ClockPolicyInformationPoint();
 		}
 
@@ -72,12 +72,12 @@ public class PolicyInformationPointsAutoConfiguration {
 
 		@Bean
 		public EthereumPolicyInformationPoint ethereumPolicyInformationPoint(Web3j web3j) {
-			LOGGER.info("Ethereum PIP present. Loading.");
+			log.info("Ethereum PIP present. Loading.");
 			if (web3j != null) {
-				LOGGER.info("Web3j found. Using Web3j present in application.");
+				log.info("Web3j found. Using Web3j present in application.");
 				return new EthereumPolicyInformationPoint(web3j);
 			}
-			LOGGER.info("No Web3j present in application. Using default Web3j");
+			log.info("No Web3j present in application. Using default Web3j");
 			return new EthereumPolicyInformationPoint();
 		}
 

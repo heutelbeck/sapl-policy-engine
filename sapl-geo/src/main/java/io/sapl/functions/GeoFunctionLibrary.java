@@ -33,11 +33,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Array;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
-import io.sapl.grammar.sapl.impl.Val;
 import lombok.NoArgsConstructor;
 /*
  * Format always [Lat(y), Long(x)]
@@ -299,9 +299,9 @@ public class GeoFunctionLibrary {
 	// throws
 	// FunctionException {
 	// double convertedValue;
-	// LOGGER.info("->>>>>>>>>>>>>>{} - {}", jsonValue, jsonUnit.asText());
-	// LOGGER.info("*****>{}<", Unit.valueOf("cm"));
-	// LOGGER.info("*****>{}<", Unit.valueOf("yd"));
+	// log.info("->>>>>>>>>>>>>>{} - {}", jsonValue, jsonUnit.asText());
+	// log.info("*****>{}<", Unit.valueOf("cm"));
+	// log.info("*****>{}<", Unit.valueOf("yd"));
 	// Unit<? extends Quantity> unitFrom = Unit.valueOf(jsonUnit.asText());
 	//
 	// if (unitFrom.isCompatible(SI.METER)) {
@@ -312,7 +312,7 @@ public class GeoFunctionLibrary {
 	// jsonUnit.asText(),
 	// "m"));
 	// }
-	// LOGGER.info("->>>>>>>>>>>>>>{}", convertedValue);
+	// log.info("->>>>>>>>>>>>>>{}", convertedValue);
 	// return JSON.numberNode(BigDecimal.valueOf(convertedValue));
 	// }
 	//

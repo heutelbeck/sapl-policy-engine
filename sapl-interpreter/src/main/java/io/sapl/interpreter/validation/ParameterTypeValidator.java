@@ -20,6 +20,7 @@ import java.lang.reflect.Parameter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Array;
 import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.Int;
@@ -27,7 +28,6 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
-import io.sapl.grammar.sapl.impl.Val;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass

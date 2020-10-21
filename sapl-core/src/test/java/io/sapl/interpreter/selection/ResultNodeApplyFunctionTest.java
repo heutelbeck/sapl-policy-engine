@@ -30,11 +30,11 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.Value;
-import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.grammar.tests.MockFunctionContext;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.Void;

@@ -17,15 +17,16 @@ package io.sapl.grammar.sapl.impl;
 
 import java.math.BigDecimal;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the numerical division operator, written as '/' in Expressions.
  *
- * Grammar: Multiplication returns Expression: Comparison (({Multi.left=current} '*' |
- * {Div.left=current} '/' | {And.left=current} '&amp;&amp;' | '&amp;' {EagerAnd.left=current})
- * right=Comparison)* ;
+ * Grammar: Multiplication returns Expression: Comparison (({Multi.left=current}
+ * '*' | {Div.left=current} '/' | {And.left=current} '&amp;&amp;' | '&amp;'
+ * {EagerAnd.left=current}) right=Comparison)* ;
  */
 public class DivImplCustom extends DivImpl {
 

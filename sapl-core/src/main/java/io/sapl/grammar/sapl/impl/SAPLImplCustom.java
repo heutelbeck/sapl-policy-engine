@@ -98,12 +98,12 @@ public class SAPLImplCustom extends SAPLImpl {
 	 */
 	@Override
 	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
-		LOGGER.trace("| | |-- SAPL Evaluate: {} ({})", getPolicyElement().getSaplName(),
+		log.trace("| | |-- SAPL Evaluate: {} ({})", getPolicyElement().getSaplName(),
 				getPolicyElement().getClass().getName());
 		return Flux.from(matches(ctx)).switchMap(matches -> {
 			if (!matches) {
-				LOGGER.trace("| | |-- NOT_APPLICABLE. Cause: " + NO_TARGET_MATCH);
-				LOGGER.trace("| |");
+				log.trace("| | |-- NOT_APPLICABLE. Cause: " + NO_TARGET_MATCH);
+				log.trace("| |");
 				return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 			}
 			try {
@@ -112,16 +112,16 @@ public class SAPLImplCustom extends SAPLImpl {
 						ctx.getFunctionCtx(), ctx.getVariableCtx().copy(), imports);
 				return getPolicyElement().evaluate(evaluationCtx).doOnNext(this::logAuthzDecision);
 			} catch (PolicyEvaluationException e) {
-				LOGGER.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED, e.getMessage());
-				LOGGER.trace("| |");
+				log.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED, e.getMessage());
+				log.trace("| |");
 				return Flux.just(INDETERMINATE);
 			}
 		});
 	}
 
 	private void logAuthzDecision(AuthorizationDecision r) {
-		LOGGER.trace("| | |-- {}. Document: {} Cause: {}", r.getDecision(), getPolicyElement().getSaplName(), r);
-		LOGGER.trace("| |");
+		log.trace("| | |-- {}. Document: {} Cause: {}", r.getDecision(), getPolicyElement().getSaplName(), r);
+		log.trace("| |");
 	}
 
 	@Override

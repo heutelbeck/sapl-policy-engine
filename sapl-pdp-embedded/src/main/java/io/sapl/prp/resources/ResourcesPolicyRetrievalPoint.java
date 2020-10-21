@@ -111,7 +111,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
         this.parsedDocIdx.setLiveMode();
 
         this.path = Paths.get(policyFolderUrl.toURI()).toString();
-        LOGGER.info("setting up directory watcher for path: {}", this.path);
+        log.info("setting up directory watcher for path: {}", this.path);
         final Path watchDir = Paths.get(path);
         final DirectoryWatcher directoryWatcher = new DirectoryWatcher(watchDir);
 
@@ -138,28 +138,28 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
             final Path absoluteFilePath = Paths.get(path, fileName.toString());
             final String absoluteFileName = absoluteFilePath.toString();
             if (kind == ENTRY_CREATE) {
-                LOGGER.info("adding {} to index", fileName);
+                log.info("adding {} to index", fileName);
                 final SAPL saplDocument = interpreter.parse(Files.newInputStream(absoluteFilePath));
                 parsedDocIdx.put(absoluteFileName, saplDocument);
             } else if (kind == ENTRY_DELETE) {
-                LOGGER.info("removing {} from index", fileName);
+                log.info("removing {} from index", fileName);
                 parsedDocIdx.remove(absoluteFileName);
             } else if (kind == ENTRY_MODIFY) {
-                LOGGER.info("updating {} in index", fileName);
+                log.info("updating {} in index", fileName);
                 final SAPL saplDocument = interpreter.parse(Files.newInputStream(absoluteFilePath));
                 parsedDocIdx.put(absoluteFileName, saplDocument);
             } else {
-                LOGGER.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
+                log.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
             }
         } catch (IOException | PolicyEvaluationException e) {
-            LOGGER.error("Error while updating the document index.", e);
+            log.error("Error while updating the document index.", e);
         } finally {
             lock.unlock();
         }
     }
 
     private void readPoliciesFromJar(URL policiesFolderUrl) throws PolicyEvaluationException {
-        LOGGER.debug("reading policies from jar {}", policiesFolderUrl);
+        log.debug("reading policies from jar {}", policiesFolderUrl);
         final String[] jarPathElements = policiesFolderUrl.toString().split("!");
         final String jarFilePath = jarPathElements[0].substring("jar:file:".length());
         final StringBuilder policiesDirPath = new StringBuilder();
@@ -179,7 +179,7 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
                 ZipEntry entry = e.nextElement();
                 if (!entry.isDirectory() && entry.getName().startsWith(policiesDirPathStr)
                         && entry.getName().endsWith(POLICY_FILE_SUFFIX)) {
-                    LOGGER.debug("load: {}", entry.getName());
+                    log.debug("load: {}", entry.getName());
                     BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
                     String fileContentsStr = IOUtils.toString(bis, StandardCharsets.UTF_8);
                     bis.close();
@@ -188,17 +188,17 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
                 }
             }
         } catch (IOException e) {
-            LOGGER.error("Error while reading config from jar", e);
+            log.error("Error while reading config from jar", e);
         }
     }
 
     private void readPoliciesFromDirectory(URL policiesFolderUrl)
             throws IOException, URISyntaxException, PolicyEvaluationException {
-        LOGGER.debug("reading policies from directory {}", policiesFolderUrl);
+        log.debug("reading policies from directory {}", policiesFolderUrl);
         Path policiesDirectoryPath = Paths.get(policiesFolderUrl.toURI());
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(policiesDirectoryPath, POLICY_FILE_GLOB_PATTERN)) {
             for (Path filePath : stream) {
-                LOGGER.debug("load: {}", filePath);
+                log.debug("load: {}", filePath);
                 final SAPL saplDocument = interpreter.parse(Files.newInputStream(filePath));
                 this.parsedDocIdx.put(filePath.toString(), saplDocument);
             }
@@ -221,15 +221,15 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
     private void logMatching(PolicyRetrievalResult result) {
         if (result.getMatchingDocuments().isEmpty()) {
-            LOGGER.trace("|-- Matching documents: NONE");
+            log.trace("|-- Matching documents: NONE");
         } else {
-            LOGGER.trace("|-- Matching documents:");
+            log.trace("|-- Matching documents:");
             for (SAPL doc : result.getMatchingDocuments()) {
-                LOGGER.trace("| |-- * {} ({})", doc.getPolicyElement().getSaplName(),
+                log.trace("| |-- * {} ({})", doc.getPolicyElement().getSaplName(),
                         doc.getPolicyElement().getClass().getName());
             }
         }
-        LOGGER.trace("|");
+        log.trace("|");
     }
 
 }

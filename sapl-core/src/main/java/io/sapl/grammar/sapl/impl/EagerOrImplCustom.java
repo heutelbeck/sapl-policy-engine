@@ -15,14 +15,15 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the eager logical OR operation, noted as '|' in the grammar.
  *
- * Grammar: Addition returns Expression: Multiplication (('|' {EagerOr.left=current})
- * right=Multiplication)* ;
+ * Grammar: Addition returns Expression: Multiplication (('|'
+ * {EagerOr.left=current}) right=Multiplication)* ;
  */
 
 public class EagerOrImplCustom extends EagerOrImpl {

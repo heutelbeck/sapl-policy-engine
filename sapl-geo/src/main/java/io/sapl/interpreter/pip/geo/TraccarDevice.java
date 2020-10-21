@@ -53,7 +53,8 @@ public class TraccarDevice {
 
 	private Object category;
 
-	// Don't expose the internal representation by storing an externally mutable object
+	// Don't expose the internal representation by storing an externally mutable
+	// object
 	// into geofenceIds
 
 	public int[] getGeofenceIds() {

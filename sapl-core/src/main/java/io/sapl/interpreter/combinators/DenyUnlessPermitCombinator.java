@@ -44,9 +44,9 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 	public Flux<AuthorizationDecision> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
 			boolean errorsInTarget, AuthorizationSubscription authzSubscription, AttributeContext attributeCtx,
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
-		LOGGER.trace("|-- Combining matching documents");
+		log.trace("|-- Combining matching documents");
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
-			LOGGER.trace("| |-- No matches. Default to DENY");
+			log.trace("| |-- No matches. Default to DENY");
 			return Flux.just(AuthorizationDecision.DENY);
 		}
 
@@ -60,7 +60,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 
 		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
-			LOGGER.trace("| |-- Evaluate: {} ({})", document.getPolicyElement().getSaplName(),
+			log.trace("| |-- Evaluate: {} ({})", document.getPolicyElement().getSaplName(),
 					document.getPolicyElement().getClass().getName());
 			// do not first check match again. directly evaluate the rules
 			authzDecisionFluxes.add(document.evaluate(evaluationCtx));
@@ -70,7 +70,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 		return Flux.combineLatest(authzDecisionFluxes, authzDecisions -> {
 			accumulator.addSingleDecisions(authzDecisions);
 			AuthorizationDecision result = accumulator.getCombinedAuthorizationDecision();
-			LOGGER.trace("| |-- {} Combined AuthorizationDecision: {}", result.getDecision(), result);
+			log.trace("| |-- {} Combined AuthorizationDecision: {}", result.getDecision(), result);
 			return result;
 		}).distinctUntilChanged();
 	}
@@ -80,13 +80,13 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 		Mono<List<Policy>> matchingPolicies = Flux.fromIterable(policies).filterWhen(policy -> policy.matches(ctx))
 				.collectList();
 		return Flux.from(matchingPolicies)
-				.onErrorContinue(/* Ignore Errors in Target */(throwable, o) -> LOGGER
+				.onErrorContinue(/* Ignore Errors in Target */(throwable, o) -> log
 						.trace("| |-- Ignore error in target processing {}. Cause: {}", o, throwable.getMessage()))
 				.flatMap(matches -> doCombine(matches, ctx));
 	}
 
 	private Flux<AuthorizationDecision> doCombine(List<Policy> matchingPolicies, EvaluationContext ctx) {
-		LOGGER.trace("| |-- Combining {} policies", matchingPolicies.size());
+		log.trace("| |-- Combining {} policies", matchingPolicies.size());
 		if (matchingPolicies.isEmpty()) {
 			return Flux.just(AuthorizationDecision.DENY);
 		}

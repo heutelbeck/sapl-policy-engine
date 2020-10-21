@@ -16,8 +16,8 @@
 package io.sapl.interpreter.selection;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
-import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.Void;
 import lombok.EqualsAndHashCode;
@@ -26,8 +26,8 @@ import lombok.Value;
 import reactor.core.publisher.Flux;
 
 /**
- * Represents a JsonNode which has no parent node (array or object) in the tree on which
- * the selection is performed. Typically the root element of the tree.
+ * Represents a JsonNode which has no parent node (array or object) in the tree
+ * on which the selection is performed. Typically the root element of the tree.
  */
 @Value
 @EqualsAndHashCode(callSuper = true)
@@ -61,8 +61,7 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 	public void removeFromTree(boolean each) throws PolicyEvaluationException {
 		if (each) {
 			removeEachItem(node);
-		}
-		else {
+		} else {
 			throw new PolicyEvaluationException(FILTER_ROOT_ELEMENT);
 		}
 	}
@@ -78,8 +77,7 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 			EvaluationContext ctx, boolean isBody, Val relativeNode) {
 		if (each) {
 			return applyFilterToEachItem(node, function, arguments, ctx, isBody);
-		}
-		else {
+		} else {
 			return Flux.error(new PolicyEvaluationException(FILTER_ROOT_ELEMENT));
 		}
 	}

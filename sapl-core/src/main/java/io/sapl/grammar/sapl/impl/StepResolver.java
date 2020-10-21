@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.eclipse.emf.common.util.EList;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.DependentStreamsUtil;
 import io.sapl.interpreter.EvaluationContext;

@@ -48,11 +48,10 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 			final AtomicBoolean errorInTarget = new AtomicBoolean(false);
 			return Flux.fromIterable(publishedDocuments.values()).filterWhen(policy -> policy.matches(evaluationCtx))
 					.onErrorContinue((t, o) -> {
-						LOGGER.info("| |-- Error in target evaluation: {}", t.getMessage());
+						log.info("| |-- Error in target evaluation: {}", t.getMessage());
 						errorInTarget.set(true);
 					}).collectList().map(result -> new PolicyRetrievalResult(result, errorInTarget.get()));
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true));
 		}
 	}

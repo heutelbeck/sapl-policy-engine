@@ -55,8 +55,7 @@ public class PolicyBasedEnforcementAttributeFactory implements PolicyEnforcement
 					: getParser().parseExpression(environmentAttribute);
 			return new PolicyBasedPreInvocationEnforcementAttribute(subjectExpression, actionExpression,
 					resourceExpression, environmentExpression);
-		}
-		catch (ParseException e) {
+		} catch (ParseException e) {
 			throw new IllegalArgumentException("Failed to parse expression '" + e.getExpressionString() + "'", e);
 		}
 	}
@@ -75,14 +74,14 @@ public class PolicyBasedEnforcementAttributeFactory implements PolicyEnforcement
 					: getParser().parseExpression(environmentAttribute);
 			return new PolicyBasedPostInvocationEnforcementAttribute(subjectExpression, actionExpression,
 					resourceExpression, environmentExpression);
-		}
-		catch (ParseException e) {
+		} catch (ParseException e) {
 			throw new IllegalArgumentException("Failed to parse expression '" + e.getExpressionString() + "'", e);
 		}
 	}
 
 	/**
 	 * Delay the lookup of the {@link ExpressionParser} to prevent SEC-2136
+	 * 
 	 * @return the parser
 	 */
 	private ExpressionParser getParser() {

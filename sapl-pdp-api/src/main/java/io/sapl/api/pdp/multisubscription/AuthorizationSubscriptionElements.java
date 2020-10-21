@@ -19,31 +19,20 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import lombok.AllArgsConstructor;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.Value;
 
 /**
- * Data structure holding IDs for the elements of an {@link AuthorizationSubscription} SAPL
- * authorization subscription).
+ * Data structure holding IDs for the elements of an
+ * {@link AuthorizationSubscription} SAPL authorization subscription).
  */
 @Value
-@AllArgsConstructor
 @JsonInclude(NON_EMPTY)
 public class AuthorizationSubscriptionElements {
 
-	private Integer subjectId;
-
-	private Integer actionId;
-
-	private Integer resourceId;
-
-	private Integer environmentId;
-
-	public AuthorizationSubscriptionElements() {
-		subjectId = null;
-		actionId = null;
-		resourceId = null;
-		environmentId = null;
-	}
+	Integer subjectId;
+	Integer actionId;
+	Integer resourceId;
+	Integer environmentId;
 
 }

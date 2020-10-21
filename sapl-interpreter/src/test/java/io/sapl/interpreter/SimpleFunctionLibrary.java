@@ -18,9 +18,9 @@ package io.sapl.interpreter;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
-import io.sapl.grammar.sapl.impl.Val;
 
 @FunctionLibrary(name = "simple", description = "some simple functions")
 public class SimpleFunctionLibrary {

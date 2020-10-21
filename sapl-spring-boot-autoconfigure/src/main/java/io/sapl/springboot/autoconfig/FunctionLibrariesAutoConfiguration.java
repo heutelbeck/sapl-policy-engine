@@ -32,7 +32,7 @@ public class FunctionLibrariesAutoConfiguration {
 
 		@Bean
 		public GeoFunctionLibrary geoFunctionLibrary() {
-			LOGGER.info("Geo function library present. Loading.");
+			log.info("Geo function library present. Loading.");
 			return new GeoFunctionLibrary();
 		}
 

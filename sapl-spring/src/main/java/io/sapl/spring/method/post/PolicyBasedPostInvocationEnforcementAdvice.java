@@ -63,8 +63,7 @@ public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBa
 			expressionHandler.setReturnObject(((Optional<Object>) returnedObject).get(), ctx);
 			returnType = ((Optional<Object>) returnedObject).get().getClass();
 			returnOptional = true;
-		}
-		else {
+		} else {
 			returnType = mi.getMethod().getReturnType();
 			expressionHandler.setReturnObject(returnedObject, ctx);
 		}
@@ -79,11 +78,10 @@ public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBa
 
 		AuthorizationDecision authzDecision = pdp.decide(authzSubscription).blockFirst();
 
-		LOGGER.debug("ATTRIBUTE: {} - {}", pia, pia.getClass());
-		LOGGER.debug("SUBSCRIPTION  :\n - ACTION={}\n - RESOURCE={}\n - SUBJ={}\n - ENV={}",
-				authzSubscription.getAction(), authzSubscription.getResource(), authzSubscription.getSubject(),
-				authzSubscription.getEnvironment());
-		LOGGER.debug("AUTH_DECISION : {} - {}", authzDecision == null ? "null" : authzDecision.getDecision(),
+		log.debug("ATTRIBUTE: {} - {}", pia, pia.getClass());
+		log.debug("SUBSCRIPTION  :\n - ACTION={}\n - RESOURCE={}\n - SUBJ={}\n - ENV={}", authzSubscription.getAction(),
+				authzSubscription.getResource(), authzSubscription.getSubject(), authzSubscription.getEnvironment());
+		log.debug("AUTH_DECISION : {} - {}", authzDecision == null ? "null" : authzDecision.getDecision(),
 				authzDecision);
 
 		if (authzDecision == null || authzDecision.getDecision() != Decision.PERMIT) {
@@ -98,20 +96,17 @@ public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBa
 				Object returnValue = mapper.treeToValue(authzDecision.getResource().get(), returnType);
 				if (returnOptional) {
 					return Optional.of(returnValue);
-				}
-				else {
+				} else {
 					return returnValue;
 				}
-			}
-			catch (JsonProcessingException e) {
-				LOGGER.trace("Transformed result cannot be mapped to expected return type. {}",
+			} catch (JsonProcessingException e) {
+				log.trace("Transformed result cannot be mapped to expected return type. {}",
 						authzDecision.getResource().get());
 				throw new AccessDeniedException(
 						"Returned resource of authzDecision cannot be mapped back to return value. Access not permitted by policy enforcement point.",
 						e);
 			}
-		}
-		else {
+		} else {
 			return returnedObject;
 		}
 

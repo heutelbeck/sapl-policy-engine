@@ -24,7 +24,7 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.grammar.sapl.impl.Val;
+import io.sapl.api.interpreter.Val;
 
 public class ResultNodeIsTest {
 

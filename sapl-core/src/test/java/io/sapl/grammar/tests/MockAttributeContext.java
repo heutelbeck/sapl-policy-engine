@@ -18,9 +18,9 @@ package io.sapl.grammar.tests;
 import java.util.Collection;
 import java.util.Collections;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.grammar.sapl.Arguments;
-import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;

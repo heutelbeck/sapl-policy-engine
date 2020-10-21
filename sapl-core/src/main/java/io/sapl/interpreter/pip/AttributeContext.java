@@ -17,9 +17,9 @@ package io.sapl.interpreter.pip;
 
 import java.util.Collection;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.grammar.sapl.Arguments;
-import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 

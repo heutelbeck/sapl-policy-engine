@@ -18,7 +18,7 @@ package io.sapl.interpreter.functions;
 import org.junit.Test;
 
 import io.sapl.api.functions.FunctionException;
-import io.sapl.grammar.sapl.impl.Val;
+import io.sapl.api.interpreter.Val;
 
 public class AnnotationFunctionContextTest {
 

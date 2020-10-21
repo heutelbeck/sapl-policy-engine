@@ -23,8 +23,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * The @PreEnforce annotation establishes a policy enforcement point (PEP) before the
- * invocation of the annotated method.
+ * The @PreEnforce annotation establishes a policy enforcement point (PEP)
+ * before the invocation of the annotated method.
  */
 @Inherited
 @Documented

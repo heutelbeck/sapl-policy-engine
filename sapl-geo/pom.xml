@@ -38,17 +38,11 @@
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-api</artifactId>
+			<artifactId>sapl-extensions-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-interpreter</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-
-		<dependency>
+ 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-pip-http</artifactId>
 			<version>${project.version}</version>
@@ -95,6 +89,14 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>sapl-interpreter</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>

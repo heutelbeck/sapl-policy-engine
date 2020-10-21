@@ -21,6 +21,8 @@ import java.util.List;
 import org.eclipse.emf.common.util.EList;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Statement;
@@ -68,7 +70,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 			// return sequentialSwitchMap(Boolean.TRUE, fluxProviders)
 			return nestedSwitchMap(Boolean.TRUE, fluxProviders, 0)
 					.map(result -> result ? entitlement : Decision.NOT_APPLICABLE).onErrorResume(error -> {
-						LOGGER.debug("Error in policy body evaluation: {}", error.getMessage());
+						log.debug("Error in policy body evaluation: {}", error.getMessage());
 						return Flux.just(Decision.INDETERMINATE);
 					});
 		} else {
@@ -102,7 +104,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 					return Flux.error(new PolicyEvaluationException(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL));
 				}
 			} catch (PolicyEvaluationException e) {
-				LOGGER.debug("Error in value definition evaluation: {}", e.getMessage());
+				log.debug("Error in value definition evaluation: {}", e.getMessage());
 				return Flux.error(e);
 			}
 		});

@@ -29,12 +29,12 @@ import org.springframework.http.HttpMethod;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
-import io.sapl.grammar.sapl.impl.Val;
 import io.sapl.webclient.RequestSpecification;
 import io.sapl.webclient.WebClientRequestExecutor;
 import lombok.NoArgsConstructor;

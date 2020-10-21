@@ -197,7 +197,7 @@ public class EthereumPipFunctions {
 			return new EthFilter(DefaultBlockParameter.valueOf(bigIntFromHex(fromBlock)),
 					DefaultBlockParameter.valueOf(bigIntFromHex(toBlock)), getStringListFrom(saplObject, ADDRESS));
 		}
-		LOGGER.warn(
+		log.warn(
 				"The EthFilter was not correctly provided. Please make sure that you used the correct input parameters.");
 		return new EthFilter();
 	}
@@ -222,7 +222,7 @@ public class EthereumPipFunctions {
 			}
 			return outputParameters;
 		}
-		LOGGER.warn("The JsonNode containing the ouput parameters wasn't an array as expected. "
+		log.warn("The JsonNode containing the ouput parameters wasn't an array as expected. "
 				+ "An empty list is being returned.");
 		return outputParameters;
 	}
@@ -256,11 +256,11 @@ public class EthereumPipFunctions {
 				case "char":
 					return new Char(textValue.charAt(0));
 				case "double":
-					LOGGER.warn("You tried to use a double type but this is not supported as function input. "
+					log.warn("You tried to use a double type but this is not supported as function input. "
 							+ DEFAULT_RETURN_WARNING);
 					return DEFAULT_RETURN_TYPE;
 				case "float":
-					LOGGER.warn("You tried to use a float type but this is not supported as function input. "
+					log.warn("You tried to use a float type but this is not supported as function input. "
 							+ DEFAULT_RETURN_WARNING);
 					return DEFAULT_RETURN_TYPE;
 				case "uint":
@@ -464,13 +464,13 @@ public class EthereumPipFunctions {
 				case "bytes32":
 					return new Bytes32(binaryValue);
 				default:
-					LOGGER.warn("The type with the name {} couldn't be found. " + DEFAULT_RETURN_WARNING, solidityType);
+					log.warn("The type with the name {} couldn't be found. " + DEFAULT_RETURN_WARNING, solidityType);
 					return DEFAULT_RETURN_TYPE;
 
 				}
 			}
 			catch (IOException | StringIndexOutOfBoundsException e) {
-				LOGGER.warn(
+				log.warn(
 						"The type {} with value {} coudn't be generated. Please make sure that you used correct spelling and the "
 								+ "value is correctly provided for this type. " + DEFAULT_RETURN_WARNING,
 						solidityType, value);
@@ -478,7 +478,7 @@ public class EthereumPipFunctions {
 			}
 
 		}
-		LOGGER.warn("There has been a request to convertToType, but the input didn't have both fields type "
+		log.warn("There has been a request to convertToType, but the input didn't have both fields type "
 				+ "and value or was null. " + DEFAULT_RETURN_WARNING);
 		return DEFAULT_RETURN_TYPE;
 	}
@@ -498,7 +498,7 @@ public class EthereumPipFunctions {
 			if (dbp.isBigInteger())
 				return DefaultBlockParameter.valueOf(dbp.bigIntegerValue());
 		}
-		LOGGER.info(NO_DBP_INFO);
+		log.info(NO_DBP_INFO);
 		return DefaultBlockParameter.valueOf(LATEST);
 	}
 

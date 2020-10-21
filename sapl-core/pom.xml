@@ -23,7 +23,12 @@
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-api</artifactId>
+			<artifactId>sapl-pdp-api</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-extensions-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
@@ -65,11 +70,6 @@
 			<optional>true</optional>
 		</dependency>
 		<dependency>
-			<groupId>com.github.fge</groupId>
-			<artifactId>jackson-coreutils</artifactId>
-			<version>1.8</version>
-		</dependency>
-		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
@@ -77,10 +77,6 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -217,7 +213,7 @@
 						</configuration>
 					</execution>
 					<execution>
-						<?m2e execute onConfiguration,onIncremental?>					
+						<?m2e execute onConfiguration,onIncremental?>
 						<id>add-test-source</id>
 						<phase>initialize</phase>
 						<goals>

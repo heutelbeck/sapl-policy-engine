@@ -16,14 +16,15 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 /**
  * Implements the lazy boolean OR operator, written as '||' in Expressions.
  *
- * Grammar: Addition returns Expression: Multiplication (({Or.left=current} '||')
- * right=Multiplication)* ;
+ * Grammar: Addition returns Expression: Multiplication (({Or.left=current}
+ * '||') right=Multiplication)* ;
  */
 public class OrImplCustom extends OrImpl {
 

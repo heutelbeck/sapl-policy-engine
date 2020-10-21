@@ -60,10 +60,11 @@
 	</properties>
 
     <modules>
+        <module>sapl-pdp-api</module>            
+        <module>sapl-extensions-api</module>            
         <module>sapl-core</module>
         <module>sapl-ide</module>
         <module>sapl-web</module>
-        <module>sapl-api</module>
         <module>sapl-interpreter</module>
         <module>sapl-pdp-embedded</module>
         <module>sapl-pdp-client</module>

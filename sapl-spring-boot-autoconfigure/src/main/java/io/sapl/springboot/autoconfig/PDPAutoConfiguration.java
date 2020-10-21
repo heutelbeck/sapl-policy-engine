@@ -132,24 +132,24 @@ public class PDPAutoConfiguration {
 		final EmbeddedPolicyDecisionPoint.Builder builder = EmbeddedPolicyDecisionPoint.builder();
 		if (pdpProperties.getPdpConfigType() == SAPLProperties.PDPConfigType.FILESYSTEM) {
 			final String configPath = pdpProperties.getFilesystem().getConfigPath();
-			LOGGER.info("using monitored config file from the filesystem: {}", configPath);
+			log.info("using monitored config file from the filesystem: {}", configPath);
 			builder.withFilesystemPDPConfigurationProvider(configPath);
 		} else {
 			final String configPath = pdpProperties.getResources().getConfigPath();
-			LOGGER.info("using config file from bundled resource at: {}", configPath);
+			log.info("using config file from bundled resource at: {}", configPath);
 			builder.withResourcePDPConfigurationProvider(configPath);
 		}
 
 		final Builder.IndexType indexType = getIndexType();
 		if (pdpProperties.getPrpType() == SAPLProperties.PRPType.FILESYSTEM) {
 			final String policiesPath = pdpProperties.getFilesystem().getPoliciesPath();
-			LOGGER.info(
+			log.info(
 					"creating embedded PDP with {} index sourcing and monitoring access policies from the filesystem: {}",
 					indexType, policiesPath);
 			builder.withFilesystemPolicyRetrievalPoint(policiesPath, indexType);
 		} else {
 			final String policiesPath = pdpProperties.getResources().getPoliciesPath();
-			LOGGER.info("creating embedded PDP with {} index sourcing access policies from bundled resources at: {}",
+			log.info("creating embedded PDP with {} index sourcing access policies from bundled resources at: {}",
 					indexType, policiesPath);
 			builder.withResourcePolicyRetrievalPoint(policiesPath, indexType);
 		}
@@ -170,7 +170,7 @@ public class PDPAutoConfiguration {
 
 	private Builder bindComponentsToPDP(Builder builder) throws AttributeException {
 		for (Object entry : policyInformationPoints) {
-			LOGGER.debug("binding PIP to PDP: {}", entry.getClass().getSimpleName());
+			log.debug("binding PIP to PDP: {}", entry.getClass().getSimpleName());
 			try {
 				builder.withPolicyInformationPoint(entry);
 			} catch (SecurityException | IllegalArgumentException | AttributeException e) {
@@ -178,7 +178,7 @@ public class PDPAutoConfiguration {
 			}
 		}
 		for (Object entry : functionLibraries) {
-			LOGGER.debug("binding FunctionLibrary to PDP: {}", entry.getClass().getSimpleName());
+			log.debug("binding FunctionLibrary to PDP: {}", entry.getClass().getSimpleName());
 			try {
 				builder.withFunctionLibrary(entry);
 			} catch (SecurityException | IllegalArgumentException | FunctionException e) {
@@ -202,7 +202,7 @@ public class PDPAutoConfiguration {
 	@ConditionalOnProperty("io.sapl.policyEnforcementFilter")
 	public PolicyEnforcementFilterPEP policyEnforcementFilter(PolicyDecisionPoint pdp,
 			ConstraintHandlerService constraintHandlers, ObjectMapper mapper) {
-		LOGGER.debug("no Bean of type PolicyEnforcementFilter defined. Will create default Bean of {}",
+		log.debug("no Bean of type PolicyEnforcementFilter defined. Will create default Bean of {}",
 				PolicyEnforcementFilterPEP.class);
 		return new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
 	}
