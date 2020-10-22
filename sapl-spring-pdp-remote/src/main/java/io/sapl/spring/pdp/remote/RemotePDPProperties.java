@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.server;
+package io.sapl.spring.pdp.remote;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@SpringBootApplication
-@EnableConfigurationProperties(SAPLServerLTProperties.class)
-public class SAPLServerLTApplication {
+import lombok.Data;
 
-	public static void main(String[] args) {
-		SpringApplication.run(SAPLServerLTApplication.class, args);
-	}
-
+@Data
+@ConfigurationProperties(prefix = "io.sapl.pdp.remote")
+public class RemotePDPProperties {
+	private static final int DEFAULT_REMOTE_PORT = 8443;
+	private String host = "localhost";
+	private int port = DEFAULT_REMOTE_PORT;
+	private String key = "";
+	private String secret = "";
 }

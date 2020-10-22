@@ -1,10 +1,14 @@
 # configure the PDP
-io.sapl.server-lt:
-  # folder in which the configuration and policies reside on the system
-  path: ~/sapl/policies
-  key: YJidgyT2mfdkbmL
-  # BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh)
-  secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO
+io.sapl:
+  pdp.embedded:
+    pdp-config-type: FILESYSTEM
+    config-path: ~/sapl/policies
+    policies-path: ~/sapl/policies
+  server-lt:
+    # folder in which the configuration and policies reside on the system
+    key: YJidgyT2mfdkbmL
+    # BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh)
+    secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO
 
 # configure the server
 server:

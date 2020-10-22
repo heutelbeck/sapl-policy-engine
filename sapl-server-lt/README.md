@@ -1,6 +1,6 @@
 # SAPL Server LT - lightweight authorization server.
 
-This is a lightweight PDP server without any UI. The server monitors the directory defined by the property `io.sapl.server-lt.path`, which defaults to `~/sapl/policies`. 
+This is a lightweight PDP server without any UI. The server monitors the directory defined by the property `io.sapl.pdp.embedded.server-lt.config-path` and `io.sapl.pdp.embedded.config-path`, which defaults to `~/sapl/policies`. 
 The PDP configuration for combining algorithm and environment variables is expected in a file `pdp.json`. 
 All SAPL documents in the folder named `*.sapl` will be published to the PRP.
 

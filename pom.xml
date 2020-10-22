@@ -1,46 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com) Licensed
-	under the Apache License, Version 2.0 (the "License"); you may not use this
-	file except in compliance with the License. You may obtain a copy of the
-	License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by
-	applicable law or agreed to in writing, software distributed under the License
-	is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-	KIND, either express or implied. See the License for the specific language
+<!-- Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com) Licensed 
+	under the Apache License, Version 2.0 (the "License"); you may not use this 
+	file except in compliance with the License. You may obtain a copy of the 
+	License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by 
+	applicable law or agreed to in writing, software distributed under the License 
+	is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+	KIND, either express or implied. See the License for the specific language 
 	governing permissions and limitations under the License. -->
-<!-- Update all child project versions to the actual parent pom version:
+<!-- Update all child project versions to the actual parent pom version: 
 	mvn versions:update-child-modules -N -->
 <!-- correct the license headers of all source files mvn license:format -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.sapl</groupId>
-    <artifactId>sapl-policy-engine</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+	<groupId>io.sapl</groupId>
+	<artifactId>sapl-policy-engine</artifactId>
+	<version>2.0.0-SNAPSHOT</version>
 
-    <packaging>pom</packaging>
+	<packaging>pom</packaging>
 
-    <name>SAPL Policy Engine</name>
+	<name>SAPL Policy Engine</name>
 
-    <developers>
-        <developer>
-            <name>Dominic Heutelbeck</name>
-            <email>dominic@heutelbeck.com</email>
-            <roles>
-                <role>Project Owner</role>
-            </roles>
-        </developer>
-    </developers>
+	<developers>
+		<developer>
+			<name>Dominic Heutelbeck</name>
+			<email>dominic@heutelbeck.com</email>
+			<roles>
+				<role>Project Owner</role>
+			</roles>
+		</developer>
+	</developers>
 
-    <inceptionYear>2020</inceptionYear>
+	<inceptionYear>2020</inceptionYear>
 
-    <licenses>
-        <license>
-            <name>Apache 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
-        </license>
-    </licenses>
+	<licenses>
+		<license>
+			<name>Apache 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0</url>
+		</license>
+	</licenses>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -59,101 +59,102 @@
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 	</properties>
 
-    <modules>
-        <module>sapl-pdp-api</module>            
-        <module>sapl-extensions-api</module>            
-        <module>sapl-core</module>
-        <module>sapl-ide</module>
-        <module>sapl-web</module>
-        <module>sapl-interpreter</module>
-        <module>sapl-pdp-embedded</module>
-        <module>sapl-pdp-client</module>
-        <module>sapl-server-lt</module>
-        <module>sapl-pip-http</module>
-        <module>sapl-documentation</module>
-        <module>sapl-geo</module>
-        <module>sapl-spring</module>
-        <module>sapl-spring-boot-autoconfigure</module>
-        <module>sapl-spring-boot-starter</module>
-        <module>sapl-webclient</module>
-        <module>sapl-ethereum</module>
-        <module>sapl-editor-for-vaadin</module>
-    </modules>
+	<modules>
+		<module>sapl-pdp-api</module>
+		<module>sapl-extensions-api</module>
+		<module>sapl-core</module>
+		<module>sapl-ide</module>
+		<module>sapl-web</module>
+		<module>sapl-interpreter</module>
+		<module>sapl-pdp-embedded</module>
+		<module>sapl-pdp-client</module>
+		<module>sapl-spring-pdp-embedded</module>
+		<module>sapl-spring-pdp-remote</module>
+		<module>sapl-spring-security</module>
+		<module>sapl-webflux-endpoint</module>
+		<module>sapl-server-lt</module>
+		<module>sapl-pip-http</module>
+		<module>sapl-documentation</module>
+		<module>sapl-geo</module>
+		<module>sapl-webclient</module>
+		<module>sapl-ethereum</module>
+		<module>sapl-editor-for-vaadin</module>
+	</modules>
 
-    <dependencyManagement>
-        <dependencies>
+	<dependencyManagement>
+		<dependencies>
 
-            <!-- XText -->
-            <dependency>
-                <groupId>org.eclipse.xtext</groupId>
-                <artifactId>xtext-dev-bom</artifactId>
-                <version>${xtextVersion}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
+			<!-- XText -->
+			<dependency>
+				<groupId>org.eclipse.xtext</groupId>
+				<artifactId>xtext-dev-bom</artifactId>
+				<version>${xtextVersion}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 
-            <!-- Testing Scope Dependencies -->
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${version.junit}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.powermock</groupId>
-                <artifactId>powermock-module-junit4</artifactId>
-                <version>${version.powermock}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.powermock</groupId>
-                <artifactId>powermock-api-mockito2</artifactId>
-                <version>${version.powermock}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-core</artifactId>
-                <version>${version.mockito}</version>
-                <scope>test</scope>
-            </dependency>
+			<!-- Testing Scope Dependencies -->
+			<dependency>
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>${version.junit}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.powermock</groupId>
+				<artifactId>powermock-module-junit4</artifactId>
+				<version>${version.powermock}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.powermock</groupId>
+				<artifactId>powermock-api-mockito2</artifactId>
+				<version>${version.powermock}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-core</artifactId>
+				<version>${version.mockito}</version>
+				<scope>test</scope>
+			</dependency>
 
-            <!-- Spring-Boot -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${version.springboot}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
+			<!-- Spring-Boot -->
+			<dependency>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-dependencies</artifactId>
+				<version>${version.springboot}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 
-            <!-- Project Reactor -->
-            <dependency>
-                <groupId>io.projectreactor</groupId>
-                <artifactId>reactor-bom</artifactId>
-                <version>Californium-RELEASE</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
+			<!-- Project Reactor -->
+			<dependency>
+				<groupId>io.projectreactor</groupId>
+				<artifactId>reactor-bom</artifactId>
+				<version>Californium-RELEASE</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 
-            <!-- Project Lombok -->
-            <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
-                <version>${version.lombok}</version>
-            </dependency>
+			<!-- Project Lombok -->
+			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>${version.lombok}</version>
+			</dependency>
 
-            <!-- Vaadin -->
-            <dependency>
-                <groupId>com.vaadin</groupId>
-                <artifactId>vaadin-bom</artifactId>
-                <version>${version.vaadin}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
+			<!-- Vaadin -->
+			<dependency>
+				<groupId>com.vaadin</groupId>
+				<artifactId>vaadin-bom</artifactId>
+				<version>${version.vaadin}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 
-        </dependencies>
-    </dependencyManagement>
+		</dependencies>
+	</dependencyManagement>
 
 	<build>
 		<pluginManagement>
@@ -262,15 +263,8 @@
 						<config>SCRIPT_STYLE</config>
 					</mapping>
 				</configuration>
-    			<!-- Uncomment if check shall be done every build
-    			<executions>
-	        		<execution>
-            			<goals>
-	                		<goal>check</goal>
-    	        		</goals>
-			        </execution>
-    			</executions>
-    			-->
+				<!-- Uncomment if check shall be done every build <executions> <execution> 
+					<goals> <goal>check</goal> </goals> </execution> </executions> -->
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -353,79 +347,79 @@
 		</plugins>
 	</build>
 
-    <repositories>
-        <repository>
-            <id>central</id>
-            <url>https://repo.maven.apache.org/maven2</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>codehaus-snapshots</id>
-            <name>disable dead 'Codehaus Snapshots' repository, see
+	<repositories>
+		<repository>
+			<id>central</id>
+			<url>https://repo.maven.apache.org/maven2</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>codehaus-snapshots</id>
+			<name>disable dead 'Codehaus Snapshots' repository, see
                 https://bugs.eclipse.org/bugs/show_bug.cgi?id=481478
             </name>
-            <url>http://nexus.codehaus.org/snapshots/</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>codehaus-snapshots</id>
-            <name>disable dead 'Codehaus Snapshots' repository, see
+			<url>http://nexus.codehaus.org/snapshots/</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>codehaus-snapshots</id>
+			<name>disable dead 'Codehaus Snapshots' repository, see
                 https://bugs.eclipse.org/bugs/show_bug.cgi?id=481478
             </name>
-            <url>http://nexus.codehaus.org/snapshots/</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
+			<url>http://nexus.codehaus.org/snapshots/</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</pluginRepository>
+	</pluginRepositories>
 
-    <profiles>
-        <profile>
-            <id>macos</id>
-            <activation>
-                <os>
-                    <family>mac</family>
-                </os>
-            </activation>
-            <properties>
-                <!-- THE FOLLOWING LINE MUST NOT BE BROKEN BY AUTOFORMATTING -->
-                <platformSystemProperties>-XstartOnFirstThread</platformSystemProperties>
-            </properties>
-        </profile>
-        <profile>
-            <id>jdk9-or-newer</id>
-            <activation>
-                <jdk>[9,)</jdk>
-            </activation>
-            <properties>
-                <moduleProperties>--add-modules=ALL-SYSTEM</moduleProperties>
-            </properties>
-        </profile>
-    </profiles>
+	<profiles>
+		<profile>
+			<id>macos</id>
+			<activation>
+				<os>
+					<family>mac</family>
+				</os>
+			</activation>
+			<properties>
+				<!-- THE FOLLOWING LINE MUST NOT BE BROKEN BY AUTOFORMATTING -->
+				<platformSystemProperties>-XstartOnFirstThread</platformSystemProperties>
+			</properties>
+		</profile>
+		<profile>
+			<id>jdk9-or-newer</id>
+			<activation>
+				<jdk>[9,)</jdk>
+			</activation>
+			<properties>
+				<moduleProperties>--add-modules=ALL-SYSTEM</moduleProperties>
+			</properties>
+		</profile>
+	</profiles>
 
-    <distributionManagement>
-        <repository>
-            <id>openconjurer-public</id>
-            <name>OpenConjurer Nexus Maven Release Repository</name>
-            <url>https://nexus.openconjurer.org/repository/releases/</url>
-        </repository>
-        <snapshotRepository>
-            <id>openconjurer-public-snapshots</id>
-            <name>OpenConjurer Nexus Maven Snapshot Repository</name>
-            <url>https://nexus.openconjurer.org/repository/snapshots/</url>
-        </snapshotRepository>
-    </distributionManagement>
+	<distributionManagement>
+		<repository>
+			<id>openconjurer-public</id>
+			<name>OpenConjurer Nexus Maven Release Repository</name>
+			<url>https://nexus.openconjurer.org/repository/releases/</url>
+		</repository>
+		<snapshotRepository>
+			<id>openconjurer-public-snapshots</id>
+			<name>OpenConjurer Nexus Maven Snapshot Repository</name>
+			<url>https://nexus.openconjurer.org/repository/snapshots/</url>
+		</snapshotRepository>
+	</distributionManagement>
 
 </project>

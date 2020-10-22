@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  io.sapl.spring.pdp.remote.RemotePDPAutoConfiguration

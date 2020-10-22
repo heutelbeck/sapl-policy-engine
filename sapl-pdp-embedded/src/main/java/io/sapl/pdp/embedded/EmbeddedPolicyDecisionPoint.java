@@ -15,7 +15,14 @@
  */
 package io.sapl.pdp.embedded;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -54,207 +61,202 @@ import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 @Slf4j
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
-    @Getter
-    private final FunctionContext functionCtx = new AnnotationFunctionContext();
+	@Getter
+	private FunctionContext functionCtx = new AnnotationFunctionContext();
 
-    @Getter
-    private final AttributeContext attributeCtx = new AnnotationAttributeContext();
+	@Getter
+	private final AttributeContext attributeCtx = new AnnotationAttributeContext();
 
-    private PDPConfigurationProvider configurationProvider;
+	private PDPConfigurationProvider configurationProvider;
 
-    private PolicyRetrievalPoint prp;
+	private PolicyRetrievalPoint prp;
 
-    private EmbeddedPolicyDecisionPoint() {
-        // use Builder to create new instances
-    }
+	private EmbeddedPolicyDecisionPoint() {
+		// use Builder to create new instances
+	}
 
-    @Override
-    public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-        log.trace("|--------------------------------->");
-        log.trace("|-- PDP AuthorizationSubscription: {}", authzSubscription);
+	@Override
+	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
+		log.trace("|--------------------------------->");
+		log.trace("|-- PDP AuthorizationSubscription: {}", authzSubscription);
 
-        final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider.getVariables();
-        final Flux<DocumentsCombinator> combinatorFlux = configurationProvider.getDocumentsCombinator();
+		final Flux<Map<String, JsonNode>> variablesFlux = configurationProvider.getVariables();
+		final Flux<DocumentsCombinator> combinatorFlux = configurationProvider.getDocumentsCombinator();
 
-        Flux<Tuple2<Map<String, JsonNode>, DocumentsCombinator>> pdpConfiguration = Flux.combineLatest(variablesFlux,
-                combinatorFlux, Tuples::of).distinctUntilChanged();
+		Flux<Tuple2<Map<String, JsonNode>, DocumentsCombinator>> pdpConfiguration = Flux
+				.combineLatest(variablesFlux, combinatorFlux, Tuples::of).distinctUntilChanged();
 
-       return pdpConfiguration.switchMap(config -> prp
-                .retrievePolicies(authzSubscription, functionCtx, config.getT1())
-                .switchMap(policies -> config.getT2().combineMatchingDocuments(policies.getMatchingDocuments(),
-                        policies.isErrorsInTarget(), authzSubscription, attributeCtx, functionCtx, config.getT1())))
-                .distinctUntilChanged();
-    }
+		return pdpConfiguration.switchMap(config -> prp.retrievePolicies(authzSubscription, functionCtx, config.getT1())
+				.switchMap(policies -> config.getT2().combineMatchingDocuments(policies.getMatchingDocuments(),
+						policies.isErrorsInTarget(), authzSubscription, attributeCtx, functionCtx, config.getT1())))
+				.distinctUntilChanged();
+	}
 
-    @Override
-    public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
-        if (multiAuthzSubscription.hasAuthorizationSubscriptions()) {
-            final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = createIdentifiableAuthzDecisionFluxes(
-                    multiAuthzSubscription, true);
-            return Flux.merge(identifiableAuthzDecisionFluxes);
-        }
-        return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
-    }
+	@Override
+	public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
+		if (multiAuthzSubscription.hasAuthorizationSubscriptions()) {
+			final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = createIdentifiableAuthzDecisionFluxes(
+					multiAuthzSubscription, true);
+			return Flux.merge(identifiableAuthzDecisionFluxes);
+		}
+		return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
+	}
 
-    @Override
-    public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
-        if (multiAuthzSubscription.hasAuthorizationSubscriptions()) {
-            final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = createIdentifiableAuthzDecisionFluxes(
-                    multiAuthzSubscription, false);
-            return Flux.combineLatest(identifiableAuthzDecisionFluxes, this::collectAuthorizationDecisions);
-        }
-        return Flux.just(MultiAuthorizationDecision.indeterminate());
-    }
+	@Override
+	public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
+		if (multiAuthzSubscription.hasAuthorizationSubscriptions()) {
+			final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = createIdentifiableAuthzDecisionFluxes(
+					multiAuthzSubscription, false);
+			return Flux.combineLatest(identifiableAuthzDecisionFluxes, this::collectAuthorizationDecisions);
+		}
+		return Flux.just(MultiAuthorizationDecision.indeterminate());
+	}
 
-    private List<Flux<IdentifiableAuthorizationDecision>> createIdentifiableAuthzDecisionFluxes(
-            Iterable<IdentifiableAuthorizationSubscription> multiDecision, boolean useSeparateSchedulers) {
-        final Scheduler schedulerForMerge = useSeparateSchedulers ? Schedulers.newElastic("pdp") : null;
-        final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = new ArrayList<>();
-        for (IdentifiableAuthorizationSubscription identifiableAuthzSubscription : multiDecision) {
-            final String subscriptionId = identifiableAuthzSubscription.getAuthorizationSubscriptionId();
-            final AuthorizationSubscription authzSubscription = identifiableAuthzSubscription
-                    .getAuthorizationSubscription();
-            final Flux<IdentifiableAuthorizationDecision> identifiableAuthzDecisionFlux = decide(authzSubscription)
-                    .map(authzDecision -> new IdentifiableAuthorizationDecision(subscriptionId, authzDecision));
-            if (useSeparateSchedulers) {
-                identifiableAuthzDecisionFluxes.add(identifiableAuthzDecisionFlux.subscribeOn(schedulerForMerge));
-            } else {
-                identifiableAuthzDecisionFluxes.add(identifiableAuthzDecisionFlux);
-            }
-        }
-        return identifiableAuthzDecisionFluxes;
-    }
+	private List<Flux<IdentifiableAuthorizationDecision>> createIdentifiableAuthzDecisionFluxes(
+			Iterable<IdentifiableAuthorizationSubscription> multiDecision, boolean useSeparateSchedulers) {
+		final Scheduler schedulerForMerge = useSeparateSchedulers ? Schedulers.newElastic("pdp") : null;
+		final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = new ArrayList<>();
+		for (IdentifiableAuthorizationSubscription identifiableAuthzSubscription : multiDecision) {
+			final String subscriptionId = identifiableAuthzSubscription.getAuthorizationSubscriptionId();
+			final AuthorizationSubscription authzSubscription = identifiableAuthzSubscription
+					.getAuthorizationSubscription();
+			final Flux<IdentifiableAuthorizationDecision> identifiableAuthzDecisionFlux = decide(authzSubscription)
+					.map(authzDecision -> new IdentifiableAuthorizationDecision(subscriptionId, authzDecision));
+			if (useSeparateSchedulers) {
+				identifiableAuthzDecisionFluxes.add(identifiableAuthzDecisionFlux.subscribeOn(schedulerForMerge));
+			} else {
+				identifiableAuthzDecisionFluxes.add(identifiableAuthzDecisionFlux);
+			}
+		}
+		return identifiableAuthzDecisionFluxes;
+	}
 
-    private MultiAuthorizationDecision collectAuthorizationDecisions(Object[] values) {
-        final MultiAuthorizationDecision multiAuthzDecision = new MultiAuthorizationDecision();
-        for (Object value : values) {
-            IdentifiableAuthorizationDecision ir = (IdentifiableAuthorizationDecision) value;
-            multiAuthzDecision.setAuthorizationDecisionForSubscriptionWithId(ir.getAuthorizationSubscriptionId(),
-                    ir.getAuthorizationDecision());
-        }
-        return multiAuthzDecision;
-    }
+	private MultiAuthorizationDecision collectAuthorizationDecisions(Object[] values) {
+		final MultiAuthorizationDecision multiAuthzDecision = new MultiAuthorizationDecision();
+		for (Object value : values) {
+			IdentifiableAuthorizationDecision ir = (IdentifiableAuthorizationDecision) value;
+			multiAuthzDecision.setAuthorizationDecisionForSubscriptionWithId(ir.getAuthorizationSubscriptionId(),
+					ir.getAuthorizationDecision());
+		}
+		return multiAuthzDecision;
+	}
 
-    public static Builder builder() throws FunctionException, AttributeException {
-        return new Builder();
-    }
+	public static Builder builder() throws FunctionException, AttributeException {
+		return new Builder();
+	}
 
-    public static class Builder {
+	public static class Builder {
 
-        public enum IndexType {
+		public enum IndexType {
+			SIMPLE, IMPROVED
+		}
 
-            SIMPLE, IMPROVED
+		private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
 
-        }
+		private Builder() throws FunctionException, AttributeException {
+			pdp.functionCtx.loadLibrary(new FilterFunctionLibrary());
+			pdp.functionCtx.loadLibrary(new SelectionFunctionLibrary());
+			pdp.functionCtx.loadLibrary(new StandardFunctionLibrary());
+			pdp.functionCtx.loadLibrary(new TemporalFunctionLibrary());
+			pdp.attributeCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
+		}
 
-        private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
+		public Builder withResourcePDPConfigurationProvider()
+				throws PDPConfigurationException, IOException, URISyntaxException {
+			pdp.configurationProvider = new ResourcesPDPConfigurationProvider();
+			return this;
+		}
 
-        private Builder() throws FunctionException, AttributeException {
-            pdp.functionCtx.loadLibrary(new FilterFunctionLibrary());
-            pdp.functionCtx.loadLibrary(new SelectionFunctionLibrary());
-            pdp.functionCtx.loadLibrary(new StandardFunctionLibrary());
-            pdp.functionCtx.loadLibrary(new TemporalFunctionLibrary());
+		public Builder withPDPConfigurationProvider(PDPConfigurationProvider configurationProvider) {
+			pdp.configurationProvider = configurationProvider;
+			return this;
+		}
 
-            pdp.attributeCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
-        }
+		public Builder withResourcePDPConfigurationProvider(String resourcePath)
+				throws PDPConfigurationException, IOException, URISyntaxException {
+			return withResourcePDPConfigurationProvider(ResourcesPDPConfigurationProvider.class, resourcePath);
+		}
 
-        public Builder withResourcePDPConfigurationProvider()
-                throws PDPConfigurationException, IOException, URISyntaxException {
-            pdp.configurationProvider = new ResourcesPDPConfigurationProvider();
-            return this;
-        }
+		public Builder withResourcePDPConfigurationProvider(Class<?> clazz, String resourcePath)
+				throws PDPConfigurationException, IOException, URISyntaxException {
+			pdp.configurationProvider = new ResourcesPDPConfigurationProvider(clazz, resourcePath);
+			return this;
+		}
 
-        public Builder withPDPConfigurationProvider(PDPConfigurationProvider configurationProvider) {
-            pdp.configurationProvider = configurationProvider;
-            return this;
-        }
+		public Builder withFilesystemPDPConfigurationProvider(String configFolder) {
+			pdp.configurationProvider = new FilesystemPDPConfigurationProvider(configFolder);
+			return this;
+		}
 
-        public Builder withResourcePDPConfigurationProvider(String resourcePath)
-                throws PDPConfigurationException, IOException, URISyntaxException {
-            return withResourcePDPConfigurationProvider(ResourcesPDPConfigurationProvider.class, resourcePath);
-        }
+		public Builder withFunctionLibrary(Object lib) throws FunctionException {
+			pdp.functionCtx.loadLibrary(lib);
+			return this;
+		}
 
-        public Builder withResourcePDPConfigurationProvider(Class<?> clazz, String resourcePath)
-                throws PDPConfigurationException, IOException, URISyntaxException {
-            pdp.configurationProvider = new ResourcesPDPConfigurationProvider(clazz, resourcePath);
-            return this;
-        }
+		public Builder withFunctionContext(FunctionContext ctx) throws FunctionException {
+			pdp.functionCtx = ctx;
+			return this;
+		}
 
-        public Builder withFilesystemPDPConfigurationProvider(String configFolder) {
-            pdp.configurationProvider = new FilesystemPDPConfigurationProvider(configFolder);
-            return this;
-        }
+		public Builder withPolicyInformationPoint(Object pip) throws AttributeException {
+			pdp.attributeCtx.loadPolicyInformationPoint(pip);
+			return this;
+		}
 
-        public Builder withFunctionLibrary(Object lib) throws FunctionException {
-            pdp.functionCtx.loadLibrary(lib);
-            return this;
-        }
+		public Builder withPolicyRetrievalPoint(PolicyRetrievalPoint prp) {
+			pdp.prp = prp;
+			return this;
+		}
 
-        public Builder withPolicyInformationPoint(Object pip) throws AttributeException {
-            pdp.attributeCtx.loadPolicyInformationPoint(pip);
-            return this;
-        }
+		public Builder withResourcePolicyRetrievalPoint()
+				throws IOException, URISyntaxException, PolicyEvaluationException {
+			pdp.prp = new ResourcesPolicyRetrievalPoint();
+			return this;
+		}
 
-        public Builder withPolicyRetrievalPoint(PolicyRetrievalPoint prp) {
-            pdp.prp = prp;
-            return this;
-        }
+		public Builder withResourcePolicyRetrievalPoint(String resourcePath, IndexType indexType)
+				throws IOException, URISyntaxException, PolicyEvaluationException {
+			return withResourcePolicyRetrievalPoint(ResourcesPolicyRetrievalPoint.class, resourcePath, indexType);
+		}
 
-        public Builder withResourcePolicyRetrievalPoint()
-                throws IOException, URISyntaxException, PolicyEvaluationException {
-            pdp.prp = new ResourcesPolicyRetrievalPoint();
-            return this;
-        }
+		public Builder withResourcePolicyRetrievalPoint(Class<?> clazz, String resourcePath, IndexType indexType)
+				throws IOException, URISyntaxException, PolicyEvaluationException {
+			final ParsedDocumentIndex index = getDocumentIndex(indexType);
+			pdp.prp = new ResourcesPolicyRetrievalPoint(clazz, resourcePath, index);
+			return this;
+		}
 
-        public Builder withResourcePolicyRetrievalPoint(String resourcePath, IndexType indexType)
-                throws IOException, URISyntaxException, PolicyEvaluationException {
-            return withResourcePolicyRetrievalPoint(ResourcesPolicyRetrievalPoint.class, resourcePath, indexType);
-        }
+		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder, IndexType indexType) {
+			final ParsedDocumentIndex index = getDocumentIndex(indexType);
+			pdp.prp = new FilesystemPolicyRetrievalPoint(policiesFolder, index);
+			return this;
+		}
 
-        public Builder withResourcePolicyRetrievalPoint(Class<?> clazz, String resourcePath, IndexType indexType)
-                throws IOException, URISyntaxException, PolicyEvaluationException {
-            final ParsedDocumentIndex index = getDocumentIndex(indexType);
-            pdp.prp = new ResourcesPolicyRetrievalPoint(clazz, resourcePath, index);
-            return this;
-        }
+		private ParsedDocumentIndex getDocumentIndex(IndexType indexType) {
+			switch (indexType) {
+			case IMPROVED:
+				return new ImprovedDocumentIndex(pdp.functionCtx);
+			case SIMPLE:
+				// fall through
+			default:
+				return new SimpleParsedDocumentIndex();
+			}
+		}
 
-        public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder, IndexType indexType) {
-            final ParsedDocumentIndex index = getDocumentIndex(indexType);
-            pdp.prp = new FilesystemPolicyRetrievalPoint(policiesFolder, index);
-            return this;
-        }
+		public EmbeddedPolicyDecisionPoint build()
+				throws IOException, URISyntaxException, PolicyEvaluationException, PDPConfigurationException {
+			if (pdp.prp == null) {
+				withResourcePolicyRetrievalPoint();
+			}
+			if (pdp.configurationProvider == null) {
+				withResourcePDPConfigurationProvider();
+			}
+			return pdp;
+		}
 
-        private ParsedDocumentIndex getDocumentIndex(IndexType indexType) {
-            switch (indexType) {
-                case IMPROVED:
-                    return new ImprovedDocumentIndex(pdp.functionCtx);
-                case SIMPLE:
-                    //fall through
-                default:
-                    return new SimpleParsedDocumentIndex();
-            }
-        }
-
-        public EmbeddedPolicyDecisionPoint build()
-                throws IOException, URISyntaxException, PolicyEvaluationException, PDPConfigurationException {
-            if (pdp.prp == null) {
-                withResourcePolicyRetrievalPoint();
-            }
-            if (pdp.configurationProvider == null) {
-                withResourcePDPConfigurationProvider();
-            }
-            return pdp;
-        }
-
-    }
+	}
 
 }

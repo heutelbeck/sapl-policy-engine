@@ -50,11 +50,15 @@ You can autoconfigure the use of your Policy Decision Point and your Ethereum PI
 
 ```xml
 <dependency>
-      <groupId>io.sapl</groupId>
-      <artifactId>sapl-spring-boot-starter</artifactId>
-      <version>2.0.0-SNAPSHOT</version>
+	<groupId>io.sapl</groupId>
+	<artifactId>sapl-spring-security</artifactId>
+   <version>2.0.0-SNAPSHOT</version>
 </dependency>
-
+<dependency>
+	<groupId>io.sapl</groupId>
+	artifactId>sapl-spring-pdp-embedded</artifactId>
+	<version>2.0.0-SNAPSHOT</version>
+</dependency>
 <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-ethereum</artifactId>

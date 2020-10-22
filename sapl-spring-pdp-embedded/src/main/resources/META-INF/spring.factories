@@ -1,0 +1,8 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  io.sapl.spring.pdp.embedded.DocumentationAutoConfiguration,\
+  io.sapl.spring.pdp.embedded.FunctionContextAutoConfiguration,\
+  io.sapl.spring.pdp.embedded.FunctionLibrariesAutoConfiguration,\
+  io.sapl.spring.pdp.embedded.InterpreterAutoConfiguration,\
+  io.sapl.spring.pdp.embedded.PDPAutoConfiguration,\
+  io.sapl.spring.pdp.embedded.PDPConfigurationProviderAutoConfiguration,\
+  io.sapl.spring.pdp.embedded.PRPAutoConfiguration
