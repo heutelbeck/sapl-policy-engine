@@ -118,13 +118,21 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 			final Path absoluteFilePath = Paths.get(path, fileName.toString());
 			if (kind == ENTRY_CREATE) {
 				log.info("reading pdp config from {}", fileName);
-				config = mapper.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
+				if (absoluteFilePath.toFile().length() > 0) {
+					config = mapper.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
+				}
 			} else if (kind == ENTRY_DELETE) {
 				log.info("deleted pdp config file {}. Using default configuration", fileName);
 				config = new PolicyDecisionPointConfiguration();
 			} else if (kind == ENTRY_MODIFY) {
-				log.info("updating pdp config from {}", fileName);
-				config = mapper.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
+				if (absoluteFilePath.toFile().length() > 0) {
+					log.info("updating pdp config from {}", fileName);
+					config = mapper.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
+				} else {
+					// watcher emits event twice. once for timestamp and once for modification of contents. 
+					// ignore files of size zero to fix
+					log.trace("event ignored");
+				}
 			} else {
 				log.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
 			}
