@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.server.controller;
+package io.sapl.server.pdpcontroller;
 
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,7 +27,6 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
-import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
 /**
@@ -36,12 +35,18 @@ import reactor.core.publisher.Flux;
  * {@link io.sapl.pdp.remote.RemotePolicyDecisionPoint} in the module
  * sapl-pdp-client.
  */
+
 @RestController
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 @RequestMapping("/api/pdp")
 public class PDPController {
 
 	private final PolicyDecisionPoint pdp;
+
+	public PDPController(PolicyDecisionPoint pdp) {
+		this.pdp = pdp;
+		System.out.println("______________________________________");
+	}
 
 	/**
 	 * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.

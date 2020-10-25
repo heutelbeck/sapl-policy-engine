@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.server;
+package io.sapl.server.lt;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
