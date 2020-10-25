@@ -24,11 +24,11 @@ Workflow {
     }
     
     component = org.eclipse.emf.mwe.utils.DirectoryCleaner {
-    		directory = "../sapl-core/src/main/emf-gen"
+    		directory = "../sapl-lang/src/main/emf-gen"
     }
     
     component = org.eclipse.emf.mwe2.ecore.EcoreGenerator {
-        genModel = "platform:/resource/sapl-core/src/main/model/custom/SAPL.genmodel"
-        srcPath = "platform:/resource/sapl-core/src/main/java"
+        genModel = "platform:/resource/sapl-lang/src/main/model/custom/SAPL.genmodel"
+        srcPath = "platform:/resource/sapl-lang/src/main/java"
     }
 }

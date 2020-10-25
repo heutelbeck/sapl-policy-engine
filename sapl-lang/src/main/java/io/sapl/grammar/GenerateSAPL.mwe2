@@ -30,7 +30,7 @@ Workflow {
 	component = XtextGenerator {
 		configuration = {
 			project = StandardProjectConfig {
-				baseName = "sapl-core"
+				baseName = "sapl-lang"
 				rootPath = rootPath
 				genericIde = {
        				name = "sapl-ide"
@@ -61,7 +61,7 @@ Workflow {
 			name = "io.sapl.grammar.SAPL"
 			fileExtensions = "sapl"
 			
-			referencedResource = "platform:/resource/sapl-core/src/main/model/custom/SAPL.genmodel"
+			referencedResource = "platform:/resource/sapl-lang/src/main/model/custom/SAPL.genmodel"
 			
 			fragment = ecore2xtext.Ecore2XtextValueConverterServiceFragment2 auto-inject {}
 

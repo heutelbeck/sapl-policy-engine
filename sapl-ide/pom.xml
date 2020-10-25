@@ -32,7 +32,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-core</artifactId>
+			<artifactId>sapl-lang</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>

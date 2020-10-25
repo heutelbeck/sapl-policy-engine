@@ -21,7 +21,7 @@
 
 	<packaging>pom</packaging>
 
-	<name>SAPL Policy Engine</name>
+	<name>Streaming Attribute Engine</name>
 
 	<developers>
 		<developer>
@@ -62,10 +62,9 @@
 	<modules>
 		<module>sapl-pdp-api</module>
 		<module>sapl-extensions-api</module>
-		<module>sapl-core</module>
+		<module>sapl-lang</module>
 		<module>sapl-ide</module>
 		<module>sapl-web</module>
-		<module>sapl-interpreter</module>
 		<module>sapl-pdp-embedded</module>
 		<module>sapl-pdp-client</module>
 		<module>sapl-spring-pdp-embedded</module>

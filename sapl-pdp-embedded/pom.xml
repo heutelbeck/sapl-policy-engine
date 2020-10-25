@@ -35,7 +35,7 @@
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-interpreter</artifactId>
+			<artifactId>sapl-lang</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>

@@ -16,10 +16,9 @@
 		<artifactId>sapl-policy-engine</artifactId>
 		<version>2.0.0-SNAPSHOT</version>
 	</parent>
-	<name>SAPL Core</name>
-	<artifactId>sapl-core</artifactId>
+	<name>SAPL Language</name>
+	<artifactId>sapl-lang</artifactId>
 	<packaging>jar</packaging>
-
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>
@@ -88,6 +87,32 @@
 			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+				<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest-library</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.vmlens</groupId>
+			<artifactId>concurrent-junit</artifactId>
+			<version>1.0.2</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -147,19 +172,19 @@
 				<configuration>
 					<filesets combine.children="append">
 						<fileset>
-							<directory>${basedir}/../sapl-core/src/main/xtext-gen/</directory>
+							<directory>${basedir}/../sapl-lang/src/main/xtext-gen/</directory>
 							<includes>
 								<include>**/*</include>
 							</includes>
 						</fileset>
 						<fileset>
-							<directory>${basedir}/../sapl-core/src/main/emf-gen/</directory>
+							<directory>${basedir}/../sapl-lang/src/main/emf-gen/</directory>
 							<includes>
 								<include>**/*</include>
 							</includes>
 						</fileset>
 						<fileset>
-							<directory>${basedir}/../sapl-core/src/test/xtext-gen/</directory>
+							<directory>${basedir}/../sapl-lang/src/test/xtext-gen/</directory>
 							<includes>
 								<include>**/*</include>
 							</includes>
