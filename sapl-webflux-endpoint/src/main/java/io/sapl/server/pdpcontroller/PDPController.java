@@ -27,6 +27,7 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
 /**
@@ -37,16 +38,11 @@ import reactor.core.publisher.Flux;
  */
 
 @RestController
-//@RequiredArgsConstructor
+@RequiredArgsConstructor
 @RequestMapping("/api/pdp")
 public class PDPController {
 
 	private final PolicyDecisionPoint pdp;
-
-	public PDPController(PolicyDecisionPoint pdp) {
-		this.pdp = pdp;
-		System.out.println("______________________________________");
-	}
 
 	/**
 	 * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
