@@ -38,12 +38,12 @@
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.ide</artifactId>
-			<version>${xtextVersion}</version>
+			<version>${xtext.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.xbase.ide</artifactId>
-			<version>${xtextVersion}</version>
+			<version>${xtext.version}</version>
 		</dependency>
 	</dependencies>
 

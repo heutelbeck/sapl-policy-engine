@@ -2,23 +2,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-<!--
-
-    Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
--->
+	<!-- Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com) Licensed 
+		under the Apache License, Version 2.0 (the "License"); you may not use this 
+		file except in compliance with the License. You may obtain a copy of the 
+		License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by 
+		applicable law or agreed to in writing, software distributed under the License 
+		is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+		KIND, either express or implied. See the License for the specific language 
+		governing permissions and limitations under the License. -->
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>io.sapl</groupId>
@@ -31,66 +22,15 @@
 	<description>Integration of the XText-based editor for SAPL for the Vaadin platform</description>
 
 	<properties>
-		<vaadin.version>14.4.1</vaadin.version>
 		<drivers.dir>${project.basedir}/drivers</drivers.dir>
 		<jetty.version>9.4.15.v20190215</jetty.version>
 	</properties>
+
 	<organization>
 		<name>Dominic Heutelbeck</name>
 	</organization>
-	<licenses>
-		<license>
-			<name>Apache 2</name>
-			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-			<distribution>repo</distribution>
-		</license>
-	</licenses>
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>com.vaadin</groupId>
-				<artifactId>vaadin-bom</artifactId>
-				<type>pom</type>
-				<scope>import</scope>
-				<version>${vaadin.version}</version>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
-
-	<repositories>
-		<repository>
-			<id>Vaadin Directory</id>
-			<url>https://maven.vaadin.com/vaadin-addons</url>
-		</repository>
-        <!-- Repository needed for prerelease versions of Vaadin -->
-		<repository>
-			<id>Vaadin prereleases</id>
-			<url>https://maven.vaadin.com/vaadin-prereleases</url>
-		</repository>
-        <!-- Repository needed for the snapshot versions of Vaadin -->
-		<repository>
-			<id>vaadin-snapshots</id>
-			<url>https://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
-		</repository>
-	</repositories>
-
-	<pluginRepositories>
-        <!-- Repository needed for prerelease versions of Vaadin -->
-		<pluginRepository>
-			<id>Vaadin prereleases</id>
-			<url>https://maven.vaadin.com/vaadin-prereleases</url>
-		</pluginRepository>
-		<pluginRepository>
-			<id>vaadin-snapshots</id>
-			<url>https://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-		</pluginRepository>
-	</pluginRepositories>
 
 	<dependencies>
-
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-web</artifactId>
@@ -100,17 +40,18 @@
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.web</artifactId>
-			<version>${xtextVersion}</version>
+			<version>${xtext.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.vaadin</groupId>
-            <!-- Replace artifactId with vaadin-core to use only free components -->
+			<!-- Replace artifactId with vaadin-core to use only free components -->
 			<artifactId>vaadin</artifactId>
 			<exclusions>
-                <!-- Webjars are only needed when running in Vaadin 13 compatibility mode in V14.
-                     Your add-on can support npm in the same version mode and V13 compatiblity mode at the same time,
-                     or with separate versions. Any V13 version should work with the compatibility mode in V14. -->
+				<!-- Webjars are only needed when running in Vaadin 13 compatibility 
+					mode in V14. Your add-on can support npm in the same version mode and V13 
+					compatiblity mode at the same time, or with separate versions. Any V13 version 
+					should work with the compatibility mode in V14. -->
 				<exclusion>
 					<groupId>com.vaadin.webjar</groupId>
 					<artifactId>*</artifactId>
@@ -152,9 +93,9 @@
 	<build>
 		<defaultGoal>jetty:run</defaultGoal>
 		<plugins>
-        	<!-- The CSS and JS resources of the xtext web dependency have to copied 
+			<!-- The CSS and JS resources of the xtext web dependency have to copied 
 				to the matching frontend folder CSS and images are hard coded into the HTML 
-				template of the webcomponent JS file-->
+				template of the webcomponent JS file -->
 
 			<!-- First unpack the files from the JAR -->
 			<plugin>
@@ -172,10 +113,10 @@
 								<artifactItem>
 									<groupId>org.eclipse.xtext</groupId>
 									<artifactId>org.eclipse.xtext.web</artifactId>
-									<version>${xtextVersion}</version>
+									<version>${xtext.version}</version>
 									<overWrite>true</overWrite>
 									<outputDirectory>${project.build.directory}/xtext</outputDirectory>
-									<includes>META-INF/resources/xtext/${xtextVersion}/**/*</includes>
+									<includes>META-INF/resources/xtext/${xtext.version}/**/*</includes>
 								</artifactItem>
 							</artifactItems>
 						</configuration>
@@ -218,7 +159,7 @@
 							<outputDirectory>${project.build.directory}/classes/META-INF/frontend</outputDirectory>
 							<resources>
 								<resource>
-									<directory>${project.build.directory}/xtext/META-INF/resources/xtext/${xtextVersion}</directory>
+									<directory>${project.build.directory}/xtext/META-INF/resources/xtext/${xtext.version}</directory>
 									<includes>
 										<include>xtext-codemirror.min.js</include>
 									</includes>
@@ -252,7 +193,6 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.1.0</version>
 				<configuration>
 					<archive>
 						<index>true</index>
@@ -269,7 +209,6 @@
 			<plugin>
 				<groupId>com.vaadin</groupId>
 				<artifactId>vaadin-maven-plugin</artifactId>
-				<version>${vaadin.version}</version>
 				<executions>
 					<execution>
 						<goals>
@@ -284,8 +223,7 @@
 				<version>${jetty.version}</version>
 				<configuration>
 					<scanIntervalSeconds>3</scanIntervalSeconds>
-                    <!-- Use test scope because the UI/demo classes are in
-                            the test package. -->
+					<!-- Use test scope because the UI/demo classes are in the test package. -->
 					<useTestScope>true</useTestScope>
 					<supportedPackagings>
 						<supportedPackaging>jar</supportedPackaging>
@@ -357,7 +295,7 @@
 						<artifactId>maven-jar-plugin</artifactId>
 						<version>3.1.2</version>
 						<configuration>
-                            <!-- Generated file that shouldn't be included in add-ons -->
+							<!-- Generated file that shouldn't be included in add-ons -->
 							<excludes>
 								<exclude>META-INF/VAADIN/config/flow-build-info.json</exclude>
 							</excludes>
@@ -367,7 +305,7 @@
 			</build>
 		</profile>
 
-        <!-- Run (demo) in production mode-->
+		<!-- Run (demo) in production mode -->
 		<profile>
 			<id>production</id>
 			<properties>

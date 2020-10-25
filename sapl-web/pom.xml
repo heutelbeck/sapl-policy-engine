@@ -46,19 +46,19 @@
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.xbase.web</artifactId>
-			<version>${xtextVersion}</version>
+			<version>${xtext.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.web.servlet</artifactId>
-			<version>${xtextVersion}</version>
+			<version>${xtext.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.eclipse.xtend</groupId>
 			<artifactId>org.eclipse.xtend.lib</artifactId>
-			<version>${xtextVersion}</version>
+			<version>${xtext.version}</version>
 		</dependency>
 
 		<dependency>
