@@ -31,7 +31,7 @@
 	<description>Integration of the XText-based editor for SAPL for the Vaadin platform</description>
 
 	<properties>
-		<vaadin.version>14.1.16</vaadin.version>
+		<vaadin.version>14.4.1</vaadin.version>
 		<drivers.dir>${project.basedir}/drivers</drivers.dir>
 		<jetty.version>9.4.15.v20190215</jetty.version>
 	</properties>
