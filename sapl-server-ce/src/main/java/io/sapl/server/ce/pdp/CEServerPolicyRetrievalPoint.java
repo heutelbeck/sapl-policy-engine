@@ -169,7 +169,7 @@ public class CEServerPolicyRetrievalPoint implements PolicyRetrievalPoint, SaplD
 	}
 
 	@Override
-	public void shutdown() {
+	public void dispose() {
 		// NOP
 	}
 

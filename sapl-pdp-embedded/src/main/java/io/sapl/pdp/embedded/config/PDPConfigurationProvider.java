@@ -51,6 +51,6 @@ public interface PDPConfigurationProvider {
 		}
 	}
 	
-	void shutdown();
+	void dispose();
 
 }

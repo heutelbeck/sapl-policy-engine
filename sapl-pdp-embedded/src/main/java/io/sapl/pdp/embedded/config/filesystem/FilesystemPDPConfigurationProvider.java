@@ -129,7 +129,8 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 					log.info("updating pdp config from {}", fileName);
 					config = mapper.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
 				} else {
-					// watcher emits event twice. once for timestamp and once for modification of contents. 
+					// watcher emits event twice. once for timestamp and once for modification of
+					// contents.
 					// ignore files of size zero to fix
 					log.trace("event ignored");
 				}
@@ -162,9 +163,13 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 	}
 
 	@Override
-	public void shutdown() {
-		dirWatcherEventProcessor.dispose();
-		dirWatcherScheduler.dispose();	
+	public void dispose() {
+		if (!dirWatcherScheduler.isDisposed()) {
+			dirWatcherScheduler.dispose();
+		}
+		if (!dirWatcherEventProcessor.isDisposed()) {
+			dirWatcherEventProcessor.dispose();
+		}
 	}
 
 }

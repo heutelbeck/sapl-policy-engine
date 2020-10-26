@@ -232,8 +232,12 @@ public class ResourcesPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	}
 
 	@Override
-	public void shutdown() {
-		dirWatcherEventProcessor.dispose();
-		dirWatcherScheduler.dispose();
+	public void dispose() {
+		if (!dirWatcherScheduler.isDisposed()) {
+			dirWatcherScheduler.dispose();
+		}
+		if (!dirWatcherEventProcessor.isDisposed()) {
+			dirWatcherEventProcessor.dispose();
+		}
 	}
 }

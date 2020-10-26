@@ -111,7 +111,7 @@ public class CEServerPDPConfigurationProvider implements PDPConfigurationProvide
 	}
 
 	@Override
-	public void shutdown() {
+	public void dispose() {
 		// NOP
 	}
 }
