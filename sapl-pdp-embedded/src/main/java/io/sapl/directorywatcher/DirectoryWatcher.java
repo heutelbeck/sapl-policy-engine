@@ -62,7 +62,7 @@ public class DirectoryWatcher {
 		} catch (IOException e) {
 			log.error(e.getMessage());
 		} catch (InterruptedException e) {
-			log.info("Shutdown directory watcher. Thread has been interrupted.");
+			log.debug("Shutdown directory watcher. Thread has been interrupted.");
 			Thread.currentThread().interrupt();
 		} finally {
 			eventConsumer.onComplete();
