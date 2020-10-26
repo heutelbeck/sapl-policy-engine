@@ -99,7 +99,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
 		if (multiAuthzSubscription.hasAuthorizationSubscriptions()) {
 			final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = createIdentifiableAuthzDecisionFluxes(
-					multiAuthzSubscription, true);
+					multiAuthzSubscription, false);
 			return Flux.merge(identifiableAuthzDecisionFluxes);
 		}
 		return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
@@ -115,6 +115,8 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		return Flux.just(MultiAuthorizationDecision.indeterminate());
 	}
 
+	// TODO: examine - if useSeparateSchedulers is selected, performance goes down by an order
+	// of magnitude in embedded demo and we have dangling threads
 	private List<Flux<IdentifiableAuthorizationDecision>> createIdentifiableAuthzDecisionFluxes(
 			Iterable<IdentifiableAuthorizationSubscription> multiDecision, boolean useSeparateSchedulers) {
 		final Scheduler schedulerForMerge = useSeparateSchedulers ? Schedulers.newElastic("pdp") : null;
@@ -148,7 +150,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		configurationProvider.shutdown();
 		prp.shutdown();
 	}
-	
+
 	public static Builder builder() throws FunctionException, AttributeException {
 		return new Builder();
 	}
