@@ -109,4 +109,9 @@ public class CEServerPDPConfigurationProvider implements PDPConfigurationProvide
 		Collection<Variable> variables = this.variableService.getAll();
 		this.publishVariables(variables);
 	}
+
+	@Override
+	public void shutdown() {
+		// NOP
+	}
 }

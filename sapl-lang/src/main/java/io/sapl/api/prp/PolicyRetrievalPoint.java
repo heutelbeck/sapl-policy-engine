@@ -48,4 +48,5 @@ public interface PolicyRetrievalPoint {
 	Flux<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
 			FunctionContext functionCtx, Map<String, JsonNode> variables);
 
+	void shutdown();
 }

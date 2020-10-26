@@ -161,4 +161,10 @@ public class FilesystemPDPConfigurationProvider implements PDPConfigurationProvi
 		// @formatter:on
 	}
 
+	@Override
+	public void shutdown() {
+		dirWatcherEventProcessor.dispose();
+		dirWatcherScheduler.dispose();	
+	}
+
 }

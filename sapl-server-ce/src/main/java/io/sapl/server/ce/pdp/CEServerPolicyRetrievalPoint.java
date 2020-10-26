@@ -167,4 +167,10 @@ public class CEServerPolicyRetrievalPoint implements PolicyRetrievalPoint, SaplD
 			return null;
 		}
 	}
+
+	@Override
+	public void shutdown() {
+		// NOP
+	}
+
 }

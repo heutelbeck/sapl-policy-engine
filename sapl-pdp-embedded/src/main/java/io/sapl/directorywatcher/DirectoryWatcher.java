@@ -31,8 +31,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 /**
- * Registers a directory watch service on the directory passed to the constructor and
- * forwards all create, delete and modify events to a {@link DirectoryWatchEventConsumer}.
+ * Registers a directory watch service on the directory passed to the
+ * constructor and forwards all create, delete and modify events to a
+ * {@link DirectoryWatchEventConsumer}.
  */
 public class DirectoryWatcher {
 
@@ -43,11 +44,13 @@ public class DirectoryWatcher {
 	}
 
 	/**
-	 * Registers a directory watch service on the directory passed to the constructor and
-	 * forwards all create, delete and modify events to the given {@code eventConsumer}.
+	 * Registers a directory watch service on the directory passed to the
+	 * constructor and forwards all create, delete and modify events to the given
+	 * {@code eventConsumer}.
+	 * 
 	 * @param eventConsumer the consumer to be notified on create, delete and modify
-	 * events or when the watch service has completed or the watched directory is no
-	 * longer accessible.
+	 *                      events or when the watch service has completed or the
+	 *                      watched directory is no longer accessible.
 	 */
 	public void watch(DirectoryWatchEventConsumer<Path> eventConsumer) {
 		try (WatchService watcher = FileSystems.getDefault().newWatchService()) {
@@ -56,15 +59,12 @@ public class DirectoryWatcher {
 				final WatchKey key = watcher.take();
 				handleWatchKey(key, eventConsumer);
 			}
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			log.error(e.getMessage());
-		}
-		catch (InterruptedException e) {
-			log.info("directory watcher thread has been interrupted");
+		} catch (InterruptedException e) {
+			log.info("Shutdown directory watcher. Thread has been interrupted.");
 			Thread.currentThread().interrupt();
-		}
-		finally {
+		} finally {
 			eventConsumer.onComplete();
 		}
 	}

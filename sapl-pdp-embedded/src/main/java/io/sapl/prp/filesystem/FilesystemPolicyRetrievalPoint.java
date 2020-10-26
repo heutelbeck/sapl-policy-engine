@@ -176,4 +176,9 @@ public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		log.trace("|");
 	}
 
+	@Override
+	public void shutdown() {
+		dirWatcherEventProcessor.dispose();
+		dirWatcherScheduler.dispose();
+	}
 }

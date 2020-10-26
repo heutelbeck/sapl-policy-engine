@@ -57,167 +57,165 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 @Slf4j
 public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvider {
 
-    private static final String DEFAULT_CONFIG_PATH = "/policies";
+	private static final String DEFAULT_CONFIG_PATH = "/policies";
 
-    private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
+	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
-    private static final Pattern CONFIG_FILE_REGEX_PATTERN = Pattern.compile("pdp\\.json");
+	private static final Pattern CONFIG_FILE_REGEX_PATTERN = Pattern.compile("pdp\\.json");
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private PolicyDecisionPointConfiguration config;
+	private PolicyDecisionPointConfiguration config;
 
-    private final ReentrantLock lock = new ReentrantLock();
+	private final ReentrantLock lock = new ReentrantLock();
 
-    private String path;
+	private String path;
 
-    private Scheduler dirWatcherScheduler;
+	private Scheduler dirWatcherScheduler;
 
-    private ReplayProcessor<WatchEvent<Path>> dirWatcherEventProcessor = ReplayProcessor
-            .cacheLastOrDefault(InitialWatchEvent.INSTANCE);
+	private ReplayProcessor<WatchEvent<Path>> dirWatcherEventProcessor = ReplayProcessor
+			.cacheLastOrDefault(InitialWatchEvent.INSTANCE);
 
-    public ResourcesPDPConfigurationProvider() throws PDPConfigurationException, IOException, URISyntaxException {
-        this(DEFAULT_CONFIG_PATH);
-    }
+	public ResourcesPDPConfigurationProvider() throws PDPConfigurationException, IOException, URISyntaxException {
+		this(DEFAULT_CONFIG_PATH);
+	}
 
-    public ResourcesPDPConfigurationProvider(@NonNull String configPath)
-            throws PDPConfigurationException, IOException, URISyntaxException {
-        this(ResourcesPDPConfigurationProvider.class, configPath);
-    }
+	public ResourcesPDPConfigurationProvider(@NonNull String configPath)
+			throws PDPConfigurationException, IOException, URISyntaxException {
+		this(ResourcesPDPConfigurationProvider.class, configPath);
+	}
 
-    public ResourcesPDPConfigurationProvider(@NonNull Class<?> clazz, @NonNull String configPath)
-            throws PDPConfigurationException, IOException, URISyntaxException {
-        URL configFolderUrl = clazz.getResource(configPath);
-        if (configFolderUrl == null) {
-            throw new PDPConfigurationException("Config folder not found. Path:" + configPath + " - URL: null");
-        }
+	public ResourcesPDPConfigurationProvider(@NonNull Class<?> clazz, @NonNull String configPath)
+			throws PDPConfigurationException, IOException, URISyntaxException {
+		URL configFolderUrl = clazz.getResource(configPath);
+		if (configFolderUrl == null) {
+			throw new PDPConfigurationException("Config folder not found. Path:" + configPath + " - URL: null");
+		}
 
-        if ("jar".equals(configFolderUrl.getProtocol())) {
-            readConfigFromJar(configFolderUrl);
-        } else {
-            readConfigFromDirectory(configFolderUrl);
-        }
+		if ("jar".equals(configFolderUrl.getProtocol())) {
+			readConfigFromJar(configFolderUrl);
+		} else {
+			readConfigFromDirectory(configFolderUrl);
+		}
 
-        this.path = Paths.get(configFolderUrl.toURI()).toString();
+		this.path = Paths.get(configFolderUrl.toURI()).toString();
 
-        final Path watchDir = Paths.get(path);
-        final DirectoryWatcher directoryWatcher = new DirectoryWatcher(watchDir);
+		final Path watchDir = Paths.get(path);
+		final DirectoryWatcher directoryWatcher = new DirectoryWatcher(watchDir);
 
-        final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter(
-                CONFIG_FILE_REGEX_PATTERN);
-        dirWatcherScheduler = Schedulers.newElastic("configWatcher");
-        final Flux<WatchEvent<Path>> dirWatcherFlux = Flux.<WatchEvent<Path>>push(sink -> {
-            adapter.setSink(sink);
-            directoryWatcher.watch(adapter);
-        }).doOnNext(event -> {
-            updateConfig(event);
-            dirWatcherEventProcessor.onNext(event);
-        }).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler);
+		final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter(
+				CONFIG_FILE_REGEX_PATTERN);
+		dirWatcherScheduler = Schedulers.newElastic("configWatcher");
+		final Flux<WatchEvent<Path>> dirWatcherFlux = Flux.<WatchEvent<Path>>push(sink -> {
+			adapter.setSink(sink);
+			directoryWatcher.watch(adapter);
+		}).doOnNext(event -> {
+			updateConfig(event);
+			dirWatcherEventProcessor.onNext(event);
+		}).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler);
 
-        dirWatcherFlux.subscribe();
+		dirWatcherFlux.subscribe();
 
-        if (this.config == null) {
-            log.debug("config is null - using default config");
-            this.config = new PolicyDecisionPointConfiguration();
-        }
-    }
+		if (this.config == null) {
+			log.debug("config is null - using default config");
+			this.config = new PolicyDecisionPointConfiguration();
+		}
+	}
 
-    private void updateConfig(WatchEvent<Path> watchEvent) {
-        final WatchEvent.Kind<Path> kind = watchEvent.kind();
-        final Path fileName = watchEvent.context();
-        try {
-            lock.lock();
+	private void updateConfig(WatchEvent<Path> watchEvent) {
+		final WatchEvent.Kind<Path> kind = watchEvent.kind();
+		final Path fileName = watchEvent.context();
+		try {
+			lock.lock();
 
-            final Path absoluteFilePath = Paths.get(path, fileName.toString());
-            if (kind == ENTRY_CREATE) {
-                log.info("reading pdp config from {}", fileName);
-                config = MAPPER.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
-            } else if (kind == ENTRY_DELETE) {
-                log.info("deleted pdp config file {}. Using default configuration", fileName);
-                config = new PolicyDecisionPointConfiguration();
-            } else if (kind == ENTRY_MODIFY) {
-                log.info("updating pdp config from {}", fileName);
-                config = MAPPER.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
-            } else {
-                log.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
-            }
-        } catch (IOException e) {
-            log.error("Error while updating the pdp config.", e);
-        } finally {
-            lock.unlock();
-        }
-    }
+			final Path absoluteFilePath = Paths.get(path, fileName.toString());
+			if (kind == ENTRY_CREATE) {
+				log.info("reading pdp config from {}", fileName);
+				config = MAPPER.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
+			} else if (kind == ENTRY_DELETE) {
+				log.info("deleted pdp config file {}. Using default configuration", fileName);
+				config = new PolicyDecisionPointConfiguration();
+			} else if (kind == ENTRY_MODIFY) {
+				log.info("updating pdp config from {}", fileName);
+				config = MAPPER.readValue(absoluteFilePath.toFile(), PolicyDecisionPointConfiguration.class);
+			} else {
+				log.error("unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
+			}
+		} catch (IOException e) {
+			log.error("Error while updating the pdp config.", e);
+		} finally {
+			lock.unlock();
+		}
+	}
 
-    private void readConfigFromJar(URL configFolderUrl) {
-        log.debug("reading config from jar {}", configFolderUrl);
-        final String[] jarPathElements = configFolderUrl.toString().split("!");
-        final String jarFilePath = jarPathElements[0].substring("jar:file:".length());
-        final StringBuilder dirPath = new StringBuilder();
-        for (int i = 1; i < jarPathElements.length; i++) {
-            dirPath.append(jarPathElements[i]);
-        }
-        if (dirPath.charAt(0) == File.separatorChar) {
-            dirPath.deleteCharAt(0);
-        }
-        final String configFilePath = dirPath.append(File.separatorChar).append(CONFIG_FILE_GLOB_PATTERN).toString();
+	private void readConfigFromJar(URL configFolderUrl) {
+		log.debug("reading config from jar {}", configFolderUrl);
+		final String[] jarPathElements = configFolderUrl.toString().split("!");
+		final String jarFilePath = jarPathElements[0].substring("jar:file:".length());
+		final StringBuilder dirPath = new StringBuilder();
+		for (int i = 1; i < jarPathElements.length; i++) {
+			dirPath.append(jarPathElements[i]);
+		}
+		if (dirPath.charAt(0) == File.separatorChar) {
+			dirPath.deleteCharAt(0);
+		}
+		final String configFilePath = dirPath.append(File.separatorChar).append(CONFIG_FILE_GLOB_PATTERN).toString();
 
-        try (ZipFile zipFile = new ZipFile(jarFilePath)) {
-            Enumeration<? extends ZipEntry> e = zipFile.entries();
+		try (ZipFile zipFile = new ZipFile(jarFilePath)) {
+			Enumeration<? extends ZipEntry> e = zipFile.entries();
 
-            while (e.hasMoreElements()) {
-                ZipEntry entry = e.nextElement();
-                if (!entry.isDirectory() && entry.getName().equals(configFilePath)) {
-                    log.debug("load: {}", entry.getName());
-                    BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
-                    String fileContentsStr = IOUtils.toString(bis, StandardCharsets.UTF_8);
-                    bis.close();
-                    this.config = MAPPER.readValue(fileContentsStr, PolicyDecisionPointConfiguration.class);
-                    break;
-                }
-            }
-        } catch (IOException e) {
-            log.error("Error while reading config from jar", e);
-        }
-    }
+			while (e.hasMoreElements()) {
+				ZipEntry entry = e.nextElement();
+				if (!entry.isDirectory() && entry.getName().equals(configFilePath)) {
+					log.debug("load: {}", entry.getName());
+					BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
+					String fileContentsStr = IOUtils.toString(bis, StandardCharsets.UTF_8);
+					bis.close();
+					this.config = MAPPER.readValue(fileContentsStr, PolicyDecisionPointConfiguration.class);
+					break;
+				}
+			}
+		} catch (IOException e) {
+			log.error("Error while reading config from jar", e);
+		}
+	}
 
-    private void readConfigFromDirectory(URL configFolderUrl) throws IOException, URISyntaxException {
-        log.debug("reading config from directory {}", configFolderUrl);
-        Path configDirectoryPath = Paths.get(configFolderUrl.toURI());
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE_GLOB_PATTERN)) {
-            for (Path filePath : stream) {
-                log.debug("load: {}", filePath);
-                this.config = MAPPER.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
-            }
-        }
-    }
+	private void readConfigFromDirectory(URL configFolderUrl) throws IOException, URISyntaxException {
+		log.debug("reading config from directory {}", configFolderUrl);
+		Path configDirectoryPath = Paths.get(configFolderUrl.toURI());
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE_GLOB_PATTERN)) {
+			for (Path filePath : stream) {
+				log.debug("load: {}", filePath);
+				this.config = MAPPER.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
+			}
+		}
+	}
 
-    public ResourcesPDPConfigurationProvider(PolicyDecisionPointConfiguration config) {
-        this.config = config;
-    }
+	public ResourcesPDPConfigurationProvider(PolicyDecisionPointConfiguration config) {
+		this.config = config;
+	}
 
+	@Override
+	public Flux<DocumentsCombinator> getDocumentsCombinator() {
+		// @formatter:off
+		return dirWatcherEventProcessor.map(event -> config.getAlgorithm()).distinctUntilChanged().map(algorithm -> {
+			log.trace("|-- Current PDP config: combining algorithm = {}", algorithm);
+			return convert(algorithm);
+		});
+		// @formatter:on
+	}
 
-    @Override
-    public Flux<DocumentsCombinator> getDocumentsCombinator() {
-        // @formatter:off
-        return dirWatcherEventProcessor
-                .map(event -> config.getAlgorithm())
-                .distinctUntilChanged()
-                .map(algorithm -> {
-                    log.trace("|-- Current PDP config: combining algorithm = {}", algorithm);
-                    return convert(algorithm);
-                });
-        // @formatter:on
-    }
+	@Override
+	public Flux<Map<String, JsonNode>> getVariables() {
+		// @formatter:off
+		return dirWatcherEventProcessor.map(event -> config.getVariables()).distinctUntilChanged()
+				.doOnNext(variables -> log.trace("|-- Current PDP config: variables = {}", variables));
+		// @formatter:on
+	}
 
-
-    @Override
-    public Flux<Map<String, JsonNode>> getVariables() {
-        // @formatter:off
-        return dirWatcherEventProcessor
-                .map(event -> config.getVariables())
-                .distinctUntilChanged()
-                .doOnNext(variables -> log.trace("|-- Current PDP config: variables = {}", variables));
-        // @formatter:on
-    }
-
+	@Override
+	public void shutdown() {
+		dirWatcherEventProcessor.dispose();
+		dirWatcherScheduler.dispose();
+	}
 }

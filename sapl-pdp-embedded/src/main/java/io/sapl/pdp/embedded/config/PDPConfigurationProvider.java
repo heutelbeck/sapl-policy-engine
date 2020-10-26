@@ -50,5 +50,7 @@ public interface PDPConfigurationProvider {
 			throw new IllegalArgumentException("Algorithm FIRST_APPLICABLE is not allowed for PDP level combination.");
 		}
 	}
+	
+	void shutdown();
 
 }

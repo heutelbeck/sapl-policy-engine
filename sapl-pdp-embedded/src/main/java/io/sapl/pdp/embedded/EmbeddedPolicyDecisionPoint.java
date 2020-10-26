@@ -144,6 +144,11 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		return multiAuthzDecision;
 	}
 
+	public void shutdown() {
+		configurationProvider.shutdown();
+		prp.shutdown();
+	}
+	
 	public static Builder builder() throws FunctionException, AttributeException {
 		return new Builder();
 	}
