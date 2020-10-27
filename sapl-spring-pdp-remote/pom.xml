@@ -32,7 +32,7 @@
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-pdp-client</artifactId>
+			<artifactId>sapl-pdp-remote</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
