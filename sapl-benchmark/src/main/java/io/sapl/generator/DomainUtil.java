@@ -40,6 +40,7 @@ public class DomainUtil {
         log.info("writing policies to folder: {}", policyPath);
 
         File policyDir = new File(policyPath);
+        policyDir.mkdir();
 
         log.debug("before clean fileCount:{}", policyDir.listFiles().length);
         if (cleanDirectory) cleanPolicyDirectory(policyPath);

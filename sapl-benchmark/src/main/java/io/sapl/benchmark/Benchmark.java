@@ -40,6 +40,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -68,7 +69,8 @@ import static io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder.IndexType
 @RequiredArgsConstructor
 public class Benchmark implements CommandLineRunner {
 
-    public static final String DEFAULT_PATH = "/tmp/sapl/benchmarks";
+    //    public static final String DEFAULT_PATH = "/tmp/sapl/benchmarks";
+    public static final String DEFAULT_PATH = "C:\\tmp\\sapl\\benchmarks\\";
 
     private final TestRunner TEST_RUNNER = new TestRunner();
     private final List<Long> seedList = new LinkedList<>();
@@ -91,7 +93,7 @@ public class Benchmark implements CommandLineRunner {
     private int numberOfBenchmarkIterations = 1;
 
     // If not provided as command line argument, use this to set the benchmark configuration file for the fully random benchmark
-    private String benchmarkConfigurationFile = DEFAULT_PATH + "tests/tests.json";
+    private String benchmarkConfigurationFile = DEFAULT_PATH + "\\tests\\tests.json";
 
     @Override
     public void run(String... args) throws Exception {
@@ -106,8 +108,9 @@ public class Benchmark implements CommandLineRunner {
     }
 
     private void init() {
-        filePrefix = String.format("%s_%s_%s/",
-                LocalDateTime.now(), indexType, performFullyRandomBenchmark ? "RANDOM" : "STRUCTURED");
+        filePrefix = String.format("%s_%s_%s%s",
+                LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
+                indexType, performFullyRandomBenchmark ? "RANDOM" : "STRUCTURED", File.separator).replace(':', '-');
 
         log.info("\n randomBenchmark={},\n numberOfBenchmarks={}," +
                         "\n index={},\n initialSeed={},\n runs={}," +
@@ -118,7 +121,9 @@ public class Benchmark implements CommandLineRunner {
                 benchmarkConfigurationFile, filePrefix);
 
         try {
+
             final Path dir = Paths.get(path, filePrefix);
+
             Files.createDirectories(dir);
         } catch (IOException e) {
             log.error(ERROR_READING_TEST_CONFIGURATION, e);
