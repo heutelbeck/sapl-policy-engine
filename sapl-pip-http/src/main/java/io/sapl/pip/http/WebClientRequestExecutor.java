@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.webclient;
+package io.sapl.pip.http;
 
-import static io.sapl.webclient.URLSpecification.HTTPS_SCHEME;
+import static io.sapl.pip.http.URLSpecification.HTTPS_SCHEME;
 import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.PATCH;

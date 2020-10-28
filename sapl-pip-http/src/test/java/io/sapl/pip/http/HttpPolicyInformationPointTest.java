@@ -42,8 +42,6 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.webclient.RequestSpecification;
-import io.sapl.webclient.WebClientRequestExecutor;
 import reactor.core.publisher.Flux;
 
 @RunWith(MockitoJUnitRunner.class)

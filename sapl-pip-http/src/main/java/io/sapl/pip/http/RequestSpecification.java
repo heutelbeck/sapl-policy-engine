@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.webclient;
+package io.sapl.pip.http;
 
 import java.util.HashMap;
 import java.util.Map;

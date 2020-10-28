@@ -39,8 +39,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.GeometryBuilder;
-import io.sapl.webclient.RequestSpecification;
-import io.sapl.webclient.WebClientRequestExecutor;
+import io.sapl.pip.http.RequestSpecification;
+import io.sapl.pip.http.WebClientRequestExecutor;
 import lombok.Getter;
 
 public class TraccarConnection {

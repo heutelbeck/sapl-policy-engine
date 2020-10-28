@@ -35,8 +35,6 @@ import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
-import io.sapl.webclient.RequestSpecification;
-import io.sapl.webclient.WebClientRequestExecutor;
 import lombok.NoArgsConstructor;
 import reactor.core.publisher.Flux;
 
