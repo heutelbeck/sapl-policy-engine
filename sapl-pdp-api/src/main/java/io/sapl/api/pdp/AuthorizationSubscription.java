@@ -18,33 +18,49 @@ package io.sapl.api.pdp;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * The authorization subscription object defines the tuple of objects constituting a SAPL
- * authorization subscription. Each authorization subscription consists of:
+ * The authorization subscription object defines the tuple of objects
+ * constituting a SAPL authorization subscription. Each authorization
+ * subscription consists of:
  * <ul>
  * <li>a subject describing the entity which is requesting permission</li>
- * <li>an action describing for which activity the subject is requesting permission</li>
- * <li>a resource describing or even containing the resource for which the subject is
- * requesting the permission to execute the action</li>
- * <li>an environment object describing additional contextual information from the
- * environment which may be required for evaluating the underlying policies.</li>
+ * <li>an action describing for which activity the subject is requesting
+ * permission</li>
+ * <li>a resource describing or even containing the resource for which the
+ * subject is requesting the permission to execute the action</li>
+ * <li>an environment object describing additional contextual information from
+ * the environment which may be required for evaluating the underlying
+ * policies.</li>
  * </ul>
  *
- * All of these objects are expected to be Jackson JsonNodes representing an arbitrary
- * JSON object.
+ * All of these objects are expected to be Jackson JsonNodes representing an
+ * arbitrary JSON object.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(Include.NON_NULL)
 public class AuthorizationSubscription {
+	private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+
 	private JsonNode subject;
 	private JsonNode action;
 	private JsonNode resource;
 	private JsonNode environment;
+
+	public static AuthorizationSubscription of(Object subject, Object action, Object resource) {
+		return of(subject, action, resource, null);
+	}
+
+	public static AuthorizationSubscription of(Object subject, Object action, Object resource, Object environment) {
+		return new AuthorizationSubscription(MAPPER.valueToTree(subject), MAPPER.valueToTree(action),
+				MAPPER.valueToTree(resource), MAPPER.valueToTree(environment));
+	}
 }
