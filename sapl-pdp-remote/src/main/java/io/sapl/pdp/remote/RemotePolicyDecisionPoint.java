@@ -15,99 +15,69 @@
  */
 package io.sapl.pdp.remote;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static io.sapl.webclient.URLSpecification.HTTPS_SCHEME;
-import static org.springframework.http.HttpMethod.POST;
+import javax.net.ssl.SSLException;
 
-import org.springframework.http.HttpHeaders;
-import org.springframework.util.Base64Utils;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-
+import io.netty.handler.ssl.SslContext;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
-import io.sapl.webclient.RequestSpecification;
-import io.sapl.webclient.WebClientRequestExecutor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.netty.http.client.HttpClient;
 
+@Slf4j
 public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
-	private static final String PDP_PATH_SINGLE_DECIDE = "/api/pdp/decide";
+	private static final String DECIDE = "/api/pdp/decide";
+	private static final String MULTI_DECIDE = "/api/pdp/multi-decide";
+	private static final String MULTI_DECIDE_ALL = "/api/pdp/multi-decide-all";
 
-	private static final String PDP_PATH_MULTI_DECIDE = "/api/pdp/multi-decide";
+	private WebClient client;
 
-	private static final String PDP_PATH_MULTI_DECIDE_ALL = "/api/pdp/multi-decide-all";
-
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	private ObjectMapper mapper;
-
-	private String host;
-
-	private int port;
-
-	private String basicAuthHeader;
-
-	public RemotePolicyDecisionPoint(String host, int port, String clientKey, String clientSecret) {
-		this(host, port, clientKey, clientSecret, new ObjectMapper().registerModule(new Jdk8Module()));
+	public RemotePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret, SslContext sslContext)
+			throws SSLException {
+		this(baseUrl, clientKey, clientSecret, HttpClient.create().secure(spec -> spec.sslContext(sslContext)));
 	}
 
-	public RemotePolicyDecisionPoint(String host, int port, String clientKey, String clientSecret,
-			ObjectMapper mapper) {
-		this.host = host;
-		this.port = port;
-		this.basicAuthHeader = "Basic " + Base64Utils.encodeToString((clientKey + ":" + clientSecret).getBytes(UTF_8));
-		this.mapper = mapper;
+	public RemotePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret) throws SSLException {
+		this(baseUrl, clientKey, clientSecret, HttpClient.create().secure());
+	}
+
+	public RemotePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret, HttpClient httpClient)
+			throws SSLException {
+		client = WebClient.builder().clientConnector(new ReactorClientHttpConnector(httpClient)).baseUrl(baseUrl)
+				.defaultHeaders(header -> header.setBasicAuth(clientKey, clientSecret)).build();
 	}
 
 	@Override
 	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-		final RequestSpecification requestSpec = getRequestSpecification(authzSubscription);
-		return new WebClientRequestExecutor().executeReactiveRequest(requestSpec, POST)
-				.map(jsonNode -> mapper.convertValue(jsonNode, AuthorizationDecision.class))
-				.onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE));
+		return decide(DECIDE, AuthorizationDecision.class, authzSubscription)
+				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE));
 	}
 
 	@Override
 	public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
-		final RequestSpecification requestSpec = getRequestSpecification(multiAuthzSubscription, false);
-		return new WebClientRequestExecutor().executeReactiveRequest(requestSpec, POST)
-				.map(jsonNode -> mapper.convertValue(jsonNode, IdentifiableAuthorizationDecision.class))
-				.onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE));
+		return decide(MULTI_DECIDE, IdentifiableAuthorizationDecision.class, multiAuthzSubscription)
+				.onErrorResume(__ -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE));
 	}
 
 	@Override
 	public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
-		final RequestSpecification requestSpec = getRequestSpecification(multiAuthzSubscription, true);
-		return new WebClientRequestExecutor().executeReactiveRequest(requestSpec, POST)
-				.map(jsonNode -> mapper.convertValue(jsonNode, MultiAuthorizationDecision.class))
-				.onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate()));
+		return decide(MULTI_DECIDE_ALL, MultiAuthorizationDecision.class, multiAuthzSubscription)
+				.onErrorResume(__ -> Flux.just(MultiAuthorizationDecision.indeterminate()));
 	}
 
-	private RequestSpecification getRequestSpecification(AuthorizationSubscription authzSubscription) {
-		return getRequestSpecification(authzSubscription, PDP_PATH_SINGLE_DECIDE);
-	}
-
-	private RequestSpecification getRequestSpecification(MultiAuthorizationSubscription multiAuthzSubscription,
-			boolean decisionsForAllSubscriptions) {
-		return getRequestSpecification(multiAuthzSubscription,
-				decisionsForAllSubscriptions ? PDP_PATH_MULTI_DECIDE_ALL : PDP_PATH_MULTI_DECIDE);
-	}
-
-	private RequestSpecification getRequestSpecification(Object obj, String urlPath) {
-		final String url = HTTPS_SCHEME + "://" + host + ":" + port + urlPath;
-		final RequestSpecification requestSpec = new RequestSpecification();
-		requestSpec.setUrl(JSON.textNode(url));
-		requestSpec.addHeader(HttpHeaders.AUTHORIZATION, basicAuthHeader);
-		requestSpec.setBody(mapper.convertValue(obj, JsonNode.class));
-		return requestSpec;
+	private <T> Flux<T> decide(String path, Class<T> valueType, Object authzSubscription) {
+		return client.post().uri(path).accept(MediaType.APPLICATION_STREAM_JSON).contentType(MediaType.APPLICATION_JSON)
+				.bodyValue(authzSubscription).retrieve().bodyToFlux(valueType)
+				.doOnError(error -> log.error("Error : {}", error.getMessage()));
 	}
 
 }
