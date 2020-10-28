@@ -15,6 +15,8 @@
  */
 package io.sapl.spring.pdp.remote;
 
+import javax.net.ssl.SSLException;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -37,10 +39,9 @@ public class RemotePDPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PolicyDecisionPoint policyDecisionPoint() {
-		log.info("Binding to remote PDP server: {}:{}", properties.getHost(), properties.getPort());
-		return new RemotePolicyDecisionPoint(properties.getHost(), properties.getPort(), properties.getKey(),
-				properties.getSecret());
+	public PolicyDecisionPoint policyDecisionPoint() throws SSLException {
+		log.info("Binding to remote PDP server: {}:{}", properties.getHost());
+		return new RemotePolicyDecisionPoint(properties.getHost(), properties.getKey(), properties.getSecret());
 	}
 
 }
