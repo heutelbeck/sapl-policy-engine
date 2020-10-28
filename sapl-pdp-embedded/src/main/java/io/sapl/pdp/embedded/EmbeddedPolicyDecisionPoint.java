@@ -163,12 +163,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
 
-		private Builder() throws FunctionException, AttributeException {
-			pdp.functionCtx.loadLibrary(new FilterFunctionLibrary());
-			pdp.functionCtx.loadLibrary(new SelectionFunctionLibrary());
-			pdp.functionCtx.loadLibrary(new StandardFunctionLibrary());
-			pdp.functionCtx.loadLibrary(new TemporalFunctionLibrary());
-			pdp.attributeCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
+		private Builder() {			
 		}
 
 		public Builder withResourcePDPConfigurationProvider()
@@ -254,7 +249,12 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		}
 
 		public EmbeddedPolicyDecisionPoint build()
-				throws IOException, URISyntaxException, PolicyEvaluationException, PDPConfigurationException {
+				throws IOException, URISyntaxException, PolicyEvaluationException, PDPConfigurationException, FunctionException, AttributeException {
+			pdp.functionCtx.loadLibrary(new FilterFunctionLibrary());
+			pdp.functionCtx.loadLibrary(new SelectionFunctionLibrary());
+			pdp.functionCtx.loadLibrary(new StandardFunctionLibrary());
+			pdp.functionCtx.loadLibrary(new TemporalFunctionLibrary());
+			pdp.attributeCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
 			if (pdp.prp == null) {
 				withResourcePolicyRetrievalPoint();
 			}

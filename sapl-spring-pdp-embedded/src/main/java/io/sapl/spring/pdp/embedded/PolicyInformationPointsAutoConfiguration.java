@@ -25,7 +25,6 @@ import org.web3j.protocol.Web3j;
 import io.netty.handler.ssl.SslContext;
 import io.sapl.interpreter.pip.EthereumPolicyInformationPoint;
 import io.sapl.interpreter.pip.GeoPolicyInformationPoint;
-import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.pip.http.HttpPolicyInformationPoint;
 import io.sapl.pip.http.WebClientRequestExecutor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,16 +59,6 @@ public class PolicyInformationPointsAutoConfiguration {
 		public GeoPolicyInformationPoint geoPolicyInformationPoint() {
 			log.info("GEO PIP present. Loading.");
 			return new GeoPolicyInformationPoint();
-		}
-	}
-
-	@Configuration
-	@ConditionalOnClass(io.sapl.pip.ClockPolicyInformationPoint.class)
-	public static class ClockConfiguration {
-		@Bean
-		public ClockPolicyInformationPoint clockPolicyInformationPoint() {
-			log.info("Clock PIP present. Loading.");
-			return new ClockPolicyInformationPoint();
 		}
 	}
 
