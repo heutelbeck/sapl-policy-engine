@@ -15,7 +15,6 @@
  */
 package io.sapl.pip.http;
 
-import static io.sapl.pip.http.URLSpecification.HTTPS_SCHEME;
 import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.PATCH;
@@ -23,22 +22,12 @@ import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.security.GeneralSecurityException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.cert.X509Certificate;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-
-import javax.net.ssl.SSLException;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.reactive.ClientHttpConnector;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.BodyExtractors;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -49,23 +38,34 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.tcp.SslProvider;
-import reactor.netty.tcp.TcpClient;
 
+@Slf4j
 public class WebClientRequestExecutor {
 
 	private static final String BAD_URL_INFORMATION = "Bad URL information.";
-
 	private static final String NO_URL_PROVIDED = "No URL provided.";
-
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
+	private HttpClient httpClient;
+
+	public WebClientRequestExecutor(HttpClient httpClient) {
+		this.httpClient = httpClient;
+	}
+
+	public WebClientRequestExecutor(SslContext sslContext) {
+		this(HttpClient.create().secure(spec -> spec.sslContext(sslContext)));
+	}
+
+	public WebClientRequestExecutor() {
+		this(HttpClient.create().secure());
+	}
+
 	public Flux<JsonNode> executeReactiveRequest(RequestSpecification requestSpec, HttpMethod httpMethod) {
-		System.out.println("Executing " + httpMethod + " - " + requestSpec);
+		log.debug("Executing {} - {}", httpMethod, requestSpec);
 		try {
 			final URLSpecification urlSpec = getURLSpecification(requestSpec);
 			final WebClient webClient = createWebClient(urlSpec.baseUrl());
@@ -185,41 +185,7 @@ public class WebClientRequestExecutor {
 	}
 
 	private WebClient createWebClient(String baseUrl) throws IOException {
-		if (baseUrl.startsWith(HTTPS_SCHEME)) {
-			final SslContext sslContext = createSslContext();
-			final SslProvider sslProvider = SslProvider.builder().sslContext(sslContext).build();
-			final TcpClient tcpClient = TcpClient.create().secure(sslProvider);
-			final HttpClient httpClient = HttpClient.from(tcpClient);
-			final ClientHttpConnector httpConnector = new ReactorClientHttpConnector(httpClient);
-			return WebClient.builder().clientConnector(httpConnector).baseUrl(baseUrl).build();
-		}
-		return WebClient.create(baseUrl);
-	}
-
-	private SslContext createSslContext() throws IOException {
-		try {
-			final KeyStore ks = KeyStore.getInstance("PKCS12");
-			try (InputStream is = getClass().getResourceAsStream("/truststore.p12")) {
-				ks.load(is, "localhostpassword".toCharArray());
-			}
-
-			final List<String> aliases = Collections.list(ks.aliases());
-			final X509Certificate[] trusted = aliases.stream().map(alias -> {
-				try {
-					return (X509Certificate) ks.getCertificate(alias);
-				} catch (KeyStoreException e) {
-					throw new RuntimeException(e);
-				}
-			}).toArray(X509Certificate[]::new);
-
-			return SslContextBuilder.forClient().trustManager(trusted).build();
-			// return SslContextBuilder.forClient()
-			// .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-		} catch (RuntimeException e) {
-			throw new SSLException(e.getCause() instanceof KeyStoreException ? e.getCause() : e);
-		} catch (GeneralSecurityException e) {
-			throw new IOException(e);
-		}
+		return WebClient.builder().clientConnector(new ReactorClientHttpConnector(httpClient)).baseUrl(baseUrl).build();
 	}
 
 	private static URLSpecification getURLSpecification(RequestSpecification requestSpec) throws IOException {
