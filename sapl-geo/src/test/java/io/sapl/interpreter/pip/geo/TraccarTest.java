@@ -18,13 +18,9 @@ package io.sapl.interpreter.pip.geo;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpMethod.GET;
 
@@ -40,11 +36,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.pip.http.WebClientRequestExecutor;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
+import reactor.core.publisher.Flux;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TraccarTest {
@@ -70,12 +66,6 @@ public class TraccarTest {
 	private static String configJson = "{\"deviceID\": \"123456\", \"url\": \"http://lcl:00/api/\","
 			+ "\"credentials\": \"YWRtaW46YWRtaW4=\", \"posValidityTimespan\": 10}";
 
-	private static String expectedGeoPIPResponse = "{\"identifier\":\"testname\",\"position\":{\"type\":\"Point\","
-			+ "\"coordinates\":[1,0.0]},\"altitude\":0.0,\"lastUpdate\":\"\",\"accuracy\":0.0,\"trust\":0.0,"
-			+ "\"geofences\":{\"Kastel\":{\"type\":\"Polygon\",\"coordinates\":[[[50,8.2],[50,8.2],[50,8.3],[50,8.3],[50,8.2]]]}"
-			+ ",\"Mainz\":{\"type\":\"Polygon\",\"coordinates\":[[[50.03,8.23],[50,8.18],[50,8.23],[50,8.3],[50,8.4],[50.03,8.4]"
-			+ ",[50.05,8.3],[50.03,8.23]]]}}}";
-
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	private static final String DEVICE_ID = "123456";
@@ -96,7 +86,6 @@ public class TraccarTest {
 
 	@Before
 	public void init() throws IOException {
-		// mockStatic(HttpClientRequestExecutor.class);
 		requestExecutor = mock(WebClientRequestExecutor.class);
 		trConn = new TraccarConnection(MAPPER.readValue(configJson, TraccarConfig.class), requestExecutor);
 		trDevice = MAPPER.readValue(devicesJson, TraccarDevice[].class)[0];
@@ -114,88 +103,30 @@ public class TraccarTest {
 
 	@Test
 	public void getDeviceTest() throws AttributeException, IOException {
-		when(requestExecutor.executeBlockingRequest(any(), eq(GET))).thenReturn(MAPPER.readTree(devicesJson));
+		when(requestExecutor.executeReactiveRequest(any(), eq(GET)))
+				.thenReturn(Flux.just(MAPPER.readTree(devicesJson)));
 
 		assertEquals("Traccar devices not correctly obtained.", "TestDevice",
-				trConn.getTraccarDevice(DEVICE_ID).getName());
-	}
-
-	@Test
-	public void findDeviceNullArgumentTest() throws IOException {
-		when(requestExecutor.executeBlockingRequest(any(), eq(GET))).thenReturn(null);
-
-		try {
-			trConn.getTraccarDevice(DEVICE_ID).getUniqueId();
-			fail("No exception thrown for empty device answer..");
-		}
-		catch (AttributeException e) {
-			assertEquals("Wrong exception thrown for empty device answer.", e.getMessage(),
-					String.format(TraccarConnection.NO_SUCH_DEVICE_FOUND, DEVICE_ID));
-		}
-	}
-
-	@Test
-	public void getDeviceIdNotExistingTest() throws IOException {
-		when(requestExecutor.executeBlockingRequest(any(), eq(GET))).thenReturn(MAPPER.readTree(devicesJson));
-
-		try {
-			trConn.getTraccarDevice("0");
-			fail("No exception thrown when looking up a device that is not in the server answer.");
-		}
-		catch (AttributeException e) {
-			assertEquals("Wrong exception thrown when looking up a device that is not in the server answer.",
-					e.getMessage(), String.format(TraccarConnection.NO_SUCH_DEVICE_FOUND, "0"));
-		}
+				trConn.getTraccarDevice(DEVICE_ID).block().getName());
 	}
 
 	@Test
 	public void getPositionTest() throws AttributeException, IOException {
-		when(requestExecutor.executeBlockingRequest(any(), eq(GET))).thenReturn(MAPPER.readTree(positionsJson));
+		when(requestExecutor.executeReactiveRequest(any(), eq(GET)))
+				.thenReturn(Flux.just(MAPPER.readTree(positionsJson)));
 
 		TraccarPosition expectedPosition = MAPPER.readValue(positionsJson, TraccarPosition[].class)[0];
-		assertEquals("Traccar position not correctly obtained.", expectedPosition, trConn.getTraccarPosition(trDevice));
-	}
-
-	@Test
-	public void getPositionExceptionTest() throws IOException {
-		try {
-			when(requestExecutor.executeBlockingRequest(any(), eq(GET))).thenReturn(MAPPER.readTree("[]"));
-			trConn.getTraccarPosition(trDevice);
-
-			fail("No error message is thrown when zero positions are returned from server.");
-		}
-		catch (AttributeException e) {
-			assertEquals("Wrong error message gets thrown when zero positions are returned from server.",
-					TraccarConnection.UNABLE_TO_READ_FROM_SERVER, e.getMessage());
-		}
+		assertEquals("Traccar position not correctly obtained.", expectedPosition,
+				trConn.getTraccarPosition(trDevice).block());
 	}
 
 	@Test
 	public void getGeofencesTest() throws AttributeException, IOException {
-		when(requestExecutor.executeBlockingRequest(any(), eq(GET)))
-				.thenReturn(MAPPER.convertValue(trFences, JsonNode.class));
+		when(requestExecutor.executeReactiveRequest(any(), eq(GET)))
+				.thenReturn(Flux.just(MAPPER.convertValue(trFences, JsonNode.class)));
 
-		assertArrayEquals("Traccar geofences not correctly obtained.", trFences, trConn.getTraccarGeofences(trDevice));
-	}
-
-	@Test
-	public void toGeoPIPResponseTest() throws IOException, FunctionException, AttributeException {
-		TraccarConnection connSpy = spy(trConn);
-
-		TraccarDevice tDev = mock(TraccarDevice.class);
-		TraccarPosition tPos = mock(TraccarPosition.class);
-
-		when(tDev.getName()).thenReturn("testname");
-		when(tDev.getLastUpdate()).thenReturn("");
-		when(tPos.getLatitude()).thenReturn(1.0);
-		when(tPos.getLongitude()).thenReturn(0.0);
-
-		doReturn(tDev).when(connSpy).getTraccarDevice(anyString());
-		doReturn(tPos).when(connSpy).getTraccarPosition(any(TraccarDevice.class));
-		doReturn(trFences).when(connSpy).getTraccarGeofences(any(TraccarDevice.class));
-
-		assertEquals("Generation of GeoPIPResponse works not as expected.", connSpy.toGeoPIPResponse(),
-				MAPPER.readValue(expectedGeoPIPResponse, JsonNode.class));
+		assertArrayEquals("Traccar geofences not correctly obtained.", trFences,
+				trConn.getTraccarGeofences(trDevice).block());
 	}
 
 	@Test

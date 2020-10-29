@@ -38,7 +38,7 @@ public class GeoPolicyInformationPoint {
 
 	@Attribute
 	public Flux<Val> traccar(Val value, Map<String, JsonNode> variables) throws AttributeException, FunctionException {
-		return Flux.just(Val.of(new TraccarConnection(value.get()).toGeoPIPResponse()));
+		return Flux.from(new TraccarConnection(value.get()).toGeoPIPResponse().map(Val::of));
 	}
 
 	@Attribute

@@ -29,8 +29,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
-import org.springframework.web.reactive.function.BodyExtractors;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -40,7 +38,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.ssl.SslContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 @Slf4j
@@ -100,87 +97,6 @@ public class WebClientRequestExecutor {
 			}
 		} catch (Exception e) {
 			return Flux.error(e);
-		}
-	}
-
-	public JsonNode executeBlockingRequest(RequestSpecification requestSpec, HttpMethod httpMethod) throws IOException {
-		final URLSpecification urlSpec = getURLSpecification(requestSpec);
-		final WebClient webClient = createWebClient(urlSpec.baseUrl());
-		if (httpMethod == GET) {
-			// @formatter:off
-			final ClientResponse response = webClient.get().uri(urlSpec.pathAndQueryString())
-					.accept(MediaType.APPLICATION_JSON).headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-					.exchange().block();
-			// @formatter:on
-			if (response == null) {
-				throw new IOException("HTTP GET request returned null");
-			} else if (response.statusCode().is2xxSuccessful()) {
-				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
-				return body.block();
-			} else {
-				throw new IOException("HTTP GET request returned with status code " + response.statusCode().value());
-			}
-		} else if (httpMethod == POST) {
-			// @formatter:off
-			final ClientResponse response = webClient.post().uri(urlSpec.pathAndQueryString())
-					.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).bodyValue(getBody(requestSpec))
-					.exchange().block();
-			// @formatter:on
-			if (response == null) {
-				throw new IOException("HTTP POST request returned null");
-			} else if (response.statusCode().is2xxSuccessful()) {
-				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
-				return body.block();
-			} else {
-				throw new IOException("HTTP POST request returned with status code " + response.statusCode().value());
-			}
-		} else if (httpMethod == PUT) {
-			// @formatter:off
-			final ClientResponse response = webClient.put().uri(urlSpec.pathAndQueryString())
-					.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).bodyValue(getBody(requestSpec))
-					.exchange().block();
-			// @formatter:on
-			if (response == null) {
-				throw new IOException("HTTP PUT request returned null");
-			} else if (response.statusCode().is2xxSuccessful()) {
-				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
-				return body.block();
-			} else {
-				throw new IOException("HTTP PUT request returned with status code " + response.statusCode().value());
-			}
-		} else if (httpMethod == DELETE) {
-			// @formatter:off
-			final ClientResponse response = webClient.delete().uri(urlSpec.pathAndQueryString())
-					.accept(MediaType.APPLICATION_JSON).headers(httpHeaders -> addHeaders(httpHeaders, requestSpec))
-					.exchange().block();
-			// @formatter:on
-			if (response == null) {
-				throw new IOException("HTTP DELETE request returned null");
-			} else if (response.statusCode().is2xxSuccessful()) {
-				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
-				return body.block();
-			} else {
-				throw new IOException("HTTP DELETE request returned with status code " + response.statusCode().value());
-			}
-		} else if (httpMethod == PATCH) {
-			// @formatter:off
-			final ClientResponse response = webClient.patch().uri(urlSpec.pathAndQueryString())
-					.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-					.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).bodyValue(getBody(requestSpec))
-					.exchange().block();
-			// @formatter:on
-			if (response == null) {
-				throw new IOException("HTTP PATCH request returned null");
-			} else if (response.statusCode().is2xxSuccessful()) {
-				final Mono<JsonNode> body = response.body(BodyExtractors.toMono(JsonNode.class));
-				return body.block();
-			} else {
-				throw new IOException("HTTP PATCH request returned with status code " + response.statusCode().value());
-			}
-		} else {
-			throw new IOException("Unsupported request method " + httpMethod);
 		}
 	}
 
