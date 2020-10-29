@@ -15,15 +15,18 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.Nullable;
 import org.web3j.protocol.Web3j;
 
+import io.netty.handler.ssl.SslContext;
 import io.sapl.interpreter.pip.EthereumPolicyInformationPoint;
 import io.sapl.interpreter.pip.GeoPolicyInformationPoint;
-import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.pip.http.HttpPolicyInformationPoint;
+import io.sapl.pip.http.WebClientRequestExecutor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -33,10 +36,19 @@ public class PolicyInformationPointsAutoConfiguration {
 	@Configuration
 	@ConditionalOnClass(io.sapl.pip.http.HttpPolicyInformationPoint.class)
 	public static class HTTPConfiguration {
+		@Nullable
+		@Autowired
+		SslContext sslContext;
+
 		@Bean
 		public HttpPolicyInformationPoint httpPolicyInformationPoint() {
-			log.info("HTTP PIP present. Loading.");
-			return new HttpPolicyInformationPoint();
+			if (sslContext == null) {
+				log.info("HTTP PIP present. No SslContext bean. Loading with default SslContext...");
+				return new HttpPolicyInformationPoint(new WebClientRequestExecutor());
+			} else {
+				log.info("HTTP PIP present. Loading with custom SslContext bean...");
+				return new HttpPolicyInformationPoint(new WebClientRequestExecutor(sslContext));
+			}
 		}
 	}
 
@@ -47,16 +59,6 @@ public class PolicyInformationPointsAutoConfiguration {
 		public GeoPolicyInformationPoint geoPolicyInformationPoint() {
 			log.info("GEO PIP present. Loading.");
 			return new GeoPolicyInformationPoint();
-		}
-	}
-
-	@Configuration
-	@ConditionalOnClass(io.sapl.pip.ClockPolicyInformationPoint.class)
-	public static class ClockConfiguration {
-		@Bean
-		public ClockPolicyInformationPoint clockPolicyInformationPoint() {
-			log.info("Clock PIP present. Loading.");
-			return new ClockPolicyInformationPoint();
 		}
 	}
 

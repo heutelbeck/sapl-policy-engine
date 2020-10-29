@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
-@ComponentScan("io.sapl.spring")
+@ComponentScan("io.sapl")
 @AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
 public class FunctionContextAutoConfiguration {
 

@@ -17,7 +17,6 @@ package io.sapl.interpreter.pip.geo;
 
 import static org.springframework.http.HttpMethod.GET;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -39,9 +38,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.GeometryBuilder;
-import io.sapl.webclient.RequestSpecification;
-import io.sapl.webclient.WebClientRequestExecutor;
+import io.sapl.pip.http.RequestSpecification;
+import io.sapl.pip.http.WebClientRequestExecutor;
 import lombok.Getter;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class TraccarConnection {
 
@@ -93,31 +94,34 @@ public class TraccarConnection {
 		this.requestExecutor = requestExecutor;
 	}
 
-	public JsonNode toGeoPIPResponse() throws AttributeException, FunctionException {
+	public Mono<JsonNode> toGeoPIPResponse() throws AttributeException, FunctionException {
 		if (config == null) {
-			return JSON.textNode(TEST_OKAY);
+			return Mono.just(JSON.textNode(TEST_OKAY));
 		} else {
-			TraccarDevice device = getTraccarDevice(config.getDeviceID());
-			TraccarPosition position = getTraccarPosition(device);
-			TraccarGeofence[] geofences = getTraccarGeofences(device);
-
-			return buildGeoPIPesponse(device, position, geofences).toJsonNode();
+			return getTraccarDevice(config.getDeviceID()).flatMap(device -> Flux
+					.combineLatest(getTraccarPosition(device), getTraccarGeofences(device), (position, geofences) -> {
+						try {
+							return buildGeoPIPesponse(device, position, geofences).toJsonNode();
+						} catch (FunctionException e) {
+							return Mono.error(e);
+						}
+					}).next().cast(JsonNode.class));
 		}
 	}
 
-	public TraccarDevice getTraccarDevice(String uniqueID) throws AttributeException {
+	public Mono<TraccarDevice> getTraccarDevice(String uniqueID) {
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_DEVICES, null)));
-		try {
-			final JsonNode response = requestExecutor.executeBlockingRequest(requestSpec, GET);
-			TraccarDevice[] devices = MAPPER.convertValue(response, TraccarDevice[].class);
-			return findDevice(devices, uniqueID);
-		} catch (IOException e) {
-			throw new AttributeException(e);
-		}
-
+		return requestExecutor.executeReactiveRequest(requestSpec, GET).take(1)
+				.map(response -> MAPPER.convertValue(response, TraccarDevice[].class)).flatMap(devices -> {
+					try {
+						return Flux.just(findDevice(devices, uniqueID));
+					} catch (AttributeException e) {
+						return Flux.error(e);
+					}
+				}).next();
 	}
 
-	public TraccarPosition getTraccarPosition(TraccarDevice device) throws AttributeException {
+	public Mono<TraccarPosition> getTraccarPosition(TraccarDevice device) {
 		HashMap<String, String> httpGetArguments = new HashMap<>();
 		httpGetArguments.put("deviceId", String.valueOf(device.getId()));
 		httpGetArguments.put("from",
@@ -126,33 +130,27 @@ public class TraccarConnection {
 
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_POSITIONS, httpGetArguments)));
 
-		try {
-			final JsonNode response = requestExecutor.executeBlockingRequest(requestSpec, GET);
-			TraccarPosition[] traccarPositions = MAPPER.convertValue(response, TraccarPosition[].class);
-			if (traccarPositions.length == 0) {
-				throw new AttributeException(UNABLE_TO_READ_FROM_SERVER);
-			}
-
-			// Highest ID is most current position
-			Arrays.sort(traccarPositions, TraccarPosition::compareDescending);
-			return traccarPositions[0];
-		} catch (IOException e) {
-			throw new AttributeException(e);
-		}
+		return requestExecutor.executeReactiveRequest(requestSpec, GET)
+				.map(res -> MAPPER.convertValue(res, TraccarPosition[].class)).flatMap(this::getCurrentPosition).next();
 	}
 
-	public TraccarGeofence[] getTraccarGeofences(TraccarDevice device) throws AttributeException {
+	private Flux<TraccarPosition> getCurrentPosition(TraccarPosition[] traccarPositions) {
+		if (traccarPositions.length == 0) {
+			return Flux.error(new AttributeException(UNABLE_TO_READ_FROM_SERVER));
+		}
+		Arrays.sort(traccarPositions, TraccarPosition::compareDescending);
+		// Highest ID is most current position
+		return Flux.just(traccarPositions[0]);
+	}
+
+	public Mono<TraccarGeofence[]> getTraccarGeofences(TraccarDevice device) {
 		HashMap<String, String> httpGetArguments = new HashMap<>();
 		httpGetArguments.put("deviceId", String.valueOf(device.getId()));
 
 		requestSpec.setUrl(JSON.textNode(buildTraccarApiGetUrl(TRACCAR_GEOFENCES, httpGetArguments)));
 
-		try {
-			final JsonNode response = requestExecutor.executeBlockingRequest(requestSpec, GET);
-			return MAPPER.convertValue(response, TraccarGeofence[].class);
-		} catch (IOException e) {
-			throw new AttributeException(e);
-		}
+		return requestExecutor.executeReactiveRequest(requestSpec, GET)
+				.map(response -> MAPPER.convertValue(response, TraccarGeofence[].class)).next();
 	}
 
 	protected static GeoPIPResponse buildGeoPIPesponse(TraccarDevice device, TraccarPosition position,

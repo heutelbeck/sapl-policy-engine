@@ -16,35 +16,35 @@
 		<artifactId>sapl-policy-engine</artifactId>
 		<version>2.0.0-SNAPSHOT</version>
 	</parent>
-
-	<artifactId>sapl-spring-pdp-remote</artifactId>
+	<artifactId>sapl-pdp-remote</artifactId>
 
 	<packaging>jar</packaging>
 
-	<name>SAPL Spring Remote PDP</name>
+	<name>SAPL PDP Client</name>
+	<description>Client for remote Policy Decision Points</description>
 
 	<dependencies>
-
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-autoconfigure</artifactId>
-		</dependency>
-
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-pdp-remote</artifactId>
+			<artifactId>sapl-pdp-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-webflux</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.projectreactor.netty</groupId>
+			<artifactId>reactor-netty</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-configuration-processor</artifactId>
-			<optional>true</optional>
 		</dependency>
 	</dependencies>
 </project>

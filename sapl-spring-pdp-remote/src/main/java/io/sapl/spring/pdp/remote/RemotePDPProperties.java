@@ -22,9 +22,7 @@ import lombok.Data;
 @Data
 @ConfigurationProperties(prefix = "io.sapl.pdp.remote")
 public class RemotePDPProperties {
-	private static final int DEFAULT_REMOTE_PORT = 8443;
-	private String host = "localhost";
-	private int port = DEFAULT_REMOTE_PORT;
-	private String key = "";
-	private String secret = "";
+	private String host;
+	private String key;
+	private String secret;
 }

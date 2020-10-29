@@ -8,6 +8,8 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.interpreter.functions.LibraryDocumentation;
+import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,6 +24,9 @@ public class DocumentationAutoConfiguration {
 		log.info("Provisioning PIP Documentation Bean");
 		if (pdp instanceof EmbeddedPolicyDecisionPoint) {
 			EmbeddedPolicyDecisionPoint epdp = (EmbeddedPolicyDecisionPoint) pdp;
+			for (PolicyInformationPointDocumentation doc : epdp.getAttributeCtx().getDocumentation()) {
+				log.debug("AttributeCtx contains: {}", doc.getName());
+			}
 			return new PolicyInformationPointsDocumentation(epdp.getAttributeCtx().getDocumentation());
 		}
 		log.info("PIP Documentation will be empty for non-embedded PDP implementations.");
@@ -33,6 +38,10 @@ public class DocumentationAutoConfiguration {
 		log.info("Provisioning Function Libraries Documentation Bean");
 		if (pdp instanceof EmbeddedPolicyDecisionPoint) {
 			EmbeddedPolicyDecisionPoint epdp = (EmbeddedPolicyDecisionPoint) pdp;
+			for (LibraryDocumentation doc : epdp.getFunctionCtx().getDocumentation()) {
+				log.debug("FunctionCtx contains: {}", doc.getName());
+			}
+
 			return new FunctionLibrariesDocumentation(epdp.getFunctionCtx().getDocumentation());
 		}
 		log.info("Function Libraries Documentation will be empty for non-embedded PDP implementations.");

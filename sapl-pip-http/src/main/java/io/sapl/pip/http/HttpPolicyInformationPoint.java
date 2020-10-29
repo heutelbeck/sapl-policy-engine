@@ -35,42 +35,27 @@ import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
-import io.sapl.webclient.RequestSpecification;
-import io.sapl.webclient.WebClientRequestExecutor;
-import lombok.NoArgsConstructor;
 import reactor.core.publisher.Flux;
 
 /**
  * Uses the {@link WebClientRequestExecutor} the send reactive HTTP requests to
  * a remote policy information point providing the according REST endpoints.
  */
-@NoArgsConstructor
 @PolicyInformationPoint(name = HttpPolicyInformationPoint.NAME, description = HttpPolicyInformationPoint.DESCRIPTION)
 public class HttpPolicyInformationPoint {
 
 	static final String NAME = "http";
 	static final String DESCRIPTION = "Policy Information Point and attributes for consuming HTTP services";
-
 	private static final String GET_DOCS = "Sends an HTTP GET request to the url provided in the value parameter and returns a flux of responses.";
-
 	private static final String POST_DOCS = "Sends an HTTP POST request to the url provided in the value parameter and returns a flux of responses.";
-
 	private static final String PUT_DOCS = "Sends an HTTP PUT request to the url provided in the value parameter and returns a flux of responses.";
-
 	private static final String PATCH_DOCS = "Sends an HTTP PATCH request to the url provided in the value parameter and returns a flux of responses.";
-
 	private static final String DELETE_DOCS = "Sends an HTTP DELETE request to the url provided in the value parameter and returns a flux of responses.";
-
 	private static final String OBJECT_NO_HTTP_REQUEST_OBJECT_SPECIFICATION = "Object no HTTP request object specification.";
 
-	private WebClientRequestExecutor requestExecutor;
+	private final WebClientRequestExecutor requestExecutor;
 
-	/**
-	 * For Unit tests only.
-	 * 
-	 * @param requestExecutor the {@link WebClientRequestExecutor} mock
-	 */
-	HttpPolicyInformationPoint(WebClientRequestExecutor requestExecutor) {
+	public HttpPolicyInformationPoint(WebClientRequestExecutor requestExecutor) {
 		this.requestExecutor = requestExecutor;
 	}
 
