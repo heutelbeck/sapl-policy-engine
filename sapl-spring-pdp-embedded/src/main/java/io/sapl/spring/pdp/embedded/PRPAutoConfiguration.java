@@ -26,8 +26,9 @@ import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.prp.PolicyRetrievalPoint;
+import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.prp.filesystem.FilesystemPolicyRetrievalPoint;
-import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
+import io.sapl.prp.inmemory.indexed.improved.ImprovedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,15 +41,15 @@ import lombok.extern.slf4j.Slf4j;
 public class PRPAutoConfiguration {
 
 	private final EmbeddedPDPProperties pdpProperties;
-//	private final FunctionContext functionCtx;
+	private final FunctionContext functionCtx;
 
 	@Bean
 	@ConditionalOnMissingBean
 	public PolicyRetrievalPoint policyRetrievalPoint()
 			throws IOException, URISyntaxException, PolicyEvaluationException {
 		// FIXME: eliminate blockFirst() in index.
-		// var index = new ImprovedDocumentIndex(functionCtx);
-		var index = new SimpleParsedDocumentIndex();
+		 var index = new ImprovedDocumentIndex(functionCtx);
+		//var index = new SimpleParsedDocumentIndex();
 		var policiesFolder = pdpProperties.getPoliciesPath();
 		if (pdpProperties.getPdpConfigType() == EmbeddedPDPProperties.PDPDataSource.FILESYSTEM) {
 			log.info("creating embedded PDP sourcing and monitoring access policies from the filesystem: {}",

@@ -54,17 +54,13 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 public class FilesystemPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 	private static final String POLICY_FILE_GLOB_PATTERN = "*.sapl";
-
 	private static final Pattern POLICY_FILE_REGEX_PATTERN = Pattern.compile(".+\\.sapl");
 
 	private final ReentrantLock lock = new ReentrantLock();
 
 	private final SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
-
 	private String path;
-
 	private ParsedDocumentIndex parsedDocIdx;
-
 	private Scheduler dirWatcherScheduler;
 
 	private ReplayProcessor<WatchEvent<Path>> dirWatcherEventProcessor = ReplayProcessor
