@@ -27,21 +27,19 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 /**
  * Registers a directory watch service on the directory passed to the
  * constructor and forwards all create, delete and modify events to a
  * {@link DirectoryWatchEventConsumer}.
  */
+@Slf4j
+@RequiredArgsConstructor
 public class DirectoryWatcher {
 
 	private final Path watchedDir;
-
-	public DirectoryWatcher(Path watchedDirectory) {
-		this.watchedDir = watchedDirectory;
-	}
 
 	/**
 	 * Registers a directory watch service on the directory passed to the

@@ -208,4 +208,11 @@ public class SAPLImplCustom extends SAPLImpl {
 		return returnImports;
 	}
 
+	@Override
+	public String toString() {
+		if (this.getPolicyElement() == null || this.getPolicyElement().getSaplName() == null) {
+			return super.toString();
+		}
+		return this.getPolicyElement().getSaplName();
+	}
 }

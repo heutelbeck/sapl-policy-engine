@@ -77,24 +77,29 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 	}
 
 	@Override
+	public void dispose() {
+		dirWatcherScheduler.dispose();
+	}
+
+	@Override
 	public Flux<PrpUpdateEvent> getUpdates() {
 		Map<String, SAPL> files = new HashMap<>();
 		List<Update> updates = new LinkedList<>();
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(watchDir, POLICY_FILE_GLOB_PATTERN)) {
 			for (var filePath : stream) {
-				log.info("load: {}", filePath);
+				log.info("loading SAPL document: {}", filePath);
 				var rawDocument = readFile(filePath);
 				var saplDocument = interpreter.parse(rawDocument);
 				files.put(filePath.toString(), saplDocument);
 				updates.add(new Update(Type.PUBLISH, saplDocument, rawDocument));
 			}
 		} catch (IOException | PolicyEvaluationException e) {
-			log.error("Fatal Error building initial PrpUpdateEvent: {}", e.getMessage());
+			log.error("FATAL ERROR: building initial PrpUpdateEvent: {}", e.getMessage());
 			System.exit(1);
 		}
 		var seedIndex = new ImmutableFileIndex(files);
 		var initialEvent = new PrpUpdateEvent(updates);
-		log.info("Initial event: {}", initialEvent);
+		log.debug("initial event: {}", initialEvent);
 		return Mono.just(initialEvent).concatWith(directoryMonitor(seedIndex));
 	}
 
@@ -112,19 +117,19 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 		var absoluteFileName = absoluteFilePath.toString();
 
 		if (kind != ENTRY_DELETE && kind != ENTRY_CREATE && kind != ENTRY_MODIFY) {
-			log.warn("dropping unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
+			log.debug("dropping unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
 			return Tuples.of(Optional.empty(), index);
 		}
 
 		if (kind == ENTRY_DELETE) {
-			log.info("removing {} from index", fileName);
+			log.info("unloading deleted SAPL document: {}", fileName);
 			var update = new Update(Type.UNPUBLISH, index.get(absoluteFileName), "");
 			var newIndex = index.remove(absoluteFileName);
 			return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);
 		}
 
 		if (absoluteFilePath.toFile().length() == 0) {
-			log.warn("dropping potential duplicate event. {}", kind);
+			log.debug("dropping potential duplicate event. {}", kind);
 			return Tuples.of(Optional.empty(), index);
 		}
 
@@ -134,13 +139,13 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 			rawDocument = readFile(absoluteFilePath);
 			saplDocument = interpreter.parse(rawDocument);
 		} catch (PolicyEvaluationException | IOException e) {
-			log.error("Attempt to publish invalid document. Application shutdown to avoid inconsistent decisions: {}",
+			log.error("FATAL ERROR: Attempt to publish invalid document. Application shutdown to avoid inconsistent decisions: {}",
 					e.getMessage());
 			System.exit(1);
 		}
 
 		if (kind == ENTRY_CREATE) {
-			log.info("adding {} to index", fileName);
+			log.info("loading new SAPL document: {}", fileName);
 			var update = new Update(Type.PUBLISH, saplDocument, rawDocument);
 			var newIndex = index.put(absoluteFileName, saplDocument);
 			return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);
@@ -148,23 +153,12 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
 		// kind == ENTRY_MODIFY
 
-		log.info("updating {} in index", fileName);
+		log.info("loading updated SAPL document: {}", fileName);
 		var oldDocument = index.get(absoluteFileName);
-		var oldName = oldDocument.getPolicyElement().getSaplName();
-		var newName = saplDocument.getPolicyElement().getSaplName();
-		if (!oldName.equals(newName)) {
-			log.info(
-					"name of policy in file changed from '{}' to '{}'. Unpublish the first one and publish the second one.",
-					oldName, newName);
-			var update1 = new Update(Type.UNPUBLISH, oldDocument, "");
-			var update2 = new Update(Type.PUBLISH, saplDocument, rawDocument);
-			var newIndex = index.put(absoluteFileName, saplDocument);
-			return Tuples.of(Optional.of(new PrpUpdateEvent(update1, update2)), newIndex);
-
-		}
-		var update = new Update(Type.PUBLISH, saplDocument, rawDocument);
+		var update1 = new Update(Type.UNPUBLISH, oldDocument, "");
+		var update2 = new Update(Type.PUBLISH, saplDocument, rawDocument);
 		var newIndex = index.put(absoluteFileName, saplDocument);
-		return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);
+		return Tuples.of(Optional.of(new PrpUpdateEvent(update1, update2)), newIndex);
 	}
 
 	public static String readFile(Path filePath) throws IOException {

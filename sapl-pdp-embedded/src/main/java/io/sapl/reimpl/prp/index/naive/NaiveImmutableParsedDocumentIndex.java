@@ -62,7 +62,6 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 	@Override
 	public NaiveImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
 		// Do a shallow copy. String is immutable, and SAPL is assumed to be too.
-		log.info("Apply: {}", event);
 		var newDocuments = new HashMap<>(documents);
 		applyEvent(newDocuments, event);
 		return new NaiveImmutableParsedDocumentIndex(newDocuments);
