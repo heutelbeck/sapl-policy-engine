@@ -18,6 +18,7 @@ import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.PrpUpdateEvent;
 import io.sapl.reimpl.prp.PrpUpdateEvent.Type;
 import io.sapl.reimpl.prp.PrpUpdateEvent.Update;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -27,6 +28,7 @@ import reactor.core.publisher.Mono;
  * are assumed to be immutable.
  */
 @Slf4j
+@ToString
 public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
 	// Mapping of Document Name to the parsed Document
 	private final Map<String, SAPL> documents;
@@ -60,6 +62,7 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 	@Override
 	public NaiveImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
 		// Do a shallow copy. String is immutable, and SAPL is assumed to be too.
+		log.info("Apply: {}", event);
 		var newDocuments = new HashMap<>(documents);
 		applyEvent(newDocuments, event);
 		return new NaiveImmutableParsedDocumentIndex(newDocuments);

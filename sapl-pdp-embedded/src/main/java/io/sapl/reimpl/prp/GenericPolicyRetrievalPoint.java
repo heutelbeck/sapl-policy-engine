@@ -20,8 +20,8 @@ public class GenericPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	private Disposable indexSubscription;
 
 	public GenericPolicyRetrievalPoint(ImmutableParsedDocumentIndex seedIndex, PrpUpdateEventSource eventSource) {
-		index = Flux.from(eventSource.getUpdates()).scan(seedIndex, (index, event) -> index.apply(event)).share()
-				.cache();
+		index = Flux.from(eventSource.getUpdates()).log().scan(seedIndex, (index, event) -> index.apply(event)).skip(1L)
+				.cache().share();
 		// initial subscription, so that the index directly starts building upon startup
 		indexSubscription = index.subscribe();
 	}
@@ -29,7 +29,8 @@ public class GenericPolicyRetrievalPoint implements PolicyRetrievalPoint {
 	@Override
 	public Flux<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
 			FunctionContext functionCtx, Map<String, JsonNode> variables) {
-		return Flux.from(index).flatMap(idx -> idx.retrievePolicies(authzSubscription, functionCtx, variables)).doOnNext(this::logMatching);
+		return Flux.from(index).flatMap(idx -> idx.retrievePolicies(authzSubscription, functionCtx, variables))
+				.doOnNext(this::logMatching);
 	}
 
 	@Override

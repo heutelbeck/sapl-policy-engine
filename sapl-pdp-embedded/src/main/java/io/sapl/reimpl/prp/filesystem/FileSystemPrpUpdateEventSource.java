@@ -1,59 +1,207 @@
 package io.sapl.reimpl.prp.filesystem;
 
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.WatchEvent;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
+import io.sapl.directorywatcher.DirectoryWatchEventFluxSinkAdapter;
+import io.sapl.directorywatcher.DirectoryWatcher;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.reimpl.prp.PrpUpdateEvent;
+import io.sapl.reimpl.prp.PrpUpdateEvent.Type;
+import io.sapl.reimpl.prp.PrpUpdateEvent.Update;
 import io.sapl.reimpl.prp.PrpUpdateEventSource;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 @Slf4j
-@RequiredArgsConstructor
 public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
 	private static final String POLICY_FILE_GLOB_PATTERN = "*.sapl";
 	private static final Pattern POLICY_FILE_REGEX_PATTERN = Pattern.compile(".+\\.sapl");
 
 	private final SAPLInterpreter interpreter;
+	private final String path;
+	private final Path watchDir;
+	private Scheduler dirWatcherScheduler;
+	private Flux<WatchEvent<Path>> dirWatcherFlux;
+
+	public FileSystemPrpUpdateEventSource(String policyPath, SAPLInterpreter interpreter) {
+		this.interpreter = interpreter;
+
+		// First resolve actual path
+
+		if (policyPath.startsWith("~" + File.separator) || policyPath.startsWith("~/")) {
+			path = System.getProperty("user.home") + policyPath.substring(1);
+		} else if (policyPath.startsWith("~")) {
+			throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
+		} else {
+			path = policyPath;
+		}
+		watchDir = Paths.get(path);
+
+		// Set up directory watcher
+
+		final DirectoryWatcher directoryWatcher = new DirectoryWatcher(watchDir);
+		final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter(
+				POLICY_FILE_REGEX_PATTERN);
+		dirWatcherScheduler = Schedulers.newElastic("policyWatcher");
+		dirWatcherFlux = Flux.<WatchEvent<Path>>push(sink -> {
+			adapter.setSink(sink);
+			directoryWatcher.watch(adapter);
+		}).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler).share();
+	}
 
 	@Override
 	public Flux<PrpUpdateEvent> getUpdates() {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, SAPL> files = new HashMap<>();
+		List<Update> updates = new LinkedList<>();
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(watchDir, POLICY_FILE_GLOB_PATTERN)) {
+			for (var filePath : stream) {
+				log.info("load: {}", filePath);
+				var rawDocument = readFile(filePath);
+				var saplDocument = interpreter.parse(rawDocument);
+				files.put(filePath.toString(), saplDocument);
+				updates.add(new Update(Type.PUBLISH, saplDocument, rawDocument));
+			}
+		} catch (IOException | PolicyEvaluationException e) {
+			log.error("Fatal Error building initial PrpUpdateEvent: {}", e.getMessage());
+			System.exit(1);
+		}
+		var seedIndex = new ImmutableFileIndex(files);
+		var initialEvent = new PrpUpdateEvent(updates);
+		log.info("Initial event: {}", initialEvent);
+		return Mono.just(initialEvent).concatWith(directoryMonitor(seedIndex));
 	}
 
-	private PrpUpdateEvent loadAllFilesIntoIntitialEvent(String path) {
-//		try {
-//			try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path), POLICY_FILE_GLOB_PATTERN)) {
-//				for (Path filePath : stream) {
-//					log.info("load: {}", filePath);
-//					final SAPL saplDocument = interpreter.parse(Files.newInputStream(filePath));
-//					parsedDocIdx.put(filePath.toString(), saplDocument);
-//				}
-//			}
-//			parsedDocIdx.setLiveMode();
-//		} catch (IOException | PolicyEvaluationException e) {
-//			log.error("Error while initializing the document index.", e);
-//		}
-		return null;
+	private Flux<PrpUpdateEvent> directoryMonitor(ImmutableFileIndex seedIndex) {
+		return Flux.from(dirWatcherFlux).scan(Tuples.of(Optional.empty(), seedIndex), this::processWatcherEvent)
+				.filter(tuple -> tuple.getT1().isPresent()).map(Tuple2::getT1).map(Optional::get).distinct();
 	}
 
-	public static class ImmutableFileIndex {
+	private Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> processWatcherEvent(
+			Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> tuple, WatchEvent<Path> watchEvent) {
+		var index = tuple.getT2();
+		var kind = watchEvent.kind();
+		var fileName = watchEvent.context();
+		var absoluteFilePath = Paths.get(path, fileName.toString());
+		var absoluteFileName = absoluteFilePath.toString();
+
+		if (kind != ENTRY_DELETE && kind != ENTRY_CREATE && kind != ENTRY_MODIFY) {
+			log.warn("dropping unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
+			return Tuples.of(Optional.empty(), index);
+		}
+
+		if (kind == ENTRY_DELETE) {
+			log.info("removing {} from index", fileName);
+			var update = new Update(Type.UNPUBLISH, index.get(absoluteFileName), "");
+			var newIndex = index.remove(absoluteFileName);
+			return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);
+		}
+
+		if (absoluteFilePath.toFile().length() == 0) {
+			log.warn("dropping potential duplicate event. {}", kind);
+			return Tuples.of(Optional.empty(), index);
+		}
+
+		String rawDocument = "";
+		SAPL saplDocument = null;
+		try {
+			rawDocument = readFile(absoluteFilePath);
+			saplDocument = interpreter.parse(rawDocument);
+		} catch (PolicyEvaluationException | IOException e) {
+			log.error("Attempt to publish invalid document. Application shutdown to avoid inconsistent decisions: {}",
+					e.getMessage());
+			System.exit(1);
+		}
+
+		if (kind == ENTRY_CREATE) {
+			log.info("adding {} to index", fileName);
+			var update = new Update(Type.PUBLISH, saplDocument, rawDocument);
+			var newIndex = index.put(absoluteFileName, saplDocument);
+			return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);
+		}
+
+		// kind == ENTRY_MODIFY
+
+		log.info("updating {} in index", fileName);
+		var oldDocument = index.get(absoluteFileName);
+		var oldName = oldDocument.getPolicyElement().getSaplName();
+		var newName = saplDocument.getPolicyElement().getSaplName();
+		if (!oldName.equals(newName)) {
+			log.info(
+					"name of policy in file changed from '{}' to '{}'. Unpublish the first one and publish the second one.",
+					oldName, newName);
+			var update1 = new Update(Type.UNPUBLISH, oldDocument, "");
+			var update2 = new Update(Type.PUBLISH, saplDocument, rawDocument);
+			var newIndex = index.put(absoluteFileName, saplDocument);
+			return Tuples.of(Optional.of(new PrpUpdateEvent(update1, update2)), newIndex);
+
+		}
+		var update = new Update(Type.PUBLISH, saplDocument, rawDocument);
+		var newIndex = index.put(absoluteFileName, saplDocument);
+		return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);
+	}
+
+	public static String readFile(Path filePath) throws IOException {
+		var fis = Files.newInputStream(filePath);
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8))) {
+			StringBuilder sb = new StringBuilder();
+			String line;
+			while ((line = br.readLine()) != null) {
+				sb.append(line);
+				sb.append('\n');
+			}
+			return sb.toString();
+		}
+	}
+
+	private static class ImmutableFileIndex {
 		final Map<String, SAPL> files;
 
-		public ImmutableFileIndex() {
-			files = new HashMap<>();
-		}
-
 		private ImmutableFileIndex(Map<String, SAPL> newFiles) {
-			files = newFiles;
+			files = new HashMap<>(newFiles);
 		}
 
+		public ImmutableFileIndex put(String absoluteFileName, SAPL saplDocument) {
+			var newFiles = new HashMap<>(files);
+			newFiles.put(absoluteFileName, saplDocument);
+			return new ImmutableFileIndex(newFiles);
+		}
+
+		public ImmutableFileIndex remove(String absoluteFileName) {
+			var newFiles = new HashMap<>(files);
+			newFiles.remove(absoluteFileName);
+			return new ImmutableFileIndex(newFiles);
+		}
+
+		public SAPL get(String absoluteFileName) {
+			return files.get(absoluteFileName);
+		}
 	}
 
 }
