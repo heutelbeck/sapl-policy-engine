@@ -142,13 +142,13 @@ public class DomainGenerator {
                 .append("permit ");
 
         boolean first = true;
-        policyBuilder.append("(");
+        policyBuilder.append('(');
         for (DomainResource resource : resources) {
             if (first) first = false;
             else policyBuilder.append(" | ");
             policyBuilder.append(String.format("resource == \"%s\"", resource.getResourceName()));
         }
-        policyBuilder.append(")");
+        policyBuilder.append(')');
 
         return policyBuilder;
     }
@@ -167,7 +167,7 @@ public class DomainGenerator {
 
         policyBuilder.append(System.lineSeparator()).append(TAB_STRING);
         if (!emptyPermit) policyBuilder.append(" & ");
-        policyBuilder.append("(");
+        policyBuilder.append('(');
 
         boolean firstRole = true;
         for (DomainRole role : roles) {
@@ -175,20 +175,20 @@ public class DomainGenerator {
             else policyBuilder.append(" | ");
             policyBuilder.append(String.format("(\"%s\" in subject.authorities)", role.getRoleName()));
         }
-        policyBuilder.append(")");
+        policyBuilder.append(')');
     }
 
     public void addActionsToPolicy(StringBuilder policyBuilder, List<String> actions) {
         if (actions.isEmpty()) return;
 
-        policyBuilder.append(System.lineSeparator()).append(TAB_STRING).append(" & ").append("(");
+        policyBuilder.append(System.lineSeparator()).append(TAB_STRING).append(" & ").append('(');
         boolean firstAction = true;
         for (String action : actions) {
             if (firstAction) firstAction = false;
             else policyBuilder.append(" | ");
             policyBuilder.append(String.format("action == \"%s\"", action));
         }
-        policyBuilder.append(")");
+        policyBuilder.append(')');
     }
 
 //    private void addBodyToPolicy(StringBuilder policyBuilder, DomainPolicyBody body) {
