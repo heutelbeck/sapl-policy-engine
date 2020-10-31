@@ -45,7 +45,6 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 	private static final Pattern POLICY_FILE_REGEX_PATTERN = Pattern.compile(".+\\.sapl");
 
 	private final SAPLInterpreter interpreter;
-	private final String path;
 	private final Path watchDir;
 	private Scheduler dirWatcherScheduler;
 	private Flux<WatchEvent<Path>> dirWatcherFlux;
@@ -53,17 +52,7 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 	public FileSystemPrpUpdateEventSource(String policyPath, SAPLInterpreter interpreter) {
 		this.interpreter = interpreter;
 
-		// First resolve actual path
-
-		if (policyPath.startsWith("~" + File.separator) || policyPath.startsWith("~/")) {
-			path = System.getProperty("user.home") + policyPath.substring(1);
-		} else if (policyPath.startsWith("~")) {
-			throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
-		} else {
-			path = policyPath;
-		}
-		watchDir = Paths.get(path);
-
+		watchDir = fileSystemPath(policyPath);
 		// Set up directory watcher
 
 		final DirectoryWatcher directoryWatcher = new DirectoryWatcher(watchDir);
@@ -74,6 +63,19 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 			adapter.setSink(sink);
 			directoryWatcher.watch(adapter);
 		}).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler).share();
+	}
+
+	private final Path fileSystemPath(String policyPath) {
+		String path = "";
+		// First resolve actual path
+		if (policyPath.startsWith("~" + File.separator) || policyPath.startsWith("~/")) {
+			path = System.getProperty("user.home") + policyPath.substring(1);
+		} else if (policyPath.startsWith("~")) {
+			throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
+		} else {
+			path = policyPath;
+		}
+		return Paths.get(path);
 	}
 
 	@Override
@@ -113,7 +115,7 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 		var index = tuple.getT2();
 		var kind = watchEvent.kind();
 		var fileName = watchEvent.context();
-		var absoluteFilePath = Paths.get(path, fileName.toString());
+		var absoluteFilePath = Path.of(watchDir.toAbsolutePath().toString(), fileName.toString());
 		var absoluteFileName = absoluteFilePath.toString();
 
 		if (kind != ENTRY_DELETE && kind != ENTRY_CREATE && kind != ENTRY_MODIFY) {

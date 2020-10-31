@@ -1,0 +1,143 @@
+package io.sapl.prp.resources;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Enumeration;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
+import org.apache.commons.io.IOUtils;
+
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.SAPLInterpreter;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.reimpl.prp.PrpUpdateEvent;
+import io.sapl.reimpl.prp.PrpUpdateEvent.Type;
+import io.sapl.reimpl.prp.PrpUpdateEvent.Update;
+import io.sapl.reimpl.prp.PrpUpdateEventSource;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+
+@Slf4j
+public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
+
+	private static final String POLICY_FILE_SUFFIX = ".sapl";
+	private static final String POLICY_FILE_GLOB_PATTERN = "*" + POLICY_FILE_SUFFIX;
+
+	private final SAPLInterpreter interpreter;
+	private final PrpUpdateEvent initializingPrpUpdate;
+
+	public ResourcesPrpUpdateEventSource(@NonNull String policyPath, @NonNull SAPLInterpreter interpreter) {
+		this(ResourcesPrpUpdateEventSource.class, policyPath, interpreter);
+	}
+
+	public ResourcesPrpUpdateEventSource(@NonNull Class<?> clazz, @NonNull String policyPath,
+			@NonNull SAPLInterpreter interpreter) {
+		this.interpreter = interpreter;
+		log.info("Loading a static set of policies from the bundled ressources");
+		URL policyFolderUrl = clazz.getResource(policyPath);
+		if (policyFolderUrl == null) {
+			throw new RuntimeException("Policy folder not found. Path:" + policyPath);
+		}
+
+		if ("jar".equals(policyFolderUrl.getProtocol())) {
+			initializingPrpUpdate = readPoliciesFromJar(policyFolderUrl);
+		} else {
+			initializingPrpUpdate = readPoliciesFromDirectory(policyFolderUrl);
+		}
+	}
+
+	private PrpUpdateEvent readPoliciesFromJar(URL policiesFolderUrl) {
+		log.debug("reading policies from jar {}", policiesFolderUrl);
+		final String[] jarPathElements = policiesFolderUrl.toString().split("!");
+		final String jarFilePath = jarPathElements[0].substring("jar:file:".length());
+		final StringBuilder policiesDirPath = new StringBuilder();
+		for (int i = 1; i < jarPathElements.length; i++) {
+			policiesDirPath.append(jarPathElements[i]);
+		}
+		if (policiesDirPath.charAt(0) == File.separatorChar) {
+			policiesDirPath.deleteCharAt(0);
+		}
+		List<Update> updates = new LinkedList<>();
+		final String policiesDirPathStr = policiesDirPath.toString();
+		try (ZipFile zipFile = new ZipFile(jarFilePath)) {
+			Enumeration<? extends ZipEntry> e = zipFile.entries();
+
+			while (e.hasMoreElements()) {
+				ZipEntry entry = e.nextElement();
+				if (!entry.isDirectory() && entry.getName().startsWith(policiesDirPathStr)
+						&& entry.getName().endsWith(POLICY_FILE_SUFFIX)) {
+					log.info("load SAPL document: {}", entry.getName());
+					BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
+					var rawDocument = IOUtils.toString(bis, StandardCharsets.UTF_8);
+					bis.close();
+					final SAPL saplDocument = interpreter.parse(rawDocument);
+					updates.add(new Update(Type.PUBLISH, saplDocument, rawDocument));
+				}
+			}
+		} catch (IOException | PolicyEvaluationException e) {
+			throw new RuntimeException("Error loading policies from JAR file: " + e.getMessage(), e);
+		}
+		return new PrpUpdateEvent(updates);
+	}
+
+	private PrpUpdateEvent readPoliciesFromDirectory(URL policiesFolderUrl) {
+		log.debug("reading policies from directory {}", policiesFolderUrl);
+		List<Update> updates = new LinkedList<>();
+		Path policiesDirectoryPath;
+		try {
+			policiesDirectoryPath = Paths.get(policiesFolderUrl.toURI());
+		} catch (URISyntaxException e) {
+			throw new RuntimeException("Error loading policies in ressources from filesystem: " + e.getMessage(), e);
+
+		}
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(policiesDirectoryPath, POLICY_FILE_GLOB_PATTERN)) {
+			for (Path filePath : stream) {
+				log.info("loading SAPL document: {}", filePath);
+				var rawDocument = readFile(filePath);
+				var saplDocument = interpreter.parse(rawDocument);
+				updates.add(new Update(Type.PUBLISH, saplDocument, rawDocument));
+			}
+		} catch (IOException | PolicyEvaluationException e) {
+			throw new RuntimeException("Error loading policies in ressources from filesystem: " + e.getMessage(), e);
+		}
+		return new PrpUpdateEvent(updates);
+	}
+
+	@Override
+	public void dispose() {
+		// NOP nothing to dispose of
+	}
+
+	@Override
+	public Flux<PrpUpdateEvent> getUpdates() {
+		return Flux.just(initializingPrpUpdate);
+	}
+
+	public static String readFile(Path filePath) throws IOException {
+		var fis = Files.newInputStream(filePath);
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8))) {
+			StringBuilder sb = new StringBuilder();
+			String line;
+			while ((line = br.readLine()) != null) {
+				sb.append(line);
+				sb.append('\n');
+			}
+			return sb.toString();
+		}
+	}
+
+}

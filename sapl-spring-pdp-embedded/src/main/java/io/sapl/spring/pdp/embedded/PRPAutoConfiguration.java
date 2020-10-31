@@ -27,9 +27,7 @@ import org.springframework.context.annotation.Configuration;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.prp.PolicyRetrievalPoint;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.prp.inmemory.indexed.improved.ImprovedDocumentIndex;
-import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
+import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;
 import io.sapl.reimpl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
 import io.sapl.reimpl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.reimpl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
@@ -45,24 +43,23 @@ public class PRPAutoConfiguration {
 
 	private final SAPLInterpreter interpreter;
 	private final EmbeddedPDPProperties pdpProperties;
-	private final FunctionContext functionCtx;
 
 	@Bean
 	@ConditionalOnMissingBean
 	public PolicyRetrievalPoint policyRetrievalPoint()
 			throws IOException, URISyntaxException, PolicyEvaluationException {
 		var policiesFolder = pdpProperties.getPoliciesPath();
+		var seedIndex = new NaiveImmutableParsedDocumentIndex();
 		if (pdpProperties.getPdpConfigType() == EmbeddedPDPProperties.PDPDataSource.FILESYSTEM) {
 			log.info("creating embedded PDP sourcing and monitoring access policies from the filesystem: {}",
 					policiesFolder);
-			var seedIndex = new NaiveImmutableParsedDocumentIndex();
 			var source = new FileSystemPrpUpdateEventSource(policiesFolder, interpreter);
 			return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 		} else {
 			log.info("creating embedded PDP sourcing access policies from fixed bundled resources at: {}",
 					policiesFolder);
-			var index = new ImprovedDocumentIndex(functionCtx);
-			return new ResourcesPolicyRetrievalPoint(ResourcesPolicyRetrievalPoint.class, policiesFolder, index);
+			var source = new ResourcesPrpUpdateEventSource(policiesFolder, interpreter);
+			return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 		}
 	}
 }

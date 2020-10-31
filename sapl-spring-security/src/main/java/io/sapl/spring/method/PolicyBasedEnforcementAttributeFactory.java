@@ -81,7 +81,7 @@ public class PolicyBasedEnforcementAttributeFactory implements PolicyEnforcement
 
 	/**
 	 * Delay the lookup of the {@link ExpressionParser} to prevent SEC-2136
-	 * 
+	 * This is analog to the original spring security implementation
 	 * @return the parser
 	 */
 	private ExpressionParser getParser() {

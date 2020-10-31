@@ -15,16 +15,14 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.api.pdp.PDPConfigurationException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
 import io.sapl.pdp.embedded.config.filesystem.FileSystemPDPConfigurationProvider;
 import io.sapl.pdp.embedded.config.resources.ResourcesPDPConfigurationProvider;
@@ -39,18 +37,18 @@ import lombok.extern.slf4j.Slf4j;
 public class PDPConfigurationProviderAutoConfiguration {
 
 	private final EmbeddedPDPProperties pdpProperties;
+	private final ObjectMapper mapper;
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PDPConfigurationProvider pdpConfigurationProvider()
-			throws PDPConfigurationException, IOException, URISyntaxException {
+	public PDPConfigurationProvider pdpConfigurationProvider() {
 		var configPath = pdpProperties.getConfigPath();
 		if (pdpProperties.getPdpConfigType() == EmbeddedPDPProperties.PDPDataSource.FILESYSTEM) {
 			log.info("using monitored config file from the filesystem: {}", configPath);
 			return new FileSystemPDPConfigurationProvider(configPath);
 		} else {
 			log.info("using static config file from bundled resource at: {}", configPath);
-			return new ResourcesPDPConfigurationProvider(ResourcesPDPConfigurationProvider.class, configPath);
+			return new ResourcesPDPConfigurationProvider(ResourcesPDPConfigurationProvider.class, configPath, mapper);
 		}
 	}
 }

@@ -29,7 +29,6 @@ import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -63,8 +62,8 @@ public class PDPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PolicyDecisionPoint policyDecisionPoint() throws FunctionException, AttributeException, IOException,
-			URISyntaxException, PolicyEvaluationException, PDPConfigurationException {
+	public PolicyDecisionPoint policyDecisionPoint()
+			throws FunctionException, AttributeException, IOException, URISyntaxException, PolicyEvaluationException {
 		var builder = EmbeddedPolicyDecisionPoint.builder().withFunctionContext(functionCtx)
 				.withPDPConfigurationProvider(pdpConfigProvider).withPolicyRetrievalPoint(prp);
 		return bindComponentsToPDP(builder).build();

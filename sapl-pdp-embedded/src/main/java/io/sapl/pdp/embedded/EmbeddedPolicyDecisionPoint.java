@@ -22,20 +22,19 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationSubscription;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
 import io.sapl.api.pip.AttributeException;
-import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
@@ -50,9 +49,7 @@ import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
 import io.sapl.pdp.embedded.config.filesystem.FileSystemPDPConfigurationProvider;
 import io.sapl.pdp.embedded.config.resources.ResourcesPDPConfigurationProvider;
 import io.sapl.pip.ClockPolicyInformationPoint;
-import io.sapl.prp.inmemory.indexed.improved.ImprovedDocumentIndex;
-import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
-import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
+import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;
 import io.sapl.reimpl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
 import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.filesystem.FileSystemPrpUpdateEventSource;
@@ -120,8 +117,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	// TODO: examine - if useSeparateSchedulers is selected, performance goes down
-	// by an order
-	// of magnitude in embedded demo and we have dangling threads
+	// by an order of magnitude in embedded demo and we have dangling threads
 	private List<Flux<IdentifiableAuthorizationDecision>> createIdentifiableAuthzDecisionFluxes(
 			Iterable<IdentifiableAuthorizationSubscription> multiDecision, boolean useSeparateSchedulers) {
 		final Scheduler schedulerForMerge = useSeparateSchedulers ? Schedulers.newElastic("pdp") : null;
@@ -171,8 +167,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		private Builder() {
 		}
 
-		public Builder withResourcePDPConfigurationProvider()
-				throws PDPConfigurationException, IOException, URISyntaxException {
+		public Builder withResourcePDPConfigurationProvider() {
 			pdp.configurationProvider = new ResourcesPDPConfigurationProvider();
 			return this;
 		}
@@ -182,14 +177,13 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			return this;
 		}
 
-		public Builder withResourcePDPConfigurationProvider(String resourcePath)
-				throws PDPConfigurationException, IOException, URISyntaxException {
-			return withResourcePDPConfigurationProvider(ResourcesPDPConfigurationProvider.class, resourcePath);
+		public Builder withResourcePDPConfigurationProvider(String resourcePath) {
+			return withResourcePDPConfigurationProvider(ResourcesPDPConfigurationProvider.class, resourcePath,
+					new ObjectMapper());
 		}
 
-		public Builder withResourcePDPConfigurationProvider(Class<?> clazz, String resourcePath)
-				throws PDPConfigurationException, IOException, URISyntaxException {
-			pdp.configurationProvider = new ResourcesPDPConfigurationProvider(clazz, resourcePath);
+		public Builder withResourcePDPConfigurationProvider(Class<?> clazz, String resourcePath, ObjectMapper mapper) {
+			pdp.configurationProvider = new ResourcesPDPConfigurationProvider(clazz, resourcePath, mapper);
 			return this;
 		}
 
@@ -220,30 +214,25 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		public Builder withResourcePolicyRetrievalPoint()
 				throws IOException, URISyntaxException, PolicyEvaluationException {
-			pdp.prp = new ResourcesPolicyRetrievalPoint();
-			return this;
+			return withResourcePolicyRetrievalPoint("/policies", IndexType.SIMPLE);
 		}
 
-		public Builder withResourcePolicyRetrievalPoint(String resourcePath, IndexType indexType)
-				throws IOException, URISyntaxException, PolicyEvaluationException {
-			return withResourcePolicyRetrievalPoint(ResourcesPolicyRetrievalPoint.class, resourcePath, indexType);
+		public Builder withResourcePolicyRetrievalPoint(String resourcePath, IndexType indexType) {
+			return withResourcePolicyRetrievalPoint(ResourcesPrpUpdateEventSource.class, resourcePath, indexType,
+					new DefaultSAPLInterpreter());
 		}
 
-		public Builder withResourcePolicyRetrievalPoint(Class<?> clazz, String resourcePath, IndexType indexType)
-				throws IOException, URISyntaxException, PolicyEvaluationException {
-			final ParsedDocumentIndex index = getDocumentIndex(indexType);
-			pdp.prp = new ResourcesPolicyRetrievalPoint(clazz, resourcePath, index);
+		public Builder withResourcePolicyRetrievalPoint(Class<?> clazz, String resourcePath, IndexType indexType,
+				SAPLInterpreter interpreter) {
+			var seedIndex = getDocumentIndex(indexType);
+			var source = new ResourcesPrpUpdateEventSource(resourcePath, interpreter);
+			pdp.prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 			return this;
 		}
 
 		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder, IndexType indexType,
 				SAPLInterpreter interpreter) {
-			ImmutableParsedDocumentIndex seedIndex = null;
-			if (indexType == IndexType.SIMPLE) {
-				seedIndex = new NaiveImmutableParsedDocumentIndex();
-			} else {
-				throw new RuntimeException("OPTIMZED INDEX NOT REIMPLEMENTED YET");
-			}
+			var seedIndex = getDocumentIndex(indexType);
 			var source = new FileSystemPrpUpdateEventSource(policiesFolder, interpreter);
 			pdp.prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 			return this;
@@ -253,19 +242,19 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			return withFilesystemPolicyRetrievalPoint(policiesFolder, indexType, new DefaultSAPLInterpreter());
 		}
 
-		private ParsedDocumentIndex getDocumentIndex(IndexType indexType) {
+		private ImmutableParsedDocumentIndex getDocumentIndex(IndexType indexType) {
 			switch (indexType) {
 			case IMPROVED:
-				return new ImprovedDocumentIndex(pdp.functionCtx);
+				throw new RuntimeException("OPTIMZED INDEX NOT REIMPLEMENTED YET");
 			case SIMPLE:
 				// fall through
 			default:
-				return new SimpleParsedDocumentIndex();
+				return new NaiveImmutableParsedDocumentIndex();
 			}
 		}
 
 		public EmbeddedPolicyDecisionPoint build() throws IOException, URISyntaxException, PolicyEvaluationException,
-				PDPConfigurationException, FunctionException, AttributeException {
+				FunctionException, AttributeException {
 			pdp.functionCtx.loadLibrary(new FilterFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new StandardFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new TemporalFunctionLibrary());
