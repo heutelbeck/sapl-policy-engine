@@ -20,6 +20,10 @@ public class PrpUpdateEvent {
 		this.updates = Arrays.copyOf(updates, updates.length);
 	}
 
+	public Update[] getUpdates() {
+		return Arrays.copyOf(updates, updates.length);
+	}
+	
 	/**
 	 * This contains the raw document and a custom equals method to eliminate
 	 * duplicate update events. E.g. file creation may lead to two subsequent

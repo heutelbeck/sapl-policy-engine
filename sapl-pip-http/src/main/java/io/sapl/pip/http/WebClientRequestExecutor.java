@@ -100,7 +100,7 @@ public class WebClientRequestExecutor {
 		}
 	}
 
-	private WebClient createWebClient(String baseUrl) throws IOException {
+	private WebClient createWebClient(String baseUrl) {
 		return WebClient.builder().clientConnector(new ReactorClientHttpConnector(httpClient)).baseUrl(baseUrl).build();
 	}
 

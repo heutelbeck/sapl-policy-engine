@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PDPConfigurationException;
@@ -39,19 +40,23 @@ import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
+import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
-import io.sapl.pdp.embedded.config.filesystem.FilesystemPDPConfigurationProvider;
+import io.sapl.pdp.embedded.config.filesystem.FileSystemPDPConfigurationProvider;
 import io.sapl.pdp.embedded.config.resources.ResourcesPDPConfigurationProvider;
 import io.sapl.pip.ClockPolicyInformationPoint;
-import io.sapl.prp.filesystem.FilesystemPolicyRetrievalPoint;
 import io.sapl.prp.inmemory.indexed.improved.ImprovedDocumentIndex;
 import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPolicyRetrievalPoint;
+import io.sapl.reimpl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
+import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
+import io.sapl.reimpl.prp.filesystem.FileSystemPrpUpdateEventSource;
+import io.sapl.reimpl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -189,7 +194,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		}
 
 		public Builder withFilesystemPDPConfigurationProvider(String configFolder) {
-			pdp.configurationProvider = new FilesystemPDPConfigurationProvider(configFolder);
+			pdp.configurationProvider = new FileSystemPDPConfigurationProvider(configFolder);
 			return this;
 		}
 
@@ -231,10 +236,21 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			return this;
 		}
 
-		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder, IndexType indexType) {
-			final ParsedDocumentIndex index = getDocumentIndex(indexType);
-			pdp.prp = new FilesystemPolicyRetrievalPoint(policiesFolder, index);
+		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder, IndexType indexType,
+				SAPLInterpreter interpreter) {
+			ImmutableParsedDocumentIndex seedIndex = null;
+			if (indexType == IndexType.SIMPLE) {
+				seedIndex = new NaiveImmutableParsedDocumentIndex();
+			} else {
+				throw new RuntimeException("OPTIMZED INDEX NOT REIMPLEMENTED YET");
+			}
+			var source = new FileSystemPrpUpdateEventSource(policiesFolder, interpreter);
+			pdp.prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 			return this;
+		}
+
+		public Builder withFilesystemPolicyRetrievalPoint(String policiesFolder, IndexType indexType) {
+			return withFilesystemPolicyRetrievalPoint(policiesFolder, indexType, new DefaultSAPLInterpreter());
 		}
 
 		private ParsedDocumentIndex getDocumentIndex(IndexType indexType) {

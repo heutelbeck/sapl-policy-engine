@@ -124,7 +124,7 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	 * @param nodes the annotated nodes to prepare
 	 * @return a result array with the correct ordering of its children
 	 */
-	private static List<AbstractAnnotatedJsonNode> changeOrderForRemove(List<AbstractAnnotatedJsonNode> nodes) {
+	private static List<AbstractAnnotatedJsonNode> changeOrderForRemove(Iterable<AbstractAnnotatedJsonNode> nodes) {
 		List<AbstractAnnotatedJsonNode> result = new ArrayList<>();
 		Map<Integer, List<AbstractAnnotatedJsonNode>> nodesWithParentArray = new HashMap<>();
 

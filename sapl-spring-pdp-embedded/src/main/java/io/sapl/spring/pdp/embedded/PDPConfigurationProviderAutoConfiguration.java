@@ -26,7 +26,7 @@ import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.pdp.PDPConfigurationException;
 import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
-import io.sapl.pdp.embedded.config.filesystem.FilesystemPDPConfigurationProvider;
+import io.sapl.pdp.embedded.config.filesystem.FileSystemPDPConfigurationProvider;
 import io.sapl.pdp.embedded.config.resources.ResourcesPDPConfigurationProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +47,7 @@ public class PDPConfigurationProviderAutoConfiguration {
 		var configPath = pdpProperties.getConfigPath();
 		if (pdpProperties.getPdpConfigType() == EmbeddedPDPProperties.PDPDataSource.FILESYSTEM) {
 			log.info("using monitored config file from the filesystem: {}", configPath);
-			return new FilesystemPDPConfigurationProvider(configPath);
+			return new FileSystemPDPConfigurationProvider(configPath);
 		} else {
 			log.info("using static config file from bundled resource at: {}", configPath);
 			return new ResourcesPDPConfigurationProvider(ResourcesPDPConfigurationProvider.class, configPath);

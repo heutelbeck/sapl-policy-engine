@@ -94,9 +94,9 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 				updates.add(new Update(Type.PUBLISH, saplDocument, rawDocument));
 			}
 		} catch (IOException | PolicyEvaluationException e) {
-			log.error("FATAL ERROR: building initial PrpUpdateEvent: {}", e.getMessage());
-			System.exit(1);
+			throw new RuntimeException("FATAL ERROR: building initial PrpUpdateEvent: " + e.getMessage());
 		}
+
 		var seedIndex = new ImmutableFileIndex(files);
 		var initialEvent = new PrpUpdateEvent(updates);
 		log.debug("initial event: {}", initialEvent);
@@ -139,9 +139,9 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 			rawDocument = readFile(absoluteFilePath);
 			saplDocument = interpreter.parse(rawDocument);
 		} catch (PolicyEvaluationException | IOException e) {
-			log.error("FATAL ERROR: Attempt to publish invalid document. Application shutdown to avoid inconsistent decisions: {}",
-					e.getMessage());
-			System.exit(1);
+			throw new RuntimeException(
+					"FATAL ERROR: Attempt to publish invalid document. Application shutdown to avoid inconsistent decisions: "
+							+ e.getMessage());
 		}
 
 		if (kind == ENTRY_CREATE) {

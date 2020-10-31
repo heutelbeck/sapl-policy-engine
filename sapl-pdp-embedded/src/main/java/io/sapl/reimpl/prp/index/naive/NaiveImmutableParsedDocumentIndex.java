@@ -79,9 +79,8 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 			newDocuments.remove(name);
 		} else {
 			if (newDocuments.containsKey(name)) {
-				log.error("Fatal error. Policy name collision. A document with a name ('{}') "
-						+ "identical to an existing document was published to the PRP.", name);
-				System.exit(1);
+				throw new RuntimeException("Fatal error. Policy name collision. A document with a name ('" + name
+						+ "') identical to an existing document was published to the PRP.");
 			}
 			newDocuments.put(name, update.getDocument());
 		}
