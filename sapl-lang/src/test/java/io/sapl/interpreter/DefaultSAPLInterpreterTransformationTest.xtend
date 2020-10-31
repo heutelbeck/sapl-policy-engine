@@ -19,12 +19,10 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import io.sapl.api.interpreter.PolicyEvaluationException
-import io.sapl.api.pdp.Decision
-import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.AuthorizationDecision
+import io.sapl.api.pdp.AuthorizationSubscription
+import io.sapl.api.pdp.Decision
 import io.sapl.functions.FilterFunctionLibrary
-import io.sapl.functions.SelectionFunctionLibrary
-import io.sapl.interpreter.DefaultSAPLInterpreter
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
@@ -52,7 +50,6 @@ class DefaultSAPLInterpreterTransformationTest {
 	def void init() {
 		FUNCTION_CTX.loadLibrary(new SimpleFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());
-		FUNCTION_CTX.loadLibrary(new SelectionFunctionLibrary())
 		FUNCTION_CTX.loadLibrary(new SimpleFilterFunctionLibrary(Clock.systemUTC()));
 	}
 

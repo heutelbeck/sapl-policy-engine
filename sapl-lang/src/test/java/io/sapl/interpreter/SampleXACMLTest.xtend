@@ -24,7 +24,6 @@ import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.Decision
 import io.sapl.functions.FilterFunctionLibrary
-import io.sapl.functions.SelectionFunctionLibrary
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
@@ -55,7 +54,6 @@ class SampleXACMLTest {
 	def void init() {
 		FUNCTION_CTX.loadLibrary(new MockXACMLStringFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new MockXACMLDateFunctionLibrary());
-		FUNCTION_CTX.loadLibrary(new SelectionFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(new MockXACMLPatientProfilePIP());
 
@@ -346,71 +344,4 @@ class SampleXACMLTest {
 				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
 	}
 
-	def String policyExampleTwoRule4() {
-		return '''
-			policy "rule_4"
-			/* An Administrator shall not be permitted to read or write
-			   medical elements of a patient record in the
-			   http://www.med.example.com/records.xsd namespace. */
-			
-			deny
-				subject.role == "administrator"
-			where
-				resource._type == "urn:example:med:schemas:record" &
-				(action == "write" | action == "read") &
-				(
-					selection.match(resource._content, resource._selector, "@.medical") |
-					selection.match(resource._content, "@.medical", resource._selector) 
-				);
-		''';
-	}
-
-	@Test
-	def void exampleTwoRule4() throws PolicyEvaluationException {
-		val authzSubscription = authzSubscription_example_two
-		val expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE
-
-		assertThat("XACML example two rule 4 not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyExampleTwoRule4(), ATTRIBUTE_CTX, FUNCTION_CTX,
-				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
-	}
-
-	@Test
-	def void exampleTwoRule4Deny() throws PolicyEvaluationException {
-		val authzSubscription = MAPPER.readValue('''
-			{
-				"subject": {
-					"id": "admin",
-					"role": "administrator",
-					"admin_id": "admin_01"
-				},
-				"resource": {
-					"_type": "urn:example:med:schemas:record",
-					"_content": {
-						"patient": {
-							"dob": "1992-03-21",
-							"patient_number": "555555",
-							"contact": {
-								"email": "b.simpsons@example.com"
-							}
-						},
-						"medical": {
-							"drug": "xyz"
-						}
-					},
-					"_selector": "@..drug"
-				},
-				"action": "read",
-				"environment": {
-					"current_date": "2010-01-11"
-				}
-			}
-		''', AuthorizationSubscription)
-
-		val expectedAuthzDecision = AuthorizationDecision.DENY
-
-		assertThat("XACML example two rule 4 not working as expected",
-			INTERPRETER.evaluate(authzSubscription, policyExampleTwoRule4(), ATTRIBUTE_CTX, FUNCTION_CTX,
-				SYSTEM_VARIABLES).blockFirst(), equalTo(expectedAuthzDecision));
-	}
 }

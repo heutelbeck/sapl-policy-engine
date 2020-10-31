@@ -37,7 +37,6 @@ import io.sapl.api.pip.AttributeException;
 import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.SelectionFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
@@ -115,7 +114,8 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		return Flux.just(MultiAuthorizationDecision.indeterminate());
 	}
 
-	// TODO: examine - if useSeparateSchedulers is selected, performance goes down by an order
+	// TODO: examine - if useSeparateSchedulers is selected, performance goes down
+	// by an order
 	// of magnitude in embedded demo and we have dangling threads
 	private List<Flux<IdentifiableAuthorizationDecision>> createIdentifiableAuthzDecisionFluxes(
 			Iterable<IdentifiableAuthorizationSubscription> multiDecision, boolean useSeparateSchedulers) {
@@ -163,7 +163,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 		private EmbeddedPolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint();
 
-		private Builder() {			
+		private Builder() {
 		}
 
 		public Builder withResourcePDPConfigurationProvider()
@@ -248,10 +248,9 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			}
 		}
 
-		public EmbeddedPolicyDecisionPoint build()
-				throws IOException, URISyntaxException, PolicyEvaluationException, PDPConfigurationException, FunctionException, AttributeException {
+		public EmbeddedPolicyDecisionPoint build() throws IOException, URISyntaxException, PolicyEvaluationException,
+				PDPConfigurationException, FunctionException, AttributeException {
 			pdp.functionCtx.loadLibrary(new FilterFunctionLibrary());
-			pdp.functionCtx.loadLibrary(new SelectionFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new StandardFunctionLibrary());
 			pdp.functionCtx.loadLibrary(new TemporalFunctionLibrary());
 			pdp.attributeCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
