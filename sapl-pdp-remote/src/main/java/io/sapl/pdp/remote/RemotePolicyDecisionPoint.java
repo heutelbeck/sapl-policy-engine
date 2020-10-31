@@ -46,12 +46,11 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		this(baseUrl, clientKey, clientSecret, HttpClient.create().secure(spec -> spec.sslContext(sslContext)));
 	}
 
-	public RemotePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret) throws SSLException {
+	public RemotePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret) {
 		this(baseUrl, clientKey, clientSecret, HttpClient.create().secure());
 	}
 
-	public RemotePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret, HttpClient httpClient)
-			throws SSLException {
+	public RemotePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret, HttpClient httpClient) {
 		client = WebClient.builder().clientConnector(new ReactorClientHttpConnector(httpClient)).baseUrl(baseUrl)
 				.defaultHeaders(header -> header.setBasicAuth(clientKey, clientSecret)).build();
 	}
