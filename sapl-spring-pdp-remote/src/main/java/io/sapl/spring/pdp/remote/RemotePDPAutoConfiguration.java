@@ -40,7 +40,7 @@ public class RemotePDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public PolicyDecisionPoint policyDecisionPoint() throws SSLException {
-		log.info("Binding to remote PDP server: {}:{}", properties.getHost());
+		log.info("Binding to remote PDP server: {}", properties.getHost());
 		return new RemotePolicyDecisionPoint(properties.getHost(), properties.getKey(), properties.getSecret());
 	}
 
