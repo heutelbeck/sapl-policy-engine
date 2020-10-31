@@ -73,11 +73,11 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 
 	@Override
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		log.info("| |-- Combining {} policies", policies.size());
+		log.debug("| |-- Combining {} policies", policies.size());
 		AtomicBoolean errorInTarget = new AtomicBoolean(false);
 		Mono<List<Policy>> matchingPolicies = Flux.fromIterable(policies).filterWhen(policy -> policy.matches(ctx))
 				.onErrorContinue((t, o) -> {
-					log.info("| |-- Error in target evaluation: {}", t.getMessage());
+					log.debug("| |-- Error in target evaluation: {}", t.getMessage());
 					errorInTarget.set(true);
 				}).collectList();
 		return Flux.from(matchingPolicies).flatMap(matches -> doCombine(matches, ctx, errorInTarget.get()))
@@ -86,14 +86,14 @@ public class DenyOverridesCombinator implements DocumentsCombinator, PolicyCombi
 
 	private Flux<AuthorizationDecision> doCombine(List<Policy> matchingPolicies, EvaluationContext ctx,
 			boolean errorInTarget) {
-		log.info("| |-- Combining {} matching policies", matchingPolicies.size());
+		log.debug("| |-- Combining {} matching policies", matchingPolicies.size());
 		if (matchingPolicies.isEmpty() && errorInTarget) {
-			log.info("| |-- No policies but some where witrh indeterminate target -> INDETERMINATE");
+			log.debug("| |-- No policies but some where witrh indeterminate target -> INDETERMINATE");
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
 
 		if (matchingPolicies.isEmpty()) {
-			log.info("| |-- No policies -> NOT_APPLICABLE");
+			log.debug("| |-- No policies -> NOT_APPLICABLE");
 			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 		}
 

@@ -30,9 +30,7 @@ public class ObligationAdviceCollector {
 	private EnumMap<Type, Map<Decision, ArrayNode>> obligationAdvice;
 
 	public enum Type {
-
 		OBLIGATION, ADVICE
-
 	}
 
 	public ObligationAdviceCollector() {

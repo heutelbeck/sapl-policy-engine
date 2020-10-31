@@ -44,9 +44,9 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 	public Flux<AuthorizationDecision> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
 			boolean errorsInTarget, AuthorizationSubscription authzSubscription, AttributeContext attributeCtx,
 			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
-		log.trace("|-- Combining matching documents");
+		log.debug("|-- Combining matching documents");
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
-			log.trace("| |-- No matches. Default to DENY");
+			log.debug("| |-- No matches. Default to DENY");
 			return Flux.just(AuthorizationDecision.DENY);
 		}
 
@@ -60,7 +60,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 
 		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
-			log.trace("| |-- Evaluate: {} ({})", document.getPolicyElement().getSaplName(),
+			log.debug("| |-- Evaluate: {} ({})", document.getPolicyElement().getSaplName(),
 					document.getPolicyElement().getClass().getName());
 			// do not first check match again. directly evaluate the rules
 			authzDecisionFluxes.add(document.evaluate(evaluationCtx));
@@ -70,7 +70,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 		return Flux.combineLatest(authzDecisionFluxes, authzDecisions -> {
 			accumulator.addSingleDecisions(authzDecisions);
 			AuthorizationDecision result = accumulator.getCombinedAuthorizationDecision();
-			log.trace("| |-- {} Combined AuthorizationDecision: {}", result.getDecision(), result);
+			log.debug("| |-- {} Combined AuthorizationDecision: {}", result.getDecision(), result);
 			return result;
 		}).distinctUntilChanged();
 	}
@@ -86,7 +86,7 @@ public class DenyUnlessPermitCombinator implements DocumentsCombinator, PolicyCo
 	}
 
 	private Flux<AuthorizationDecision> doCombine(List<Policy> matchingPolicies, EvaluationContext ctx) {
-		log.trace("| |-- Combining {} policies", matchingPolicies.size());
+		log.debug("| |-- Combining {} policies", matchingPolicies.size());
 		if (matchingPolicies.isEmpty()) {
 			return Flux.just(AuthorizationDecision.DENY);
 		}
