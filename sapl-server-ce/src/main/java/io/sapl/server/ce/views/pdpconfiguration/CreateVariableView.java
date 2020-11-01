@@ -13,8 +13,8 @@ import com.vaadin.flow.templatemodel.TemplateModel;
 import io.sapl.server.ce.service.pdpconfiguration.DuplicatedVariableNameException;
 import io.sapl.server.ce.service.pdpconfiguration.InvalidJsonException;
 import io.sapl.server.ce.service.pdpconfiguration.VariablesService;
-import io.sapl.server.ce.utils.error.ErrorNotificationUtils;
 import io.sapl.server.ce.views.AppNavLayout;
+import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
