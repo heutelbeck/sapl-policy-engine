@@ -146,21 +146,31 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 							+ e.getMessage());
 		}
 
-		if (kind == ENTRY_CREATE) {
+		// CREATE or MODIFY events
+		// This is very system dependent. Different OS and tools modifying a file can
+		// result in different signals.
+		// e.g. modification of a file with one editor may result in MODIFY while the
+		// other editor results in
+		// CREATE without a matching DELETED first.
+		// So both signals have to be treated similarly and we have to determine
+		// ourselves what happened
+
+		log.debug("Processing directory watch event of kind: {} for {}", kind, absoluteFileName);
+		if (index.containsFile(absoluteFileName)) {
+			log.debug("the file is already indexed. Treat this as a modification");
+			log.info("loading updated SAPL document: {}", fileName);
+			var oldDocument = index.get(absoluteFileName);
+			var update1 = new Update(Type.UNPUBLISH, oldDocument, "");
+			var update2 = new Update(Type.PUBLISH, saplDocument, rawDocument);
+			var newIndex = index.put(absoluteFileName, saplDocument);
+			return Tuples.of(Optional.of(new PrpUpdateEvent(update1, update2)), newIndex);
+		} else {
+			log.debug("the file is not yet indexed. Treat this as a file creation.");			
 			log.info("loading new SAPL document: {}", fileName);
 			var update = new Update(Type.PUBLISH, saplDocument, rawDocument);
 			var newIndex = index.put(absoluteFileName, saplDocument);
-			return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);
+			return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);	
 		}
-
-		// kind == ENTRY_MODIFY
-
-		log.info("loading updated SAPL document: {}", fileName);
-		var oldDocument = index.get(absoluteFileName);
-		var update1 = new Update(Type.UNPUBLISH, oldDocument, "");
-		var update2 = new Update(Type.PUBLISH, saplDocument, rawDocument);
-		var newIndex = index.put(absoluteFileName, saplDocument);
-		return Tuples.of(Optional.of(new PrpUpdateEvent(update1, update2)), newIndex);
 	}
 
 	public static String readFile(Path filePath) throws IOException {
@@ -197,6 +207,10 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
 		public SAPL get(String absoluteFileName) {
 			return files.get(absoluteFileName);
+		}
+
+		public boolean containsFile(String absoluteFileName) {
+			return files.containsKey(absoluteFileName);
 		}
 	}
 
