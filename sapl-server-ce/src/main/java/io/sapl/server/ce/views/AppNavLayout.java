@@ -18,7 +18,6 @@ import com.vaadin.flow.router.RouterLink;
 
 import io.sapl.server.ce.views.documentation.FunctionLibrariesDocumentationView;
 import io.sapl.server.ce.views.documentation.PolicyInformationPointsDocumentationView;
-import io.sapl.server.ce.views.pdpconfiguration.CombiningAlgorithmView;
 import io.sapl.server.ce.views.pdpconfiguration.ConfigurePdp;
 import io.sapl.server.ce.views.pdpconfiguration.VariablesView;
 import io.sapl.server.ce.views.sapldocument.SaplDocumentsView;
@@ -61,7 +60,6 @@ public class AppNavLayout extends AppLayout implements AfterNavigationObserver {
 		tabs.add(createTab("Home", ShowHome.class));
 		tabs.add(createTab("SAPL Documents", SaplDocumentsView.class));
 		tabs.add(createTab("PDP Configuration", ConfigurePdp.class));
-		tabs.add(createTab("Combining Algorithm", CombiningAlgorithmView.class));
 		tabs.add(createTab("Variables", VariablesView.class));
 		tabs.add(createTab("Policy Information Points", PolicyInformationPointsDocumentationView.class));
 		tabs.add(createTab("Function Libraries", FunctionLibrariesDocumentationView.class));
