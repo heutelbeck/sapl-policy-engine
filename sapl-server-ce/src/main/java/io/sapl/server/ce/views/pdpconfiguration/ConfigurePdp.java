@@ -5,19 +5,30 @@ import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.JsModule;
+import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.polymertemplate.Id;
 import com.vaadin.flow.component.polymertemplate.PolymerTemplate;
+import com.vaadin.flow.data.provider.CallbackDataProvider;
+import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.templatemodel.TemplateModel;
 
 import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
+import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import io.sapl.server.ce.service.pdpconfiguration.CombiningAlgorithmService;
+import io.sapl.server.ce.service.pdpconfiguration.DuplicatedVariableNameException;
+import io.sapl.server.ce.service.pdpconfiguration.VariablesService;
 import io.sapl.server.ce.views.AppNavLayout;
 import io.sapl.server.ce.views.utils.confirm.ConfirmUtils;
+import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * A Designer generated component for the configure-pdp template.
@@ -26,6 +37,7 @@ import lombok.RequiredArgsConstructor;
  * or otherwise change this file.
  */
 @Tag("configure-pdp")
+@Slf4j
 @Route(value = ConfigurePdp.ROUTE, layout = AppNavLayout.class)
 @JsModule("./configure-pdp.js")
 @PageTitle("PDP Configuration")
@@ -34,31 +46,39 @@ public class ConfigurePdp extends PolymerTemplate<ConfigurePdp.ConfigurePdpModel
 	public static final String ROUTE = "pdp-configuration";
 
 	private final CombiningAlgorithmService combiningAlgorithmService;
+	private final VariablesService variablesService;
 
 	@Id(value = "comboBoxCombAlgo")
 	private ComboBox<String> comboBoxCombAlgo;
+
+	@Id(value = "variablesGrid")
+	private Grid<Variable> variablesGrid;
+
+	@Id(value = "createVariableButton")
+	private Button createVariableButton;
 
 	private boolean isIgnoringNextCombiningAlgorithmComboBoxChange;
 
 	@PostConstruct
 	public void postConstruct() {
-		this.initUi();
+		initUi();
 	}
 
 	private void initUi() {
-		this.initUiForCombiningAlgorithm();
+		initUiForCombiningAlgorithm();
+		initUiForVariables();
 	}
 
 	private void initUiForCombiningAlgorithm() {
 		PolicyDocumentCombiningAlgorithm[] availableCombiningAlgorithms = this.combiningAlgorithmService.getAvailable();
 		String[] availableCombiningAlgorithmsAsStrings = Stream.of(availableCombiningAlgorithms)
 				.map(algorithmType -> algorithmType.toString()).toArray(String[]::new);
-		this.comboBoxCombAlgo.setItems(availableCombiningAlgorithmsAsStrings);
+		comboBoxCombAlgo.setItems(availableCombiningAlgorithmsAsStrings);
 
 		PolicyDocumentCombiningAlgorithm selectedCombiningAlgorithm = this.combiningAlgorithmService.getSelected();
-		this.comboBoxCombAlgo.setValue(selectedCombiningAlgorithm.toString());
+		comboBoxCombAlgo.setValue(selectedCombiningAlgorithm.toString());
 
-		this.comboBoxCombAlgo.addValueChangeListener(changedEvent -> {
+		comboBoxCombAlgo.addValueChangeListener(changedEvent -> {
 			if (isIgnoringNextCombiningAlgorithmComboBoxChange) {
 				isIgnoringNextCombiningAlgorithmComboBoxChange = false;
 				return;
@@ -79,6 +99,61 @@ public class ConfigurePdp extends PolymerTemplate<ConfigurePdp.ConfigurePdpModel
 						comboBoxCombAlgo.setValue(oldCombiningAlgorithmAsString);
 					});
 		});
+	}
+
+	private void initUiForVariables() {
+		createVariableButton.addClickListener(clickEvent -> {
+			try {
+				variablesService.createDefault();
+			} catch (DuplicatedVariableNameException ex) {
+				log.error("cannot create variable due to duplicated name", ex);
+				ErrorNotificationUtils.show("Name is already used by another name");
+				return;
+			}
+
+			// reload grid after creation
+			variablesGrid.getDataProvider().refreshAll();
+		});
+
+		initVariablesGrid();
+	}
+
+	private void initVariablesGrid() {
+		// add columns
+		variablesGrid.addColumn(Variable::getName).setHeader("Name");
+		variablesGrid.addColumn(Variable::getJsonValue).setHeader("JSON Value");
+		variablesGrid.addComponentColumn(variable -> {
+			Button editButton = new Button("Edit", VaadinIcon.EDIT.create());
+			editButton.addClickListener(clickEvent -> {
+				String uriToNavigateTo = String.format("%s/%d", EditVariableView.ROUTE, variable.getId());
+				editButton.getUI().ifPresent(ui -> ui.navigate(uriToNavigateTo));
+			});
+
+			Button deleteButton = new Button("Delete", VaadinIcon.FILE_REMOVE.create());
+			deleteButton.addClickListener(clickEvent -> {
+				variablesService.delete(variable.getId());
+
+				// trigger refreshing variable grid
+				variablesGrid.getDataProvider().refreshAll();
+			});
+
+			HorizontalLayout componentsForEntry = new HorizontalLayout();
+			componentsForEntry.add(editButton);
+			componentsForEntry.add(deleteButton);
+
+			return componentsForEntry;
+		});
+
+		// set data provider
+		CallbackDataProvider<Variable, Void> dataProvider = DataProvider.fromCallbacks(query -> {
+			int offset = query.getOffset();
+			int limit = query.getLimit();
+
+			return variablesService.getAll().stream().skip(offset).limit(limit);
+		}, query -> (int) variablesService.getAmount());
+		variablesGrid.setDataProvider(dataProvider);
+
+		variablesGrid.setHeightByRows(true);
 	}
 
 	/**
