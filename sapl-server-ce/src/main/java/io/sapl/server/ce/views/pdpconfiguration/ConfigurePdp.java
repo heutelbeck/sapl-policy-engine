@@ -24,7 +24,7 @@ import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import io.sapl.server.ce.service.pdpconfiguration.CombiningAlgorithmService;
 import io.sapl.server.ce.service.pdpconfiguration.DuplicatedVariableNameException;
 import io.sapl.server.ce.service.pdpconfiguration.VariablesService;
-import io.sapl.server.ce.views.AppNavLayout;
+import io.sapl.server.ce.views.MainView;
 import io.sapl.server.ce.views.utils.confirm.ConfirmUtils;
 import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
 import lombok.RequiredArgsConstructor;
@@ -38,12 +38,12 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Tag("configure-pdp")
 @Slf4j
-@Route(value = ConfigurePdp.ROUTE, layout = AppNavLayout.class)
+@Route(value = ConfigurePdp.ROUTE, layout = MainView.class)
 @JsModule("./configure-pdp.js")
 @PageTitle("PDP Configuration")
 @RequiredArgsConstructor
 public class ConfigurePdp extends PolymerTemplate<ConfigurePdp.ConfigurePdpModel> {
-	public static final String ROUTE = "pdp-configuration";
+	public static final String ROUTE = "pdp-config";
 
 	private final CombiningAlgorithmService combiningAlgorithmService;
 	private final VariablesService variablesService;

@@ -17,16 +17,17 @@ import com.vaadin.flow.templatemodel.TemplateModel;
 import io.sapl.server.ce.service.documentation.Function;
 import io.sapl.server.ce.service.documentation.FunctionLibrary;
 import io.sapl.server.ce.service.documentation.FunctionLibraryService;
-import io.sapl.server.ce.views.AppNavLayout;
+import io.sapl.server.ce.views.MainView;
 
 /**
  * View for showing a specific function library.
  */
 @Tag("show-single-function-library")
-@Route(value = FunctionLibraryDocumentationView.ROUTE, layout = AppNavLayout.class)
+@Route(value = FunctionLibraryDocumentationView.ROUTE, layout = MainView.class)
 @JsModule("./show-single-function-library.js")
 @PageTitle("View function library")
-public class FunctionLibraryDocumentationView extends PolymerTemplate<FunctionLibraryDocumentationView.ShowSingleFunctionLibraryModel>
+public class FunctionLibraryDocumentationView
+		extends PolymerTemplate<FunctionLibraryDocumentationView.ShowSingleFunctionLibraryModel>
 		implements HasUrlParameter<String> {
 	public static final String ROUTE = "documentation/function-libraries";
 

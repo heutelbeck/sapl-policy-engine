@@ -26,7 +26,7 @@ import io.sapl.server.ce.model.sapldocument.SaplDocumentVersion;
 import io.sapl.server.ce.service.sapldocument.PublishedDocumentNameCollisionException;
 import io.sapl.server.ce.service.sapldocument.SaplDocumentService;
 import io.sapl.server.ce.utils.SaplDocumentUtils;
-import io.sapl.server.ce.views.AppNavLayout;
+import io.sapl.server.ce.views.MainView;
 import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
 import io.sapl.vaadin.Issue;
 import io.sapl.vaadin.SaplEditor;
@@ -38,7 +38,7 @@ import lombok.NonNull;
  */
 @NoArgsConstructor
 @Tag("edit-sapl-document")
-@Route(value = EditSaplDocumentView.ROUTE, layout = AppNavLayout.class)
+@Route(value = EditSaplDocumentView.ROUTE, layout = MainView.class)
 @JsModule("./edit-sapl-document.js")
 @PageTitle("Edit SAPL document")
 public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.EditSaplDocumentModel>

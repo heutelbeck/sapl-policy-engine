@@ -19,7 +19,6 @@ class EditSaplDocument extends PolymerElement {
                 }
             </style>
 <vaadin-vertical-layout style="margin: var(--lumo-space-s);">
- <h1 style="margin: var(--lumo-space-s);">Edit SAPL Document</h1>
  <vaadin-horizontal-layout style="flex-wrap: wrap;" theme="spacing-s">
   <vaadin-text-field label="Policy Identifier" id="policyIdTextField" style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" readonly></vaadin-text-field>
   <vaadin-text-field label="Current Version" id="currentVersionTextField" style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" readonly></vaadin-text-field>
@@ -47,7 +46,7 @@ class EditSaplDocument extends PolymerElement {
     Save New Version 
   </vaadin-button>
   <vaadin-button theme="cancel" style="margin: var(--lumo-space-s);" id="cancelButton">
-   Cancel
+    Cancel 
   </vaadin-button>
  </vaadin-horizontal-layout>
 </vaadin-vertical-layout>

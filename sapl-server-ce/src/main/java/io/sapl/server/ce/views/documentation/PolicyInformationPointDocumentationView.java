@@ -17,7 +17,7 @@ import com.vaadin.flow.templatemodel.TemplateModel;
 import io.sapl.server.ce.service.documentation.Function;
 import io.sapl.server.ce.service.documentation.PipService;
 import io.sapl.server.ce.service.documentation.PolicyInformationPoint;
-import io.sapl.server.ce.views.AppNavLayout;
+import io.sapl.server.ce.views.MainView;
 import lombok.NonNull;
 
 /**
@@ -25,10 +25,10 @@ import lombok.NonNull;
  */
 @Tag("show-single-pip")
 @JsModule("./show-single-pip.js")
-@Route(value = PolicyInformationPointDocumentationView.ROUTE, layout = AppNavLayout.class)
+@Route(value = PolicyInformationPointDocumentationView.ROUTE, layout = MainView.class)
 @PageTitle("View functions of PIP")
-public class PolicyInformationPointDocumentationView extends PolymerTemplate<PolicyInformationPointDocumentationView.ShowSinglePipModel>
-		implements HasUrlParameter<String> {
+public class PolicyInformationPointDocumentationView extends
+		PolymerTemplate<PolicyInformationPointDocumentationView.ShowSinglePipModel> implements HasUrlParameter<String> {
 	public static final String ROUTE = "documentation/pips";
 
 	private final PipService pipService;
@@ -47,14 +47,14 @@ public class PolicyInformationPointDocumentationView extends PolymerTemplate<Pol
 	@Id(value = "pipGrid")
 	private Grid<Function> functionGrid;
 
-    /**
-     * Creates a new ShowSinglePip.
-     */
+	/**
+	 * Creates a new ShowSinglePip.
+	 */
 	public PolicyInformationPointDocumentationView(@NonNull PipService pipService) {
 		this.pipService = pipService;
 
 		this.initUI();
-    }
+	}
 
 	@Override
 	public void setParameter(BeforeEvent event, String parameter) {
@@ -94,6 +94,6 @@ public class PolicyInformationPointDocumentationView extends PolymerTemplate<Pol
 	/**
 	 * This model binds properties between ShowSinglePip and show-single-pip
 	 */
-    public interface ShowSinglePipModel extends TemplateModel {
-    }
+	public interface ShowSinglePipModel extends TemplateModel {
+	}
 }

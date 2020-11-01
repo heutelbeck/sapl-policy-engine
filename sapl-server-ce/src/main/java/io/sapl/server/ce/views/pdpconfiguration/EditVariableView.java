@@ -18,7 +18,7 @@ import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import io.sapl.server.ce.service.pdpconfiguration.DuplicatedVariableNameException;
 import io.sapl.server.ce.service.pdpconfiguration.InvalidJsonException;
 import io.sapl.server.ce.service.pdpconfiguration.VariablesService;
-import io.sapl.server.ce.views.AppNavLayout;
+import io.sapl.server.ce.views.MainView;
 import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -31,14 +31,14 @@ import lombok.extern.slf4j.Slf4j;
  * or otherwise change this file.
  */
 @Tag("edit-variable")
-@Route(value = EditVariableView.ROUTE, layout = AppNavLayout.class)
+@Route(value = EditVariableView.ROUTE, layout = MainView.class)
 @Slf4j
 @JsModule("./edit-variable.js")
 @PageTitle("Edit Variable")
 @NoArgsConstructor
 public class EditVariableView extends PolymerTemplate<EditVariableView.EditVariableModel>
 		implements HasUrlParameter<Long> {
-	public static final String ROUTE = "configuration/variables/edit";
+	public static final String ROUTE = "pdp-config/variables/edit";
 
 	@Autowired
 	private VariablesService variableService;

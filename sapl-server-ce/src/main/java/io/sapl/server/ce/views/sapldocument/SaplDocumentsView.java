@@ -16,14 +16,14 @@ import com.vaadin.flow.templatemodel.TemplateModel;
 
 import io.sapl.server.ce.model.sapldocument.SaplDocument;
 import io.sapl.server.ce.service.sapldocument.SaplDocumentService;
-import io.sapl.server.ce.views.AppNavLayout;
+import io.sapl.server.ce.views.MainView;
 
 /**
  * View for listening and managing SAPL documents. A Designer generated
  * component for the list-sapl-documents template.
  */
 @Tag("list-sapl-documents")
-@Route(value = SaplDocumentsView.ROUTE, layout = AppNavLayout.class)
+@Route(value = SaplDocumentsView.ROUTE, layout = MainView.class)
 @JsModule("./list-sapl-documents.js")
 @PageTitle("SAPL Documents")
 public class SaplDocumentsView extends PolymerTemplate<SaplDocumentsView.ListSaplDocumentsModel> {

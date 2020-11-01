@@ -16,22 +16,21 @@ class ConfigurePdp extends PolymerElement {
                 }
             </style>
 <vaadin-vertical-layout style="margin: var(--lumo-space-s);">
- <h1 style="margin: var(--lumo-space-s);">PDP Configuration</h1>
- <h2 style="margin: var(--lumo-space-s);">Combining Algorithm</h2>
+ <h1>Combining Algorithm</h1>
  <div style="margin: var(--lumo-space-s);">
-  The combining algorithm describes how to come to the final decision while evaluating policies 
-  <a href="https://sapl.io/sapl-reference.html#combining-algorithm-2">(↗documentation)</a>.
+   The combining algorithm describes how to come to the final decision while evaluating policies 
+  <a href="https://sapl.io/sapl-reference.html#combining-algorithm-2">(↗documentation)</a>. 
  </div>
  <vaadin-horizontal-layout style="margin: var(--lumo-space-s);">
   <label style="align-self: center;">Global selection:</label>
   <vaadin-combo-box id="comboBoxCombAlgo" style="align-self: flex-start; width: 250px; margin: var(--lumo-space-s);"></vaadin-combo-box>
  </vaadin-horizontal-layout>
- <h2 style="margin: var(--lumo-space-s);">Variables</h2>
+ <h1>Variables</h1>
  <div style="margin: var(--lumo-space-s);">
-  TODO: introduction text
+   TODO: introduction text 
  </div>
  <vaadin-button theme="primary" id="createVariableButton" style="margin: var(--lumo-space-s);">
-  Create
+   Create 
  </vaadin-button>
  <vaadin-grid id="variablesGrid" style="margin: var(--lumo-space-s);"></vaadin-grid>
 </vaadin-vertical-layout>
