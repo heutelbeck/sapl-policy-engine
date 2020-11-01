@@ -47,7 +47,10 @@ public class SaplDocumentsView extends PolymerTemplate<SaplDocumentsView.ListSap
 		this.initSaplDocumentGrid();
 
 		this.createButton.addClickListener(clickEvent -> {
-			this.createButton.getUI().ifPresent(ui -> ui.navigate(NewSaplDocumentView.ROUTE));
+			saplDocumentService.createDefault();
+
+			// reload grid
+			saplDocumentGrid.getDataProvider().refreshAll();
 		});
 	}
 

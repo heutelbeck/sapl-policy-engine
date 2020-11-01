@@ -184,10 +184,10 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 		SaplDocumentVersion currentVersion = this.saplDocument.getCurrentVersion();
 		this.saplEditor.setDocument(currentVersion.getValue());
 
-		this.setUIForPublishing();
+		this.setUiForPublishing();
 	}
 
-	private void setUIForPublishing() {
+	private void setUiForPublishing() {
 		SaplDocumentVersion publishedVersion = this.saplDocument.getPublishedVersion();
 		boolean isPublishedVersionExisting = publishedVersion != null;
 
@@ -241,7 +241,7 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 		this.isFirstDocumentValueValidation = true;
 		this.saveVersionButton.setEnabled(false);
 
-		this.setUIForPublishing();
+		this.setUiForPublishing();
 	}
 
 	/**
