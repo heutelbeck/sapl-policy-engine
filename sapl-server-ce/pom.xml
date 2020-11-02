@@ -123,10 +123,12 @@
 			<artifactId>h2</artifactId>
 			<scope>runtime</scope>			
 		</dependency>
-		<dependency>
+		<!-- <dependency>
 			<groupId>org.mariadb.jdbc</groupId>
 			<artifactId>mariadb-java-client</artifactId>
+			<scope>runtime</scope>						
 		</dependency>
+		-->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
