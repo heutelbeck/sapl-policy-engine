@@ -16,16 +16,17 @@ import com.vaadin.flow.templatemodel.TemplateModel;
 
 import io.sapl.server.ce.service.documentation.PipService;
 import io.sapl.server.ce.service.documentation.PolicyInformationPoint;
-import io.sapl.server.ce.views.AppNavLayout;
+import io.sapl.server.ce.views.MainView;
 
 /**
  * View for showing available policy information points (PIP).
  */
 @Tag("show-pips")
-@Route(value = PolicyInformationPointsDocumentationView.ROUTE, layout = AppNavLayout.class)
+@Route(value = PolicyInformationPointsDocumentationView.ROUTE, layout = MainView.class)
 @JsModule("./show-pips.js")
 @PageTitle("Available PIPs")
-public class PolicyInformationPointsDocumentationView extends PolymerTemplate<PolicyInformationPointsDocumentationView.ShowPipsModel> {
+public class PolicyInformationPointsDocumentationView
+		extends PolymerTemplate<PolicyInformationPointsDocumentationView.ShowPipsModel> {
 	public static final String ROUTE = "documentation/pips";
 
 	private final PipService pipService;
@@ -33,14 +34,14 @@ public class PolicyInformationPointsDocumentationView extends PolymerTemplate<Po
 	@Id(value = "pipGrid")
 	private Grid<PolicyInformationPoint> pipGrid;
 
-    /**
-     * Creates a new ShowPips.
-     */
+	/**
+	 * Creates a new ShowPips.
+	 */
 	public PolicyInformationPointsDocumentationView(PipService pipService) {
 		this.pipService = pipService;
 
 		this.initUI();
-    }
+	}
 
 	private void initUI() {
 		this.initPipGrid();
@@ -82,6 +83,6 @@ public class PolicyInformationPointsDocumentationView extends PolymerTemplate<Po
 	/**
 	 * This model binds properties between ShowPips and show-pips
 	 */
-    public interface ShowPipsModel extends TemplateModel {
-    }
+	public interface ShowPipsModel extends TemplateModel {
+	}
 }

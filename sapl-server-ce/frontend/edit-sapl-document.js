@@ -3,11 +3,10 @@ import '@vaadin/vaadin-ordered-layout/src/vaadin-vertical-layout.js';
 import '@vaadin/vaadin-button/src/vaadin-button.js';
 import '@vaadin/flow-frontend/sapl-editor.js';
 import '@vaadin/vaadin-ordered-layout/src/vaadin-horizontal-layout.js';
-import '@vaadin/vaadin-text-field/src/vaadin-text-area.js';
-import '@vaadin/vaadin-text-field/src/vaadin-text-field.js';
 import '@vaadin/vaadin-form-layout/src/vaadin-form-layout.js';
 import '@vaadin/vaadin-combo-box/src/vaadin-combo-box.js';
 import '@vaadin/vaadin-combo-box/src/vaadin-combo-box-item.js';
+import '@vaadin/vaadin-text-field/src/vaadin-text-field.js';
 
 class EditSaplDocument extends PolymerElement {
 
@@ -19,15 +18,15 @@ class EditSaplDocument extends PolymerElement {
                     height: 100%;
                 }
             </style>
-<vaadin-vertical-layout style="width: 100%; height: 100%;">
+<vaadin-vertical-layout style="margin: var(--lumo-space-s);">
  <vaadin-horizontal-layout style="flex-wrap: wrap;" theme="spacing-s">
-  <vaadin-text-area label="Policy Identifier" value="1" id="policyIdTextArea" style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" readonly has-value></vaadin-text-area>
-  <vaadin-text-area label="Current Version" value="1" readonly style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" has-value id="currentVersionTextArea"></vaadin-text-area>
-  <vaadin-text-area label="Last Modified" value="1" readonly has-value id="lastModifiedTextArea" style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);"></vaadin-text-area>
+  <vaadin-text-field label="Policy Identifier" id="policyIdTextField" style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" readonly></vaadin-text-field>
+  <vaadin-text-field label="Current Version" id="currentVersionTextField" style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" readonly></vaadin-text-field>
+  <vaadin-text-field label="Last Modified" placeholder="Placeholder" id="lastModifiedTextField" style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" readonly></vaadin-text-field>
  </vaadin-horizontal-layout>
  <vaadin-horizontal-layout style="flex-wrap: wrap;" theme="spacing-s">
-  <vaadin-text-area label="Published Version" value="-" readonly has-value style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" id="publishedVersionTextArea"></vaadin-text-area>
-  <vaadin-text-area label="Published Name" value="-" readonly has-value style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" id="publishedNameTextArea"></vaadin-text-area>
+  <vaadin-text-field label="Published Version" id="publishedVersionTextField" style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" readonly></vaadin-text-field>
+  <vaadin-text-field label="Published Name" placeholder="Placeholder" id="publishedNameTextField" style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" readonly></vaadin-text-field>
  </vaadin-horizontal-layout>
  <vaadin-horizontal-layout>
   <label style="margin: var(--lumo-space-s); padding: var(--lumo-space-s); align-self: center;">Version History:</label>
@@ -36,10 +35,10 @@ class EditSaplDocument extends PolymerElement {
     Publish Selected Version 
   </vaadin-button>
   <vaadin-button id="unpublishButton" style="margin: var(--lumo-space-s); padding: var(--lumo-space-s); align-self: center;">
-   Unpublish
+    Unpublish 
   </vaadin-button>
  </vaadin-horizontal-layout>
- <sapl-editor id="saplEditor" document="policy \&quot;set by Vaadin View after instantiation ->\\u2588<-\&quot; permit" style="flex-grow: 1; align-self: stretch; margin: var(--lumo-space-s); padding: var(--lumo-space-s);">
+ <sapl-editor id="saplEditor" document="policy \&quot;set by Vaadin View after instantiation ->\\u2588<-\&quot; permit" style="flex-grow: 1; align-self: stretch;">
    policy \"set by Vaadin View after instantiation -&gt;\\u2588&lt;-\" permit 
  </sapl-editor>
  <vaadin-horizontal-layout style="margin: var(--lumo-space-s); padding: var(--lumo-space-s); align-self: flex-end;">
@@ -47,7 +46,7 @@ class EditSaplDocument extends PolymerElement {
     Save New Version 
   </vaadin-button>
   <vaadin-button theme="cancel" style="margin: var(--lumo-space-s);" id="cancelButton">
-    Go To Document List 
+    Cancel 
   </vaadin-button>
  </vaadin-horizontal-layout>
 </vaadin-vertical-layout>

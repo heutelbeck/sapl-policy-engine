@@ -18,7 +18,7 @@ import com.vaadin.flow.templatemodel.TemplateModel;
 
 import io.sapl.server.ce.service.documentation.FunctionLibrary;
 import io.sapl.server.ce.service.documentation.FunctionLibraryService;
-import io.sapl.server.ce.views.AppNavLayout;
+import io.sapl.server.ce.views.MainView;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @Tag("show-function-libraries")
 @PageTitle("Function Libraries")
 @JsModule("./show-function-libraries.js")
-@Route(value = FunctionLibrariesDocumentationView.ROUTE, layout = AppNavLayout.class)
+@Route(value = FunctionLibrariesDocumentationView.ROUTE, layout = MainView.class)
 public class FunctionLibrariesDocumentationView
 		extends PolymerTemplate<FunctionLibrariesDocumentationView.ShowFunctionLibrariesModel> {
 	public static final String ROUTE = "documentation/function-libraries";

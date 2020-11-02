@@ -13,12 +13,13 @@ import lombok.NoArgsConstructor;
  * View for the home page.
  */
 @Tag("show-home")
-@Route(value = ShowHome.ROUTE, layout = AppNavLayout.class)
+@Route(value = ShowHome.ROUTE, layout = MainView.class)
 @JsModule("./show-home.js")
 @PageTitle("SAPL PDP-Server CE")
 @NoArgsConstructor
 public class ShowHome extends PolymerTemplate<ShowHome.ShowHomeModel> {
 	public static final String ROUTE = "";
+
 	/**
 	 * This model binds properties between CreateSaplDocument and
 	 * create-sapl-document

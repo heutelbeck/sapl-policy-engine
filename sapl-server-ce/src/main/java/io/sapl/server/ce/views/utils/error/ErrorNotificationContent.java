@@ -1,4 +1,4 @@
-package io.sapl.server.ce.utils.error;
+package io.sapl.server.ce.views.utils.error;
 
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;

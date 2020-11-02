@@ -13,14 +13,14 @@ class EditVariable extends PolymerElement {
                 }
             </style>
 <vaadin-vertical-layout style="width: 100%; height: 100%; padding: var(--lumo-space-m);" theme="spacing">
- <vaadin-text-area label="Name" id="nameTextArea" minlength="1" has-value readonly></vaadin-text-area>
- <vaadin-text-area label="JSON Value" id="jsonValueTextArea" style="align-self: stretch;" minlength="1"></vaadin-text-area>
+ <vaadin-text-area label="Name" id="nameTextArea" minlength="1" has-value style="width: 300px;"></vaadin-text-area>
+ <vaadin-text-area label="JSON Value" id="jsonValueTextArea" style="align-self: stretch; flex-grow: 1; width: 100%; height: 100%; flex-shrink: 1;" minlength="1"></vaadin-text-area>
  <vaadin-horizontal-layout style="margin: var(--lumo-space-s); padding: var(--lumo-space-s); align-self: flex-end;">
   <vaadin-button theme="primary" id="editButton" style="margin: var(--lumo-space-s);">
-    Edit 
+   Save
   </vaadin-button>
   <vaadin-button theme="cancel" style="margin: var(--lumo-space-s);" id="cancelButton">
-    Go To Variables List 
+   Cancel
   </vaadin-button>
  </vaadin-horizontal-layout>
 </vaadin-vertical-layout>

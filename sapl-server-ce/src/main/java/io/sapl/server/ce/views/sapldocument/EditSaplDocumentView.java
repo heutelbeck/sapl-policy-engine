@@ -14,7 +14,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.polymertemplate.Id;
 import com.vaadin.flow.component.polymertemplate.PolymerTemplate;
-import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
@@ -26,8 +26,8 @@ import io.sapl.server.ce.model.sapldocument.SaplDocumentVersion;
 import io.sapl.server.ce.service.sapldocument.PublishedDocumentNameCollisionException;
 import io.sapl.server.ce.service.sapldocument.SaplDocumentService;
 import io.sapl.server.ce.utils.SaplDocumentUtils;
-import io.sapl.server.ce.utils.error.ErrorNotificationUtils;
-import io.sapl.server.ce.views.AppNavLayout;
+import io.sapl.server.ce.views.MainView;
+import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
 import io.sapl.vaadin.Issue;
 import io.sapl.vaadin.SaplEditor;
 import lombok.NoArgsConstructor;
@@ -38,7 +38,7 @@ import lombok.NonNull;
  */
 @NoArgsConstructor
 @Tag("edit-sapl-document")
-@Route(value = EditSaplDocumentView.ROUTE, layout = AppNavLayout.class)
+@Route(value = EditSaplDocumentView.ROUTE, layout = MainView.class)
 @JsModule("./edit-sapl-document.js")
 @PageTitle("Edit SAPL document")
 public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.EditSaplDocumentModel>
@@ -50,17 +50,23 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 	@Autowired
 	private SaplDocumentService saplDocumentService;
 
-	@Id(value = "policyIdTextArea")
-	private TextArea policyIdTextArea;
+	@Id(value = "policyIdTextField")
+	private TextField policyIdTextField;
+
+	@Id(value = "currentVersionTextField")
+	private TextField currentVersionTextField;
+
+	@Id(value = "lastModifiedTextField")
+	private TextField lastModifiedTextField;
+
+	@Id(value = "publishedVersionTextField")
+	private TextField publishedVersionTextField;
+
+	@Id(value = "publishedNameTextField")
+	private TextField publishedNameTextField;
 
 	@Id(value = "saplEditor")
 	private SaplEditor saplEditor;
-
-	@Id(value = "currentVersionTextArea")
-	private TextArea currentVersionTextArea;
-
-	@Id(value = "lastModifiedTextArea")
-	private TextArea lastModifiedTextArea;
 
 	@Id(value = "versionSelectionComboBox")
 	private ComboBox<String> versionSelectionComboBox;
@@ -73,12 +79,6 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 
 	@Id(value = "publishCurrentVersionButton")
 	private Button publishCurrentVersionButton;
-
-	@Id(value = "publishedVersionTextArea")
-	private TextArea publishedVersionTextArea;
-
-	@Id(value = "publishedNameTextArea")
-	private TextArea publishedNameTextArea;
 
 	@Id(value = "unpublishButton")
 	private Button unpublishButton;
@@ -107,7 +107,7 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 		this.saplDocument = saplDocument;
 		this.setUI();
 
-		this.saveVersionButton.setVisible(false);
+		this.saveVersionButton.setEnabled(false);
 
 		this.isDocumentValueEdited = false;
 		this.isFirstDocumentValueValidation = true;
@@ -133,7 +133,7 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 			Issue[] issues = validationFinishedEvent.getIssues();
 
 			boolean areNoIssuesAvailable = issues.length == 0;
-			this.saveVersionButton.setVisible(areNoIssuesAvailable);
+			this.saveVersionButton.setEnabled(areNoIssuesAvailable);
 		});
 
 		this.saveVersionButton.addClickListener(clickEvent -> {
@@ -173,9 +173,9 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 	 * Imports the previously set instance of {@link SaplDocument} to the UI.
 	 */
 	private void setUI() {
-		this.policyIdTextArea.setValue(this.saplDocument.getId().toString());
-		this.lastModifiedTextArea.setValue(this.saplDocument.getLastModified());
-		this.currentVersionTextArea.setValue(Integer.valueOf(this.saplDocument.getCurrentVersionNumber()).toString());
+		this.policyIdTextField.setValue(this.saplDocument.getId().toString());
+		this.lastModifiedTextField.setValue(this.saplDocument.getLastModified());
+		this.currentVersionTextField.setValue(Integer.valueOf(this.saplDocument.getCurrentVersionNumber()).toString());
 
 		Collection<String> availableVersions = this.getAvailableVersions();
 		this.versionSelectionComboBox.setItems(availableVersions);
@@ -184,18 +184,18 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 		SaplDocumentVersion currentVersion = this.saplDocument.getCurrentVersion();
 		this.saplEditor.setDocument(currentVersion.getValue());
 
-		this.setUIForPublishing();
+		this.setUiForPublishing();
 	}
 
-	private void setUIForPublishing() {
+	private void setUiForPublishing() {
 		SaplDocumentVersion publishedVersion = this.saplDocument.getPublishedVersion();
 		boolean isPublishedVersionExisting = publishedVersion != null;
 
 		if (isPublishedVersionExisting) {
 			String publishedName = SaplDocumentUtils.getNameFromDocumentValue(publishedVersion.getValue());
 
-			this.publishedVersionTextArea.setValue(Integer.valueOf(publishedVersion.getVersionNumber()).toString());
-			this.publishedNameTextArea.setValue(publishedName);
+			this.publishedVersionTextField.setValue(Integer.valueOf(publishedVersion.getVersionNumber()).toString());
+			this.publishedNameTextField.setValue(publishedName);
 
 			Optional<Integer> selectedVersionNumber = this.getSelectedVersionNumber();
 			if (selectedVersionNumber.isPresent()) {
@@ -209,8 +209,8 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 			this.publishCurrentVersionButton.setVisible(true);
 		}
 
-		this.publishedVersionTextArea.setVisible(isPublishedVersionExisting);
-		this.publishedNameTextArea.setVisible(isPublishedVersionExisting);
+		this.publishedVersionTextField.setVisible(isPublishedVersionExisting);
+		this.publishedNameTextField.setVisible(isPublishedVersionExisting);
 
 		this.unpublishButton.setVisible(isPublishedVersionExisting);
 	}
@@ -239,9 +239,9 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 
 		this.isDocumentValueEdited = false;
 		this.isFirstDocumentValueValidation = true;
-		this.saveVersionButton.setVisible(false);
+		this.saveVersionButton.setEnabled(false);
 
-		this.setUIForPublishing();
+		this.setUiForPublishing();
 	}
 
 	/**

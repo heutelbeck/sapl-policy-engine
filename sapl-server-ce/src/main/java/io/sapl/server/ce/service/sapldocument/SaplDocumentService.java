@@ -28,6 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class SaplDocumentService {
+	private static final String DEFAULT_DOCUMENT_VALUE = "policy \"all deny\"\ndeny";
+
 	private final SaplDocumentsRepository saplDocumentRepository;
 	private final SaplDocumentsVersionRepository saplDocumentVersionRepository;
 	private final SaplDocumentPublisher saplDocumentPublisher;
@@ -69,13 +71,13 @@ public class SaplDocumentService {
 	}
 
 	/**
-	 * Creates a new {@link SaplDocument}.
-	 * 
-	 * @param documentValue the document value of the initial version
+	 * Creates a new {@link SaplDocument} with a default document value.
 	 * 
 	 * @return the created {@link SaplDocument}
 	 */
-	public SaplDocument create(String documentValue) {
+	public SaplDocument createDefault() {
+		String documentValue = DEFAULT_DOCUMENT_VALUE;
+
 		SaplDocumentType type = SaplDocumentUtils.getType(documentValue);
 		String name = SaplDocumentUtils.getNameFromDocumentValue(documentValue);
 
@@ -122,8 +124,8 @@ public class SaplDocumentService {
 	 * @param saplDocumentId   the id of the {@link SaplDocument}
 	 * @param versionToPublish the version to publish
 	 * @throws PublishedDocumentNameCollisionException thrown if the name of a
-	 *                                                       {@link SaplDocument} to
-	 *                                                       publish is not unique
+	 *                                                 {@link SaplDocument} to
+	 *                                                 publish is not unique
 	 * 
 	 */
 	public void publishVersion(long saplDocumentId, int versionToPublish)

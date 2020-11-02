@@ -15,10 +15,11 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.templatemodel.TemplateModel;
 
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
+import io.sapl.server.ce.service.pdpconfiguration.DuplicatedVariableNameException;
 import io.sapl.server.ce.service.pdpconfiguration.InvalidJsonException;
 import io.sapl.server.ce.service.pdpconfiguration.VariablesService;
-import io.sapl.server.ce.utils.error.ErrorNotificationUtils;
-import io.sapl.server.ce.views.AppNavLayout;
+import io.sapl.server.ce.views.MainView;
+import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -26,17 +27,18 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * A Designer generated component for the edit-variable template.
  *
- * Designer will add and remove fields with @Id mappings but
- * does not overwrite or otherwise change this file.
+ * Designer will add and remove fields with @Id mappings but does not overwrite
+ * or otherwise change this file.
  */
 @Tag("edit-variable")
-@Route(value = EditVariableView.ROUTE, layout = AppNavLayout.class)
+@Route(value = EditVariableView.ROUTE, layout = MainView.class)
 @Slf4j
 @JsModule("./edit-variable.js")
 @PageTitle("Edit Variable")
 @NoArgsConstructor
-public class EditVariableView extends PolymerTemplate<EditVariableView.EditVariableModel> implements HasUrlParameter<Long> {
-	public static final String ROUTE = "configuration/variables/edit";
+public class EditVariableView extends PolymerTemplate<EditVariableView.EditVariableModel>
+		implements HasUrlParameter<Long> {
+	public static final String ROUTE = "pdp-config/variables/edit";
 
 	@Autowired
 	private VariablesService variableService;
@@ -84,25 +86,30 @@ public class EditVariableView extends PolymerTemplate<EditVariableView.EditVaria
 	}
 
 	private void addListener() {
-		this.editButton.addClickListener(clickEvent -> {
-			String jsonValue = this.jsonValueTextArea.getValue();
+		editButton.addClickListener(clickEvent -> {
+			String name = nameTextArea.getValue();
+			String jsonValue = jsonValueTextArea.getValue();
 
 			try {
-				this.variableService.edit(this.variableId, jsonValue);
+				variableService.edit(this.variableId, name, jsonValue);
 			} catch (InvalidJsonException ex) {
 				log.error("cannot edit variable due to invalid json", ex);
 				ErrorNotificationUtils.show("Value contains invalid JSON");
 				return;
+			} catch (DuplicatedVariableNameException ex) {
+				log.error("cannot edit variable due to duplicated name", ex);
+				ErrorNotificationUtils.show("Name is already used by another name");
+				return;
 			}
 
-			this.cancelButton.getUI().ifPresent(ui -> ui.navigate(VariablesView.ROUTE));
+			cancelButton.getUI().ifPresent(ui -> ui.navigate(ConfigurePdp.ROUTE));
 		});
 
-		this.cancelButton.addClickListener(clickEvent -> {
-			this.cancelButton.getUI().ifPresent(ui -> ui.navigate(VariablesView.ROUTE));
+		cancelButton.addClickListener(clickEvent -> {
+			getUI().ifPresent(ui -> ui.navigate(ConfigurePdp.ROUTE));
 		});
 	}
 
 	public interface EditVariableModel extends TemplateModel {
-    }
+	}
 }
