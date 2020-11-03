@@ -26,6 +26,7 @@ import io.sapl.interpreter.variables.VariableContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Deprecated
 public class Variable {
 
 	private final Bool bool;

@@ -25,6 +25,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.math.DoubleMath;
 
+@Deprecated
 public class VariableInfo implements Comparable<VariableInfo> {
 
 	private int groupedNumberOfNegatives;

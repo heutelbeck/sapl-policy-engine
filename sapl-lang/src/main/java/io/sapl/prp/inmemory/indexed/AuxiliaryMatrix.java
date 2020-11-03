@@ -19,6 +19,7 @@ import java.util.Arrays;
 
 import com.google.common.base.Preconditions;
 
+@Deprecated
 public class AuxiliaryMatrix {
 
 	private static final int EXPECTED_ROWS = 2;

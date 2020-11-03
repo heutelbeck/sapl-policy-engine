@@ -52,11 +52,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
         try {
             VariableContext variableCtx = new VariableContext(authzSubscription, variables);
 
-            PolicyRetrievalResult match = CanonicalIndexAlgorithm.match(functionCtx, variableCtx,
-                    indexDataContainer, false);
-
-            //TODO: refactor
-            return Mono.just(match);
+            return CanonicalIndexAlgorithm.matchMono(functionCtx, variableCtx, indexDataContainer, false);
         } catch (PolicyEvaluationException e) {
             return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true));
         }

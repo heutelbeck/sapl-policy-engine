@@ -14,18 +14,18 @@ import java.util.Set;
 @Value
 public class CanonicalIndexDataContainer {
 
-    private final Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments;
+    Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments;
 
-    private final List<Predicate> predicateOrder;
+    List<Predicate> predicateOrder;
 
-    private final List<Set<DisjunctiveFormula>> relatedFormulas;
+    List<Set<DisjunctiveFormula>> relatedFormulas;
 
-    private final Map<DisjunctiveFormula, Bitmask> relatedCandidates;
+    Map<DisjunctiveFormula, Bitmask> relatedCandidates;
 
-    private final Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction;
+    Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction;
 
-    private final int[] numberOfLiteralsInConjunction;
+    int[] numberOfLiteralsInConjunction;
 
-    private final int[] numberOfFormulasWithConjunction;
+    int[] numberOfFormulasWithConjunction;
 
 }

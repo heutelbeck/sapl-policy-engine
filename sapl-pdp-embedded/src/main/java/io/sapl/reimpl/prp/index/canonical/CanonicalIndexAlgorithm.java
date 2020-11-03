@@ -24,12 +24,13 @@ import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
 import io.sapl.prp.inmemory.indexed.improved.CTuple;
 import io.sapl.prp.inmemory.indexed.improved.Predicate;
 import lombok.experimental.UtilityClass;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -37,9 +38,8 @@ import java.util.stream.Collectors;
 @UtilityClass
 public class CanonicalIndexAlgorithm {
 
-    public PolicyRetrievalResult match(final FunctionContext functionCtx, final VariableContext variableCtx,
-                                       CanonicalIndexDataContainer dataContainer, boolean abortOnError) {
-        Set<DisjunctiveFormula> result = new HashSet<>();
+    public Mono<PolicyRetrievalResult> matchMono(final FunctionContext functionCtx, final VariableContext variableCtx,
+                                                 CanonicalIndexDataContainer dataContainer, boolean abortOnError) {
         boolean errorOccurred = false;
 
         Bitmask clauseCandidates = new Bitmask();
@@ -51,41 +51,97 @@ public class CanonicalIndexAlgorithm {
         int[] trueLiteralsOfConjunction = new int[dataContainer.getNumberOfLiteralsInConjunction().length];
         int[] eliminatedFormulasWithConjunction = new int[dataContainer.getNumberOfLiteralsInConjunction().length];
 
-        for (Predicate predicate : dataContainer.getPredicateOrder()) {
-            if (!isReferenced(predicate, clauseCandidates))
-                continue;
 
-            Optional<Boolean> outcome = predicate.evaluate(functionCtx, variableCtx);
-            if (!outcome.isPresent()) {
-                if (abortOnError) {
-                    return new PolicyRetrievalResult(fetchPolicies(result, dataContainer.getFormulaToDocuments()),
-                            true);
-                } else {
-                    removeCandidatesRelatedToPredicate(predicate, clauseCandidates);
-                    errorOccurred = true;
-                    continue;
-                }
-            }
-            boolean evaluationResult = outcome.get();
+        Mono<Bitmask> satisfiedCandidatesMono = Flux.fromIterable(dataContainer.getPredicateOrder())
+                .filter(predicate -> isReferenced(predicate, clauseCandidates))
+                .flatMap(predicate -> {
+                    Flux<Bitmask> satisfiableFlux = predicate.evaluateFlux(functionCtx, variableCtx)
+                            //TODO: handling for missing evaluation result (see below)
+                            //TODO this is not good code
+                            .map(evaluationResult -> {
+                                Bitmask satisfiableCandidates = findSatisfiableCandidates(clauseCandidates, predicate,
+                                        evaluationResult, trueLiteralsOfConjunction,
+                                        dataContainer.getNumberOfFormulasWithConjunction());
 
-            Bitmask satisfiableCandidates = findSatisfiableCandidates(clauseCandidates, predicate, evaluationResult,
-                    trueLiteralsOfConjunction, dataContainer.getNumberOfFormulasWithConjunction());
-            satisfiedCandidates.or(satisfiableCandidates);
-            // result.addAll(fetchFormulas(satisfiableCandidates));
+                                Bitmask unsatisfiableCandidates =
+                                        findUnsatisfiableCandidates(clauseCandidates, predicate, evaluationResult);
 
-            Bitmask unsatisfiableCandidates = findUnsatisfiableCandidates(clauseCandidates, predicate,
-                    evaluationResult);
-            Bitmask orphanedCandidates = findOrphanedCandidates(clauseCandidates, satisfiableCandidates,
-                    eliminatedFormulasWithConjunction, dataContainer.getConjunctionsInFormulasReferencingConjunction(),
-                    dataContainer.getNumberOfFormulasWithConjunction());
+                                Bitmask orphanedCandidates = findOrphanedCandidates(clauseCandidates,
+                                        satisfiableCandidates, eliminatedFormulasWithConjunction,
+                                        dataContainer.getConjunctionsInFormulasReferencingConjunction(),
+                                        dataContainer.getNumberOfFormulasWithConjunction());
 
-            eliminateCandidates(clauseCandidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
-        }
+                                eliminateCandidates(clauseCandidates, unsatisfiableCandidates, satisfiableCandidates,
+                                        orphanedCandidates);
 
-        result.addAll(fetchFormulas(satisfiedCandidates, dataContainer.getRelatedFormulas()));
+                                return satisfiableCandidates;
+                            });
+                    return satisfiableFlux;
+                }).reduce(new Bitmask(), (b2, b1) -> orBitMask(b1, b2));
 
-        return new PolicyRetrievalResult(fetchPolicies(result, dataContainer.getFormulaToDocuments()),
-                errorOccurred);
+        Mono<PolicyRetrievalResult> resultMono = satisfiedCandidatesMono
+                .map(satisfied -> fetchFormulas(satisfiedCandidates, dataContainer.getRelatedFormulas()))
+                .map(formulas -> new PolicyRetrievalResult(fetchPolicies(formulas, dataContainer
+                        .getFormulaToDocuments()), errorOccurred));
+
+        return resultMono;
+    }
+
+    private Bitmask orBitMask(Bitmask b1, Bitmask b2) {
+        b2.or(b1);
+        return b2;
+    }
+
+    public PolicyRetrievalResult match(final FunctionContext functionCtx, final VariableContext variableCtx,
+                                       CanonicalIndexDataContainer dataContainer, boolean abortOnError) {
+        //        Set<DisjunctiveFormula> result = new HashSet<>();
+        //        boolean errorOccurred = false;
+        //
+        //        Bitmask clauseCandidates = new Bitmask();
+        //        clauseCandidates.set(0, dataContainer.getNumberOfLiteralsInConjunction().length);
+        //
+        //        Bitmask satisfiedCandidates = new Bitmask();
+        //        clauseCandidates.set(0, dataContainer.getNumberOfLiteralsInConjunction().length);
+        //
+        //        int[] trueLiteralsOfConjunction = new int[dataContainer.getNumberOfLiteralsInConjunction().length];
+        //        int[] eliminatedFormulasWithConjunction = new int[dataContainer.getNumberOfLiteralsInConjunction().length];
+        //
+        //        for (Predicate predicate : dataContainer.getPredicateOrder()) {
+        //            if (!isReferenced(predicate, clauseCandidates))
+        //                continue;
+        //
+        //            Optional<Boolean> outcome = predicate.evaluate(functionCtx, variableCtx);
+        //            if (!outcome.isPresent()) {
+        //                if (abortOnError) {
+        //                    return new PolicyRetrievalResult(fetchPolicies(result, dataContainer.getFormulaToDocuments()),
+        //                            true);
+        //                } else {
+        //                    removeCandidatesRelatedToPredicate(predicate, clauseCandidates);
+        //                    errorOccurred = true;
+        //                    continue;
+        //                }
+        //            }
+        //            boolean evaluationResult = outcome.get();
+        //
+        //            Bitmask satisfiableCandidates = findSatisfiableCandidates(clauseCandidates, predicate, evaluationResult,
+        //                    trueLiteralsOfConjunction, dataContainer.getNumberOfFormulasWithConjunction());
+        //            satisfiedCandidates.or(satisfiableCandidates);
+        //            // result.addAll(fetchFormulas(satisfiableCandidates));
+        //
+        //            Bitmask unsatisfiableCandidates = findUnsatisfiableCandidates(clauseCandidates, predicate,
+        //                    evaluationResult);
+        //            Bitmask orphanedCandidates = findOrphanedCandidates(clauseCandidates, satisfiableCandidates,
+        //                    eliminatedFormulasWithConjunction, dataContainer.getConjunctionsInFormulasReferencingConjunction(),
+        //                    dataContainer.getNumberOfFormulasWithConjunction());
+        //
+        //            eliminateCandidates(clauseCandidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
+        //        }
+        //
+        //        result.addAll(fetchFormulas(satisfiedCandidates, dataContainer.getRelatedFormulas()));
+        //
+        //        return new PolicyRetrievalResult(fetchPolicies(result, dataContainer.getFormulaToDocuments()),
+        //                errorOccurred);
+        return matchMono(functionCtx, variableCtx, dataContainer, abortOnError).block();
     }
 
     private void removeCandidatesRelatedToPredicate(final Predicate predicate, Bitmask candidates) {
@@ -127,14 +183,14 @@ public class CanonicalIndexAlgorithm {
     }
 
     private void eliminateCandidates(final Bitmask candidates, final Bitmask unsatisfiableCandidates,
-                                       final Bitmask satisfiableCandidates, final Bitmask orphanedCandidates) {
+                                     final Bitmask satisfiableCandidates, final Bitmask orphanedCandidates) {
         candidates.andNot(unsatisfiableCandidates);
         candidates.andNot(satisfiableCandidates);
         candidates.andNot(orphanedCandidates);
     }
 
     private Set<DisjunctiveFormula> fetchFormulas(final Bitmask satisfiableCandidates,
-                                                    List<Set<DisjunctiveFormula>> relatedFormulas) {
+                                                  List<Set<DisjunctiveFormula>> relatedFormulas) {
         final Set<DisjunctiveFormula> result = new HashSet<>();
         satisfiableCandidates.forEachSetBit(index -> result.addAll(relatedFormulas.get(index)));
         return result;
@@ -163,7 +219,7 @@ public class CanonicalIndexAlgorithm {
     }
 
     private Set<SAPL> fetchPolicies(final Set<DisjunctiveFormula> formulas,
-                                      Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments) {
+                                    Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments) {
         return formulas.parallelStream()
                 .map(formulaToDocuments::get)
                 .flatMap(Collection::parallelStream)
@@ -171,7 +227,7 @@ public class CanonicalIndexAlgorithm {
     }
 
     private Bitmask findUnsatisfiableCandidates(final Bitmask candidates, final Predicate predicate,
-                                                  final boolean predicateEvaluationResult) {
+                                                final boolean predicateEvaluationResult) {
         Bitmask result = new Bitmask(candidates);
         if (predicateEvaluationResult) {
             result.and(predicate.getFalseForTruePredicate());
