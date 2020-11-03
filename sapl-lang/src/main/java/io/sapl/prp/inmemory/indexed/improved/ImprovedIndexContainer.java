@@ -37,6 +37,7 @@ import io.sapl.prp.inmemory.indexed.IndexContainer;
 
 //@Slf4j
 //@RequiredArgsConstructor
+@Deprecated
 public class ImprovedIndexContainer implements IndexContainer {
 
 	private final boolean abortOnError;
