@@ -93,67 +93,92 @@ public class CanonicalImmutableParsedDocumentIndexText {
         Assertions.assertThat(result.getMatchingDocuments()).hasSize(3).contains(doc1, doc2);
     }
 
-    //    @Test
-    //    public void testPut() throws PolicyEvaluationException {
-    //        // given
-    //        FunctionContext functionCtx = new AnnotationFunctionContext();
-    //        String definition = "policy \"p_0\" permit !(resource.x0 | resource.x1)";
-    //        SAPL document = interpreter.parse(definition);
-    //        prp.put("1", document);
-    //        bindings.put("x0", false);
-    //        bindings.put("x1", false);
-    //        AuthorizationSubscription authzSubscription = createRequestObject();
-    //
-    //        // when
-    //        PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
-    //
-    //        // then
-    //        Assertions.assertThat(result).isNotNull();
-    //        Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-    //        Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
-    //    }
-    //
-    //    @Test
-    //    public void testRemove() throws PolicyEvaluationException {
-    //        // given
-    //        FunctionContext functionCtx = new AnnotationFunctionContext();
-    //        String definition = "policy \"p_0\" permit resource.x0 & resource.x1";
-    //        SAPL document = interpreter.parse(definition);
-    //        prp.updateFunctionContext(functionCtx);
-    //        prp.put("1", document);
-    //        bindings.put("x0", true);
-    //        bindings.put("x1", true);
-    //        prp.remove("1");
-    //        AuthorizationSubscription authzSubscription = createRequestObject();
-    //
-    //        // when
-    //        PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
-    //
-    //        // then
-    //        Assertions.assertThat(result).isNotNull();
-    //        Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-    //        Assertions.assertThat(result.getMatchingDocuments()).isEmpty();
-    //    }
-    //
-    //    @Test
-    //    public void testUpdateFunctionCtx() throws PolicyEvaluationException {
-    //        // given
-    //        FunctionContext functionCtx = new AnnotationFunctionContext();
-    //        String definition = "policy \"p_0\" permit !resource.x0";
-    //        SAPL document = interpreter.parse(definition);
-    //        prp.put("1", document);
-    //        bindings.put("x0", false);
-    //        AuthorizationSubscription authzSubscription = createRequestObject();
-    //
-    //        // when
-    //        prp.updateFunctionContext(functionCtx);
-    //        PolicyRetrievalResult result = prp.retrievePolicies(authzSubscription, functionCtx, variables).block();
-    //
-    //        // then
-    //        Assertions.assertThat(result).isNotNull();
-    //        Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-    //        Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
-    //    }
+    @Test
+    public void testPut() throws PolicyEvaluationException {
+        // given
+        FunctionContext functionCtx = new AnnotationFunctionContext();
+        List<Update> updates = new ArrayList<>(3);
+
+        String definition = "policy \"p_0\" permit !(resource.x0 | resource.x1)";
+        SAPL document = interpreter.parse(definition);
+        updates.add(new Update(Type.PUBLISH, document, definition));
+
+        PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
+        ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
+
+        bindings.put("x0", false);
+        bindings.put("x1", false);
+        AuthorizationSubscription authzSubscription = createRequestObject();
+
+        // when
+        PolicyRetrievalResult result = updatedIndex.retrievePolicies(authzSubscription, functionCtx, variables).block();
+
+        // then
+        Assertions.assertThat(result).isNotNull();
+        Assertions.assertThat(result.isErrorsInTarget()).isFalse();
+        Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
+    }
+
+    @Test
+    public void testRemove() throws PolicyEvaluationException {
+        // given
+        FunctionContext functionCtx = new AnnotationFunctionContext();
+        List<Update> updates = new ArrayList<>(3);
+
+
+        String definition = "policy \"p_0\" permit resource.x0 & resource.x1";
+        SAPL document = interpreter.parse(definition);
+        //            prp.updateFunctionContext(functionCtx);
+        updates.add(new Update(Type.PUBLISH, document, definition));
+
+        PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
+        ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
+
+        bindings.put("x0", true);
+        bindings.put("x1", true);
+
+        updates.clear();
+        updates.add(new Update(Type.UNPUBLISH, document, definition));
+
+        prpUpdateEvent = new PrpUpdateEvent(updates);
+        updatedIndex = updatedIndex.apply(prpUpdateEvent);
+
+        AuthorizationSubscription authzSubscription = createRequestObject();
+
+        // when
+        PolicyRetrievalResult result = updatedIndex.retrievePolicies(authzSubscription, functionCtx, variables).block();
+
+        // then
+        Assertions.assertThat(result).isNotNull();
+        Assertions.assertThat(result.isErrorsInTarget()).isFalse();
+        Assertions.assertThat(result.getMatchingDocuments()).isEmpty();
+    }
+
+    @Test
+    public void testUpdateFunctionCtx() throws PolicyEvaluationException {
+        // given
+        FunctionContext functionCtx = new AnnotationFunctionContext();
+        List<Update> updates = new ArrayList<>(3);
+
+        String definition = "policy \"p_0\" permit !resource.x0";
+        SAPL document = interpreter.parse(definition);
+        updates.add(new Update(Type.PUBLISH, document, definition));
+
+        PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
+        ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
+
+        bindings.put("x0", false);
+        AuthorizationSubscription authzSubscription = createRequestObject();
+
+        // when
+        //        prp.updateFunctionContext(functionCtx);
+        PolicyRetrievalResult result = updatedIndex.retrievePolicies(authzSubscription, functionCtx, variables).block();
+
+        // then
+        Assertions.assertThat(result).isNotNull();
+        Assertions.assertThat(result.isErrorsInTarget()).isFalse();
+        Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
+    }
 
     private AuthorizationSubscription createRequestObject() {
         ObjectNode resource = json.objectNode();
