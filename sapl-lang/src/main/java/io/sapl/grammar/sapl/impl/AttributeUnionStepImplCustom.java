@@ -51,8 +51,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	private static final String UNION_TYPE_MISMATCH = "Type mismatch.";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {
@@ -82,8 +81,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, Val relativeNode) {
 		return Flux.error(new PolicyEvaluationException(UNION_TYPE_MISMATCH));
 	}
 

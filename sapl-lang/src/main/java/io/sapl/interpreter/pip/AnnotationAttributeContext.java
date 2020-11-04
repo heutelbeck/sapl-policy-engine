@@ -112,7 +112,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 			argObjects[i++] = value;
 			argObjects[i++] = ctx.getVariableCtx().getVariables();
 			for (Expression argument : arguments.getArgs()) {
-				argObjects[i++] = argument.evaluate(ctx, true, Val.undefined());
+				argObjects[i++] = argument.evaluate(ctx, Val.undefined());
 			}
 			return (Flux<Val>) method.invoke(pip, argObjects);
 		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException

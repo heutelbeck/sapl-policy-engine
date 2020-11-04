@@ -96,14 +96,13 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	}
 
 	@Override
-	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx,
-			boolean isBody) {
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx) {
 		if (each) {
 			if (!nodes.isEmpty()) {
 				final List<Flux<Void>> appliedFilterFluxes = new ArrayList<>(nodes.size());
 				for (AbstractAnnotatedJsonNode node : nodes) {
-					appliedFilterFluxes.add(node.applyFilterWithRelativeNode(function, arguments, false, ctx, isBody,
-							node.getParent()));
+					appliedFilterFluxes
+							.add(node.applyFilterWithRelativeNode(function, arguments, false, ctx, node.getParent()));
 				}
 				return Flux.combineLatest(appliedFilterFluxes, voidResults -> Void.INSTANCE);
 			} else {
@@ -152,8 +151,8 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	}
 
 	@Override
-	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		return step.apply(this, ctx, isBody, relativeNode);
+	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, Val relativeNode) {
+		return step.apply(this, ctx, relativeNode);
 	}
 
 }

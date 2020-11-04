@@ -36,9 +36,9 @@ public class RegexImplCustom extends RegexImpl {
 	private static final String REGEX_SYNTAX_ERROR = "Syntax error in regular expression '%s'.";
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		final Flux<Val> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<String> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Val::toText);
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
+		final Flux<String> right = getRight().evaluate(ctx, relativeNode).flatMap(Val::toText);
 		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().flatMap(this::matchRegexp);
 	}
 

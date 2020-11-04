@@ -15,11 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import org.eclipse.xtext.EcoreUtil2;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
@@ -36,18 +33,18 @@ public class AndImplCustom extends AndImpl {
 	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy AND operator is not allowed in the target";
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		if (EcoreUtil2.getContainerOfType(this, PolicyBody.class) == null) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, Val relativeNode) {
+		if (TargetExpressionIdentifier.isInTargetExpression(this)) {
 			// due to the constraints in indexing policy documents, lazy evaluation is not
 			// allowed in target expressions.
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
 
-		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
+		final Flux<Boolean> left = getLeft().evaluate(ctx, relativeNode).flatMap(Val::toBoolean);
 		return left.switchMap(leftResult -> {
 			// Lazy evaluation of the right expression
 			if (Boolean.TRUE.equals(leftResult)) {
-				return getRight().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
+				return getRight().evaluate(ctx, relativeNode).flatMap(Val::toBoolean);
 			}
 			return Flux.just(Boolean.FALSE);
 		}).map(Val::of).distinctUntilChanged();

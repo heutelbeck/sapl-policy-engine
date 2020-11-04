@@ -36,7 +36,7 @@ public class UndefinedLiteralImplCustom extends UndefinedLiteralImpl {
 	 * A FLux only containing the 'undefined' value, i.e. Optional.empty();
 	 */
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
 		return Val.undefinedFlux();
 	}
 

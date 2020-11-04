@@ -92,7 +92,7 @@ public class Bool {
 		if (!isConstantExpression) {
 			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
 			try {
-				Val result = expression.evaluate(ctx, false, Val.undefined()).blockFirst();
+				Val result = expression.evaluate(ctx, Val.undefined()).blockFirst();
 				if (Objects.nonNull(result) && result.isDefined() && result.get().isBoolean()) {
 					return result.get().asBoolean();
 				}

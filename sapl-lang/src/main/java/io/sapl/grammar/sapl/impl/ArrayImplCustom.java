@@ -55,7 +55,7 @@ public class ArrayImplCustom extends ArrayImpl {
 	 * emits a new value.
 	 */
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, boolean isBody, Val relativeNode) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, Val relativeNode) {
 		// handle the empty array
 		if (getItems().size() == 0) {
 			return Flux.just(Val.of(JSON.arrayNode()));
@@ -63,7 +63,7 @@ public class ArrayImplCustom extends ArrayImpl {
 		// aggregate child fluxes into a flux of a JSON array
 		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(getItems().size());
 		for (Expression item : getItems()) {
-			itemFluxes.add(item.evaluate(ctx, isBody, relativeNode).flatMap(Val::toJsonNode));
+			itemFluxes.add(item.evaluate(ctx, relativeNode).flatMap(Val::toJsonNode));
 		}
 		return Flux.combineLatest(itemFluxes, Function.identity()).map(this::collectValuesToArrayNode).map(Val::of);
 	}

@@ -43,23 +43,22 @@ import reactor.core.publisher.Flux;
 public class BasicFunctionImplCustom extends BasicFunctionImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
 		if (getArguments() != null && !getArguments().getArgs().isEmpty()) {
 			// create a list of Fluxes containing the results of evaluating the
 			// individual argument expressions.
 			final List<Flux<Val>> arguments = new ArrayList<>(getArguments().getArgs().size());
 			for (Expression argument : getArguments().getArgs()) {
-				arguments.add(argument.evaluate(ctx, isBody, relativeNode));
+				arguments.add(argument.evaluate(ctx, relativeNode));
 			}
 			// evaluate the function for each value assignment of the arguments
 			return Flux.combineLatest(arguments, Function.identity()).switchMap(
 					parameters -> evaluateFunction(Arrays.copyOf(parameters, parameters.length, Val[].class), ctx))
-					.flatMap(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, isBody,
-							relativeNode));
+					.flatMap(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, relativeNode));
 		} else {
 			// No need to evaluate arguments. Just evaluate and apply steps.
-			return evaluateFunction(null, ctx).flatMap(
-					funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, isBody, relativeNode));
+			return evaluateFunction(null, ctx)
+					.flatMap(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, relativeNode));
 		}
 	}
 

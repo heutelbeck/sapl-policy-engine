@@ -98,12 +98,11 @@ public interface ResultNode {
 	 * @param each      true, if the selection should be treated as an array and the
 	 *                  filter function should be applied to each of its items
 	 * @param ctx       the evaluation context
-	 * @param isBody    true if the filter is applied within the policy body
 	 * @return a flux of {@link Void} instances, each indicating a finished
 	 *         application of the filter function to the selected JsonNode or its
 	 *         child elements.
 	 */
-	Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx, boolean isBody);
+	Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx);
 
 	/**
 	 * Applies a step to the result node and returns a {@link Flux} of new result
@@ -111,10 +110,9 @@ public interface ResultNode {
 	 * 
 	 * @param step         the step to apply
 	 * @param ctx          the evaluation context
-	 * @param isBody       true if the step is applied within the policy body
 	 * @param relativeNode the node a relative expression evaluates to
 	 * @return a {@link Flux} of result nodes resulting from application of the step
 	 */
-	Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody, Val relativeNode);
+	Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, Val relativeNode);
 
 }

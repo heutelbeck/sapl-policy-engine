@@ -24,9 +24,9 @@ import reactor.util.function.Tuples;
 public class PlusImplCustom extends PlusImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		final Flux<Val> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Val> right = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
+		final Flux<Val> right = getRight().evaluate(ctx, relativeNode);
 		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().flatMap(this::plus);
 	}
 

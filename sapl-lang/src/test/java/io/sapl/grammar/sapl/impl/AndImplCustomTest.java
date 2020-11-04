@@ -1,8 +1,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -42,63 +40,62 @@ public class AndImplCustomTest {
 
 	@Test(expected = NullPointerException.class)
 	public void fluxCreationShouldFailWithNullEvaluationContext() {
-		and.evaluate(null, true, null);
+		and.evaluate(null, null);
 	}
 
 	@Test
-	public void evaluationSouldfailInTargetExpression() {
-		StepVerifier.create(and.evaluate(ctx, true, null)).expectError(PolicyEvaluationException.class).verify();
+	public void evaluationSouldfailInPolicyTargetExpression() {
+		MockUtil.mockPolicyTargetExpressionContainerExpression(and);
+		StepVerifier.create(and.evaluate(ctx, null)).expectError(PolicyEvaluationException.class).verify();
+	}
+
+	@Test
+	public void evaluationSouldfailInPolicySetTargetExpression() {
+		MockUtil.mockPolicySetTargetExpressionContainerExpression(and);
+		StepVerifier.create(and.evaluate(ctx, null)).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void evaluationShouldFailWithNonBooleanLeft() {
-		MockUtil.mockPolicyBodyForExpression(and);
-		when(left.evaluate(any(EvaluationContext.class), eq(true), nullable(Val.class)))
-				.thenReturn(Val.fluxOfUndefined());
-		StepVerifier.create(and.evaluate(ctx, true, null)).expectError(PolicyEvaluationException.class).verify();
+		when(left.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfUndefined());
+		StepVerifier.create(and.evaluate(ctx, null)).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void evaluationShouldFailWithNonBooleanRight() {
-		MockUtil.mockPolicyBodyForExpression(and);
-		when(left.evaluate(any(EvaluationContext.class), eq(true), nullable(Val.class))).thenReturn(Val.fluxOfTrue());
-		when(right.evaluate(any(EvaluationContext.class), eq(true), nullable(Val.class)))
-				.thenReturn(Val.fluxOfUndefined());
-		StepVerifier.create(and.evaluate(ctx, true, null)).expectError(PolicyEvaluationException.class).verify();
+		when(left.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfTrue());
+		when(right.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfUndefined());
+		StepVerifier.create(and.evaluate(ctx, null)).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void evaluationShouldBeLazyAndReturnFalseInLazyCase() {
-		MockUtil.mockPolicyBodyForExpression(and);
-		when(left.evaluate(any(EvaluationContext.class), eq(true), nullable(Val.class))).thenReturn(Val.fluxOfFalse());
-		StepVerifier.create(and.evaluate(ctx, true, null)).expectNext(Val.ofFalse()).expectComplete().verify();
-		verify(right, times(0)).evaluate(any(EvaluationContext.class), anyBoolean(), nullable(Val.class));
+		when(left.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfFalse());
+		StepVerifier.create(and.evaluate(ctx, null)).expectNext(Val.ofFalse()).expectComplete().verify();
+		verify(right, times(0)).evaluate(any(EvaluationContext.class), nullable(Val.class));
 	}
 
 	@Test
 	public void evaluationOfTrueAndFalseShouldBeFalse() {
-		MockUtil.mockPolicyBodyForExpression(and);
-		when(left.evaluate(any(EvaluationContext.class), eq(true), nullable(Val.class))).thenReturn(Val.fluxOfTrue());
-		when(right.evaluate(any(EvaluationContext.class), eq(true), nullable(Val.class))).thenReturn(Val.fluxOfFalse());
-		StepVerifier.create(and.evaluate(ctx, true, null)).expectNext(Val.ofFalse()).expectComplete().verify();
+		when(left.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfTrue());
+		when(right.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfFalse());
+		StepVerifier.create(and.evaluate(ctx, null)).expectNext(Val.ofFalse()).expectComplete().verify();
 	}
 
 	@Test
 	public void evaluationTrueAndTrueSouldBeTrue() {
-		MockUtil.mockPolicyBodyForExpression(and);
-		when(left.evaluate(any(EvaluationContext.class), eq(true), nullable(Val.class))).thenReturn(Val.fluxOfTrue());
-		when(right.evaluate(any(EvaluationContext.class), eq(true), nullable(Val.class))).thenReturn(Val.fluxOfTrue());
-		StepVerifier.create(and.evaluate(ctx, true, null)).expectNext(Val.ofTrue()).expectComplete().verify();
+		when(left.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfTrue());
+		when(right.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfTrue());
+		StepVerifier.create(and.evaluate(ctx, null)).expectNext(Val.ofTrue()).expectComplete().verify();
 	}
 
 	@Test
 	public void evaluationOfSequencesSouldReturnMathicingSequence() {
-		MockUtil.mockPolicyBodyForExpression(and);
 		var leftSequence = Flux.fromArray(new Val[] { Val.ofFalse(), Val.ofTrue() });
 		var rightSequence = Flux.fromArray(new Val[] { Val.ofTrue(), Val.ofFalse(), Val.ofTrue() });
-		when(left.evaluate(any(EvaluationContext.class), eq(true), nullable(Val.class))).thenReturn(leftSequence);
-		when(right.evaluate(any(EvaluationContext.class), eq(true), nullable(Val.class))).thenReturn(rightSequence);
-		StepVerifier.create(and.evaluate(ctx, true, null))
+		when(left.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(leftSequence);
+		when(right.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(rightSequence);
+		StepVerifier.create(and.evaluate(ctx, null))
 				.expectNext(Val.ofFalse(), Val.ofTrue(), Val.ofFalse(), Val.ofTrue()).expectComplete().verify();
 	}
 

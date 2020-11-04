@@ -20,11 +20,9 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.EcoreUtil2;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
@@ -47,19 +45,18 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode value, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
-		return retrieveAttribute(value.asJsonWithoutAnnotations(), ctx, isBody);
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode value, EvaluationContext ctx, Val relativeNode) {
+		return retrieveAttribute(value.asJsonWithoutAnnotations(), ctx);
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode arrayValue, EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		return retrieveAttribute(arrayValue.asJsonWithoutAnnotations(), ctx, isBody);
+	public Flux<ResultNode> apply(ArrayResultNode arrayValue, EvaluationContext ctx, Val relativeNode) {
+		return retrieveAttribute(arrayValue.asJsonWithoutAnnotations(), ctx);
 	}
 
-	private Flux<ResultNode> retrieveAttribute(Val value, EvaluationContext ctx, boolean isBody) {
+	private Flux<ResultNode> retrieveAttribute(Val value, EvaluationContext ctx) {
 		final String fullyQualifiedName = getFullyQualifiedName(ctx);
-		if (EcoreUtil2.getContainerOfType(this, PolicyBody.class) == null) {
+		if (TargetExpressionIdentifier.isInTargetExpression(this)) {
 			return Flux.error(new PolicyEvaluationException(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName));
 		}
 		if (value.isUndefined()) {

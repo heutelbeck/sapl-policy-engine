@@ -37,11 +37,11 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
 	private static final String NOT_ALLOWED = "Relative expression is not allowed at this place. There was no relative node defined. Was: undefined";
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
 		if (relativeNode.isUndefined()) {
 			return Flux.error(new PolicyEvaluationException(NOT_ALLOWED));
 		}
-		return evaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, isBody, relativeNode);
+		return evaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, relativeNode);
 	}
 
 	@Override

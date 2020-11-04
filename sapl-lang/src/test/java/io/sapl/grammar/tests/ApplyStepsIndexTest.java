@@ -77,7 +77,7 @@ public class ApplyStepsIndexTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(0));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -92,7 +92,7 @@ public class ApplyStepsIndexTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Index step applied to array node should return corresponding item",
 						expectedResult, result));
 	}
@@ -106,7 +106,7 @@ public class ApplyStepsIndexTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -121,7 +121,7 @@ public class ApplyStepsIndexTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Negative index step applied to array node should return corresponding item", expectedResult,
 						result));
@@ -136,7 +136,7 @@ public class ApplyStepsIndexTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -150,7 +150,7 @@ public class ApplyStepsIndexTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Index step applied to result array should return corresponding item",
 						expectedResult, result));
 	}
@@ -164,7 +164,7 @@ public class ApplyStepsIndexTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -178,7 +178,7 @@ public class ApplyStepsIndexTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Negative index step applied to result array should return corresponding item", expectedResult,
 						result));
@@ -193,7 +193,7 @@ public class ApplyStepsIndexTest {
 		IndexStep step = factory.createIndexStep();
 		step.setIndex(BigDecimal.valueOf(index));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 

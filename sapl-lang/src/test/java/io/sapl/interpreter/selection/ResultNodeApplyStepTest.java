@@ -57,7 +57,7 @@ public class ResultNodeApplyStepTest {
 
 		ResultNode expectedResult = new JsonNodeWithoutParent(Val.ofNull());
 
-		resultNode.applyStep(step, ctx, false, Val.undefined()).take(1)
+		resultNode.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("applyStep on ArrayResultNode should return correct ResultNode",
 						expectedResult, result));
 	}
@@ -73,7 +73,7 @@ public class ResultNodeApplyStepTest {
 
 		ResultNode expectedResult = new JsonNodeWithParentArray(Val.ofNull(), Val.of(array), 0);
 
-		resultNode.applyStep(step, ctx, false, Val.undefined()).take(1)
+		resultNode.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"applyStep on AbstractAnnotatedJsonNode should return correct ResultNode", expectedResult,
 						result));

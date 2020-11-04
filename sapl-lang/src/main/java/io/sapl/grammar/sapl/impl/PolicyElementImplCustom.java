@@ -63,7 +63,7 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
 			log.trace("| | |");
 			return Mono.just(Boolean.TRUE);
 		}
-		return targetExpression.evaluate(ctx, false, Val.undefined()).next().flatMap(result -> {
+		return targetExpression.evaluate(ctx, Val.undefined()).next().flatMap(result -> {
 			if (!result.isDefined() || !result.get().isBoolean()) {
 				log.trace("| | | |-- ERROR in target expression did not evaluate to boolean. Was: {}", result);
 				log.trace("| | |");

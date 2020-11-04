@@ -36,7 +36,7 @@ public class TrueLiteralImplCustom extends TrueLiteralImpl {
 	 * Returns a constant value of false.
 	 */
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
 		return Val.fluxOfTrue();
 	}
 

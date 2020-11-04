@@ -27,7 +27,7 @@ import reactor.core.publisher.Flux;
 public class StringLiteralImplCustom extends StringLiteralImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
 		return Val.fluxOf(getString());
 	}
 

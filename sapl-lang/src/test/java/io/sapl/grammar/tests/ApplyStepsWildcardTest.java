@@ -61,7 +61,7 @@ public class ApplyStepsWildcardTest {
 
 		WildcardStep step = factory.createWildcardStep();
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -77,7 +77,7 @@ public class ApplyStepsWildcardTest {
 		ResultNode expectedResult = new JsonNodeWithoutParent(Val.of(array));
 
 		WildcardStep step = factory.createWildcardStep();
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Wildcard step applied to an array node should return the array",
 						expectedResult, result));
 	}
@@ -93,7 +93,7 @@ public class ApplyStepsWildcardTest {
 		ResultNode expectedResult = previousResult;
 
 		WildcardStep step = factory.createWildcardStep();
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Wildcard step applied to a result array node should return the result array", expectedResult,
 						result));
@@ -115,7 +115,7 @@ public class ApplyStepsWildcardTest {
 
 		WildcardStep step = factory.createWildcardStep();
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Wildcard step applied to an object should return all attribute values", expectedResultSet,
 					resultSet);

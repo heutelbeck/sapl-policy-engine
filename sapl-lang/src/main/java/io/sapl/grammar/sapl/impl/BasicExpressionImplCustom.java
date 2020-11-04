@@ -59,25 +59,22 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 	 *                          or sub-template
 	 * @param steps             the selection steps
 	 * @param ctx               the evaluation context
-	 * @param isBody            true if the expression occurs within the policy body
-	 *                          (attribute finder steps are only allowed if set to
-	 *                          true)
 	 * @param relativeNode      the node a relative expression would point to
 	 * @return a Flux of JsonNodes that are the result after evaluating the steps,
 	 *         filter and sub-template
 	 */
 	protected Flux<Val> evaluateStepsFilterSubtemplate(Val resultBeforeSteps, EList<Step> steps, EvaluationContext ctx,
-			boolean isBody, Val relativeNode) {
-		Flux<ResultNode> result = StepResolver.resolveSteps(resultBeforeSteps, steps, ctx, isBody, relativeNode);
+			Val relativeNode) {
+		Flux<ResultNode> result = StepResolver.resolveSteps(resultBeforeSteps, steps, ctx, relativeNode);
 		if (filter != null) {
 			result = result.switchMap(resultNode -> {
 				final Val jsonNode = resultNode.asJsonWithoutAnnotations();
-				return filter.apply(jsonNode, ctx, isBody, relativeNode).map(JsonNodeWithoutParent::new);
+				return filter.apply(jsonNode, ctx, relativeNode).map(JsonNodeWithoutParent::new);
 			});
 		} else if (subtemplate != null) {
 			result = result.switchMap(resultNode -> {
 				final Val jsonNode = resultNode.asJsonWithoutAnnotations();
-				return evaluateSubtemplate(jsonNode, ctx, isBody).map(JsonNodeWithoutParent::new);
+				return evaluateSubtemplate(jsonNode, ctx).map(JsonNodeWithoutParent::new);
 			});
 		}
 		return result.map(ResultNode::asJsonWithoutAnnotations);
@@ -89,11 +86,9 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 	 * 
 	 * @param preliminaryResult the array
 	 * @param ctx               the evaluation context
-	 * @param isBody            true if the expression is evaluated in the policy
-	 *                          body
 	 * @return a Flux of altered array nodes
 	 */
-	private Flux<Val> evaluateSubtemplate(Val preliminaryResult, EvaluationContext ctx, boolean isBody) {
+	private Flux<Val> evaluateSubtemplate(Val preliminaryResult, EvaluationContext ctx) {
 		if (preliminaryResult.isUndefined() || !preliminaryResult.get().isArray()) {
 			return Flux.error(new PolicyEvaluationException("Type mismatch. Expected an array."));
 		}
@@ -102,7 +97,7 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 		final List<Flux<Val>> fluxes = new ArrayList<>(arrayNode.size());
 		for (int i = 0; i < arrayNode.size(); i++) {
 			final JsonNode childNode = arrayNode.get(i);
-			fluxes.add(subtemplate.evaluate(ctx, isBody, Val.of(childNode)));
+			fluxes.add(subtemplate.evaluate(ctx, Val.of(childNode)));
 		}
 		// handle the empty array
 		if (fluxes.isEmpty()) {

@@ -64,7 +64,7 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(0));
 		step.getIndices().add(BigDecimal.valueOf(1));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -91,7 +91,7 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(10));
 		step.getIndices().add(BigDecimal.valueOf(-10));
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Index union applied to result array should return items with corresponding attribute values",
 					expectedResultSet, resultSet);
@@ -116,7 +116,7 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(1));
 		step.getIndices().add(BigDecimal.valueOf(10));
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Index union applied to array node should return items with corresponding attribute values",
 					expectedResultSet, resultSet);
@@ -139,7 +139,7 @@ public class ApplyStepsIndexUnionTest {
 		step.getIndices().add(BigDecimal.valueOf(-2));
 		step.getIndices().add(BigDecimal.valueOf(0));
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Index union applied to array node should return items with corresponding attribute values",
 					expectedResultSet, resultSet);

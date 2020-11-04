@@ -51,19 +51,17 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 	 * @param function     the name of the filter function
 	 * @param arguments    arguments to be passed to the function, as JSON array
 	 * @param ctx          the evaluation context
-	 * @param isBody       true if the expression occurs within the policy body
-	 *                     (attribute finder steps are only allowed if set to true)
 	 * @param relativeNode the JSON node a relative expression would evaluate to (or
 	 *                     null if relative expressions are not allowed)
 	 * @return a Flux of root nodes of the filtered tree
 	 */
 	protected Flux<Val> applyFilterStatement(Val rootNode, EList<Step> steps, boolean each, String function,
-			Arguments arguments, EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		return StepResolver.resolveSteps(rootNode, steps, ctx, isBody, relativeNode).switchMap(resultNode -> {
+			Arguments arguments, EvaluationContext ctx, Val relativeNode) {
+		return StepResolver.resolveSteps(rootNode, steps, ctx, relativeNode).switchMap(resultNode -> {
 			if (resultNode.isNodeWithoutParent() && !each) {
-				return getFilteredRoot(resultNode, function, arguments, ctx, isBody);
+				return getFilteredRoot(resultNode, function, arguments, ctx);
 			} else {
-				return applyFilter(resultNode, function, arguments, each, ctx, isBody).map(voidType -> rootNode);
+				return applyFilter(resultNode, function, arguments, each, ctx).map(voidType -> rootNode);
 			}
 		});
 	}
@@ -77,17 +75,15 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 	 * @param function  the name of the filter function
 	 * @param arguments arguments to be passed to the function
 	 * @param ctx       the evaluation context
-	 * @param isBody    true if the expression occurs within the policy body
-	 *                  (attribute finder steps are only allowed if set to true)
 	 * @return the stream of results returned by the reactive filter function
 	 */
 	private static Flux<Val> getFilteredRoot(ResultNode target, String function, Arguments arguments,
-			EvaluationContext ctx, boolean isBody) {
+			EvaluationContext ctx) {
 		if (FILTER_REMOVE.equals(function)) {
 			return Flux.error(new PolicyEvaluationException(FILTER_REMOVE_ROOT));
 		}
 		return AbstractAnnotatedJsonNode.applyFilterToNode(target.asJsonWithoutAnnotations(), function, arguments, ctx,
-				isBody, null);
+				null);
 	}
 
 	/**
@@ -101,13 +97,11 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 	 * @param each      true if the selected node should be treated as an array and
 	 *                  the filter function should be applied to each of its items
 	 * @param ctx       the evaluation context
-	 * @param isBody    true if the expression occurs within the policy body
-	 *                  (attribute finder steps are only allowed if set to true)
 	 * @return a flux of {@link Void} instances, each indicating a finished
 	 *         application of the filter function
 	 */
 	private static Flux<Void> applyFilter(ResultNode target, String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, boolean isBody) {
+			EvaluationContext ctx) {
 		if (FILTER_REMOVE.equals(function)) {
 			return Flux.defer(() -> {
 				try {
@@ -118,7 +112,7 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 				}
 			});
 		} else {
-			return target.applyFilter(function, arguments, each, ctx, isBody);
+			return target.applyFilter(function, arguments, each, ctx);
 		}
 	}
 

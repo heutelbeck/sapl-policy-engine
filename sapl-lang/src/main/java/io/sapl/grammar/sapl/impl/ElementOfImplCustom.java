@@ -34,9 +34,9 @@ import reactor.util.function.Tuples;
 public class ElementOfImplCustom extends ElementOfImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		final Flux<Val> value = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Val> array = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+		final Flux<Val> value = getLeft().evaluate(ctx, relativeNode);
+		final Flux<Val> array = getRight().evaluate(ctx, relativeNode);
 		return Flux.combineLatest(value, array, Tuples::of).map(this::elementOf).distinctUntilChanged();
 	}
 

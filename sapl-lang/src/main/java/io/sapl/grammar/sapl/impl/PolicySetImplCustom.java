@@ -97,7 +97,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
 	private Flux<Void> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx,
 			Map<String, JsonNode> variables) {
-		return valueDefinition.getEval().evaluate(evaluationCtx, true, Val.undefined()).flatMap(evaluatedValue -> {
+		return valueDefinition.getEval().evaluate(evaluationCtx, Val.undefined()).flatMap(evaluatedValue -> {
 			try {
 				if (evaluatedValue.isDefined()) {
 					evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());

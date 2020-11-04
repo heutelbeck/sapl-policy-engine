@@ -28,9 +28,9 @@ import reactor.core.publisher.Flux;
 public class EqualsImplCustom extends EqualsImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		final Flux<Val> left = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Val> right = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
+		final Flux<Val> right = getRight().evaluate(ctx, relativeNode);
 		return Flux.combineLatest(left, right, this::equals).distinctUntilChanged();
 	}
 

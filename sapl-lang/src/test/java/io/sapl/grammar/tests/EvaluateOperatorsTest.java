@@ -68,42 +68,47 @@ public class EvaluateOperatorsTest {
 	private static final EvaluationContext ctx = new EvaluationContext();
 
 	@Test
-	public void evaluateAndInTarget() {
+	public void evaluateAndInPolicyTarget() {
 		And and = FACTORY.createAnd();
+		MockUtil.mockPolicyTargetExpressionContainerExpression(and);
 		and.setLeft(basicValueFrom(FACTORY.createFalseLiteral()));
 		and.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
+		StepVerifier.create(and.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
+	}
 
-		StepVerifier.create(and.evaluate(ctx, false, Val.undefined())).expectError(PolicyEvaluationException.class)
-				.verify();
+	@Test
+	public void evaluateAndInPolicySetTarget() {
+		And and = FACTORY.createAnd();
+		MockUtil.mockPolicySetTargetExpressionContainerExpression(and);
+		and.setLeft(basicValueFrom(FACTORY.createFalseLiteral()));
+		and.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
+		StepVerifier.create(and.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void evaluateAndFalseFalse() {
 		And and = FACTORY.createAnd();
-		MockUtil.mockPolicyBodyForExpression(and);
 		and.setLeft(basicValueFrom(FACTORY.createFalseLiteral()));
 		and.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
-		and.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		and.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("False And False should evaluate to BooleanNode(false)", Val.ofFalse(), result));
 	}
 
 	@Test
 	public void evaluateAndTrueFalse() {
 		And and = FACTORY.createAnd();
-		MockUtil.mockPolicyBodyForExpression(and);
 		and.setLeft(basicValueFrom(FACTORY.createTrueLiteral()));
 		and.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
-		and.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		and.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("True And False should evaluate to BooleanNode(false)", Val.ofFalse(), result));
 	}
 
 	@Test
 	public void evaluateAndTrueTrue() {
 		And and = FACTORY.createAnd();
-		MockUtil.mockPolicyBodyForExpression(and);
 		and.setLeft(basicValueFrom(FACTORY.createTrueLiteral()));
 		and.setRight(basicValueFrom(FACTORY.createTrueLiteral()));
-		and.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		and.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("True And True should evaluate to BooleanNode(false)", Val.ofTrue(), result));
 	}
 
@@ -117,8 +122,7 @@ public class EvaluateOperatorsTest {
 
 		and.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
 
-		StepVerifier.create(and.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(and.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -131,21 +135,19 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		and.setRight(basicValueFrom(num));
 
-		StepVerifier.create(and.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(and.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void evaluateAndLeftFalseWrongDatatypeRight() {
 		And and = FACTORY.createAnd();
-		MockUtil.mockPolicyBodyForExpression(and);
 		and.setLeft(basicValueFrom(FACTORY.createFalseLiteral()));
 
 		NumberLiteral num = FACTORY.createNumberLiteral();
 		num.setNumber(TEST_NUMBER);
 		and.setRight(basicValueFrom(num));
 
-		and.evaluate(ctx, true, Val.undefined()).take(1)
+		and.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"False And wrong datatype should evaluate to BooleanNode(false) (lazy evaluation)",
 						Val.ofFalse(), result));
@@ -157,7 +159,7 @@ public class EvaluateOperatorsTest {
 		eagerAnd.setLeft(basicValueFrom(FACTORY.createFalseLiteral()));
 		eagerAnd.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
 
-		eagerAnd.evaluate(ctx, true, Val.undefined()).take(1)
+		eagerAnd.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("False EagerAnd False should evaluate to BooleanNode(false)",
 						Val.ofFalse(), result));
 	}
@@ -168,7 +170,7 @@ public class EvaluateOperatorsTest {
 		eagerAnd.setLeft(basicValueFrom(FACTORY.createTrueLiteral()));
 		eagerAnd.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
 
-		eagerAnd.evaluate(ctx, true, Val.undefined()).take(1)
+		eagerAnd.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("True EagerAnd False should evaluate to BooleanNode(false)",
 						Val.ofFalse(), result));
 	}
@@ -179,7 +181,7 @@ public class EvaluateOperatorsTest {
 		eagerAnd.setLeft(basicValueFrom(FACTORY.createTrueLiteral()));
 		eagerAnd.setRight(basicValueFrom(FACTORY.createTrueLiteral()));
 
-		eagerAnd.evaluate(ctx, true, Val.undefined()).take(1)
+		eagerAnd.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("True EagerAnd True should evaluate to BooleanNode(false)",
 						Val.ofTrue(), result));
 	}
@@ -194,8 +196,7 @@ public class EvaluateOperatorsTest {
 
 		and.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
 
-		StepVerifier.create(and.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(and.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -208,7 +209,7 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		eagerAnd.setRight(basicValueFrom(num));
 
-		StepVerifier.create(eagerAnd.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
+		StepVerifier.create(eagerAnd.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class)
 				.verify();
 	}
 
@@ -222,64 +223,67 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		eagerAnd.setRight(basicValueFrom(num));
 
-		StepVerifier.create(eagerAnd.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
+		StepVerifier.create(eagerAnd.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class)
 				.verify();
 	}
 
 	@Test
-	public void evaluateOrInTarget() {
+	public void evaluateOrInPolicyTarget() {
 		Or or = FACTORY.createOr();
 		or.setLeft(basicValueFrom(FACTORY.createFalseLiteral()));
 		or.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
+		MockUtil.mockPolicyTargetExpressionContainerExpression(or);
+		StepVerifier.create(or.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
+	}
 
-		StepVerifier.create(or.evaluate(ctx, false, Val.undefined())).expectError(PolicyEvaluationException.class)
-				.verify();
+	@Test
+	public void evaluateOrInPolicySetTarget() {
+		Or or = FACTORY.createOr();
+		or.setLeft(basicValueFrom(FACTORY.createFalseLiteral()));
+		or.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
+		MockUtil.mockPolicySetTargetExpressionContainerExpression(or);
+		StepVerifier.create(or.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void evaluateOrFalseFalse() {
 		Or or = FACTORY.createOr();
-		MockUtil.mockPolicyBodyForExpression(or);
 		or.setLeft(basicValueFrom(FACTORY.createFalseLiteral()));
 		or.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
 
-		or.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		or.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("False Or False should evaluate to BooleanNode(false)", Val.ofFalse(), result));
 	}
 
 	@Test
 	public void evaluateOrTrueFalse() {
 		Or or = FACTORY.createOr();
-		MockUtil.mockPolicyBodyForExpression(or);
 		or.setLeft(basicValueFrom(FACTORY.createTrueLiteral()));
 		or.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
-		or.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		or.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("True Or False should evaluate to BooleanNode(true)", Val.ofTrue(), result));
 	}
 
 	@Test
 	public void evaluateOrFalseTrue() {
 		Or or = FACTORY.createOr();
-		MockUtil.mockPolicyBodyForExpression(or);
 		or.setLeft(basicValueFrom(FACTORY.createFalseLiteral()));
 		or.setRight(basicValueFrom(FACTORY.createTrueLiteral()));
 
-		or.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		or.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("False Or True should evaluate to BooleanNode(true)", Val.ofTrue(), result));
 	}
 
 	@Test
 	public void evaluateOrWrongDatatypeLeft() {
 		Or or = FACTORY.createOr();
-		MockUtil.mockPolicyBodyForExpression(or);
 		NumberLiteral num = FACTORY.createNumberLiteral();
 		num.setNumber(TEST_NUMBER);
 		or.setLeft(basicValueFrom(num));
 
 		or.setRight(basicValueFrom(FACTORY.createTrueLiteral()));
 
-		StepVerifier.create(or.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(or.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -291,19 +295,17 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		or.setRight(basicValueFrom(num));
 
-		StepVerifier.create(or.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(or.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void evaluateOrWrongDatatypeRightLeftTrue() {
 		Or or = FACTORY.createOr();
-		MockUtil.mockPolicyBodyForExpression(or);
 		or.setLeft(basicValueFrom(FACTORY.createTrueLiteral()));
 		NumberLiteral num = FACTORY.createNumberLiteral();
 		num.setNumber(TEST_NUMBER);
 		or.setRight(basicValueFrom(num));
-		or.evaluate(ctx, true, Val.undefined()).take(1)
+		or.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"True Or wrong datatype should evaluate to BooleanNode(true) (lazy evaluation)", Val.ofTrue(),
 						result));
@@ -315,7 +317,7 @@ public class EvaluateOperatorsTest {
 		eagerOr.setLeft(basicValueFrom(FACTORY.createFalseLiteral()));
 		eagerOr.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
 
-		eagerOr.evaluate(ctx, true, Val.undefined()).take(1)
+		eagerOr.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("False EagerOr False should evaluate to BooleanNode(false)",
 						Val.ofFalse(), result));
 	}
@@ -326,7 +328,7 @@ public class EvaluateOperatorsTest {
 		eagerOr.setLeft(basicValueFrom(FACTORY.createTrueLiteral()));
 		eagerOr.setRight(basicValueFrom(FACTORY.createFalseLiteral()));
 
-		eagerOr.evaluate(ctx, true, Val.undefined()).take(1)
+		eagerOr.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("True EagerOr False should evaluate to BooleanNode(true)",
 						Val.ofTrue(), result));
 	}
@@ -337,7 +339,7 @@ public class EvaluateOperatorsTest {
 		eagerOr.setLeft(basicValueFrom(FACTORY.createFalseLiteral()));
 		eagerOr.setRight(basicValueFrom(FACTORY.createTrueLiteral()));
 
-		eagerOr.evaluate(ctx, true, Val.undefined()).take(1)
+		eagerOr.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("False EagerOr True should evaluate to BooleanNode(true)",
 						Val.ofTrue(), result));
 	}
@@ -352,7 +354,7 @@ public class EvaluateOperatorsTest {
 
 		eagerOr.setRight(basicValueFrom(FACTORY.createTrueLiteral()));
 
-		StepVerifier.create(eagerOr.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
+		StepVerifier.create(eagerOr.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class)
 				.verify();
 	}
 
@@ -365,7 +367,7 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		eagerOr.setRight(basicValueFrom(num));
 
-		StepVerifier.create(eagerOr.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
+		StepVerifier.create(eagerOr.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class)
 				.verify();
 	}
 
@@ -379,7 +381,7 @@ public class EvaluateOperatorsTest {
 		num.setNumber(TEST_NUMBER);
 		eagerOr.setRight(basicValueFrom(num));
 
-		StepVerifier.create(eagerOr.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
+		StepVerifier.create(eagerOr.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class)
 				.verify();
 	}
 
@@ -389,7 +391,7 @@ public class EvaluateOperatorsTest {
 		equals.setLeft(basicValueFrom(FACTORY.createTrueLiteral()));
 		equals.setRight(basicValueFrom(FACTORY.createTrueLiteral()));
 
-		equals.evaluate(ctx, true, Val.undefined()).take(1)
+		equals.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("True NotEquals True should evaluate to BooleanNode(false)",
 						Val.ofFalse(), result));
 	}
@@ -400,7 +402,7 @@ public class EvaluateOperatorsTest {
 		equals.setLeft(basicValueFrom(FACTORY.createNullLiteral()));
 		equals.setRight(basicValueFrom(FACTORY.createTrueLiteral()));
 
-		equals.evaluate(ctx, true, Val.undefined()).take(1)
+		equals.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Null NotEquals True should evaluate to BooleanNode(true)",
 						Val.ofTrue(), result));
 	}
@@ -413,7 +415,7 @@ public class EvaluateOperatorsTest {
 		stringLiteral.setString("");
 		equals.setRight(basicValueFrom(stringLiteral));
 
-		equals.evaluate(ctx, true, Val.undefined()).take(1)
+		equals.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Null NotEquals String should evaluate to BooleanNode(true)",
 						Val.ofTrue(), result));
 	}
@@ -424,7 +426,7 @@ public class EvaluateOperatorsTest {
 		equals.setLeft(basicValueFrom(FACTORY.createNullLiteral()));
 		equals.setRight(basicValueFrom(FACTORY.createNullLiteral()));
 
-		equals.evaluate(ctx, true, Val.undefined()).take(1)
+		equals.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Null NotEquals Null should evaluate to BooleanNode(false)",
 						Val.ofFalse(), result));
 	}
@@ -435,7 +437,7 @@ public class EvaluateOperatorsTest {
 		equals.setLeft(basicValueFrom(FACTORY.createTrueLiteral()));
 		equals.setRight(basicValueFrom(FACTORY.createTrueLiteral()));
 
-		equals.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		equals.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("True Equals True should evaluate to BooleanNode(true)", Val.ofTrue(), result));
 	}
 
@@ -445,7 +447,7 @@ public class EvaluateOperatorsTest {
 		equals.setLeft(basicValueFrom(FACTORY.createNullLiteral()));
 		equals.setRight(basicValueFrom(FACTORY.createTrueLiteral()));
 
-		equals.evaluate(ctx, true, Val.undefined()).take(1)
+		equals.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Null Equals True should evaluate to BooleanNode(false)",
 						Val.ofFalse(), result));
 	}
@@ -458,7 +460,7 @@ public class EvaluateOperatorsTest {
 		stringLiteral.setString("");
 		equals.setRight(basicValueFrom(stringLiteral));
 
-		equals.evaluate(ctx, true, Val.undefined()).take(1)
+		equals.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Null Equals String should evaluate to BooleanNode(false)",
 						Val.ofFalse(), result));
 	}
@@ -469,7 +471,7 @@ public class EvaluateOperatorsTest {
 		equals.setLeft(basicValueFrom(FACTORY.createNullLiteral()));
 		equals.setRight(basicValueFrom(FACTORY.createNullLiteral()));
 
-		equals.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		equals.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("Null Equals Null should evaluate to BooleanNode(true)", Val.ofTrue(), result));
 	}
 
@@ -484,7 +486,7 @@ public class EvaluateOperatorsTest {
 		right.setNumber(rightNumber);
 		moreEquals.setRight(basicValueFrom(right));
 
-		return moreEquals.evaluate(ctx, true, Val.undefined());
+		return moreEquals.evaluate(ctx, Val.undefined());
 	}
 
 	@Test
@@ -516,7 +518,7 @@ public class EvaluateOperatorsTest {
 		right.setNumber(rightNumber);
 		more.setRight(basicValueFrom(right));
 
-		return more.evaluate(ctx, true, Val.undefined());
+		return more.evaluate(ctx, Val.undefined());
 	}
 
 	@Test
@@ -548,7 +550,7 @@ public class EvaluateOperatorsTest {
 		right.setNumber(rightNumber);
 		lessEquals.setRight(basicValueFrom(right));
 
-		return lessEquals.evaluate(ctx, true, Val.undefined());
+		return lessEquals.evaluate(ctx, Val.undefined());
 	}
 
 	@Test
@@ -580,7 +582,7 @@ public class EvaluateOperatorsTest {
 		right.setNumber(rightNumber);
 		less.setRight(basicValueFrom(right));
 
-		return less.evaluate(ctx, true, Val.undefined());
+		return less.evaluate(ctx, Val.undefined());
 	}
 
 	@Test
@@ -612,7 +614,7 @@ public class EvaluateOperatorsTest {
 		right.setNumber(rightNumber);
 		div.setRight(basicValueFrom(right));
 
-		return div.evaluate(ctx, true, Val.undefined());
+		return div.evaluate(ctx, Val.undefined());
 	}
 
 	@Test
@@ -644,7 +646,7 @@ public class EvaluateOperatorsTest {
 		right.setNumber(rightNumber);
 		minus.setRight(basicValueFrom(right));
 
-		return minus.evaluate(ctx, true, Val.undefined());
+		return minus.evaluate(ctx, Val.undefined());
 	}
 
 	@Test
@@ -676,7 +678,7 @@ public class EvaluateOperatorsTest {
 		right.setNumber(rightNumber);
 		multi.setRight(basicValueFrom(right));
 
-		return multi.evaluate(ctx, true, Val.undefined());
+		return multi.evaluate(ctx, Val.undefined());
 	}
 
 	@Test
@@ -702,7 +704,7 @@ public class EvaluateOperatorsTest {
 		Not not = FACTORY.createNot();
 		not.setExpression(basicValueFrom(FACTORY.createTrueLiteral()));
 
-		not.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		not.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("Not True should evaluate to BooleanNode(false)", Val.ofFalse(), result));
 	}
 
@@ -711,7 +713,7 @@ public class EvaluateOperatorsTest {
 		Not not = FACTORY.createNot();
 		not.setExpression(basicValueFrom(FACTORY.createFalseLiteral()));
 
-		not.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		not.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("Not False should evaluate to BooleanNode(true)", Val.ofTrue(), result));
 	}
 
@@ -722,8 +724,7 @@ public class EvaluateOperatorsTest {
 		literal.setString("Makes no sense");
 		not.setExpression(basicValueFrom(literal));
 
-		StepVerifier.create(not.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(not.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -733,7 +734,7 @@ public class EvaluateOperatorsTest {
 		numberLiteral.setNumber(NUMBER_ONE);
 		unaryMinus.setExpression(basicValueFrom(numberLiteral));
 
-		unaryMinus.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		unaryMinus.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("UnaryMinus 1 should evaluate to NumberNode(-1)", Val.of(-1L), result));
 	}
 
@@ -742,8 +743,8 @@ public class EvaluateOperatorsTest {
 		UnaryMinus unaryMinus = FACTORY.createUnaryMinus();
 		unaryMinus.setExpression(basicValueFrom(FACTORY.createNullLiteral()));
 
-		StepVerifier.create(unaryMinus.evaluate(ctx, true, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
+		StepVerifier.create(unaryMinus.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class)
+				.verify();
 	}
 
 	@Test
@@ -756,7 +757,7 @@ public class EvaluateOperatorsTest {
 		plus.setLeft(basicValueFrom(lhs));
 		plus.setRight(basicValueFrom(rhs));
 
-		plus.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		plus.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertEquals("Plus on Strings should evaluate to TextNode with concatenated strings",
 						Val.of(JSON.textNode("part a & part b")), result));
 	}
@@ -771,7 +772,7 @@ public class EvaluateOperatorsTest {
 		plus.setLeft(basicValueFrom(lhs));
 		plus.setRight(basicValueFrom(rhs));
 
-		plus.evaluate(ctx, true, Val.undefined()).take(1)
+		plus.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Plus on Strings + number should evaluate to TextNode with concatenated strings",
 						Val.of(JSON.textNode("part a &1")), result));
@@ -787,7 +788,7 @@ public class EvaluateOperatorsTest {
 		plus.setLeft(basicValueFrom(lhs));
 		plus.setRight(basicValueFrom(rhs));
 
-		plus.evaluate(ctx, true, Val.undefined()).take(1)
+		plus.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Plus on Strings + number should evaluate to TextNode with concatenated strings",
 						Val.of("1part a &"), result));
@@ -803,7 +804,7 @@ public class EvaluateOperatorsTest {
 		plus.setLeft(basicValueFrom(lhs));
 		plus.setRight(basicValueFrom(rhs));
 
-		plus.evaluate(ctx, true, Val.undefined()).take(1)
+		plus.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("1 Plus 2 should evaluate to ValueNode(3)", Val.of(3), result));
 	}
 
@@ -817,7 +818,7 @@ public class EvaluateOperatorsTest {
 		elementOf.setLeft(basicValueFrom(lhs));
 		elementOf.setRight(basicValueFrom(rhs));
 
-		elementOf.evaluate(ctx, true, Val.undefined()).take(1)
+		elementOf.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("\"A\" ElementOf Array\"B\" should evaluate to BooleanNode(false)",
 						Val.ofFalse(), result));
 	}
@@ -834,7 +835,7 @@ public class EvaluateOperatorsTest {
 		elementOf.setLeft(basicValueFrom(lhs));
 		elementOf.setRight(basicValueFrom(rhs));
 
-		elementOf.evaluate(ctx, true, Val.undefined()).take(1)
+		elementOf.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("\"A\" ElementOf Array[\"A\"] should evaluate to BooleanNode(true)",
 						Val.ofTrue(), result));
 	}
@@ -854,7 +855,7 @@ public class EvaluateOperatorsTest {
 		elementOf.setLeft(basicValueFrom(lhs));
 		elementOf.setRight(basicValueFrom(rhs));
 
-		elementOf.evaluate(ctx, true, Val.undefined()).take(1)
+		elementOf.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"\"A\" ElementOf Array[\"A\", \"B\"] should evaluate to BooleanNode(true)", Val.ofTrue(),
 						result));
@@ -875,7 +876,7 @@ public class EvaluateOperatorsTest {
 		elementOf.setLeft(basicValueFrom(lhs));
 		elementOf.setRight(basicValueFrom(rhs));
 
-		elementOf.evaluate(ctx, true, Val.undefined()).take(1)
+		elementOf.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"\"C\" ElementOf Array[\"A\", \"B\"] should evaluate to BooleanNode(false)", Val.ofFalse(),
 						result));
@@ -887,7 +888,7 @@ public class EvaluateOperatorsTest {
 		elementOf.setLeft(basicValueFrom(FACTORY.createNullLiteral()));
 		elementOf.setRight(basicValueFrom(FACTORY.createArray()));
 
-		elementOf.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		elementOf.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertFalse("Null ElementOf Array[] should evaluate to false", result.get().asBoolean()));
 	}
 
@@ -899,7 +900,7 @@ public class EvaluateOperatorsTest {
 		elementOf.setLeft(basicValueFrom(FACTORY.createNullLiteral()));
 		elementOf.setRight(basicValueFrom(array));
 
-		elementOf.evaluate(ctx, true, Val.undefined()).take(1).subscribe(
+		elementOf.evaluate(ctx, Val.undefined()).take(1).subscribe(
 				result -> assertTrue("Null ElementOf Array[null] should evaluate to true", result.get().asBoolean()));
 	}
 
@@ -917,7 +918,7 @@ public class EvaluateOperatorsTest {
 		regEx.setLeft(basicValueFrom(left));
 		regEx.setRight(basicValueFrom(right));
 
-		regEx.evaluate(ctx, true, Val.undefined()).take(1)
+		regEx.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("\"test\" RegEx \".*\" should evaluate to BooleanNode(true)",
 						Val.ofTrue(), result));
 	}
@@ -936,7 +937,7 @@ public class EvaluateOperatorsTest {
 		regEx.setLeft(basicValueFrom(left));
 		regEx.setRight(basicValueFrom(right));
 
-		regEx.evaluate(ctx, true, Val.undefined()).take(1)
+		regEx.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("\"test\" RegEx \".\" should evaluate to BooleanNode(false)",
 						Val.ofFalse(), result));
 	}
@@ -955,8 +956,7 @@ public class EvaluateOperatorsTest {
 		regEx.setLeft(basicValueFrom(left));
 		regEx.setRight(basicValueFrom(right));
 
-		StepVerifier.create(regEx.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(regEx.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
@@ -967,7 +967,7 @@ public class EvaluateOperatorsTest {
 		stringLiteral.setString("");
 		regex.setRight(basicValueFrom(stringLiteral));
 
-		regex.evaluate(ctx, true, Val.undefined()).take(1)
+		regex.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertFalse("NullLeft should evaluate to false", result.get().asBoolean()));
 	}
 
@@ -979,7 +979,7 @@ public class EvaluateOperatorsTest {
 		stringLiteral.setString("");
 		regex.setRight(basicValueFrom(stringLiteral));
 
-		regex.evaluate(ctx, true, Val.undefined()).take(1)
+		regex.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertFalse("Undefined left should evaluate to false", result.get().asBoolean()));
 	}
 
@@ -996,7 +996,7 @@ public class EvaluateOperatorsTest {
 		regEx.setLeft(basicValueFrom(left));
 		regEx.setRight(basicValueFrom(right));
 
-		regEx.evaluate(ctx, true, Val.undefined()).take(1)
+		regEx.evaluate(ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertFalse("Null number should evaluate to false", result.get().asBoolean()));
 	}
 
@@ -1012,8 +1012,7 @@ public class EvaluateOperatorsTest {
 		regEx.setLeft(basicValueFrom(left));
 		regEx.setRight(basicValueFrom(right));
 
-		StepVerifier.create(regEx.evaluate(ctx, true, Val.undefined())).expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(regEx.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 }
