@@ -30,6 +30,7 @@ import io.sapl.prp.inmemory.indexed.improved.PredicateInfo;
 import io.sapl.prp.inmemory.indexed.improved.ordering.ExistingOrderStrategy;
 import io.sapl.prp.inmemory.indexed.improved.ordering.PredicateOrderStrategy;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +43,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @UtilityClass
 public class CanonicalIndexDataCreationStrategy {
 
@@ -49,6 +51,7 @@ public class CanonicalIndexDataCreationStrategy {
 
     public CanonicalIndexDataContainer construct(final Map<String, SAPL> documents,
                                                  final Map<String, DisjunctiveFormula> targets) {
+        log.debug("constructing index data container");
         Map<String, SAPL> idToDocument = ImmutableMap.copyOf(documents);
 
         Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments = mapFormulaToDocuments(targets, idToDocument);
