@@ -25,10 +25,6 @@ import java.util.Objects;
 
 import com.google.common.base.Preconditions;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.variables.VariableContext;
-
 public class DisjunctiveFormula {
 
 	static final String CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";

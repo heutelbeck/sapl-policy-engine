@@ -15,15 +15,16 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
+import java.util.Optional;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
-
-import java.util.Optional;
 
 @Slf4j
 @Deprecated

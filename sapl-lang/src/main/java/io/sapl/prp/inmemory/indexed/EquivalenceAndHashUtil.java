@@ -12,7 +12,6 @@ import com.google.common.base.Objects;
 
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * For indexing, expressions must be compared with regards to equivalence.
@@ -26,29 +25,23 @@ import lombok.extern.slf4j.Slf4j;
  * hashing.
  * 
  */
-@Slf4j
 @UtilityClass
 public class EquivalenceAndHashUtil {
 	private final static int HASH_SEED_PRIME = 7;
 	private final static int PRIME = 31;
 
 	public static int semanticHash(@NonNull EObject thiz, @NonNull Map<String, String> imports) {
-		log.trace("thiz : [{}] {}", thiz, thiz == null ? null : thiz.getClass().getSimpleName());
 		var hash = HASH_SEED_PRIME;
-		hash = PRIME * hash + thiz.eClass().hashCode(); // else Literals all return HASH_SEED_PRIME and collide
+		hash = PRIME * hash + thiz.eClass().hashCode(); // else literals all return HASH_SEED_PRIME and collide
 		EList<EStructuralFeature> features = thiz.eClass().getEAllStructuralFeatures();
 		for (EStructuralFeature feature : features) {
-			log.trace("inspecting feature: [{}] {}", feature.getName(), feature);
 			var featureInstance = thiz.eGet(feature);
-			log.trace("feature instance: [{}] {}", featureInstance,
-					featureInstance == null ? null : featureInstance.getClass().getSimpleName());
 			if ("fsteps".equals(feature.getName())) {
 				hash = PRIME * hash + hashFStepRespectingImports(featureInstance, imports);
 			} else {
 				hash = PRIME * hash + hash(featureInstance, imports);
 			}
 		}
-		log.trace("hash is {} for {}", hash, thiz);
 		return hash;
 	}
 
@@ -60,31 +53,24 @@ public class EquivalenceAndHashUtil {
 	@SuppressWarnings("unchecked")
 	private static int hash(Object featureInstance, @NonNull Map<String, String> imports) {
 		if (featureInstance == null) {
-			log.trace("instance == null -> 0");
 			return 0;
 		}
 		int hash = HASH_SEED_PRIME;
 		if (featureInstance instanceof EList) {
 			var thizList = (EList<EObject>) featureInstance;
-			log.trace("feature is a list[{}]. hash...", thizList.size());
 			for (Object element : thizList) {
-				log.trace("recursion for element [{}] of list...", element);
 				hash = PRIME * hash + hash(element, imports);
 			}
 		} else if (featureInstance instanceof EObject) {
-			log.trace("start recursion for EObject feature");
 			hash = PRIME * hash + semanticHash((EObject) featureInstance, imports);
 		} else {
-			log.trace("apply hashCode to primitives");
 			hash = PRIME * hash + featureInstance.hashCode();
-			log.trace("hashed: {} and got: {}", featureInstance, featureInstance.hashCode());
 		}
 		return hash;
 	}
 
 	public boolean areEquivalent(@NonNull EObject thiz, @NonNull Map<String, String> thizImports, @NonNull EObject that,
 			@NonNull Map<String, String> thatImports) {
-		log.trace("areEquivalent     : {} - {}", thiz, that);
 		if (thiz == that) {
 			return true;
 		}
@@ -92,21 +78,13 @@ public class EquivalenceAndHashUtil {
 			return false;
 		}
 		EList<EStructuralFeature> features = thiz.eClass().getEAllStructuralFeatures();
-		log.trace("The type {} has {} structural features", thiz.eClass().getName(), features.size());
 		for (EStructuralFeature feature : features) {
-			log.trace("inspecting feature: [{}] {}", feature.getName(), feature);
 			var thizFeatureInstance = thiz.eGet(feature);
-			log.trace("value for thiz    : [{}] {}",
-					thizFeatureInstance != null ? thizFeatureInstance.getClass().getSimpleName() : null,
-					thizFeatureInstance);
 			var thatFeatureInstance = that.eGet(feature, true);
 			if ("fsteps".equals(feature.getName())) {
 				return fStepsAreEquivalentWithRegardsToImports(thizFeatureInstance, thizImports, thatFeatureInstance,
 						thatImports);
 			}
-			log.trace("value for that   : [{}] {}",
-					thatFeatureInstance != null ? thatFeatureInstance.getClass().getSimpleName() : null,
-					thatFeatureInstance);
 			if (!featuresAreEquivalent(thizFeatureInstance, thizImports, thatFeatureInstance, thatImports)) {
 				return false;
 			}
@@ -120,14 +98,12 @@ public class EquivalenceAndHashUtil {
 			@NonNull Map<String, String> thatImports) {
 		var thizFull = resolveStepsToFullyQualifiedName((EList<Object>) thizFeatureInstance, thizImports);
 		var thatFull = resolveStepsToFullyQualifiedName((EList<Object>) thatFeatureInstance, thatImports);
-		log.trace("Resolved function names: {} - {}", thizFull, thatFull);
 		return Objects.equal(thizFull, thatFull);
 	}
 
 	private String resolveStepsToFullyQualifiedName(EList<Object> steps, @NonNull Map<String, String> imports) {
 		var baseString = steps.stream().map(val -> (String) val).collect(Collectors.joining("."));
 		if (imports.containsKey(baseString)) {
-			log.trace("resolving an import from {} to {}", baseString, imports.get(baseString));
 			return imports.get(baseString);
 		}
 		return baseString;
@@ -145,9 +121,7 @@ public class EquivalenceAndHashUtil {
 		if (thizFeatureInstance instanceof EList) {
 			EList<EObject> thizList = (EList<EObject>) thizFeatureInstance;
 			EList<EObject> thatList = (EList<EObject>) thatFeatureInstance;
-			log.trace("feature is a list[{}]. compare...", thizList.size());
 			if (thizList.size() != thatList.size()) {
-				log.trace("unequal lenths of lists.");
 				return false;
 			}
 			Iterator<EObject> thizIterator = thizList.iterator();
@@ -156,7 +130,6 @@ public class EquivalenceAndHashUtil {
 				// While this is Iterator<EObject>, it may return String
 				Object thizElement = thizIterator.next();
 				Object thatElement = thatIterator.next();
-				log.trace("recursion for elements [{} - {}] of list...", thizElement, thatElement);
 				if (!featuresAreEquivalent(thizElement, thizImports, thatElement, thatImports)) {
 					return false;
 				}
@@ -164,11 +137,9 @@ public class EquivalenceAndHashUtil {
 			return true;
 		}
 		if (thizFeatureInstance instanceof EObject) {
-			log.trace("start recursion for EObject Features");
 			return areEquivalent((EObject) thizFeatureInstance, thizImports, (EObject) thatFeatureInstance,
 					thatImports);
 		} else {
-			log.trace("apply equals to primitives");
 			return thizFeatureInstance.equals(thatFeatureInstance);
 		}
 	}
