@@ -56,31 +56,6 @@ public class Bool {
         this.imports = imports;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final Bool other = (Bool) obj;
-        if (hashCode() != other.hashCode()) {
-            return false;
-        }
-        if (!Objects.equals(isConstantExpression, other.isConstantExpression)) {
-            return false;
-        }
-        if (isConstantExpression) {
-            return Objects.equals(constant, other.constant);
-        } else {
-            //TODO analyze intention of this call
-            return expression.isEqualTo(other.expression, other.imports, imports);
-        }
-    }
 
     public boolean evaluate() {
         if (isConstantExpression) {
@@ -114,9 +89,6 @@ public class Bool {
         if (!isConstantExpression) {
             EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
             try {
-
-                Flux<Val> resultFlux = expression.evaluate(ctx, false, Val.undefined());
-
                 Val result = expression.evaluate(ctx, false, Val.undefined()).blockFirst();
                 if (Objects.nonNull(result) && result.isDefined() && result.get().isBoolean()) {
                     return result.get().asBoolean();
@@ -129,6 +101,11 @@ public class Bool {
         return constant;
     }
 
+
+    public boolean isImmutable() {
+        return isConstantExpression;
+    }
+
     @Override
     public int hashCode() {
         if (!hasHashCode) {
@@ -137,6 +114,7 @@ public class Bool {
             if (isConstantExpression) {
                 h = 59 * h + Objects.hashCode(constant);
             } else {
+                //TODO analyze intention of this call
                 h = 59 * h + expression.hash(imports);
             }
             hash = h;
@@ -145,8 +123,32 @@ public class Bool {
         return hash;
     }
 
-    public boolean isImmutable() {
-        return isConstantExpression;
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Bool other = (Bool) obj;
+        if (hashCode() != other.hashCode()) {
+            return false;
+        }
+        if (!Objects.equals(isConstantExpression, other.isConstantExpression)) {
+            return false;
+        }
+        if (isConstantExpression) {
+            return Objects.equals(constant, other.constant);
+        } else {
+            //TODO analyze intention of this call
+            return expression.isEqualTo(other.expression, other.imports, imports);
+        }
     }
+
 
 }
