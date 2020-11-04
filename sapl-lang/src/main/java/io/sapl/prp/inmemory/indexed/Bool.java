@@ -72,7 +72,7 @@ public class Bool {
             EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
 
             resultFlux = !isConstantExpression ?
-                    expression.evaluate(ctx, false, Val.undefined()) :
+                    expression.evaluate(ctx, Val.undefined()) :
                     Flux.just(constant ? Val.ofTrue() : Val.ofFalse());
         } catch (RuntimeException e) {
             throw new PolicyEvaluationException(Exceptions.unwrap(e));
@@ -89,7 +89,7 @@ public class Bool {
         if (!isConstantExpression) {
             EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
             try {
-                Val result = expression.evaluate(ctx, false, Val.undefined()).blockFirst();
+                Val result = expression.evaluate(ctx, Val.undefined()).blockFirst();
                 if (Objects.nonNull(result) && result.isDefined() && result.get().isBoolean()) {
                     return result.get().asBoolean();
                 }

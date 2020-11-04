@@ -59,7 +59,6 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
     }
 
 
-    //TODO next three methods are the same as in NaiveImmutableParsedDocumentIndex
     @Override
     public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
         // Do a shallow copy. String is immutable, and SAPL is assumed to be too.
