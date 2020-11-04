@@ -1,11 +1,15 @@
 package io.sapl.prp.inmemory.indexed;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
+import io.sapl.grammar.sapl.Expression;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -29,20 +33,26 @@ public class EquivalenceAndHashUtil {
 	private final static int PRIME = 31;
 
 	public static int semanticHash(@NonNull EObject thiz, @NonNull Map<String, String> imports) {
+		log.info("thiz : [{}] {}", thiz, thiz == null ? null : thiz.getClass().getSimpleName());
 		var hash = HASH_SEED_PRIME;
 		EList<EStructuralFeature> features = thiz.eClass().getEAllStructuralFeatures();
 		for (EStructuralFeature feature : features) {
 			log.info("inspecting feature: [{}] {}", feature.getName(), feature);
 			var featureInstance = thiz.eGet(feature);
-			hash = PRIME * hash * hash(featureInstance, imports);
+			log.info("feature instance: [{}] {}", featureInstance,
+					featureInstance == null ? null : featureInstance.getClass().getSimpleName());
+			hash = PRIME * hash + hash(featureInstance, imports);
 		}
+		log.info("hash is {} for {}", hash, thiz);
 		return hash;
 	}
 
 	@SuppressWarnings("unchecked")
 	private static int hash(Object featureInstance, @NonNull Map<String, String> imports) {
-		if (featureInstance == null)
+		if (featureInstance == null) {
+			log.info("instance == null -> 0");
 			return 0;
+		}
 		int hash = HASH_SEED_PRIME;
 		if (featureInstance instanceof EList) {
 			var thizList = (EList<EObject>) featureInstance;
@@ -52,11 +62,12 @@ public class EquivalenceAndHashUtil {
 				hash = PRIME * hash + semanticHash(element, imports);
 			}
 		} else if (featureInstance instanceof EObject) {
-			log.info("start recursion for EObject Features");
+			log.info("start recursion for EObject feature");
 			hash = PRIME * hash + semanticHash((EObject) featureInstance, imports);
 		} else {
 			log.info("apply hashCode to primitives");
 			hash = PRIME * hash + featureInstance.hashCode();
+			log.error("hashed: {} and got: {}", featureInstance, featureInstance.hashCode());
 		}
 		return hash;
 	}
@@ -99,17 +110,20 @@ public class EquivalenceAndHashUtil {
 			return false;
 		}
 		if (thizFeatureInstance instanceof EList) {
-			var thizList = (EList<EObject>) thizFeatureInstance;
-			var thatList = (EList<EObject>) thatFeatureInstance;
+			EList<EObject> thizList = (EList<EObject>) thizFeatureInstance;
+			EList<EObject> thatList = (EList<EObject>) thatFeatureInstance;
 			log.info("feature is a list[{}]. compare...", thizList.size());
 			if (thizList.size() != thatList.size()) {
 				log.info("unequal lenths of lists.");
 				return false;
 			}
-			for (int i = 0; i < thizList.size(); i++) {
-				log.info("recursion for element [{}] of list...", i);
-				if (!areEquivalent((EObject) thizFeatureInstance, thizImports, (EObject) thatFeatureInstance,
-						thatImports)) {
+			Iterator<EObject> thizIterator = thizList.iterator();
+			Iterator<EObject> thatIterator = thatList.iterator();
+			while (thizIterator.hasNext()) {
+				EObject thizElement = thizIterator.next();
+				EObject thatElement = thatIterator.next();
+				log.info("recursion for elements [{} - {}] of list...", thizElement, thatElement);
+				if (!areEquivalent(thizElement, thizImports, thatElement, thatImports)) {
 					return false;
 				}
 			}

@@ -15,14 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
-
-import io.sapl.grammar.sapl.Expression;
-
 /**
  * This class contains a collection of arguments to be passed to function calls.
  *
@@ -30,39 +22,5 @@ import io.sapl.grammar.sapl.Expression;
  * args+=Expression)*)? ')';
  */
 public class ArgumentsImplCustom extends ArgumentsImpl {
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		for (Expression expression : getArgs()) {
-			hash = 37 * hash + ((expression == null) ? 0 : expression.hash(imports));
-		}
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final ArgumentsImplCustom otherImpl = (ArgumentsImplCustom) other;
-		if (getArgs().size() != otherImpl.getArgs().size()) {
-			return false;
-		}
-		ListIterator<Expression> left = getArgs().listIterator();
-		ListIterator<Expression> right = otherImpl.getArgs().listIterator();
-		while (left.hasNext()) {
-			Expression lhs = left.next();
-			Expression rhs = right.next();
-			if (!lhs.isEqualTo(rhs, otherImports, imports)) {
-				return false;
-			}
-		}
-		return true;
-	}
 
 }
