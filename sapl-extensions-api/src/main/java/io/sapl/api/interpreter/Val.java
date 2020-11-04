@@ -251,6 +251,10 @@ public class Val {
 		return Flux.just(TRUE);
 	}
 
+	public static Flux<Val> fluxOfUndefined() {
+		return Flux.just(UNDEFINED);
+	}
+
 	public static Val ofFalse() {
 		return FALSE;
 	}

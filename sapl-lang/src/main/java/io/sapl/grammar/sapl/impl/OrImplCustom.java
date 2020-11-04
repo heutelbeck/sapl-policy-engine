@@ -15,8 +15,11 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import org.eclipse.xtext.EcoreUtil2;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
@@ -32,12 +35,11 @@ public class OrImplCustom extends OrImpl {
 
 	@Override
 	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		if (!isBody) {
+		if (EcoreUtil2.getContainerOfType(this, PolicyBody.class) == null) {
 			// due to the constraints in indexing policy documents, lazy evaluation is not
 			// allowed in target expressions.
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
-
 		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
 		return left.switchMap(leftResult -> {
 			if (Boolean.FALSE.equals(leftResult)) {

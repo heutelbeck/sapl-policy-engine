@@ -31,6 +31,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -54,14 +55,15 @@ public class ArrayImplCustom extends ArrayImpl {
 	 * emits a new value.
 	 */
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, boolean isBody, Val relativeNode) {
+		// handle the empty array
+		if (getItems().size() == 0) {
+			return Flux.just(Val.of(JSON.arrayNode()));
+		}
+		// aggregate child fluxes into a flux of a JSON array
 		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(getItems().size());
 		for (Expression item : getItems()) {
 			itemFluxes.add(item.evaluate(ctx, isBody, relativeNode).flatMap(Val::toJsonNode));
-		}
-		// handle the empty array
-		if (itemFluxes.isEmpty()) {
-			return Flux.just(Val.of(JSON.arrayNode()));
 		}
 		return Flux.combineLatest(itemFluxes, Function.identity()).map(this::collectValuesToArrayNode).map(Val::of);
 	}

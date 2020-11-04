@@ -20,9 +20,11 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.EcoreUtil2;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
@@ -57,7 +59,7 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
 	private Flux<ResultNode> retrieveAttribute(Val value, EvaluationContext ctx, boolean isBody) {
 		final String fullyQualifiedName = getFullyQualifiedName(ctx);
-		if (!isBody) {
+		if (EcoreUtil2.getContainerOfType(this, PolicyBody.class) == null) {
 			return Flux.error(new PolicyEvaluationException(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName));
 		}
 		if (value.isUndefined()) {
