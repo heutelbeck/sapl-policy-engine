@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+import reactor.core.publisher.Mono;
 
 public class ConjunctiveClause {
 
@@ -86,22 +87,22 @@ public class ConjunctiveClause {
 		return result;
 	}
 
-	public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
-			throws PolicyEvaluationException {
-		ListIterator<Literal> iter = literals.listIterator();
-		if (!iter.hasNext()) {
-			throw new PolicyEvaluationException(EVALUATION_NOT_POSSIBLE);
-		}
-		Literal first = iter.next();
-		boolean result = first.evaluate(functionCtx, variableCtx);
-		while (iter.hasNext()) {
-			if (!result) {
-				return false;
-			}
-			result = iter.next().evaluate(functionCtx, variableCtx);
-		}
-		return result;
-	}
+//	public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
+//			throws PolicyEvaluationException {
+//		ListIterator<Literal> iter = literals.listIterator();
+//		if (!iter.hasNext()) {
+//			throw new PolicyEvaluationException(EVALUATION_NOT_POSSIBLE);
+//		}
+//		Literal first = iter.next();
+//		boolean result = first.evaluate(functionCtx, variableCtx);
+//		while (iter.hasNext()) {
+//			if (!result) {
+//				return false;
+//			}
+//			result = iter.next().evaluate(functionCtx, variableCtx);
+//		}
+//		return result;
+//	}
 
 	public List<Literal> getLiterals() {
 		return Collections.unmodifiableList(literals);
