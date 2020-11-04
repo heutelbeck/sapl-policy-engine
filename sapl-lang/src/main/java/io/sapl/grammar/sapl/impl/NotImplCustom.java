@@ -22,8 +22,8 @@ import reactor.core.publisher.Flux;
 public class NotImplCustom extends NotImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		return expression.evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean).map(bool -> !bool).map(Val::of)
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+		return expression.evaluate(ctx, relativeNode).flatMap(Val::toBoolean).map(bool -> !bool).map(Val::of)
 				.distinctUntilChanged();
 	}
 

@@ -35,14 +35,14 @@ import reactor.core.publisher.Flux;
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
 	@Override
-	public Flux<Val> apply(Val unfilteredRootNode, EvaluationContext ctx, boolean isBody, Val relativeNode) {
+	public Flux<Val> apply(Val unfilteredRootNode, EvaluationContext ctx, Val relativeNode) {
 		final JsonNode result = unfilteredRootNode.get().deepCopy();
 		if (statements != null && !statements.isEmpty()) {
 			final List<FluxProvider<Val>> fluxProviders = new ArrayList<>(statements.size());
 			for (FilterStatement statement : statements) {
 				final String function = String.join(".", statement.getFsteps());
 				fluxProviders.add(node -> applyFilterStatement(node, statement.getTarget().getSteps(),
-						statement.isEach(), function, statement.getArguments(), ctx, isBody, relativeNode));
+						statement.isEach(), function, statement.getArguments(), ctx, relativeNode));
 			}
 			return DependentStreamsUtil.nestedSwitchMap(Val.of(result), fluxProviders);
 		} else {

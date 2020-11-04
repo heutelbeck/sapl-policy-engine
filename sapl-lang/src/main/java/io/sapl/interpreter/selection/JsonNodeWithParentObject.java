@@ -68,18 +68,17 @@ public class JsonNodeWithParentObject extends AbstractAnnotatedJsonNode {
 	}
 
 	@Override
-	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx,
-			boolean isBody) {
-		return applyFilterWithRelativeNode(function, arguments, each, ctx, isBody, parent);
+	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx) {
+		return applyFilterWithRelativeNode(function, arguments, each, ctx, parent);
 	}
 
 	@Override
 	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, boolean isBody, Val relativeNode) {
+			EvaluationContext ctx, Val relativeNode) {
 		if (each) {
-			return applyFilterToEachItem(node, function, arguments, ctx, isBody);
+			return applyFilterToEachItem(node, function, arguments, ctx);
 		} else {
-			return applyFilterToNode(node, function, arguments, ctx, isBody, relativeNode).map(filteredNode -> {
+			return applyFilterToNode(node, function, arguments, ctx, relativeNode).map(filteredNode -> {
 				((ObjectNode) parent.get()).set(attribute, filteredNode.get());
 				return Void.INSTANCE;
 			});

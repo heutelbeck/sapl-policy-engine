@@ -76,7 +76,7 @@ public class ApplyStepsArraySlicingTest {
 	public void applySlicingToNoArray() {
 		ArraySlicingStep slicingStep = factory.createArraySlicingStep();
 		JsonNodeWithoutParent node = new JsonNodeWithoutParent(Val.of(JSON.objectNode()));
-		StepVerifier.create(node.applyStep(slicingStep, ctx, false, Val.undefined()))
+		StepVerifier.create(node.applyStep(slicingStep, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -248,7 +248,7 @@ public class ApplyStepsArraySlicingTest {
 			slicingStep.setStep(BigDecimal.valueOf(step));
 		}
 
-		return previousResult.applyStep(slicingStep, ctx, true, Val.undefined());
+		return previousResult.applyStep(slicingStep, ctx, Val.undefined());
 	}
 
 	@Test
@@ -265,7 +265,7 @@ public class ApplyStepsArraySlicingTest {
 		step.setIndex(BigDecimal.valueOf(3));
 		step.setTo(BigDecimal.valueOf(6));
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Slicing applied to result array should return the correct items",
 						expectedResult, result));
 	}

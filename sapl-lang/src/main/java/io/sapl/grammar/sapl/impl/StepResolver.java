@@ -43,13 +43,11 @@ public class StepResolver {
 	 * @param rootNode     the input JsonNode
 	 * @param steps        the selection steps
 	 * @param ctx          the evaluation context
-	 * @param isBody       true if the expression occurs within the policy body
-	 *                     (attribute finder steps are only allowed if set to true)
 	 * @param relativeNode the node a relative expression would point to
 	 * @return a flux of result tree root nodes (either an annotated JsonNode or an
 	 *         array)
 	 */
-	public static Flux<ResultNode> resolveSteps(Val rootNode, EList<Step> steps, EvaluationContext ctx, boolean isBody,
+	public static Flux<ResultNode> resolveSteps(Val rootNode, EList<Step> steps, EvaluationContext ctx,
 			Val relativeNode) {
 		// this implementation must be able to handle expressions like
 		// "input".<first.attr>.<second.attr>.<third.attr>... correctly
@@ -57,7 +55,7 @@ public class StepResolver {
 		if (steps != null && !steps.isEmpty()) {
 			final List<FluxProvider<ResultNode>> fluxProviders = new ArrayList<>(steps.size());
 			for (Step step : steps) {
-				fluxProviders.add(resultNode -> resultNode.applyStep(step, ctx, isBody, relativeNode));
+				fluxProviders.add(resultNode -> resultNode.applyStep(step, ctx, relativeNode));
 			}
 			return DependentStreamsUtil.nestedSwitchMap(result, fluxProviders);
 		} else {

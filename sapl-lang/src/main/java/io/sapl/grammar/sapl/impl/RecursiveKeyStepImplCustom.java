@@ -45,8 +45,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 	private static final String UNDEFINED_ARRAY_ELEMENT = "JSON does not support undefined array elements.";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, Val relativeNode) {
 		return Flux.just(apply(previousResult));
 	}
 
@@ -59,8 +58,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {

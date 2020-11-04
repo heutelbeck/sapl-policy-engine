@@ -107,7 +107,7 @@ class DefaultSAPLInterpreterTransformationTest {
 
 		val policyDefinition = '''
 			policy "test" 
-			permit 
+			permit
 			transform
 				resource[?(@>2 || @<2)]
 				''';

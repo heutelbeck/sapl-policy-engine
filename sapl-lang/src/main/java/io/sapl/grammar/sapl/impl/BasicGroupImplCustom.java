@@ -34,10 +34,10 @@ import reactor.core.publisher.Flux;
 public class BasicGroupImplCustom extends BasicGroupImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		final Flux<Val> evaluatedExpressions = getExpression().evaluate(ctx, isBody, relativeNode);
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+		final Flux<Val> evaluatedExpressions = getExpression().evaluate(ctx, relativeNode);
 		return evaluatedExpressions
-				.switchMap(value -> evaluateStepsFilterSubtemplate(value, getSteps(), ctx, isBody, relativeNode));
+				.switchMap(value -> evaluateStepsFilterSubtemplate(value, getSteps(), ctx, relativeNode));
 	}
 
 	@Override

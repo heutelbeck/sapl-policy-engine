@@ -28,9 +28,9 @@ import reactor.core.publisher.Flux;
 public class EagerAndImplCustom extends EagerAndImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
-		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+		final Flux<Boolean> left = getLeft().evaluate(ctx, relativeNode).flatMap(Val::toBoolean);
+		final Flux<Boolean> right = getRight().evaluate(ctx, relativeNode).flatMap(Val::toBoolean);
 		return Flux.combineLatest(left, right, Boolean::logicalAnd).map(Val::of).distinctUntilChanged();
 	}
 

@@ -31,9 +31,9 @@ import reactor.core.publisher.Flux;
 public class DivImplCustom extends DivImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		final Flux<BigDecimal> divident = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBigDecimal);
-		final Flux<BigDecimal> divisor = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBigDecimal);
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+		final Flux<BigDecimal> divident = getLeft().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal);
+		final Flux<BigDecimal> divisor = getRight().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal);
 		return Flux.combineLatest(divident, divisor, BigDecimal::divide).map(Val::of).distinctUntilChanged();
 	}
 

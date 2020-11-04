@@ -34,9 +34,8 @@ import reactor.core.publisher.Flux;
 public class BasicIdentifierImplCustom extends BasicIdentifierImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		return evaluateStepsFilterSubtemplate(ctx.getVariableCtx().get(getIdentifier()), steps, ctx, isBody,
-				relativeNode);
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+		return evaluateStepsFilterSubtemplate(ctx.getVariableCtx().get(getIdentifier()), steps, ctx, relativeNode);
 	}
 
 	@Override

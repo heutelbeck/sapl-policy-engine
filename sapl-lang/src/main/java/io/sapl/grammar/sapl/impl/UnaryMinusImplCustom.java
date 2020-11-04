@@ -24,8 +24,8 @@ import reactor.core.publisher.Flux;
 public class UnaryMinusImplCustom extends UnaryMinusImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		return getExpression().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBigDecimal).map(BigDecimal::negate)
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+		return getExpression().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal).map(BigDecimal::negate)
 				.map(Val::of).distinctUntilChanged();
 	}
 

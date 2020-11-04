@@ -65,7 +65,7 @@ public class ApplyStepsRecursiveIndexTest {
 		RecursiveIndexStep step = factory.createRecursiveIndexStep();
 		step.setIndex(INDEX);
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -83,7 +83,7 @@ public class ApplyStepsRecursiveIndexTest {
 
 		RecursiveIndexStep step = factory.createRecursiveIndexStep();
 		step.setIndex(INDEX);
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Recursive index step applied to simple array should return result array with item",
 						expectedResult, result));
@@ -116,7 +116,7 @@ public class ApplyStepsRecursiveIndexTest {
 		RecursiveIndexStep step = factory.createRecursiveIndexStep();
 		step.setIndex(INDEX);
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Recursive index step should return result array with items", expectedResultSet, resultSet);
 		});
@@ -144,7 +144,7 @@ public class ApplyStepsRecursiveIndexTest {
 		RecursiveIndexStep step = factory.createRecursiveIndexStep();
 		step.setIndex(INDEX);
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Recursive index step applied to result array should return result array with items",
 					expectedResultSet, resultSet);

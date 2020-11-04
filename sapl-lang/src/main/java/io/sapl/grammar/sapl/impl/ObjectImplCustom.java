@@ -53,13 +53,13 @@ public class ObjectImplCustom extends ObjectImpl {
 	 * expression Fluxes emits a new value.
 	 */
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
 		// collect all attribute names (keys) and fluxes providing the evaluated values
 		final List<String> keys = new ArrayList<>(getMembers().size());
 		final List<Flux<Val>> valueFluxes = new ArrayList<>(getMembers().size());
 		for (Pair member : getMembers()) {
 			keys.add(member.getKey());
-			valueFluxes.add(member.getValue().evaluate(ctx, isBody, relativeNode));
+			valueFluxes.add(member.getValue().evaluate(ctx, relativeNode));
 		}
 
 		// handle the empty object

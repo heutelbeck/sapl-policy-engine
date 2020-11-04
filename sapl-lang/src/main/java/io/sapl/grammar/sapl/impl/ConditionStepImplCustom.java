@@ -72,36 +72,33 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	 * 
 	 * @param previousResult the array or object
 	 * @param ctx            the evaluation context
-	 * @param isBody         a flag indicating whether the expression is part of a
-	 *                       policy body
 	 * @param relativeNode   the relative node (not needed here)
 	 * @return a flux of ArrayResultNodes containing the elements/attribute values
 	 *         of the original array/object for which the condition expression
 	 *         evaluates to true
 	 */
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, Val relativeNode) {
 		final Val optPreviousResultNode = previousResult.getNode();
 		if (optPreviousResultNode.isUndefined()) {
 			return Flux.error(new PolicyEvaluationException("undefined value during conditional step evaluation."));
 		}
 		final JsonNode previousResultNode = optPreviousResultNode.get();
 		if (previousResultNode.isArray()) {
-			return handleArrayNode(previousResultNode, ctx, isBody);
+			return handleArrayNode(previousResultNode, ctx);
 		} else if (previousResultNode.isObject()) {
-			return handleObjectNode(previousResultNode, ctx, isBody);
+			return handleObjectNode(previousResultNode, ctx);
 		} else {
 			return Flux.error(new PolicyEvaluationException(CONDITION_ACCESS_TYPE_MISMATCH,
 					Val.typeOf(previousResult.getNode())));
 		}
 	}
 
-	private Flux<ResultNode> handleArrayNode(JsonNode arrayNode, EvaluationContext ctx, boolean isBody) {
+	private Flux<ResultNode> handleArrayNode(JsonNode arrayNode, EvaluationContext ctx) {
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(arrayNode.size());
 		IntStream.range(0, arrayNode.size()).forEach(idx -> itemFluxes
-				.add(getExpression().evaluate(ctx, isBody, Val.of(arrayNode.get(idx))).flatMap(Val::toJsonNode)));
+				.add(getExpression().evaluate(ctx, Val.of(arrayNode.get(idx))).flatMap(Val::toJsonNode)));
 		// handle the empty array
 		if (itemFluxes.isEmpty()) {
 			return Flux.just(new ArrayResultNode(new ArrayList<>()));
@@ -124,7 +121,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		});
 	}
 
-	private Flux<ResultNode> handleObjectNode(JsonNode objectNode, EvaluationContext ctx, boolean isBody) {
+	private Flux<ResultNode> handleObjectNode(JsonNode objectNode, EvaluationContext ctx) {
 		// create three parallel lists collecting the field names and field values of
 		// the
 		// object and the fluxes providing the evaluated conditions for the field values
@@ -137,7 +134,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			final JsonNode fieldValue = objectNode.get(fieldName);
 			fieldNames.add(fieldName);
 			fieldValues.add(fieldValue);
-			valueFluxes.add(getExpression().evaluate(ctx, isBody, Val.of(fieldValue)).flatMap(Val::toJsonNode));
+			valueFluxes.add(getExpression().evaluate(ctx, Val.of(fieldValue)).flatMap(Val::toJsonNode));
 		}
 		// handle the empty object
 		if (valueFluxes.isEmpty()) {
@@ -167,22 +164,19 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	 * 
 	 * @param previousResult the array
 	 * @param ctx            the evaluation context
-	 * @param isBody         a flag indicating whether the expression is part of a
-	 *                       policy body
 	 * @param relativeNode   the relative node (not needed here)
 	 * @return a flux of ArrayResultNodes containing the elements of the original
 	 *         array for which the condition expression evaluates to true
 	 */
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, Val relativeNode) {
 		// create two parallel lists collecting the elements of the array
 		// and the fluxes providing the evaluated conditions for these elements
 		final List<AbstractAnnotatedJsonNode> arrayElements = new ArrayList<>(previousResult.getNodes().size());
 		final List<Flux<Val>> conditionResultFluxes = new ArrayList<>(previousResult.getNodes().size());
 		for (AbstractAnnotatedJsonNode arrayElement : previousResult) {
 			arrayElements.add(arrayElement);
-			conditionResultFluxes.add(getExpression().evaluate(ctx, isBody, arrayElement.getNode()));
+			conditionResultFluxes.add(getExpression().evaluate(ctx, arrayElement.getNode()));
 		}
 		// handle the empty array
 		if (conditionResultFluxes.isEmpty()) {

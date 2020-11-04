@@ -37,10 +37,9 @@ import reactor.core.publisher.Flux;
 public class BasicValueImplCustom extends BasicValueImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		final Flux<Val> evaluatedValue = getValue().evaluate(ctx, isBody, relativeNode);
-		return evaluatedValue
-				.switchMap(value -> evaluateStepsFilterSubtemplate(value, getSteps(), ctx, isBody, relativeNode));
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+		final Flux<Val> evaluatedValue = getValue().evaluate(ctx, relativeNode);
+		return evaluatedValue.switchMap(value -> evaluateStepsFilterSubtemplate(value, getSteps(), ctx, relativeNode));
 	}
 
 	@Override

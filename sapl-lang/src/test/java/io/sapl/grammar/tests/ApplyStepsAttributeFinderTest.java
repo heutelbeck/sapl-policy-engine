@@ -31,6 +31,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.sapl.impl.MockUtil;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -57,10 +58,20 @@ public class ApplyStepsAttributeFinderTest {
 			imports);
 
 	@Test
-	public void applyToTarget() {
+	public void applyToPolicyTarget() {
 		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(JSON.nullNode()));
 		AttributeFinderStep step = factory.createAttributeFinderStep();
-		StepVerifier.create(previousResult.applyStep(step, ctx, false, Val.undefined()))
+		MockUtil.mockPolicyTargetExpressionContainerExpressionForAttributeFinderStep(step);
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
+				.expectError(PolicyEvaluationException.class).verify();
+	}
+
+	@Test
+	public void applyToPolicySetTarget() {
+		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(JSON.nullNode()));
+		AttributeFinderStep step = factory.createAttributeFinderStep();
+		MockUtil.mockPolicySetTargetExpressionContainerExpressionForAttributeFinderStep(step);
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -69,7 +80,7 @@ public class ApplyStepsAttributeFinderTest {
 		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(JSON.nullNode()));
 		AttributeFinderStep step = factory.createAttributeFinderStep();
 		step.getIdSteps().add("EXCEPTION");
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -77,12 +88,10 @@ public class ApplyStepsAttributeFinderTest {
 	public void applyWithImport() {
 		ctx.getImports().put("short", "ATTRIBUTE");
 		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(JSON.nullNode()));
-
 		ResultNode expectedResult = new JsonNodeWithoutParent(Val.of(JSON.textNode("ATTRIBUTE")));
-
 		AttributeFinderStep step = factory.createAttributeFinderStep();
 		step.getIdSteps().add("short");
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Attribute finder step should take import mapping into account",
 						expectedResult, result));
 	}
@@ -91,11 +100,10 @@ public class ApplyStepsAttributeFinderTest {
 	public void applyWithoutImport() {
 		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(JSON.booleanNode(true)));
 		ResultNode expectedResult = new JsonNodeWithoutParent(Val.of(JSON.booleanNode(true)));
-
 		AttributeFinderStep step = factory.createAttributeFinderStep();
 		step.getIdSteps().add("one");
 		step.getIdSteps().add("two");
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Attribute finder step should take import mapping into account",
 						expectedResult, result));
 	}
@@ -114,8 +122,7 @@ public class ApplyStepsAttributeFinderTest {
 		AttributeFinderStep step = factory.createAttributeFinderStep();
 		step.getIdSteps().add("one");
 		step.getIdSteps().add("two");
-		previousResult.applyStep(step, ctx, true, Val
-				.undefined()).take(1)
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Attribute finder step applied to result array should take import mapping into account",
 						expectedResult, result));

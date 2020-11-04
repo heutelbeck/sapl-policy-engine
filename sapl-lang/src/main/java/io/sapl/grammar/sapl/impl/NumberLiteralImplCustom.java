@@ -27,7 +27,7 @@ import reactor.core.publisher.Flux;
 public class NumberLiteralImplCustom extends NumberLiteralImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
 		return Val.fluxOf(getNumber());
 	}
 
