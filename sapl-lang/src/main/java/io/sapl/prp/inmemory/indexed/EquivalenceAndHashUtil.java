@@ -2,10 +2,13 @@ package io.sapl.prp.inmemory.indexed;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
+
+import com.google.common.base.Objects;
 
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -32,16 +35,26 @@ public class EquivalenceAndHashUtil {
 	public static int semanticHash(@NonNull EObject thiz, @NonNull Map<String, String> imports) {
 		log.trace("thiz : [{}] {}", thiz, thiz == null ? null : thiz.getClass().getSimpleName());
 		var hash = HASH_SEED_PRIME;
+		hash = PRIME * hash + thiz.eClass().hashCode(); // else Literals all return HASH_SEED_PRIME and collide
 		EList<EStructuralFeature> features = thiz.eClass().getEAllStructuralFeatures();
 		for (EStructuralFeature feature : features) {
 			log.trace("inspecting feature: [{}] {}", feature.getName(), feature);
 			var featureInstance = thiz.eGet(feature);
 			log.trace("feature instance: [{}] {}", featureInstance,
 					featureInstance == null ? null : featureInstance.getClass().getSimpleName());
-			hash = PRIME * hash + hash(featureInstance, imports);
+			if ("fsteps".equals(feature.getName())) {
+				hash = PRIME * hash + hashFStepRespectingImports(featureInstance, imports);
+			} else {
+				hash = PRIME * hash + hash(featureInstance, imports);
+			}
 		}
 		log.trace("hash is {} for {}", hash, thiz);
 		return hash;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static int hashFStepRespectingImports(Object featureInstance, @NonNull Map<String, String> imports) {
+		return resolveStepsToFullyQualifiedName((EList<Object>) featureInstance, imports).hashCode();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -87,6 +100,10 @@ public class EquivalenceAndHashUtil {
 					thizFeatureInstance != null ? thizFeatureInstance.getClass().getSimpleName() : null,
 					thizFeatureInstance);
 			var thatFeatureInstance = that.eGet(feature, true);
+			if ("fsteps".equals(feature.getName())) {
+				return fStepsAreEquivalentWithRegardsToImports(thizFeatureInstance, thizImports, thatFeatureInstance,
+						thatImports);
+			}
 			log.trace("value for that   : [{}] {}",
 					thatFeatureInstance != null ? thatFeatureInstance.getClass().getSimpleName() : null,
 					thatFeatureInstance);
@@ -95,6 +112,25 @@ public class EquivalenceAndHashUtil {
 			}
 		}
 		return true;
+	}
+
+	@SuppressWarnings("unchecked")
+	private boolean fStepsAreEquivalentWithRegardsToImports(Object thizFeatureInstance,
+			@NonNull Map<String, String> thizImports, Object thatFeatureInstance,
+			@NonNull Map<String, String> thatImports) {
+		var thizFull = resolveStepsToFullyQualifiedName((EList<Object>) thizFeatureInstance, thizImports);
+		var thatFull = resolveStepsToFullyQualifiedName((EList<Object>) thatFeatureInstance, thatImports);
+		log.trace("Resolved function names: {} - {}", thizFull, thatFull);
+		return Objects.equal(thizFull, thatFull);
+	}
+
+	private String resolveStepsToFullyQualifiedName(EList<Object> steps, @NonNull Map<String, String> imports) {
+		var baseString = steps.stream().map(val -> (String) val).collect(Collectors.joining("."));
+		if (imports.containsKey(baseString)) {
+			log.trace("resolving an import from {} to {}", baseString, imports.get(baseString));
+			return imports.get(baseString);
+		}
+		return baseString;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -117,8 +153,7 @@ public class EquivalenceAndHashUtil {
 			Iterator<EObject> thizIterator = thizList.iterator();
 			Iterator<EObject> thatIterator = thatList.iterator();
 			while (thizIterator.hasNext()) {
-				// Even though this is an Iterator<EObject>, it may return other types like
-				// String
+				// While this is Iterator<EObject>, it may return String
 				Object thizElement = thizIterator.next();
 				Object thatElement = thatIterator.next();
 				log.trace("recursion for elements [{} - {}] of list...", thizElement, thatElement);

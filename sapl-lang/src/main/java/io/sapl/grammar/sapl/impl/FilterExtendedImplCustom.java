@@ -17,11 +17,6 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -48,40 +43,6 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 		} else {
 			return Flux.just(Val.of(result));
 		}
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		for (FilterStatement statement : getStatements()) {
-			hash = 37 * hash + ((statement == null) ? 0 : statement.hash(imports));
-		}
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final FilterExtendedImplCustom otherImpl = (FilterExtendedImplCustom) other;
-		if (getStatements().size() != otherImpl.getStatements().size()) {
-			return false;
-		}
-		ListIterator<FilterStatement> left = getStatements().listIterator();
-		ListIterator<FilterStatement> right = otherImpl.getStatements().listIterator();
-		while (left.hasNext()) {
-			FilterStatement lhs = left.next();
-			FilterStatement rhs = right.next();
-			if (!lhs.isEqualTo(rhs, otherImports, imports)) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 }

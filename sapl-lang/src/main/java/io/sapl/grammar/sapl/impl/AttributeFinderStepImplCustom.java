@@ -56,7 +56,7 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
 	private Flux<ResultNode> retrieveAttribute(Val value, EvaluationContext ctx) {
 		final String fullyQualifiedName = getFullyQualifiedName(ctx);
-		if (TargetExpressionIdentifier.isInTargetExpression(this)) {
+		if (TargetExpressionIdentifierUtil.isInTargetExpression(this)) {
 			return Flux.error(new PolicyEvaluationException(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName));
 		}
 		if (value.isUndefined()) {

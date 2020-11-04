@@ -17,12 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Objects;
 import java.util.stream.IntStream;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -77,51 +72,6 @@ public class ObjectImplCustom extends ObjectImpl {
 					.forEach(idx -> ((Val) values[idx]).ifDefined(val -> result.set(keys.get(idx), val)));
 			return Val.of(result);
 		});
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		for (Pair pair : getMembers()) {
-			hash = 37 * hash + (Objects.hashCode(pair.getKey())
-					^ ((pair.getValue() == null) ? 0 : pair.getValue().hash(imports)));
-		}
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final ObjectImplCustom otherImpl = (ObjectImplCustom) other;
-		if (getMembers().size() != otherImpl.getMembers().size()) {
-			return false;
-		}
-		ListIterator<Pair> left = getMembers().listIterator();
-		ListIterator<Pair> right = otherImpl.getMembers().listIterator();
-		while (left.hasNext()) {
-			Pair lhs = left.next();
-			Pair rhs = right.next();
-			if ((lhs == null) != (rhs == null)) {
-				return false;
-			}
-			if (lhs == null) {
-				continue;
-			}
-			if (!Objects.equals(lhs.getKey(), rhs.getKey())) {
-				return false;
-			}
-			if ((lhs.getValue() == null) ? (lhs.getValue() != rhs.getValue())
-					: !lhs.getValue().isEqualTo(rhs.getValue(), otherImports, imports)) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 }

@@ -7,7 +7,7 @@ import io.sapl.grammar.sapl.PolicySet;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class TargetExpressionIdentifier {
+public class TargetExpressionIdentifierUtil {
 
 	public boolean isInTargetExpression(EObject object) {
 		EObject current = object;
