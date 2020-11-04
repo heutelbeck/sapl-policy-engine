@@ -15,8 +15,10 @@ public class LoginView extends VerticalLayout {
 	public LoginView() {
 		this.loginOverlay.setAction("login");
 		this.loginOverlay.setOpened(true);
-		this.loginOverlay.setTitle("SAPL PDP-Server Community Edition (CE)");
+		this.loginOverlay.setTitle("SAPL PDP-Server CE");
 		this.loginOverlay.setDescription("");
+		this.loginOverlay.setForgotPasswordButtonVisible(false);
+		
 		this.getElement().appendChild(loginOverlay.getElement());
 	}
 }
