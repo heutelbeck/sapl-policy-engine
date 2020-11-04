@@ -19,12 +19,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -83,40 +78,6 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, Val relativeNode) {
 		return Flux.error(new PolicyEvaluationException(UNION_TYPE_MISMATCH));
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		for (String attribute : getAttributes()) {
-			hash = 37 * hash + Objects.hashCode(attribute);
-		}
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final AttributeUnionStepImplCustom otherImpl = (AttributeUnionStepImplCustom) other;
-		if (getAttributes().size() != otherImpl.getAttributes().size()) {
-			return false;
-		}
-		ListIterator<String> left = getAttributes().listIterator();
-		ListIterator<String> right = otherImpl.getAttributes().listIterator();
-		while (left.hasNext()) {
-			String lhs = left.next();
-			String rhs = right.next();
-			if (!Objects.equals(lhs, rhs)) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 }

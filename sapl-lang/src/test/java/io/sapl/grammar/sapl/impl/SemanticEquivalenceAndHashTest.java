@@ -22,8 +22,8 @@ public class SemanticEquivalenceAndHashTest {
 			+ "permit subject.name.blacken() == now()\n";
 	private static final String POLICY_B = "import filter.*\n" + "policy \"a\"\n"
 			+ "permit subject.name.blacken() == clock.now()\n";
-	private static final String POLICY_A1 = "policy \"a\"\n" + "permit [1,2] == [4,2]\n";
-	private static final String POLICY_B1 = "policy \"a\"\n" + "permit [1,2] == [1,2]\n";
+	private static final String POLICY_A1 = "policy \"a\"\n" + "permit clock.now() == \"\"\n";
+	private static final String POLICY_B1 = "policy \"a\"\n" + "permit clock.now() == \"\"\n";
 
 	@Test
 	public void doTest() throws PolicyEvaluationException {
@@ -34,10 +34,10 @@ public class SemanticEquivalenceAndHashTest {
 		var bTargetExp = b.getPolicyElement().getTargetExpression();
 		log.info("bTargetExp: {}", bTargetExp);
 		var equal = EquivalenceAndHashUtil.areEquivalent(aTargetExp, new HashMap<>(), bTargetExp, new HashMap<>());
-		log.warn("are equivalent: {}", equal);
+		log.info("are equivalent: {}", equal);
 		var hashA = EquivalenceAndHashUtil.semanticHash(aTargetExp, new HashMap<>());
 		log.info("-----------------------------------------------------------");
 		var hashB = EquivalenceAndHashUtil.semanticHash(bTargetExp, new HashMap<>());
-		log.warn("hashes {} - (A,B): ({},{})", hashA == hashB, hashA, hashB);
+		log.info("hashes {} - (A,B): ({},{})", hashA == hashB, hashA, hashB);
 	}
 }
