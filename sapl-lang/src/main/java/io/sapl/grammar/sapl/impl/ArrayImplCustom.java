@@ -17,12 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -82,40 +77,6 @@ public class ArrayImplCustom extends ArrayImpl {
 			resultArr.add(value);
 		}
 		return resultArr;
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		for (Expression expression : getItems()) {
-			hash = 37 * hash + ((expression == null) ? 0 : expression.hash(imports));
-		}
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final ArrayImplCustom otherImpl = (ArrayImplCustom) other;
-		if (getItems().size() != otherImpl.getItems().size()) {
-			return false;
-		}
-		ListIterator<Expression> left = getItems().listIterator();
-		ListIterator<Expression> right = otherImpl.getItems().listIterator();
-		while (left.hasNext()) {
-			Expression lhs = left.next();
-			Expression rhs = right.next();
-			if (!lhs.isEqualTo(rhs, otherImports, imports)) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 }

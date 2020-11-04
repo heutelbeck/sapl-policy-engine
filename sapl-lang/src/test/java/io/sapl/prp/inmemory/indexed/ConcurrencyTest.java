@@ -44,7 +44,7 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.prp.inmemory.indexed.improved.ImprovedDocumentIndex;
 
 @RunWith(ConcurrentTestRunner.class)
-public class ConcurrencyTest {
+public class 	ConcurrencyTest {
 
 	@Rule
 	public Timeout globalTimeout = Timeout.seconds(60);

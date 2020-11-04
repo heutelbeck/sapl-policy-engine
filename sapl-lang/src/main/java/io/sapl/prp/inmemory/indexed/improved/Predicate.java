@@ -9,7 +9,7 @@ import io.sapl.prp.inmemory.indexed.Bitmask;
 import io.sapl.prp.inmemory.indexed.Bool;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Optional;
 
@@ -29,20 +29,19 @@ public class Predicate {
         this.bool = Preconditions.checkNotNull(bool);
     }
 
-    public Flux<Boolean> evaluateFlux(final FunctionContext functionCtx, final VariableContext variableCtx) {
+    public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
         try {
-            Flux<Boolean> resultFlux = getBool().evaluateFlux(functionCtx, variableCtx);
-            return resultFlux;
+            return getBool().evaluate(functionCtx, variableCtx);
         } catch (PolicyEvaluationException e) {
             log.debug(Throwables.getStackTraceAsString(e));
         }
-        return Flux.empty();
+        return Mono.empty();
     }
 
-    public Optional<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
+    public Optional<Boolean> evaluateBlocking(final FunctionContext functionCtx, final VariableContext variableCtx) {
         Boolean result = null;
         try {
-            result = getBool().evaluate(functionCtx, variableCtx);
+            result = getBool().evaluate(functionCtx, variableCtx).block();
         } catch (PolicyEvaluationException e) {
             log.debug(Throwables.getStackTraceAsString(e));
         }

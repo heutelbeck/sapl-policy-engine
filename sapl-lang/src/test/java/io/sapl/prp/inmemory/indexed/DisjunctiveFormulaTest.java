@@ -16,6 +16,7 @@
 package io.sapl.prp.inmemory.indexed;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
@@ -43,10 +44,10 @@ public class DisjunctiveFormulaTest {
 		BasicIdentifier id3 = createIdentifier("D");
 		BasicIdentifier id4 = createIdentifier("E");
 		BasicIdentifier id5 = createIdentifier("F");
-		ConjunctiveClause clause0 = new ConjunctiveClause(new Literal(new Bool(id0, null)),
-				new Literal(new Bool(id1, null)), new Literal(new Bool(id2, null)));
-		ConjunctiveClause clause1 = new ConjunctiveClause(new Literal(new Bool(id3, null)),
-				new Literal(new Bool(id4, null)), new Literal(new Bool(id5, null)));
+		ConjunctiveClause clause0 = new ConjunctiveClause(new Literal(new Bool(id0, Collections.emptyMap())),
+				new Literal(new Bool(id1, Collections.emptyMap())), new Literal(new Bool(id2, Collections.emptyMap())));
+		ConjunctiveClause clause1 = new ConjunctiveClause(new Literal(new Bool(id3, Collections.emptyMap())),
+				new Literal(new Bool(id4, Collections.emptyMap())), new Literal(new Bool(id5, Collections.emptyMap())));
 		DisjunctiveFormula complexFormula = new DisjunctiveFormula(clause0, clause1);
 
 		// when
@@ -155,12 +156,12 @@ public class DisjunctiveFormulaTest {
 		BasicIdentifier id0 = createIdentifier("A");
 		BasicIdentifier id1 = createIdentifier("B");
 		BasicIdentifier id2 = createIdentifier("C");
-		ConjunctiveClause clause0 = new ConjunctiveClause(new Literal(new Bool(id0, null)),
-				new Literal(new Bool(id1, null)));
+		ConjunctiveClause clause0 = new ConjunctiveClause(new Literal(new Bool(id0, Collections.emptyMap())),
+				new Literal(new Bool(id1, Collections.emptyMap())));
 		ConjunctiveClause clause1 = new ConjunctiveClause(new Literal(new Bool(false)));
-		ConjunctiveClause clause2 = new ConjunctiveClause(new Literal(new Bool(id2, null)));
-		ConjunctiveClause clause3 = new ConjunctiveClause(new Literal(new Bool(id0, null)),
-				new Literal(new Bool(id1, null)));
+		ConjunctiveClause clause2 = new ConjunctiveClause(new Literal(new Bool(id2, Collections.emptyMap())));
+		ConjunctiveClause clause3 = new ConjunctiveClause(new Literal(new Bool(id0, Collections.emptyMap())),
+				new Literal(new Bool(id1, Collections.emptyMap())));
 		DisjunctiveFormula expanded = new DisjunctiveFormula(clause0, clause1, clause2, clause3);
 		DisjunctiveFormula reference = new DisjunctiveFormula(clause0, clause2);
 

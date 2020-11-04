@@ -41,6 +41,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
         this.documents = updatedDocuments;
         Map<String, DisjunctiveFormula> targets = this.documents.entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey, entry -> retainTarget(entry.getValue())));
+        log.debug("extracted {} targets from {} updated documents", targets.size(), updatedDocuments.size());
         //TODO currently the index data container is created each time from scratch
         // - it would be better if the existing container would be amended and reused
         this.indexDataContainer = CanonicalIndexDataCreationStrategy.construct(documents, targets);
@@ -51,9 +52,10 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
                                                         FunctionContext functionCtx, Map<String, JsonNode> variables) {
         try {
             VariableContext variableCtx = new VariableContext(authzSubscription, variables);
-
-            return CanonicalIndexAlgorithm.matchMono(functionCtx, variableCtx, indexDataContainer, false);
+            log.debug("retrieving policies from {} documents", documents.size());
+            return CanonicalIndexAlgorithm.matchMono(functionCtx, variableCtx, indexDataContainer);
         } catch (PolicyEvaluationException e) {
+            log.error("error while retrieving policies", e);
             return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true));
         }
     }
@@ -61,9 +63,12 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 
     @Override
     public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
+        log.debug("applying update event");
         // Do a shallow copy. String is immutable, and SAPL is assumed to be too.
         var newDocuments = new HashMap<>(documents);
         applyEvent(newDocuments, event);
+        log.debug("returning index with updated documents. before: {}, after: {}", documents.size(), newDocuments
+                .size());
         return new CanonicalImmutableParsedDocumentIndex(newDocuments);
     }
 

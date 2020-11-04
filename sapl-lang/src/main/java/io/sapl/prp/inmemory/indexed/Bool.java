@@ -25,6 +25,7 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.Objects;
@@ -56,7 +57,6 @@ public class Bool {
         this.imports = imports;
     }
 
-
     public boolean evaluate() {
         if (isConstantExpression) {
             return constant;
@@ -64,27 +64,26 @@ public class Bool {
         throw new IllegalStateException(BOOL_NOT_IMMUTABLE);
     }
 
-    public Flux<Boolean> evaluateFlux(final FunctionContext functionCtx, final VariableContext variableCtx)
+    public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
             throws PolicyEvaluationException {
 
         Flux<Val> resultFlux;
         try {
             EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
 
-            resultFlux = !isConstantExpression ?
-                    expression.evaluate(ctx, Val.undefined()) :
-                    Flux.just(constant ? Val.ofTrue() : Val.ofFalse());
+            resultFlux = !isConstantExpression ? expression.evaluate(ctx, Val.undefined())
+                    : Flux.just(constant ? Val.ofTrue() : Val.ofFalse());
         } catch (RuntimeException e) {
             throw new PolicyEvaluationException(Exceptions.unwrap(e));
         }
-
-        //TODO how can it be checked if result flux is defined and really contains a boolean node?
-        //                throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result);
-        return resultFlux.filter(Val::isDefined).map(Val::get).filter(JsonNode::isBoolean)
-                .map(JsonNode::asBoolean);
+        // TODO how can it be checked if result flux is defined and really contains a
+        // boolean node?
+        // throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result);
+        return resultFlux.filter(Val::isDefined)
+                .map(Val::get).filter(JsonNode::isBoolean).map(JsonNode::asBoolean).next();
     }
 
-    public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
+    public boolean evaluateBlocking(final FunctionContext functionCtx, final VariableContext variableCtx)
             throws PolicyEvaluationException {
         if (!isConstantExpression) {
             EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
@@ -101,7 +100,6 @@ public class Bool {
         return constant;
     }
 
-
     public boolean isImmutable() {
         return isConstantExpression;
     }
@@ -114,15 +112,13 @@ public class Bool {
             if (isConstantExpression) {
                 h = 59 * h + Objects.hashCode(constant);
             } else {
-                //TODO analyze intention of this call
-                h = 59 * h + expression.hash(imports);
+                h = 59 * h + EquivalenceAndHashUtil.semanticHash(expression, imports);
             }
             hash = h;
             hasHashCode = true;
         }
         return hash;
     }
-
 
     @Override
     public boolean equals(Object obj) {
@@ -145,10 +141,8 @@ public class Bool {
         if (isConstantExpression) {
             return Objects.equals(constant, other.constant);
         } else {
-            //TODO analyze intention of this call
-            return expression.isEqualTo(other.expression, other.imports, imports);
+            return EquivalenceAndHashUtil.areEquivalent(expression, imports, other.expression, other.imports);
         }
     }
-
 
 }
