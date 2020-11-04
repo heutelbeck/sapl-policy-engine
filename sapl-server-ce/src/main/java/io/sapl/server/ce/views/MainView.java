@@ -91,7 +91,8 @@ public class MainView extends AppLayout {
 				new RouterLink("SAPL Documents", SaplDocumentsView.class),
 				new RouterLink("PDP Configuration", ConfigurePdp.class),
 				new RouterLink("Policy Information Points", PolicyInformationPointsDocumentationView.class),
-				new RouterLink("Function Libraries", FunctionLibrariesDocumentationView.class) };
+				new RouterLink("Function Libraries", FunctionLibrariesDocumentationView.class),
+				new RouterLink("Client Credentials", ListClientCredentials.class) };
 		return Arrays.stream(links).map(MainView::createTab).toArray(Tab[]::new);
 	}
 
