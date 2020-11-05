@@ -25,6 +25,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -37,7 +38,7 @@ import reactor.core.publisher.Flux;
 public class BasicFunctionImplCustom extends BasicFunctionImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		if (getArguments() != null && !getArguments().getArgs().isEmpty()) {
 			// create a list of Fluxes containing the results of evaluating the
 			// individual argument expressions.

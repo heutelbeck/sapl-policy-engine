@@ -32,6 +32,7 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.Void;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -203,7 +204,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	}
 
 	@Override
-	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, Val relativeNode) {
+	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, @NonNull Val relativeNode) {
 		return step.apply(this, ctx, relativeNode);
 	}
 
@@ -222,7 +223,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 *         application of the function
 	 */
 	public abstract Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, Val relativeNode);
+			EvaluationContext ctx, @NonNull Val relativeNode);
 
 	/**
 	 * The method checks whether two AbstractAnnotatedJsonNodes reference the same

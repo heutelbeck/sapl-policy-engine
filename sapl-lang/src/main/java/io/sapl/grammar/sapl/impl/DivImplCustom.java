@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -31,7 +32,7 @@ import reactor.core.publisher.Flux;
 public class DivImplCustom extends DivImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		final Flux<BigDecimal> divident = getLeft().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal);
 		final Flux<BigDecimal> divisor = getRight().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal);
 		return Flux.combineLatest(divident, divisor, BigDecimal::divide).map(Val::of).distinctUntilChanged();

@@ -68,13 +68,13 @@ public class Literal {
 	}
 
 //	public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
-	//			throws PolicyEvaluationException {
-	//		Mono<Boolean> result = bool.evaluate(functionCtx, variableCtx);
-	//		if (hasNegation) {
-	//			return !result;
-	//		}
-	//		return result;
-	//	}
+	// throws PolicyEvaluationException {
+	// Mono<Boolean> result = bool.evaluate(functionCtx, variableCtx);
+	// if (hasNegation) {
+	// return !result;
+	// }
+	// return result;
+	// }
 
 	public Bool getBool() {
 		return bool;

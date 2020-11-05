@@ -27,6 +27,7 @@ import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -67,7 +68,8 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	 *         (index/attribute name) retrieved by evaluating the expression
 	 */
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, Val relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
+			@NonNull Val relativeNode) {
 		return getExpression().evaluate(ctx, relativeNode).flatMap(expressionResult -> {
 			try {
 				return Flux.just(handleExpressionResultFor(previousResult, expressionResult));
@@ -137,7 +139,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	 *         by evaluating the expression
 	 */
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, Val relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
 		return getExpression().evaluate(ctx, previousResult.asJsonWithoutAnnotations()).flatMap(Val::toJsonNode)
 				.flatMap(expressionResult -> handleExpressionResultFor(previousResult, expressionResult));
 	}

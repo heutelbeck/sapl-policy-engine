@@ -33,7 +33,7 @@ public class AndImplCustom extends AndImpl {
 	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy AND operator is not allowed in the target";
 
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		if (TargetExpressionIdentifierUtil.isInTargetExpression(this)) {
 			// due to the constraints in indexing policy documents, lazy evaluation is not
 			// allowed in target expressions.

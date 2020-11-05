@@ -30,52 +30,53 @@ import reactor.core.publisher.Mono;
 @Deprecated
 public class Variable {
 
-    private final Bool bool;
+	private final Bool bool;
 
-    private final Bitmask occurencesInCandidates = new Bitmask();
+	private final Bitmask occurencesInCandidates = new Bitmask();
 
-    private final Bitmask unsatisfiableCandidatesWhenFalse = new Bitmask();
+	private final Bitmask unsatisfiableCandidatesWhenFalse = new Bitmask();
 
-    private final Bitmask unsatisfiableCandidatesWhenTrue = new Bitmask();
+	private final Bitmask unsatisfiableCandidatesWhenTrue = new Bitmask();
 
-    public Variable(final Bool bool) {
-        this.bool = Preconditions.checkNotNull(bool);
-    }
+	public Variable(final Bool bool) {
+		this.bool = Preconditions.checkNotNull(bool);
+	}
 
-    public Bool getBool() {
-        return bool;
-    }
+	public Bool getBool() {
+		return bool;
+	}
 
-    public Bitmask getCandidates() {
-        return occurencesInCandidates;
-    }
+	public Bitmask getCandidates() {
+		return occurencesInCandidates;
+	}
 
-    public Bitmask getUnsatisfiedCandidatesWhenFalse() {
-        return unsatisfiableCandidatesWhenFalse;
-    }
+	public Bitmask getUnsatisfiedCandidatesWhenFalse() {
+		return unsatisfiableCandidatesWhenFalse;
+	}
 
-    public Bitmask getUnsatisfiedCandidatesWhenTrue() {
-        return unsatisfiableCandidatesWhenTrue;
-    }
+	public Bitmask getUnsatisfiedCandidatesWhenTrue() {
+		return unsatisfiableCandidatesWhenTrue;
+	}
 
-    public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
-        Mono<Boolean> result = Mono.empty();;
-        try {
-            result = getBool().evaluate(functionCtx, variableCtx);
-        } catch (PolicyEvaluationException e) {
-            log.debug(Throwables.getStackTraceAsString(e));
-        }
-        return result;
-    }
+	public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
+		Mono<Boolean> result = Mono.empty();
+		;
+		try {
+			result = getBool().evaluate(functionCtx, variableCtx);
+		} catch (PolicyEvaluationException e) {
+			log.debug(Throwables.getStackTraceAsString(e));
+		}
+		return result;
+	}
 
-    public Optional<Boolean> evaluateBlocking(final FunctionContext functionCtx, final VariableContext variableCtx) {
-        Boolean result = null;
-        try {
-            result = getBool().evaluate(functionCtx, variableCtx).block();
-        } catch (PolicyEvaluationException e) {
-            log.debug(Throwables.getStackTraceAsString(e));
-        }
-        return Optional.ofNullable(result);
-    }
+	public Optional<Boolean> evaluateBlocking(final FunctionContext functionCtx, final VariableContext variableCtx) {
+		Boolean result = null;
+		try {
+			result = getBool().evaluate(functionCtx, variableCtx).block();
+		} catch (PolicyEvaluationException e) {
+			log.debug(Throwables.getStackTraceAsString(e));
+		}
+		return Optional.ofNullable(result);
+	}
 
 }

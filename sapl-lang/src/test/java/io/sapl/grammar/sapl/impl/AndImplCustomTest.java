@@ -46,32 +46,32 @@ public class AndImplCustomTest {
 	@Test
 	public void evaluationSouldfailInPolicyTargetExpression() {
 		MockUtil.mockPolicyTargetExpressionContainerExpression(and);
-		StepVerifier.create(and.evaluate(ctx, null)).expectError(PolicyEvaluationException.class).verify();
+		StepVerifier.create(and.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void evaluationSouldfailInPolicySetTargetExpression() {
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(and);
-		StepVerifier.create(and.evaluate(ctx, null)).expectError(PolicyEvaluationException.class).verify();
+		StepVerifier.create(and.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void evaluationShouldFailWithNonBooleanLeft() {
 		when(left.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfUndefined());
-		StepVerifier.create(and.evaluate(ctx, null)).expectError(PolicyEvaluationException.class).verify();
+		StepVerifier.create(and.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void evaluationShouldFailWithNonBooleanRight() {
 		when(left.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfTrue());
 		when(right.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfUndefined());
-		StepVerifier.create(and.evaluate(ctx, null)).expectError(PolicyEvaluationException.class).verify();
+		StepVerifier.create(and.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	public void evaluationShouldBeLazyAndReturnFalseInLazyCase() {
 		when(left.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfFalse());
-		StepVerifier.create(and.evaluate(ctx, null)).expectNext(Val.ofFalse()).expectComplete().verify();
+		StepVerifier.create(and.evaluate(ctx, Val.undefined())).expectNext(Val.ofFalse()).expectComplete().verify();
 		verify(right, times(0)).evaluate(any(EvaluationContext.class), nullable(Val.class));
 	}
 
@@ -79,14 +79,14 @@ public class AndImplCustomTest {
 	public void evaluationOfTrueAndFalseShouldBeFalse() {
 		when(left.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfTrue());
 		when(right.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfFalse());
-		StepVerifier.create(and.evaluate(ctx, null)).expectNext(Val.ofFalse()).expectComplete().verify();
+		StepVerifier.create(and.evaluate(ctx, Val.undefined())).expectNext(Val.ofFalse()).expectComplete().verify();
 	}
 
 	@Test
 	public void evaluationTrueAndTrueSouldBeTrue() {
 		when(left.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfTrue());
 		when(right.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(Val.fluxOfTrue());
-		StepVerifier.create(and.evaluate(ctx, null)).expectNext(Val.ofTrue()).expectComplete().verify();
+		StepVerifier.create(and.evaluate(ctx, Val.undefined())).expectNext(Val.ofTrue()).expectComplete().verify();
 	}
 
 	@Test
@@ -95,7 +95,7 @@ public class AndImplCustomTest {
 		var rightSequence = Flux.fromArray(new Val[] { Val.ofTrue(), Val.ofFalse(), Val.ofTrue() });
 		when(left.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(leftSequence);
 		when(right.evaluate(any(EvaluationContext.class), nullable(Val.class))).thenReturn(rightSequence);
-		StepVerifier.create(and.evaluate(ctx, null))
+		StepVerifier.create(and.evaluate(ctx, Val.undefined()))
 				.expectNext(Val.ofFalse(), Val.ofTrue(), Val.ofFalse(), Val.ofTrue()).expectComplete().verify();
 	}
 

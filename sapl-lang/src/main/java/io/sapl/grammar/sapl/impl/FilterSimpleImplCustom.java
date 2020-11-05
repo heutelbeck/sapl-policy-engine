@@ -17,12 +17,13 @@ package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class FilterSimpleImplCustom extends FilterSimpleImpl {
 
 	@Override
-	public Flux<Val> apply(Val unfilteredRootNode, EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> apply(Val unfilteredRootNode, EvaluationContext ctx, @NonNull Val relativeNode) {
 		final String function = String.join(".", fsteps);
 		return applyFilterStatement(Val.of(unfilteredRootNode.get().deepCopy()), null, each, function, getArguments(),
 				ctx, relativeNode);

@@ -31,6 +31,7 @@ import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -74,7 +75,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	 *         evaluates to true
 	 */
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, Val relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
+			@NonNull Val relativeNode) {
 		final Val optPreviousResultNode = previousResult.getNode();
 		if (optPreviousResultNode.isUndefined()) {
 			return Flux.error(new PolicyEvaluationException("undefined value during conditional step evaluation."));
@@ -165,7 +167,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	 *         array for which the condition expression evaluates to true
 	 */
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, Val relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
 		// create two parallel lists collecting the elements of the array
 		// and the fluxes providing the evaluated conditions for these elements
 		final List<AbstractAnnotatedJsonNode> arrayElements = new ArrayList<>(previousResult.getNodes().size());

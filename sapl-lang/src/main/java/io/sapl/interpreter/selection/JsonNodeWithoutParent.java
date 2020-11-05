@@ -21,6 +21,7 @@ import io.sapl.grammar.sapl.Arguments;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.Void;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 import lombok.ToString;
 import lombok.Value;
 import reactor.core.publisher.Flux;
@@ -68,12 +69,12 @@ public class JsonNodeWithoutParent extends AbstractAnnotatedJsonNode {
 
 	@Override
 	public Flux<Void> applyFilter(String function, Arguments arguments, boolean each, EvaluationContext ctx) {
-		return applyFilterWithRelativeNode(function, arguments, each, ctx, null);
+		return applyFilterWithRelativeNode(function, arguments, each, ctx, Val.undefined());
 	}
 
 	@Override
 	public Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, Val relativeNode) {
+			EvaluationContext ctx, @NonNull Val relativeNode) {
 		if (each) {
 			return applyFilterToEachItem(node, function, arguments, ctx);
 		} else {

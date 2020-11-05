@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -30,7 +31,7 @@ import reactor.core.publisher.Flux;
 public class MoreImplCustom extends MoreImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		final Flux<BigDecimal> left = getLeft().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal);
 		final Flux<BigDecimal> right = getRight().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal);
 		return Flux.combineLatest(left, right, this::moreThan).map(Val::of).distinctUntilChanged();

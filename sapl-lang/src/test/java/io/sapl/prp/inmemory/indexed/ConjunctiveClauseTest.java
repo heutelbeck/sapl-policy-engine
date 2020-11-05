@@ -15,74 +15,76 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
-import io.sapl.grammar.sapl.BasicIdentifier;
-import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
+import java.util.ArrayList;
+import java.util.Collections;
+
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import io.sapl.grammar.sapl.BasicIdentifier;
+import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 
 public class ConjunctiveClauseTest {
 
-    private SaplFactory factory;
+	private SaplFactory factory;
 
-    @Before
-    public void setUp() {
-        factory = new SaplFactoryImpl();
-    }
+	@Before
+	public void setUp() {
+		factory = new SaplFactoryImpl();
+	}
 
-    @Test
-    public void testConstructor() {
-        // given
-        ArrayList<Literal> emptyList = new ArrayList<>();
+	@Test
+	public void testConstructor() {
+		// given
+		ArrayList<Literal> emptyList = new ArrayList<>();
 
-        // then
-        Assertions.assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> {
-            new ConjunctiveClause(emptyList);
-        }).withNoCause();
-    }
+		// then
+		Assertions.assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> {
+			new ConjunctiveClause(emptyList);
+		}).withNoCause();
+	}
 
-    @Test
-    public void testReductionOfEqualLiterals() {
-        // given
-        BasicIdentifier id0 = createIdentifier("A");
-        BasicIdentifier id1 = createIdentifier("B");
-        ConjunctiveClause expanded = new ConjunctiveClause(new Literal(new Bool(id0, Collections.emptyMap())),
-                new Literal(new Bool(id0, Collections.emptyMap())), new Literal(new Bool(id1, Collections.emptyMap()), false));
-        ConjunctiveClause reference = new ConjunctiveClause(new Literal(new Bool(id0, Collections.emptyMap())),
-                new Literal(new Bool(id1, Collections.emptyMap()), false));
+	@Test
+	public void testReductionOfEqualLiterals() {
+		// given
+		BasicIdentifier id0 = createIdentifier("A");
+		BasicIdentifier id1 = createIdentifier("B");
+		ConjunctiveClause expanded = new ConjunctiveClause(new Literal(new Bool(id0, Collections.emptyMap())),
+				new Literal(new Bool(id0, Collections.emptyMap())),
+				new Literal(new Bool(id1, Collections.emptyMap()), false));
+		ConjunctiveClause reference = new ConjunctiveClause(new Literal(new Bool(id0, Collections.emptyMap())),
+				new Literal(new Bool(id1, Collections.emptyMap()), false));
 
-        // when
-        ConjunctiveClause reduced = expanded.reduce();
+		// when
+		ConjunctiveClause reduced = expanded.reduce();
 
-        // then
-        Assertions.assertThat(reduced).isEqualTo(reference);
-    }
+		// then
+		Assertions.assertThat(reduced).isEqualTo(reference);
+	}
 
-    @Test
-    public void testSubsetOf() {
-        // given
-        BasicIdentifier id0 = createIdentifier("A");
-        BasicIdentifier id1 = createIdentifier("B");
-        BasicIdentifier id2 = createIdentifier("C");
-        ConjunctiveClause base = new ConjunctiveClause(new Literal(new Bool(id0, Collections.emptyMap())),
-                new Literal(new Bool(id1, Collections.emptyMap())), new Literal(new Bool(id2, Collections.emptyMap())));
-        ConjunctiveClause subset = new ConjunctiveClause(new Literal(new Bool(id1, Collections.emptyMap())),
-                new Literal(new Bool(id2, Collections.emptyMap())));
+	@Test
+	public void testSubsetOf() {
+		// given
+		BasicIdentifier id0 = createIdentifier("A");
+		BasicIdentifier id1 = createIdentifier("B");
+		BasicIdentifier id2 = createIdentifier("C");
+		ConjunctiveClause base = new ConjunctiveClause(new Literal(new Bool(id0, Collections.emptyMap())),
+				new Literal(new Bool(id1, Collections.emptyMap())), new Literal(new Bool(id2, Collections.emptyMap())));
+		ConjunctiveClause subset = new ConjunctiveClause(new Literal(new Bool(id1, Collections.emptyMap())),
+				new Literal(new Bool(id2, Collections.emptyMap())));
 
-        // then
-        Assertions.assertThat(subset.isSubsetOf(base)).isTrue();
-        Assertions.assertThat(base.isSubsetOf(base)).isTrue();
-        Assertions.assertThat(base.isSubsetOf(subset)).isFalse();
-    }
+		// then
+		Assertions.assertThat(subset.isSubsetOf(base)).isTrue();
+		Assertions.assertThat(base.isSubsetOf(base)).isTrue();
+		Assertions.assertThat(base.isSubsetOf(subset)).isFalse();
+	}
 
-    private BasicIdentifier createIdentifier(String identifier) {
-        BasicIdentifier result = factory.createBasicIdentifier();
-        result.setIdentifier(identifier);
-        return result;
-    }
+	private BasicIdentifier createIdentifier(String identifier) {
+		BasicIdentifier result = factory.createBasicIdentifier();
+		result.setIdentifier(identifier);
+		return result;
+	}
 
 }

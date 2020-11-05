@@ -27,6 +27,7 @@ import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -97,7 +98,7 @@ public class SAPLImplCustom extends SAPLImpl {
 	 * @return a {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
+	public Flux<AuthorizationDecision> evaluate(@NonNull EvaluationContext ctx) {
 		log.trace("| | |-- SAPL Evaluate: {} ({})", getPolicyElement().getSaplName(),
 				getPolicyElement().getClass().getName());
 		return Flux.from(matches(ctx)).switchMap(matches -> {

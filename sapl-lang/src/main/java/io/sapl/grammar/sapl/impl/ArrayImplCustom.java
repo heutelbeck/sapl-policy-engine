@@ -50,7 +50,7 @@ public class ArrayImplCustom extends ArrayImpl {
 	 * emits a new value.
 	 */
 	@Override
-	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		// handle the empty array
 		if (getItems().size() == 0) {
 			return Flux.just(Val.of(JSON.arrayNode()));

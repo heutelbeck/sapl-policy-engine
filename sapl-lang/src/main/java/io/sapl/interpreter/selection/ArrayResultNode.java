@@ -32,6 +32,7 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.Void;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 import lombok.Value;
 import reactor.core.publisher.Flux;
 
@@ -151,7 +152,7 @@ public class ArrayResultNode implements ResultNode, Iterable<AbstractAnnotatedJs
 	}
 
 	@Override
-	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, Val relativeNode) {
+	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, @NonNull Val relativeNode) {
 		return step.apply(this, ctx, relativeNode);
 	}
 

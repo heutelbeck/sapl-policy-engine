@@ -17,6 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -28,7 +29,7 @@ import reactor.core.publisher.Flux;
 public class NotEqualsImplCustom extends NotEqualsImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
 		final Flux<Val> right = getRight().evaluate(ctx, relativeNode);
 		return Flux.combineLatest(left, right, this::notEqual).distinctUntilChanged();

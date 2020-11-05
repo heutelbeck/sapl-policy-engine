@@ -17,12 +17,13 @@ package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class NotImplCustom extends NotImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		return expression.evaluate(ctx, relativeNode).flatMap(Val::toBoolean).map(bool -> !bool).map(Val::of)
 				.distinctUntilChanged();
 	}

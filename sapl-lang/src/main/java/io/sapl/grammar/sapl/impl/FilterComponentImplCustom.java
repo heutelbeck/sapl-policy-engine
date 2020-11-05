@@ -27,6 +27,7 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.Void;
 import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ResultNode;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class FilterComponentImplCustom extends FilterComponentImpl {
@@ -56,7 +57,7 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 	 * @return a Flux of root nodes of the filtered tree
 	 */
 	protected Flux<Val> applyFilterStatement(Val rootNode, EList<Step> steps, boolean each, String function,
-			Arguments arguments, EvaluationContext ctx, Val relativeNode) {
+			Arguments arguments, EvaluationContext ctx, @NonNull Val relativeNode) {
 		return StepResolver.resolveSteps(rootNode, steps, ctx, relativeNode).switchMap(resultNode -> {
 			if (resultNode.isNodeWithoutParent() && !each) {
 				return getFilteredRoot(resultNode, function, arguments, ctx);
@@ -83,7 +84,7 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 			return Flux.error(new PolicyEvaluationException(FILTER_REMOVE_ROOT));
 		}
 		return AbstractAnnotatedJsonNode.applyFilterToNode(target.asJsonWithoutAnnotations(), function, arguments, ctx,
-				null);
+				Val.undefined());
 	}
 
 	/**

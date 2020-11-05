@@ -22,6 +22,7 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -39,12 +40,12 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode value, EvaluationContext ctx, Val relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode value, EvaluationContext ctx, @NonNull Val relativeNode) {
 		return retrieveAttribute(value.asJsonWithoutAnnotations(), ctx);
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode arrayValue, EvaluationContext ctx, Val relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode arrayValue, EvaluationContext ctx, @NonNull Val relativeNode) {
 		return retrieveAttribute(arrayValue.asJsonWithoutAnnotations(), ctx);
 	}
 

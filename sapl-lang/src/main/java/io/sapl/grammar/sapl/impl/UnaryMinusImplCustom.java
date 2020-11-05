@@ -19,12 +19,13 @@ import java.math.BigDecimal;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class UnaryMinusImplCustom extends UnaryMinusImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		return getExpression().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal).map(BigDecimal::negate)
 				.map(Val::of).distinctUntilChanged();
 	}

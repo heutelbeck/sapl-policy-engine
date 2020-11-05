@@ -37,6 +37,7 @@ import io.sapl.interpreter.combinators.OnlyOneApplicableCombinator;
 import io.sapl.interpreter.combinators.PermitOverridesCombinator;
 import io.sapl.interpreter.combinators.PermitUnlessDenyCombinator;
 import io.sapl.interpreter.combinators.PolicyCombinator;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -61,7 +62,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
+	public Flux<AuthorizationDecision> evaluate(@NonNull EvaluationContext ctx) {
 		final Map<String, JsonNode> variables = new HashMap<>();
 		final List<FluxProvider<Void>> fluxProviders = new ArrayList<>(getValueDefinitions().size());
 		for (ValueDefinition valueDefinition : getValueDefinitions()) {

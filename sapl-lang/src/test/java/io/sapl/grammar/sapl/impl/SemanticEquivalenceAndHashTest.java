@@ -19,12 +19,12 @@ public class SemanticEquivalenceAndHashTest {
 
 	private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	private static final String POLICY_A = "import filter.*\n" + "import clock.*\n" + "policy \"a\"\n"
-			+ "permit subject.name.blacken() == now()\n";
-	private static final String POLICY_B = "import filter.*\n" + "policy \"a\"\n"
-			+ "permit subject.name.blacken() == clock.now()\n";
-	private static final String POLICY_A1 = "policy \"a\"\n permit time.before() == \"\"\n";
-	private static final String POLICY_B1 = "import time.*\n policy \"a\"\n permit before() == \"\"\n";
+//	private static final String POLICY_A = "import filter.*\n" + "import clock.*\n" + "policy \"a\"\n"
+//			+ "permit subject.name.blacken() == now()\n";
+//	private static final String POLICY_B = "import filter.*\n" + "policy \"a\"\n"
+//			+ "permit subject.name.blacken() == clock.now()\n";
+//	private static final String POLICY_A1 = "policy \"a\"\n permit time.before() == \"\"\n";
+//	private static final String POLICY_B1 = "import time.*\n policy \"a\"\n permit before() == \"\"\n";
 	private static final String POLICY_A2 = "policy \"a\" permit false";
 	private static final String POLICY_B2 = "policy \"a\" permit false";
 

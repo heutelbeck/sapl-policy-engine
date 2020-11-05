@@ -21,6 +21,7 @@ import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.Void;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -113,6 +114,6 @@ public interface ResultNode {
 	 * @param relativeNode the node a relative expression evaluates to
 	 * @return a {@link Flux} of result nodes resulting from application of the step
 	 */
-	Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, Val relativeNode);
+	Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, @NonNull Val relativeNode);
 
 }

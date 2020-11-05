@@ -25,12 +25,13 @@ import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.DependentStreamsUtil;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.FluxProvider;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
 	@Override
-	public Flux<Val> apply(Val unfilteredRootNode, EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> apply(Val unfilteredRootNode, EvaluationContext ctx, @NonNull Val relativeNode) {
 		final JsonNode result = unfilteredRootNode.get().deepCopy();
 		if (statements != null && !statements.isEmpty()) {
 			final List<FluxProvider<Val>> fluxProviders = new ArrayList<>(statements.size());
