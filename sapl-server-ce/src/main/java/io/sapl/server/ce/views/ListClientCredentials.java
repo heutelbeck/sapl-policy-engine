@@ -1,16 +1,20 @@
 package io.sapl.server.ce.views;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.polymertemplate.Id;
 import com.vaadin.flow.component.polymertemplate.PolymerTemplate;
+import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.CallbackDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
@@ -42,8 +46,16 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 	@Id(value = "currentKeyTextField")
 	private TextField currentKeyTextField;
 
-	@Id(value = "currentSecretTextField")
-	private TextField currentSecretTextField;
+	@Id(value = "currentSecretPasswordField")
+	private PasswordField currentSecretTextField;
+
+	@Id(value = "editCurrentClientCredentialsLayout")
+	private VerticalLayout editCurrentClientCredentialsLayout;
+
+	@Id(value = "createButton")
+	private Button createButton;
+
+	private final List<ClientCredentials> dummies = new ArrayList<ClientCredentials>();
 
 	@PostConstruct
 	private void postConstruct() {
@@ -51,20 +63,28 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 	}
 
 	private void initUi() {
+		this.editCurrentClientCredentialsLayout.setVisible(false);
+
+		this.createButton.addClickListener((clickEvent) -> {
+			this.dummies.add(new ClientCredentials(UUID.randomUUID().toString(), "defaultsecret"));
+			this.clientCredentialsGrid.getDataProvider().refreshAll();
+		});
+
 		initClientCredentialsGrid();
 	}
-
-	private final List<ClientCredentials> dummies = Arrays.asList(
-			new ClientCredentials[] { new ClientCredentials("foo1", "bar1"), new ClientCredentials("foo2", "bar2") });
 
 	private void initClientCredentialsGrid() {
 		this.clientCredentialsGrid.addColumn(ClientCredentials::getKey).setHeader("Key");
 
 		this.clientCredentialsGrid.addSelectionListener(selection -> {
 			Optional<ClientCredentials> firstSelectedItemAsOptional = selection.getFirstSelectedItem();
-			firstSelectedItemAsOptional.ifPresent(clientCredentials -> {
+			firstSelectedItemAsOptional.ifPresentOrElse(clientCredentials -> {
+				this.editCurrentClientCredentialsLayout.setVisible(true);
+
 				currentKeyTextField.setValue(clientCredentials.getKey());
 				currentSecretTextField.setValue(clientCredentials.getSecret());
+			}, () -> {
+				this.editCurrentClientCredentialsLayout.setVisible(false);
 			});
 		});
 
