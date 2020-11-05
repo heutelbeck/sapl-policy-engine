@@ -15,8 +15,12 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
+import java.util.Map;
+import java.util.Objects;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Preconditions;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
@@ -26,9 +30,6 @@ import io.sapl.interpreter.variables.VariableContext;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.Map;
-import java.util.Objects;
 
 public class Bool {
 

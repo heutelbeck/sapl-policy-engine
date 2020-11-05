@@ -15,15 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
@@ -42,50 +35,6 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
 			return Flux.error(new PolicyEvaluationException(NOT_ALLOWED));
 		}
 		return evaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, relativeNode);
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = 37 * hash + (getFilter() == null ? 0 : getFilter().hash(imports));
-		for (Step step : getSteps()) {
-			hash = 37 * hash + (step == null ? 0 : step.hash(imports));
-		}
-		hash = 37 * hash + (getSubtemplate() == null ? 0 : getSubtemplate().hash(imports));
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final BasicRelativeImplCustom otherImpl = (BasicRelativeImplCustom) other;
-		if (getFilter() == null ? getFilter() != otherImpl.getFilter()
-				: !getFilter().isEqualTo(otherImpl.getFilter(), otherImports, imports)) {
-			return false;
-		}
-		if (getSubtemplate() == null ? getSubtemplate() != otherImpl.getSubtemplate()
-				: !getSubtemplate().isEqualTo(otherImpl.getSubtemplate(), otherImports, imports)) {
-			return false;
-		}
-		if (getSteps().size() != otherImpl.getSteps().size()) {
-			return false;
-		}
-		ListIterator<Step> left = getSteps().listIterator();
-		ListIterator<Step> right = otherImpl.getSteps().listIterator();
-		while (left.hasNext()) {
-			Step lhs = left.next();
-			Step rhs = right.next();
-			if (!lhs.isEqualTo(rhs, otherImports, imports)) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 }

@@ -15,11 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Map;
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -38,21 +33,6 @@ public class FalseLiteralImplCustom extends FalseLiteralImpl {
 	@Override
 	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
 		return Val.fluxOfFalse();
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		return !(other == null || getClass() != other.getClass());
 	}
 
 }

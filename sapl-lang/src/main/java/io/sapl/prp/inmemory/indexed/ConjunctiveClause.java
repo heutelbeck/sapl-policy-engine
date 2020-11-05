@@ -25,11 +25,6 @@ import java.util.Objects;
 
 import com.google.common.base.Preconditions;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.variables.VariableContext;
-import reactor.core.publisher.Mono;
-
 public class ConjunctiveClause {
 
 	static final String CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";

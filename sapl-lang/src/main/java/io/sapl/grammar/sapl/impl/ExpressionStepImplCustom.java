@@ -16,10 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -157,25 +153,6 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 		} else {
 			return Flux.error(new PolicyEvaluationException(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
 		}
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = 37 * hash + ((getExpression() == null) ? 0 : getExpression().hash(imports));
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other)
-			return true;
-		if (other == null || getClass() != other.getClass())
-			return false;
-		final ExpressionStepImplCustom otherImpl = (ExpressionStepImplCustom) other;
-		return (getExpression() == null) ? (getExpression() == otherImpl.getExpression())
-				: getExpression().isEqualTo(otherImpl.getExpression(), otherImports, imports);
 	}
 
 }

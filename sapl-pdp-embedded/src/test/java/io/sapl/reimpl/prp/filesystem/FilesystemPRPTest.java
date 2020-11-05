@@ -3,14 +3,13 @@ package io.sapl.reimpl.prp.filesystem;
 import java.util.HashMap;
 import java.util.logging.Level;
 
-import io.sapl.reimpl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import org.junit.Test;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.reimpl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
-import io.sapl.reimpl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
+import io.sapl.reimpl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import reactor.core.publisher.SignalType;
 
 public class FilesystemPRPTest {

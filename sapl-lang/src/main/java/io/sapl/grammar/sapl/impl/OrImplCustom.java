@@ -32,7 +32,7 @@ public class OrImplCustom extends OrImpl {
 
 	@Override
 	public Flux<Val> evaluate(EvaluationContext ctx, Val relativeNode) {
-		if (TargetExpressionIdentifier.isInTargetExpression(this)) {
+		if (TargetExpressionIdentifierUtil.isInTargetExpression(this)) {
 			// due to the constraints in indexing policy documents, lazy evaluation is not
 			// allowed in target expressions.
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));

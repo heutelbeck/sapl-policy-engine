@@ -228,16 +228,6 @@
     <genClasses ecoreClass="SAPL.ecore#//FilterExtended">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//FilterExtended/statements"/>
     </genClasses>
-    <genClasses image="false" ecoreClass="SAPL.ecore#//Hashable">
-      <genOperations ecoreOperation="SAPL.ecore#//Hashable/hash">
-        <genParameters ecoreParameter="SAPL.ecore#//Hashable/hash/imports"/>
-      </genOperations>
-      <genOperations ecoreOperation="SAPL.ecore#//Hashable/isEqualTo">
-        <genParameters ecoreParameter="SAPL.ecore#//Hashable/isEqualTo/other"/>
-        <genParameters ecoreParameter="SAPL.ecore#//Hashable/isEqualTo/otherImports"/>
-        <genParameters ecoreParameter="SAPL.ecore#//Hashable/isEqualTo/imports"/>
-      </genOperations>
-    </genClasses>
     <genClasses image="false" ecoreClass="SAPL.ecore#//Evaluable">
       <genOperations ecoreOperation="SAPL.ecore#//Evaluable/evaluate">
         <genParameters ecoreParameter="SAPL.ecore#//Evaluable/evaluate/ctx"/>

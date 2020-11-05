@@ -15,9 +15,9 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
-import com.google.common.base.Preconditions;
-
 import java.util.Objects;
+
+import com.google.common.base.Preconditions;
 
 public class Literal {
 
