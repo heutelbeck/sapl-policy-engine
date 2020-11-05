@@ -1,11 +1,10 @@
 import { LitElement, html } from 'lit-element';
 
-class SAPLEditor extends LitElement {
+class JSONEditor extends LitElement {
 
   constructor() {
     super();
     this.document = "";
-    this.xtextLang = "sapl";
   }
 
   static get properties() {
@@ -16,7 +15,6 @@ class SAPLEditor extends LitElement {
       matchBrackets: { type: Boolean },
       textUpdateDelay: { type: Number },
       editor: { type: Object },
-      xtextLang: { type: String },
     }
   }
 
@@ -26,34 +24,25 @@ class SAPLEditor extends LitElement {
     var self = this;
     var shadowRoot = self.shadowRoot;
 
-    var widget_container = document.createElement("div");
-    widget_container.id = "WIDGET_CONTAINER";
-    widget_container.style.position = 'absolute';
-    widget_container.style.left = '0px';
-    widget_container.style.top = '0px';
-    widget_container.style.width = '1px';
-    widget_container.style.height = '1px';
-
     require(["./xtext-codemirror.min",
       "codemirror/addon/edit/matchbrackets",
       "codemirror/addon/edit/closebrackets",
       "codemirror/addon/hint/show-hint",
-      "./sapl-mode"], function (xtext, addon1, addon2, showHint, mode) {
+      "codemirror/addon/lint/lint",
+      "codemirror/addon/lint/json-lint",
+      "codemirror/mode/javascript/javascript"], 
+      function (xtext, matchbrackets, closebrackets, showHint, lint, jsonlint, mode) {
         self.editor = xtext.createEditor({
           document: shadowRoot,
-          xtextLang: self.xtextLang,
           sendFullText: true,
-          syntaxDefinition: mode,
+          mode: "application/ld+json",
           lineNumbers: self.hasLineNumbers,
           showCursorWhenSelecting: true,
           autoCloseBrackets: self.autoCloseBrackets,
           matchBrackets: self.matchBrackets,
           enableValidationService: true,
           textUpdateDelay: self.textUpdateDelay,
-          extraKeys: {"Ctrl-Space": "autocomplete"},
-          hintOptions: { 
-            container: widget_container
-          }
+          lint: true,
         });
 
         self.editor.doc.setValue(self.document);
@@ -62,29 +51,8 @@ class SAPLEditor extends LitElement {
           self.onDocumentChanged(value);
         });
 
-        self.registerValidationCallback(self.editor);
-
         shadowRoot.appendChild(widget_container);
       });
-  }
-
-  registerValidationCallback(editor) {
-    var self = this;
-
-    var xTextServices = editor.xtextServices;
-    xTextServices.originalValidate = xTextServices.validate;
-    xTextServices.validate = function (addParam) {
-      var services = this;
-      return services.originalValidate(addParam).done(function (result) {
-        if(self.$server !== undefined) {
-          var issues = result.issues;
-          self.$server.onValidation(issues);
-        }
-        else {
-          throw "Connection between editor and server could not be established. (onValidation)";
-        }
-      });
-    }
   }
 
   onDocumentChanged(value) {
@@ -595,4 +563,4 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {
   }
 }
 
-customElements.define('sapl-editor', SAPLEditor);
+customElements.define('json-editor', JSONEditor);
