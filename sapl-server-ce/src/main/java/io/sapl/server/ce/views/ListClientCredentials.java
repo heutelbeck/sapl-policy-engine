@@ -1,9 +1,6 @@
 package io.sapl.server.ce.views;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 
@@ -22,8 +19,8 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.templatemodel.TemplateModel;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import io.sapl.server.ce.model.ClientCredentials;
+import io.sapl.server.ce.service.ClientCredentialsService;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -40,6 +37,8 @@ import lombok.RequiredArgsConstructor;
 public class ListClientCredentials extends PolymerTemplate<ListClientCredentials.ListClientCredentialsModel> {
 	public static final String ROUTE = "clients";
 
+	private final ClientCredentialsService clientCredentialsService;
+
 	@Id(value = "clientCredentialsGrid")
 	private Grid<ClientCredentials> clientCredentialsGrid;
 
@@ -55,36 +54,34 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 	@Id(value = "createButton")
 	private Button createButton;
 
-	private final List<ClientCredentials> dummies = new ArrayList<ClientCredentials>();
-
 	@PostConstruct
 	private void postConstruct() {
 		initUi();
 	}
 
 	private void initUi() {
-		this.editCurrentClientCredentialsLayout.setVisible(false);
+		editCurrentClientCredentialsLayout.setVisible(false);
 
-		this.createButton.addClickListener((clickEvent) -> {
-			this.dummies.add(new ClientCredentials(UUID.randomUUID().toString(), "defaultsecret"));
-			this.clientCredentialsGrid.getDataProvider().refreshAll();
+		createButton.addClickListener((clickEvent) -> {
+			clientCredentialsService.createDefault();
+			clientCredentialsGrid.getDataProvider().refreshAll();
 		});
 
 		initClientCredentialsGrid();
 	}
 
 	private void initClientCredentialsGrid() {
-		this.clientCredentialsGrid.addColumn(ClientCredentials::getKey).setHeader("Key");
+		clientCredentialsGrid.addColumn(ClientCredentials::getKey).setHeader("Key");
 
-		this.clientCredentialsGrid.addSelectionListener(selection -> {
+		clientCredentialsGrid.addSelectionListener(selection -> {
 			Optional<ClientCredentials> firstSelectedItemAsOptional = selection.getFirstSelectedItem();
 			firstSelectedItemAsOptional.ifPresentOrElse(clientCredentials -> {
-				this.editCurrentClientCredentialsLayout.setVisible(true);
+				editCurrentClientCredentialsLayout.setVisible(true);
 
 				currentKeyTextField.setValue(clientCredentials.getKey());
-				currentSecretTextField.setValue(clientCredentials.getSecret());
+				currentSecretTextField.setValue(clientCredentials.getHashedSecret());
 			}, () -> {
-				this.editCurrentClientCredentialsLayout.setVisible(false);
+				editCurrentClientCredentialsLayout.setVisible(false);
 			});
 		});
 
@@ -93,16 +90,9 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 			int offset = query.getOffset();
 			int limit = query.getLimit();
 
-			return dummies.stream().skip(offset).limit(limit);
-		}, query -> (int) dummies.size());
-		this.clientCredentialsGrid.setDataProvider(dataProvider);
-	}
-
-	@Data
-	@AllArgsConstructor
-	public class ClientCredentials {
-		private String key;
-		private String secret;
+			return clientCredentialsService.getAll().stream().skip(offset).limit(limit);
+		}, query -> (int) clientCredentialsService.getAmount());
+		clientCredentialsGrid.setDataProvider(dataProvider);
 	}
 
 	/**
