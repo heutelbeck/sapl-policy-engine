@@ -58,7 +58,7 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 	 */
 	protected Flux<Val> applyFilterStatement(Val rootNode, EList<Step> steps, boolean each, String function,
 			Arguments arguments, EvaluationContext ctx, @NonNull Val relativeNode) {
-		return StepResolver.resolveSteps(rootNode, steps, ctx, relativeNode).switchMap(resultNode -> {
+		return StepResolverUtil.resolveSteps(rootNode, steps, ctx, relativeNode).switchMap(resultNode -> {
 			if (resultNode.isNodeWithoutParent() && !each) {
 				return getFilteredRoot(resultNode, function, arguments, ctx);
 			} else {

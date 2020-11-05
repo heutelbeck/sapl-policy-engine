@@ -31,7 +31,7 @@ import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 @UtilityClass
-public class StepResolver {
+public class StepResolverUtil {
 
 	/**
 	 * Method for application of a number of selection steps to a JsonNode. The

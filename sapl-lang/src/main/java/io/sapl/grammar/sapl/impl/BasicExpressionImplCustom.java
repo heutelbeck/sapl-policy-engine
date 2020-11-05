@@ -65,7 +65,7 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 	 */
 	protected Flux<Val> evaluateStepsFilterSubtemplate(Val resultBeforeSteps, EList<Step> steps, EvaluationContext ctx,
 			Val relativeNode) {
-		Flux<ResultNode> result = StepResolver.resolveSteps(resultBeforeSteps, steps, ctx, relativeNode);
+		Flux<ResultNode> result = StepResolverUtil.resolveSteps(resultBeforeSteps, steps, ctx, relativeNode);
 		if (filter != null) {
 			result = result.switchMap(resultNode -> {
 				final Val jsonNode = resultNode.asJsonWithoutAnnotations();
