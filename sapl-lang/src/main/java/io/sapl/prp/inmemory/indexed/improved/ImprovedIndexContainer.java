@@ -37,6 +37,7 @@ import io.sapl.prp.inmemory.indexed.IndexContainer;
 
 //@Slf4j
 //@RequiredArgsConstructor
+@Deprecated
 public class ImprovedIndexContainer implements IndexContainer {
 
 	private final boolean abortOnError;
@@ -89,7 +90,7 @@ public class ImprovedIndexContainer implements IndexContainer {
 			if (!isReferenced(predicate, clauseCandidates))
 				continue;
 
-			Optional<Boolean> outcome = predicate.evaluate(functionCtx, variableCtx);
+			Optional<Boolean> outcome = predicate.evaluateBlocking(functionCtx, variableCtx);
 			if (!outcome.isPresent()) {
 				if (abortOnError) {
 					return new PolicyRetrievalResult(fetchPolicies(result), true);

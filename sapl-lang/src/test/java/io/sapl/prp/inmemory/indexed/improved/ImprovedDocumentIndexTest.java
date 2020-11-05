@@ -40,6 +40,7 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 
+@Deprecated
 public class ImprovedDocumentIndexTest {
 
 	@Rule

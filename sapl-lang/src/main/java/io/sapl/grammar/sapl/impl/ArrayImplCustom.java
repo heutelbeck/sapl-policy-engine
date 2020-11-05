@@ -17,12 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -31,6 +26,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -54,14 +50,15 @@ public class ArrayImplCustom extends ArrayImpl {
 	 * emits a new value.
 	 */
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+		// handle the empty array
+		if (getItems().size() == 0) {
+			return Flux.just(Val.of(JSON.arrayNode()));
+		}
+		// aggregate child fluxes into a flux of a JSON array
 		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(getItems().size());
 		for (Expression item : getItems()) {
-			itemFluxes.add(item.evaluate(ctx, isBody, relativeNode).flatMap(Val::toJsonNode));
-		}
-		// handle the empty array
-		if (itemFluxes.isEmpty()) {
-			return Flux.just(Val.of(JSON.arrayNode()));
+			itemFluxes.add(item.evaluate(ctx, relativeNode).flatMap(Val::toJsonNode));
 		}
 		return Flux.combineLatest(itemFluxes, Function.identity()).map(this::collectValuesToArrayNode).map(Val::of);
 	}
@@ -80,40 +77,6 @@ public class ArrayImplCustom extends ArrayImpl {
 			resultArr.add(value);
 		}
 		return resultArr;
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		for (Expression expression : getItems()) {
-			hash = 37 * hash + ((expression == null) ? 0 : expression.hash(imports));
-		}
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final ArrayImplCustom otherImpl = (ArrayImplCustom) other;
-		if (getItems().size() != otherImpl.getItems().size()) {
-			return false;
-		}
-		ListIterator<Expression> left = getItems().listIterator();
-		ListIterator<Expression> right = otherImpl.getItems().listIterator();
-		while (left.hasNext()) {
-			Expression lhs = left.next();
-			Expression rhs = right.next();
-			if (!lhs.isEqualTo(rhs, otherImports, imports)) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 }

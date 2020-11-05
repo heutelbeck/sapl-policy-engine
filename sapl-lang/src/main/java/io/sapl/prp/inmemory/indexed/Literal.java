@@ -19,10 +19,6 @@ import java.util.Objects;
 
 import com.google.common.base.Preconditions;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.variables.VariableContext;
-
 public class Literal {
 
 	private final Bool bool;
@@ -71,14 +67,14 @@ public class Literal {
 		return result;
 	}
 
-	public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
-			throws PolicyEvaluationException {
-		boolean result = bool.evaluate(functionCtx, variableCtx);
-		if (hasNegation) {
-			return !result;
-		}
-		return result;
-	}
+//	public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
+	// throws PolicyEvaluationException {
+	// Mono<Boolean> result = bool.evaluate(functionCtx, variableCtx);
+	// if (hasNegation) {
+	// return !result;
+	// }
+	// return result;
+	// }
 
 	public Bool getBool() {
 		return bool;

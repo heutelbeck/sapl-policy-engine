@@ -16,10 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -31,6 +27,7 @@ import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.JsonNodeWithParentObject;
 import io.sapl.interpreter.selection.ResultNode;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -65,17 +62,15 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	 * 
 	 * @param previousResult the array or object
 	 * @param ctx            the evaluation context
-	 * @param isBody         a flag indicating whether the expression is part of a
-	 *                       policy body
 	 * @param relativeNode   the relative node (not needed here)
 	 * @return a flux of ArrayResultNodes containing the element/attribute value of
 	 *         the original array/object corresponding to the integer/string result
 	 *         (index/attribute name) retrieved by evaluating the expression
 	 */
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
-		return getExpression().evaluate(ctx, isBody, relativeNode).flatMap(expressionResult -> {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
+			@NonNull Val relativeNode) {
+		return getExpression().evaluate(ctx, relativeNode).flatMap(expressionResult -> {
 			try {
 				return Flux.just(handleExpressionResultFor(previousResult, expressionResult));
 			} catch (PolicyEvaluationException e) {
@@ -138,17 +133,14 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	 * 
 	 * @param previousResult the array
 	 * @param ctx            the evaluation context
-	 * @param isBody         a flag indicating whether the expression is part of a
-	 *                       policy body
 	 * @param relativeNode   the relative node (not needed here)
 	 * @return a flux of ArrayResultNodes containing the element of the original
 	 *         array at the position corresponding to the integer result retrieved
 	 *         by evaluating the expression
 	 */
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
-		return getExpression().evaluate(ctx, isBody, previousResult.asJsonWithoutAnnotations()).flatMap(Val::toJsonNode)
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
+		return getExpression().evaluate(ctx, previousResult.asJsonWithoutAnnotations()).flatMap(Val::toJsonNode)
 				.flatMap(expressionResult -> handleExpressionResultFor(previousResult, expressionResult));
 	}
 
@@ -163,25 +155,6 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 		} else {
 			return Flux.error(new PolicyEvaluationException(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
 		}
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = 37 * hash + ((getExpression() == null) ? 0 : getExpression().hash(imports));
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other)
-			return true;
-		if (other == null || getClass() != other.getClass())
-			return false;
-		final ExpressionStepImplCustom otherImpl = (ExpressionStepImplCustom) other;
-		return (getExpression() == null) ? (getExpression() == otherImpl.getExpression())
-				: getExpression().isEqualTo(otherImpl.getExpression(), otherImports, imports);
 	}
 
 }

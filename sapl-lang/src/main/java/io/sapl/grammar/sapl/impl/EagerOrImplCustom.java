@@ -17,6 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -29,9 +30,9 @@ import reactor.core.publisher.Flux;
 public class EagerOrImplCustom extends EagerOrImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
-		final Flux<Boolean> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+		final Flux<Boolean> left = getLeft().evaluate(ctx, relativeNode).flatMap(Val::toBoolean);
+		final Flux<Boolean> right = getRight().evaluate(ctx, relativeNode).flatMap(Val::toBoolean);
 		return Flux.combineLatest(left, right, Boolean::logicalOr).map(Val::of).distinctUntilChanged();
 	}
 

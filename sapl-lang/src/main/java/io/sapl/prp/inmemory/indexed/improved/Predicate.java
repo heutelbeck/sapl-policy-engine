@@ -12,6 +12,7 @@ import io.sapl.prp.inmemory.indexed.Bitmask;
 import io.sapl.prp.inmemory.indexed.Bool;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Getter
@@ -29,10 +30,19 @@ public class Predicate {
 		this.bool = Preconditions.checkNotNull(bool);
 	}
 
-	public Optional<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
+	public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
+		try {
+			return getBool().evaluate(functionCtx, variableCtx);
+		} catch (PolicyEvaluationException e) {
+			log.debug(Throwables.getStackTraceAsString(e));
+		}
+		return Mono.empty();
+	}
+
+	public Optional<Boolean> evaluateBlocking(final FunctionContext functionCtx, final VariableContext variableCtx) {
 		Boolean result = null;
 		try {
-			result = getBool().evaluate(functionCtx, variableCtx);
+			result = getBool().evaluate(functionCtx, variableCtx).block();
 		} catch (PolicyEvaluationException e) {
 			log.debug(Throwables.getStackTraceAsString(e));
 		}

@@ -41,6 +41,7 @@ import io.sapl.prp.inmemory.indexed.Literal;
 import io.sapl.prp.inmemory.indexed.improved.ordering.ExistingOrderStrategy;
 import io.sapl.prp.inmemory.indexed.improved.ordering.PredicateOrderStrategy;
 
+@Deprecated
 public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
 
 	private final PredicateOrderStrategy predicateOrderStrategy = new ExistingOrderStrategy();

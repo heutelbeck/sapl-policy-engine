@@ -1,12 +1,12 @@
 /**
  * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,6 +16,7 @@
 package io.sapl.prp.inmemory.indexed;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
@@ -50,10 +51,11 @@ public class ConjunctiveClauseTest {
 		// given
 		BasicIdentifier id0 = createIdentifier("A");
 		BasicIdentifier id1 = createIdentifier("B");
-		ConjunctiveClause expanded = new ConjunctiveClause(new Literal(new Bool(id0, null)),
-				new Literal(new Bool(id0, null)), new Literal(new Bool(id1, null), false));
-		ConjunctiveClause reference = new ConjunctiveClause(new Literal(new Bool(id0, null)),
-				new Literal(new Bool(id1, null), false));
+		ConjunctiveClause expanded = new ConjunctiveClause(new Literal(new Bool(id0, Collections.emptyMap())),
+				new Literal(new Bool(id0, Collections.emptyMap())),
+				new Literal(new Bool(id1, Collections.emptyMap()), false));
+		ConjunctiveClause reference = new ConjunctiveClause(new Literal(new Bool(id0, Collections.emptyMap())),
+				new Literal(new Bool(id1, Collections.emptyMap()), false));
 
 		// when
 		ConjunctiveClause reduced = expanded.reduce();
@@ -68,10 +70,10 @@ public class ConjunctiveClauseTest {
 		BasicIdentifier id0 = createIdentifier("A");
 		BasicIdentifier id1 = createIdentifier("B");
 		BasicIdentifier id2 = createIdentifier("C");
-		ConjunctiveClause base = new ConjunctiveClause(new Literal(new Bool(id0, null)),
-				new Literal(new Bool(id1, null)), new Literal(new Bool(id2, null)));
-		ConjunctiveClause subset = new ConjunctiveClause(new Literal(new Bool(id1, null)),
-				new Literal(new Bool(id2, null)));
+		ConjunctiveClause base = new ConjunctiveClause(new Literal(new Bool(id0, Collections.emptyMap())),
+				new Literal(new Bool(id1, Collections.emptyMap())), new Literal(new Bool(id2, Collections.emptyMap())));
+		ConjunctiveClause subset = new ConjunctiveClause(new Literal(new Bool(id1, Collections.emptyMap())),
+				new Literal(new Bool(id2, Collections.emptyMap())));
 
 		// then
 		Assertions.assertThat(subset.isSubsetOf(base)).isTrue();

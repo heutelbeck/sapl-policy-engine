@@ -23,6 +23,7 @@ import java.util.Set;
 
 import io.sapl.grammar.sapl.SAPL;
 
+@Deprecated
 public interface IndexCreationStrategy {
 
 	IndexContainer construct(final Map<String, SAPL> documents, final Map<String, DisjunctiveFormula> targets);

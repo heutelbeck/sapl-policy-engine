@@ -15,12 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
@@ -28,6 +22,7 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithoutParent;
 import io.sapl.interpreter.selection.ResultNode;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -45,19 +40,18 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode value, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
-		return retrieveAttribute(value.asJsonWithoutAnnotations(), ctx, isBody);
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode value, EvaluationContext ctx, @NonNull Val relativeNode) {
+		return retrieveAttribute(value.asJsonWithoutAnnotations(), ctx);
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode arrayValue, EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		return retrieveAttribute(arrayValue.asJsonWithoutAnnotations(), ctx, isBody);
+	public Flux<ResultNode> apply(ArrayResultNode arrayValue, EvaluationContext ctx, @NonNull Val relativeNode) {
+		return retrieveAttribute(arrayValue.asJsonWithoutAnnotations(), ctx);
 	}
 
-	private Flux<ResultNode> retrieveAttribute(Val value, EvaluationContext ctx, boolean isBody) {
+	private Flux<ResultNode> retrieveAttribute(Val value, EvaluationContext ctx) {
 		final String fullyQualifiedName = getFullyQualifiedName(ctx);
-		if (!isBody) {
+		if (TargetExpressionIdentifierUtil.isInTargetExpression(this)) {
 			return Flux.error(new PolicyEvaluationException(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName));
 		}
 		if (value.isUndefined()) {
@@ -75,41 +69,6 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 			fullyQualifiedName = ctx.getImports().get(fullyQualifiedName);
 		}
 		return fullyQualifiedName;
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		for (String idStep : getIdSteps()) {
-			hash = 37 * hash + Objects.hashCode(idStep);
-		}
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final AttributeFinderStepImplCustom otherImpl = (AttributeFinderStepImplCustom) other;
-		if (getIdSteps().size() != otherImpl.getIdSteps().size()) {
-			return false;
-		}
-		ListIterator<String> left = getIdSteps().listIterator();
-		ListIterator<String> right = otherImpl.getIdSteps().listIterator();
-		while (left.hasNext()) {
-			String lhs = left.next();
-			String rhs = right.next();
-			if (!Objects.equals(lhs, rhs)) {
-				return false;
-			}
-		}
-		// TODO: compare arguments
-		return true;
 	}
 
 }

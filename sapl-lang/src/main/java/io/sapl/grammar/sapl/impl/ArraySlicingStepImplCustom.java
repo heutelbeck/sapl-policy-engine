@@ -18,10 +18,6 @@ package io.sapl.grammar.sapl.impl;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.core.TreeNode;
 
@@ -32,6 +28,7 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -50,8 +47,8 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	private static final String INDEX_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing an JSON array index [%s] expects array value, but got: '%s'.";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
+			@NonNull Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {
@@ -75,8 +72,7 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {
@@ -129,34 +125,6 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 			}
 		}
 		return returnIndices;
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = 37 * hash + Objects.hashCode(getIndex());
-		hash = 37 * hash + Objects.hashCode(getStep());
-		hash = 37 * hash + Objects.hashCode(getTo());
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final ArraySlicingStepImplCustom otherImpl = (ArraySlicingStepImplCustom) other;
-		if (!Objects.equals(getIndex(), otherImpl.getIndex())) {
-			return false;
-		}
-		if (!Objects.equals(getStep(), otherImpl.getStep())) {
-			return false;
-		}
-		return Objects.equals(getTo(), otherImpl.getTo());
 	}
 
 }

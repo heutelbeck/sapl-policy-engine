@@ -37,6 +37,7 @@ import io.sapl.interpreter.combinators.OnlyOneApplicableCombinator;
 import io.sapl.interpreter.combinators.PermitOverridesCombinator;
 import io.sapl.interpreter.combinators.PermitUnlessDenyCombinator;
 import io.sapl.interpreter.combinators.PolicyCombinator;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -61,7 +62,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
+	public Flux<AuthorizationDecision> evaluate(@NonNull EvaluationContext ctx) {
 		final Map<String, JsonNode> variables = new HashMap<>();
 		final List<FluxProvider<Void>> fluxProviders = new ArrayList<>(getValueDefinitions().size());
 		for (ValueDefinition valueDefinition : getValueDefinitions()) {
@@ -97,7 +98,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
 	private Flux<Void> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx,
 			Map<String, JsonNode> variables) {
-		return valueDefinition.getEval().evaluate(evaluationCtx, true, Val.undefined()).flatMap(evaluatedValue -> {
+		return valueDefinition.getEval().evaluate(evaluationCtx, Val.undefined()).flatMap(evaluatedValue -> {
 			try {
 				if (evaluatedValue.isDefined()) {
 					evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());

@@ -32,6 +32,7 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.Void;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -96,13 +97,11 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 * @param function   name of the filter function
 	 * @param arguments  arguments to be passed to the function as a JSON array
 	 * @param ctx        the evaluation context
-	 * @param isBody     true if the expression occurs within the policy body
-	 *                   (attribute finder steps are only allowed if set to true)
 	 * @return a flux of {@link Void} instances, each indicating a finished
 	 *         application of the function to each item of the parent array node
 	 */
 	protected static Flux<Void> applyFilterToEachItem(Val parentNode, String function, Arguments arguments,
-			EvaluationContext ctx, boolean isBody) {
+			EvaluationContext ctx) {
 		if (parentNode.isUndefined() || !parentNode.get().isArray()) {
 			return Flux.error(new PolicyEvaluationException(FILTER_EACH_NO_ARRAY,
 					parentNode.isUndefined() ? parentNode.get().getNodeType() : "undefined"));
@@ -114,7 +113,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 		if (arguments != null && !arguments.getArgs().isEmpty()) {
 			final List<Flux<Val>> parameterFluxes = new ArrayList<>(arguments.getArgs().size());
 			for (Expression argument : arguments.getArgs()) {
-				parameterFluxes.add(argument.evaluate(ctx, isBody, parentNode));
+				parameterFluxes.add(argument.evaluate(ctx, parentNode));
 			}
 			return Flux.combineLatest(parameterFluxes, paramNodes -> {
 				for (int i = 0; i < arrayNode.size(); i++) {
@@ -166,13 +165,11 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 * @param arguments    other arguments to be passed to the function as a JSON
 	 *                     array
 	 * @param ctx          the evaluation context
-	 * @param isBody       true if the expression occurs within the policy body
-	 *                     (attribute finder steps are only allowed if set to true)
 	 * @param relativeNode the node a relative expression evaluates to
 	 * @return a flux of the results as JsonNodes
 	 */
 	public static Flux<Val> applyFilterToNode(Val optNode, String function, Arguments arguments, EvaluationContext ctx,
-			boolean isBody, Val relativeNode) {
+			Val relativeNode) {
 		if (optNode.isUndefined()) {
 			return Flux.error(new PolicyEvaluationException(UNDEFINED_VALUES_HANDED_OVER_TO_FUNCTION_EVALUATION));
 		}
@@ -182,7 +179,7 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 		if (arguments != null && !arguments.getArgs().isEmpty()) {
 			final List<Flux<Val>> parameterFluxes = new ArrayList<>(arguments.getArgs().size());
 			for (Expression argument : arguments.getArgs()) {
-				parameterFluxes.add(argument.evaluate(ctx, isBody, relativeNode));
+				parameterFluxes.add(argument.evaluate(ctx, relativeNode));
 			}
 			return Flux.combineLatest(parameterFluxes, paramNodes -> {
 				final Val[] parmeters = new Val[paramNodes.length + 1];
@@ -207,8 +204,8 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	}
 
 	@Override
-	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		return step.apply(this, ctx, isBody, relativeNode);
+	public Flux<ResultNode> applyStep(Step step, EvaluationContext ctx, @NonNull Val relativeNode) {
+		return step.apply(this, ctx, relativeNode);
 	}
 
 	/**
@@ -221,14 +218,12 @@ public abstract class AbstractAnnotatedJsonNode implements ResultNode {
 	 *                     and the filter function should be applied to each of its
 	 *                     items
 	 * @param ctx          the evaluation context
-	 * @param isBody       true if the expression occurs within the policy body
-	 *                     (attribute finder steps are only allowed if set to true)
 	 * @param relativeNode the node a relative expression evaluates to
 	 * @return a flux of {@link Void} instances, each indicating a finished
 	 *         application of the function
 	 */
 	public abstract Flux<Void> applyFilterWithRelativeNode(String function, Arguments arguments, boolean each,
-			EvaluationContext ctx, boolean isBody, Val relativeNode);
+			EvaluationContext ctx, @NonNull Val relativeNode);
 
 	/**
 	 * The method checks whether two AbstractAnnotatedJsonNodes reference the same

@@ -62,7 +62,7 @@ public class ResultNodeApplyFunctionTest {
 		list.add(new JsonNodeWithParentArray(Val.ofNull(), Val.of(target), 0));
 		ArrayResultNode resultNode = new ArrayResultNode(list);
 
-		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), false, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), false, ctx))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -83,7 +83,7 @@ public class ResultNodeApplyFunctionTest {
 		list.add(new JsonNodeWithParentArray(Val.ofFalse(), Val.of(target), 2));
 		ResultNode resultNode = new ArrayResultNode(list);
 
-		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx))
 				.expectNext(Void.INSTANCE).verifyComplete();
 
 		assertEquals("function applied to ArrayResultNode with each should replace each selected item", expectedResult,
@@ -95,7 +95,7 @@ public class ResultNodeApplyFunctionTest {
 		JsonNode target = JSON.nullNode();
 		ResultNode resultNode = new JsonNodeWithoutParent(Val.of(target));
 
-		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), false, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), false, ctx))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -105,7 +105,7 @@ public class ResultNodeApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithoutParent(Val.of(target));
 
-		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -119,7 +119,7 @@ public class ResultNodeApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithoutParent(Val.of(target));
 
-		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx))
 				.expectNext(Void.INSTANCE).verifyComplete();
 
 		assertEquals("function applied to JsonNodeWithoutParent with each should replace each node", expectedResult,
@@ -136,7 +136,7 @@ public class ResultNodeApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentObject(Val.ofNull(), Val.of(target), "key");
 
-		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), false, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), false, ctx))
 				.expectNext(Void.INSTANCE).verifyComplete();
 
 		assertEquals("function applied to JsonNodeWithParentObject should replace selected node", expectedResult,
@@ -157,7 +157,7 @@ public class ResultNodeApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentObject(Val.of(array), Val.of(target), "key");
 
-		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx))
 				.expectNext(Void.INSTANCE).verifyComplete();
 
 		assertEquals("function applied to JsonNodeWithParentObject with each should replace each item of selected node",
@@ -171,7 +171,7 @@ public class ResultNodeApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentObject(Val.ofNull(), Val.of(target), "key");
 
-		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -185,7 +185,7 @@ public class ResultNodeApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(Val.ofNull(), Val.of(target), 0);
 
-		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), false, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), false, ctx))
 				.expectNext(Void.INSTANCE).verifyComplete();
 
 		assertEquals("function applied to JsonNodeWithParentArray should replace selected node", expectedResult,
@@ -206,7 +206,7 @@ public class ResultNodeApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(Val.of(array), Val.of(target), 0);
 
-		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx))
 				.expectNext(Void.INSTANCE).verifyComplete();
 
 		assertEquals("function applied to JsonNodeWithParentArray with each should replace each item of selected node",
@@ -220,7 +220,7 @@ public class ResultNodeApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(Val.ofNull(), Val.of(target), 0);
 
-		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("dummy", factory.createArguments(), true, ctx))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -238,7 +238,7 @@ public class ResultNodeApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(Val.ofNull(), Val.of(target), 0);
 
-		StepVerifier.create(resultNode.applyFilter("short", null, false, ctx, false)).expectNext(Void.INSTANCE)
+		StepVerifier.create(resultNode.applyFilter("short", null, false, ctx)).expectNext(Void.INSTANCE)
 				.verifyComplete();
 
 		assertEquals("function with imports should replace selected node", expectedResult, target);
@@ -251,7 +251,7 @@ public class ResultNodeApplyFunctionTest {
 
 		ResultNode resultNode = new JsonNodeWithParentArray(Val.ofNull(), Val.of(target), 0);
 
-		StepVerifier.create(resultNode.applyFilter("EXCEPTION", factory.createArguments(), false, ctx, false))
+		StepVerifier.create(resultNode.applyFilter("EXCEPTION", factory.createArguments(), false, ctx))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -271,7 +271,7 @@ public class ResultNodeApplyFunctionTest {
 		argumentExpression.setValue(value);
 		arguments.getArgs().add(argumentExpression);
 
-		StepVerifier.create(resultNode.applyFilter("dummy", arguments, false, ctx, false)).expectNext(Void.INSTANCE)
+		StepVerifier.create(resultNode.applyFilter("dummy", arguments, false, ctx)).expectNext(Void.INSTANCE)
 				.verifyComplete();
 
 		assertEquals("function with arguments should replace selected node", expectedResult, target);

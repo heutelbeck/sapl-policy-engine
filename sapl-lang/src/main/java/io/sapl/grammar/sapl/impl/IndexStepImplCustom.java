@@ -16,10 +16,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -30,6 +26,7 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -47,8 +44,8 @@ public class IndexStepImplCustom extends IndexStepImpl {
 	private static final String INDEX_ACCESS_NOT_FOUND = "Index not found. Failed to access index [%s].";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
+			@NonNull Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {
@@ -80,8 +77,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {
@@ -95,26 +91,6 @@ public class IndexStepImplCustom extends IndexStepImpl {
 		final int arrayLength = previousResultNodes.size();
 		int index = computeAndValidateIndex(arrayLength);
 		return previousResultNodes.get(index);
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = 37 * hash + Objects.hashCode(getIndex());
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final IndexStepImplCustom otherImpl = (IndexStepImplCustom) other;
-		return Objects.equals(getIndex(), otherImpl.getIndex());
 	}
 
 }

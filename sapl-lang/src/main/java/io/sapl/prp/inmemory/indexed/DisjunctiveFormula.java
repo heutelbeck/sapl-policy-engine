@@ -25,10 +25,6 @@ import java.util.Objects;
 
 import com.google.common.base.Preconditions;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.variables.VariableContext;
-
 public class DisjunctiveFormula {
 
 	static final String CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";
@@ -105,22 +101,22 @@ public class DisjunctiveFormula {
 		return result;
 	}
 
-	public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
-			throws PolicyEvaluationException {
-		ListIterator<ConjunctiveClause> iter = clauses.listIterator();
-		if (!iter.hasNext()) {
-			throw new PolicyEvaluationException(EVALUATION_NOT_POSSIBLE);
-		}
-		ConjunctiveClause first = iter.next();
-		boolean result = first.evaluate(functionCtx, variableCtx);
-		while (iter.hasNext()) {
-			if (result) {
-				return true;
-			}
-			result = iter.next().evaluate(functionCtx, variableCtx);
-		}
-		return result;
-	}
+//	public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
+//			throws PolicyEvaluationException {
+//		ListIterator<ConjunctiveClause> iter = clauses.listIterator();
+//		if (!iter.hasNext()) {
+//			throw new PolicyEvaluationException(EVALUATION_NOT_POSSIBLE);
+//		}
+//		ConjunctiveClause first = iter.next();
+//		boolean result = first.evaluate(functionCtx, variableCtx);
+//		while (iter.hasNext()) {
+//			if (result) {
+//				return true;
+//			}
+//			result = iter.next().evaluate(functionCtx, variableCtx);
+//		}
+//		return result;
+//	}
 
 	public List<ConjunctiveClause> getClauses() {
 		return Collections.unmodifiableList(clauses);

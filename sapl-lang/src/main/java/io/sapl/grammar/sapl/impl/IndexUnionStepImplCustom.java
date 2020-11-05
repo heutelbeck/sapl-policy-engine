@@ -19,12 +19,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -35,6 +30,7 @@ import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
 import io.sapl.interpreter.selection.ArrayResultNode;
 import io.sapl.interpreter.selection.JsonNodeWithParentArray;
 import io.sapl.interpreter.selection.ResultNode;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -51,8 +47,8 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	private static final String UNION_TYPE_MISMATCH = "Type mismatch.";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
+	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
+			@NonNull Val relativeNode) {
 		try {
 			return Flux.just(apply(previousResult));
 		} catch (PolicyEvaluationException e) {
@@ -92,8 +88,7 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, boolean isBody,
-			Val relativeNode) {
+	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
 		return Flux.just(apply(previousResult));
 	}
 
@@ -110,40 +105,6 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 			}
 		}
 		return new ArrayResultNode(resultList);
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		for (BigDecimal indice : getIndices()) {
-			hash = 37 * hash + Objects.hashCode(indice);
-		}
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final IndexUnionStepImplCustom otherImpl = (IndexUnionStepImplCustom) other;
-		if (getIndices().size() != otherImpl.getIndices().size()) {
-			return false;
-		}
-		ListIterator<BigDecimal> left = getIndices().listIterator();
-		ListIterator<BigDecimal> right = otherImpl.getIndices().listIterator();
-		while (left.hasNext()) {
-			BigDecimal lhs = left.next();
-			BigDecimal rhs = right.next();
-			if (!Objects.equals(lhs, rhs)) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 }

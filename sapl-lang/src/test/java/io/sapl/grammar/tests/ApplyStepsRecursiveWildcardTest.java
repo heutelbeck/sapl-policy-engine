@@ -60,7 +60,7 @@ public class ApplyStepsRecursiveWildcardTest {
 	public void applyToNullNode() {
 		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(JSON.nullNode()));
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -84,7 +84,7 @@ public class ApplyStepsRecursiveWildcardTest {
 
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Recursive wildcard step applied to array should return all items and attribute values",
 					expectedResultSet, resultSet);
@@ -111,7 +111,7 @@ public class ApplyStepsRecursiveWildcardTest {
 
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Recursive wildcard step applied to object should return all items and attribute values",
 					expectedResultSet, resultSet);
@@ -146,7 +146,7 @@ public class ApplyStepsRecursiveWildcardTest {
 
 		RecursiveWildcardStep step = factory.createRecursiveWildcardStep();
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
 					"Recursive wildcard step applied to a result array node should return all items and attribute values",

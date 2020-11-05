@@ -25,6 +25,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
@@ -62,7 +63,7 @@ public class PolicyImplCustom extends PolicyImpl {
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
+	public Flux<AuthorizationDecision> evaluate(@NonNull EvaluationContext ctx) {
 		final EvaluationContext policyCtx = ctx.copy();
 		final Decision entitlement = PERMIT.equals(getEntitlement()) ? Decision.PERMIT : Decision.DENY;
 		final Flux<Decision> decisionFlux = getBody() != null ? getBody().evaluate(entitlement, policyCtx)
@@ -94,7 +95,7 @@ public class PolicyImplCustom extends PolicyImpl {
 		Flux<Optional<ArrayNode>> obligationsFlux;
 		if (getObligation() != null) {
 			final ArrayNode obligationArr = JSON.arrayNode();
-			obligationsFlux = getObligation().evaluate(evaluationCtx, true, Val.undefined())
+			obligationsFlux = getObligation().evaluate(evaluationCtx, Val.undefined())
 					.doOnError(error -> log.debug(OBLIGATIONS_ERROR, error)).map(obligation -> {
 						obligation.ifDefined(obligationArr::add);
 						return obligationArr.size() > 0 ? Optional.of(obligationArr) : Optional.empty();
@@ -106,7 +107,7 @@ public class PolicyImplCustom extends PolicyImpl {
 		Flux<Optional<ArrayNode>> adviceFlux;
 		if (getAdvice() != null) {
 			final ArrayNode adviceArr = JSON.arrayNode();
-			adviceFlux = getAdvice().evaluate(evaluationCtx, true, Val.undefined())
+			adviceFlux = getAdvice().evaluate(evaluationCtx, Val.undefined())
 					.doOnError(error -> log.debug(ADVICE_ERROR, error)).map(advice -> {
 						advice.ifDefined(adviceArr::add);
 						return adviceArr.size() > 0 ? Optional.of(adviceArr) : Optional.empty();
@@ -120,7 +121,7 @@ public class PolicyImplCustom extends PolicyImpl {
 
 	private Flux<Optional<JsonNode>> evaluateTransformation(EvaluationContext evaluationCtx) {
 		if (getTransformation() != null) {
-			return getTransformation().evaluate(evaluationCtx, true, Val.undefined())
+			return getTransformation().evaluate(evaluationCtx, Val.undefined())
 					.doOnError(error -> log.debug(TRANSFORMATION_ERROR, error)).map(Val::optional);
 		} else {
 			return Flux.just(Optional.empty());

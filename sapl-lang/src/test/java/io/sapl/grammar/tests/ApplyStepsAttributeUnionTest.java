@@ -61,7 +61,7 @@ public class ApplyStepsAttributeUnionTest {
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -73,7 +73,7 @@ public class ApplyStepsAttributeUnionTest {
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -88,7 +88,7 @@ public class ApplyStepsAttributeUnionTest {
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1)
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Attribute union applied to empty object should return empty result array", expectedResult,
 						result));
@@ -104,14 +104,13 @@ public class ApplyStepsAttributeUnionTest {
 
 		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
 		expectedResultSet.add(new JsonNodeWithParentObject(Val.of(JSON.nullNode()), Val.of(object), "key1"));
-		expectedResultSet
-				.add(new JsonNodeWithParentObject(Val.of(JSON.booleanNode(true)), Val.of(object), "key2"));
+		expectedResultSet.add(new JsonNodeWithParentObject(Val.of(JSON.booleanNode(true)), Val.of(object), "key2"));
 
 		AttributeUnionStep step = factory.createAttributeUnionStep();
 		step.getAttributes().add("key1");
 		step.getAttributes().add("key2");
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
 					"Attribute union applied to object should return result array with corresponding attribute values",

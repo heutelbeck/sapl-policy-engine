@@ -15,40 +15,9 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Map;
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
-
 /**
  * Superclass for all binary operator expressions.
  */
 public class BinaryOperatorImplCustom extends BinaryOperatorImpl {
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = 37 * hash + ((getLeft() == null) ? 0 : getLeft().hash(imports));
-		hash = 37 * hash + ((getRight() == null) ? 0 : getRight().hash(imports));
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final BinaryOperatorImpl otherImpl = (BinaryOperatorImpl) other;
-		if ((getLeft() == null && otherImpl.getLeft() != null)
-				|| (getLeft() != null && !getLeft().isEqualTo(otherImpl.getLeft(), otherImports, imports))) {
-			return false;
-		}
-		return getRight() == null ? otherImpl.getRight() == null
-				: getRight().isEqualTo(otherImpl.getRight(), otherImports, imports);
-	}
 
 }

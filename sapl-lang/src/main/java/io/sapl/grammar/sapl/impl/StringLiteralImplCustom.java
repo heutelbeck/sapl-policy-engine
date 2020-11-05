@@ -15,40 +15,16 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Map;
-import java.util.Objects;
-
-import org.eclipse.emf.ecore.EObject;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class StringLiteralImplCustom extends StringLiteralImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		return Val.fluxOf(getString());
-	}
-
-	@Override
-	public int hash(Map<String, String> imports) {
-		int hash = 17;
-		hash = 37 * hash + Objects.hashCode(getClass().getTypeName());
-		hash = 37 * hash + Objects.hashCode(getString());
-		return hash;
-	}
-
-	@Override
-	public boolean isEqualTo(EObject other, Map<String, String> otherImports, Map<String, String> imports) {
-		if (this == other) {
-			return true;
-		}
-		if (other == null || getClass() != other.getClass()) {
-			return false;
-		}
-		final StringLiteralImplCustom otherImpl = (StringLiteralImplCustom) other;
-		return Objects.equals(getString(), otherImpl.getString());
 	}
 
 }

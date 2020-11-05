@@ -18,6 +18,7 @@ package io.sapl.grammar.sapl.impl;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -31,17 +32,16 @@ public class OrImplCustom extends OrImpl {
 	private static final String LAZY_OPERATOR_IN_TARGET = "Lazy OR operator is not allowed in the target";
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		if (!isBody) {
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+		if (TargetExpressionIdentifierUtil.isInTargetExpression(this)) {
 			// due to the constraints in indexing policy documents, lazy evaluation is not
 			// allowed in target expressions.
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
-
-		final Flux<Boolean> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
+		final Flux<Boolean> left = getLeft().evaluate(ctx, relativeNode).flatMap(Val::toBoolean);
 		return left.switchMap(leftResult -> {
 			if (Boolean.FALSE.equals(leftResult)) {
-				return getRight().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBoolean);
+				return getRight().evaluate(ctx, relativeNode).flatMap(Val::toBoolean);
 			}
 			return Flux.just(Boolean.TRUE);
 		}).map(Val::of).distinctUntilChanged();

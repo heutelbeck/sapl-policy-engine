@@ -19,14 +19,15 @@ import java.math.BigDecimal;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class MinusImplCustom extends MinusImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		final Flux<BigDecimal> left = getLeft().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBigDecimal);
-		final Flux<BigDecimal> right = getRight().evaluate(ctx, isBody, relativeNode).flatMap(Val::toBigDecimal);
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+		final Flux<BigDecimal> left = getLeft().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal);
+		final Flux<BigDecimal> right = getRight().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal);
 		return Flux.combineLatest(left, right, BigDecimal::subtract).map(Val::of).distinctUntilChanged();
 	}
 

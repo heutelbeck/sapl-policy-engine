@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
@@ -34,9 +35,9 @@ import reactor.util.function.Tuples;
 public class ElementOfImplCustom extends ElementOfImpl {
 
 	@Override
-	public Flux<Val> evaluate(EvaluationContext ctx, boolean isBody, Val relativeNode) {
-		final Flux<Val> value = getLeft().evaluate(ctx, isBody, relativeNode);
-		final Flux<Val> array = getRight().evaluate(ctx, isBody, relativeNode);
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+		final Flux<Val> value = getLeft().evaluate(ctx, relativeNode);
+		final Flux<Val> array = getRight().evaluate(ctx, relativeNode);
 		return Flux.combineLatest(value, array, Tuples::of).map(this::elementOf).distinctUntilChanged();
 	}
 

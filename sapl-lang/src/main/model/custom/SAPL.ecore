@@ -58,7 +58,7 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="eval" eType="#//Expression"
         containment="true"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="Expression" eSuperTypes="#//Evaluable #//Hashable"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Expression" eSuperTypes="#//Evaluable"/>
   <eClassifiers xsi:type="ecore:EClass" name="BasicExpression" eSuperTypes="#//Expression">
     <eStructuralFeatures xsi:type="ecore:EReference" name="filter" eType="#//FilterComponent"
         containment="true"/>
@@ -69,49 +69,46 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="steps" upperBound="-1"
         eType="#//Step" containment="true"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="Arguments" eSuperTypes="#//Hashable">
+  <eClassifiers xsi:type="ecore:EClass" name="Arguments">
     <eStructuralFeatures xsi:type="ecore:EReference" name="args" upperBound="-1" eType="#//Expression"
         containment="true"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="Step" eSuperTypes="#//Hashable">
+  <eClassifiers xsi:type="ecore:EClass" name="Step">
     <eOperations name="apply" lowerBound="1" eType="#//ResultNodeFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method performs the selection step on a result tree to arrive at a new result tree.&#xA;The new result trees are provided by the returned Flux.&#xA;&#xA;@param previousResult &#xA;&#x9;&#x9;the root node of the previous result tree&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param isBody&#xA;&#x9;&#x9;true if the step is evaluated for an expression which occurs inside of the policy body. &#xA;&#x9;&#x9;Needs to be specified because certain steps (like attribute finder steps) are not allowed in the target expression.&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the new result tree"/>
+        <details key="documentation" value="The method performs the selection step on a result tree to arrive at a new result tree.&#xA;The new result trees are provided by the returned Flux.&#xA;&#xA;@param previousResult &#xA;&#x9;&#x9;the root node of the previous result tree&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the new result tree"/>
       </eAnnotations>
       <eParameters name="previousResult" eType="#//AbstractAnnotatedJsonNode"/>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
-      <eParameters name="isBody" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
       <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
     <eOperations name="apply" lowerBound="1" eType="#//ResultNodeFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method performs the selection step on a result tree to arrive at a new result tree.&#xA;The new result trees are provided by the returned Flux.&#xA;&#xA;@param previousResult &#xA;&#x9;&#x9;the root node of the previous result tree&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param isBody&#xA;&#x9;&#x9;true if the step is evaluated for an expression which occurs inside of the policy body. &#xA;&#x9;&#x9;Needs to be specified because certain steps (like attribute finder steps) are not allowed in the target expression.&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the new result tree"/>
+        <details key="documentation" value="The method performs the selection step on a result tree to arrive at a new result tree.&#xA;The new result trees are provided by the returned Flux.&#xA;&#xA;@param previousResult &#xA;&#x9;&#x9;the root node of the previous result tree&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the new result tree"/>
       </eAnnotations>
       <eParameters name="previousResult" eType="#//ArrayResultNode"/>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
-      <eParameters name="isBody" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
       <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="UnionStep" eSuperTypes="#//Step"/>
-  <eClassifiers xsi:type="ecore:EClass" name="Value" eSuperTypes="#//Evaluable #//Hashable"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Value" eSuperTypes="#//Evaluable"/>
   <eClassifiers xsi:type="ecore:EClass" name="Pair">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="value" eType="#//Expression"
         containment="true"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="FilterComponent" eSuperTypes="#//Hashable">
+  <eClassifiers xsi:type="ecore:EClass" name="FilterComponent">
     <eOperations name="apply" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method applies the filter to a JSON tree and returns a Flux providing the filtered trees.&#xA;&#xA;@param unfilteredRootNode &#xA;&#x9;&#x9;the root node of the tree to be filtered&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param isBody&#xA;&#x9;&#x9;true if the expression occurs within the policy body (attribute&#xA;&#x9;&#x9;finder steps are only allowed if set to true)&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the filtered tree"/>
+        <details key="documentation" value="The method applies the filter to a JSON tree and returns a Flux providing the filtered trees.&#xA;&#xA;@param unfilteredRootNode &#xA;&#x9;&#x9;the root node of the tree to be filtered&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the filtered tree"/>
       </eAnnotations>
       <eParameters name="unfilteredRootNode" eType="#//Val"/>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
-      <eParameters name="isBody" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
       <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="FilterStatement" eSuperTypes="#//Hashable">
+  <eClassifiers xsi:type="ecore:EClass" name="FilterStatement">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="each" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="target" eType="#//BasicRelative"
         containment="true"/>
@@ -251,28 +248,17 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="statements" upperBound="-1"
         eType="#//FilterStatement" containment="true"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="Hashable" abstract="true" interface="true">
-    <eOperations name="hash" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt">
-      <eParameters name="imports" eType="#//StringMap"/>
-    </eOperations>
-    <eOperations name="isEqualTo" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean">
-      <eParameters name="other" eType="ecore:EClass http://www.eclipse.org/emf/2002/Ecore#//EObject"/>
-      <eParameters name="otherImports" eType="#//StringMap"/>
-      <eParameters name="imports" eType="#//StringMap"/>
-    </eOperations>
-  </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Evaluable" abstract="true" interface="true">
     <eOperations name="evaluate" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method returns a Flux of JsonNodes for the evaluation of the expression within a given evaluation context.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@param isBody &#xA;&#x9;&#x9;true if the expression occurs inside of the policy body. Needs to be specified because &#xA;&#x9;&#x9;certain steps (like attribute finder steps) are not allowed in the target expression.&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;a Flux of JsonNode results of evaluating the expression"/>
+        <details key="documentation" value="The method returns a Flux of JsonNodes for the evaluation of the expression within a given evaluation context.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;a Flux of JsonNode results of evaluating the expression"/>
       </eAnnotations>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
-      <eParameters name="isBody" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
       <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Matchable" abstract="true" interface="true">
-    <eOperations name="matches" eType="ecore:EDataType #//BooleanMono">
+    <eOperations name="matches" eType="#//BooleanMono">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value="The method returns a flag indicating whether the object it is called on matches the current authorization subscription within the given evaluation context.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@returns &#xA;&#x9;&#x9;true if the object this method is called on matches the current authorization subscription within the given evaluation context, false otherwise.&#xA;@throws PolicyEvaluationException if an error occurs while evaluating the target expression"/>
       </eAnnotations>

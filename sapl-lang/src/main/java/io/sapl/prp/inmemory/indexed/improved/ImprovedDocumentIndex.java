@@ -32,6 +32,7 @@ import io.sapl.prp.inmemory.indexed.Literal;
 import io.sapl.prp.inmemory.indexed.TreeWalker;
 import reactor.core.publisher.Mono;
 
+@Deprecated
 public class ImprovedDocumentIndex implements ParsedDocumentIndex {
 
 	private FunctionContext bufferCtx;

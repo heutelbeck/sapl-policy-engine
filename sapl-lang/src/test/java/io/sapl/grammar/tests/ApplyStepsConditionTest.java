@@ -69,7 +69,7 @@ public class ApplyStepsConditionTest {
 		ConditionStep step = factory.createConditionStep();
 		step.setExpression(basicValueFrom(factory.createTrueLiteral()));
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined()))
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -87,7 +87,7 @@ public class ApplyStepsConditionTest {
 		expression.setValue(nullLiteral);
 		step.setExpression(expression);
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined())).consumeNextWith(result -> {
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined())).consumeNextWith(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Condition step with condition always evaluation to null should return empty array",
 					expectedResultSet, resultSet);
@@ -108,7 +108,7 @@ public class ApplyStepsConditionTest {
 		expression.setValue(nullLiteral);
 		step.setExpression(expression);
 
-		StepVerifier.create(previousResult.applyStep(step, ctx, true, Val.undefined())).consumeNextWith(result -> {
+		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined())).consumeNextWith(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Condition step with condition always evaluation to null should return empty array",
 					expectedResultSet, resultSet);
@@ -134,7 +134,7 @@ public class ApplyStepsConditionTest {
 		expression.setValue(nullLiteral);
 		step.setExpression(expression);
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Condition step with condition always evaluation to null should return empty array",
 					expectedResultSet, resultSet);
@@ -164,7 +164,7 @@ public class ApplyStepsConditionTest {
 		expression.setRight(basicValueFrom(number));
 		step.setExpression(expression);
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
 					"Condition step applied to result array should return the nodes for which the condition is true",
@@ -200,7 +200,7 @@ public class ApplyStepsConditionTest {
 
 		// [20, 5][@>10] should be [20]
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals("Condition step applied to array node should return the nodes for which the condition is true",
 					expectedResultSet, resultSet);
@@ -228,7 +228,7 @@ public class ApplyStepsConditionTest {
 		expression.setRight(basicValueFrom(number));
 		step.setExpression(expression);
 
-		previousResult.applyStep(step, ctx, true, Val.undefined()).take(1).subscribe(result -> {
+		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
 			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
 			assertEquals(
 					"Condition step applied to object node should return the attribute values for which the condition is true",

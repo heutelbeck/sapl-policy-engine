@@ -57,7 +57,7 @@ public class ApplyFilteringSimpleTest {
 		FilterSimple filter = factory.createFilterSimple();
 		filter.getFsteps().add(REMOVE);
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, false, Val.undefined()))
+		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -69,7 +69,7 @@ public class ApplyFilteringSimpleTest {
 		filter.getFsteps().add(REMOVE);
 		filter.setEach(true);
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, false, Val.undefined()))
+		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -84,7 +84,7 @@ public class ApplyFilteringSimpleTest {
 
 		JsonNode expectedResult = JSON.arrayNode();
 
-		filter.apply(Val.of(root), ctx, false, Val.undefined()).take(1)
+		filter.apply(Val.of(root), ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals("Remove applied to array with each should return empty array",
 						Val.of(expectedResult), result));
 	}
@@ -98,7 +98,7 @@ public class ApplyFilteringSimpleTest {
 
 		JsonNode expectedResult = JSON.textNode("");
 
-		filter.apply(Val.of(root), ctx, false, Val.undefined()).take(1)
+		filter.apply(Val.of(root), ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Mock function EMPTY_STRING applied to array without each should return empty string",
 						Val.of(expectedResult), result));
@@ -123,7 +123,7 @@ public class ApplyFilteringSimpleTest {
 		expectedResult.add(JSON.textNode(""));
 		expectedResult.add(JSON.textNode(""));
 
-		filter.apply(Val.of(root), ctx, false, Val.undefined()).take(1)
+		filter.apply(Val.of(root), ctx, Val.undefined()).take(1)
 				.subscribe(result -> assertEquals(
 						"Mock function EMPTY_STRING applied to array with each should return array with empty strings",
 						Val.of(expectedResult), result));

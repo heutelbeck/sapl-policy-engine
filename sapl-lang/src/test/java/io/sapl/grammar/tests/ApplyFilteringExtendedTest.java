@@ -63,7 +63,7 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add(REMOVE);
 		filter.getStatements().add(statement);
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, false, Val.undefined()))
+		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
 				.verifyError(PolicyEvaluationException.class);
 	}
 
@@ -78,7 +78,7 @@ public class ApplyFilteringExtendedTest {
 		statement.setEach(true);
 		filter.getStatements().add(statement);
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, false, Val.undefined()))
+		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
 				.verifyError(PolicyEvaluationException.class);
 	}
 
@@ -97,7 +97,7 @@ public class ApplyFilteringExtendedTest {
 
 		Val expectedResult = Val.of(JSON.arrayNode());
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, false, Val.undefined()))
+		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
 				.consumeNextWith(result -> assertEquals("Function remove, no steps and each should return empty array",
 						expectedResult, result))
 				.thenCancel().verify();
@@ -117,7 +117,7 @@ public class ApplyFilteringExtendedTest {
 
 		Val expectedResult = Val.of(JSON.textNode(""));
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, false, Val.undefined()))
+		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
 				.consumeNextWith(result -> assertEquals(
 						"Mock function EMPTY_STRING, no steps, no each should return empty string", expectedResult,
 						result))
@@ -141,7 +141,7 @@ public class ApplyFilteringExtendedTest {
 		expectedResult.add(JSON.textNode(""));
 		expectedResult.add(JSON.textNode(""));
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, false, Val.undefined()))
+		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
 				.consumeNextWith(result -> assertEquals(
 						"Mock function EMPTY_STRING, no steps, each should array with empty strings",
 						Val.of(expectedResult), result))
@@ -169,7 +169,7 @@ public class ApplyFilteringExtendedTest {
 
 		filter.getStatements().add(statement);
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, false, Val.undefined()))
+		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
 				.verifyError(PolicyEvaluationException.class);
 	}
 
@@ -190,7 +190,7 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add(REMOVE);
 		filter.getStatements().add(statement);
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, false, Val.undefined()))
+		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
 				.expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -211,7 +211,7 @@ public class ApplyFilteringExtendedTest {
 		statement.getFsteps().add("EMPTY_STRING");
 		filter.getStatements().add(statement);
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, false, Val.undefined()))
+		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
 				.verifyError(PolicyEvaluationException.class);
 	}
 
@@ -237,11 +237,9 @@ public class ApplyFilteringExtendedTest {
 		expectedResult.add(JSON.textNode(""));
 		expectedResult.add(JSON.booleanNode(true));
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, false, Val.undefined()))
-				.consumeNextWith(result -> assertEquals(
-						"Mock function EMPTY_STRING applied to result array and each should replace selected elements by empty string",
-						Val.of(expectedResult), result))
-				.thenCancel().verify();
+		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined())).consumeNextWith(result -> assertEquals(
+				"Mock function EMPTY_STRING applied to result array and each should replace selected elements by empty string",
+				Val.of(expectedResult), result)).thenCancel().verify();
 	}
 
 	@Test
@@ -265,7 +263,7 @@ public class ApplyFilteringExtendedTest {
 		ArrayNode expectedResult = JSON.arrayNode();
 		expectedResult.add(JSON.booleanNode(true));
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, false, Val.undefined()))
+		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
 				.consumeNextWith(
 						result -> assertEquals("Remove applied to result array and each should remove each element",
 								Val.of(expectedResult), result))
