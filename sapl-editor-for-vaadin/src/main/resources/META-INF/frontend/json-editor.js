@@ -24,34 +24,31 @@ class JSONEditor extends LitElement {
     var self = this;
     var shadowRoot = self.shadowRoot;
 
-    require(["./xtext-codemirror.min",
+    require(["codemirror",
       "codemirror/addon/edit/matchbrackets",
       "codemirror/addon/edit/closebrackets",
       "codemirror/addon/hint/show-hint",
       "codemirror/addon/lint/lint",
       "codemirror/addon/lint/json-lint",
       "codemirror/mode/javascript/javascript"], 
-      function (xtext, matchbrackets, closebrackets, showHint, lint, jsonlint, mode) {
-        self.editor = xtext.createEditor({
-          document: shadowRoot,
-          sendFullText: true,
-          mode: "application/ld+json",
+      function (codemirror, matchbrackets, closebrackets, showHint, lint, jsonlint, mode) {
+        
+        self.editor = codemirror(shadowRoot, {
+          value: self.document,
+          mode: "application/json",
+          gutters: ["CodeMirror-lint-markers"],
           lineNumbers: self.hasLineNumbers,
-          showCursorWhenSelecting: true,
           autoCloseBrackets: self.autoCloseBrackets,
           matchBrackets: self.matchBrackets,
-          enableValidationService: true,
+          showCursorWhenSelecting: true,
           textUpdateDelay: self.textUpdateDelay,
-          lint: true,
+          lint: false,
         });
 
-        self.editor.doc.setValue(self.document);
-        self.editor.doc.on("change", function (doc, changeObj) {
-          var value = doc.getValue();
+        self.editor.on("change", function(cm, changeObj) {
+          var value = cm.getValue();
           self.onDocumentChanged(value);
         });
-
-        shadowRoot.appendChild(widget_container);
       });
   }
 
