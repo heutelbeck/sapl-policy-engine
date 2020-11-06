@@ -96,7 +96,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(arrayNode.size());
 		IntStream.range(0, arrayNode.size()).forEach(idx -> itemFluxes
-				.add(getExpression().evaluate(ctx, Val.of(arrayNode.get(idx))).flatMap(Val::toJsonNode)));
+				.add(getExpression().evaluate(ctx, Val.of(arrayNode.get(idx))).concatMap(Val::toJsonNode)));
 		// handle the empty array
 		if (itemFluxes.isEmpty()) {
 			return Flux.just(new ArrayResultNode(new ArrayList<>()));
@@ -132,7 +132,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			final JsonNode fieldValue = objectNode.get(fieldName);
 			fieldNames.add(fieldName);
 			fieldValues.add(fieldValue);
-			valueFluxes.add(getExpression().evaluate(ctx, Val.of(fieldValue)).flatMap(Val::toJsonNode));
+			valueFluxes.add(getExpression().evaluate(ctx, Val.of(fieldValue)).concatMap(Val::toJsonNode));
 		}
 		// handle the empty object
 		if (valueFluxes.isEmpty()) {
@@ -184,7 +184,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		// indices
 		// of the flux results, because combineLatest() preserves the order of the given
 		// list of fluxes in the results array passed to the combinator function
-		return Flux.combineLatest(conditionResultFluxes, Function.identity()).flatMap(results -> {
+		return Flux.combineLatest(conditionResultFluxes, Function.identity()).concatMap(results -> {
 			final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
 			// iterate over all condition results and collect the array elements
 			// related to a result representing true

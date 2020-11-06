@@ -49,11 +49,11 @@ public class BasicFunctionImplCustom extends BasicFunctionImpl {
 			// evaluate the function for each value assignment of the arguments
 			return Flux.combineLatest(arguments, Function.identity()).switchMap(
 					parameters -> evaluateFunction(Arrays.copyOf(parameters, parameters.length, Val[].class), ctx))
-					.flatMap(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, relativeNode));
+					.concatMap(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, relativeNode));
 		} else {
 			// No need to evaluate arguments. Just evaluate and apply steps.
 			return evaluateFunction(null, ctx)
-					.flatMap(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, relativeNode));
+					.concatMap(funResult -> evaluateStepsFilterSubtemplate(funResult, getSteps(), ctx, relativeNode));
 		}
 	}
 

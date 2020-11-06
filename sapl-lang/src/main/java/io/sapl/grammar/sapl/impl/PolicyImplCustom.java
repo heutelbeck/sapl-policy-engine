@@ -69,7 +69,7 @@ public class PolicyImplCustom extends PolicyImpl {
 		final Flux<Decision> decisionFlux = getBody() != null ? getBody().evaluate(entitlement, policyCtx)
 				: Flux.just(entitlement);
 
-		return decisionFlux.flatMap(decision -> {
+		return decisionFlux.concatMap(decision -> {
 			if (decision == Decision.PERMIT || decision == Decision.DENY) {
 				return evaluateObligationsAndAdvice(policyCtx).map(obligationsAndAdvice -> {
 					final Optional<ArrayNode> obligations = obligationsAndAdvice.getT1();
@@ -79,7 +79,7 @@ public class PolicyImplCustom extends PolicyImpl {
 			} else {
 				return Flux.just(new AuthorizationDecision(decision));
 			}
-		}).flatMap(authzDecision -> {
+		}).concatMap(authzDecision -> {
 			final Decision decision = authzDecision.getDecision();
 			if (decision == Decision.PERMIT) {
 				return evaluateTransformation(policyCtx).map(resource -> new AuthorizationDecision(decision, resource,

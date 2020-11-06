@@ -19,28 +19,27 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 public class PlusImplCustom extends PlusImpl {
+
+	private static final String UNDEFINED = "undefined";
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
 		final Flux<Val> right = getRight().evaluate(ctx, relativeNode);
-		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().flatMap(this::plus);
+		return Flux.combineLatest(left, right, this::plus).distinctUntilChanged();
 	}
 
-	private Flux<Val> plus(Tuple2<Val, Val> tuple) {
-		if (tuple.getT1().isDefined() && tuple.getT2().isDefined() && tuple.getT1().get().isNumber()
-				&& tuple.getT2().get().isNumber()) {
-			return Val.fluxOf(tuple.getT1().get().decimalValue().add(tuple.getT2().get().decimalValue()));
+	private Val plus(Val left, Val right) {
+		if (left.isDefined() && right.isDefined() && left.isNumber() && right.isNumber()) {
+			return Val.of(left.get().decimalValue().add(right.get().decimalValue()));
 		}
 		// The left or right value (or both) is/are not numeric. The plus operator is
 		// therefore interpreted as a string concatenation operator.
-		String left = tuple.getT1().orElseGet(() -> JSON.textNode("undefined")).asText();
-		String right = tuple.getT2().orElseGet(() -> JSON.textNode("undefined")).asText();
-		return Val.fluxOf(left.concat(right));
+		String lStr = left.orElse(JSON.textNode(UNDEFINED)).asText();
+		String rStr = right.orElse(JSON.textNode(UNDEFINED)).asText();
+		return Val.of(lStr.concat(rStr));
 	}
 
 }

@@ -38,10 +38,10 @@ public class OrImplCustom extends OrImpl {
 			// allowed in target expressions.
 			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
 		}
-		final Flux<Boolean> left = getLeft().evaluate(ctx, relativeNode).flatMap(Val::toBoolean);
+		final Flux<Boolean> left = getLeft().evaluate(ctx, relativeNode).concatMap(Val::toBoolean);
 		return left.switchMap(leftResult -> {
 			if (Boolean.FALSE.equals(leftResult)) {
-				return getRight().evaluate(ctx, relativeNode).flatMap(Val::toBoolean);
+				return getRight().evaluate(ctx, relativeNode).concatMap(Val::toBoolean);
 			}
 			return Flux.just(Boolean.TRUE);
 		}).map(Val::of).distinctUntilChanged();

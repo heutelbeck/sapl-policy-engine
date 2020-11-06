@@ -104,7 +104,7 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 			return Flux.just(Val.of(arrayNode));
 		}
 		return Flux.combineLatest(fluxes, Function.identity())
-				.flatMap(replacements -> replace(arrayNode, replacements));
+				.concatMap(replacements -> replace(arrayNode, replacements));
 	}
 
 	private Flux<Val> replace(ArrayNode arrayNode, Object[] replacements) {

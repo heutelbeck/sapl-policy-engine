@@ -33,8 +33,8 @@ public class DivImplCustom extends DivImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		final Flux<BigDecimal> divident = getLeft().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal);
-		final Flux<BigDecimal> divisor = getRight().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal);
+		final Flux<BigDecimal> divident = getLeft().evaluate(ctx, relativeNode).concatMap(Val::toBigDecimal);
+		final Flux<BigDecimal> divisor = getRight().evaluate(ctx, relativeNode).concatMap(Val::toBigDecimal);
 		return Flux.combineLatest(divident, divisor, BigDecimal::divide).map(Val::of).distinctUntilChanged();
 	}
 

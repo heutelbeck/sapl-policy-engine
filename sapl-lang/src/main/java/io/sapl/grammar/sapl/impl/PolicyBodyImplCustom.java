@@ -95,7 +95,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	}
 
 	private Flux<Boolean> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx) {
-		return valueDefinition.getEval().evaluate(evaluationCtx, Val.undefined()).flatMap(evaluatedValue -> {
+		return valueDefinition.getEval().evaluate(evaluationCtx, Val.undefined()).concatMap(evaluatedValue -> {
 			try {
 				if (evaluatedValue.isDefined()) {
 					evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
@@ -111,7 +111,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	}
 
 	private Flux<Boolean> evaluateCondition(Condition condition, EvaluationContext evaluationCtx) {
-		return condition.getExpression().evaluate(evaluationCtx, Val.undefined()).flatMap(statementResult -> {
+		return condition.getExpression().evaluate(evaluationCtx, Val.undefined()).concatMap(statementResult -> {
 			if (statementResult.isDefined() && statementResult.get().isBoolean()) {
 				return Flux.just(statementResult.get().asBoolean());
 			} else {

@@ -39,8 +39,8 @@ public class RegexImplCustom extends RegexImpl {
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
-		final Flux<String> right = getRight().evaluate(ctx, relativeNode).flatMap(Val::toText);
-		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().flatMap(this::matchRegexp);
+		final Flux<String> right = getRight().evaluate(ctx, relativeNode).concatMap(Val::toText);
+		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().concatMap(this::matchRegexp);
 	}
 
 	private Flux<Val> matchRegexp(Tuple2<Val, String> tuple) {

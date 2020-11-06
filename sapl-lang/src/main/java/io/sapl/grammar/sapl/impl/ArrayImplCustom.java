@@ -58,7 +58,7 @@ public class ArrayImplCustom extends ArrayImpl {
 		// aggregate child fluxes into a flux of a JSON array
 		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(getItems().size());
 		for (Expression item : getItems()) {
-			itemFluxes.add(item.evaluate(ctx, relativeNode).flatMap(Val::toJsonNode));
+			itemFluxes.add(item.evaluate(ctx, relativeNode).concatMap(Val::toJsonNode));
 		}
 		return Flux.combineLatest(itemFluxes, Function.identity()).map(this::collectValuesToArrayNode).map(Val::of);
 	}

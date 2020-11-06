@@ -26,7 +26,7 @@ public class UnaryMinusImplCustom extends UnaryMinusImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return getExpression().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal).map(BigDecimal::negate)
+		return getExpression().evaluate(ctx, relativeNode).concatMap(Val::toBigDecimal).map(BigDecimal::negate)
 				.map(Val::of).distinctUntilChanged();
 	}
 

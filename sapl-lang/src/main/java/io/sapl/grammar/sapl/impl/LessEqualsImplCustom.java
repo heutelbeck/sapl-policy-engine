@@ -32,8 +32,8 @@ public class LessEqualsImplCustom extends LessEqualsImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		final Flux<BigDecimal> left = getLeft().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal);
-		final Flux<BigDecimal> right = getRight().evaluate(ctx, relativeNode).flatMap(Val::toBigDecimal);
+		final Flux<BigDecimal> left = getLeft().evaluate(ctx, relativeNode).concatMap(Val::toBigDecimal);
+		final Flux<BigDecimal> right = getRight().evaluate(ctx, relativeNode).concatMap(Val::toBigDecimal);
 		return Flux.combineLatest(left, right, this::lessOrEqual).map(Val::of).distinctUntilChanged();
 	}
 

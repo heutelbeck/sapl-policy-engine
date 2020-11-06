@@ -70,7 +70,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	@Override
 	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
 			@NonNull Val relativeNode) {
-		return getExpression().evaluate(ctx, relativeNode).flatMap(expressionResult -> {
+		return getExpression().evaluate(ctx, relativeNode).concatMap(expressionResult -> {
 			try {
 				return Flux.just(handleExpressionResultFor(previousResult, expressionResult));
 			} catch (PolicyEvaluationException e) {
@@ -140,8 +140,8 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 	 */
 	@Override
 	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
-		return getExpression().evaluate(ctx, previousResult.asJsonWithoutAnnotations()).flatMap(Val::toJsonNode)
-				.flatMap(expressionResult -> handleExpressionResultFor(previousResult, expressionResult));
+		return getExpression().evaluate(ctx, previousResult.asJsonWithoutAnnotations()).concatMap(Val::toJsonNode)
+				.concatMap(expressionResult -> handleExpressionResultFor(previousResult, expressionResult));
 	}
 
 	private Flux<ResultNode> handleExpressionResultFor(ArrayResultNode previousResult, JsonNode result) {

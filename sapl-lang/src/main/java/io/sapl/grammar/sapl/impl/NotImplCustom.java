@@ -24,7 +24,7 @@ public class NotImplCustom extends NotImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return expression.evaluate(ctx, relativeNode).flatMap(Val::toBoolean).map(bool -> !bool).map(Val::of)
+		return expression.evaluate(ctx, relativeNode).concatMap(Val::toBoolean).map(bool -> !bool).map(Val::of)
 				.distinctUntilChanged();
 	}
 
