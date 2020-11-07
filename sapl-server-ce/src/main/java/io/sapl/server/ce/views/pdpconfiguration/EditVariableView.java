@@ -20,6 +20,7 @@ import io.sapl.server.ce.service.pdpconfiguration.InvalidJsonException;
 import io.sapl.server.ce.service.pdpconfiguration.VariablesService;
 import io.sapl.server.ce.views.MainView;
 import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
+import io.sapl.vaadin.JsonEditor;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -48,8 +49,8 @@ public class EditVariableView extends PolymerTemplate<EditVariableView.EditVaria
 	@Id(value = "nameTextArea")
 	private TextArea nameTextArea;
 
-	@Id(value = "jsonValueTextArea")
-	private TextArea jsonValueTextArea;
+	@Id(value = "jsonEditor")
+	private JsonEditor jsonEditor;
 
 	@Id(value = "editButton")
 	private Button editButton;
@@ -65,33 +66,33 @@ public class EditVariableView extends PolymerTemplate<EditVariableView.EditVaria
 
 	@Override
 	public void setParameter(BeforeEvent event, Long parameter) {
-		this.variableId = parameter;
+		variableId = parameter;
 
-		this.reloadVariable();
-		this.addListener();
+		reloadVariable();
+		addListener();
 	}
 
 	private void reloadVariable() {
-		this.variable = this.variableService.getById(this.variableId);
+		variable = variableService.getById(variableId);
 
-		this.setUI();
+		setUI();
 	}
 
 	/**
 	 * Imports the previously set instance of {@link Variable} to the UI.
 	 */
 	private void setUI() {
-		this.nameTextArea.setValue(this.variable.getName());
-		this.jsonValueTextArea.setValue(this.variable.getJsonValue());
+		nameTextArea.setValue(variable.getName());
+		jsonEditor.setDocument(variable.getJsonValue());
 	}
 
 	private void addListener() {
 		editButton.addClickListener(clickEvent -> {
 			String name = nameTextArea.getValue();
-			String jsonValue = jsonValueTextArea.getValue();
+			String jsonValue = jsonEditor.getDocument();
 
 			try {
-				variableService.edit(this.variableId, name, jsonValue);
+				variableService.edit(variableId, name, jsonValue);
 			} catch (InvalidJsonException ex) {
 				log.error("cannot edit variable due to invalid json", ex);
 				ErrorNotificationUtils.show("Value contains invalid JSON");
