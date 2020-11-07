@@ -28,4 +28,14 @@ public final class ErrorNotificationUtils {
 		notification.setPosition(NOTIFICATION_POSITION);
 		notification.open();
 	}
+
+	/**
+	 * Shows an error notification with a specified error message via an instance of
+	 * {@link Throwable}.
+	 * 
+	 * @param throwable the {@link Throwable} to show its message
+	 */
+	public static void show(@NonNull Throwable throwable) {
+		show(throwable.getMessage());
+	}
 }

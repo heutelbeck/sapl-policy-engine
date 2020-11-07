@@ -26,12 +26,12 @@ class ListClientCredentials extends PolymerElement {
   <vaadin-vertical-layout id="editCurrentClientCredentialsLayout" style="width: 50%;">
    <vaadin-text-field label="Key" id="currentKeyTextField" style="margin: var(--lumo-space-s); width: 100%;" minlength="1" required maxlength="20" prevent-invalid-input></vaadin-text-field>
    <vaadin-vertical-layout style="width: 100%;">
-    <vaadin-checkbox style="margin: var(--lumo-space-s);" value="">
-     Change Secret
+    <vaadin-checkbox style="margin: var(--lumo-space-s);" value="" id="isChangingSecretCheckBox">
+      Change Secret 
     </vaadin-checkbox>
     <vaadin-password-field label="Secret" placeholder="Enter secret" value="default" id="currentSecretPasswordField" style="margin: var(--lumo-space-s); width: 100%;" minlength="1" required maxlength="100" has-value></vaadin-password-field>
    </vaadin-vertical-layout>
-   <vaadin-button theme="primary" style="margin: var(--lumo-space-s);">
+   <vaadin-button theme="primary" style="margin: var(--lumo-space-s);" id="saveCurrentCredentialsButton">
      Save 
    </vaadin-button>
   </vaadin-vertical-layout>
