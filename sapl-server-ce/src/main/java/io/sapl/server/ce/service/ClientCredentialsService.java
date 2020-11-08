@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import com.google.common.hash.Hashing;
@@ -78,7 +79,12 @@ public class ClientCredentialsService {
 			clientCredentialsToEdit.setHashedSecret(hashSecret(secret, key));
 		}
 
-		clientCredentialsRepository.save(clientCredentialsToEdit);
+		try {
+			clientCredentialsRepository.save(clientCredentialsToEdit);
+		} catch (DataIntegrityViolationException ex) {
+			throw new IllegalArgumentException(
+					"The provided credentials are invalid (e.g. referenced already used key).", ex);
+		}
 	}
 
 	/**
