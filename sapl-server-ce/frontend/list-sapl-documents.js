@@ -17,7 +17,7 @@ class ListSaplDocuments extends PolymerElement {
                     height: 100%;
                 }
             </style>
-<vaadin-vertical-layout style="width: 100%; height: 100%; padding: var(--lumo-space-m);" theme="spacing">
+<vaadin-vertical-layout style="width: 100%; height: 100%; padding: var(--lumo-space-s);" theme="spacing-s">
  <vaadin-button id="createButton" theme="primary">
    Create 
  </vaadin-button>

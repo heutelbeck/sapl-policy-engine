@@ -17,12 +17,12 @@ class ListClientCredentials extends PolymerElement {
                     height: 100%;
                 }
             </style>
-<vaadin-vertical-layout style="width: 100%; height: 100%;">
- <vaadin-button theme="primary" id="createButton" style="margin: var(--lumo-space-s);">
-   Add 
+<vaadin-vertical-layout style="width: 100%; height: 100%; padding: var(--lumo-space-s);" theme="spacing-s">
+ <vaadin-button theme="primary" id="createButton">
+  Create
  </vaadin-button>
  <vaadin-split-layout style="width: 100%; height: 100%;">
-  <vaadin-grid id="clientCredentialsGrid" style="width: 50%; margin: var(--lumo-space-s); height: 100%;"></vaadin-grid>
+  <vaadin-grid id="clientCredentialsGrid" style="width: 50%; height: 100%;"></vaadin-grid>
   <vaadin-vertical-layout id="editCurrentClientCredentialsLayout" style="width: 50%;">
    <vaadin-text-field label="Key" id="currentKeyTextField" style="margin: var(--lumo-space-s); width: 100%;" minlength="1" required maxlength="20" prevent-invalid-input></vaadin-text-field>
    <vaadin-vertical-layout style="width: 100%;">

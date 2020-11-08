@@ -15,7 +15,7 @@ class ConfigurePdp extends PolymerElement {
                     height: 100%;
                 }
             </style>
-<vaadin-vertical-layout style="width: 100%; height: 100%;">
+<vaadin-vertical-layout style="width: 100%; height: 100%; padding: var(--lumo-space-s);" theme="spacing-s">
  <h1>Combining Algorithm</h1>
  <div style="margin: var(--lumo-space-s);">
    The combining algorithm describes how to come to the final decision while evaluating policies 
@@ -26,9 +26,6 @@ class ConfigurePdp extends PolymerElement {
   <vaadin-combo-box id="comboBoxCombAlgo" style="align-self: flex-start; width: 250px; margin: var(--lumo-space-s);"></vaadin-combo-box>
  </vaadin-horizontal-layout>
  <h1>Variables</h1>
- <div style="margin: var(--lumo-space-s);">
-   TODO: introduction text 
- </div>
  <vaadin-button theme="primary" id="createVariableButton" style="margin: var(--lumo-space-s);">
    Create 
  </vaadin-button>
