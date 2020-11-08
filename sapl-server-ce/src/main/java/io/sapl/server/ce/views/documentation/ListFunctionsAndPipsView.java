@@ -41,7 +41,7 @@ import lombok.RequiredArgsConstructor;
 @PageTitle("Functions & Attributes")
 @RequiredArgsConstructor
 public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPipsView.ListFunctionsAndPipsViewModel> {
-	public static final String ROUTE = "foo";
+	public static final String ROUTE = "functions";
 
 	private final FunctionLibrariesDocumentation functionLibrariesDocumentation;
 	private final PolicyInformationPointsDocumentation policyInformationPointsDocumentation;
