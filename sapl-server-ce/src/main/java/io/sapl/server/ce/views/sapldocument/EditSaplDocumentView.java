@@ -43,7 +43,7 @@ import lombok.NonNull;
 @PageTitle("Edit SAPL document")
 public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.EditSaplDocumentModel>
 		implements HasUrlParameter<Long> {
-	public static final String ROUTE = "documents/edit";
+	public static final String ROUTE = "documents";
 
 	private static final String NEW_VERSION_SELECTION_ENTRY = "New Version";
 

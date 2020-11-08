@@ -1,7 +1,7 @@
 import {html, PolymerElement} from '@polymer/polymer/polymer-element.js';
 import '@vaadin/vaadin-ordered-layout/src/vaadin-vertical-layout.js';
 import '@vaadin/flow-frontend/json-editor.js';
-import '@vaadin/vaadin-text-field/src/vaadin-text-area.js';
+import '@vaadin/vaadin-text-field/src/vaadin-text-field.js';
 
 class EditVariable extends PolymerElement {
 
@@ -14,7 +14,7 @@ class EditVariable extends PolymerElement {
                 }
             </style>
 <vaadin-vertical-layout style="width: 100%; height: 100%; padding: var(--lumo-space-m);" theme="spacing">
- <vaadin-text-area label="Name" id="nameTextArea" minlength="1" has-value style="width: 300px;"></vaadin-text-area>
+ <vaadin-text-field label="Name" id="nameTextField" style="width: 300px;" minlength="1" required></vaadin-text-field>
  <json-editor style="width: 100%; height: 100%;" id="jsonEditor"></json-editor>
  <vaadin-horizontal-layout style="margin: var(--lumo-space-s); padding: var(--lumo-space-s); align-self: flex-end;">
   <vaadin-button theme="primary" id="editButton" style="margin: var(--lumo-space-s);">

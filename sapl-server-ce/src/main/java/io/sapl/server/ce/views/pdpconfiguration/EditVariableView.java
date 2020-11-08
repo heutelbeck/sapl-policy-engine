@@ -7,7 +7,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.polymertemplate.Id;
 import com.vaadin.flow.component.polymertemplate.PolymerTemplate;
-import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
@@ -39,15 +39,15 @@ import lombok.extern.slf4j.Slf4j;
 @NoArgsConstructor
 public class EditVariableView extends PolymerTemplate<EditVariableView.EditVariableModel>
 		implements HasUrlParameter<Long> {
-	public static final String ROUTE = "pdp-config/variables/edit";
+	public static final String ROUTE = "pdp-config/edit-variable";
 
 	@Autowired
 	private VariablesService variableService;
 
 	private long variableId;
 
-	@Id(value = "nameTextArea")
-	private TextArea nameTextArea;
+	@Id(value = "nameTextField")
+	private TextField nameTextField;
 
 	@Id(value = "jsonEditor")
 	private JsonEditor jsonEditor;
@@ -82,13 +82,13 @@ public class EditVariableView extends PolymerTemplate<EditVariableView.EditVaria
 	 * Imports the previously set instance of {@link Variable} to the UI.
 	 */
 	private void setUI() {
-		nameTextArea.setValue(variable.getName());
+		nameTextField.setValue(variable.getName());
 		jsonEditor.setDocument(variable.getJsonValue());
 	}
 
 	private void addListener() {
 		editButton.addClickListener(clickEvent -> {
-			String name = nameTextArea.getValue();
+			String name = nameTextField.getValue();
 			String jsonValue = jsonEditor.getDocument();
 
 			try {
