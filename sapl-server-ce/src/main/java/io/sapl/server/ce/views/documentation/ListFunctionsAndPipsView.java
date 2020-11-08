@@ -11,6 +11,7 @@ import javax.annotation.PostConstruct;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.polymertemplate.Id;
@@ -94,10 +95,10 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 						}, query -> documentationAsEntrySet.size());
 
 				functionsOfCurrentFunctionLibGrid.removeAllColumns();
-				functionsOfCurrentFunctionLibGrid.addColumn(Entry<String, String>::getKey).setHeader("Function")
-						.setAutoWidth(true);
+				functionsOfCurrentFunctionLibGrid.addColumn(Entry<String, String>::getKey).setHeader("Function");
 				functionsOfCurrentFunctionLibGrid.addColumn(Entry<String, String>::getValue).setHeader("Documentation")
-						.setAutoWidth(true);
+						.setFlexGrow(5);
+				functionsOfCurrentFunctionLibGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
 				functionsOfCurrentFunctionLibGrid.setDataProvider(dataProviderForFunctionsOfCurrentFunctionLibGrid);
 			}, () -> {
 				showCurrentFunctionLibLayout.setVisible(false);
