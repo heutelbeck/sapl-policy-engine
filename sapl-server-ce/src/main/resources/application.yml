@@ -44,4 +44,5 @@ spring:
 #    username: root
 #    password: testdb
 #  jpa:
-#    hibernate.ddl-auto: create-drop
+#    hibernate.ddl-auto: update
+#    database-platform: org.hibernate.dialect.MariaDB53Dialect

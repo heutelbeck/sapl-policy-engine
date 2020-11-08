@@ -52,13 +52,13 @@ public class SaplDocumentVersion {
 	/**
 	 * The value / text of the SAPL document version.
 	 */
-	@Column(length = 50000)
+	@Column(length = 2000)
 	private String value;
 
 	/**
 	 * The name included in the value / text of the SAPL document version
 	 * (redundancy for better query performance).
 	 */
-	@Column(length = 50000)
+	@Column(length = 250)
 	private String name;
 }

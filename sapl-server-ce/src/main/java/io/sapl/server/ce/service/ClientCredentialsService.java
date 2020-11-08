@@ -48,17 +48,13 @@ public class ClientCredentialsService {
 	public ClientCredentials createDefault() {
 		ClientCredentials clientCredentialsToCreate = new ClientCredentials();
 		clientCredentialsToCreate.setKey(UUID.randomUUID().toString());
-		clientCredentialsToCreate.setHashedSecret(hashSecret(UUID.randomUUID().toString()));
+		clientCredentialsToCreate.setSecret(hashSecret(UUID.randomUUID().toString()));
 
 		ClientCredentials createdClientCredentials = clientCredentialsRepository.save(clientCredentialsToCreate);
 
 		log.info(String.format("created client credentials: key = %s", createdClientCredentials.getKey()));
 
 		return createdClientCredentials;
-	}
-
-	private String hashSecret(@NonNull String secret) {
-		return Hashing.sha512().hashString(secret, StandardCharsets.UTF_8).toString();
 	}
 
 	/**
@@ -78,7 +74,7 @@ public class ClientCredentialsService {
 		clientCredentialsToEdit.setKey(key);
 
 		if (secret != null) {
-			clientCredentialsToEdit.setHashedSecret(hashSecret(secret));
+			clientCredentialsToEdit.setSecret(hashSecret(secret));
 		}
 
 		clientCredentialsRepository.save(clientCredentialsToEdit);
@@ -91,5 +87,9 @@ public class ClientCredentialsService {
 	 */
 	public void delete(@NonNull Long id) {
 		this.clientCredentialsRepository.deleteById(id);
+	}
+
+	private String hashSecret(@NonNull String secret) {
+		return Hashing.sha512().hashString(secret, StandardCharsets.UTF_8).toString();
 	}
 }
