@@ -117,6 +117,7 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 				functionsOfCurrentFunctionLibGrid.addColumn(Entry<String, String>::getValue).setHeader("Documentation")
 						.setFlexGrow(5);
 				functionsOfCurrentFunctionLibGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
+				functionsOfCurrentFunctionLibGrid.setSelectionMode(SelectionMode.NONE);
 				functionsOfCurrentFunctionLibGrid.setDataProvider(dataProviderForFunctionsOfCurrentFunctionLibGrid);
 			}, () -> {
 				showCurrentFunctionLibLayout.setVisible(false);
@@ -167,6 +168,7 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 				functionsOfCurrentPipGrid.addColumn(Entry<String, String>::getValue).setHeader("Documentation")
 						.setFlexGrow(5);
 				functionsOfCurrentPipGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
+				functionsOfCurrentPipGrid.setSelectionMode(SelectionMode.NONE);
 				functionsOfCurrentPipGrid.setDataProvider(dataProviderForFunctionsOfCurrentPipGrid);
 			}, () -> {
 				showCurrentPipLayout.setVisible(false);

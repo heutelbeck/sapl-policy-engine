@@ -1,12 +1,15 @@
 package io.sapl.server.ce.views;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.dependency.CssImport;
@@ -42,6 +45,8 @@ import io.sapl.server.ce.views.sapldocument.SaplDocumentsView;
 public class MainView extends AppLayout {
 
 	private final Tabs menu;
+	private final Map<Integer, RouterLink> routerLinksPerTabIndex = Maps.newTreeMap();
+
 	private H1 viewTitle;
 
 	public MainView() {
@@ -86,6 +91,13 @@ public class MainView extends AppLayout {
 		tabs.addThemeVariants(TabsVariant.LUMO_MINIMAL);
 		tabs.setId("tabs");
 		tabs.add(createMenuItems());
+		tabs.addSelectedChangeListener((selectedChangeEvent) -> {
+			// always navigate to target independently from clicking on link, icon or
+			// background
+			RouterLink relevantRouterLink = routerLinksPerTabIndex.get(tabs.getSelectedIndex());
+			UI.getCurrent().navigate(relevantRouterLink.getHref());
+		});
+
 		return tabs;
 	}
 
@@ -98,14 +110,19 @@ public class MainView extends AppLayout {
 				Pair.of(new RouterLink("Functions & Attributes", ListFunctionsAndPipsView.class), VaadinIcon.BOOK),
 				Pair.of(new RouterLink("Client Credentials", ListClientCredentials.class), VaadinIcon.SIGN_IN));
 		//@formatter:on
-		return linksWithIcons.stream().map(MainView::createTab).toArray(Tab[]::new);
+		return linksWithIcons.stream().map(this::createTab).toArray(Tab[]::new);
 	}
 
-	private static Tab createTab(Pair<RouterLink, VaadinIcon> linkWithIcon) {
+	private Tab createTab(Pair<RouterLink, VaadinIcon> linkWithIcon) {
+		RouterLink routerLink = linkWithIcon.getLeft();
+		VaadinIcon icon = linkWithIcon.getRight();
+
 		HorizontalLayout layout = new HorizontalLayout();
-		layout.add(linkWithIcon.getRight().create());
-		layout.add(linkWithIcon.getLeft());
+		layout.add(icon.create());
+		layout.add(routerLink);
 		layout.setAlignItems(com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment.CENTER);
+
+		routerLinksPerTabIndex.put(routerLinksPerTabIndex.size(), routerLink);
 
 		final Tab tab = new Tab();
 		tab.add(layout);
