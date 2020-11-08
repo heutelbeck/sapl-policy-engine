@@ -1,8 +1,11 @@
 package io.sapl.server.ce.views;
 
-import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
+import org.apache.commons.lang3.tuple.Pair;
+
+import com.google.common.collect.Lists;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
@@ -10,6 +13,7 @@ import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -86,17 +90,25 @@ public class MainView extends AppLayout {
 	}
 
 	private Component[] createMenuItems() {
-		RouterLink[] links = new RouterLink[] { new RouterLink("Home", ShowHome.class),
-				new RouterLink("SAPL Documents", SaplDocumentsView.class),
-				new RouterLink("PDP Configuration", ConfigurePdp.class),
-				new RouterLink("Functions & Attributes", ListFunctionsAndPipsView.class),
-				new RouterLink("Client Credentials", ListClientCredentials.class) };
-		return Arrays.stream(links).map(MainView::createTab).toArray(Tab[]::new);
+		//@formatter:off
+		List<Pair<RouterLink, VaadinIcon>> linksWithIcons = Lists.newArrayList(
+				Pair.of(new RouterLink("Home", ShowHome.class), VaadinIcon.HOME),
+				Pair.of(new RouterLink("SAPL Documents", SaplDocumentsView.class), VaadinIcon.FILE_O),
+				Pair.of(new RouterLink("PDP Configuration", ConfigurePdp.class), VaadinIcon.COG),
+				Pair.of(new RouterLink("Functions & Attributes", ListFunctionsAndPipsView.class), VaadinIcon.BOOK),
+				Pair.of(new RouterLink("Client Credentials", ListClientCredentials.class), VaadinIcon.SIGN_IN));
+		//@formatter:on
+		return linksWithIcons.stream().map(MainView::createTab).toArray(Tab[]::new);
 	}
 
-	private static Tab createTab(Component content) {
+	private static Tab createTab(Pair<RouterLink, VaadinIcon> linkWithIcon) {
+		HorizontalLayout layout = new HorizontalLayout();
+		layout.add(linkWithIcon.getRight().create());
+		layout.add(linkWithIcon.getLeft());
+		layout.setAlignItems(com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment.CENTER);
+
 		final Tab tab = new Tab();
-		tab.add(content);
+		tab.add(layout);
 		return tab;
 	}
 
