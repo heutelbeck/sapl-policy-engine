@@ -15,6 +15,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
+import io.sapl.api.interpreter.DocumentType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -65,10 +66,10 @@ public class SaplDocument {
 	private String name;
 
 	/**
-	 * The {@link SaplDocumentType}.
+	 * The {@link DocumentType}.
 	 */
 	@Column
-	private SaplDocumentType type;
+	private DocumentType type;
 
 	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER, mappedBy = "saplDocument")
 	@ToString.Exclude
@@ -131,7 +132,7 @@ public class SaplDocument {
 	 * @return the {@link String} representation
 	 */
 	public String getTypeAsString() {
-		SaplDocumentType type = this.getType();
+		DocumentType type = this.getType();
 		switch (type) {
 		case POLICY:
 			return "Policy";

@@ -25,7 +25,6 @@ import io.sapl.server.ce.model.sapldocument.SaplDocument;
 import io.sapl.server.ce.model.sapldocument.SaplDocumentVersion;
 import io.sapl.server.ce.service.sapldocument.PublishedDocumentNameCollisionException;
 import io.sapl.server.ce.service.sapldocument.SaplDocumentService;
-import io.sapl.server.ce.utils.SaplDocumentUtils;
 import io.sapl.server.ce.views.MainView;
 import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
 import io.sapl.vaadin.Issue;
@@ -192,7 +191,7 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 		boolean isPublishedVersionExisting = publishedVersion != null;
 
 		if (isPublishedVersionExisting) {
-			String publishedName = SaplDocumentUtils.getNameFromDocumentValue(publishedVersion.getValue());
+			String publishedName = publishedVersion.getName();
 
 			this.publishedVersionTextField.setValue(Integer.valueOf(publishedVersion.getVersionNumber()).toString());
 			this.publishedNameTextField.setValue(publishedName);

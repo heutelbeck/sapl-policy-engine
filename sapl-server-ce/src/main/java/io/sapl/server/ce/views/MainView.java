@@ -93,7 +93,7 @@ public class MainView extends AppLayout {
 		//@formatter:off
 		List<Pair<RouterLink, VaadinIcon>> linksWithIcons = Lists.newArrayList(
 				Pair.of(new RouterLink("Home", ShowHome.class), VaadinIcon.HOME),
-				Pair.of(new RouterLink("SAPL Documents", SaplDocumentsView.class), VaadinIcon.FILE_O),
+				Pair.of(new RouterLink("SAPL Documents", SaplDocumentsView.class), VaadinIcon.FILE),
 				Pair.of(new RouterLink("PDP Configuration", ConfigurePdp.class), VaadinIcon.COG),
 				Pair.of(new RouterLink("Functions & Attributes", ListFunctionsAndPipsView.class), VaadinIcon.BOOK),
 				Pair.of(new RouterLink("Client Credentials", ListClientCredentials.class), VaadinIcon.SIGN_IN));
