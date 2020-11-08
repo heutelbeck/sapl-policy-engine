@@ -48,7 +48,8 @@ public class ClientCredentialsService {
 	public ClientCredentials createDefault() {
 		ClientCredentials clientCredentialsToCreate = new ClientCredentials();
 		clientCredentialsToCreate.setKey(UUID.randomUUID().toString());
-		clientCredentialsToCreate.setSecret(hashSecret(UUID.randomUUID().toString()));
+		clientCredentialsToCreate
+				.setHashedSecret(hashSecret(UUID.randomUUID().toString(), clientCredentialsToCreate.getKey()));
 
 		ClientCredentials createdClientCredentials = clientCredentialsRepository.save(clientCredentialsToCreate);
 
@@ -74,7 +75,7 @@ public class ClientCredentialsService {
 		clientCredentialsToEdit.setKey(key);
 
 		if (secret != null) {
-			clientCredentialsToEdit.setSecret(hashSecret(secret));
+			clientCredentialsToEdit.setHashedSecret(hashSecret(secret, key));
 		}
 
 		clientCredentialsRepository.save(clientCredentialsToEdit);
@@ -89,7 +90,14 @@ public class ClientCredentialsService {
 		this.clientCredentialsRepository.deleteById(id);
 	}
 
-	private String hashSecret(@NonNull String secret) {
-		return Hashing.sha512().hashString(secret, StandardCharsets.UTF_8).toString();
+	/**
+	 * Generates a {@link String} representing a hash code for a specified secret
+	 * 
+	 * @param secret the secret to hash
+	 * @param key    the client key of the credentials as salt
+	 * @return the {@link String} representing the hash code
+	 */
+	private String hashSecret(@NonNull String secret, @NonNull String key) {
+		return Hashing.sha512().hashString(secret + key, StandardCharsets.UTF_8).toString();
 	}
 }

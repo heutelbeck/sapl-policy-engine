@@ -34,6 +34,6 @@ public class ClientCredentials {
 	/**
 	 * The hashed secret (password).
 	 */
-	@Column(length = 250, name = "clientSecret")
-	private String secret;
+	@Column(length = 250, name = "clientSecretHash")
+	private String hashedSecret;
 }
