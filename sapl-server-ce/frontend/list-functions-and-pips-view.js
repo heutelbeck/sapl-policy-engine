@@ -1,0 +1,43 @@
+import {html, PolymerElement} from '@polymer/polymer/polymer-element.js';
+import '@vaadin/vaadin-ordered-layout/src/vaadin-vertical-layout.js';
+import '@vaadin/vaadin-split-layout/src/vaadin-split-layout.js';
+import '@vaadin/vaadin-grid/src/vaadin-grid.js';
+
+class ListFunctionsAndPipsView extends PolymerElement {
+
+    static get template() {
+        return html`
+<style include="shared-styles">
+                :host {
+                    display: block;
+                    height: 100%;
+                }
+            </style>
+<vaadin-vertical-layout style="width: 100%; height: 100%;">
+ <h1>Functions Libraries</h1>
+ <vaadin-split-layout style="width: 100%;">
+  <vaadin-grid id="functionLibsGrid" style="width: 30%;"></vaadin-grid>
+  <vaadin-vertical-layout id="showCurrentFunctionLibLayout" style="width: 70%;">
+   <div id="descriptionOfCurrentFunctionLibDiv" style="width: 100%;">
+    Description
+   </div>
+   <vaadin-grid id="functionsOfCurrentFunctionLibGrid" style="height: 100%;"></vaadin-grid>
+  </vaadin-vertical-layout>
+ </vaadin-split-layout>
+ <h1>Policy Information Points</h1>
+</vaadin-vertical-layout>
+`;
+    }
+
+    static get is() {
+        return 'list-functions-and-pips-view';
+    }
+
+    static get properties() {
+        return {
+            // Declare your properties here.
+        };
+    }
+}
+
+customElements.define(ListFunctionsAndPipsView.is, ListFunctionsAndPipsView);

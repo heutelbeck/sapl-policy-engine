@@ -15,7 +15,7 @@ class ConfigurePdp extends PolymerElement {
                     height: 100%;
                 }
             </style>
-<vaadin-vertical-layout style="margin: var(--lumo-space-s);">
+<vaadin-vertical-layout style="width: 100%; height: 100%;">
  <h1>Combining Algorithm</h1>
  <div style="margin: var(--lumo-space-s);">
    The combining algorithm describes how to come to the final decision while evaluating policies 

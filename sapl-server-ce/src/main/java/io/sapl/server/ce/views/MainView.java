@@ -25,6 +25,7 @@ import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
 
 import io.sapl.server.ce.views.documentation.FunctionLibrariesDocumentationView;
+import io.sapl.server.ce.views.documentation.ListFunctionsAndPipsView;
 import io.sapl.server.ce.views.documentation.PolicyInformationPointsDocumentationView;
 import io.sapl.server.ce.views.pdpconfiguration.ConfigurePdp;
 import io.sapl.server.ce.views.sapldocument.SaplDocumentsView;
@@ -90,6 +91,7 @@ public class MainView extends AppLayout {
 		RouterLink[] links = new RouterLink[] { new RouterLink("Home", ShowHome.class),
 				new RouterLink("SAPL Documents", SaplDocumentsView.class),
 				new RouterLink("PDP Configuration", ConfigurePdp.class),
+				new RouterLink("Functions & Attributes", ListFunctionsAndPipsView.class),
 				new RouterLink("Policy Information Points", PolicyInformationPointsDocumentationView.class),
 				new RouterLink("Function Libraries", FunctionLibrariesDocumentationView.class),
 				new RouterLink("Client Credentials", ListClientCredentials.class) };
