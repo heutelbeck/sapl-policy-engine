@@ -14,17 +14,30 @@ class ListFunctionsAndPipsView extends PolymerElement {
                 }
             </style>
 <vaadin-vertical-layout style="width: 100%; height: 100%;">
- <h1>Functions Libraries</h1>
- <vaadin-split-layout style="width: 100%;">
-  <vaadin-grid id="functionLibsGrid" style="width: 30%;"></vaadin-grid>
-  <vaadin-vertical-layout id="showCurrentFunctionLibLayout" style="width: 70%;">
-   <div id="descriptionOfCurrentFunctionLibDiv" style="width: 100%;">
-    Description
-   </div>
-   <vaadin-grid id="functionsOfCurrentFunctionLibGrid" style="height: 100%;"></vaadin-grid>
-  </vaadin-vertical-layout>
- </vaadin-split-layout>
- <h1>Policy Information Points</h1>
+ <vaadin-vertical-layout style="height: 50%; width: 100%;">
+  <h1>Functions Libraries</h1>
+  <vaadin-split-layout style="width: 100%;">
+   <vaadin-grid id="functionLibsGrid" style="width: 30%;"></vaadin-grid>
+   <vaadin-vertical-layout id="showCurrentFunctionLibLayout" style="width: 70%;">
+    <div id="descriptionOfCurrentFunctionLibDiv" style="width: 100%;">
+     Description
+    </div>
+    <vaadin-grid id="functionsOfCurrentFunctionLibGrid" style="height: 100%;"></vaadin-grid>
+   </vaadin-vertical-layout>
+  </vaadin-split-layout>
+ </vaadin-vertical-layout>
+ <vaadin-vertical-layout style="height: 50%; width: 100%;">
+  <h1>Policy Information Points</h1>
+  <vaadin-split-layout style="width: 100%; height: 100%;">
+   <vaadin-grid id="pipsGrid" style="width: 30%;"></vaadin-grid>
+   <vaadin-vertical-layout id="showCurrentPipLayout" style="width: 70%;">
+    <div id="descriptionOfCurrentPipDiv" style="width: 100%;">
+      Description 
+    </div>
+    <vaadin-grid id="functionsOfCurrentPipGrid" style="height: 100%;"></vaadin-grid>
+   </vaadin-vertical-layout>
+  </vaadin-split-layout>
+ </vaadin-vertical-layout>
 </vaadin-vertical-layout>
 `;
     }

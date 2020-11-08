@@ -23,8 +23,10 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.templatemodel.TemplateModel;
 
 import io.sapl.interpreter.functions.LibraryDocumentation;
+import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.server.ce.views.MainView;
 import io.sapl.spring.pdp.embedded.FunctionLibrariesDocumentation;
+import io.sapl.spring.pdp.embedded.PolicyInformationPointsDocumentation;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -42,6 +44,7 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 	public static final String ROUTE = "foo";
 
 	private final FunctionLibrariesDocumentation functionLibrariesDocumentation;
+	private final PolicyInformationPointsDocumentation policyInformationPointsDocumentation;
 
 	@Id(value = "functionLibsGrid")
 	private Grid<LibraryDocumentation> functionLibsGrid;
@@ -55,6 +58,18 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 	@Id(value = "functionsOfCurrentFunctionLibGrid")
 	private Grid<Entry<String, String>> functionsOfCurrentFunctionLibGrid;
 
+	@Id(value = "pipsGrid")
+	private Grid<PolicyInformationPointDocumentation> pipsGrid;
+
+	@Id(value = "showCurrentPipLayout")
+	private VerticalLayout showCurrentPipLayout;
+
+	@Id(value = "descriptionOfCurrentPipDiv")
+	private Div descriptionOfCurrentPipDiv;
+
+	@Id(value = "functionsOfCurrentPipGrid")
+	private Grid<Entry<String, String>> functionsOfCurrentPipGrid;
+
 	@PostConstruct
 	private void postConstruct() {
 		initUi();
@@ -62,6 +77,7 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 
 	private void initUi() {
 		initUiForFunctions();
+		initUiForPips();
 	}
 
 	private void initUiForFunctions() {
@@ -105,6 +121,50 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 			});
 		});
 		functionLibsGrid.setDataProvider(dataProviderForCurrentFunctionLibGrid);
+	}
+
+	private void initUiForPips() {
+		showCurrentPipLayout.setVisible(false);
+
+		Collection<PolicyInformationPointDocumentation> availablePips = policyInformationPointsDocumentation
+				.getDocumentation();
+		CallbackDataProvider<PolicyInformationPointDocumentation, Void> dataProviderForCurrentPipGrid = DataProvider
+				.fromCallbacks(query -> {
+					int offset = query.getOffset();
+					int limit = query.getLimit();
+
+					return availablePips.stream().skip(offset).limit(limit);
+				}, query -> availablePips.size());
+
+		pipsGrid.addColumn(PolicyInformationPointDocumentation::getName).setHeader("Name");
+		pipsGrid.addSelectionListener(selection -> {
+			Optional<PolicyInformationPointDocumentation> optionalSelectedPip = selection.getFirstSelectedItem();
+			optionalSelectedPip.ifPresentOrElse((PolicyInformationPointDocumentation selectedPip) -> {
+				showCurrentPipLayout.setVisible(true);
+
+				descriptionOfCurrentPipDiv.setText(selectedPip.getDescription());
+
+				Map<String, String> documentation = selectedPip.getDocumentation();
+				Set<Entry<String, String>> documentationAsEntrySet = documentation.entrySet();
+				CallbackDataProvider<Entry<String, String>, Void> dataProviderForFunctionsOfCurrentPipGrid = DataProvider
+						.fromCallbacks(query -> {
+							int offset = query.getOffset();
+							int limit = query.getLimit();
+
+							return documentationAsEntrySet.stream().skip(offset).limit(limit);
+						}, query -> documentationAsEntrySet.size());
+
+				functionsOfCurrentPipGrid.removeAllColumns();
+				functionsOfCurrentPipGrid.addColumn(Entry<String, String>::getKey).setHeader("Function");
+				functionsOfCurrentPipGrid.addColumn(Entry<String, String>::getValue).setHeader("Documentation")
+						.setFlexGrow(5);
+				functionsOfCurrentPipGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
+				functionsOfCurrentPipGrid.setDataProvider(dataProviderForFunctionsOfCurrentPipGrid);
+			}, () -> {
+				showCurrentPipLayout.setVisible(false);
+			});
+		});
+		pipsGrid.setDataProvider(dataProviderForCurrentPipGrid);
 	}
 
 	/**
