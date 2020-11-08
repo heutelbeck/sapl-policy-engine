@@ -11,6 +11,7 @@ import javax.annotation.PostConstruct;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -92,6 +93,7 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 					return availableFunctionLibs.stream().skip(offset).limit(limit);
 				}, query -> availableFunctionLibs.size());
 
+		functionLibsGrid.setSelectionMode(SelectionMode.SINGLE);
 		functionLibsGrid.addColumn(LibraryDocumentation::getName).setHeader("Name");
 		functionLibsGrid.addSelectionListener(selection -> {
 			Optional<LibraryDocumentation> optionalSelectedFunctionLib = selection.getFirstSelectedItem();
@@ -121,6 +123,11 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 			});
 		});
 		functionLibsGrid.setDataProvider(dataProviderForCurrentFunctionLibGrid);
+
+		// preselect first function lib if available
+		if (!availableFunctionLibs.isEmpty()) {
+			functionLibsGrid.select(availableFunctionLibs.iterator().next());
+		}
 	}
 
 	private void initUiForPips() {
@@ -136,6 +143,7 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 					return availablePips.stream().skip(offset).limit(limit);
 				}, query -> availablePips.size());
 
+		pipsGrid.setSelectionMode(SelectionMode.SINGLE);
 		pipsGrid.addColumn(PolicyInformationPointDocumentation::getName).setHeader("Name");
 		pipsGrid.addSelectionListener(selection -> {
 			Optional<PolicyInformationPointDocumentation> optionalSelectedPip = selection.getFirstSelectedItem();
@@ -165,6 +173,11 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 			});
 		});
 		pipsGrid.setDataProvider(dataProviderForCurrentPipGrid);
+
+		// preselect first PIP if available
+		if (!availablePips.isEmpty()) {
+			pipsGrid.select(availablePips.iterator().next());
+		}
 	}
 
 	/**
