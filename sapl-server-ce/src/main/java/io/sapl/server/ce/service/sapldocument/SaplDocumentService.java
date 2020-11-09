@@ -140,6 +140,12 @@ public class SaplDocumentService {
 	public void publishVersion(long saplDocumentId, int versionToPublish)
 			throws PublishedDocumentNameCollisionException {
 		SaplDocument saplDocument = this.getById(saplDocumentId);
+
+		// unpublish other version if published
+		if (saplDocument.getPublishedVersion() != null) {
+			unpublishVersion(saplDocumentId);
+		}
+
 		SaplDocumentVersion saplDocumentVersionToPublish = saplDocument.getVersion(versionToPublish);
 
 		this.checkForUniqueNameOfSaplDocumentToPublish(saplDocumentVersionToPublish.getName());
@@ -149,7 +155,9 @@ public class SaplDocumentService {
 				.setLastModified(this.getCurrentTimestampAsString());
 		this.saplDocumentRepository.save(saplDocument);
 
-		log.info(String.format("publish SAPL document: %s", saplDocumentVersionToPublish.getName()));
+		log.info(String.format("publish version %d of SAPL document with id %d (name: %s)",
+				saplDocumentVersionToPublish.getVersionNumber(), saplDocumentId,
+				saplDocumentVersionToPublish.getName()));
 
 		this.saplDocumentPublisher.publishSaplDocument(saplDocument);
 	}
@@ -162,10 +170,16 @@ public class SaplDocumentService {
 	public void unpublishVersion(long saplDocumentId) {
 		SaplDocument saplDocumentToUnpublish = this.getById(saplDocumentId);
 
+		SaplDocumentVersion publishedVersion = saplDocumentToUnpublish.getPublishedVersion();
+		if (publishedVersion == null) {
+			return;
+		}
+
 		saplDocumentToUnpublish.setPublishedVersion(null);
 		this.saplDocumentRepository.save(saplDocumentToUnpublish);
 
-		log.info(String.format("unpublish SAPL document: %s", saplDocumentToUnpublish.getName()));
+		log.info(String.format("unpublish version %d of SAPL document with id %d (name: %s)",
+				publishedVersion.getVersionNumber(), saplDocumentId, saplDocumentToUnpublish.getName()));
 
 		this.saplDocumentPublisher.unpublishSaplDocument(saplDocumentToUnpublish);
 	}

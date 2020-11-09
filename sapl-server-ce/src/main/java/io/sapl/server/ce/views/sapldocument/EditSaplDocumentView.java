@@ -94,77 +94,77 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 
 	@Override
 	public void setParameter(BeforeEvent event, Long parameter) {
-		this.saplDocumentId = parameter;
+		saplDocumentId = parameter;
 
-		this.reloadSaplDocument();
-		this.addListener();
+		reloadSaplDocument();
+		addListener();
 	}
 
 	private void reloadSaplDocument() {
-		SaplDocument saplDocument = this.saplDocumentService.getById(this.saplDocumentId);
+		SaplDocument saplDocument = saplDocumentService.getById(saplDocumentId);
 
 		this.saplDocument = saplDocument;
-		this.setUI();
+		setUI();
 
-		this.saveVersionButton.setEnabled(false);
+		saveVersionButton.setEnabled(false);
 
-		this.isDocumentValueEdited = false;
-		this.isFirstDocumentValueValidation = true;
+		isDocumentValueEdited = false;
+		isFirstDocumentValueValidation = true;
 	}
 
 	private void addListener() {
-		this.versionSelectionComboBox.addValueChangeListener(changedEvent -> {
-			this.updateSaplEditorBasedOnVersionSelection();
+		versionSelectionComboBox.addValueChangeListener(changedEvent -> {
+			updateSaplEditorBasedOnVersionSelection();
 		});
 
-		this.saplEditor.addValidationFinishedListener(validationFinishedEvent -> {
-			if (this.isFirstDocumentValueValidation) {
-				this.isFirstDocumentValueValidation = false;
+		saplEditor.addValidationFinishedListener(validationFinishedEvent -> {
+			if (isFirstDocumentValueValidation) {
+				isFirstDocumentValueValidation = false;
 				return;
 			}
 
-			if (!this.isDocumentValueEdited) {
-				this.versionSelectionComboBox.setValue(NEW_VERSION_SELECTION_ENTRY);
+			if (!isDocumentValueEdited) {
+				versionSelectionComboBox.setValue(NEW_VERSION_SELECTION_ENTRY);
 
-				this.isDocumentValueEdited = true;
+				isDocumentValueEdited = true;
 			}
 
 			Issue[] issues = validationFinishedEvent.getIssues();
 
 			boolean areNoIssuesAvailable = issues.length == 0;
-			this.saveVersionButton.setEnabled(areNoIssuesAvailable);
+			saveVersionButton.setEnabled(areNoIssuesAvailable);
 		});
 
-		this.saveVersionButton.addClickListener(clickEvent -> {
-			String currentDocumentValue = this.saplEditor.getDocument();
-			this.saplDocumentService.createVersion(this.saplDocumentId, currentDocumentValue);
+		saveVersionButton.addClickListener(clickEvent -> {
+			String currentDocumentValue = saplEditor.getDocument();
+			saplDocumentService.createVersion(saplDocumentId, currentDocumentValue);
 
-			this.reloadSaplDocument();
+			reloadSaplDocument();
 		});
 
-		this.cancelButton.addClickListener(clickEvent -> {
-			this.cancelButton.getUI().ifPresent(ui -> ui.navigate(SaplDocumentsView.ROUTE));
+		cancelButton.addClickListener(clickEvent -> {
+			cancelButton.getUI().ifPresent(ui -> ui.navigate(SaplDocumentsView.ROUTE));
 		});
 
-		this.publishCurrentVersionButton.addClickListener(clickEvent -> {
-			Optional<Integer> selectedVersionNumberAsOptional = this.getSelectedVersionNumber();
+		publishCurrentVersionButton.addClickListener(clickEvent -> {
+			Optional<Integer> selectedVersionNumberAsOptional = getSelectedVersionNumber();
 			if (!selectedVersionNumberAsOptional.isPresent()) {
 				return;
 			}
 
 			try {
-				this.saplDocumentService.publishVersion(this.saplDocumentId, selectedVersionNumberAsOptional.get());
+				saplDocumentService.publishVersion(saplDocumentId, selectedVersionNumberAsOptional.get());
 			} catch (PublishedDocumentNameCollisionException ex) {
 				ErrorNotificationUtils.show(ex.getMessage());
 				return;
 			}
 
-			this.reloadSaplDocument();
+			reloadSaplDocument();
 		});
 
-		this.unpublishButton.addClickListener(clickEvent -> {
-			this.saplDocumentService.unpublishVersion(this.saplDocumentId);
-			this.reloadSaplDocument();
+		unpublishButton.addClickListener(clickEvent -> {
+			saplDocumentService.unpublishVersion(saplDocumentId);
+			reloadSaplDocument();
 		});
 	}
 
@@ -172,51 +172,57 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 	 * Imports the previously set instance of {@link SaplDocument} to the UI.
 	 */
 	private void setUI() {
-		this.policyIdTextField.setValue(this.saplDocument.getId().toString());
-		this.lastModifiedTextField.setValue(this.saplDocument.getLastModified());
-		this.currentVersionTextField.setValue(Integer.valueOf(this.saplDocument.getCurrentVersionNumber()).toString());
+		policyIdTextField.setValue(saplDocument.getId().toString());
+		lastModifiedTextField.setValue(saplDocument.getLastModified());
+		currentVersionTextField.setValue(Integer.valueOf(saplDocument.getCurrentVersionNumber()).toString());
 
-		Collection<String> availableVersions = this.getAvailableVersions();
-		this.versionSelectionComboBox.setItems(availableVersions);
-		this.versionSelectionComboBox.setValue(Iterables.getLast(availableVersions));
+		Collection<String> availableVersions = getAvailableVersions();
+		versionSelectionComboBox.setItems(availableVersions);
+		versionSelectionComboBox.setValue(Iterables.getLast(availableVersions));
 
-		SaplDocumentVersion currentVersion = this.saplDocument.getCurrentVersion();
-		this.saplEditor.setDocument(currentVersion.getValue());
+		SaplDocumentVersion currentVersion = saplDocument.getCurrentVersion();
+		saplEditor.setDocument(currentVersion.getValue());
 
-		this.setUiForPublishing();
+		setUiForPublishing();
 	}
 
 	private void setUiForPublishing() {
-		SaplDocumentVersion publishedVersion = this.saplDocument.getPublishedVersion();
+		SaplDocumentVersion publishedVersion = saplDocument.getPublishedVersion();
 		boolean isPublishedVersionExisting = publishedVersion != null;
+
+		String publishedVersionAsString;
+		String publishedNameAsString;
 
 		if (isPublishedVersionExisting) {
 			String publishedName = publishedVersion.getName();
 
-			this.publishedVersionTextField.setValue(Integer.valueOf(publishedVersion.getVersionNumber()).toString());
-			this.publishedNameTextField.setValue(publishedName);
+			publishedVersionAsString = Integer.valueOf(publishedVersion.getVersionNumber()).toString();
+			publishedNameAsString = publishedName;
 
-			Optional<Integer> selectedVersionNumber = this.getSelectedVersionNumber();
+			Optional<Integer> selectedVersionNumber = getSelectedVersionNumber();
 			if (selectedVersionNumber.isPresent()) {
-				SaplDocumentVersion selectedVersion = this.saplDocument.getVersion(selectedVersionNumber.get());
+				SaplDocumentVersion selectedVersion = saplDocument.getVersion(selectedVersionNumber.get());
 
 				boolean isSelectedVersionPublished = publishedVersion.getVersionNumber() == selectedVersion
 						.getVersionNumber();
-				this.publishCurrentVersionButton.setVisible(!isSelectedVersionPublished);
+				publishCurrentVersionButton.setEnabled(!isSelectedVersionPublished);
 			}
 		} else {
-			this.publishCurrentVersionButton.setVisible(true);
+			publishCurrentVersionButton.setEnabled(true);
+
+			publishedVersionAsString = "-";
+			publishedNameAsString = "-";
 		}
 
-		this.publishedVersionTextField.setVisible(isPublishedVersionExisting);
-		this.publishedNameTextField.setVisible(isPublishedVersionExisting);
+		publishedVersionTextField.setValue(publishedVersionAsString);
+		publishedNameTextField.setValue(publishedNameAsString);
 
-		this.unpublishButton.setVisible(isPublishedVersionExisting);
+		unpublishButton.setEnabled(isPublishedVersionExisting);
 	}
 
 	private Collection<String> getAvailableVersions() {
 		List<String> result = new ArrayList<String>();
-		for (SaplDocumentVersion saplDocumentVersion : this.saplDocument.getVersions()) {
+		for (SaplDocumentVersion saplDocumentVersion : saplDocument.getVersions()) {
 			String versionAsString = Integer.valueOf(saplDocumentVersion.getVersionNumber()).toString();
 			result.add(versionAsString);
 		}
@@ -225,22 +231,22 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 	}
 
 	private void updateSaplEditorBasedOnVersionSelection() {
-		Optional<Integer> selectedVersionNumberAsOptional = this.getSelectedVersionNumber();
+		Optional<Integer> selectedVersionNumberAsOptional = getSelectedVersionNumber();
 		if (!selectedVersionNumberAsOptional.isPresent()) {
-			this.publishCurrentVersionButton.setVisible(false);
-			this.unpublishButton.setVisible(false);
+			publishCurrentVersionButton.setEnabled(false);
+			unpublishButton.setEnabled(false);
 			return;
 		}
 
-		SaplDocumentVersion saplDocumentVersion = this.saplDocument.getVersion(selectedVersionNumberAsOptional.get());
+		SaplDocumentVersion saplDocumentVersion = saplDocument.getVersion(selectedVersionNumberAsOptional.get());
 
-		this.saplEditor.setDocument(saplDocumentVersion.getValue());
+		saplEditor.setDocument(saplDocumentVersion.getValue());
 
-		this.isDocumentValueEdited = false;
-		this.isFirstDocumentValueValidation = true;
-		this.saveVersionButton.setEnabled(false);
+		isDocumentValueEdited = false;
+		isFirstDocumentValueValidation = true;
+		saveVersionButton.setEnabled(false);
 
-		this.setUiForPublishing();
+		setUiForPublishing();
 	}
 
 	/**
@@ -250,7 +256,7 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 	 *         is selected)
 	 */
 	private Optional<Integer> getSelectedVersionNumber() {
-		String selectedVersionAsString = this.versionSelectionComboBox.getValue();
+		String selectedVersionAsString = versionSelectionComboBox.getValue();
 		if (selectedVersionAsString == null || selectedVersionAsString.equals(NEW_VERSION_SELECTION_ENTRY)) {
 			return Optional.empty();
 		}
