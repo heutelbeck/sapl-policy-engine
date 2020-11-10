@@ -30,8 +30,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
 
-    //TODO error when declared final
-    private CanonicalIndexDataContainer indexDataContainer;
+    private final CanonicalIndexDataContainer indexDataContainer;
     private final Map<String, SAPL> documents;
 
     public CanonicalImmutableParsedDocumentIndex() {
@@ -44,10 +43,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
                 .collect(Collectors.toMap(Entry::getKey, entry -> retainTarget(entry.getValue())));
         log.debug("extracted {} targets from {} updated documents", targets.size(), updatedDocuments.size());
 
-        this.indexDataContainer = this.indexDataContainer == null ?
-                CanonicalIndexDataCreationStrategy.constructNew(documents, targets)
-                : CanonicalIndexDataCreationStrategy.reconstruct(documents, targets, this.indexDataContainer);
-
+        this.indexDataContainer = CanonicalIndexDataCreationStrategy.constructNew(documents, targets);
     }
 
     @Override
@@ -56,7 +52,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
         try {
             VariableContext variableCtx = new VariableContext(authzSubscription, variables);
             log.debug("retrieving policies from {} documents", documents.size());
-            return CanonicalIndexAlgorithm.matchMono(functionCtx, variableCtx, indexDataContainer);
+            return CanonicalIndexAlgorithm.match(functionCtx, variableCtx, indexDataContainer);
         } catch (PolicyEvaluationException e) {
             log.error("error while retrieving policies", e);
             return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true));
@@ -81,13 +77,10 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
             Expression targetExpression = sapl.getPolicyElement().getTargetExpression();
             Objects.requireNonNull(targetExpression);
 
-            //TODO can this simply be a new function context?
             Map<String, String> imports = sapl.fetchFunctionImports(new AnnotationFunctionContext());
             return TreeWalker.walk(targetExpression, imports);
         } catch (PolicyEvaluationException e) {
-            //TODO do something
-            //            unusableDocuments.put(documentKey, sapl);
-
+            log.error("exception while retaining target for document {}", sapl.getPolicyElement().getSaplName(), e);
             return new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
         }
     }

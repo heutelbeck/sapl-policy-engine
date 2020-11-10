@@ -59,30 +59,6 @@ public class CanonicalImmutableParsedDocumentIndexTest {
     }
 
 
-    @Test
-    public void test_misc() throws Exception {
-        //        List<Integer> numbers = IntStream.range(0, 500).boxed().collect(Collectors.toList());
-
-        List<Integer> integerList = Arrays.asList(1, 2, 1, 1, 3, 4, 2, 4, 1, 4, 3, 2, 4);
-        List<Integer> integersProcessedList = new ArrayList<>();
-
-        Flux<Integer> resultFlux = Flux.fromIterable(integerList)
-                .log()
-                .filter(integer -> !integersProcessedList.contains(integer))
-                .map(integer -> {
-                    integersProcessedList.add(integer);
-                    System.out.println("added " + integer + " to list of processed integers");
-                    return integer;
-                });
-
-        List<Integer> resultIntegerList = resultFlux.collectList().block();
-        System.out.println(resultIntegerList);
-
-        Assertions.assertThat(resultIntegerList).hasSize(4);
-        Assertions.assertThat(resultIntegerList).containsAll(Arrays.asList(1, 2, 3, 4));
-
-    }
-
 
     @Test
     public void test_orphaned() throws PolicyEvaluationException {
