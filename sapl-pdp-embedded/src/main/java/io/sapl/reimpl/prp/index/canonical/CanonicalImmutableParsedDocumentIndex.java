@@ -30,7 +30,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
 
-    private final CanonicalIndexDataContainer indexDataContainer;
+    //TODO error when declared final
+    private CanonicalIndexDataContainer indexDataContainer;
     private final Map<String, SAPL> documents;
 
     public CanonicalImmutableParsedDocumentIndex() {
@@ -42,9 +43,11 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
         Map<String, DisjunctiveFormula> targets = this.documents.entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey, entry -> retainTarget(entry.getValue())));
         log.debug("extracted {} targets from {} updated documents", targets.size(), updatedDocuments.size());
-        //TODO currently the index data container is created each time from scratch
-        // - it would be better if the existing container would be amended and reused
-        this.indexDataContainer = CanonicalIndexDataCreationStrategy.construct(documents, targets);
+
+        this.indexDataContainer = this.indexDataContainer == null ?
+                CanonicalIndexDataCreationStrategy.constructNew(documents, targets)
+                : CanonicalIndexDataCreationStrategy.reconstruct(documents, targets, this.indexDataContainer);
+
     }
 
     @Override

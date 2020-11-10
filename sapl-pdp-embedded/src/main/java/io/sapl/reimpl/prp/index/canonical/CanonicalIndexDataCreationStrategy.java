@@ -49,8 +49,14 @@ public class CanonicalIndexDataCreationStrategy {
 
     private final PredicateOrderStrategy predicateOrderStrategy = new ExistingOrderStrategy();
 
-    public CanonicalIndexDataContainer construct(final Map<String, SAPL> documents,
-                                                 final Map<String, DisjunctiveFormula> targets) {
+    public CanonicalIndexDataContainer reconstruct(final Map<String, SAPL> documents,
+                                                   final Map<String, DisjunctiveFormula> targets,
+                                                   CanonicalIndexDataContainer existingContainer) {
+        return null;
+    }
+
+    public CanonicalIndexDataContainer constructNew(final Map<String, SAPL> documents,
+                                                    final Map<String, DisjunctiveFormula> targets) {
         log.debug("constructing index data container");
         Map<String, SAPL> idToDocument = ImmutableMap.copyOf(documents);
 

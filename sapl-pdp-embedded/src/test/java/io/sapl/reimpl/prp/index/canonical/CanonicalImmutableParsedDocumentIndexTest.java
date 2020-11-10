@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class CanonicalImmutableParsedDocumentIndexText {
+public class CanonicalImmutableParsedDocumentIndexTest {
 
     @Rule
     public Timeout globalTimeout = Timeout.seconds(60);
