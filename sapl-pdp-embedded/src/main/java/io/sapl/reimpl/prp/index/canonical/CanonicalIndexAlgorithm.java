@@ -69,15 +69,6 @@ public class CanonicalIndexAlgorithm {
         return resultMono;
     }
 
-    private Optional<Predicate> getNextReferencedPredicate(Iterator<Predicate> predicateIterator,
-                                                           Bitmask clauseCandidatesMask) {
-        while (predicateIterator.hasNext()) {
-            Predicate nextPredicate = predicateIterator.next();
-            if (isReferenced(nextPredicate, clauseCandidatesMask)) return Optional.of(nextPredicate);
-        }
-        return Optional.empty();
-    }
-
     private Bitmask orBitMask(Bitmask b1, Bitmask b2) {
         b2.or(b1);
         return b2;
