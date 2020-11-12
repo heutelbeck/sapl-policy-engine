@@ -10,7 +10,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ExistingOrderStrategy implements PredicateOrderStrategy {
+
+public class DefaultPredicateOrderStrategy implements PredicateOrderStrategy {
 
     @Override
     public List<Predicate> createPredicateOrder(Collection<PredicateInfo> data) {

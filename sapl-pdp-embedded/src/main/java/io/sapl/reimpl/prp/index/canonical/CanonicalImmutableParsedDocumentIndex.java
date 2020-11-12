@@ -14,6 +14,8 @@ import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
 import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
 import io.sapl.prp.inmemory.indexed.Literal;
 import io.sapl.prp.inmemory.indexed.TreeWalker;
+import io.sapl.prp.inmemory.indexed.improved.ordering.DefaultPredicateOrderStrategy;
+import io.sapl.prp.inmemory.indexed.improved.ordering.PredicateOrderStrategy;
 import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.PrpUpdateEvent;
 import lombok.extern.slf4j.Slf4j;
@@ -31,18 +33,26 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 
     private final CanonicalIndexDataContainer indexDataContainer;
     private final Map<String, SAPL> documents;
+    private final PredicateOrderStrategy predicateOrderStrategy;
 
-    public CanonicalImmutableParsedDocumentIndex() {
-        this(Collections.emptyMap());
+    public CanonicalImmutableParsedDocumentIndex(PredicateOrderStrategy predicateOrderStrategy) {
+        this(Collections.emptyMap(), predicateOrderStrategy);
     }
 
-    private CanonicalImmutableParsedDocumentIndex(Map<String, SAPL> updatedDocuments) {
+    public CanonicalImmutableParsedDocumentIndex() {
+        this(Collections.emptyMap(), new DefaultPredicateOrderStrategy());
+    }
+
+    private CanonicalImmutableParsedDocumentIndex(Map<String, SAPL> updatedDocuments,
+                                                  PredicateOrderStrategy predicateOrderStrategy) {
+
         this.documents = updatedDocuments;
+        this.predicateOrderStrategy = predicateOrderStrategy;
         Map<String, DisjunctiveFormula> targets = this.documents.entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey, entry -> retainTarget(entry.getValue())));
-        log.debug("extracted {} targets from {} updated documents", targets.size(), updatedDocuments.size());
 
-        this.indexDataContainer = CanonicalIndexDataCreationStrategy.constructNew(documents, targets);
+        this.indexDataContainer = new CanonicalIndexDataCreationStrategy(predicateOrderStrategy)
+                .constructNew(documents, targets);
     }
 
     @Override
@@ -50,7 +60,6 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
                                                         FunctionContext functionCtx, Map<String, JsonNode> variables) {
         try {
             VariableContext variableCtx = new VariableContext(authzSubscription, variables);
-            log.debug("retrieving policies from {} documents", documents.size());
             return CanonicalIndexAlgorithm.match(functionCtx, variableCtx, indexDataContainer);
         } catch (PolicyEvaluationException e) {
             log.error("error while retrieving policies", e);
@@ -61,13 +70,11 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 
     @Override
     public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
-        log.debug("applying update event");
-        // Do a shallow copy. String is immutable, and SAPL is assumed to be too.
         var newDocuments = new HashMap<>(documents);
         applyEvent(newDocuments, event);
         log.debug("returning index with updated documents. before: {}, after: {}", documents.size(), newDocuments
                 .size());
-        return new CanonicalImmutableParsedDocumentIndex(newDocuments);
+        return new CanonicalImmutableParsedDocumentIndex(newDocuments, predicateOrderStrategy);
     }
 
 

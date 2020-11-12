@@ -53,13 +53,15 @@ public class CanonicalIndexAlgorithm {
         Mono<PolicyRetrievalResult> resultMono = Flux.fromIterable(dataContainer.getPredicateOrder())
                 .filter(predicate -> isReferenced(predicate, clauseCandidatesMask))
                 .concatMap(predicate -> predicate.evaluate(functionCtx, variableCtx)
-                        .map(evaluationResult ->
-                                eliminateCandidatesAndReturnSatisfied(clauseCandidatesMask, predicate, evaluationResult,
-                                        trueLiteralsOfConjunction, eliminatedFormulasWithConjunction,
-                                        dataContainer))
+                                .map(evaluationResult ->
+                                        eliminateCandidatesAndReturnSatisfied(clauseCandidatesMask, predicate, evaluationResult,
+                                                trueLiteralsOfConjunction, eliminatedFormulasWithConjunction,
+                                                dataContainer))
+                                .doOnError(__ ->
+                                        removeCandidatesRelatedToPredicate(predicate, clauseCandidatesMask))
                         //TODO: error can be handled by returning empty bitmask in case of error
                         // - subscriber does not get informed about error
-//                        .onErrorReturn(new Bitmask()) //return empty bitmask in case the predicate evaluation fails
+                        //                        .onErrorReturn(new Bitmask()) //return empty bitmask in case the predicate evaluation fails
                 ).reduce(new Bitmask(), (b2, b1) -> orBitMask(b1, b2))
                 .map(satisfied -> fetchFormulas(satisfied, dataContainer.getRelatedFormulas()))
                 .map(formulas -> fetchPolicies(formulas, dataContainer.getFormulaToDocuments()))
@@ -80,6 +82,7 @@ public class CanonicalIndexAlgorithm {
                                                           Boolean evaluationResult, int[] trueLiteralsOfConjunction,
                                                           int[] eliminatedFormulasWithConjunction,
                                                           CanonicalIndexDataContainer dataContainer) {
+
         Bitmask satisfiableCandidates = findSatisfiableCandidates(clauseCandidatesMask, predicate,
                 evaluationResult, trueLiteralsOfConjunction,
                 dataContainer.getNumberOfLiteralsInConjunction());
@@ -106,10 +109,10 @@ public class CanonicalIndexAlgorithm {
     }
 
 
-     Bitmask findOrphanedCandidates(final Bitmask candidates, final Bitmask satisfiableCandidates,
-                                           int[] eliminatedFormulasWithConjunction,
-                                           Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction,
-                                           int[] numberOfFormulasWithConjunction) {
+    Bitmask findOrphanedCandidates(final Bitmask candidates, final Bitmask satisfiableCandidates,
+                                   int[] eliminatedFormulasWithConjunction,
+                                   Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction,
+                                   int[] numberOfFormulasWithConjunction) {
         Bitmask result = new Bitmask();
 
         satisfiableCandidates.forEachSetBit(index -> {

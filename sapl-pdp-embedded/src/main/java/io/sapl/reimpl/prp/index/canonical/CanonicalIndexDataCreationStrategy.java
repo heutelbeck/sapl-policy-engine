@@ -26,9 +26,9 @@ import io.sapl.prp.inmemory.indexed.Literal;
 import io.sapl.prp.inmemory.indexed.improved.CTuple;
 import io.sapl.prp.inmemory.indexed.improved.Predicate;
 import io.sapl.prp.inmemory.indexed.improved.PredicateInfo;
-import io.sapl.prp.inmemory.indexed.improved.ordering.ExistingOrderStrategy;
+import io.sapl.prp.inmemory.indexed.improved.ordering.DefaultPredicateOrderStrategy;
 import io.sapl.prp.inmemory.indexed.improved.ordering.PredicateOrderStrategy;
-import lombok.experimental.UtilityClass;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -43,15 +43,17 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
-@UtilityClass
+@RequiredArgsConstructor
 public class CanonicalIndexDataCreationStrategy {
 
-    private final PredicateOrderStrategy predicateOrderStrategy = new ExistingOrderStrategy();
+    private final PredicateOrderStrategy predicateOrderStrategy;
 
+    public CanonicalIndexDataCreationStrategy() {
+        this(new DefaultPredicateOrderStrategy());
+    }
 
     public CanonicalIndexDataContainer constructNew(final Map<String, SAPL> documents,
                                                     final Map<String, DisjunctiveFormula> targets) {
-        log.debug("constructing index data container");
         Map<String, SAPL> documentMap = new HashMap<>(documents);
 
         Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments = new HashMap<>(targets.size(), 1.0F);
@@ -68,6 +70,7 @@ public class CanonicalIndexDataCreationStrategy {
             Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas) {
 
         Collection<PredicateInfo> predicateInfos = collectPredicateInfos(formulaToDocuments.keySet());
+
         // manipulates Bitmask of Predicates stored in PredicateInfo as a side effect
         BiMap<ConjunctiveClause, Integer> clauseToIndex = createCandidateIndex(predicateInfos);
 

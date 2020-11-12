@@ -12,6 +12,7 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.prp.inmemory.indexed.improved.ordering.NoPredicateOrderStrategy;
 import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.PrpUpdateEvent;
 import io.sapl.reimpl.prp.PrpUpdateEvent.Type;
@@ -58,7 +59,7 @@ public class CanonicalImmutableParsedDocumentIndexTest {
     }
 
     @Test
-    public void test_return_empty_result_when_error_occurs() throws Exception{
+    public void test_return_empty_result_when_error_occurs() throws Exception {
         InputStream resourceAsStream = getClass().getClassLoader()
                 .getResourceAsStream("it/error/policy_with_error.sapl");
         SAPL withError = interpreter.parse(resourceAsStream);
@@ -85,9 +86,17 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 
 
 
+    //Test must be repeated a couple of times to test implementation of "findOrphanedCandidates"
     @Test
+    public void repeat_orphaned() throws Exception {
+        for (int i = 0; i < 20; i++) {
+            test_orphaned();
+        }
+    }
+
     public void test_orphaned() throws PolicyEvaluationException {
         // given
+        emptyIndex = new CanonicalImmutableParsedDocumentIndex(new NoPredicateOrderStrategy());
         FunctionContext functionCtx = new AnnotationFunctionContext();
         List<Update> updates = new ArrayList<>(3);
 
