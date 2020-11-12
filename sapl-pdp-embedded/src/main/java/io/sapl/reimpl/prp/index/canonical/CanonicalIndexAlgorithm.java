@@ -38,7 +38,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 
-@Slf4j
+//@Slf4j
 @UtilityClass
 public class CanonicalIndexAlgorithm {
 
@@ -71,8 +71,9 @@ public class CanonicalIndexAlgorithm {
     }
 
     Bitmask orBitMask(@NonNull Bitmask b1, @NonNull Bitmask b2) {
-        b2.or(b1);
-        return b2;
+        Bitmask result = new Bitmask(b1);
+        result.or(b2);
+        return result;
     }
 
     private Bitmask eliminateCandidatesAndReturnSatisfied(Bitmask clauseCandidatesMask, Predicate predicate,

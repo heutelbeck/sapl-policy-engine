@@ -6,10 +6,8 @@ import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
 import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
 import io.sapl.prp.inmemory.indexed.improved.CTuple;
 import io.sapl.prp.inmemory.indexed.improved.Predicate;
-import io.sapl.prp.inmemory.indexed.improved.PredicateInfo;
 import lombok.Value;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,4 +31,12 @@ public class CanonicalIndexDataContainer {
 
     int[] numberOfFormulasWithConjunction;
 
+
+    public int[] getNumberOfLiteralsInConjunction() {
+        return numberOfLiteralsInConjunction.clone();
+    }
+
+    public int[] getNumberOfFormulasWithConjunction() {
+        return numberOfFormulasWithConjunction.clone();
+    }
 }
