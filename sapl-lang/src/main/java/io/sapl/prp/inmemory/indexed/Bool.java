@@ -77,8 +77,6 @@ public class Bool {
 		} catch (RuntimeException e) {
 			throw new PolicyEvaluationException(Exceptions.unwrap(e));
 		}
-		// TODO how can it be checked if result flux is defined and really contains a
-		// boolean node?
 		// throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result);
 		return resultFlux.filter(Val::isDefined).map(Val::get).filter(JsonNode::isBoolean).map(JsonNode::asBoolean)
 				.next();

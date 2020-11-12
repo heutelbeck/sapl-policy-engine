@@ -5,14 +5,17 @@ import io.sapl.prp.inmemory.indexed.Bool;
 import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
 import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
 import io.sapl.prp.inmemory.indexed.Literal;
+import io.sapl.prp.inmemory.indexed.improved.CTuple;
 import io.sapl.prp.inmemory.indexed.improved.Predicate;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class CanonicalIndexAlgorithmTest {
@@ -173,6 +176,55 @@ public class CanonicalIndexAlgorithmTest {
 
         Bitmask satisfiableCandidates2 = new Bitmask();
         Assertions.assertThat(CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates2, relatedFormulas)).isEmpty();
+    }
+
+    @Test
+    public void test_find_satisfiable_candidates() {
+        Bitmask candidates = new Bitmask();
+        Predicate predicate = new Predicate(new Bool(true));
+        int[] trueLiteralsOfConjunction = new int[]{0, 0, 0};
+        int[] numberOfLiteralsInConjunction = new int[]{1, 1, 2};
+
+        Assertions.assertThat(CanonicalIndexAlgorithm.findSatisfiableCandidates(candidates, predicate, false,
+                trueLiteralsOfConjunction, numberOfLiteralsInConjunction).numberOfBitsSet()).isEqualTo(0);
+
+        candidates.set(0, 3);
+        predicate.getFalseForTruePredicate().set(0, 1);
+        predicate.getFalseForFalsePredicate().set(1, 3);
+
+        //true -> {1} satisfiableCandidates
+        Bitmask satisfiableCandidates = CanonicalIndexAlgorithm.findSatisfiableCandidates(candidates, predicate, true,
+                trueLiteralsOfConjunction, numberOfLiteralsInConjunction);
+        Assertions.assertThat(satisfiableCandidates.isSet(0)).isFalse();
+        Assertions.assertThat(satisfiableCandidates.isSet(1)).isTrue();
+        Assertions.assertThat(satisfiableCandidates.isSet(2)).isFalse();
+
+        //calling the method again without clearing the array trueLiteralsOfConjunction, so number of true literals
+        // is "2" for the third candidate (all literals are true)
+        satisfiableCandidates = CanonicalIndexAlgorithm.findSatisfiableCandidates(candidates, predicate, true,
+                trueLiteralsOfConjunction, numberOfLiteralsInConjunction);
+        Assertions.assertThat(satisfiableCandidates.isSet(2)).isTrue();
+
+
+        trueLiteralsOfConjunction = new int[]{0, 0, 0};
+        satisfiableCandidates = CanonicalIndexAlgorithm.findSatisfiableCandidates(candidates, predicate, false,
+                trueLiteralsOfConjunction, numberOfLiteralsInConjunction);
+        Assertions.assertThat(satisfiableCandidates.isSet(0)).isTrue();
+        Assertions.assertThat(satisfiableCandidates.isSet(1)).isFalse();
+        Assertions.assertThat(satisfiableCandidates.isSet(2)).isFalse();
+    }
+
+    @Test
+    public void test_find_orphaned_candidates() {
+        Bitmask candidates = new Bitmask();
+        Bitmask satisfiableCandidates = new Bitmask();
+        int[] eliminatedFormulasWithConjunction = new int[]{};
+        int[] numberOfFormulasWithConjunction = new int[]{};
+        Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction = new HashMap();
+
+        Assertions.assertThat(CanonicalIndexAlgorithm.findOrphanedCandidates(candidates, satisfiableCandidates,
+                eliminatedFormulasWithConjunction, conjunctionsInFormulasReferencingConjunction,
+                numberOfFormulasWithConjunction).numberOfBitsSet()).isEqualTo(0);
     }
 
     private List<ConjunctiveClause> createDummyClauseList(int numberOfLiterals) {

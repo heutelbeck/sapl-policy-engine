@@ -30,6 +30,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,8 +44,6 @@ public class CanonicalIndexAlgorithm {
 
     public Mono<PolicyRetrievalResult> match(final FunctionContext functionCtx, final VariableContext variableCtx,
                                              CanonicalIndexDataContainer dataContainer) {
-        log.debug("match mono");
-
         Bitmask clauseCandidatesMask = new Bitmask();
         clauseCandidatesMask.set(0, dataContainer.getNumberOfLiteralsInConjunction().length);
 
@@ -54,15 +53,19 @@ public class CanonicalIndexAlgorithm {
         Mono<PolicyRetrievalResult> resultMono = Flux.fromIterable(dataContainer.getPredicateOrder())
                 .filter(predicate -> isReferenced(predicate, clauseCandidatesMask))
                 .concatMap(predicate -> predicate.evaluate(functionCtx, variableCtx)
-                        //TODO handle error in evaluate
                         .map(evaluationResult ->
                                 eliminateCandidatesAndReturnSatisfied(clauseCandidatesMask, predicate, evaluationResult,
                                         trueLiteralsOfConjunction, eliminatedFormulasWithConjunction,
                                         dataContainer))
+                        //TODO: error can be handled by returning empty bitmask in case of error
+                        // - subscriber does not get informed about error
+//                        .onErrorReturn(new Bitmask()) //return empty bitmask in case the predicate evaluation fails
                 ).reduce(new Bitmask(), (b2, b1) -> orBitMask(b1, b2))
                 .map(satisfied -> fetchFormulas(satisfied, dataContainer.getRelatedFormulas()))
                 .map(formulas -> fetchPolicies(formulas, dataContainer.getFormulaToDocuments()))
-                .map(policies -> new PolicyRetrievalResult(policies, false));
+                .map(policies -> new PolicyRetrievalResult(policies, false))
+                //if any error occurs in the chain, return an empty result with the error flag set to true
+                .onErrorReturn(new PolicyRetrievalResult(Collections.emptyList(), true));
 
 
         return resultMono;
@@ -79,7 +82,7 @@ public class CanonicalIndexAlgorithm {
                                                           CanonicalIndexDataContainer dataContainer) {
         Bitmask satisfiableCandidates = findSatisfiableCandidates(clauseCandidatesMask, predicate,
                 evaluationResult, trueLiteralsOfConjunction,
-                dataContainer.getNumberOfFormulasWithConjunction());
+                dataContainer.getNumberOfLiteralsInConjunction());
 
         Bitmask unsatisfiableCandidates =
                 findUnsatisfiableCandidates(clauseCandidatesMask, predicate, evaluationResult);
@@ -103,7 +106,7 @@ public class CanonicalIndexAlgorithm {
     }
 
 
-    private Bitmask findOrphanedCandidates(final Bitmask candidates, final Bitmask satisfiableCandidates,
+     Bitmask findOrphanedCandidates(final Bitmask candidates, final Bitmask satisfiableCandidates,
                                            int[] eliminatedFormulasWithConjunction,
                                            Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction,
                                            int[] numberOfFormulasWithConjunction) {
@@ -117,8 +120,10 @@ public class CanonicalIndexAlgorithm {
                 eliminatedFormulasWithConjunction[cTuple.getCI()] += cTuple.getN();
 
                 // if all formular of conjunction have been eliminated
-                if (eliminatedFormulasWithConjunction[cTuple.getCI()]
-                        == numberOfFormulasWithConjunction[cTuple.getCI()]) result.set(cTuple.getCI());
+                if (eliminatedFormulasWithConjunction[cTuple.getCI()] ==
+                        numberOfFormulasWithConjunction[cTuple.getCI()]) {
+                    result.set(cTuple.getCI());
+                }
             }
         });
 
@@ -139,9 +144,9 @@ public class CanonicalIndexAlgorithm {
         return result;
     }
 
-    private Bitmask findSatisfiableCandidates(final Bitmask candidates, final Predicate predicate,
-                                              final boolean evaluationResult, final int[] trueLiteralsOfConjunction,
-                                              int[] numberOfFormulasWithConjunction) {
+    Bitmask findSatisfiableCandidates(final Bitmask candidates, final Predicate predicate,
+                                      final boolean evaluationResult, final int[] trueLiteralsOfConjunction,
+                                      int[] numberOfLiteralsInConjunction) {
         Bitmask result = new Bitmask();
         // calling method with negated evaluation result will return satisfied clauses
         Bitmask satisfiableCandidates = findUnsatisfiableCandidates(candidates, predicate, !evaluationResult);
@@ -150,7 +155,7 @@ public class CanonicalIndexAlgorithm {
             // increment number of true literals
             trueLiteralsOfConjunction[index] += 1;
             // if all literals in conjunction are true, add conjunction to result
-            if (trueLiteralsOfConjunction[index] == numberOfFormulasWithConjunction[index])
+            if (trueLiteralsOfConjunction[index] == numberOfLiteralsInConjunction[index])
                 result.set(index);
         });
 

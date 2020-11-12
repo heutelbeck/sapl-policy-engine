@@ -21,10 +21,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
-import reactor.core.publisher.Flux;
 
+import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +55,32 @@ public class CanonicalImmutableParsedDocumentIndexTest {
         json = JsonNodeFactory.instance;
         emptyIndex = new CanonicalImmutableParsedDocumentIndex();
         variables = new HashMap<>();
+    }
+
+    @Test
+    public void test_return_empty_result_when_error_occurs() throws Exception{
+        InputStream resourceAsStream = getClass().getClassLoader()
+                .getResourceAsStream("it/error/policy_with_error.sapl");
+        SAPL withError = interpreter.parse(resourceAsStream);
+
+        List<Update> updates = new ArrayList<>(3);
+
+        updates.add(new Update(Type.PUBLISH, withError, withError.toString()));
+
+        PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
+        ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
+
+        AuthorizationSubscription authzSubscription = createRequestObject();
+
+        FunctionContext functionCtx = new AnnotationFunctionContext();
+
+        // when
+        PolicyRetrievalResult result = updatedIndex.retrievePolicies(authzSubscription, functionCtx, variables).block();
+
+        // then
+        Assertions.assertThat(result).isNotNull();
+        Assertions.assertThat(result.getMatchingDocuments()).isEmpty();
+        Assertions.assertThat(result.isErrorsInTarget()).isTrue();
     }
 
 

@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -75,10 +74,15 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
     private DisjunctiveFormula retainTarget(SAPL sapl) {
         try {
             Expression targetExpression = sapl.getPolicyElement().getTargetExpression();
-            Objects.requireNonNull(targetExpression);
+            DisjunctiveFormula targetFormula;
+            if (targetExpression == null) {
+                targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
+            } else {
+                Map<String, String> imports = sapl.fetchFunctionImports(new AnnotationFunctionContext());
+                targetFormula = TreeWalker.walk(targetExpression, imports);
+            }
 
-            Map<String, String> imports = sapl.fetchFunctionImports(new AnnotationFunctionContext());
-            return TreeWalker.walk(targetExpression, imports);
+            return targetFormula;
         } catch (PolicyEvaluationException e) {
             log.error("exception while retaining target for document {}", sapl.getPolicyElement().getSaplName(), e);
             return new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
