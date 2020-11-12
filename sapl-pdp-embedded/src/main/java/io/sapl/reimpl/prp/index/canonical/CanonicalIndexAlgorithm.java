@@ -53,15 +53,12 @@ public class CanonicalIndexAlgorithm {
         Mono<PolicyRetrievalResult> resultMono = Flux.fromIterable(dataContainer.getPredicateOrder())
                 .filter(predicate -> isReferenced(predicate, clauseCandidatesMask))
                 .concatMap(predicate -> predicate.evaluate(functionCtx, variableCtx)
-                                .map(evaluationResult ->
-                                        eliminateCandidatesAndReturnSatisfied(clauseCandidatesMask, predicate, evaluationResult,
-                                                trueLiteralsOfConjunction, eliminatedFormulasWithConjunction,
-                                                dataContainer))
-                                .doOnError(__ ->
-                                        removeCandidatesRelatedToPredicate(predicate, clauseCandidatesMask))
-                        //TODO: error can be handled by returning empty bitmask in case of error
-                        // - subscriber does not get informed about error
-                        //                        .onErrorReturn(new Bitmask()) //return empty bitmask in case the predicate evaluation fails
+                        .map(evaluationResult ->
+                                eliminateCandidatesAndReturnSatisfied(clauseCandidatesMask, predicate, evaluationResult,
+                                        trueLiteralsOfConjunction, eliminatedFormulasWithConjunction,
+                                        dataContainer))
+                        .doOnError(__ ->
+                                removeCandidatesRelatedToPredicate(predicate, clauseCandidatesMask))
                 ).reduce(new Bitmask(), (b2, b1) -> orBitMask(b1, b2))
                 .map(satisfied -> fetchFormulas(satisfied, dataContainer.getRelatedFormulas()))
                 .map(formulas -> fetchPolicies(formulas, dataContainer.getFormulaToDocuments()))
