@@ -8,6 +8,7 @@ import io.sapl.prp.inmemory.indexed.Literal;
 import io.sapl.prp.inmemory.indexed.improved.CTuple;
 import io.sapl.prp.inmemory.indexed.improved.Predicate;
 import org.assertj.core.api.Assertions;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@Ignore
 public class CanonicalIndexAlgorithmTest {
 
     @Test

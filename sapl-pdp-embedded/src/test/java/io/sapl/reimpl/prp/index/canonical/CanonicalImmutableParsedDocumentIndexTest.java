@@ -19,6 +19,7 @@ import io.sapl.reimpl.prp.PrpUpdateEvent.Type;
 import io.sapl.reimpl.prp.PrpUpdateEvent.Update;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@Ignore
 public class CanonicalImmutableParsedDocumentIndexTest {
 
     @Rule
