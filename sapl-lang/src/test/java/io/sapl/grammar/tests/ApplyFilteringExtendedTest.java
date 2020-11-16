@@ -15,259 +15,328 @@
  */
 package io.sapl.grammar.tests;
 
-import static org.junit.Assert.assertEquals;
+import static io.sapl.grammar.tests.ParserUtil.filterComponent;
 
-import java.math.BigDecimal;
+import java.io.IOException;
 
+import org.junit.Before;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.BasicRelative;
-import io.sapl.grammar.sapl.FilterExtended;
-import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.grammar.sapl.IndexStep;
-import io.sapl.grammar.sapl.RecursiveIndexStep;
-import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
+import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.SimpleFunctionLibrary;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class ApplyFilteringExtendedTest {
 
-	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
+	private VariableContext variableCtx;
+	private AnnotationFunctionContext functionCtx;
+	private EvaluationContext ctx;
 
-	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	private static VariableContext variableCtx = new VariableContext();
-
-	private static FunctionContext functionCtx = new MockFilteringContext();
-
-	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
-
-	private static final String REMOVE = "remove";
-
-	@Test
-	public void removeNoStepsNoEach() {
-		JsonNode root = JSON.objectNode();
-
-		FilterExtended filter = factory.createFilterExtended();
-		FilterStatement statement = factory.createFilterStatement();
-		statement.setTarget(factory.createBasicRelative());
-		statement.getFsteps().add(REMOVE);
-		filter.getStatements().add(statement);
-
-		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
-				.verifyError(PolicyEvaluationException.class);
+	@Before
+	public void before() {
+		variableCtx = new VariableContext();
+		functionCtx = new AnnotationFunctionContext();
+		functionCtx.loadLibrary(new FilterFunctionLibrary());
+		functionCtx.loadLibrary(new MockFunctionLibrary());
+		functionCtx.loadLibrary(new SimpleFunctionLibrary());
+		ctx = new EvaluationContext(functionCtx, variableCtx);
 	}
 
 	@Test
-	public void removeEachNoArray() {
-		JsonNode root = JSON.objectNode();
-
-		FilterExtended filter = factory.createFilterExtended();
-		FilterStatement statement = factory.createFilterStatement();
-		statement.setTarget(factory.createBasicRelative());
-		statement.getFsteps().add(REMOVE);
-		statement.setEach(true);
-		filter.getStatements().add(statement);
-
-		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
-				.verifyError(PolicyEvaluationException.class);
+	public void removeKeyStepFromObject() throws IOException {
+		var root = Val.ofJson("{ \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }");
+		var filter = filterComponent("{ @.name : filter.remove }");
+		var expectedValue = Val.ofJson("{ \"job\" : \"recreational surgeon\" }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedValue).verifyComplete();
 	}
 
 	@Test
-	public void removeNoStepsEach() {
-		ArrayNode root = JSON.arrayNode();
-		root.add(JSON.nullNode());
-		root.add(JSON.booleanNode(true));
-
-		FilterExtended filter = factory.createFilterExtended();
-		FilterStatement statement = factory.createFilterStatement();
-		statement.setTarget(factory.createBasicRelative());
-		statement.getFsteps().add(REMOVE);
-		statement.setEach(true);
-		filter.getStatements().add(statement);
-
-		Val expectedResult = Val.of(JSON.arrayNode());
-
-		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
-				.consumeNextWith(result -> assertEquals("Function remove, no steps and each should return empty array",
-						expectedResult, result))
-				.thenCancel().verify();
+	public void removeElementTwoKeyStepsDownFromObject() throws IOException {
+		var root = Val.ofJson(
+				"{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\", \"wage\" : 1000000 } }");
+		var filter = filterComponent("{ @.job.wage : filter.remove }");
+		var expectedValue = Val
+				.ofJson("{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\" } }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedValue).verifyComplete();
 	}
 
 	@Test
-	public void emptyStringNoStepsNoEach() {
-		ArrayNode root = JSON.arrayNode();
-		root.add(JSON.nullNode());
-		root.add(JSON.booleanNode(true));
-
-		FilterExtended filter = factory.createFilterExtended();
-		FilterStatement statement = factory.createFilterStatement();
-		statement.setTarget(factory.createBasicRelative());
-		statement.getFsteps().add("EMPTY_STRING");
-		filter.getStatements().add(statement);
-
-		Val expectedResult = Val.of(JSON.textNode(""));
-
-		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
-				.consumeNextWith(result -> assertEquals(
-						"Mock function EMPTY_STRING, no steps, no each should return empty string", expectedResult,
-						result))
-				.thenCancel().verify();
+	public void removeElementThreeKeyStepsDownFromObject() throws IOException {
+		var root = Val.ofJson(
+				"{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\",  \"wage\" : { \"monthly\" : 1000000, \"currency\" : \"GBP\"} } }");
+		var filter = filterComponent("{ @.job.wage.monthly : filter.remove }");
+		var expectedValue = Val.ofJson(
+				"{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\",  \"wage\" : { \"currency\" : \"GBP\"} } }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedValue).verifyComplete();
 	}
 
 	@Test
-	public void emptyStringNoStepsEach() {
-		ArrayNode root = JSON.arrayNode();
-		root.add(JSON.nullNode());
-		root.add(JSON.booleanNode(true));
-
-		FilterExtended filter = factory.createFilterExtended();
-		FilterStatement statement = factory.createFilterStatement();
-		statement.setTarget(factory.createBasicRelative());
-		statement.getFsteps().add("EMPTY_STRING");
-		statement.setEach(true);
-		filter.getStatements().add(statement);
-
-		ArrayNode expectedResult = JSON.arrayNode();
-		expectedResult.add(JSON.textNode(""));
-		expectedResult.add(JSON.textNode(""));
-
-		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
-				.consumeNextWith(result -> assertEquals(
-						"Mock function EMPTY_STRING, no steps, each should array with empty strings",
-						Val.of(expectedResult), result))
-				.thenCancel().verify();
+	public void removeKeyStepFromArray() throws IOException {
+		var root = Val.ofJson(
+				"[ { \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }, { \"name\" : \"Billy the Kid\", \"job\" : \"professional perforator\" } ]");
+		var filter = filterComponent("{ @.name : filter.remove }");
+		var expectedValue = Val
+				.ofJson("[ { \"job\" : \"recreational surgeon\" }, { \"job\" : \"professional perforator\"} ] ");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedValue).verifyComplete();
 	}
 
 	@Test
-	public void emptyStringEachNoArray() {
-		ArrayNode root = JSON.arrayNode();
-		root.add(JSON.objectNode());
-		root.add(JSON.booleanNode(true));
-
-		FilterExtended filter = factory.createFilterExtended();
-		FilterStatement statement = factory.createFilterStatement();
-		statement.setTarget(factory.createBasicRelative());
-		statement.getFsteps().add("EMPTY_STRING");
-
-		IndexStep step = factory.createIndexStep();
-		step.setIndex(BigDecimal.valueOf(0));
-		BasicRelative expression = factory.createBasicRelative();
-		expression.getSteps().add(step);
-		statement.setTarget(expression);
-
-		statement.setEach(true);
-
-		filter.getStatements().add(statement);
-
-		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
-				.verifyError(PolicyEvaluationException.class);
+	public void removeNoStepsNoEach() throws IOException {
+		var root = Val.ofEmptyObject();
+		var filter = filterComponent("{ @ : filter.remove }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(Val.UNDEFINED).verifyComplete();
 	}
 
 	@Test
-	public void removeResultArrayNoEach() {
-		ArrayNode root = JSON.arrayNode();
-		root.add(JSON.nullNode());
-		root.add(JSON.booleanNode(true));
-
-		FilterExtended filter = factory.createFilterExtended();
-		FilterStatement statement = factory.createFilterStatement();
-		BasicRelative target = factory.createBasicRelative();
-		RecursiveIndexStep step = factory.createRecursiveIndexStep();
-		step.setIndex(BigDecimal.valueOf(0));
-		target.getSteps().add(step);
-
-		statement.setTarget(target);
-		statement.getFsteps().add(REMOVE);
-		filter.getStatements().add(statement);
-
-		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
+	public void removeEachNoArray() throws IOException {
+		var root = Val.ofEmptyObject();
+		var filter = filterComponent("{ each @ : filter.remove }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	public void emptyStringResultArrayNoEach() {
-		ArrayNode root = JSON.arrayNode();
-		root.add(JSON.nullNode());
-		root.add(JSON.booleanNode(true));
-
-		FilterExtended filter = factory.createFilterExtended();
-		FilterStatement statement = factory.createFilterStatement();
-		BasicRelative target = factory.createBasicRelative();
-		RecursiveIndexStep step = factory.createRecursiveIndexStep();
-		step.setIndex(BigDecimal.valueOf(0));
-		target.getSteps().add(step);
-
-		statement.setTarget(target);
-		statement.getFsteps().add("EMPTY_STRING");
-		filter.getStatements().add(statement);
-
-		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
-				.verifyError(PolicyEvaluationException.class);
+	public void removeNoStepsEach() throws IOException {
+		var root = Val.ofJson("[ null, true ]");
+		var filter = filterComponent("{ each @ : filter.remove }");
+		var expectedResult = Val.ofEmptyArray();
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
 	}
 
 	@Test
-	public void emptyStringResultArrayEach() {
-		ArrayNode root = JSON.arrayNode();
-		root.add(JSON.nullNode());
-		root.add(JSON.booleanNode(true));
-
-		FilterExtended filter = factory.createFilterExtended();
-		FilterStatement statement = factory.createFilterStatement();
-		BasicRelative target = factory.createBasicRelative();
-		RecursiveIndexStep step = factory.createRecursiveIndexStep();
-		step.setIndex(BigDecimal.valueOf(0));
-		target.getSteps().add(step);
-
-		statement.setTarget(target);
-		statement.getFsteps().add("EMPTY_STRING");
-		statement.setEach(true);
-		filter.getStatements().add(statement);
-
-		ArrayNode expectedResult = JSON.arrayNode();
-		expectedResult.add(JSON.textNode(""));
-		expectedResult.add(JSON.booleanNode(true));
-
-		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined())).consumeNextWith(result -> assertEquals(
-				"Mock function EMPTY_STRING applied to result array and each should replace selected elements by empty string",
-				Val.of(expectedResult), result)).thenCancel().verify();
+	public void emptyStringNoStepsNoEach() throws IOException {
+		var root = Val.ofJson("[ null, true ]");
+		var filter = filterComponent("{ @ : mock.emptyString }");
+		var expectedResult = Val.of("");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
 	}
 
 	@Test
-	public void removeResultArrayEach() {
-		ArrayNode root = JSON.arrayNode();
-		root.add(JSON.nullNode());
-		root.add(JSON.booleanNode(true));
+	public void emptyStringNoStepsEach() throws IOException {
+		var root = Val.ofJson("[ null, true ]");
+		var filter = filterComponent("{ each @ : mock.emptyString }");
+		var expectedResult = Val.ofJson("[ \"\", \"\" ]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
 
-		FilterExtended filter = factory.createFilterExtended();
-		FilterStatement statement = factory.createFilterStatement();
-		BasicRelative target = factory.createBasicRelative();
-		RecursiveIndexStep step = factory.createRecursiveIndexStep();
-		step.setIndex(BigDecimal.valueOf(0));
-		target.getSteps().add(step);
+	@Test
+	public void emptyStringEachNoArray() throws IOException {
+		var root = Val.ofJson("[ {}, true ]");
+		var filter = filterComponent("{ each @[0] : mock.emptyString }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+	}
 
-		statement.setTarget(target);
-		statement.getFsteps().add(REMOVE);
-		statement.setEach(true);
-		filter.getStatements().add(statement);
+	@Test
+	public void removeResultArrayNoEach() throws IOException {
+		var root = Val.ofJson("[ null, true ]");
+		var filter = filterComponent("{ @[0] : filter.remove }");
+		var expectedResult = Val.ofJson("[ true ]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
 
-		ArrayNode expectedResult = JSON.arrayNode();
-		expectedResult.add(JSON.booleanNode(true));
+	@Test
+	public void blackenIndexInSelectedField() throws IOException {
+		var root = Val.ofJson(
+				"[ { \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }, { \"name\" : \"Billy the Kid\", \"job\" : \"professional perforator\" } ]");
+		var filter = filterComponent("{ @[0].job : filter.blacken }");
+		var expectedValue = Val.ofJson(
+				"[ { \"name\" : \"Jack the Ripper\", \"job\" : \"XXXXXXXXXXXXXXXXXXXX\" }, { \"name\" : \"Billy the Kid\", \"job\" : \"professional perforator\" } ]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedValue).verifyComplete();
+	}
 
-		StepVerifier.create(filter.apply(Val.of(root), ctx, Val.undefined()))
-				.consumeNextWith(
-						result -> assertEquals("Remove applied to result array and each should remove each element",
-								Val.of(expectedResult), result))
-				.thenCancel().verify();
+	@Test
+	public void blackenResultArrayNoEach() throws IOException {
+		var root = Val.ofJson("[ null, \"secret\", true ]");
+		var filter = filterComponent("{ @[-2] : filter.blacken }");
+		var expectedResult = Val.ofJson("[ null, \"XXXXXX\", true ]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void removeArraySliceNegative() throws IOException {
+		var root = Val.ofJson("[ 0, 1, 2, 3, 4, 5 ]");
+		var filter = filterComponent("{ @[-2:] : filter.remove }");
+		var expectedResult = Val.ofJson("[0, 1, 2, 3 ]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void removeArraySlicePositive() throws IOException {
+		var root = Val.ofJson("[ 0, 1, 2, 3, 4, 5 ]");
+		var filter = filterComponent("{ @[2:4:1] : filter.remove }");
+		var expectedResult = Val.ofJson("[ 0, 1, 4, 5 ]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void removeArraySliceNegativeTo() throws IOException {
+		var root = Val.ofJson("[ 1, 2, 3, 4, 5 ]");
+		var filter = filterComponent("{ @[0:-2:2] : filter.remove }");
+		var expectedResult = Val.ofJson("[ 2, 4, 5 ]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void removeArraySliceNegativeStep() throws IOException {
+		var root = Val.ofJson("[ 0, 1, 2, 3, 4, 5 ]");
+		var filter = filterComponent("{ @[1:5:-2] : filter.remove }");
+		var expectedResult = Val.ofJson("[ 0, 2, 4, 5 ]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void removeAttributeUnionStep() throws IOException {
+		var root = Val.ofJson("{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 }");
+		var filter = filterComponent("{ @[\"b\" , \"d\"] : filter.remove }");
+		var expectedResult = Val.ofJson("{ \"a\" : 1, \"c\" : 3 }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void removeArrayElementInAttributeUnionStep() throws IOException {
+		var root = Val.ofJson("{ \"a\" : [0,1,2,3], \"b\" : [0,1,2,3], \"c\" : [0,1,2,3], \"d\" : [0,1,2,3] }");
+		var filter = filterComponent("{ @[\"b\" , \"d\"][1] : filter.remove }");
+		var expectedResult = Val.ofJson("{ \"a\" : [0,1,2,3], \"b\" : [0,2,3], \"c\" : [0,1,2,3], \"d\" : [0,2,3] }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void replaceWithEmptyStringArrayElementInAttributeUnionStep() throws IOException {
+		var root = Val.ofJson("{ \"a\" : [0,1,2,3], \"b\" : [0,1,2,3], \"c\" : [0,1,2,3], \"d\" : [0,1,2,3] }");
+		var filter = filterComponent("{ @[\"b\" , \"d\"][1] : mock.emptyString }");
+		var expectedResult = Val
+				.ofJson("{ \"a\" : [0,1,2,3], \"b\" : [0,\"\",2,3], \"c\" : [0,1,2,3], \"d\" : [0,\"\",2,3] }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void removeIndexUnionStep() throws IOException {
+		var root = Val.ofJson("[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ]");
+		var filter = filterComponent("{ @[1,3] : filter.remove }");
+		var expectedResult = Val.ofJson("[ [0,1,2,3], [2,1,2,3], [4,1,2,3] ]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void doubleRemoveIndexUnionStep() throws IOException {
+		var root = Val.ofJson("[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ]");
+		var filter = filterComponent("{ @[1,3][2,1] : filter.remove }");
+		var expectedResult = Val.ofJson("[ [0,1,2,3], [1,3], [2,1,2,3], [3,3], [4,1,2,3] ]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void removeExpressionStepArray() throws IOException {
+		var root = Val.ofJson("[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ]");
+		var filter = filterComponent("{ @[(1+2)] : filter.remove }");
+		var expectedResult = Val.ofJson("[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [4,1,2,3] ]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void removeExpressionStepObject() throws IOException {
+		var root = Val.ofJson("{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"cb\" : [0,1,2,3], \"d\" : [0,1,2,3] }");
+		var filter = filterComponent("{ @[(\"c\"+\"b\")] : filter.remove }");
+		var expectedResult = Val.ofJson("{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"d\" : [0,1,2,3] }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void removeConditionStepFromObject() throws IOException {
+		var root = Val.ofJson("{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 }");
+		var filter = filterComponent("{ @[?(@>2)] : filter.remove }");
+		var expectedResult = Val.ofJson("{ \"a\" : 1, \"b\" : 2 }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void replaceConditionStepFromArray() throws IOException {
+		var root = Val.ofJson("[1,2,3,4,5]");
+		var filter = filterComponent("{ @[?(@>2)] : mock.emptyString }");
+		var expectedResult = Val.ofJson("[1,2,\"\", \"\", \"\"]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void replaceWildcardStepArray() throws IOException {
+		var root = Val.ofJson("[1,2,3,4,5]");
+		var filter = filterComponent("{ @.* : mock.emptyString }");
+		var expectedResult = Val.ofJson("[ \"\", \"\",\"\", \"\", \"\"]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void replaceWildcardStepObject() throws IOException {
+		var root = Val.ofJson("{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 }");
+		var filter = filterComponent("{ @.* : mock.emptyString }");
+		var expectedResult = Val.ofJson("{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void replaceRecursiveWildcardStepArray() throws IOException {
+		var root = Val.ofJson("[1,2,3,4,5]");
+		var filter = filterComponent("{ @..* : mock.emptyString }");
+		var expectedResult = Val.ofJson("[ \"\", \"\",\"\", \"\", \"\"]");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void replaceRecussiveWildcardStepObject() throws IOException {
+		var root = Val.ofJson("{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 }");
+		var filter = filterComponent("{ @..* : mock.emptyString }");
+		var expectedResult = Val.ofJson("{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void replaceRecussiveKeyStepObject() throws IOException {
+		var root = Val.ofJson(
+				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] }");
+		var filter = filterComponent("{ @..key : filter.blacken }");
+		var expectedResult = Val.ofJson(
+				"{ \"key\" : \"XXXXXX\", \"array1\" : [ { \"key\" : \"XXXXXX\" }, { \"key\" : \"XXXXXX\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void removeRecussiveIndexStepObject() throws IOException {
+		var root = Val.ofJson(
+				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] }");
+		var filter = filterComponent("{ @..[0] : filter.remove }");
+		var expectedResult = Val.ofJson(
+				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value3\" } ], \"array2\" : [ 2, 3, 4, 5 ] }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+
+	@Test
+	public void multipleFilterStatements() throws IOException {
+		var root = Val.ofJson(
+				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] }");
+		var filter = filterComponent("{ @..[0] : filter.remove, @..key : filter.blacken, @.array2[-1] : filter.remove }");
+		var expectedResult = Val.ofJson(
+				"{ \"key\" : \"XXXXXX\", \"array1\" : [ { \"key\" : \"XXXXXX\" } ], \"array2\" : [ 2, 3, 4 ] }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	}
+
+	@Test
+	public void complexWithFunctionAndRelative() throws IOException {
+		var root = Val.ofJson("{\"name\": \"Ben\", \"origin\": \"Berlin\"}");
+		var filter = filterComponent("{@.name : simple.append(\" from \", @.origin), @.origin : filter.remove}");
+		var expectedResult = Val.ofJson("{\"name\": \"Ben from Berlin\"}");
+		StepVerifier.create(filter.apply(root, ctx, root)).expectNext(expectedResult).verifyComplete();
+	}
+	
+	@Test
+	public void complexWithFunctionAndRelativeArray() throws IOException {
+		var root = Val.ofJson("[ {\"name\": \"Ben\", \"origin\": \"Berlin\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}]");
+		var filter = filterComponent("{@.name : simple.append(\" from \", @.origin), @.origin : filter.remove}");
+		var expectedResult = Val.ofJson("[{\"name\": \"Ben from Berlin\"},{ \"name\": \"Felix from Zürich\"}]");
+		StepVerifier.create(filter.apply(root, ctx, root)).expectNext(expectedResult).verifyComplete();
 	}
 
 }

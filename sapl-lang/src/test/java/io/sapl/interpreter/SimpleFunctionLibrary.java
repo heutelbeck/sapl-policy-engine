@@ -27,7 +27,7 @@ public class SimpleFunctionLibrary {
 
 	@Function
 	public Val length(Val parameter) throws FunctionException {
-		Val result = Val.undefined();
+		Val result = Val.UNDEFINED;
 		if (parameter.isArray()) {
 			result = Val.of(parameter.get().size());
 		} else if (parameter.isTextual()) {

@@ -1,17 +1,20 @@
 package io.sapl.grammar.sapl.impl;
 
+import java.util.logging.Level;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import io.sapl.api.functions.FunctionException;
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.prp.inmemory.indexed.EquivalenceAndHashUtil;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 
 @Slf4j
 @RunWith(MockitoJUnitRunner.class)
@@ -29,7 +32,7 @@ public class SemanticEquivalenceAndHashTest {
 	private static final String POLICY_B2 = "policy \"a\" permit false";
 
 	@Test
-	public void doTest() throws PolicyEvaluationException, FunctionException {
+	public void doTest() {
 		var a = INTERPRETER.parse(POLICY_A2);
 		var functionCtx = new AnnotationFunctionContext();
 		functionCtx.loadLibrary(new TemporalFunctionLibrary());
@@ -44,5 +47,17 @@ public class SemanticEquivalenceAndHashTest {
 		log.info("-----------------------------------------------------------");
 		var hashB = EquivalenceAndHashUtil.semanticHash(bTargetExp, bImports);
 		log.info("hashes {} - (A,B): ({},{})", hashA == hashB, hashA, hashB);
+
+		// log.info("->{}", dangerous(2).doOnError(e -> log.info("XXXX-{}",
+		// e.getMessage())).onErrorReturn(999));
+		log.info("GOT: {}", dangerous(2).onErrorReturn(123).block());
+		Flux.fromArray(new Integer[] { 1, 2, 3, 4 }).concatMap(i -> dangerous(i).onErrorReturn(123)).onErrorReturn(999)
+				.log(null, Level.INFO, SignalType.ON_NEXT).blockLast();
+	}
+
+	private Mono<Integer> dangerous(Integer i) {
+		if (i == 2)
+			return Mono.error(new RuntimeException());
+		return Mono.just(i);
 	}
 }

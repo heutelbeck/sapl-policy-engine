@@ -59,9 +59,9 @@ public class SimpleFilterFunctionLibrary {
 
 		if (today.getYear() == zdt.getYear() && today.getMonthValue() == zdt.getMonthValue()
 				&& today.getDayOfMonth() == zdt.getDayOfMonth()) {
-			return Val.ofTrue();
+			return Val.TRUE;
 		} else {
-			return Val.ofFalse();
+			return Val.FALSE;
 		}
 	}
 

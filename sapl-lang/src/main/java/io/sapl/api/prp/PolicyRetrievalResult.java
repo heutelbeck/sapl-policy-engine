@@ -15,6 +15,7 @@
  */
 package io.sapl.api.prp;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
@@ -22,13 +23,14 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import io.sapl.grammar.sapl.SAPL;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor
 @AllArgsConstructor
 public class PolicyRetrievalResult {
 
-	Collection<SAPL> matchingDocuments;
-
-	boolean errorsInTarget;
+	Collection<SAPL> matchingDocuments = new ArrayList<>();;
+	boolean errorsInTarget = false;
 
 	public Collection<SAPL> getMatchingDocuments() {
 		return this.matchingDocuments;
@@ -36,6 +38,16 @@ public class PolicyRetrievalResult {
 
 	public boolean isErrorsInTarget() {
 		return this.errorsInTarget;
+	}
+
+	public PolicyRetrievalResult withMatch(SAPL match) {
+		var matches = new ArrayList<SAPL>(matchingDocuments);
+		matches.add(match);
+		return new PolicyRetrievalResult(matches, errorsInTarget);
+	}
+
+	public PolicyRetrievalResult withError() {
+		return new PolicyRetrievalResult(new ArrayList<SAPL>(matchingDocuments), true);
 	}
 
 	@Override

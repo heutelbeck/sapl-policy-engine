@@ -37,33 +37,31 @@ import reactor.core.publisher.Flux;
 public class Val {
 
 	private static final String UNDEFINED_VALUE_ERROR = "Undefined value error.";
-
 	private static final String OBJECT_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Expected an object, but got %s.";
-
 	private static final String ARRAY_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Expected an array, but got %s.";
-
 	private static final String BOOLEAN_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
-
 	private static final String TEXT_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Text operation expects text values, but got: '%s'.";
-
 	private static final String ARITHMETIC_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Number operation expects number values, but got: '%s'.";
 
 	public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final ObjectMapper MAPPER = new ObjectMapper(); // .enable(SerializationFeature.INDENT_OUTPUT);
 
-	private static final ObjectMapper MAPPER = new ObjectMapper();
-
-	private static final Val UNDEFINED = new Val();
-
-	private static final Val TRUE = new Val(JSON.booleanNode(true));
-
-	private static final Val FALSE = new Val(JSON.booleanNode(false));
-
-	private static final Val NULL = Val.of(JSON.nullNode());
+	public static final Val UNDEFINED = new Val();
+	public static final Val TRUE = new Val(JSON.booleanNode(true));
+	public static final Val FALSE = new Val(JSON.booleanNode(false));
+	public static final Val NULL = Val.of(JSON.nullNode());
 
 	private final JsonNode value;
+	private String errorMessage;
+
+	private Val(String errorMessage) {
+		this.value = null;
+		this.errorMessage = errorMessage;
+	}
 
 	private Val() {
 		this.value = null;
+		this.errorMessage = null;
 	}
 
 	private Val(JsonNode value) {
@@ -74,7 +72,41 @@ public class Val {
 		return value == null ? UNDEFINED : new Val(value);
 	}
 
+	public static Val ofEmptyObject() {
+		return new Val(JSON.objectNode());
+	}
+
+	public static Val ofEmptyArray() {
+		return new Val(JSON.arrayNode());
+	}
+
+	public static Val error(String errorMessage, Object... args) {
+		return errorMessage == null ? new Val("Unknown Error") : new Val(String.format(errorMessage, args));
+	}
+
+	public static Flux<Val> errorFlux(String errorMessage, Object... args) {
+		return Flux.just(error(errorMessage, args));
+	}
+
+	public String getMessage() {
+		if (isError()) {
+			return errorMessage;
+		}
+		throw new NoSuchElementException("Value not an error");
+	}
+
+	public boolean isError() {
+		return errorMessage != null;
+	}
+
+	public boolean noError() {
+		return errorMessage == null;
+	}
+
 	public JsonNode get() {
+		if (isError()) {		
+			throw new NoSuchElementException("Value is an error: "+getMessage());
+		}
 		if (value == null) {
 			throw new NoSuchElementException("Value undefined");
 		}
@@ -86,7 +118,7 @@ public class Val {
 	}
 
 	public boolean isUndefined() {
-		return value == null;
+		return value == null && noError();
 	}
 
 	public boolean isArray() {
@@ -183,7 +215,7 @@ public class Val {
 		if (isUndefined())
 			return this;
 		else
-			return predicate.test(value) ? this : undefined();
+			return predicate.test(value) ? this : UNDEFINED;
 	}
 
 	public <U> Optional<U> map(Function<? super JsonNode, ? extends U> mapper) {
@@ -219,11 +251,14 @@ public class Val {
 
 	@Override
 	public int hashCode() {
-		return Objects.hashCode(value);
+		return Objects.hash(value, errorMessage);
 	}
 
 	@Override
 	public String toString() {
+		if (isError()) {
+			return "ERROR[" + errorMessage + "]";
+		}
 		return value != null ? String.format("Value[%s]", value.toString()) : "Value.undefined";
 	}
 
@@ -236,15 +271,7 @@ public class Val {
 	}
 
 	public static Flux<Val> undefinedFlux() {
-		return Flux.just(undefined());
-	}
-
-	public static Val undefined() {
-		return UNDEFINED;
-	}
-
-	public static Val ofTrue() {
-		return TRUE;
+		return Flux.just(UNDEFINED);
 	}
 
 	public static Flux<Val> fluxOfTrue() {
@@ -255,15 +282,11 @@ public class Val {
 		return Flux.just(UNDEFINED);
 	}
 
-	public static Val ofFalse() {
-		return FALSE;
-	}
-
 	public static Flux<Val> fluxOfFalse() {
 		return Flux.just(FALSE);
 	}
 
-	public static Val ofJsonString(String val) throws JsonProcessingException {
+	public static Val ofJson(String val) throws JsonProcessingException {
 		return Val.of(MAPPER.readValue(val, JsonNode.class));
 	}
 
@@ -304,10 +327,31 @@ public class Val {
 	}
 
 	public static Flux<Boolean> toBoolean(Val value) {
-		if (value.isUndefined() || !value.get().isBoolean()) {
-			return Flux.error(new PolicyEvaluationException(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
+		if (value.isBoolean()) {
+			return Flux.just(value.get().booleanValue());
 		}
-		return Flux.just(value.get().booleanValue());
+		return Flux.error(new PolicyEvaluationException(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
+	}
+
+	public boolean getBoolean() {
+		if (isBoolean()) {
+			return value.booleanValue();
+		}
+		throw new PolicyEvaluationException(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(this));
+	}
+
+	public String getText() {
+		if (isTextual()) {
+			return value.textValue();
+		}
+		throw new PolicyEvaluationException(TEXT_OPERATION_TYPE_MISMATCH_S, typeOf(this));
+	}
+
+	public static Val requireBoolean(Val value) {
+		if (value.isUndefined() || !value.get().isBoolean()) {
+			return Val.error(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(value));
+		}
+		return value;
 	}
 
 	public static Flux<JsonNode> toJsonNode(Val value) {
@@ -317,11 +361,53 @@ public class Val {
 		return Flux.just(value.get());
 	}
 
+	public static Val requireJsonNode(Val value) {
+		if (value.isDefined()) {
+			return value;
+		}
+		return Val.error(UNDEFINED_VALUE_ERROR);
+	}
+
+	public JsonNode getJsonNode() {
+		if (this.isDefined()) {
+			return value;
+		}
+		throw new PolicyEvaluationException(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(this));
+	}
+
 	public static Flux<ArrayNode> toArrayNode(Val value) {
 		if (value.isUndefined() || !value.get().isArray()) {
 			return Flux.error(new PolicyEvaluationException(ARRAY_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
 		}
 		return Flux.just((ArrayNode) value.get());
+	}
+
+	public ArrayNode getArrayNode() {
+		if (this.isArray()) {
+			return (ArrayNode) value;
+		}
+		throw new PolicyEvaluationException(ARRAY_OPERATION_TYPE_MISMATCH_S, typeOf(this));
+	}
+
+	public ObjectNode getObjectNode() {
+		if (this.isObject()) {
+			return (ObjectNode) value;
+		}
+		throw new PolicyEvaluationException(ARRAY_OPERATION_TYPE_MISMATCH_S, typeOf(this));
+	}
+
+	public BigDecimal getBigDecimal() {
+		if (isDefined() && value.isNumber()) {
+			return value.decimalValue();
+		}
+		throw new PolicyEvaluationException(ARITHMETIC_OPERATION_TYPE_MISMATCH_S, typeOf(this));
+	}
+
+	public static Val requireArrayNode(Val value) {
+		if (value.isUndefined() || !value.get().isArray()) {
+			return Val.error(ARRAY_OPERATION_TYPE_MISMATCH_S, typeOf(value));
+		}
+		return value;
 	}
 
 	public static Flux<ObjectNode> toObjectNode(Val value) {
@@ -331,11 +417,25 @@ public class Val {
 		return Flux.just((ObjectNode) value.get());
 	}
 
+	public static Val requireObjectNode(Val value) {
+		if (!value.isUndefined() || !value.get().isObject()) {
+			return Val.error(OBJECT_OPERATION_TYPE_MISMATCH_S, typeOf(value));
+		}
+		return value;
+	}
+
 	public static Flux<String> toText(Val value) {
 		if (value.isUndefined() || !value.get().isTextual()) {
 			return Flux.error(new PolicyEvaluationException(TEXT_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
 		}
 		return Flux.just(value.get().textValue());
+	}
+
+	public static Val requireText(Val value) {
+		if (value.isUndefined() || !value.get().isTextual()) {
+			return Val.error(TEXT_OPERATION_TYPE_MISMATCH_S, typeOf(value));
+		}
+		return value;
 	}
 
 	public static Flux<BigDecimal> toBigDecimal(Val value) {
@@ -345,8 +445,26 @@ public class Val {
 		return Flux.just(value.get().decimalValue());
 	}
 
+	public static Val requireBigDecimal(Val value) {
+		if (value.isUndefined() || !value.get().isNumber()) {
+			return Val.error(ARITHMETIC_OPERATION_TYPE_MISMATCH_S, typeOf(value));
+		}
+		return value;
+	}
+
+	public static Val requireNumber(Val value) {
+		return requireBigDecimal(value);
+	}
+
 	public static String typeOf(Val value) {
+		if (value.isError()) {
+			return "ERROR";
+		}
 		return value.isDefined() ? value.get().getNodeType().toString() : "undefined";
+	}
+
+	public String getValType() {
+		return typeOf(this);
 	}
 
 }

@@ -15,111 +15,56 @@
  */
 package io.sapl.grammar.tests;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.ArrayList;
-import java.util.List;
+import static io.sapl.grammar.tests.ArrayUtil.numberArrayRange;
+import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.WildcardStep;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentObject;
-import io.sapl.interpreter.selection.JsonNodeWithoutParent;
-import io.sapl.interpreter.selection.ResultNode;
-import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class ApplyStepsWildcardTest {
 
-	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
-
-	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	private static VariableContext variableCtx = new VariableContext();
-
-	private static FunctionContext functionCtx = new MockFunctionContext();
-
-	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
+	private static SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+	private static EvaluationContext CTX = mock(EvaluationContext.class);
 
 	@Test
-	public void applyToNullNode() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.ofNull());
-
-		WildcardStep step = factory.createWildcardStep();
-
-		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
+	public void wildcardStepPropagatesErrors() {
+		var step = FACTORY.createWildcardStep();
+		StepVerifier.create(step.apply(Val.error("TEST"), CTX, Val.UNDEFINED)).expectNext(Val.error("TEST"))
+				.verifyComplete();
 	}
 
 	@Test
-	public void applyToArray() {
-		ArrayNode array = JSON.arrayNode();
-		array.add(JSON.nullNode());
-		array.add(JSON.booleanNode(true));
-		array.add(JSON.booleanNode(false));
-
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(array));
-
-		ResultNode expectedResult = new JsonNodeWithoutParent(Val.of(array));
-
-		WildcardStep step = factory.createWildcardStep();
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
-				.subscribe(result -> assertEquals("Wildcard step applied to an array node should return the array",
-						expectedResult, result));
+	public void wildcardStepOnOtherThanArrayOrObjectFails() {
+		// test case : "".* -> fails
+		var step = FACTORY.createWildcardStep();
+		StepVerifier.create(step.apply(Val.of(""), CTX, Val.UNDEFINED)).expectNextMatches(Val::isError)
+				.verifyComplete();
 	}
 
 	@Test
-	public void applyToResultArray() {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithoutParent(Val.of(JSON.arrayNode())));
-		list.add(new JsonNodeWithoutParent(Val.ofNull()));
-
-		ResultNode previousResult = new ArrayResultNode(list);
-
-		ResultNode expectedResult = previousResult;
-
-		WildcardStep step = factory.createWildcardStep();
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
-				.subscribe(result -> assertEquals(
-						"Wildcard step applied to a result array node should return the result array", expectedResult,
-						result));
+	public void wildcardStepOnArrayIsIdentity() {
+		// test case : [1,2,3,4,5,6,7,8,9].* == [1,2,3,4,5,6,7,8,9]
+		var step = FACTORY.createWildcardStep();
+		var array = numberArrayRange(0, 9);
+		StepVerifier.create(step.apply(array, CTX, Val.UNDEFINED)).expectNext(array).verifyComplete();
 	}
 
 	@Test
-	public void applyToObject() {
-		ObjectNode object = JSON.objectNode();
-		object.set("key1", JSON.nullNode());
-		object.set("key2", JSON.booleanNode(true));
-		object.set("key3", JSON.booleanNode(false));
-
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(object));
-
-		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(Val.ofNull(), Val.of(object), "key1"));
-		expectedResultSet.add(new JsonNodeWithParentObject(Val.ofTrue(), Val.of(object), "key2"));
-		expectedResultSet.add(new JsonNodeWithParentObject(Val.ofFalse(), Val.of(object), "key3"));
-
-		WildcardStep step = factory.createWildcardStep();
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Wildcard step applied to an object should return all attribute values", expectedResultSet,
-					resultSet);
-		});
+	public void applyToObject() throws JsonProcessingException {
+		// test case:
+		// {"key1":null,"key2":true,"key3":false,"key4":{"other_key":123}}.*
+		// == [ null, true, false , { "other_key" : 123 } ]
+		var parentValue = Val
+				.ofJson("{ \"key1\" : null, \"key2\" : true, \"key3\" : false , \"key4\" : { \"other_key\" : 123 } }");
+		var step = FACTORY.createWildcardStep();
+		var expectedResult = Val.ofJson("[ null, true, false , { \"other_key\" : 123 } ]");
+		StepVerifier.create(step.apply(parentValue, CTX, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
 	}
-
 }

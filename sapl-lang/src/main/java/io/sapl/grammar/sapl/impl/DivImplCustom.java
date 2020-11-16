@@ -33,9 +33,17 @@ public class DivImplCustom extends DivImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		final Flux<BigDecimal> divident = getLeft().evaluate(ctx, relativeNode).concatMap(Val::toBigDecimal);
-		final Flux<BigDecimal> divisor = getRight().evaluate(ctx, relativeNode).concatMap(Val::toBigDecimal);
-		return Flux.combineLatest(divident, divisor, BigDecimal::divide).map(Val::of).distinctUntilChanged();
+		var dividentFlux = getLeft().evaluate(ctx, relativeNode).map(Val::requireBigDecimal);
+		var divisorFlux = getRight().evaluate(ctx, relativeNode).map(Val::requireBigDecimal);
+		return Flux.combineLatest(dividentFlux, divisorFlux, (divident, divisor) -> {
+			if (divident.isError())
+				return divident;
+			if (divisor.isError())
+				return divisor;
+			if (divisor.getBigDecimal().equals(BigDecimal.ZERO))
+				return Val.error("Division by zero");
+			return Val.of(divident.getBigDecimal().divide(divisor.getBigDecimal()));
+		});
 	}
 
 }

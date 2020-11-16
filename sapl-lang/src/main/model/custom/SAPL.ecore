@@ -74,21 +74,23 @@
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Step">
-    <eOperations name="apply" lowerBound="1" eType="#//ResultNodeFlux">
+    <eOperations name="apply" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value="The method performs the selection step on a result tree to arrive at a new result tree.&#xA;The new result trees are provided by the returned Flux.&#xA;&#xA;@param previousResult &#xA;&#x9;&#x9;the root node of the previous result tree&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the new result tree"/>
       </eAnnotations>
-      <eParameters name="previousResult" eType="#//AbstractAnnotatedJsonNode"/>
+      <eParameters name="parentValue" eType="#//Val"/>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
       <eParameters name="relativeNode" eType="#//Val"/>
     </eOperations>
-    <eOperations name="apply" lowerBound="1" eType="#//ResultNodeFlux">
+    <eOperations name="applyFilterStatement" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method performs the selection step on a result tree to arrive at a new result tree.&#xA;The new result trees are provided by the returned Flux.&#xA;&#xA;@param previousResult &#xA;&#x9;&#x9;the root node of the previous result tree&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the new result tree"/>
+        <details key="documentation" value=""/>
       </eAnnotations>
-      <eParameters name="previousResult" eType="#//ArrayResultNode"/>
+      <eParameters name="parentValue" eType="#//Val"/>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
       <eParameters name="relativeNode" eType="#//Val"/>
+      <eParameters name="stepId" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+      <eParameters name="statement" eType="#//FilterStatement"/>
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="UnionStep" eSuperTypes="#//Step"/>
@@ -258,7 +260,7 @@
     </eOperations>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Matchable" abstract="true" interface="true">
-    <eOperations name="matches" eType="#//BooleanMono">
+    <eOperations name="matches" eType="#//ValMono">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value="The method returns a flag indicating whether the object it is called on matches the current authorization subscription within the given evaluation context.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@returns &#xA;&#x9;&#x9;true if the object this method is called on matches the current authorization subscription within the given evaluation context, false otherwise.&#xA;@throws PolicyEvaluationException if an error occurs while evaluating the target expression"/>
       </eAnnotations>
@@ -283,11 +285,7 @@
   <eClassifiers xsi:type="ecore:EDataType" name="DecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.pdp.Decision>"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="PolicyEvaluationException" instanceClassName="io.sapl.api.interpreter.PolicyEvaluationException"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="ResultNodeFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.interpreter.selection.ResultNode>"
-      serializable="false"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="ArrayResultNode" instanceClassName="io.sapl.interpreter.selection.ArrayResultNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="StringMap" instanceTypeName="java.util.Map&lt;java.lang.String, java.lang.String>"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="AbstractAnnotatedJsonNode" instanceClassName="io.sapl.interpreter.selection.AbstractAnnotatedJsonNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="ValFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.interpreter.Val>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="BooleanMono" instanceTypeName="reactor.core.publisher.Mono&lt;java.lang.Boolean>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Val" instanceClassName="io.sapl.api.interpreter.Val"/>
@@ -298,4 +296,5 @@
   <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationDecision" instanceClassName="io.sapl.api.pdp.AuthorizationDecision"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Decision" instanceClassName="io.sapl.api.pdp.Decision"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="ValMono" instanceTypeName="reactor.core.publisher.Mono&lt;io.sapl.api.interpreter.Val>"/>
 </ecore:EPackage>

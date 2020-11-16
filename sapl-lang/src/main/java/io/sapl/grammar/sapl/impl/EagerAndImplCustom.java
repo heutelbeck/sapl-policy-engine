@@ -30,9 +30,15 @@ public class EagerAndImplCustom extends EagerAndImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		final Flux<Boolean> left = getLeft().evaluate(ctx, relativeNode).concatMap(Val::toBoolean);
-		final Flux<Boolean> right = getRight().evaluate(ctx, relativeNode).concatMap(Val::toBoolean);
-		return Flux.combineLatest(left, right, Boolean::logicalAnd).map(Val::of).distinctUntilChanged();
+		var leftFlux = getLeft().evaluate(ctx, relativeNode).map(Val::requireBoolean);
+		var rightFlux = getRight().evaluate(ctx, relativeNode).map(Val::requireBoolean);
+		return Flux.combineLatest(leftFlux, rightFlux, (left, right) -> {
+			if (left.isError())
+				return left;
+			if (right.isError())
+				return right;
+			return Val.of(left.getBoolean() && right.getBoolean());
+		});
 	}
 
 }

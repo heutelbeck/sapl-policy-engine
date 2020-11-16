@@ -15,22 +15,16 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentArray;
-import io.sapl.interpreter.selection.ResultNode;
-import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -42,69 +36,79 @@ import reactor.core.publisher.Flux;
  * Subscript returns Step: {IndexUnionStep} indices+=JSONNUMBER ','
  * indices+=JSONNUMBER (',' indices+=JSONNUMBER)* ;
  */
+@Slf4j
 public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 
-	private static final String UNION_TYPE_MISMATCH = "Type mismatch.";
+	private static final String TYPE_MISMATCH_CAN_ONLY_ACCESS_ARRAYS_BY_INDEX_GOT_S = "Type mismatch. Can only access arrays by index, got: %s";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
-			@NonNull Val relativeNode) {
-		try {
-			return Flux.just(apply(previousResult));
-		} catch (PolicyEvaluationException e) {
-			return Flux.error(e);
+	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+		if (parentValue.isError()) {
+			return Flux.just(parentValue);
 		}
+		if (!parentValue.isArray()) {
+			return Val.errorFlux(TYPE_MISMATCH_CAN_ONLY_ACCESS_ARRAYS_BY_INDEX_GOT_S, parentValue);
+		}
+
+		var array = parentValue.getArrayNode();
+		// remove duplicates
+		var uniqueIndices = uniqueIndices(array);
+		var resultArray = Val.JSON.arrayNode();
+		for (var index : uniqueIndices) {
+			if (index >= 0 && index < array.size())
+				resultArray.add(array.get(index));
+		}
+		return Flux.just(Val.of(resultArray));
 	}
 
-	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		final JsonNode previousResultNode = previousResult.getNode().get();
-		if (!previousResultNode.isArray()) {
-			throw new PolicyEvaluationException(UNION_TYPE_MISMATCH);
-		}
-
-		final int arrayLength = previousResultNode.size();
-		final Set<Integer> indices = collectIndices(arrayLength);
-
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		for (int index : indices) {
-			if (previousResultNode.has(index)) {
-				resultList.add(new JsonNodeWithParentArray(Val.of(previousResultNode.get(index)),
-						previousResult.getNode(), index));
-			}
-		}
-		return new ArrayResultNode(resultList);
-	}
-
-	private Set<Integer> collectIndices(int arrayLength) {
-		final Set<Integer> indices = new HashSet<>();
-		for (BigDecimal index : getIndices()) {
-			if (index.intValue() < 0) {
-				indices.add(arrayLength + index.intValue());
+	private Set<Integer> uniqueIndices(ArrayNode array) {
+		// remove duplicates
+		var uniqueIndices = new HashSet<Integer>();
+		for (var index : indices) {
+			var idx = index.intValue();
+			if (idx < 0) {
+				uniqueIndices.add(array.size() + idx);
 			} else {
-				indices.add(index.intValue());
+				uniqueIndices.add(idx);
 			}
 		}
-		return indices;
+		return uniqueIndices;
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
-		return Flux.just(apply(previousResult));
-	}
-
-	private ResultNode apply(ArrayResultNode previousResult) {
-		final List<AbstractAnnotatedJsonNode> nodes = previousResult.getNodes();
-		final int arrayLength = nodes.size();
-
-		final Set<Integer> indices = collectIndices(arrayLength);
-
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		for (int index : indices) {
-			if (index >= 0 && index < arrayLength) {
-				resultList.add(nodes.get(index));
+	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
+			FilterStatement statement) {
+		log.trace("apply index union step [{}] to: {}", indices, parentValue);
+		if (!parentValue.isArray()) {
+			// this means the element does not get selected does not get filtered
+			return Flux.just(parentValue);
+		}
+		var array = parentValue.getArrayNode();
+		var uniqueIndices = uniqueIndices(array);
+		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
+		for (var i = 0; i < array.size(); i++) {
+			var element = array.get(i);
+			log.trace("inspect element [{}]={}", i, element);
+			if (uniqueIndices.contains(i)) {
+				log.trace("selected. [{}]={}", i, element);
+				if (stepId == statement.getTarget().getSteps().size() - 1) {
+					// this was the final step. apply filter
+					log.trace("final step. apply filter!");
+					elementFluxes.add(
+							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
+									FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
+									parentValue, statement.isEach()));
+				} else {
+					// there are more steps. descent with them
+					log.trace("this step was successful. descent with next step...");
+					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
+							.applyFilterStatement(Val.of(element), ctx, relativeNode, stepId + 1, statement));
+				}
+			} else {
+				log.trace("[{}] not selected. Just return as is. Not affected by filtering.", i);
+				elementFluxes.add(Flux.just(Val.of(element)));
 			}
 		}
-		return new ArrayResultNode(resultList);
+		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
 	}
-
 }

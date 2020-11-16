@@ -15,9 +15,7 @@
  */
 package io.sapl.api.pip;
 
-public class AttributeException extends Exception {
-
-	private static final long serialVersionUID = 1L;
+public class AttributeException extends RuntimeException {
 
 	public AttributeException() {
 		super();

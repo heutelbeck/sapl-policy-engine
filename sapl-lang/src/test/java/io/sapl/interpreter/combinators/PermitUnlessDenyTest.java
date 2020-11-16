@@ -167,7 +167,7 @@ public class PermitUnlessDenyTest {
 
 	@Test
 	public void multiplePermitTransformationDeny() {
-		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
+		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit transform false"
 				+ " policy \"testp2\" permit transform true" + " policy \"testp3\" deny false";
 
 		assertEquals("should return deny if final decision would be permit and there is a transformation incertainty",

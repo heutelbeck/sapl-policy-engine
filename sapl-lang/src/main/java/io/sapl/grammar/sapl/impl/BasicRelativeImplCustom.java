@@ -15,7 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
@@ -28,14 +27,14 @@ import reactor.core.publisher.Flux;
  */
 public class BasicRelativeImplCustom extends BasicRelativeImpl {
 
-	private static final String NOT_ALLOWED = "Relative expression is not allowed at this place. There was no relative node defined. Was: undefined";
+	private static final String NOT_ALLOWED = "Relative expression error. No relative node.";
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		if (relativeNode.isUndefined()) {
-			return Flux.error(new PolicyEvaluationException(NOT_ALLOWED));
+			return Val.errorFlux(NOT_ALLOWED);
 		}
-		return evaluateStepsFilterSubtemplate(relativeNode, getSteps(), ctx, relativeNode);
+		return Flux.just(relativeNode).switchMap(resolveStepsFiltersAndSubtemplates(steps, ctx, relativeNode));
 	}
 
 }

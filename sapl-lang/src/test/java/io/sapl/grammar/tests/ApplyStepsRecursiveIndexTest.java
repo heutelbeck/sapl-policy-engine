@@ -15,140 +15,61 @@
  */
 package io.sapl.grammar.tests;
 
-import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.RecursiveIndexStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentArray;
-import io.sapl.interpreter.selection.JsonNodeWithoutParent;
-import io.sapl.interpreter.selection.ResultNode;
-import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class ApplyStepsRecursiveIndexTest {
 
-	private static BigDecimal INDEX = BigDecimal.valueOf(1L);
+	private static SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+	private static EvaluationContext CTX = mock(EvaluationContext.class);
 
-	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
+	@Test
+	public void recursiveIndexStepPropagatesErrors() {
+		var step = FACTORY.createRecursiveIndexStep();
+		StepVerifier.create(step.apply(Val.error("TEST"), CTX, Val.UNDEFINED)).expectNext(Val.error("TEST"))
+				.verifyComplete();
+	}
 
-	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	private static VariableContext variableCtx = new VariableContext();
-
-	private static FunctionContext functionCtx = new MockFunctionContext();
-
-	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
+	@Test
+	public void recursiveIndexStepOnUndefinedEmpty() {
+		// test case : undefined..[2] == []
+		var step = FACTORY.createRecursiveIndexStep();
+		StepVerifier.create(step.apply(Val.UNDEFINED, CTX, Val.UNDEFINED)).expectNext(Val.ofEmptyArray())
+				.verifyComplete();
+	}
 
 	@Test
 	public void applyToNull() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.ofNull());
-
-		RecursiveIndexStep step = factory.createRecursiveIndexStep();
-		step.setIndex(INDEX);
-
-		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
+		// 0..[2] == []
+		var parentValue = Val.ofNull();
+		var step = FACTORY.createRecursiveIndexStep();
+		step.setIndex(BigDecimal.valueOf(2));
+		var expectedValue = Val.ofEmptyArray();
+		StepVerifier.create(step.apply(parentValue, CTX, Val.UNDEFINED)).expectNext(expectedValue).verifyComplete();
 	}
 
 	@Test
-	public void applyToSimpleArray() {
-		ArrayNode array = JSON.arrayNode();
-		array.add(JSON.nullNode());
-		array.add(JSON.booleanNode(true));
+	public void applyToObject() throws JsonProcessingException {
+		// object..[0]
+		var parentValue = Val.ofJson(
+				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}");
+		var step = FACTORY.createRecursiveIndexStep();
+		step.setIndex(BigDecimal.valueOf(0));
+		var expectedValue = Val.ofJson("[ { \"key\" : \"value2\" }, 1 ]");
 
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(array));
-
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Val.ofTrue(), Val.of(array), INDEX.intValue()));
-		ResultNode expectedResult = new ArrayResultNode(list);
-
-		RecursiveIndexStep step = factory.createRecursiveIndexStep();
-		step.setIndex(INDEX);
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
-				.subscribe(result -> assertEquals(
-						"Recursive index step applied to simple array should return result array with item",
-						expectedResult, result));
+		StepVerifier.create(step.apply(parentValue, CTX, Val.UNDEFINED))
+				.expectNextMatches(result -> ArrayUtil.arraysMatchWithSetSemantics(result, expectedValue))
+				.verifyComplete();
 	}
-
-	@Test
-	public void applyToDeeperStructure() {
-		ObjectNode object = JSON.objectNode();
-
-		ArrayNode array1 = JSON.arrayNode();
-		array1.add(JSON.arrayNode());
-		array1.add(JSON.objectNode());
-
-		object.set("key1", array1);
-
-		ObjectNode object2 = JSON.objectNode();
-		ArrayNode array2 = JSON.arrayNode();
-		array2.add(JSON.nullNode());
-		array2.add(JSON.booleanNode(true));
-
-		object2.set("key1", array2);
-		object.set("key2", object2);
-
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(object));
-
-		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentArray(Val.of(JSON.objectNode()), Val.of(array1), INDEX.intValue()));
-		expectedResultSet.add(new JsonNodeWithParentArray(Val.ofTrue(), Val.of(array2), INDEX.intValue()));
-
-		RecursiveIndexStep step = factory.createRecursiveIndexStep();
-		step.setIndex(INDEX);
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Recursive index step should return result array with items", expectedResultSet, resultSet);
-		});
-	}
-
-	@Test
-	public void applyToResultArray() {
-		ArrayNode array1 = JSON.arrayNode();
-		array1.add(JSON.nullNode());
-		array1.add(JSON.booleanNode(true));
-		ArrayNode array2 = JSON.arrayNode();
-		array2.add(JSON.nullNode());
-		array2.add(JSON.booleanNode(false));
-
-		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
-		listIn.add(new JsonNodeWithoutParent(Val.of(JSON.nullNode())));
-		listIn.add(new JsonNodeWithoutParent(Val.of(array1)));
-		listIn.add(new JsonNodeWithoutParent(Val.of(array2)));
-		ResultNode previousResult = new ArrayResultNode(listIn);
-
-		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentArray(Val.ofTrue(), Val.of(array1), INDEX.intValue()));
-		expectedResultSet.add(new JsonNodeWithParentArray(Val.ofFalse(), Val.of(array2), INDEX.intValue()));
-
-		RecursiveIndexStep step = factory.createRecursiveIndexStep();
-		step.setIndex(INDEX);
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Recursive index step applied to result array should return result array with items",
-					expectedResultSet, resultSet);
-		});
-	}
-
 }

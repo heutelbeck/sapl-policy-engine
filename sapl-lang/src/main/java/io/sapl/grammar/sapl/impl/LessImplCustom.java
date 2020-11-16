@@ -15,8 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.math.BigDecimal;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
@@ -32,13 +30,19 @@ public class LessImplCustom extends LessImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		final Flux<BigDecimal> left = getLeft().evaluate(ctx, relativeNode).concatMap(Val::toBigDecimal);
-		final Flux<BigDecimal> right = getRight().evaluate(ctx, relativeNode).concatMap(Val::toBigDecimal);
-		return Flux.combineLatest(left, right, this::lessThan).map(Val::of).distinctUntilChanged();
+		var leftFlux = getLeft().evaluate(ctx, relativeNode).map(Val::requireBigDecimal);
+		var rightFlux = getRight().evaluate(ctx, relativeNode).map(Val::requireBigDecimal);
+		return Flux.combineLatest(leftFlux, rightFlux, this::lessThan);
 	}
 
-	private Boolean lessThan(BigDecimal left, BigDecimal right) {
-		return left.compareTo(right) < 0;
+	private Val lessThan(Val left, Val right) {
+		if (left.isError()) {
+			return left;
+		}
+		if (right.isError()) {
+			return right;
+		}
+		return Val.of(left.getBigDecimal().compareTo(right.getBigDecimal()) < 0);
 	}
 
 }

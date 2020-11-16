@@ -15,21 +15,14 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.function.Function;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.reactivestreams.Publisher;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.ValueDefinition;
-import io.sapl.interpreter.DependentStreamsUtil;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.FluxProvider;
-import io.sapl.interpreter.Void;
 import io.sapl.interpreter.combinators.DenyOverridesCombinator;
 import io.sapl.interpreter.combinators.DenyUnlessPermitCombinator;
 import io.sapl.interpreter.combinators.FirstApplicableCombinator;
@@ -40,6 +33,8 @@ import io.sapl.interpreter.combinators.PolicyCombinator;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 @Slf4j
 public class PolicySetImplCustom extends PolicySetImpl {
@@ -63,55 +58,61 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	 */
 	@Override
 	public Flux<AuthorizationDecision> evaluate(@NonNull EvaluationContext ctx) {
-		final Map<String, JsonNode> variables = new HashMap<>();
-		final List<FluxProvider<Void>> fluxProviders = new ArrayList<>(getValueDefinitions().size());
-		for (ValueDefinition valueDefinition : getValueDefinitions()) {
-			fluxProviders.add(voiD -> evaluateValueDefinition(valueDefinition, ctx, variables));
-		}
-		final Flux<Void> variablesFlux = DependentStreamsUtil.nestedSwitchMap(Void.INSTANCE, fluxProviders);
-
-		final PolicyCombinator combinator;
-		switch (getAlgorithm()) {
-		case "deny-unless-permit":
-			combinator = new DenyUnlessPermitCombinator();
-			break;
-		case "permit-unless-deny":
-			combinator = new PermitUnlessDenyCombinator();
-			break;
-		case "deny-overrides":
-			combinator = new DenyOverridesCombinator();
-			break;
-		case "permit-overrides":
-			combinator = new PermitOverridesCombinator();
-			break;
-		case "only-one-applicable":
-			combinator = new OnlyOneApplicableCombinator();
-			break;
-		default: // "first-applicable":
-			combinator = new FirstApplicableCombinator();
-			break;
-		}
-
-		return variablesFlux.switchMap(voiD -> combinator.combinePolicies(getPolicies(), ctx))
-				.onErrorReturn(INDETERMINATE);
+		return Flux.just(Tuples.of(Val.TRUE, ctx.copy())).switchMap(evaluateValueDefinitions(0))
+				.switchMap(this::evalPolicies);
 	}
 
-	private Flux<Void> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx,
-			Map<String, JsonNode> variables) {
-		return valueDefinition.getEval().evaluate(evaluationCtx, Val.undefined()).concatMap(evaluatedValue -> {
-			try {
-				if (evaluatedValue.isDefined()) {
-					evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
-					variables.put(valueDefinition.getName(), evaluatedValue.get());
-					return Flux.just(Void.INSTANCE);
-				} else {
-					return Flux.error(new PolicyEvaluationException(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL));
-				}
-			} catch (PolicyEvaluationException e) {
-				log.debug("Value definition evaluation failed: {}", e.getMessage());
-				return Flux.error(e);
+	private Flux<AuthorizationDecision> evalPolicies(Tuple2<Val, EvaluationContext> t) {
+		if (t.getT1().isError()) {
+			log.debug("| |- Error in the value definitions of the policy set. Policy evaluated INDETERMINATE.: {}",
+					t.getT1().getMessage());
+			return Flux.just(AuthorizationDecision.INDETERMINATE);
+		}
+		return combinatorFor(getAlgorithm()).combinePolicies(policies, t.getT2());
+
+	}
+
+	private Function<? super Tuple2<Val, EvaluationContext>, Publisher<? extends Tuple2<Val, EvaluationContext>>> evaluateValueDefinitions(
+			int valueDefinitionId) {
+		if (valueDefinitions == null || valueDefinitionId == valueDefinitions.size()) {
+			return Flux::just;
+		}
+		return previousAndContext -> {
+			return evaluateValueDefinition(previousAndContext.getT1(), valueDefinitions.get(valueDefinitionId),
+					previousAndContext.getT2()).switchMap(evaluateValueDefinitions(valueDefinitionId + 1));
+		};
+	}
+
+	private Flux<Tuple2<Val, EvaluationContext>> evaluateValueDefinition(Val previousResult,
+			ValueDefinition valueDefinition, EvaluationContext ctx) {
+		if (previousResult.isError() || !previousResult.getBoolean()) {
+			return Flux.just(Tuples.of(previousResult, ctx));
+		}
+		return valueDefinition.getEval().evaluate(ctx, Val.UNDEFINED).concatMap(evaluatedValue -> {
+			if (evaluatedValue.isDefined()) {
+				var newCtx = ctx.copy();
+				newCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
+				return Flux.just(Tuples.of(Val.TRUE, newCtx));
+			} else {
+				return Flux.just(Tuples.of(Val.error(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL), ctx));
 			}
 		});
 	}
 
+	private PolicyCombinator combinatorFor(String algorithm) {
+		switch (algorithm) {
+		case "deny-unless-permit":
+			return new DenyUnlessPermitCombinator();
+		case "permit-unless-deny":
+			return new PermitUnlessDenyCombinator();
+		case "deny-overrides":
+			return new DenyOverridesCombinator();
+		case "permit-overrides":
+			return new PermitOverridesCombinator();
+		case "only-one-applicable":
+			return new OnlyOneApplicableCombinator();
+		default: // "first-applicable":
+			return new FirstApplicableCombinator();
+		}
+	}
 }

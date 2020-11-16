@@ -17,18 +17,16 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentObject;
-import io.sapl.interpreter.selection.JsonNodeWithoutParent;
-import io.sapl.interpreter.selection.ResultNode;
-import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 /**
  * Implements the application of a key step to a previous value, e.g
@@ -36,59 +34,107 @@ import reactor.core.publisher.Flux;
  *
  * Grammar: Step: '.' ({KeyStep} id=ID) ;
  */
+@Slf4j
 public class KeyStepImplCustom extends KeyStepImpl {
 
-	private static final String KEY_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing a JSON key '%s' is not possible on a null node.";
-
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
-			@NonNull Val relativeNode) {
-		try {
-			return Flux.just(apply(previousResult));
-		} catch (PolicyEvaluationException e) {
-			return Flux.error(e);
-		}
-	}
+	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
 
-	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (previousResult.getNode().isUndefined()) {
-			return new JsonNodeWithParentObject(Val.undefined(), previousResult.getNode(), id);
+		if (!parentValue.isObject() && !parentValue.isArray()) {
+			return Val.undefinedFlux();
 		}
-		final JsonNode previousResultNode = previousResult.getNode().get();
-		if (previousResultNode.isObject()) {
-			if (!previousResultNode.has(id)) {
-				return new JsonNodeWithParentObject(Val.undefined(), previousResult.getNode(), id);
+
+		if (parentValue.isObject()) {
+			if (parentValue.get().has(id)) {
+				return Flux.just(Val.of(parentValue.get().get(id)));
+			} else {
+				return Val.undefinedFlux();
 			}
-			return new JsonNodeWithParentObject(Val.of(previousResultNode.get(id)), previousResult.getNode(), id);
-		} else if (previousResultNode.isArray()) {
-			return applyToJsonArray(previousResultNode);
-		} else if (previousResultNode.isTextual()) {
-			return new JsonNodeWithParentObject(Val.undefined(), previousResult.getNode(), id);
-		} else if (previousResultNode.isNull()) {
-			throw new PolicyEvaluationException(KEY_ACCESS_TYPE_MISMATCH, id);
-		} else {
-			return new JsonNodeWithoutParent(Val.undefined());
 		}
+
+		var resultArray = Val.JSON.arrayNode();
+		for (var value : parentValue.getArrayNode()) {
+			if (value.has(id)) {
+				resultArray.add(value.get(id));
+			}
+		}
+		return Flux.just(Val.of(resultArray));
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
-		return Flux.just(apply(previousResult));
+	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
+			FilterStatement statement) {
+		return applyKeyStepFilterStatement(id, parentValue, ctx, relativeNode, stepId, statement);
 	}
 
-	private ResultNode apply(ArrayResultNode previousResult) {
-		return applyToJsonArray(previousResult.asJsonWithoutAnnotations().get());
+	public static Flux<Val> applyKeyStepFilterStatement(String id, Val parentValue, EvaluationContext ctx,
+			Val relativeNode, int stepId, FilterStatement statement) {
+		log.trace("apply key step '{}' to: {}", id, parentValue);
+		if (parentValue.isObject()) {
+			return applyFilterStatementToObject(id, parentValue.getObjectNode(), ctx, relativeNode, stepId, statement);
+		}
+
+		if (parentValue.isArray()) {
+			return applyFilterStatementToArray(id, parentValue.getArrayNode(), ctx, relativeNode, stepId, statement);
+		}
+
+		// this means the element does not get selected does not get filtered
+		return Flux.just(parentValue);
 	}
 
-	private ArrayResultNode applyToJsonArray(Iterable<JsonNode> array) {
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-
-		for (JsonNode item : array) {
-			if (item.isObject() && item.has(id)) {
-				resultList.add(new JsonNodeWithParentObject(Val.of(item.get(id)), Val.of(item), id));
+	private static Flux<Val> applyFilterStatementToObject(String id, ObjectNode object, EvaluationContext ctx,
+			Val relativeNode, int stepId, FilterStatement statement) {
+		var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
+		var fields = object.fields();
+		while (fields.hasNext()) {
+			var field = fields.next();
+			log.trace("inspect field {}", field);
+			if (field.getKey().equals(id)) {
+				log.trace("field matches '{}'", id);
+				if (stepId == statement.getTarget().getSteps().size() - 1) {
+					// this was the final step. apply filter
+					log.trace("final step. select and filter!");
+					fieldFluxes
+							.add(FilterComponentImplCustom
+									.applyFilterFunction(Val.of(field.getValue()), statement.getArguments(),
+											FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
+											Val.of(object), statement.isEach())
+									.map(val -> Tuples.of(field.getKey(), val)));
+				} else {
+					// there are more steps. descent with them
+					log.trace("this step was successful. descent with next step...");
+					fieldFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
+							.applyFilterStatement(Val.of(field.getValue()), ctx, relativeNode, stepId + 1, statement)
+							.map(val -> Tuples.of(field.getKey(), val)));
+				}
+			} else {
+				log.trace("field not matching. just return it as it will not be affected by filtering");
+				fieldFluxes.add(Flux.just(Tuples.of(field.getKey(), Val.of(field.getValue()))));
 			}
 		}
-		return new ArrayResultNode(resultList);
+		return Flux.combineLatest(fieldFluxes, RepackageUtil::recombineObject);
+	}
+
+	private static Flux<Val> applyFilterStatementToArray(String id, ArrayNode array, EvaluationContext ctx,
+			Val relativeNode, int stepId, FilterStatement statement) {
+		if (array.isEmpty()) {
+			return Flux.just(Val.ofEmptyArray());
+		}
+		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
+		var elements = array.elements();
+		while (elements.hasNext()) {
+			var element = elements.next();
+			log.trace("inspect element {}", element);
+			if (element.isObject()) {
+				log.trace("array element is an object. apply this step to the object.");
+				elementFluxes.add(
+						applyFilterStatementToObject(id, (ObjectNode) element, ctx, Val.of(array), stepId, statement));
+			} else {
+				log.trace("array element not an object. just return it as it will not be affected by filtering");
+				elementFluxes.add(Flux.just(Val.of(element)));
+			}
+		}
+		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
 	}
 
 }

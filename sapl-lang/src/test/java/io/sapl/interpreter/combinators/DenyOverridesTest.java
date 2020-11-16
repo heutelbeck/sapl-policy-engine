@@ -170,7 +170,7 @@ public class DenyOverridesTest {
 
 	@Test
 	public void multiplePermitTransformation() {
-		String policySet = "set \"tests\" deny-overrides" + " policy \"testp1\" permit"
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp1\" permit transform false"
 				+ " policy \"testp2\" permit transform true";
 
 		assertEquals(

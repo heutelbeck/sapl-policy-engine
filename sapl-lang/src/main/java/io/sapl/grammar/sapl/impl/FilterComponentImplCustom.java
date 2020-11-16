@@ -15,106 +15,57 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import org.eclipse.emf.common.util.EList;
+import java.util.ArrayList;
+import java.util.Arrays;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
-import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.Void;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ResultNode;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
+@Slf4j
 public class FilterComponentImplCustom extends FilterComponentImpl {
 
-	private static final String FILTER_REMOVE = "remove";
+	protected static final String FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES = "Filters cannot be applied to undefined values.";
+	private static final String TYPE_MISMATCH = "Type mismatch error. Cannot use 'each' keyword with non-array values. Value type was: ";
 
-	private static final String FILTER_REMOVE_ROOT = "Filter cannot remove the root of the tree the filter is applied to.";
+	public static Flux<Val> applyFilterFunction(@NonNull Val unfilteredValue, Arguments arguments,
+			@NonNull String functionName, @NonNull EvaluationContext ctx, @NonNull Val relativeNode, boolean each) {
+		log.trace("apply filter '{}' to {}", functionName, unfilteredValue);
+		if (unfilteredValue.isError()) {
+			return Flux.just(unfilteredValue);
+		}
+		if (unfilteredValue.isUndefined()) {
+			return Val.errorFlux(FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES);
+		}
 
-	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+		if (!each) {
+			return FunctionUtil.combineArgumentFluxes(arguments, ctx, relativeNode)
+					.concatMap(parameters -> FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(functionName, ctx,
+							unfilteredValue, parameters));
+		}
 
-	/**
-	 * The method takes a JSON tree, performs a number of selection steps on this
-	 * tree and applies a filter function to the selected nodes. A flux of root
-	 * nodes of the filtered tree is returned (which are the original roots in case
-	 * the root nodes are not modified).
-	 * 
-	 * @param rootNode     the root node of the tree to be filtered
-	 * @param steps        the selection steps to be applied to the root node
-	 * @param each         true if the selected node should be treated as an array
-	 *                     and the filter function should be applied to each of its
-	 *                     items
-	 * @param function     the name of the filter function
-	 * @param arguments    arguments to be passed to the function, as JSON array
-	 * @param ctx          the evaluation context
-	 * @param relativeNode the JSON node a relative expression would evaluate to (or
-	 *                     null if relative expressions are not allowed)
-	 * @return a Flux of root nodes of the filtered tree
-	 */
-	protected Flux<Val> applyFilterStatement(Val rootNode, EList<Step> steps, boolean each, String function,
-			Arguments arguments, EvaluationContext ctx, @NonNull Val relativeNode) {
-		return StepResolverUtil.resolveSteps(rootNode, steps, ctx, relativeNode).switchMap(resultNode -> {
-			if (resultNode.isNodeWithoutParent() && !each) {
-				return getFilteredRoot(resultNode, function, arguments, ctx);
-			} else {
-				return applyFilter(resultNode, function, arguments, each, ctx).map(voidType -> rootNode);
+		// "|- each" may only applied to arrays
+		if (!unfilteredValue.isArray()) {
+			return Val.errorFlux(TYPE_MISMATCH + unfilteredValue.getValType());
+		}
+
+		var rootArray = (ArrayNode) unfilteredValue.get();
+		var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments, ctx, relativeNode);
+		return argumentFluxes.concatMap(parameters -> {
+			var elementsEvaluations = new ArrayList<Mono<Val>>(rootArray.size());
+			for (var element : rootArray) {
+				elementsEvaluations.add(FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(functionName, ctx,
+						Val.of(element), parameters));
 			}
+			return Flux.combineLatest(elementsEvaluations, e -> Arrays.copyOf(e, e.length, Val[].class))
+					.map(RepackageUtil::recombineArray);
 		});
-	}
-
-	/**
-	 * The function is used to apply a filter function to a node and receive the
-	 * result. The function is supposed to be used if filtering should be applied to
-	 * the root of a JSON tree.
-	 * 
-	 * @param target    the selected node to be filtered
-	 * @param function  the name of the filter function
-	 * @param arguments arguments to be passed to the function
-	 * @param ctx       the evaluation context
-	 * @return the stream of results returned by the reactive filter function
-	 */
-	private static Flux<Val> getFilteredRoot(ResultNode target, String function, Arguments arguments,
-			EvaluationContext ctx) {
-		if (FILTER_REMOVE.equals(function)) {
-			return Flux.error(new PolicyEvaluationException(FILTER_REMOVE_ROOT));
-		}
-		return AbstractAnnotatedJsonNode.applyFilterToNode(target.asJsonWithoutAnnotations(), function, arguments, ctx,
-				Val.undefined());
-	}
-
-	/**
-	 * Applies a filter function to a selected JSON node. The selected node is
-	 * changed in the tree. The caller must ensure that the root node will be left
-	 * unchanged.
-	 * 
-	 * @param target    the selected node to be filtered
-	 * @param function  the name of the filter function
-	 * @param arguments arguments to be passed to the function
-	 * @param each      true if the selected node should be treated as an array and
-	 *                  the filter function should be applied to each of its items
-	 * @param ctx       the evaluation context
-	 * @return a flux of {@link Void} instances, each indicating a finished
-	 *         application of the filter function
-	 */
-	private static Flux<Void> applyFilter(ResultNode target, String function, Arguments arguments, boolean each,
-			EvaluationContext ctx) {
-		if (FILTER_REMOVE.equals(function)) {
-			return Flux.defer(() -> {
-				try {
-					target.removeFromTree(each);
-					return Flux.just(Void.INSTANCE);
-				} catch (PolicyEvaluationException e) {
-					return Flux.error(e);
-				}
-			});
-		} else {
-			return target.applyFilter(function, arguments, each, ctx);
-		}
 	}
 
 }

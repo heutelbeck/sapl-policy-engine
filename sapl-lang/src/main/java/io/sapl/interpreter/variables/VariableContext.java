@@ -43,12 +43,11 @@ public class VariableContext {
 
 	private Map<String, JsonNode> variables = new HashMap<>();
 
-	public VariableContext(AuthorizationSubscription authzSubscription) throws PolicyEvaluationException {
+	public VariableContext(AuthorizationSubscription authzSubscription) {
 		this(authzSubscription, null);
 	}
 
-	public VariableContext(AuthorizationSubscription authzSubscription, Map<String, JsonNode> defaultVariables)
-			throws PolicyEvaluationException {
+	public VariableContext(AuthorizationSubscription authzSubscription, Map<String, JsonNode> defaultVariables) {
 		if (authzSubscription != null) {
 			if (authzSubscription.getSubject() != null) {
 				variables.put(SUBJECT, authzSubscription.getSubject());
@@ -79,7 +78,7 @@ public class VariableContext {
 		}
 	}
 
-	public final void put(String identifier, JsonNode value) throws PolicyEvaluationException {
+	public final void put(String identifier, JsonNode value) {
 		if (SUBJECT.equals(identifier) || RESOURCE.equals(identifier) || ACTION.equals(identifier)
 				|| ENVIRONMENT.equals(identifier)) {
 			throw new PolicyEvaluationException("cannot overwrite system variable " + identifier);

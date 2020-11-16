@@ -15,42 +15,72 @@
  */
 package io.sapl.interpreter.combinators;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+
+import org.reactivestreams.Publisher;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
+/**
+ * This algorithm is used if the policy administrator manages the policy’s
+ * priority by their order in a policy set. As soon as the first policy returns
+ * PERMIT, DENY or INDETERMINATE, its result is the final decision. Thus a
+ * "default" can be specified by creating a last policy without any conditions.
+ * If a decision is found, errors which might occur in later policies are
+ * ignored.
+ * 
+ * Since there is no order in the policy documents known to the PDP, the PDP
+ * cannot be configured with this algorithm. first-applicable might only be used
+ * for policy combination inside a policy set.
+ * 
+ * It works as follows:
+ * 
+ * Each policy is evaluated in the order specified in the policy set.
+ * 
+ * If it evaluates to INDETERMINATE, the decision is INDETERMINATE.
+ * 
+ * If it evaluates to PERMIT or DENY, the decision is PERMIT or DENY
+ * 
+ * If it evaluates to NOT_APPLICABLE, the next policy is evaluated.
+ * 
+ * If no policy with a decision different from NOT_APPLICABLE has been found,
+ * the decision of the policy set is NOT_APPLICABLE.
+ *
+ */
 public class FirstApplicableCombinator implements PolicyCombinator {
 
 	@Override
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		Mono<List<Policy>> matchingPolicies = Flux.fromIterable(policies).filterWhen(policy -> policy.matches(ctx))
-				.collectList();
-		return Flux.from(matchingPolicies).flatMap(matches -> doCombine(matches, ctx))
-				.onErrorReturn(AuthorizationDecision.INDETERMINATE);
+		return Flux.just(AuthorizationDecision.NOT_APPLICABLE).flatMap(combine(0, policies, ctx));
 	}
 
-	private Flux<AuthorizationDecision> doCombine(List<Policy> matches, EvaluationContext ctx) {
-		if (matches.isEmpty()) {
-			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
+	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> combine(int policyId,
+			List<Policy> policies, EvaluationContext ctx) {
+		if (policyId == policies.size()) {
+			return Flux::just;
 		}
-		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matches.size());
-		for (Policy policy : matches) {
-			authzDecisionFluxes.add(policy.evaluate(ctx));
-		}
-		return Flux.combineLatest(authzDecisionFluxes, authzDecisions -> {
-			for (Object authzDecision : authzDecisions) {
-				if (((AuthorizationDecision) authzDecision).getDecision() != Decision.NOT_APPLICABLE) {
-					return (AuthorizationDecision) authzDecision;
-				}
+		return decicion -> evaluatePolicy(policies.get(policyId), ctx).switchMap(newDecision -> {
+			if (newDecision.getDecision() != Decision.NOT_APPLICABLE) {
+				return Flux.just(newDecision);
 			}
-			return AuthorizationDecision.NOT_APPLICABLE;
-		}).distinctUntilChanged();
+			return Flux.just(newDecision).switchMap(combine(policyId + 1, policies, ctx));
+		});
 	}
 
+	private Flux<AuthorizationDecision> evaluatePolicy(Policy policy, EvaluationContext ctx) {
+		return policy.matches(ctx).flux().flatMap(match -> {
+			if (match.isError() || !match.isBoolean()) {
+				return Flux.just(AuthorizationDecision.INDETERMINATE);
+			}
+			if (!match.getBoolean()) {
+				return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
+			}
+			return policy.evaluate(ctx);
+		});
+	}
 }

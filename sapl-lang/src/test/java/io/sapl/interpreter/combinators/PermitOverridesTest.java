@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +30,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
@@ -36,6 +38,8 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import reactor.core.publisher.Hooks;
+import reactor.test.StepVerifier;
 
 public class PermitOverridesTest {
 
@@ -57,6 +61,7 @@ public class PermitOverridesTest {
 
 	@Before
 	public void init() {
+		Hooks.onOperatorDebug();
 		attributeCtx = new AnnotationAttributeContext();
 		functionCtx = new AnnotationFunctionContext();
 	}
@@ -64,13 +69,13 @@ public class PermitOverridesTest {
 	@Test
 	public void permit() {
 		String policySet = "set \"tests\" permit-overrides" + " policy \"testp\" permit";
+		StepVerifier.create(
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES))
+				.expectNextMatches(isDecision(Decision.PERMIT)).verifyComplete();
+	}
 
-		INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).take(1)
-				.subscribe(response -> {
-					final Decision expected = Decision.PERMIT;
-					final Decision actual = response.getDecision();
-					assertEquals("should return permit if the only policy evaluates to permit", expected, actual);
-				});
+	private Predicate<AuthorizationDecision> isDecision(Decision d) {
+		return ad -> ad.getDecision() == d;
 	}
 
 	@Test
@@ -193,7 +198,7 @@ public class PermitOverridesTest {
 
 	@Test
 	public void multiplePermitTransformation() {
-		String policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" permit"
+		String policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" permit transform false"
 				+ " policy \"testp2\" permit transform true";
 
 		assertEquals(

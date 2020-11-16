@@ -83,7 +83,7 @@ public class ConjunctiveClause {
 	}
 
 //	public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
-//			throws PolicyEvaluationException {
+//			 {
 //		ListIterator<Literal> iter = literals.listIterator();
 //		if (!iter.hasNext()) {
 //			throw new PolicyEvaluationException(EVALUATION_NOT_POSSIBLE);

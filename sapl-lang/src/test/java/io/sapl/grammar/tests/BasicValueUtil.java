@@ -13,20 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter;
+package io.sapl.grammar.tests;
 
-/**
- * The reactive version of a non reactive method returning void would return a
- * Flux of {@link java.lang.Void}. Since the only instance of the type
- * java.lang.Void is {@code null} which cannot be used for Flux items (e.g.
- * Flux.just(null) is not possible), another type representing void must be
- * used.
- *
- * This is the purpose of this class. It provides a non null instance
- * representing a void result.
- */
-public class Void {
+import io.sapl.grammar.sapl.BasicValue;
+import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.sapl.Value;
+import lombok.experimental.UtilityClass;
 
-	public static final Void INSTANCE = new Void();
+@UtilityClass
+class BasicValueUtil {
+
+	public static BasicValue basicValueFrom(Value value) {
+		BasicValue basicValue = SaplFactory.eINSTANCE.createBasicValue();
+		basicValue.setValue(value);
+		return basicValue;
+	}
 
 }

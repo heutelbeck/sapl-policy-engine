@@ -23,11 +23,12 @@ public class PrpUpdateEvent {
 	public Update[] getUpdates() {
 		return Arrays.copyOf(updates, updates.length);
 	}
-	
+
 	/**
 	 * This contains the raw document and a custom equals method to eliminate
 	 * duplicate update events. E.g. file creation may lead to two subsequent
-	 * identical publish events without the .distinct() making use of this equals.
+	 * identical publish events without the .distinctUntilChanged() making use of
+	 * this equals.
 	 */
 	@Value
 	public static class Update {

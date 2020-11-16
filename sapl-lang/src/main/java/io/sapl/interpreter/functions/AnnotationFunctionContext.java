@@ -15,6 +15,7 @@
  */
 package io.sapl.interpreter.functions;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Collection;
@@ -28,6 +29,7 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
+import io.sapl.interpreter.validation.IllegalParameterType;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -43,19 +45,12 @@ import lombok.extern.slf4j.Slf4j;
 public class AnnotationFunctionContext implements FunctionContext {
 
 	private static final String DOT = ".";
-
 	private static final String UNKNOWN_FUNCTION = "Unknown function %s";
-
 	private static final String ILLEGAL_NUMBER_OF_PARAMETERS = "Illegal number of parameters. Function expected %d but got %d";
-
 	private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION = "Provided class has no @FunctionLibrary annotation.";
-
 	private static final String ILLEGAL_PARAMETER_FOR_IMPORT = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
-
 	private Collection<LibraryDocumentation> documentation = new LinkedList<>();
-
 	private Map<String, FunctionMetadata> functions = new HashMap<>();
-
 	private Map<String, Collection<String>> libraries = new HashMap<>();
 
 	/**
@@ -72,17 +67,14 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	@Override
 	public Val evaluate(String function, Val... parameters) throws FunctionException {
+		log.trace("evaluate {}({})", function, parameters);
 		final FunctionMetadata metadata = functions.get(function);
 		if (metadata == null) {
 			throw new FunctionException(UNKNOWN_FUNCTION, function);
 		}
-		log.trace("call function: {} - {}", function, parameters);
-		log.trace("length: {}", parameters.length);
 		final Parameter[] funParams = metadata.getFunction().getParameters();
-		log.trace("funParams.length {}", funParams.length);
 		try {
 			if (metadata.getPararmeterCardinality() == -1) {
-				log.trace("VARARGS");
 				// function is a varargs function
 				// all args are validated against the same annotation if present
 				for (int i = 0; i < parameters.length; i++) {
@@ -90,17 +82,16 @@ public class AnnotationFunctionContext implements FunctionContext {
 				}
 				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), new Object[] { parameters });
 			} else if (metadata.getPararmeterCardinality() == parameters.length) {
-				log.trace("NOT VARARGS");
 				for (int i = 0; i < parameters.length; i++) {
 					ParameterTypeValidator.validateType(parameters[i], funParams[i]);
 				}
 				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), (Object[]) parameters);
 			} else {
-				throw new FunctionException(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getPararmeterCardinality(),
-						parameters.length);
+				return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getPararmeterCardinality(), parameters.length);
 			}
-		} catch (Exception e) {
-			throw new FunctionException(e);
+		} catch (IllegalParameterType | IllegalAccessException | IllegalArgumentException
+				| InvocationTargetException e) {
+			return Val.error("error during function evaluation %s(%s): %s", function, parameters, e.getMessage());
 		}
 	}
 

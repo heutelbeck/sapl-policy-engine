@@ -18,13 +18,10 @@ package io.sapl.grammar.sapl.impl;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 /**
  * Checks for a value matching a regular expression.
@@ -38,22 +35,25 @@ public class RegexImplCustom extends RegexImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
-		final Flux<String> right = getRight().evaluate(ctx, relativeNode).concatMap(Val::toText);
-		return Flux.combineLatest(left, right, Tuples::of).distinctUntilChanged().concatMap(this::matchRegexp);
+		var leftFlux = getLeft().evaluate(ctx, relativeNode);
+		var rightFlux = getRight().evaluate(ctx, relativeNode).map(Val::requireText);
+		return Flux.combineLatest(leftFlux, rightFlux, this::matchRegexp);
 	}
 
-	private Flux<Val> matchRegexp(Tuple2<Val, String> tuple) {
-		if (tuple.getT1().isUndefined()) {
-			return Val.fluxOfFalse();
+	private Val matchRegexp(Val left, Val right) {
+		if (left.isError()) {
+			return left;
 		}
-		if (!tuple.getT1().get().isTextual()) {
-			return Val.fluxOfFalse();
+		if (right.isError()) {
+			return right;
+		}
+		if (!left.isTextual()) {
+			return Val.FALSE;
 		}
 		try {
-			return Val.fluxOf(Pattern.matches(tuple.getT2(), tuple.getT1().get().asText()));
+			return Val.of(Pattern.matches(right.getText(), left.getText()));
 		} catch (PatternSyntaxException e) {
-			return Flux.error(new PolicyEvaluationException(e, REGEX_SYNTAX_ERROR, tuple.getT2()));
+			return Val.error(REGEX_SYNTAX_ERROR, right);
 		}
 	}
 

@@ -34,24 +34,20 @@ public interface SAPLInterpreter {
 	 * and generates the matching parse-tree.
 	 * 
 	 * @param saplDefinition a String containing a SAPL document
-	 * @return A parse tree of the document
-	 * @throws PolicyEvaluationException in case an error occurs during parsing.
-	 *                                   This may be either a syntax error or an IO
-	 *                                   error.
+	 * @return A parse tree of the document @ in case an error occurs during
+	 *         parsing. This may be either a syntax error or an IO error.
 	 */
-	SAPL parse(String saplDefinition) throws PolicyEvaluationException;
+	SAPL parse(String saplDefinition);
 
 	/**
 	 * Method which applies the SAPL parser to an InputStream containing a SAPL
 	 * document and generates the matching parse-tree.
 	 * 
 	 * @param saplInputStream an InputStream containing a SAPL document
-	 * @return A parse tree of the document
-	 * @throws PolicyEvaluationException in case an error occurs during parsing.
-	 *                                   This may be either a syntax error or an IO
-	 *                                   error.
+	 * @return A parse tree of the document @ in case an error occurs during
+	 *         parsing. This may be either a syntax error or an IO error.
 	 */
-	SAPL parse(InputStream saplInputStream) throws PolicyEvaluationException;
+	SAPL parse(InputStream saplInputStream);
 
 	/**
 	 * Convenience method for unit tests which evaluates a String representing a

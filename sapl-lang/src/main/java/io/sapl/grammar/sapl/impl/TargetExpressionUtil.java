@@ -7,7 +7,7 @@ import io.sapl.grammar.sapl.PolicySet;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class TargetExpressionIdentifierUtil {
+public class TargetExpressionUtil {
 
 	/**
 	 * Used to check for illegal attributes or lazy operators in target expressions.

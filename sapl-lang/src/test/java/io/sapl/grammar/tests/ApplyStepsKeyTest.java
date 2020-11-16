@@ -15,157 +15,96 @@
  */
 package io.sapl.grammar.tests;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.ArrayList;
-import java.util.List;
+import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
-
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.KeyStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentObject;
-import io.sapl.interpreter.selection.JsonNodeWithoutParent;
-import io.sapl.interpreter.selection.ResultNode;
-import io.sapl.interpreter.variables.VariableContext;
+import reactor.test.StepVerifier;
 
 public class ApplyStepsKeyTest {
 
-	private static final String KEY = "key";
-
-	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
-
-	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	private static VariableContext variableCtx = new VariableContext();
-
-	private static FunctionContext functionCtx = new MockFunctionContext();
-
-	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
+	private static SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+	private static EvaluationContext CTX = mock(EvaluationContext.class);
 
 	@Test
-	public void applyToSimpleObject() {
-		String value = "value";
-
-		ObjectNode node = JSON.objectNode();
-		node.set(KEY, JSON.textNode(value));
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(node));
-
-		ResultNode expectedResult = new JsonNodeWithParentObject(Val.of(JSON.textNode(value)), Val.of(node), KEY);
-
-		KeyStep step = factory.createKeyStep();
-		step.setId(KEY);
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
-				.subscribe(result -> assertEquals("Key step applied to object should return the value of the attribute",
-						expectedResult, result));
+	public void keyStepPropagatesErrors() {
+		var step = FACTORY.createKeyStep();
+		StepVerifier.create(step.apply(Val.error("TEST"), CTX, Val.UNDEFINED)).expectNext(Val.error("TEST"))
+				.verifyComplete();
 	}
 
 	@Test
-	public void applyToNullNode() {
-		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(Val.undefined());
-
-		KeyStep step = factory.createKeyStep();
-		step.setId(KEY);
-
-		ResultNode expectedResult = new JsonNodeWithParentObject(Val.undefined(), previousResult.getNode(), KEY);
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(
-				result -> assertEquals("Accessing null object should yield undefined.", expectedResult, result));
+	public void keyStepToNonObjectUndefined() {
+		// test case : true.key -> undefined
+		var step = FACTORY.createKeyStep();
+		StepVerifier.create(step.apply(Val.TRUE, CTX, Val.UNDEFINED)).expectNext(Val.UNDEFINED).verifyComplete();
 	}
 
 	@Test
-	public void applyToObjectWithoutKey() {
-		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(Val.of(JSON.objectNode()));
-
-		KeyStep step = factory.createKeyStep();
-		step.setId(KEY);
-
-		ResultNode expectedResult = new JsonNodeWithParentObject(Val.undefined(), previousResult.getNode(), KEY);
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(
-				result -> assertEquals("Accessing empty object should yield undefined.", expectedResult, result));
+	public void keyStepToEmptyObject() {
+		// test case : {}.key == undefined
+		var step = FACTORY.createKeyStep();
+		step.setId("key");
+		StepVerifier.create(step.apply(Val.ofEmptyObject(), CTX, Val.UNDEFINED)).expectNext(Val.UNDEFINED)
+				.verifyComplete();
 	}
 
 	@Test
-	public void applyToArrayNodeWithNoObject() {
-		ArrayNode array = JSON.arrayNode();
-		array.add(JSON.nullNode());
-		array.add(JSON.booleanNode(true));
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(array));
-
-		ResultNode expectedResult = new ArrayResultNode(new ArrayList<>());
-
-		KeyStep step = factory.createKeyStep();
-		step.setId(KEY);
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
-				.subscribe(result -> assertEquals(
-						"Key step applied to array node without objects should return empty ArrayResultNode",
-						expectedResult, result));
+	public void keyStepToObject() {
+		// test case : {"key" : true}.key == true
+		var object = Val.JSON.objectNode();
+		object.set("key", Val.JSON.booleanNode(true));
+		var step = FACTORY.createKeyStep();
+		step.setId("key");
+		StepVerifier.create(step.apply(Val.of(object), CTX, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
 	}
 
 	@Test
-	public void applyToArrayNodeWithObject() {
-		JsonNode value = JSON.booleanNode(true);
+	public void keyStepToArray() {
+		// test case : [{"key" : true},{"key",123}].key == [true,123]
+		var array = Val.JSON.arrayNode();
+		var object1 = Val.JSON.objectNode();
+		object1.set("key", Val.JSON.booleanNode(true));
+		array.add(object1);
+		var object2 = Val.JSON.objectNode();
+		object2.set("key", Val.JSON.numberNode(123));
+		array.add(object2);
+		var parentValue = Val.of(array);
 
-		ArrayNode array = JSON.arrayNode();
-		array.add(JSON.objectNode());
-		array.add(JSON.nullNode());
-		ObjectNode object = JSON.objectNode();
-		object.set(KEY, value);
-		array.add(object);
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(array));
+		var step = FACTORY.createKeyStep();
+		step.setId("key");
 
-		JsonNodeWithParentObject expectedResultNode = new JsonNodeWithParentObject(Val.of(value), Val.of(object), KEY);
-		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(expectedResultNode);
+		var resultArray = Val.JSON.arrayNode();
+		resultArray.add(Val.JSON.booleanNode(true));
+		resultArray.add(Val.JSON.numberNode(123));
+		var expectedResult = Val.of(resultArray);
 
-		KeyStep step = factory.createKeyStep();
-		step.setId(KEY);
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Key step applied to array node should return ArrayResultNode with results", expectedResultSet,
-					resultSet);
-		});
+		StepVerifier.create(step.apply(parentValue, CTX, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
 	}
 
 	@Test
-	public void applyToResultArray() {
-		String value = "value";
+	public void keyStepToArrayNoMatch() {
+		// test case : [{"key" : true},{"key",123}].x == []
+		var array = Val.JSON.arrayNode();
+		var object1 = Val.JSON.objectNode();
+		object1.set("key", Val.JSON.booleanNode(true));
+		array.add(object1);
+		var object2 = Val.JSON.objectNode();
+		object2.set("key", Val.JSON.numberNode(123));
+		array.add(object2);
+		var parentValue = Val.of(array);
 
-		ObjectNode node = JSON.objectNode();
-		node.set(KEY, JSON.textNode(value));
+		var step = FACTORY.createKeyStep();
+		step.setId("x");
 
-		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
-		listIn.add(new JsonNodeWithoutParent(Val.of(node)));
-		ResultNode previousResult = new ArrayResultNode(listIn);
+		var resultArray = Val.JSON.arrayNode();
+		var expectedResult = Val.of(resultArray);
 
-		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(Val.of(JSON.textNode(value)), Val.of(node), KEY));
-
-		KeyStep step = factory.createKeyStep();
-		step.setId(KEY);
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Key step applied to ArrayResultNode should return an array with the correct values",
-					expectedResultSet, resultSet);
-		});
-
+		StepVerifier.create(step.apply(parentValue, CTX, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
 	}
 
 }

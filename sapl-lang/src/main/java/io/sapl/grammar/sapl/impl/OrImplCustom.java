@@ -15,7 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
@@ -33,18 +32,21 @@ public class OrImplCustom extends OrImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		if (TargetExpressionIdentifierUtil.isInTargetExpression(this)) {
-			// due to the constraints in indexing policy documents, lazy evaluation is not
-			// allowed in target expressions.
-			return Flux.error(new PolicyEvaluationException(LAZY_OPERATOR_IN_TARGET));
+		if (TargetExpressionUtil.isInTargetExpression(this)) {
+			// lazy evaluation is not allowed in target expressions.
+			return Val.errorFlux(LAZY_OPERATOR_IN_TARGET);
 		}
-		final Flux<Boolean> left = getLeft().evaluate(ctx, relativeNode).concatMap(Val::toBoolean);
+		var left = getLeft().evaluate(ctx, relativeNode).map(Val::requireBoolean);
 		return left.switchMap(leftResult -> {
-			if (Boolean.FALSE.equals(leftResult)) {
-				return getRight().evaluate(ctx, relativeNode).concatMap(Val::toBoolean);
+			if (leftResult.isError()) {
+				return Flux.just(leftResult);
 			}
-			return Flux.just(Boolean.TRUE);
-		}).map(Val::of).distinctUntilChanged();
+			// Lazy evaluation of the right expression
+			if (!leftResult.getBoolean()) {
+				return getRight().evaluate(ctx, relativeNode).map(Val::requireBoolean);
+			}
+			return Flux.just(Val.TRUE);
+		});
 	}
 
 }

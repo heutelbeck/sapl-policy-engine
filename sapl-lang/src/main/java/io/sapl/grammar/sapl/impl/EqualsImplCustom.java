@@ -18,6 +18,7 @@ package io.sapl.grammar.sapl.impl;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -26,13 +27,14 @@ import reactor.core.publisher.Flux;
  * Grammar: Comparison returns Expression: Prefixed (({Equals.left=current}
  * '==') right=Prefixed)? ;
  */
+@Slf4j
 public class EqualsImplCustom extends EqualsImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
 		final Flux<Val> right = getRight().evaluate(ctx, relativeNode);
-		return Flux.combineLatest(left, right, this::equals).distinctUntilChanged();
+		return Flux.combineLatest(left, right, this::equals);
 	}
 
 	/**
@@ -43,13 +45,20 @@ public class EqualsImplCustom extends EqualsImpl {
 	 * @return true if both values are equal
 	 */
 	private Val equals(Val left, Val right) {
+		log.trace("equals({},{})",left,right);
+		if (left.isError()) {
+			return left;
+		}
+		if (right.isError()) {
+			return right;
+		}
 		// if both values are undefined, they are equal
 		if (left.isUndefined() && right.isUndefined()) {
-			return Val.ofTrue();
+			return Val.TRUE;
 		}
 		// only one value is undefined the two values are not equal
 		if (left.isUndefined() || right.isUndefined()) {
-			return Val.ofFalse();
+			return Val.FALSE;
 		}
 		// if both values are numbers do a numerical comparison, as they may be
 		// represented differently in JSON

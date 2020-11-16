@@ -17,18 +17,13 @@ package io.sapl.grammar.sapl.impl;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.List;
 
-import com.fasterxml.jackson.core.TreeNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentArray;
-import io.sapl.interpreter.selection.ResultNode;
-import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -40,91 +35,119 @@ import reactor.core.publisher.Flux;
  * Subscript returns Step: {ArraySlicingStep} index=JSONNUMBER? ':'
  * to=JSONNUMBER? (':' step=JSONNUMBER)? ;
  */
+@Slf4j
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
 	private static final String STEP_ZERO = "Step must not be zero.";
-
 	private static final String INDEX_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing an JSON array index [%s] expects array value, but got: '%s'.";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
-			@NonNull Val relativeNode) {
-		try {
-			return Flux.just(apply(previousResult));
-		} catch (PolicyEvaluationException e) {
-			return Flux.error(e);
+	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+		if (parentValue.isError()) {
+			return Flux.just(parentValue);
 		}
+		if (parentValue.isUndefined() || !parentValue.isArray()) {
+			return Val.errorFlux(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), parentValue);
+		}
+//
+//		var originalArray = (ArrayNode) parentValue.get();
+//		var step = getStep() == null ? BigDecimal.ONE : getStep();
+//		if (BigDecimal.ZERO.equals(step)) {
+//			return Val.errorFlux(STEP_ZERO);
+//		}
+//		var index = getIndex();
+//		if (index != null && index.compareTo(BigDecimal.ZERO) < 0) {
+//			index = index.add(BigDecimal.valueOf(originalArray.size()));
+//		}
+//		var to = getTo() != null ? getTo() : BigDecimal.valueOf(originalArray.size());
+//		if (to != null && to.compareTo(BigDecimal.ZERO) < 0) {
+//			to = to.add(BigDecimal.valueOf(originalArray.size()));
+//		}
+//		log.trace("slicing: [{},{},{}]", index, to, step);
+
+		var array = (ArrayNode) parentValue.get();
+		var step = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
+		if (step == 0) {
+			return Val.errorFlux(STEP_ZERO);
+		}
+		var index = getIndex() == null ? 0 : getIndex().intValue();
+		if (index < 0) {
+			index = index + array.size();
+		}
+		var to = getTo() == null ? array.size() : getTo().intValue();
+		if (to < 0) {
+			to = to + array.size();
+		}
+		log.trace("after normalization [{},{},{}]", index, to, step);
+
+		var resultArray = Val.JSON.arrayNode();
+		for (int i = 0; i < array.size(); i++) {
+			var element = array.get(i);
+			if (isSelected(i, index, to, step)) {
+				resultArray.add(element);
+			}
+		}
+		return Flux.just(Val.of(resultArray));
 	}
 
-	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (previousResult.getNode().isUndefined() || !previousResult.getNode().get().isArray()) {
-			throw new PolicyEvaluationException(INDEX_ACCESS_TYPE_MISMATCH, getIndex(),
-					previousResult.getNode().isDefined() ? previousResult.getNode().get().getNodeType() : "undefined");
+	private boolean isSelected(int i, int from, int to, int step) {
+		if (i < from || i >= to) {
+			return false;
 		}
-
-		final List<Integer> nodeIndices = resolveIndex(previousResult.getNode().get());
-		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>(nodeIndices.size());
-		for (Integer idx : nodeIndices) {
-			list.add(new JsonNodeWithParentArray(Val.of(previousResult.getNode().get().get(idx)),
-					previousResult.getNode(), idx));
+		if (step > 0) {
+			return (i - from) % step == 0;
 		}
-		return new ArrayResultNode(list);
+		return (to - i) % step == 0;
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
-		try {
-			return Flux.just(apply(previousResult));
-		} catch (PolicyEvaluationException e) {
-			return Flux.error(e);
+	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
+			FilterStatement statement) {
+		log.trace("apply array slicing step [{},{},{}] to: {}", getIndex(), getTo(), getStep(), parentValue);
+		if (!parentValue.isArray()) {
+			return Flux.just(parentValue);
 		}
-	}
-
-	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
-		final List<Integer> nodeIndices = resolveIndex(previousResult.asJsonWithoutAnnotations()
-				.orElseThrow(() -> new PolicyEvaluationException("undefined value")));
-		final List<AbstractAnnotatedJsonNode> list = new ArrayList<>(nodeIndices.size());
-		for (Integer i : nodeIndices) {
-			list.add(previousResult.getNodes().get(i));
+		var array = (ArrayNode) parentValue.get();
+		var step = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
+		if (step == 0) {
+			return Val.errorFlux(STEP_ZERO);
 		}
-		return new ArrayResultNode(list);
-	}
-
-	private List<Integer> resolveIndex(TreeNode value) throws PolicyEvaluationException {
-		final BigDecimal step = getStep() == null ? BigDecimal.ONE : getStep();
-		if (step.compareTo(BigDecimal.ZERO) == 0) {
-			throw new PolicyEvaluationException(STEP_ZERO);
+		var index = getIndex() == null ? 0 : getIndex().intValue();
+		if (index < 0) {
+			index = index + array.size();
 		}
-
-		BigDecimal index = getIndex();
-		if (index != null && index.compareTo(BigDecimal.ZERO) < 0) {
-			index = index.add(BigDecimal.valueOf(value.size()));
+		var to = getTo() == null ? array.size() : getTo().intValue();
+		if (to < 0) {
+			to = to + array.size();
 		}
-
-		BigDecimal to = getTo();
-		if (to != null && to.compareTo(BigDecimal.ZERO) < 0) {
-			to = to.add(BigDecimal.valueOf(value.size()));
+		log.trace("after normalization [{},{},{}]", index, to, step);
+		if (array.isEmpty()) {
+			return Flux.just(Val.ofEmptyArray());
 		}
-
-		final List<Integer> returnIndices = new ArrayList<>();
-		if (step.compareTo(BigDecimal.ZERO) > 0) {
-			index = index == null ? BigDecimal.ZERO : index;
-			to = to == null ? BigDecimal.valueOf(value.size()) : to;
-			if (index.compareTo(to) < 0) {
-				for (int i = index.intValue(); i < to.intValue(); i = i + step.intValue()) {
-					returnIndices.add(i);
+		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
+		for (int i = 0; i < array.size(); i++) {
+			var element = array.get(i);
+			if (isSelected(i, index, to, step)) {
+				log.trace("array element [{}] selected.", i);
+				if (stepId == statement.getTarget().getSteps().size() - 1) {
+					// this was the final step. apply filter
+					log.trace("final step. do filter...");
+					elementFluxes.add(
+							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
+									FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
+									parentValue, statement.isEach()));
+				} else {
+					// there are more steps. descent with them
+					log.trace("this step was successful. descent with next step...");
+					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
+							.applyFilterStatement(Val.of(element), ctx, relativeNode, stepId + 1, statement));
 				}
-			}
-		} else {
-			index = index == null ? BigDecimal.valueOf(value.size() - 1L) : index;
-			to = to == null ? BigDecimal.valueOf(-1) : to;
-			if (index.compareTo(to) > 0) {
-				for (int i = index.intValue(); i > to.intValue(); i = i + step.intValue()) {
-					returnIndices.add(i);
-				}
+			} else {
+				log.trace("array element [{}] not selected. return as is", i);
+				elementFluxes.add(Flux.just(Val.of(element)));
 			}
 		}
-		return returnIndices;
+		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
 	}
 
 }

@@ -32,15 +32,21 @@ public class NotEqualsImplCustom extends NotEqualsImpl {
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
 		final Flux<Val> right = getRight().evaluate(ctx, relativeNode);
-		return Flux.combineLatest(left, right, this::notEqual).distinctUntilChanged();
+		return Flux.combineLatest(left, right, this::notEqual);
 	}
 
 	private Val notEqual(Val left, Val right) {
+		if (left.isError()) {
+			return left;
+		}
+		if (right.isError()) {
+			return right;
+		}
 		if (left.isUndefined() && right.isUndefined()) {
-			return Val.ofFalse();
+			return Val.TRUE;
 		}
 		if (left.isUndefined() || right.isUndefined()) {
-			return Val.ofTrue();
+			return Val.FALSE;
 		}
 		if (left.get().isNumber() && right.get().isNumber()) {
 			return Val.of(left.get().decimalValue().compareTo(right.get().decimalValue()) != 0);

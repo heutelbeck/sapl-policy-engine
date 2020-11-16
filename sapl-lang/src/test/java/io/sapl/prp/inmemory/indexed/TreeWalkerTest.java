@@ -22,7 +22,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
@@ -49,7 +48,7 @@ public class TreeWalkerTest {
 	}
 
 	@Test
-	public void testNestedStatement() throws PolicyEvaluationException {
+	public void testNestedStatement() {
 		// given
 		String definition = "policy \"p_0\" permit !(resource.x0 | resource.x1) & resource.x2";
 		SAPL document = interpreter.parse(definition);
@@ -65,7 +64,7 @@ public class TreeWalkerTest {
 	}
 
 	@Test
-	public void testSimpleConjunction() throws PolicyEvaluationException {
+	public void testSimpleConjunction() {
 		// given
 		String definition = "policy \"p_0\" permit resource.x0 & resource.x1";
 		SAPL document = interpreter.parse(definition);
@@ -81,7 +80,7 @@ public class TreeWalkerTest {
 	}
 
 	@Test
-	public void testSimpleDisjunction() throws PolicyEvaluationException {
+	public void testSimpleDisjunction() {
 		// given
 		String definition = "policy \"p_0\" permit resource.x0 | resource.x1";
 		SAPL document = interpreter.parse(definition);
@@ -97,7 +96,7 @@ public class TreeWalkerTest {
 	}
 
 	@Test
-	public void testSimpleNegation() throws PolicyEvaluationException {
+	public void testSimpleNegation() {
 		// given
 		String definition = "policy \"p_0\" permit !resource.x0";
 		SAPL document = interpreter.parse(definition);

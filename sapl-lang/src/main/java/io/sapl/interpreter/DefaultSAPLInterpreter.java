@@ -61,16 +61,16 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
 
 	@Override
-	public SAPL parse(String saplDefinition) throws PolicyEvaluationException {
+	public SAPL parse(String saplDefinition) {
 		return (SAPL) loadAsResource(saplDefinition).getContents().get(0);
 	}
 
 	@Override
-	public SAPL parse(InputStream saplInputStream) throws PolicyEvaluationException {
+	public SAPL parse(InputStream saplInputStream) {
 		return (SAPL) loadAsResource(saplInputStream).getContents().get(0);
 	}
 
-	private static Resource loadAsResource(InputStream policyInputStream) throws PolicyEvaluationException {
+	private static Resource loadAsResource(InputStream policyInputStream) {
 		final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
 		final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
 
@@ -86,7 +86,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		return resource;
 	}
 
-	private static Resource loadAsResource(String saplDefinition) throws PolicyEvaluationException {
+	private static Resource loadAsResource(String saplDefinition) {
 		final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
 		final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
 

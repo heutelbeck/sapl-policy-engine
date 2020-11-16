@@ -162,6 +162,22 @@
 		<pluginManagement>
 			<plugins>
 				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>3.8.1</version>
+					<configuration>
+						<source>${java.version}</source>
+						<target>${java.version}</target>
+						<annotationProcessorPaths>
+							<path>
+								<groupId>org.projectlombok</groupId>
+								<artifactId>lombok</artifactId>
+								<version>${lombok.version}</version>
+							</path>
+						</annotationProcessorPaths>
+					</configuration>
+				</plugin>
+				<plugin>
 					<groupId>org.springframework.boot</groupId>
 					<artifactId>spring-boot-maven-plugin</artifactId>
 					<version>${springboot.version}</version>
@@ -394,7 +410,7 @@
 			<id>vaadin-snapshots</id>
 			<url>https://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
 		</repository>
-		
+
 		<!-- Openconjurer -->
 		<repository>
 			<id>openconjurer-public</id>
@@ -406,7 +422,7 @@
 			<name>OpenConjurer Nexus Maven Snapshot Repository</name>
 			<url>https://nexus.openconjurer.org/repository/snapshots/</url>
 		</repository>
-		
+
 		<repository>
 			<id>codehaus-snapshots</id>
 			<name>disable dead 'Codehaus Snapshots' repository, see

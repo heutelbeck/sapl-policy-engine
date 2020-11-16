@@ -15,135 +15,50 @@
  */
 package io.sapl.grammar.tests;
 
-import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.IndexUnionStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentArray;
-import io.sapl.interpreter.selection.JsonNodeWithParentObject;
-import io.sapl.interpreter.selection.JsonNodeWithoutParent;
-import io.sapl.interpreter.selection.ResultNode;
-import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class ApplyStepsIndexUnionTest {
 
-	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
-
-	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	private static VariableContext variableCtx = new VariableContext();
-
-	private static FunctionContext functionCtx = new MockFunctionContext();
-
-	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
+	private static SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+	private static EvaluationContext CTX = mock(EvaluationContext.class);
 
 	@Test
-	public void applyToNonArray() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(JSON.nullNode()));
-
-		IndexUnionStep step = factory.createIndexUnionStep();
-		step.getIndices().add(BigDecimal.valueOf(0));
-		step.getIndices().add(BigDecimal.valueOf(1));
-
-		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
+	public void indexUnionStepPropagatesErrors() {
+		var step = FACTORY.createIndexUnionStep();
+		StepVerifier.create(step.apply(Val.error("TEST"), CTX, Val.UNDEFINED)).expectNext(Val.error("TEST"))
+				.verifyComplete();
 	}
 
 	@Test
-	public void applyToResultArray() {
-		List<AbstractAnnotatedJsonNode> listIn = new ArrayList<>();
-		AbstractAnnotatedJsonNode node1 = new JsonNodeWithParentObject(Val.of(JSON.nullNode()),
-				Val.of(JSON.objectNode()), "key1");
-		AbstractAnnotatedJsonNode node2 = new JsonNodeWithParentObject(Val.of(JSON.booleanNode(true)),
-				Val.of(JSON.objectNode()), "key1");
-		listIn.add(node1);
-		listIn.add(node2);
-		listIn.add(new JsonNodeWithParentObject(Val.of(JSON.booleanNode(false)), Val.of(JSON.objectNode()), "key2"));
-		ResultNode previousResult = new ArrayResultNode(listIn);
+	public void applyIndexUnionStepToNonArrayFails() {
+		// test case : undefined[...] -> fails
+		var step = FACTORY.createIndexUnionStep();
+		StepVerifier.create(step.apply(Val.UNDEFINED, CTX, Val.UNDEFINED)).expectNextMatches(Val::isError)
+				.verifyComplete();
+	}
 
-		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(node1);
-		expectedResultSet.add(node2);
-
-		IndexUnionStep step = factory.createIndexUnionStep();
+	@Test
+	public void applyToArray() {
+		// test case : [0,1,2,3,4,5,6,7,8,9][0,1,-2,10,-10] == [0,1,8]
+		var parentValue = ArrayUtil.numberArrayRange(0, 9);
+		var step = FACTORY.createIndexUnionStep();
 		step.getIndices().add(BigDecimal.valueOf(0));
 		step.getIndices().add(BigDecimal.valueOf(1));
 		step.getIndices().add(BigDecimal.valueOf(-2));
 		step.getIndices().add(BigDecimal.valueOf(10));
 		step.getIndices().add(BigDecimal.valueOf(-10));
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Index union applied to result array should return items with corresponding attribute values",
-					expectedResultSet, resultSet);
-		});
-	}
-
-	@Test
-	public void applyToArrayNodePositive() {
-		ArrayNode array = JSON.arrayNode();
-		array.add(JSON.nullNode());
-		array.add(JSON.booleanNode(true));
-		array.add(JSON.booleanNode(false));
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(array));
-
-		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentArray(Val.of(JSON.nullNode()), Val.of(array), 0));
-		expectedResultSet.add(new JsonNodeWithParentArray(Val.of(JSON.booleanNode(true)), Val.of(array), 1));
-
-		IndexUnionStep step = factory.createIndexUnionStep();
-		step.getIndices().add(BigDecimal.valueOf(1));
-		step.getIndices().add(BigDecimal.valueOf(0));
-		step.getIndices().add(BigDecimal.valueOf(1));
-		step.getIndices().add(BigDecimal.valueOf(10));
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Index union applied to array node should return items with corresponding attribute values",
-					expectedResultSet, resultSet);
-		});
-	}
-
-	@Test
-	public void applyToArrayNodeNegative() {
-		ArrayNode array = JSON.arrayNode();
-		array.add(JSON.nullNode());
-		array.add(JSON.booleanNode(true));
-		array.add(JSON.booleanNode(false));
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(array));
-
-		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentArray(Val.of(JSON.nullNode()), Val.of(array), 0));
-		expectedResultSet.add(new JsonNodeWithParentArray(Val.of(JSON.booleanNode(true)), Val.of(array), 1));
-
-		IndexUnionStep step = factory.createIndexUnionStep();
-		step.getIndices().add(BigDecimal.valueOf(-2));
-		step.getIndices().add(BigDecimal.valueOf(0));
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals("Index union applied to array node should return items with corresponding attribute values",
-					expectedResultSet, resultSet);
-		});
+		var expectedResult = ArrayUtil.numberArray(0, 1, 8);
+		StepVerifier.create(step.apply(parentValue, CTX, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
 	}
 
 }

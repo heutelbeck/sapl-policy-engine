@@ -15,107 +15,59 @@
  */
 package io.sapl.grammar.tests;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.ArrayList;
+import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.AttributeUnionStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentObject;
-import io.sapl.interpreter.selection.JsonNodeWithoutParent;
-import io.sapl.interpreter.selection.ResultNode;
-import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class ApplyStepsAttributeUnionTest {
 
-	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
-
-	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	private static VariableContext variableCtx = new VariableContext();
-
-	private static FunctionContext functionCtx = new MockFunctionContext();
-
-	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
+	private static SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+	private static EvaluationContext CTX = mock(EvaluationContext.class);
 
 	@Test
-	public void applyToResultArray() {
-		ResultNode previousResult = new ArrayResultNode(new ArrayList<>());
-
-		AttributeUnionStep step = factory.createAttributeUnionStep();
-		step.getAttributes().add("key1");
-		step.getAttributes().add("key2");
-
-		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
+	public void unionPropagatesErrors() {
+		var unionStep = unionStep();
+		StepVerifier.create(unionStep.apply(Val.error("TEST"), CTX, Val.UNDEFINED)).expectNext(Val.error("TEST"))
+				.verifyComplete();
 	}
 
 	@Test
-	public void applyToNonObject() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(JSON.nullNode()));
-
-		AttributeUnionStep step = factory.createAttributeUnionStep();
-		step.getAttributes().add("key1");
-		step.getAttributes().add("key2");
-
-		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
+	public void applySlicingToNonObject() {
+		var unionStep = unionStep();
+		StepVerifier.create(unionStep.apply(Val.ofNull(), CTX, Val.UNDEFINED)).expectNextMatches(Val::isError)
+				.verifyComplete();
 	}
 
 	@Test
 	public void applyToEmptyObject() {
-		ObjectNode object = JSON.objectNode();
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(object));
-
-		ResultNode expectedResult = new ArrayResultNode(new ArrayList<>());
-
-		AttributeUnionStep step = factory.createAttributeUnionStep();
-		step.getAttributes().add("key1");
-		step.getAttributes().add("key2");
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1)
-				.subscribe(result -> assertEquals(
-						"Attribute union applied to empty object should return empty result array", expectedResult,
-						result));
+		var unionStep = unionStep("key1", "key2");
+		var parentValue = Val.ofEmptyObject();
+		StepVerifier.create(unionStep.apply(parentValue, CTX, Val.UNDEFINED)).expectNext(Val.ofEmptyArray())
+				.verifyComplete();
 	}
 
 	@Test
-	public void applyToObject() {
-		ObjectNode object = JSON.objectNode();
-		object.set("key1", JSON.nullNode());
-		object.set("key2", JSON.booleanNode(true));
-		object.set("key3", JSON.booleanNode(false));
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(object));
-
-		Multiset<AbstractAnnotatedJsonNode> expectedResultSet = HashMultiset.create();
-		expectedResultSet.add(new JsonNodeWithParentObject(Val.of(JSON.nullNode()), Val.of(object), "key1"));
-		expectedResultSet.add(new JsonNodeWithParentObject(Val.of(JSON.booleanNode(true)), Val.of(object), "key2"));
-
-		AttributeUnionStep step = factory.createAttributeUnionStep();
-		step.getAttributes().add("key1");
-		step.getAttributes().add("key2");
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> {
-			Multiset<AbstractAnnotatedJsonNode> resultSet = HashMultiset.create(((ArrayResultNode) result).getNodes());
-			assertEquals(
-					"Attribute union applied to object should return result array with corresponding attribute values",
-					expectedResultSet, resultSet);
-		});
+	public void applyToObject() throws JsonProcessingException {
+		var parentValue = Val.ofJson("{ \"key1\" : null, \"key2\" : true,  \"key3\" : false }");
+		var unionStep = unionStep("key3", "key2");
+		var expectedResult = Val.ofJson("[ true, false ]");
+		StepVerifier.create(unionStep.apply(parentValue, CTX, Val.UNDEFINED))
+				.expectNextMatches(val -> ArrayUtil.arraysMatchWithSetSemantics(val, expectedResult)).verifyComplete();
 	}
 
+	private AttributeUnionStep unionStep(String... keys) {
+		var step = FACTORY.createAttributeUnionStep();
+		for (var key : keys)
+			step.getAttributes().add(key);
+		return step;
+	}
 }

@@ -63,7 +63,7 @@ public class HttpPolicyInformationPointTest {
 				+ "\"" + HttpHeaders.ACCEPT + "\" : \"application/stream+json\", " + "\"" + HttpHeaders.ACCEPT_CHARSET
 				+ "\" : \"" + StandardCharsets.UTF_8 + "\" " + "}, " + "\"rawBody\" : \"hello world\" " + "}";
 
-		actualRequestSpec = Val.ofJsonString(request);
+		actualRequestSpec = Val.ofJson(request);
 		result = JSON.textNode("result");
 		final Map<String, String> headerProperties = new HashMap<>();
 		headerProperties.put(HttpHeaders.ACCEPT, "application/stream+json");

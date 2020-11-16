@@ -26,8 +26,8 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.BasicFunction;
 import io.sapl.grammar.sapl.BasicGroup;
@@ -37,36 +37,32 @@ import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class EvaluateBasicExpressionsTest {
 
-	private static final String EXCEPTION = "EXCEPTION";
-
-	private static final String PARAMETERS = "PARAMETERS";
-
+	private static final String MOCK = "mock";
+	private static final String EXCEPTION = "fail";
+	private static final String PARAMETERS = "parameters";
+	private static final String EMPTY_STRING = "emptyString";
 	private static final String LONG = "long";
-
 	private static final String SHORT = "short";
-
 	private static final String KEY_ANOTHER = "another key";
-
 	private static final String KEY = "key";
-
 	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
-
 	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	private static VariableContext variableCtx = new VariableContext();
-
-	private static FunctionContext functionCtx = new MockFunctionContext();
-
+	private static FunctionContext functionCtx;
 	private static EvaluationContext ctx;
 
 	@Before
-	public void prepare() throws PolicyEvaluationException {
+	public void prepare() {
+		functionCtx = new AnnotationFunctionContext();
+		functionCtx.loadLibrary(new FilterFunctionLibrary());
+		functionCtx.loadLibrary(new MockFunctionLibrary());
 		Map<String, String> imports = new HashMap<>();
 		imports.put(SHORT, LONG);
 		ctx = new EvaluationContext(functionCtx, variableCtx, imports);
@@ -78,7 +74,7 @@ public class EvaluateBasicExpressionsTest {
 		BasicValue expression = factory.createBasicValue();
 		expression.setValue(factory.createNullLiteral());
 
-		expression.evaluate(ctx, Val.undefined()).take(1)
+		expression.evaluate(ctx, Val.UNDEFINED).take(1)
 				.subscribe(result -> assertEquals("BasicValueExpression with NullLiteral should evaluate to NullNode",
 						Val.ofNull(), result));
 	}
@@ -88,18 +84,16 @@ public class EvaluateBasicExpressionsTest {
 		BasicIdentifier expression = factory.createBasicIdentifier();
 		expression.setIdentifier(KEY);
 
-		expression.evaluate(ctx, Val.undefined()).take(1)
-				.subscribe(result -> assertEquals(
-						"BasicIdentifierExpression should return the corresponding variable value", Val.ofTrue(),
-						result));
+		expression.evaluate(ctx, Val.UNDEFINED).take(1).subscribe(result -> assertEquals(
+				"BasicIdentifierExpression should return the corresponding variable value", Val.TRUE, result));
 	}
 
 	@Test
 	public void evaluateBasicIdentifierNonExisting() {
 		BasicIdentifier expression = factory.createBasicIdentifier();
 		expression.setIdentifier(KEY_ANOTHER);
-		expression.evaluate(ctx, Val.undefined())
-				.subscribe(result -> assertEquals("should return undefined value", Val.undefined(), result));
+		expression.evaluate(ctx, Val.UNDEFINED)
+				.subscribe(result -> assertEquals("should return undefined value", Val.UNDEFINED, result));
 	}
 
 	@Test
@@ -115,8 +109,7 @@ public class EvaluateBasicExpressionsTest {
 	@Test
 	public void evaluateBasicRelativeNotAllowed() {
 		BasicRelative expression = factory.createBasicRelative();
-		StepVerifier.create(expression.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
@@ -126,7 +119,7 @@ public class EvaluateBasicExpressionsTest {
 		value.setValue(factory.createNullLiteral());
 		expression.setExpression(value);
 
-		expression.evaluate(ctx, Val.undefined()).take(1)
+		expression.evaluate(ctx, Val.UNDEFINED).take(1)
 				.subscribe(result -> assertEquals(
 						"BasicGroupExpression should evaluate to the result of evaluating its expression", Val.ofNull(),
 						result));
@@ -135,11 +128,11 @@ public class EvaluateBasicExpressionsTest {
 	@Test
 	public void evaluateBasicFunctionNoArgs1() {
 		BasicFunction expression = factory.createBasicFunction();
-		expression.getFsteps().add(KEY);
-
-		expression.evaluate(ctx, Val.undefined()).take(1)
+		expression.getFsteps().add(MOCK);
+		expression.getFsteps().add(EMPTY_STRING);
+		expression.evaluate(ctx, Val.UNDEFINED).take(1)
 				.subscribe(result -> assertEquals(
-						"BasicFunctionExpression should evaluate to the result of evaluating the function", Val.of(KEY),
+						"BasicFunctionExpression should evaluate to the result of evaluating the function", Val.of(""),
 						result));
 	}
 
@@ -147,11 +140,12 @@ public class EvaluateBasicExpressionsTest {
 	public void evaluateBasicFunctionNoArgs2() {
 		BasicFunction expression = factory.createBasicFunction();
 		expression.setArguments(factory.createArguments());
-		expression.getFsteps().add(KEY);
+		expression.getFsteps().add(MOCK);
+		expression.getFsteps().add(EMPTY_STRING);
 
-		expression.evaluate(ctx, Val.undefined()).take(1)
+		expression.evaluate(ctx, Val.UNDEFINED).take(1)
 				.subscribe(result -> assertEquals(
-						"BasicFunctionExpression should evaluate to the result of evaluating the function", Val.of(KEY),
+						"BasicFunctionExpression should evaluate to the result of evaluating the function", Val.of(""),
 						result));
 	}
 
@@ -164,12 +158,13 @@ public class EvaluateBasicExpressionsTest {
 		value.setValue(factory.createNullLiteral());
 		arguments.getArgs().add(value);
 		expression.setArguments(arguments);
+		expression.getFsteps().add(MOCK);
 		expression.getFsteps().add(PARAMETERS);
 
 		ArrayNode expectedResult = JSON.arrayNode();
 		expectedResult.add(JSON.nullNode());
 
-		expression.evaluate(ctx, Val.undefined()).take(1)
+		expression.evaluate(ctx, Val.UNDEFINED).take(1)
 				.subscribe(result -> assertEquals(
 						"BasicFunctionExpression should evaluate to the result of evaluating the function",
 						Val.of(expectedResult), result));
@@ -189,38 +184,27 @@ public class EvaluateBasicExpressionsTest {
 		arguments.getArgs().add(value1);
 		arguments.getArgs().add(value2);
 		expression.setArguments(arguments);
+		expression.getFsteps().add(MOCK);
 		expression.getFsteps().add(PARAMETERS);
 
 		ArrayNode expectedResult = JSON.arrayNode();
 		expectedResult.add(JSON.nullNode());
 		expectedResult.add(JSON.nullNode());
 
-		expression.evaluate(ctx, Val.undefined()).take(1)
+		expression.evaluate(ctx, Val.UNDEFINED).take(1)
 				.subscribe(result -> assertEquals(
 						"BasicFunctionExpression should evaluate to the result of evaluating the function",
 						Val.of(expectedResult), result));
 	}
 
 	@Test
-	public void evaluateBasicFunctionImport() {
-		BasicFunction expression = factory.createBasicFunction();
-		expression.setArguments(factory.createArguments());
-		expression.getFsteps().add(SHORT);
-
-		expression.evaluate(ctx, Val.undefined()).take(1)
-				.subscribe(result -> assertEquals(
-						"BasicFunctionExpression should evaluate to the result of evaluating the function",
-						Val.of(LONG), result));
-	}
-
-	@Test
 	public void evaluateBasicFunctionException() {
 		BasicFunction expression = factory.createBasicFunction();
 		expression.setArguments(factory.createArguments());
+		expression.getFsteps().add(MOCK);
 		expression.getFsteps().add(EXCEPTION);
 
-		StepVerifier.create(expression.evaluate(ctx, Val.undefined())).expectError(PolicyEvaluationException.class)
-				.verify();
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 }

@@ -70,7 +70,7 @@ public class ImprovedDocumentIndexTest {
 	}
 
 	@Test
-	public void test_orphaned() throws PolicyEvaluationException {
+	public void test_orphaned()  {
 		// given
 		FunctionContext functionCtx = new AnnotationFunctionContext();
 
@@ -102,7 +102,7 @@ public class ImprovedDocumentIndexTest {
 	}
 
 	@Test
-	public void testPut() throws PolicyEvaluationException {
+	public void testPut()  {
 		// given
 		FunctionContext functionCtx = new AnnotationFunctionContext();
 		String definition = "policy \"p_0\" permit !(resource.x0 | resource.x1)";
@@ -122,7 +122,7 @@ public class ImprovedDocumentIndexTest {
 	}
 
 	@Test
-	public void testRemove() throws PolicyEvaluationException {
+	public void testRemove()  {
 		// given
 		FunctionContext functionCtx = new AnnotationFunctionContext();
 		String definition = "policy \"p_0\" permit resource.x0 & resource.x1";
@@ -144,7 +144,7 @@ public class ImprovedDocumentIndexTest {
 	}
 
 	@Test
-	public void testUpdateFunctionCtx() throws PolicyEvaluationException {
+	public void testUpdateFunctionCtx()  {
 		// given
 		FunctionContext functionCtx = new AnnotationFunctionContext();
 		String definition = "policy \"p_0\" permit !resource.x0";

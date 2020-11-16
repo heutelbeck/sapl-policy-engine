@@ -22,7 +22,7 @@ import io.sapl.api.interpreter.Val;
 
 public interface FunctionContext {
 
-	Val evaluate(String function, Val... parameters) throws FunctionException;
+	Val evaluate(String function, Val... parameters);
 
 	Boolean provides(String function);
 

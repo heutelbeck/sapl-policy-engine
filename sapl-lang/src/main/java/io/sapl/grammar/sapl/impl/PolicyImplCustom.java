@@ -17,9 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Optional;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -33,14 +31,6 @@ import reactor.util.function.Tuples;
 
 @Slf4j
 public class PolicyImplCustom extends PolicyImpl {
-
-	private static final String OBLIGATIONS_ERROR = "Error occurred while evaluating obligations.";
-
-	private static final String ADVICE_ERROR = "Error occurred while evaluating advice.";
-
-	private static final String TRANSFORMATION_ERROR = "Error occurred while evaluating transformation.";
-
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private static final String PERMIT = "permit";
 
@@ -69,63 +59,78 @@ public class PolicyImplCustom extends PolicyImpl {
 		final Flux<Decision> decisionFlux = getBody() != null ? getBody().evaluate(entitlement, policyCtx)
 				: Flux.just(entitlement);
 
-		return decisionFlux.concatMap(decision -> {
+		return decisionFlux.switchMap(decision -> {
 			if (decision == Decision.PERMIT || decision == Decision.DENY) {
-				return evaluateObligationsAndAdvice(policyCtx).map(obligationsAndAdvice -> {
-					final Optional<ArrayNode> obligations = obligationsAndAdvice.getT1();
-					final Optional<ArrayNode> advice = obligationsAndAdvice.getT2();
-					return new AuthorizationDecision(decision, Optional.empty(), obligations, advice);
+				return evaluateObligationsAndAdvice(policyCtx).map(obligationAndAdvice -> {
+					var obligation = obligationAndAdvice.getT1();
+					var advice = obligationAndAdvice.getT2();
+					if (obligation.isError()) {
+						log.debug("| |- Error in obligation evaluation. INDETERMINATE: " + obligation.getMessage());
+						return AuthorizationDecision.INDETERMINATE;
+					}
+					if (advice.isError()) {
+						log.debug("| |- Error in advice evaluation. INDETERMINATE: " + advice.getMessage());
+						return AuthorizationDecision.INDETERMINATE;
+					}
+					return new AuthorizationDecision(decision, Optional.empty(), wrapInArrayIfExists(obligation),
+							wrapInArrayIfExists(advice));
 				});
 			} else {
 				return Flux.just(new AuthorizationDecision(decision));
 			}
-		}).concatMap(authzDecision -> {
-			final Decision decision = authzDecision.getDecision();
+		}).switchMap(authzDecision -> {
+			var decision = authzDecision.getDecision();
 			if (decision == Decision.PERMIT) {
-				return evaluateTransformation(policyCtx).map(resource -> new AuthorizationDecision(decision, resource,
-						authzDecision.getObligations(), authzDecision.getAdvices()));
+				return evaluateTransformation(policyCtx).map(resource -> {
+					if (resource.isEmpty()) {
+						return authzDecision;
+					}
+					if (resource.get().isError()) {
+						log.debug("| |- Error in resource evaluation. INDETERMINATE: " + resource.get());
+						return AuthorizationDecision.INDETERMINATE;
+					}
+					if (resource.get().isUndefined()) {
+						log.debug("| |- Error: Resource evaluated to 'undefined'. INDETERMINATE: " + resource.get());
+						return AuthorizationDecision.INDETERMINATE;
+					}
+					return new AuthorizationDecision(decision, Optional.of(resource.get().get()),
+							authzDecision.getObligations(), authzDecision.getAdvices());
+				});
 			} else {
 				return Flux.just(authzDecision);
 			}
-		}).onErrorReturn(INDETERMINATE);
+		});
 	}
 
-	private Flux<Tuple2<Optional<ArrayNode>, Optional<ArrayNode>>> evaluateObligationsAndAdvice(
-			EvaluationContext evaluationCtx) {
-		Flux<Optional<ArrayNode>> obligationsFlux;
+	private Optional<ArrayNode> wrapInArrayIfExists(Val value) {
+		if (value.isDefined()) {
+			var array = Val.JSON.arrayNode();
+			array.add(value.get());
+			return Optional.of(array);
+		}
+		return Optional.empty();
+	}
+
+	private Flux<Tuple2<Val, Val>> evaluateObligationsAndAdvice(EvaluationContext evaluationCtx) {
+		Flux<Val> obligationsFlux;
 		if (getObligation() != null) {
-			final ArrayNode obligationArr = JSON.arrayNode();
-			obligationsFlux = getObligation().evaluate(evaluationCtx, Val.undefined())
-					.doOnError(error -> log.debug(OBLIGATIONS_ERROR, error)).map(obligation -> {
-						obligation.ifDefined(obligationArr::add);
-						return obligationArr.size() > 0 ? Optional.of(obligationArr) : Optional.empty();
-					});
+			obligationsFlux = getObligation().evaluate(evaluationCtx, Val.UNDEFINED);
 		} else {
-			obligationsFlux = Flux.just(Optional.empty());
+			obligationsFlux = Val.undefinedFlux();
 		}
-
-		Flux<Optional<ArrayNode>> adviceFlux;
+		Flux<Val> adviceFlux;
 		if (getAdvice() != null) {
-			final ArrayNode adviceArr = JSON.arrayNode();
-			adviceFlux = getAdvice().evaluate(evaluationCtx, Val.undefined())
-					.doOnError(error -> log.debug(ADVICE_ERROR, error)).map(advice -> {
-						advice.ifDefined(adviceArr::add);
-						return adviceArr.size() > 0 ? Optional.of(adviceArr) : Optional.empty();
-					});
+			adviceFlux = getAdvice().evaluate(evaluationCtx, Val.UNDEFINED);
 		} else {
-			adviceFlux = Flux.just(Optional.empty());
+			adviceFlux = Val.undefinedFlux();
 		}
-
 		return Flux.combineLatest(obligationsFlux, adviceFlux, Tuples::of);
 	}
 
-	private Flux<Optional<JsonNode>> evaluateTransformation(EvaluationContext evaluationCtx) {
-		if (getTransformation() != null) {
-			return getTransformation().evaluate(evaluationCtx, Val.undefined())
-					.doOnError(error -> log.debug(TRANSFORMATION_ERROR, error)).map(Val::optional);
-		} else {
+	private Flux<Optional<Val>> evaluateTransformation(EvaluationContext evaluationCtx) {
+		if (getTransformation() == null) {
 			return Flux.just(Optional.empty());
 		}
+		return getTransformation().evaluate(evaluationCtx, Val.UNDEFINED).map(Optional::of);
 	}
-
 }

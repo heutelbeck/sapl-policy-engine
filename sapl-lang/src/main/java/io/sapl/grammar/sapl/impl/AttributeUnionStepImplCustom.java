@@ -17,21 +17,15 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentObject;
-import io.sapl.interpreter.selection.ResultNode;
-import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 /**
  * Implements the application of an attribute union step to a previous object
@@ -42,44 +36,79 @@ import reactor.core.publisher.Flux;
  * Subscript returns Step: {AttributeUnionStep} attributes+=STRING ','
  * attributes+=STRING (',' attributes+=STRING)* ;
  */
+@Slf4j
 public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 
-	private static final String UNION_TYPE_MISMATCH = "Type mismatch.";
+	private static final String UNION_TYPE_MISMATCH = "Type mismatch. Attribute union can only be applied to JSON Objects. But had: %s";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
-			@NonNull Val relativeNode) {
-		try {
-			return Flux.just(apply(previousResult));
-		} catch (PolicyEvaluationException e) {
-			return Flux.error(e);
+	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+		if (parentValue.isError()) {
+			return Flux.just(parentValue);
 		}
-	}
-
-	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		final JsonNode previousResultNode = previousResult.getNode()
-				.orElseThrow(() -> new PolicyEvaluationException(UNION_TYPE_MISMATCH));
-		if (!previousResultNode.isObject()) {
-			throw new PolicyEvaluationException(UNION_TYPE_MISMATCH);
+		if (!parentValue.isObject()) {
+			return Val.errorFlux(UNION_TYPE_MISMATCH, parentValue);
 		}
 
-		final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		final Set<String> attributes = new HashSet<>(getAttributes());
-
-		final Iterator<String> iterator = previousResultNode.fieldNames();
-		while (iterator.hasNext()) {
-			final String key = iterator.next();
-			if (attributes.contains(key)) {
-				resultList.add(new JsonNodeWithParentObject(Val.of(previousResultNode.get(key)),
-						previousResult.getNode(), key));
+		var uniqueAttributes = uniqueAttributes();
+		var parentObject = parentValue.get();
+		var result = Val.JSON.arrayNode();
+		for (var attribute : uniqueAttributes) {
+			if (parentObject.has(attribute)) {
+				result.add(parentObject.get(attribute));
 			}
 		}
-		return new ArrayResultNode(resultList);
+		return Flux.just(Val.of(result));
+	}
+
+	private Set<String> uniqueAttributes() {
+		// remove duplicates
+		var uniqueAttributes = new HashSet<String>();
+		for (var attribute : attributes) {
+			uniqueAttributes.add(attribute);
+		}
+		return uniqueAttributes;
 	}
 
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
-		return Flux.error(new PolicyEvaluationException(UNION_TYPE_MISMATCH));
+	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
+			FilterStatement statement) {
+		log.trace("apply key union step '{}' to: {}", attributes, parentValue);
+		if (!parentValue.isObject()) {
+			// this means the element does not get selected does not get filtered
+			return Flux.just(parentValue);
+		}
+		var uniqueAttributes = uniqueAttributes();
+		var object = parentValue.getObjectNode();
+		var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
+		var fields = object.fields();
+		while (fields.hasNext()) {
+			var field = fields.next();
+			log.trace("inspect field {}", field);
+			if (uniqueAttributes.contains(field.getKey())) {
+				log.trace("field matches '{}'", field.getKey());
+				if (stepId == statement.getTarget().getSteps().size() - 1) {
+					// this was the final step. apply filter
+					log.trace("final step. select and filter!");
+					fieldFluxes
+							.add(FilterComponentImplCustom
+									.applyFilterFunction(Val.of(field.getValue()), statement.getArguments(),
+											FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
+											parentValue, statement.isEach())
+									.map(val -> Tuples.of(field.getKey(), val)));
+				} else {
+					// there are more steps. descent with them
+					log.trace("this step was successful. descent with next step...");
+					fieldFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
+							.applyFilterStatement(Val.of(field.getValue()), ctx, relativeNode, stepId + 1, statement)
+							.map(val -> Tuples.of(field.getKey(), val)));
+				}
+			} else {
+				log.trace("field not matching. just return it as it will not be affected by filtering");
+				fieldFluxes.add(Flux.just(Tuples.of(field.getKey(), Val.of(field.getValue()))));
+			}
+		}
+		return Flux.combineLatest(fieldFluxes, RepackageUtil::recombineObject);
 	}
 
 }

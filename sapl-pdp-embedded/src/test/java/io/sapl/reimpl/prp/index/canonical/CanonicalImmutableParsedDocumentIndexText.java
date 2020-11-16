@@ -85,7 +85,7 @@ public class CanonicalImmutableParsedDocumentIndexText {
 
 
     @Test
-    public void test_orphaned() throws PolicyEvaluationException {
+    public void test_orphaned()  {
         // given
         FunctionContext functionCtx = new AnnotationFunctionContext();
         List<Update> updates = new ArrayList<>(3);
@@ -122,7 +122,7 @@ public class CanonicalImmutableParsedDocumentIndexText {
     }
 
     @Test
-    public void testPut() throws PolicyEvaluationException {
+    public void testPut()  {
         // given
         FunctionContext functionCtx = new AnnotationFunctionContext();
         List<Update> updates = new ArrayList<>(3);
@@ -148,7 +148,7 @@ public class CanonicalImmutableParsedDocumentIndexText {
     }
 
     @Test
-    public void testRemove() throws PolicyEvaluationException {
+    public void testRemove()  {
         // given
         FunctionContext functionCtx = new AnnotationFunctionContext();
         List<Update> updates = new ArrayList<>(3);
@@ -183,7 +183,7 @@ public class CanonicalImmutableParsedDocumentIndexText {
     }
 
     @Test
-    public void testUpdateFunctionCtx() throws PolicyEvaluationException {
+    public void testUpdateFunctionCtx()  {
         // given
         FunctionContext functionCtx = new AnnotationFunctionContext();
         List<Update> updates = new ArrayList<>(3);

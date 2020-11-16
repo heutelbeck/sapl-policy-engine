@@ -15,12 +15,10 @@
  */
 package io.sapl.interpreter;
 
-import java.io.IOException;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
@@ -32,10 +30,8 @@ public class MockXACMLPatientProfilePIP {
 
 	public static final String NAME = "patient";
 
-	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
 	@Attribute
-	public Flux<Val> profile(Val value, Map<String, JsonNode> variables) throws IOException {
+	public Flux<Val> profile(Val value, Map<String, JsonNode> variables) throws JsonProcessingException {
 		String json = "{" + "	\"patient\": {" + "		\"name\": {" + "			\"first\": \"Bartholomew\","
 				+ "			\"last\": \"Simpson\"" + "		}," + "		\"contact\": {"
 				+ "			\"street\": \"27 Shelbyville Road\"," + "			\"email\": null" + "		},"
@@ -53,7 +49,7 @@ public class MockXACMLPatientProfilePIP {
 				+ "			\"value\": \"120/80\"," + "			\"date\": \"2001-06-09\","
 				+ "			\"performedBy\": \"Nurse Betty\"" + "		}" + "	}" + "}";
 
-		return Flux.just(Val.of(MAPPER.readTree(json)));
+		return Flux.just(Val.ofJson(json));
 	}
 
 }

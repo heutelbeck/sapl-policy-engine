@@ -15,34 +15,57 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.function.Function;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.reactivestreams.Publisher;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.interpreter.DependentStreamsUtil;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.FluxProvider;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
 	@Override
-	public Flux<Val> apply(Val unfilteredRootNode, EvaluationContext ctx, @NonNull Val relativeNode) {
-		final JsonNode result = unfilteredRootNode.get().deepCopy();
-		if (statements != null && !statements.isEmpty()) {
-			final List<FluxProvider<Val>> fluxProviders = new ArrayList<>(statements.size());
-			for (FilterStatement statement : statements) {
-				final String function = String.join(".", statement.getFsteps());
-				fluxProviders.add(node -> applyFilterStatement(node, statement.getTarget().getSteps(),
-						statement.isEach(), function, statement.getArguments(), ctx, relativeNode));
-			}
-			return DependentStreamsUtil.nestedSwitchMap(Val.of(result), fluxProviders);
+	public Flux<Val> apply(Val unfilteredValue, EvaluationContext ctx, @NonNull Val relativeNode) {
+		if (unfilteredValue.isError()) {
+			return Flux.just(unfilteredValue);
+		}
+		if (unfilteredValue.isUndefined()) {
+			return Val.errorFlux(FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES);
+		}
+		if (statements == null || statements.isEmpty()) {
+			return Flux.just(unfilteredValue);
+		}
+		return Flux.just(unfilteredValue).switchMap(applyFilterStatements(ctx, relativeNode));
+	}
+
+	private Function<? super Val, Publisher<? extends Val>> applyFilterStatements(EvaluationContext ctx,
+			Val relativeNode) {
+		return applyFilterStatements(0, ctx, relativeNode);
+	}
+
+	private Function<? super Val, Publisher<? extends Val>> applyFilterStatements(int statementId,
+			EvaluationContext ctx, Val relativeNode) {
+		if (statements == null || statementId == statements.size()) {
+			return Flux::just;
+		}
+		return value -> applyFilterStatement(value, statements.get(statementId), ctx, relativeNode)
+				.switchMap(applyFilterStatements(statementId + 1, ctx, relativeNode));
+	}
+
+	private Flux<Val> applyFilterStatement(Val unfilteredValue, FilterStatement statement, EvaluationContext ctx,
+			Val relativeNode) {
+		if (statement.getTarget().getSteps() == null || statement.getTarget().getSteps().size() == 0) {
+			// the expression has no steps. apply filter to unfiltered node directly
+			return applyFilterFunction(unfilteredValue, statement.getArguments(),
+					FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx, relativeNode,
+					statement.isEach());
 		} else {
-			return Flux.just(Val.of(result));
+			// descent with steps
+			return statement.getTarget().getSteps().get(0).applyFilterStatement(unfilteredValue, ctx, relativeNode, 0,
+					statement);
 		}
 	}
 

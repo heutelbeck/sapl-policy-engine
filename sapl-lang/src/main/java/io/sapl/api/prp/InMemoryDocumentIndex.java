@@ -19,14 +19,13 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.functions.FunctionContext;
 import reactor.core.publisher.Mono;
 
 public interface InMemoryDocumentIndex {
 
-	void insert(String documentKey, String document) throws PolicyEvaluationException;
+	void insert(String documentKey, String document);
 
 	void publish(String documentKey);
 

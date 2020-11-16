@@ -257,7 +257,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			transform
 				{
 					"array": resource.array[?(@.key1 > 2)] |- {
-						each @. key2 : filter.blacken
+						@.key2 : filter.blacken
 					}
 				}
 				''';
@@ -496,7 +496,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			permit 
 			transform
 				resource  |- {
-					each @.array[1:].value : filter.blacken
+					@.array[1:].value : filter.blacken
 				}
 				''';
 
@@ -567,7 +567,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			permit 
 			transform
 				resource |- {
-					each @..value : remove
+					@..value : filter.remove
 				}
 				''';
 
@@ -607,7 +607,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			permit 
 			transform
 				resource |- {
-					each @..name : filter.replace("***")
+					@..name : filter.replace("***")
 				}
 		''';
 

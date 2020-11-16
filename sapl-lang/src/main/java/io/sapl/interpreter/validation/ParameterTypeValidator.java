@@ -33,11 +33,11 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ParameterTypeValidator {
 
-	private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type.";
+	private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type. Was: %s";
 
 	public static void validateType(Val val, Parameter type) throws IllegalParameterType {
 		if (val.isUndefined()) {
-			throw new IllegalParameterType(ILLEGAL_PARAMETER_TYPE);
+			throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, "undefined"));
 		}
 		validateType(val.get(), type);
 	}
@@ -60,7 +60,7 @@ public class ParameterTypeValidator {
 			}
 		}
 		if (!valid) {
-			throw new IllegalParameterType(ILLEGAL_PARAMETER_TYPE);
+			throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString()));
 		}
 	}
 

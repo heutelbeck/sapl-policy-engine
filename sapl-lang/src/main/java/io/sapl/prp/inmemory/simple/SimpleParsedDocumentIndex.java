@@ -15,14 +15,11 @@
  */
 package io.sapl.prp.inmemory.simple;
 
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.prp.ParsedDocumentIndex;
 import io.sapl.api.prp.PolicyRetrievalResult;
@@ -31,7 +28,6 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -42,18 +38,28 @@ public class SimpleParsedDocumentIndex implements ParsedDocumentIndex {
 	@Override
 	public Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
 			FunctionContext functionCtx, Map<String, JsonNode> variables) {
-		try {
-			final VariableContext variableCtx = new VariableContext(authzSubscription, variables);
-			final EvaluationContext evaluationCtx = new EvaluationContext(functionCtx, variableCtx);
-			final AtomicBoolean errorInTarget = new AtomicBoolean(false);
-			return Flux.fromIterable(publishedDocuments.values()).filterWhen(policy -> policy.matches(evaluationCtx))
-					.onErrorContinue((t, o) -> {
-						log.info("| |-- Error in target evaluation: {}", t.getMessage());
-						errorInTarget.set(true);
-					}).collectList().map(result -> new PolicyRetrievalResult(result, errorInTarget.get()));
-		} catch (PolicyEvaluationException e) {
-			return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true));
+		final VariableContext variableCtx = new VariableContext(authzSubscription, variables);
+		final EvaluationContext evaluationCtx = new EvaluationContext(functionCtx, variableCtx);
+
+		var retrieval = Mono.just(new PolicyRetrievalResult());
+		for (SAPL document : publishedDocuments.values()) {
+			retrieval = retrieval.flatMap(decision -> {
+				return document.matches(evaluationCtx).map(match -> {
+					if (match.isError()) {
+						return decision.withError();
+					}
+					if (!match.isBoolean()) {
+						log.error("matching returned error. (Should never happen): {}", match.getMessage());
+						return decision.withError();
+					}
+					if (match.getBoolean()) {
+						return decision.withMatch(document);
+					}
+					return decision;
+				});
+			});
 		}
+		return retrieval;
 	}
 
 	@Override

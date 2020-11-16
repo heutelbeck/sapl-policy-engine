@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
@@ -35,8 +34,6 @@ import reactor.core.publisher.Flux;
  * members+=Pair)*)? '}' ;
  */
 public class ObjectImplCustom extends ObjectImpl {
-
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	/**
 	 * The semantics of evaluating an object is as follows:
@@ -60,14 +57,14 @@ public class ObjectImplCustom extends ObjectImpl {
 
 		// handle the empty object
 		if (valueFluxes.isEmpty()) {
-			return Flux.just(Val.of(JSON.objectNode()));
+			return Flux.just(Val.of(Val.JSON.objectNode()));
 		}
 
 		// the indices of the keys correspond to the indices of the values, because
 		// combineLatest() preserves the order of the given list of fluxes in the array
 		// of values passed to the combinator function
 		return Flux.combineLatest(valueFluxes, values -> {
-			final ObjectNode result = JSON.objectNode();
+			final ObjectNode result = Val.JSON.objectNode();
 			// omit undefined fields
 			IntStream.range(0, values.length)
 					.forEach(idx -> ((Val) values[idx]).ifDefined(val -> result.set(keys.get(idx), val)));

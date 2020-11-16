@@ -57,7 +57,22 @@ public class ObligationAdviceCollector {
 		}
 	}
 
+	public void add(AuthorizationDecision authzDecision) {
+		add(authzDecision.getDecision(), authzDecision);
+	}
+
+	public Optional<ArrayNode> getObligations(Decision decision) {
+		return get(Type.OBLIGATION, decision);
+	}
+
+	public Optional<ArrayNode> getAdvices(Decision decision) {
+		return get(Type.ADVICE, decision);
+	}
+
 	public Optional<ArrayNode> get(Type type, Decision decision) {
+		if (decision != Decision.PERMIT && decision != Decision.DENY) {
+			return Optional.empty();
+		}
 		ArrayNode returnNode = obligationAdvice.get(type).get(decision);
 		if (returnNode.size() > 0) {
 			return Optional.of(returnNode);

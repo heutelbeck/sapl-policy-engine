@@ -20,7 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.prp.InMemoryDocumentIndex;
@@ -46,7 +45,7 @@ public class SimpleInMemoryDocumentIndex implements InMemoryDocumentIndex {
 	}
 
 	@Override
-	public void insert(String documentKey, String document) throws PolicyEvaluationException {
+	public void insert(String documentKey, String document) {
 		parsedDocuments.put(documentKey, INTERPRETER.parse(document));
 	}
 

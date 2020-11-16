@@ -15,12 +15,10 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.function.Function;
 
-import org.eclipse.emf.common.util.EList;
+import org.reactivestreams.Publisher;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
@@ -28,9 +26,10 @@ import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Statement;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.FluxProvider;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 @Slf4j
 public class PolicyBodyImplCustom extends PolicyBodyImpl {
@@ -61,61 +60,66 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	 */
 	@Override
 	public Flux<Decision> evaluate(Decision entitlement, EvaluationContext ctx) {
-		final EList<Statement> statements = getStatements();
-		if (statements != null && !statements.isEmpty()) {
-			final List<FluxProvider<Boolean>> fluxProviders = new ArrayList<>(statements.size());
-			for (Statement statement : statements) {
-				fluxProviders.add(currentResult -> evaluateStatement(statement, ctx));
-			}
-			// return sequentialSwitchMap(Boolean.TRUE, fluxProviders)
-			return nestedSwitchMap(Boolean.TRUE, fluxProviders, 0)
-					.map(result -> result ? entitlement : Decision.NOT_APPLICABLE).onErrorResume(error -> {
-						log.debug("Error in policy body evaluation: {}", error.getMessage());
-						return Flux.just(Decision.INDETERMINATE);
-					});
-		} else {
+		if (statements == null || statements.isEmpty()) {
 			return Flux.just(entitlement);
 		}
+
+		return Flux.just(Tuples.of(Val.TRUE, ctx)).concatMap(evaluateStatements(0)).map(Tuple2::getT1).map(val -> {
+			if (val.isError()) {
+				log.debug("Error evaluation statements: {}", val.getMessage());
+				return Decision.INDETERMINATE;
+			}
+			if (val.getBoolean()) {
+				return entitlement;
+			}
+			return Decision.NOT_APPLICABLE;
+		});
 	}
 
-	private Flux<Boolean> nestedSwitchMap(Boolean currentResult, List<FluxProvider<Boolean>> fluxProviders, int idx) {
-		if (idx < fluxProviders.size() && currentResult) {
-			return fluxProviders.get(idx).getFlux(Boolean.TRUE)
-					.switchMap(result -> nestedSwitchMap(result, fluxProviders, idx + 1));
+	private Function<? super Tuple2<Val, EvaluationContext>, Publisher<? extends Tuple2<Val, EvaluationContext>>> evaluateStatements(
+			int statementId) {
+		if (statementId == statements.size()) {
+			return Flux::just;
 		}
-		return Flux.just(currentResult);
+		return previousAndContext -> evalStatement(previousAndContext.getT1(), statements.get(statementId),
+				previousAndContext.getT2()).switchMap(evaluateStatements(statementId + 1));
 	}
 
-	private Flux<Boolean> evaluateStatement(Statement statement, EvaluationContext evaluationCtx) {
+	private Flux<Tuple2<Val, EvaluationContext>> evalStatement(Val previousResult, Statement statement,
+			EvaluationContext ctx) {
 		if (statement instanceof ValueDefinition) {
-			return evaluateValueDefinition((ValueDefinition) statement, evaluationCtx);
+			return evaluateValueDefinition(previousResult, (ValueDefinition) statement, ctx);
 		} else {
-			return evaluateCondition((Condition) statement, evaluationCtx);
+			return evaluateCondition(previousResult, (Condition) statement, ctx);
 		}
 	}
 
-	private Flux<Boolean> evaluateValueDefinition(ValueDefinition valueDefinition, EvaluationContext evaluationCtx) {
-		return valueDefinition.getEval().evaluate(evaluationCtx, Val.undefined()).concatMap(evaluatedValue -> {
-			try {
-				if (evaluatedValue.isDefined()) {
-					evaluationCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
-					return Flux.just(Boolean.TRUE);
-				} else {
-					return Flux.error(new PolicyEvaluationException(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL));
-				}
-			} catch (PolicyEvaluationException e) {
-				log.debug("Error in value definition evaluation: {}", e.getMessage());
-				return Flux.error(e);
+	private Flux<Tuple2<Val, EvaluationContext>> evaluateValueDefinition(Val previousResult,
+			ValueDefinition valueDefinition, EvaluationContext ctx) {
+		if (previousResult.isError() || !previousResult.getBoolean()) {
+			return Flux.just(Tuples.of(previousResult, ctx));
+		}
+		return valueDefinition.getEval().evaluate(ctx, Val.UNDEFINED).concatMap(evaluatedValue -> {
+			if (evaluatedValue.isDefined()) {
+				var newCtx = ctx.copy();
+				newCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
+				return Flux.just(Tuples.of(Val.TRUE, newCtx));
+			} else {
+				return Flux.just(Tuples.of(Val.error(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL), ctx));
 			}
 		});
 	}
 
-	private Flux<Boolean> evaluateCondition(Condition condition, EvaluationContext evaluationCtx) {
-		return condition.getExpression().evaluate(evaluationCtx, Val.undefined()).concatMap(statementResult -> {
-			if (statementResult.isDefined() && statementResult.get().isBoolean()) {
-				return Flux.just(statementResult.get().asBoolean());
+	private Flux<Tuple2<Val, EvaluationContext>> evaluateCondition(Val previousResult, Condition condition,
+			EvaluationContext ctx) {
+		if (previousResult.isError() || !previousResult.getBoolean()) {
+			return Flux.just(Tuples.of(previousResult, ctx));
+		}
+		return condition.getExpression().evaluate(ctx, Val.UNDEFINED).concatMap(statementResult -> {
+			if (statementResult.isBoolean()) {
+				return Flux.just(Tuples.of(statementResult, ctx));
 			} else {
-				return Flux.error(new PolicyEvaluationException(STATEMENT_NOT_BOOLEAN, statementResult));
+				return Flux.just(Tuples.of(Val.error(STATEMENT_NOT_BOOLEAN, statementResult), ctx));
 			}
 		});
 	}

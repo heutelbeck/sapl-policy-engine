@@ -18,11 +18,11 @@ package io.sapl.functions
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
-import io.sapl.api.functions.FunctionException
 import io.sapl.api.interpreter.Val
 import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.Decision
+import io.sapl.grammar.sapl.impl.EObjectUtil
 import io.sapl.interpreter.DefaultSAPLInterpreter
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
@@ -35,6 +35,7 @@ import java.util.Optional
 import org.junit.Before
 import org.junit.Test
 
+import static io.sapl.interpreter.functions.IsError.isError
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.MatcherAssert.assertThat
 
@@ -52,39 +53,75 @@ class FilterFunctionLibraryTest {
 		FUNCTION_CTX.loadLibrary(LIBRARY);
 	}
 
-	@Test(expected=FunctionException)
+	@Test
 	def void blackenTooManyArguments() {
-		FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of("x"), Val.of(2))
+		val result = FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of("x"), Val.of(2))
+		assertThat(
+			"blacken function not working as expected",
+			result,
+			isError()
+		)
+
 	}
 
-	@Test(expected=FunctionException)
+	@Test
 	def void blackenNoString() {
-		FilterFunctionLibrary.blacken(Val.of(2))
+		val result = FilterFunctionLibrary.blacken(Val.of(2))
+		assertThat(
+			"blacken function not working as expected",
+			result,
+			isError()
+		)
 	}
 
-	@Test(expected=FunctionException)
+	@Test
 	def void blackenReplacementNoString() {
-		FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2))
+		val result = FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2))
+		assertThat(
+			"blacken function not working as expected",
+			result,
+			isError()
+		)
 	}
 
-	@Test(expected=FunctionException)
+	@Test
 	def void blackenReplacementNegativeRight() {
-		FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(-2))
+		val result = FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(-2))
+		assertThat(
+			"blacken function not working as expected",
+			result,
+			isError()
+		)
 	}
 
-	@Test(expected=FunctionException)
+	@Test
 	def void blackenReplacementNegativeLeft() {
-		FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(-2), Val.of(2))
+		val result = FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(-2), Val.of(2))
+		assertThat(
+			"blacken function not working as expected",
+			result,
+			isError()
+		)
 	}
 
-	@Test(expected=FunctionException)
+	@Test
 	def void blackenReplacementRightNoNumber() {
-		FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.ofNull())
+		val result = FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.ofNull())
+		assertThat(
+			"blacken function not working as expected",
+			result,
+			isError()
+		)
 	}
 
-	@Test(expected=FunctionException)
+	@Test
 	def void blackenReplacementLeftNoNumber() {
-		FilterFunctionLibrary.blacken(Val.of("abcde"), Val.ofNull(), Val.of(2))
+		val result = FilterFunctionLibrary.blacken(Val.of("abcde"), Val.ofNull(), Val.of(2))
+		assertThat(
+			"blacken function not working as expected",
+			result,
+			isError()
+		)
 	}
 
 	@Test
@@ -248,6 +285,8 @@ class FilterFunctionLibraryTest {
 
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
+		val poli = INTERPRETER.parse(policyDefinition);
+		EObjectUtil.dump(poli);
 		val authzDecision = INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 

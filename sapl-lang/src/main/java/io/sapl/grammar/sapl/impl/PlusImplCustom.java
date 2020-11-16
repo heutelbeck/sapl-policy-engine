@@ -28,17 +28,23 @@ public class PlusImplCustom extends PlusImpl {
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
 		final Flux<Val> right = getRight().evaluate(ctx, relativeNode);
-		return Flux.combineLatest(left, right, this::plus).distinctUntilChanged();
+		return Flux.combineLatest(left, right, this::plus);
 	}
 
 	private Val plus(Val left, Val right) {
+		if (left.isError()) {
+			return left;
+		}
+		if (right.isError()) {
+			return right;
+		}
 		if (left.isDefined() && right.isDefined() && left.isNumber() && right.isNumber()) {
 			return Val.of(left.get().decimalValue().add(right.get().decimalValue()));
 		}
 		// The left or right value (or both) is/are not numeric. The plus operator is
 		// therefore interpreted as a string concatenation operator.
-		String lStr = left.orElse(JSON.textNode(UNDEFINED)).asText();
-		String rStr = right.orElse(JSON.textNode(UNDEFINED)).asText();
+		String lStr = left.orElse(Val.JSON.textNode(UNDEFINED)).asText();
+		String rStr = right.orElse(Val.JSON.textNode(UNDEFINED)).asText();
 		return Val.of(lStr.concat(rStr));
 	}
 

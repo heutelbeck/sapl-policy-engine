@@ -15,8 +15,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.math.BigDecimal;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
@@ -26,8 +24,12 @@ public class UnaryMinusImplCustom extends UnaryMinusImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return getExpression().evaluate(ctx, relativeNode).concatMap(Val::toBigDecimal).map(BigDecimal::negate)
-				.map(Val::of).distinctUntilChanged();
+		return getExpression().evaluate(ctx, relativeNode).map(Val::requireBigDecimal).map(value -> {
+			if (value.isError()) {
+				return value;
+			}
+			return Val.of(value.getBigDecimal().negate());
+		});
 	}
 
 }

@@ -15,6 +15,7 @@
  */
 package io.sapl.interpreter.combinators;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +32,29 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.variables.VariableContext;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
+/**
+ * This algorithm is used if policy sets and policies are constructed in a way
+ * that multiple policy documents with a matching target are considered an
+ * error. A PERMIT or DENY decision will only be returned if there is exactly
+ * one policy set or policy with matching target expression and if this policy
+ * document evaluates to PERMIT or DENY.
+ * 
+ * It works as follows:
+ * 
+ * 1. If any target evaluation results in an error (INDETERMINATE) or if more
+ * than one policy documents have a matching target, the decision is
+ * INDETERMINATE.
+ * 
+ * 2. Otherwise:
+ * 
+ * a) If there is no matching policy document, the decision is NOT_APPLICABLE.
+ * 
+ * b) Otherwise, i.e., there is exactly one matching policy document, the
+ * decision is the result of evaluating this policy document.
+ *
+ */
 public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyCombinator {
 
 	@Override
@@ -60,20 +82,25 @@ public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyC
 
 	@Override
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		Mono<List<Policy>> matchingPolicies = Flux.fromIterable(policies).filterWhen(policy -> policy.matches(ctx))
-				.collectList();
-		return Flux.from(matchingPolicies).flatMap(matches -> doCombine(matches, ctx))
-				.onErrorReturn(AuthorizationDecision.INDETERMINATE);
+		return Flux.fromIterable(policies)
+				.concatMap(policy -> policy.matches(ctx).map(match -> Tuples.of(match, policy)))
+				.reduce(Tuples.of(Boolean.FALSE, new ArrayList<Policy>(policies.size())), (state, match) -> {
+					var newState = new ArrayList<>(state.getT2());
+					if (match.getT1().isBoolean() && match.getT1().getBoolean()) {
+						newState.add(match.getT2());
+					}
+					return Tuples.of(state.getT1() || match.getT1().isError(), newState);
+				}).flux().concatMap(matching -> doCombine(matching.getT2(), matching.getT1(), ctx));
 	}
 
-	private Flux<AuthorizationDecision> doCombine(List<Policy> matches, EvaluationContext ctx) {
+	private Flux<AuthorizationDecision> doCombine(List<Policy> matches, boolean errorsInTarget, EvaluationContext ctx) {
+		if (errorsInTarget || matches.size() > 1) {
+			return Flux.just(AuthorizationDecision.INDETERMINATE);
+		}
 		if (matches.isEmpty()) {
 			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 		}
-		if (matches.size() > 1) {
-			return Flux.just(AuthorizationDecision.INDETERMINATE);
-		}
-		return matches.get(0).evaluate(ctx).distinctUntilChanged();
+		return matches.get(0).evaluate(ctx);
 	}
 
 }

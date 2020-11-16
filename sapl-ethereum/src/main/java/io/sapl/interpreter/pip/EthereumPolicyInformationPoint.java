@@ -168,13 +168,13 @@ public class EthereumPolicyInformationPoint {
 					if (transaction.getFrom().equalsIgnoreCase(getStringFrom(saplObject.get(), FROM_ACCOUNT))
 							&& transaction.getTo().equalsIgnoreCase(getStringFrom(saplObject.get(), TO_ACCOUNT))
 							&& transaction.getValue().equals(getBigIntFrom(saplObject.get(), TRANSACTION_VALUE))) {
-						return Val.ofTrue();
+						return Val.TRUE;
 					}
 				}
 			} catch (IOException | NullPointerException | ClientConnectionException e) {
 				log.warn(VERIFY_TRANSACTION_WARNING);
 			}
-			return Val.ofFalse();
+			return Val.FALSE;
 		};
 	}
 

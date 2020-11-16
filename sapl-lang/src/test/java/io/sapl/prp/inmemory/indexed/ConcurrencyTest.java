@@ -33,7 +33,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.prp.PolicyRetrievalResult;
@@ -67,7 +66,7 @@ public class ConcurrencyTest {
 	}
 
 	@Test
-	public void testConcurrency() throws PolicyEvaluationException {
+	public void testConcurrency()  {
 		for (int i = 0; i < 10; ++i) {
 			testUpdateFunctionCtx();
 			testPut();
@@ -76,7 +75,7 @@ public class ConcurrencyTest {
 	}
 
 	@Test
-	public void testPut() throws PolicyEvaluationException {
+	public void testPut()  {
 		// given
 		FunctionContext functionCtx = new AnnotationFunctionContext();
 		String definition = "policy \"p_0\" permit (resource.x0 | !resource.x1)";
@@ -95,7 +94,7 @@ public class ConcurrencyTest {
 	}
 
 	@Test
-	public void testRemove() throws PolicyEvaluationException {
+	public void testRemove()  {
 		// given
 		FunctionContext functionCtx = new AnnotationFunctionContext();
 		String definition = "policy \"p_0\" permit resource.x0 & !resource.x1";
@@ -116,7 +115,7 @@ public class ConcurrencyTest {
 	}
 
 	@Test
-	public void testUpdateFunctionCtx() throws PolicyEvaluationException {
+	public void testUpdateFunctionCtx()  {
 		// given
 		FunctionContext functionCtx = new AnnotationFunctionContext();
 		String definition = "policy \"p_0\" permit resource.x0";

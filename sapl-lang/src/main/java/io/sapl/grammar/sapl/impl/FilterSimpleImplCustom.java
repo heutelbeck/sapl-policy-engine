@@ -23,10 +23,9 @@ import reactor.core.publisher.Flux;
 public class FilterSimpleImplCustom extends FilterSimpleImpl {
 
 	@Override
-	public Flux<Val> apply(Val unfilteredRootNode, EvaluationContext ctx, @NonNull Val relativeNode) {
-		final String function = String.join(".", fsteps);
-		return applyFilterStatement(Val.of(unfilteredRootNode.get().deepCopy()), null, each, function, getArguments(),
-				ctx, relativeNode);
+	public Flux<Val> apply(@NonNull Val unfilteredValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+		return applyFilterFunction(unfilteredValue, arguments, FunctionUtil.resolveAbsoluteFunctionName(fsteps, ctx),
+				ctx, relativeNode, each);
 	}
 
 }

@@ -24,24 +24,17 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 
 public class VariableContextTest {
 
 	private static final Val SUBJECT_NODE = Val.of("subject");
-
 	private static final Val ACTION_NODE = Val.of("action");
-
 	private static final Val RESOURCE_NODE = Val.of("resource");
-
 	private static final Val ENVIRONMENT_NODE = Val.of("environment");
-
 	private static final Val VAR_NODE = Val.of("var");
-
 	private static final Val VAR_NODE_NEW = Val.of("var_new");
-
 	private static final String VAR_ID = "var";
 
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION = new AuthorizationSubscription(SUBJECT_NODE.get(),
@@ -57,7 +50,7 @@ public class VariableContextTest {
 	}
 
 	@Test
-	public void authzSubscriptionInitializationTest() throws PolicyEvaluationException {
+	public void authzSubscriptionInitializationTest() {
 		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
 		assertTrue("context was not created or did not remember values",
 				ctx != null && ctx.get("subject").equals(SUBJECT_NODE) && ctx.get("action").equals(ACTION_NODE)
@@ -66,7 +59,7 @@ public class VariableContextTest {
 	}
 
 	@Test
-	public void emptyauthzSubscriptionInitializationTest() throws PolicyEvaluationException {
+	public void emptyauthzSubscriptionInitializationTest() {
 		VariableContext ctx = new VariableContext(EMPTY_AUTH_SUBSCRIPTION);
 		assertTrue("context was not created or did not remember values",
 				ctx != null && ctx.get("subject").equals(Val.ofNull()) && ctx.get("action").equals(Val.ofNull())
@@ -74,20 +67,20 @@ public class VariableContextTest {
 	}
 
 	@Test
-	public void notExistsTest() throws PolicyEvaluationException {
+	public void notExistsTest() {
 		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
 		assertFalse("var should not be existing in freshly created context", ctx.exists(VAR_ID));
 	}
 
 	@Test
-	public void existsTest() throws PolicyEvaluationException {
+	public void existsTest() {
 		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
 		ctx.put(VAR_ID, VAR_NODE.get());
 		assertTrue("var should be existing in freshly created context", ctx.get(VAR_ID).equals(VAR_NODE));
 	}
 
 	@Test
-	public void doubleRegistrationOverwrite() throws PolicyEvaluationException {
+	public void doubleRegistrationOverwrite() {
 		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
 		ctx.put(VAR_ID, VAR_NODE.get());
 		ctx.put(VAR_ID, VAR_NODE_NEW.get());
@@ -95,9 +88,9 @@ public class VariableContextTest {
 	}
 
 	@Test
-	public void failGetUndefined() throws PolicyEvaluationException {
+	public void failGetUndefined() {
 		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
-		assertThat("returns undefined", ctx.get(VAR_ID), is(Val.undefined()));
+		assertThat("returns undefined", ctx.get(VAR_ID), is(Val.UNDEFINED));
 	}
 
 }

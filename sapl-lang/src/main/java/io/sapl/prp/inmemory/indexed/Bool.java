@@ -65,15 +65,14 @@ public class Bool {
 		throw new IllegalStateException(BOOL_NOT_IMMUTABLE);
 	}
 
-	public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
-			throws PolicyEvaluationException {
+	public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
 
 		Flux<Val> resultFlux;
 		try {
 			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
 
-			resultFlux = !isConstantExpression ? expression.evaluate(ctx, Val.undefined())
-					: Flux.just(constant ? Val.ofTrue() : Val.ofFalse());
+			resultFlux = !isConstantExpression ? expression.evaluate(ctx, Val.UNDEFINED)
+					: Flux.just(constant ? Val.TRUE : Val.FALSE);
 		} catch (RuntimeException e) {
 			throw new PolicyEvaluationException(Exceptions.unwrap(e));
 		}
@@ -84,12 +83,11 @@ public class Bool {
 				.next();
 	}
 
-	public boolean evaluateBlocking(final FunctionContext functionCtx, final VariableContext variableCtx)
-			throws PolicyEvaluationException {
+	public boolean evaluateBlocking(final FunctionContext functionCtx, final VariableContext variableCtx) {
 		if (!isConstantExpression) {
 			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
 			try {
-				Val result = expression.evaluate(ctx, Val.undefined()).blockFirst();
+				Val result = expression.evaluate(ctx, Val.UNDEFINED).blockFirst();
 				if (Objects.nonNull(result) && result.isDefined() && result.get().isBoolean()) {
 					return result.get().asBoolean();
 				}

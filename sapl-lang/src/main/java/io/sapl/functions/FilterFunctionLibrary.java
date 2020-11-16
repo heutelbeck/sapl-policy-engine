@@ -16,7 +16,6 @@
 package io.sapl.functions;
 
 import io.sapl.api.functions.Function;
-import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 
@@ -24,13 +23,9 @@ import io.sapl.api.interpreter.Val;
 public class FilterFunctionLibrary {
 
 	public static final String NAME = "filter";
-
 	public static final String DESCRIPTION = "Essential functions for content filtering.";
-
 	private static final String BLACKEN_DEFAULT_REPLACEMENT = "X";
-
 	private static final int BLACKEN_DEFAULT_SHOW_LEFT = 0;
-
 	private static final int BLACKEN_DEFAULT_SHOW_RIGHT = 0;
 
 	private static final String BLACKEN_DOC = "blacken(STRING, DISCLOSE_LEFT, DISCLOSE_RIGHT, REPLACEMENT): Assumes that DISCLOSE_LEFT and DISCLOSE_RIGHT are positive integers and STRING and REPLACEMENT are strings."
@@ -38,42 +33,33 @@ public class FilterFunctionLibrary {
 			+ " Except for STRING, all parameters are optional."
 			+ " DISCLOSE_LEFT defaults to 0, DISCLOSE_RIGHT defaults to 0 and REPLACEMENT defaults to 'X'"
 			+ " Returns the modified STRING.";
-
 	private static final String REPLACE_DOC = "replace(ORIGINAL, REPLACEMENT): Assumes that ORIGINAL and REPLACEMENT are JSON nodes. Returns REPLACEMENT.";
-
+	private static final String REMOVE_DOC = "remove: Maps any value to 'undefined' If used in a filter, this will be removed from arrays or objects";
 	private static final String ILLEGAL_PARAMETERS_COUNT = "Illegal number of parameters provided.";
-
 	private static final String ILLEGAL_PARAMETER_DISCLOSE_LEFT = "Illegal parameter for DISCLOSE_LEFT. Expecting a positive integer.";
-
 	private static final String ILLEGAL_PARAMETER_DISCLOSE_RIGHT = "Illegal parameter for DISCLOSE_RIGHT. Expecting a positive integer.";
-
 	private static final String ILLEGAL_PARAMETER_REPLACEMENT = "Illegal parameter for REPLACEMENT. Expecting a string.";
-
 	private static final String ILLEGAL_PARAMETER_STRING = "Illegal parameter for STRING. Expecting a string.";
 
 	private static final int ZERO = 0;
-
 	private static final int ONE = 1;
-
 	private static final int TWO = 2;
-
 	private static final int THREE = 3;
-
 	private static final int PARAMETERS_MAX = 4;
 
 	@Function(docs = BLACKEN_DOC)
-	public static Val blacken(Val... parameters) throws FunctionException {
+	public static Val blacken(Val... parameters) {
 		if (parameters.length > PARAMETERS_MAX) {
-			throw new FunctionException(ILLEGAL_PARAMETERS_COUNT);
+			return Val.error(ILLEGAL_PARAMETERS_COUNT);
 		}
 		if (parameters[0].isUndefined() || !parameters[0].isTextual()) {
-			throw new FunctionException(ILLEGAL_PARAMETER_STRING);
+			return Val.error(ILLEGAL_PARAMETER_STRING);
 		}
 
 		String replacement;
 		if (parameters.length == PARAMETERS_MAX) {
 			if (parameters[THREE].isUndefined() || !parameters[THREE].isTextual()) {
-				throw new FunctionException(ILLEGAL_PARAMETER_REPLACEMENT);
+				return Val.error(ILLEGAL_PARAMETER_REPLACEMENT);
 			}
 			replacement = parameters[THREE].get().asText();
 		} else {
@@ -83,7 +69,7 @@ public class FilterFunctionLibrary {
 		int discloseRight;
 		if (parameters.length >= THREE) {
 			if (parameters[TWO].isUndefined() || !parameters[TWO].isNumber() || parameters[TWO].get().asInt() < 0) {
-				throw new FunctionException(ILLEGAL_PARAMETER_DISCLOSE_RIGHT);
+				return Val.error(ILLEGAL_PARAMETER_DISCLOSE_RIGHT);
 			}
 			discloseRight = parameters[TWO].get().asInt();
 		} else {
@@ -93,7 +79,7 @@ public class FilterFunctionLibrary {
 		int discloseLeft;
 		if (parameters.length >= TWO) {
 			if (parameters[ONE].isUndefined() || !parameters[ONE].isNumber() || parameters[ONE].get().asInt() < 0) {
-				throw new FunctionException(ILLEGAL_PARAMETER_DISCLOSE_LEFT);
+				return Val.error(ILLEGAL_PARAMETER_DISCLOSE_LEFT);
 			}
 			discloseLeft = parameters[ONE].get().asInt();
 		} else {
@@ -125,4 +111,8 @@ public class FilterFunctionLibrary {
 		return replacement;
 	}
 
+	@Function(docs = REMOVE_DOC)
+	public static Val remove(Val original) {
+		return Val.UNDEFINED;
+	}
 }

@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.tests;
 
-import static io.sapl.grammar.tests.BasicValueHelper.basicValueFrom;
+import static io.sapl.grammar.tests.BasicValueUtil.basicValueFrom;
 import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
@@ -55,22 +55,22 @@ public class EvaluateLiteralsValuesTest {
 	@Test
 	public void evaluateNullLiteral() {
 		Value value = factory.createNullLiteral();
-		value.evaluate(ctx, Val.undefined()).take(1)
+		value.evaluate(ctx, Val.UNDEFINED).take(1)
 				.subscribe(result -> assertEquals("NullLiteral should evaluate to NullNode", Val.ofNull(), result));
 	}
 
 	@Test
 	public void evaluateTrueLiteral() {
 		Value value = factory.createTrueLiteral();
-		value.evaluate(ctx, Val.undefined()).take(1).subscribe(
-				result -> assertEquals("TrueLiteral should evaluate to BooleanNode(true)", Val.ofTrue(), result));
+		value.evaluate(ctx, Val.UNDEFINED).take(1).subscribe(
+				result -> assertEquals("TrueLiteral should evaluate to BooleanNode(true)", Val.TRUE, result));
 	}
 
 	@Test
 	public void evaluateFalseLiteral() {
 		Value value = factory.createFalseLiteral();
-		value.evaluate(ctx, Val.undefined()).take(1).subscribe(
-				result -> assertEquals("FalseLiteral should evaluate to BooleanNode(false)", Val.ofFalse(), result));
+		value.evaluate(ctx, Val.UNDEFINED).take(1).subscribe(
+				result -> assertEquals("FalseLiteral should evaluate to BooleanNode(false)", Val.FALSE, result));
 	}
 
 	@Test
@@ -78,7 +78,7 @@ public class EvaluateLiteralsValuesTest {
 		StringLiteral literal = factory.createStringLiteral();
 		literal.setString(TEST_STRING);
 
-		literal.evaluate(ctx, Val.undefined()).take(1)
+		literal.evaluate(ctx, Val.UNDEFINED).take(1)
 				.subscribe(result -> assertEquals("String should evaluate to TextNode", Val.of(TEST_STRING), result));
 	}
 
@@ -87,14 +87,14 @@ public class EvaluateLiteralsValuesTest {
 		NumberLiteral literal = factory.createNumberLiteral();
 		literal.setNumber(TEST_NUMBER);
 
-		literal.evaluate(ctx, Val.undefined()).take(1).subscribe(
+		literal.evaluate(ctx, Val.UNDEFINED).take(1).subscribe(
 				result -> assertEquals("NumberLiteral should evaluate to ValueNode", Val.of(TEST_NUMBER), result));
 	}
 
 	@Test
 	public void evaluateEmptyObject() {
 		io.sapl.grammar.sapl.Object saplObject = factory.createObject();
-		saplObject.evaluate(ctx, Val.undefined()).take(1)
+		saplObject.evaluate(ctx, Val.UNDEFINED).take(1)
 				.subscribe(result -> assertEquals("Empty Object should evaluate to ObjectNode",
 						Val.of(JSON.objectNode()), result));
 	}
@@ -117,14 +117,14 @@ public class EvaluateLiteralsValuesTest {
 		expectedResult.set(PAIR1_KEY, JSON.nullNode());
 		expectedResult.set(PAIR2_KEY, JSON.booleanNode(true));
 
-		saplObject.evaluate(ctx, Val.undefined()).take(1).subscribe(
+		saplObject.evaluate(ctx, Val.UNDEFINED).take(1).subscribe(
 				result -> assertEquals("Object should evaluate to ObjectNode", Val.of(expectedResult), result));
 	}
 
 	@Test
 	public void evaluateEmptyArray() {
 		Array saplArray = factory.createArray();
-		saplArray.evaluate(ctx, Val.undefined()).take(1).subscribe(
+		saplArray.evaluate(ctx, Val.UNDEFINED).take(1).subscribe(
 				result -> assertEquals("Empty Array should evaluate to ArrayNode", Val.of(JSON.arrayNode()), result));
 	}
 
@@ -141,7 +141,7 @@ public class EvaluateLiteralsValuesTest {
 		expectedResult.add(JSON.booleanNode(true));
 		expectedResult.add(JSON.booleanNode(false));
 
-		saplArray.evaluate(ctx, Val.undefined()).take(1)
+		saplArray.evaluate(ctx, Val.UNDEFINED).take(1)
 				.subscribe(result -> assertEquals("Array should evaluate to Array", Val.of(expectedResult), result));
 	}
 

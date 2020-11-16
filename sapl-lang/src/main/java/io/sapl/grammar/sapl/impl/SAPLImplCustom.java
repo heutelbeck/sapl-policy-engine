@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
@@ -35,17 +36,10 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class SAPLImplCustom extends SAPLImpl {
 
-	private static final String POLICY_EVALUATION_FAILED = "Policy evaluation failed: {}";
-
 	private static final String IMPORT_EXISTS = "An import for name '%s' already exists.";
-
 	private static final String IMPORT_NOT_FOUND = "Import '%s' was not found.";
-
 	private static final String WILDCARD_IMPORT_EXISTS = "Wildcard import of '%s' not possible as an import for name '%s' already exists.";
-
 	private static final String NO_TARGET_MATCH = "Target not matching.";
-
-	private static final AuthorizationDecision INDETERMINATE = AuthorizationDecision.INDETERMINATE;
 
 	/**
 	 * Checks whether the SAPL document matches a AuthorizationSubscription by
@@ -63,20 +57,13 @@ public class SAPLImplCustom extends SAPLImpl {
 	 *            configuration</li>
 	 *            </ul>
 	 * @return {@code true} if the target expression evaluates to {@code true},
-	 *         {@code false} otherwise.
-	 * @throws PolicyEvaluationException in case there is an error while evaluating
-	 *                                   the target expression
+	 *         {@code false} otherwise. @ in case there is an error while evaluating
+	 *         the target expression
 	 */
 	@Override
-	public Mono<Boolean> matches(EvaluationContext ctx) {
-		Map<String, String> functionImports;
-		try {
-			functionImports = fetchFunctionImports(ctx.getFunctionCtx());
-		} catch (PolicyEvaluationException e) {
-			return Mono.error(e);
-		}
-		final EvaluationContext evaluationCtx = new EvaluationContext(ctx.getFunctionCtx(), ctx.getVariableCtx(),
-				functionImports);
+	public Mono<Val> matches(EvaluationContext ctx) {
+		var functionImports = fetchFunctionImports(ctx.getFunctionCtx());
+		var evaluationCtx = new EvaluationContext(ctx.getFunctionCtx(), ctx.getVariableCtx(), functionImports);
 		return getPolicyElement().matches(evaluationCtx);
 	}
 
@@ -102,21 +89,34 @@ public class SAPLImplCustom extends SAPLImpl {
 		log.trace("| | |-- SAPL Evaluate: {} ({})", getPolicyElement().getSaplName(),
 				getPolicyElement().getClass().getName());
 		return Flux.from(matches(ctx)).switchMap(matches -> {
-			if (!matches) {
-				log.trace("| | |-- NOT_APPLICABLE. Cause: " + NO_TARGET_MATCH);
+			if (matches.isError()) {
+				log.trace("| | |-- INDETERMINATE. The target expression evaluated with en error: {}",
+						matches.getMessage());
+				log.trace("| |");
+			}
+			if (!matches.isBoolean()) {
+				log.warn(
+						"| | |-- INDETERMINATE. The target mathing evaluated to non-boolean (should never happen!): {}",
+						matches);
+				log.warn("| |");
+			}
+			if (!matches.getBoolean()) {
+				log.trace("| | |-- NOT_APPLICABLE. Cause: {}", NO_TARGET_MATCH);
 				log.trace("| |");
 				return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
 			}
+			log.trace("| | |-- Is applicable: {} ", getPolicyElement().getSaplName());
 			try {
-				final Map<String, String> imports = fetchFunctionAndPipImports(ctx);
-				final EvaluationContext evaluationCtx = new EvaluationContext(ctx.getAttributeCtx(),
-						ctx.getFunctionCtx(), ctx.getVariableCtx().copy(), imports);
-				return getPolicyElement().evaluate(evaluationCtx).doOnNext(this::logAuthzDecision);
-			} catch (PolicyEvaluationException e) {
-				log.trace("| | |-- INDETERMINATE. Cause: " + POLICY_EVALUATION_FAILED, e.getMessage());
-				log.trace("| |");
-				return Flux.just(INDETERMINATE);
+				var imports = fetchFunctionAndPipImports(ctx);
+				var evaluationCtx = new EvaluationContext(ctx.getAttributeCtx(), ctx.getFunctionCtx(),
+						ctx.getVariableCtx().copy(), imports);
+				return getPolicyElement().evaluate(evaluationCtx).doOnNext(this::logAuthzDecision)
+						.switchIfEmpty(Flux.just(AuthorizationDecision.INDETERMINATE));
+			} catch (Exception e) {
+				log.error("| | |-- error initializing context. INDETERMINATE : {}", e.getMessage());
+				Flux.just(AuthorizationDecision.INDETERMINATE);
 			}
+			return null;
 		});
 	}
 
@@ -126,7 +126,7 @@ public class SAPLImplCustom extends SAPLImpl {
 	}
 
 	@Override
-	public Map<String, String> fetchFunctionImports(FunctionContext functionCtx) throws PolicyEvaluationException {
+	public Map<String, String> fetchFunctionImports(FunctionContext functionCtx) {
 		final Map<String, String> imports = new HashMap<>();
 
 		for (Import anImport : getImports()) {
@@ -151,7 +151,7 @@ public class SAPLImplCustom extends SAPLImpl {
 		return imports;
 	}
 
-	private Map<String, String> fetchFunctionAndPipImports(EvaluationContext ctx) throws PolicyEvaluationException {
+	private Map<String, String> fetchFunctionAndPipImports(EvaluationContext ctx) {
 		final FunctionContext functionCtx = ctx.getFunctionCtx();
 		final AttributeContext attributeCtx = ctx.getAttributeCtx();
 
@@ -183,7 +183,7 @@ public class SAPLImplCustom extends SAPLImpl {
 	}
 
 	private Map<String, String> fetchWildcardImports(Map<String, String> imports, String library,
-			Collection<String> libraryItems) throws PolicyEvaluationException {
+			Collection<String> libraryItems) {
 		final Map<String, String> returnImports = new HashMap<>(libraryItems.size(), 1.0F);
 		for (String name : libraryItems) {
 			if (imports.containsKey(name)) {
@@ -196,7 +196,7 @@ public class SAPLImplCustom extends SAPLImpl {
 	}
 
 	private Map<String, String> fetchLibraryImports(Map<String, String> imports, String library, String alias,
-			Collection<String> libraryItems) throws PolicyEvaluationException {
+			Collection<String> libraryItems) {
 		final Map<String, String> returnImports = new HashMap<>(libraryItems.size(), 1.0F);
 		for (String name : libraryItems) {
 			String key = String.join(".", alias, name);

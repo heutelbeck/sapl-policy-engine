@@ -179,7 +179,7 @@ class SampleOurPuppetTest {
 				action.verb == "show_patientdata"
 			transform
 				resource |- {
-					@.address : remove,
+					@.address : filter.remove,
 					each @.medicalhistory_icd10 : filter.blacken(1,0,"")
 				}
 		''';
@@ -279,7 +279,7 @@ class SampleOurPuppetTest {
 					"status" : @.status
 				}
 			} |- {
-				each @.detected_situations[1:] : remove
+				@.detected_situations[1:] : filter.remove
 			}''';
 
 //    	// In case of an emergency, familymembers could have access to this data:
@@ -377,8 +377,8 @@ class SampleOurPuppetTest {
 				action.verb == "show_patient_situations"
 			transform
 				resource |- {
-					each @.detected_situations.sensordata : remove,
-					each @.detected_situations.puppetaction : remove
+					@.detected_situations.sensordata : filter.remove,
+					@.detected_situations.puppetaction : filter.remove
 				}
 				''';
 

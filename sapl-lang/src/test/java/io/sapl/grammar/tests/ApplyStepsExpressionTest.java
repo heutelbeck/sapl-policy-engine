@@ -15,198 +15,121 @@
  */
 package io.sapl.grammar.tests;
 
-import static io.sapl.grammar.tests.BasicValueHelper.basicValueFrom;
-import static org.junit.Assert.assertEquals;
+import static io.sapl.grammar.tests.BasicValueUtil.basicValueFrom;
+import static org.mockito.Mockito.mock;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.ExpressionStep;
-import io.sapl.grammar.sapl.NumberLiteral;
 import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.StringLiteral;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentArray;
-import io.sapl.interpreter.selection.JsonNodeWithParentObject;
-import io.sapl.interpreter.selection.JsonNodeWithoutParent;
-import io.sapl.interpreter.selection.ResultNode;
-import io.sapl.interpreter.variables.VariableContext;
 import reactor.test.StepVerifier;
 
 public class ApplyStepsExpressionTest {
 
-	private static SaplFactory factory = SaplFactoryImpl.eINSTANCE;
-
-	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-	private static VariableContext variableCtx = new VariableContext();
-
-	private static FunctionContext functionCtx = new MockFunctionContext();
-
-	private static EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx);
+	private static SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+	private static EvaluationContext CTX = mock(EvaluationContext.class);
 
 	@Test
-	public void expressionEvaluatesToBoolean() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(JSON.objectNode()));
-
-		ExpressionStep step = factory.createExpressionStep();
-		step.setExpression(basicValueFrom(factory.createTrueLiteral()));
-
-		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
+	public void expressionStepPropagatesErrors() {
+		var step = FACTORY.createExpressionStep();
+		StepVerifier.create(step.apply(Val.error("TEST"), CTX, Val.UNDEFINED)).expectNext(Val.error("TEST"))
+				.verifyComplete();
 	}
 
 	@Test
-	public void applyToResultArrayWithTextualResult() {
-		ResultNode previousResult = new ArrayResultNode(new ArrayList<>());
-
-		ExpressionStep step = factory.createExpressionStep();
-		StringLiteral stringLiteral = factory.createStringLiteral();
-		stringLiteral.setString("key");
-		step.setExpression(basicValueFrom(stringLiteral));
-
-		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
+	public void applyExpressionStepToNonObjectNonArrayFails() {
+		// test case : undefined[0] -> fails
+		var step = FACTORY.createExpressionStep();
+		StepVerifier.create(step.apply(Val.UNDEFINED, CTX, Val.UNDEFINED)).expectNextMatches(Val::isError)
+				.verifyComplete();
 	}
 
 	@Test
-	public void applyToArrayNodeWithTextualResult() {
-		JsonNodeWithoutParent previousResult = new JsonNodeWithoutParent(Val.of(JSON.arrayNode()));
-		ExpressionStep step = factory.createExpressionStep();
-		StringLiteral stringLiteral = factory.createStringLiteral();
-		stringLiteral.setString("key");
-		step.setExpression(basicValueFrom(stringLiteral));
+	public void expressionEvaluatesToBooleanAndFails() {
+		// test case: [][true] -> type mismatch
+		var step = FACTORY.createExpressionStep();
+		step.setExpression(basicValueFrom(FACTORY.createTrueLiteral()));
 
-		ResultNode expectedResult = new JsonNodeWithParentObject(Val.undefined(), previousResult.getNode(),
-				stringLiteral.getString());
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(
-				result -> assertEquals("Accessing key on text should yield undefined.", expectedResult, result));
+		StepVerifier.create(step.apply(Val.ofEmptyObject(), CTX, Val.UNDEFINED)).expectNextMatches(Val::isError)
+				.verifyComplete();
 	}
 
 	@Test
-	public void applyToObjectWithTextualResult() {
-		ObjectNode object = JSON.objectNode();
-		object.set("key", JSON.booleanNode(true));
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(object));
-		ResultNode expectedResult = new JsonNodeWithParentObject(Val.of(JSON.booleanNode(true)), Val.of(object), "key");
-
-		ExpressionStep step = factory.createExpressionStep();
-		StringLiteral stringLiteral = factory.createStringLiteral();
-		stringLiteral.setString("key");
-		step.setExpression(basicValueFrom(stringLiteral));
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> assertEquals(
-				"Expression step with expression evaluating to key should return the value of the corresponding attribute",
-				expectedResult, result));
+	public void applyToArrayWithTextualExpressionResult() {
+		// test case: [0,1,2,3,4,5,6,7,8,9]['key'] -> type mismatch error
+		var step = FACTORY.createExpressionStep();
+		var literal = FACTORY.createStringLiteral();
+		literal.setString("key");
+		step.setExpression(basicValueFrom(literal));
+		var parentValue = ArrayUtil.numberArrayRange(0, 9);
+		StepVerifier.create(step.apply(parentValue, CTX, Val.UNDEFINED)).expectNextMatches(Val::isError)
+				.verifyComplete();
 	}
 
 	@Test
-	public void applyToObjectWithNumericResult() {
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(JSON.objectNode()));
-
-		ExpressionStep step = factory.createExpressionStep();
-		NumberLiteral numberLiteral = factory.createNumberLiteral();
-		numberLiteral.setNumber(BigDecimal.valueOf(0));
-		step.setExpression(basicValueFrom(numberLiteral));
-
-		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
+	public void applyToArrayWithNumberExpressionResult() {
+		// test case: [0,1,2,3,4,5,6,7,8,9][5] == 5
+		var step = FACTORY.createExpressionStep();
+		var literal = FACTORY.createNumberLiteral();
+		literal.setNumber(BigDecimal.valueOf(5));
+		step.setExpression(basicValueFrom(literal));
+		var parentValue = ArrayUtil.numberArrayRange(0, 9);
+		var expectedResult = Val.of(5);
+		StepVerifier.create(step.apply(parentValue, CTX, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
 	}
 
 	@Test
-	public void applyToArrayNodeWithNumericResultWhichExists() {
-		ArrayNode array = JSON.arrayNode();
-		array.add(JSON.booleanNode(true));
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(array));
-		ResultNode expectedResult = new JsonNodeWithParentArray(Val.of(JSON.booleanNode(true)), Val.of(array), 0);
-
-		ExpressionStep step = factory.createExpressionStep();
-		NumberLiteral numberLiteral = factory.createNumberLiteral();
-		numberLiteral.setNumber(BigDecimal.valueOf(0));
-		step.setExpression(basicValueFrom(numberLiteral));
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> assertEquals(
-				"Expression step with expression evaluating to number should return the corresponding array item",
-				expectedResult, result));
+	public void applyToArrayWithNumberExpressionResultIndexOutOfBounds() {
+		// test case: [0,1,2,3,4,5,6,7,8,9][100] -> Index out of bounds error
+		var step = FACTORY.createExpressionStep();
+		var literal = FACTORY.createNumberLiteral();
+		literal.setNumber(BigDecimal.valueOf(100));
+		step.setExpression(basicValueFrom(literal));
+		var parentValue = ArrayUtil.numberArrayRange(0, 9);
+		StepVerifier.create(step.apply(parentValue, CTX, Val.UNDEFINED)).expectNextMatches(Val::isError)
+				.verifyComplete();
 	}
 
 	@Test
-	public void applyToArrayNodeWithNumericResultWhichNotExists() {
-		ArrayNode array = JSON.arrayNode();
-		array.add(JSON.booleanNode(true));
-		ResultNode previousResult = new JsonNodeWithoutParent(Val.of(array));
-
-		ExpressionStep step = factory.createExpressionStep();
-		NumberLiteral numberLiteral = factory.createNumberLiteral();
-		numberLiteral.setNumber(BigDecimal.valueOf(1));
-		step.setExpression(basicValueFrom(numberLiteral));
-
-		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
+	public void applyToObjectWithTextualResult() throws JsonProcessingException {
+		// test case : { "key" : true }['key'] == true
+		var parentValue = Val.ofJson("{ \"key\" : true }");
+		var expectedResult = Val.TRUE;
+		var step = FACTORY.createExpressionStep();
+		var literal = FACTORY.createStringLiteral();
+		literal.setString("key");
+		step.setExpression(basicValueFrom(literal));
+		StepVerifier.create(step.apply(parentValue, CTX, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
 	}
 
 	@Test
-	public void applyToResultArraWithNumericResultWhichNotExists() {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Val.of(JSON.nullNode()), Val.of(JSON.arrayNode()), 0));
-		ResultNode previousResult = new ArrayResultNode(list);
-
-		ExpressionStep step = factory.createExpressionStep();
-		NumberLiteral numberLiteral = factory.createNumberLiteral();
-		numberLiteral.setNumber(BigDecimal.valueOf(1));
-		step.setExpression(basicValueFrom(numberLiteral));
-
-		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
+	public void applyToObjectWithTextualResultNonExistingKey() throws JsonProcessingException {
+		// test case : { "key" : true }['key'] == true
+		var parentValue = Val.ofJson("{ \"key\" : true }");
+		var expectedResult = Val.UNDEFINED;
+		var step = FACTORY.createExpressionStep();
+		var literal = FACTORY.createStringLiteral();
+		literal.setString("other_key");
+		step.setExpression(basicValueFrom(literal));
+		StepVerifier.create(step.apply(parentValue, CTX, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
 	}
 
 	@Test
-	public void applyToResultArraWithNumericResultWhichNotExistsNegative() {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		list.add(new JsonNodeWithParentArray(Val.ofNull(), Val.of(JSON.arrayNode()), 0));
-		ResultNode previousResult = new ArrayResultNode(list);
-
-		ExpressionStep step = factory.createExpressionStep();
-		NumberLiteral numberLiteral = factory.createNumberLiteral();
-		numberLiteral.setNumber(BigDecimal.valueOf(-1));
-		step.setExpression(basicValueFrom(numberLiteral));
-
-		StepVerifier.create(previousResult.applyStep(step, ctx, Val.undefined()))
-				.expectError(PolicyEvaluationException.class).verify();
-	}
-
-	@Test
-	public void applyToResultArrayWithNumericResultWhichExists() {
-		List<AbstractAnnotatedJsonNode> list = new ArrayList<>();
-		AbstractAnnotatedJsonNode annotatedNode = new JsonNodeWithParentArray(Val.of(JSON.nullNode()),
-				Val.of(JSON.arrayNode()), 0);
-		list.add(annotatedNode);
-		ResultNode previousResult = new ArrayResultNode(list);
-
-		ResultNode expectedResult = annotatedNode;
-
-		ExpressionStep step = factory.createExpressionStep();
-		NumberLiteral numberLiteral = factory.createNumberLiteral();
-		numberLiteral.setNumber(BigDecimal.valueOf(0));
-		step.setExpression(basicValueFrom(numberLiteral));
-
-		previousResult.applyStep(step, ctx, Val.undefined()).take(1).subscribe(result -> assertEquals(
-				"Expression step with expression evaluating to number applied to result array should return the corresponding array item",
-				expectedResult, result));
+	public void applyToObjectWithNumericalResult() throws JsonProcessingException {
+		// test case : { "key" : true }[5] --> fails
+		var parentValue = Val.ofJson("{ \"key\" : true }");
+		var step = FACTORY.createExpressionStep();
+		var literal = FACTORY.createNumberLiteral();
+		literal.setNumber(BigDecimal.valueOf(5));
+		step.setExpression(basicValueFrom(literal));
+		StepVerifier.create(step.apply(parentValue, CTX, Val.UNDEFINED)).expectNextMatches(Val::isError)
+				.verifyComplete();
 	}
 
 }

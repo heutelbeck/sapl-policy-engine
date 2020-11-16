@@ -408,7 +408,7 @@ public class GeoFunctionLibrary {
 		GeometryCollection geometryCollectionOne = (GeometryCollection) geoOf(jsonGeometryCollectionOne);
 		GeometryCollection geometryCollectionTwo = (GeometryCollection) geoOf(jsonGeometryCollectionTwo);
 		if (geometryCollectionOne.getNumGeometries() > geometryCollectionTwo.getNumGeometries()) {
-			return Val.ofFalse();
+			return Val.FALSE;
 		}
 
 		// Use BitSet as more efficient replacement for boolean array

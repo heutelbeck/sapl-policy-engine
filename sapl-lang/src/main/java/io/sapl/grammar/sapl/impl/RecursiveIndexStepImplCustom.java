@@ -18,16 +18,16 @@ package io.sapl.grammar.sapl.impl;
 import java.util.ArrayList;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentArray;
-import io.sapl.interpreter.selection.ResultNode;
-import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 /**
  * Implements the application of a recursive index step to a previous array
@@ -35,68 +35,107 @@ import reactor.core.publisher.Flux;
  *
  * Grammar: Step: '..' ({RecursiveIndexStep} '[' index=JSONNUMBER ']') ;
  */
+@Slf4j
 public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
-	private static final String CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE = "Cannot descent on an undefined value.";
-
-	private static final String WRONG_TYPE = "Recursive descent step can only be applied to an object or an array.";
-
-	private static final String UNDEFINED_ARRAY_ELEMENT = "JSON does not support undefined array elements.";
+	private static final String INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D = "Index out of bounds. Index must be between 0 and %d, was: %d ";
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
-			@NonNull Val relativeNode) {
-		try {
-			return Flux.just(apply(previousResult));
-		} catch (PolicyEvaluationException e) {
-			return Flux.error(e);
+	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+		if (parentValue.isError()) {
+			return Flux.just(parentValue);
 		}
+		if (parentValue.isUndefined()) {
+			return Flux.just(Val.ofEmptyArray());
+		}
+		return Flux.just(Val.of(collect(index.intValue(), parentValue.get(), Val.JSON.arrayNode())));
 	}
 
-	private ResultNode apply(AbstractAnnotatedJsonNode previousResult) throws PolicyEvaluationException {
-		if (previousResult.getNode().isUndefined()) {
-			throw new PolicyEvaluationException(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE);
-		}
-		if (!previousResult.getNode().get().isArray() && !previousResult.getNode().get().isObject()) {
-			throw new PolicyEvaluationException(WRONG_TYPE);
-		}
-		return new ArrayResultNode(resolveRecursive(previousResult.getNode().get()));
-	}
-
-	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
-		try {
-			return Flux.just(apply(previousResult));
-		} catch (PolicyEvaluationException e) {
-			return Flux.error(e);
-		}
-	}
-
-	private ResultNode apply(ArrayResultNode previousResult) throws PolicyEvaluationException {
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		for (AbstractAnnotatedJsonNode target : previousResult) {
-			if (target.getNode().isDefined()) {
-				resultList.addAll(resolveRecursive(target.getNode().get()));
-			} else {
-				// this case should never happen, because undefined values cannot be added
-				// to an array
-				throw new PolicyEvaluationException(UNDEFINED_ARRAY_ELEMENT);
+	private ArrayNode collect(int index, JsonNode node, ArrayNode results) {
+		if (node.isArray()) {
+			var idx = normalizeIndex(index, node.size());
+			if (node.has(idx)) {
+				results.add(node.get(idx));
+			}
+			for (var item : ((ArrayNode) node)) {
+				collect(idx, item, results);
+			}
+		} else if (node.isObject()) {
+			var idx = normalizeIndex(index, node.size());
+			var iter = node.fields();
+			while (iter.hasNext()) {
+				var item = iter.next().getValue();
+				collect(idx, item, results);
 			}
 		}
-		return new ArrayResultNode(resultList);
+		return results;
 	}
 
-	private ArrayList<AbstractAnnotatedJsonNode> resolveRecursive(JsonNode node) {
-		final ArrayList<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-		int intIndex = index.intValue();
+	private static int normalizeIndex(int idx, int size) {
+		// handle negative index values
+		return idx < 0 ? size + idx : idx;
+	}
 
-		if (node.isArray() && node.has(intIndex)) {
-			resultList.add(new JsonNodeWithParentArray(Val.of(node.get(intIndex)), Val.of(node), intIndex));
+	@Override
+	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
+			FilterStatement statement) {
+		return applyFilterStatement(index.intValue(), parentValue, ctx, relativeNode, stepId, statement);
+	}
+
+	private static Flux<Val> applyFilterStatement(int index, Val parentValue, EvaluationContext ctx, Val relativeNode,
+			int stepId, FilterStatement statement) {
+		log.trace("apply index step [{}] to: {}", index, parentValue);
+		if (parentValue.isObject()) {
+			return applyFilterStatementToObject(index, parentValue.getObjectNode(), ctx, relativeNode, stepId,
+					statement);
 		}
-		for (JsonNode child : node) {
-			resultList.addAll(resolveRecursive(child));
+		if (!parentValue.isArray()) {
+			// this means the element does not get selected does not get filtered
+			return Flux.just(parentValue);
 		}
-		return resultList;
+		var array = parentValue.getArrayNode();
+		var idx = normalizeIndex(index, array.size());
+		if (idx < 0 || idx > array.size()) {
+			return Val.errorFlux(INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D, array.size(), idx);
+		}
+		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
+		for (var i = 0; i < array.size(); i++) {
+			var element = array.get(i);
+			log.trace("inspect element [{}]={}", i, element);
+			if (i == idx) {
+				log.trace("selected. [{}]={}", i, element);
+				if (stepId == statement.getTarget().getSteps().size() - 1) {
+					// this was the final step. apply filter
+					log.trace("final step. apply filter!");
+					elementFluxes.add(
+							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
+									FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
+									parentValue, statement.isEach()));
+				} else {
+					// there are more steps. descent with them
+					log.trace("this step was successful. descent with next step...");
+					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
+							.applyFilterStatement(Val.of(element), ctx, relativeNode, stepId + 1, statement));
+				}
+			} else {
+				log.trace("array element not an object. Do recusive search for first match.");
+				elementFluxes.add(applyFilterStatement(idx, Val.of(element), ctx, relativeNode, stepId, statement));
+			}
+		}
+		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
+	}
+
+	private static Flux<Val> applyFilterStatementToObject(int idx, ObjectNode object, EvaluationContext ctx,
+			Val relativeNode, int stepId, FilterStatement statement) {
+		var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
+		var fields = object.fields();
+		while (fields.hasNext()) {
+			var field = fields.next();
+			log.trace("recusion for field {}", field);
+			fieldFluxes.add(applyFilterStatement(idx, Val.of(field.getValue()), ctx, relativeNode, stepId, statement)
+					.map(val -> Tuples.of(field.getKey(), val)));
+		}
+		return Flux.combineLatest(fieldFluxes, RepackageUtil::recombineObject);
 	}
 
 }

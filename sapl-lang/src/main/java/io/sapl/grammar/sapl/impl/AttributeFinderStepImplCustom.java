@@ -15,14 +15,9 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithoutParent;
-import io.sapl.interpreter.selection.ResultNode;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -33,42 +28,29 @@ import reactor.core.publisher.Flux;
  */
 public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
+	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
 	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attribute '%s' is not allowed in target.";
 
-	private static final String ATTRIBUTE_RESOLUTION = "Attribute resolution error. Attribute '%s' cannot be resolved.";
-
-	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
+	@Override
+	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+		if (parentValue.isError()) {
+			return Flux.just(parentValue);
+		}
+		var fullyQualifiedName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), ctx);
+		if (TargetExpressionUtil.isInTargetExpression(this)) {
+			return Val.errorFlux(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName);
+		}
+		if (parentValue.isUndefined()) {
+			return Val.errorFlux(UNDEFINED_VALUE);
+		}
+		return ctx.getAttributeCtx().evaluate(fullyQualifiedName, parentValue, ctx, getArguments())
+				.distinctUntilChanged();
+	}
 
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode value, EvaluationContext ctx, @NonNull Val relativeNode) {
-		return retrieveAttribute(value.asJsonWithoutAnnotations(), ctx);
-	}
-
-	@Override
-	public Flux<ResultNode> apply(ArrayResultNode arrayValue, EvaluationContext ctx, @NonNull Val relativeNode) {
-		return retrieveAttribute(arrayValue.asJsonWithoutAnnotations(), ctx);
-	}
-
-	private Flux<ResultNode> retrieveAttribute(Val value, EvaluationContext ctx) {
-		final String fullyQualifiedName = getFullyQualifiedName(ctx);
-		if (TargetExpressionIdentifierUtil.isInTargetExpression(this)) {
-			return Flux.error(new PolicyEvaluationException(EXTERNAL_ATTRIBUTE_IN_TARGET, fullyQualifiedName));
-		}
-		if (value.isUndefined()) {
-			return Flux.error(new PolicyEvaluationException(UNDEFINED_VALUE));
-		}
-		final Flux<Val> jsonNodeFlux = ctx.getAttributeCtx().evaluate(fullyQualifiedName, value, ctx, getArguments())
-				.onErrorResume(error -> Flux
-						.error(new PolicyEvaluationException(error, ATTRIBUTE_RESOLUTION, fullyQualifiedName)));
-		return jsonNodeFlux.map(JsonNodeWithoutParent::new);
-	}
-
-	private String getFullyQualifiedName(EvaluationContext ctx) {
-		String fullyQualifiedName = String.join(".", getIdSteps());
-		if (ctx.getImports().containsKey(fullyQualifiedName)) {
-			fullyQualifiedName = ctx.getImports().get(fullyQualifiedName);
-		}
-		return fullyQualifiedName;
+	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
+			FilterStatement statement) {
+		return Val.errorFlux("AttributeFinderStep not permitted in filter selection steps.");
 	}
 
 }

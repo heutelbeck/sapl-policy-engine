@@ -15,164 +15,81 @@
  */
 package io.sapl.interpreter.combinators;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.grammar.sapl.Policy;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.combinators.ObligationAdviceCollector.Type;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.interpreter.variables.VariableContext;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
+/**
+ * This algorithm is used if a PERMIT decision should prevail a DENY without
+ * setting a default decision.
+ * 
+ * It works as follows:
+ * 
+ * 1. If any policy document evaluates to PERMIT and there is no transformation
+ * uncertainty (multiple policies evaluate to PERMIT and at least one of them
+ * has a transformation statement), the decision is PERMIT.
+ * 
+ * 2. Otherwise:
+ * 
+ * a) If there is any INDETERMINATE or there is a transformation uncertainty
+ * (multiple policies evaluate to PERMIT and at least one of them has a
+ * transformation statement), the decision is INDETERMINATE.
+ * 
+ * b) Otherwise:
+ * 
+ * i) If there is any DENY the decision is DENY.
+ * 
+ * ii) Otherwise the decision is NOT_APPLICABLE.
+ */
 @Slf4j
-public class PermitOverridesCombinator implements DocumentsCombinator, PolicyCombinator {
+public class PermitOverridesCombinator extends AbstractEagerCombinator {
 
 	@Override
-	public Flux<AuthorizationDecision> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
-			boolean errorsInTarget, AuthorizationSubscription authzSubscription, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
-
-		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
-			return errorsInTarget ? Flux.just(AuthorizationDecision.INDETERMINATE)
-					: Flux.just(AuthorizationDecision.NOT_APPLICABLE);
+	protected AuthorizationDecision combineDecisions(Object[] decisions, boolean errorsInTarget) {
+		if ((decisions == null || decisions.length == 0) && !errorsInTarget) {
+			log.debug("| |-- No matches/errors. Default to: {}", AuthorizationDecision.NOT_APPLICABLE);
+			return AuthorizationDecision.NOT_APPLICABLE;
 		}
-
-		final VariableContext variableCtx;
-		try {
-			variableCtx = new VariableContext(authzSubscription, systemVariables);
-		} catch (PolicyEvaluationException e) {
-			return Flux.just(AuthorizationDecision.INDETERMINATE);
-		}
-		final EvaluationContext evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
-
-		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingSaplDocuments.size());
-		for (SAPL document : matchingSaplDocuments) {
-			authzDecisionFluxes.add(document.evaluate(evaluationCtx));
-		}
-
-		final AuthorizationDecisionAccumulator authzDecisionAccumulator = new AuthorizationDecisionAccumulator(
-				errorsInTarget);
-		return Flux.combineLatest(authzDecisionFluxes, authzDecisions -> {
-			authzDecisionAccumulator.addSingleDecisions(authzDecisions);
-			return authzDecisionAccumulator.getCombinedAuthorizationDecision();
-		}).distinctUntilChanged();
-	}
-
-	@Override
-	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		log.debug("| |-- Combining {} policies", policies.size());
-		AtomicBoolean errorInTarget = new AtomicBoolean(false);
-		Mono<List<Policy>> matchingPolicies = Flux.fromIterable(policies).filterWhen(policy -> policy.matches(ctx))
-				.onErrorContinue((t, o) -> {
-					log.debug("| |-- Error in target evaluation: {}", t.getMessage());
-					errorInTarget.set(true);
-				}).collectList();
-		return Flux.from(matchingPolicies).flatMap(matches -> doCombine(matches, ctx, errorInTarget.get()))
-				.onErrorReturn(AuthorizationDecision.INDETERMINATE);
-	}
-
-	private Flux<AuthorizationDecision> doCombine(List<Policy> matchingPolicies, EvaluationContext ctx,
-			boolean errorInTarget) {
-		if (matchingPolicies.isEmpty() && errorInTarget) {
-			return Flux.just(AuthorizationDecision.INDETERMINATE);
-		}
-
-		if (matchingPolicies.isEmpty()) {
-			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
-		}
-
-		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingPolicies.size());
-		for (Policy policy : matchingPolicies) {
-			authzDecisionFluxes.add(policy.evaluate(ctx));
-		}
-		final AuthorizationDecisionAccumulator accumulator = new AuthorizationDecisionAccumulator(errorInTarget);
-		return Flux.combineLatest(authzDecisionFluxes, authzDecisions -> {
-			accumulator.addSingleDecisions(authzDecisions);
-			return accumulator.getCombinedAuthorizationDecision();
-		}).distinctUntilChanged();
-	}
-
-	private static class AuthorizationDecisionAccumulator {
-
-		private boolean errorsInTarget;
-
-		private AuthorizationDecision authzDecision;
-
-		private int permitCount;
-
-		private boolean transformation;
-
-		private ObligationAdviceCollector obligationAdvice;
-
-		AuthorizationDecisionAccumulator(boolean errorsInTarget) {
-			this.errorsInTarget = errorsInTarget;
-			init();
-		}
-
-		private void init() {
-			permitCount = 0;
-			transformation = false;
-			obligationAdvice = new ObligationAdviceCollector();
-			authzDecision = errorsInTarget ? AuthorizationDecision.INDETERMINATE : AuthorizationDecision.NOT_APPLICABLE;
-		}
-
-		void addSingleDecisions(Object... authzDecisions) {
-			init();
-			for (Object decision : authzDecisions) {
-				addSingleDecision((AuthorizationDecision) decision);
+		var entitlement = errorsInTarget ? Decision.INDETERMINATE : Decision.NOT_APPLICABLE;
+		var collector = new ObligationAdviceCollector();
+		Optional<JsonNode> resource = Optional.empty();
+		for (var oDecision : decisions) {
+			var decision = (AuthorizationDecision) oDecision;
+			if (decision.getDecision() == Decision.PERMIT) {
+				entitlement = Decision.PERMIT;
 			}
-		}
-
-		private void addSingleDecision(AuthorizationDecision newAuthzDecision) {
-			Decision newDecision = newAuthzDecision.getDecision();
-			if (newDecision == Decision.PERMIT) {
-				permitCount += 1;
-				if (newAuthzDecision.getResource().isPresent()) {
-					transformation = true;
+			if (decision.getDecision() == Decision.INDETERMINATE) {
+				if (entitlement != Decision.PERMIT) {
+					entitlement = Decision.INDETERMINATE;
 				}
-
-				obligationAdvice.add(Decision.PERMIT, newAuthzDecision);
-				authzDecision = newAuthzDecision;
-			} else if (newDecision == Decision.INDETERMINATE && authzDecision.getDecision() != Decision.PERMIT) {
-				authzDecision = AuthorizationDecision.INDETERMINATE;
-			} else if (newDecision == Decision.DENY && authzDecision.getDecision() != Decision.INDETERMINATE
-					&& authzDecision.getDecision() != Decision.PERMIT) {
-				obligationAdvice.add(Decision.DENY, newAuthzDecision);
-				authzDecision = AuthorizationDecision.DENY;
+			}
+			if (decision.getDecision() == Decision.DENY) {
+				if (entitlement == Decision.NOT_APPLICABLE) {
+					entitlement = Decision.DENY;
+				}
+			}
+			collector.add(decision);
+			if (decision.getResource().isPresent()) {
+				log.info("present: {}", decision.getResource());
+				if (resource.isPresent()) {
+					// this is a transformation uncertainty.
+					// another policy already defined a transformation
+					// this the overall result is basically INDETERMINATE.
+					// However, existing DENY overrides with this algorithm.
+					entitlement = Decision.INDETERMINATE;
+				} else {
+					resource = decision.getResource();
+				}
 			}
 		}
-
-		AuthorizationDecision getCombinedAuthorizationDecision() {
-			if (authzDecision.getDecision() == Decision.PERMIT) {
-				if (permitCount > 1 && transformation)
-					return AuthorizationDecision.INDETERMINATE;
-
-				return new AuthorizationDecision(Decision.PERMIT, authzDecision.getResource(),
-						obligationAdvice.get(Type.OBLIGATION, Decision.PERMIT),
-						obligationAdvice.get(Type.ADVICE, Decision.PERMIT));
-			} else if (authzDecision.getDecision() == Decision.DENY) {
-				return new AuthorizationDecision(Decision.DENY, authzDecision.getResource(),
-						obligationAdvice.get(Type.OBLIGATION, Decision.DENY),
-						obligationAdvice.get(Type.ADVICE, Decision.DENY));
-			} else {
-				return authzDecision;
-			}
-		}
-
+		var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
+				collector.getAdvices(entitlement));
+		log.debug("| |-- {} Combined AuthorizationDecision: {}", finalDecision.getDecision(), finalDecision);
+		return finalDecision;
 	}
 
 }

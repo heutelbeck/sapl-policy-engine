@@ -32,8 +32,8 @@ public class BasicValueImplCustom extends BasicValueImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		final Flux<Val> evaluatedValue = getValue().evaluate(ctx, relativeNode);
-		return evaluatedValue.switchMap(value -> evaluateStepsFilterSubtemplate(value, getSteps(), ctx, relativeNode));
+		var evaluatedValue = getValue().evaluate(ctx, relativeNode);
+		return evaluatedValue.switchMap(resolveStepsFiltersAndSubtemplates(steps, ctx, relativeNode));
 	}
 
 }

@@ -15,19 +15,13 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.List;
-
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentArray;
-import io.sapl.interpreter.selection.JsonNodeWithParentObject;
-import io.sapl.interpreter.selection.ResultNode;
-import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -47,114 +41,83 @@ import reactor.core.publisher.Flux;
  * Grammar: Step: ... | '[' Subscript ']' | ... Subscript returns Step: ... |
  * {ExpressionStep} '(' expression=Expression ')' | ...
  */
+@Slf4j
 public class ExpressionStepImplCustom extends ExpressionStepImpl {
 
-	private static final String EXPRESSION_ACCESS_INDEX_NOT_FOUND = "Index not found. Failed to access item with index '%s' after expression evaluation.";
+	private static final String OBJECT_ACCESSS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S = "Object accesss type mismatch. Expect a string, was: %s ";
+	private static final String INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D = "Index out of bounds. Index must be between 0 and %d, was: %d ";
+	private static final String ARRAY_ACCESSS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S = "Array accesss type mismatch. Expect an integer, was: %s ";
+	private static final String EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S = "Expressions step only applicable to Array or Object. was: %s";
 
-	private static final String EXPRESSION_ACCESS_TYPE_MISMATCH = "Type mismatch. Expression evaluates to '%s' which can not be used.";
-
-	/**
-	 * Applies the expression subscript to an abstract annotated JsonNode, which can
-	 * either be an array or an object. If it is an array, the expression must
-	 * evaluate to an integer which is used as the index to access the required
-	 * array element. If it is an object, the expression must evaluate to a string
-	 * which is used as the name of the attribute to be returned.
-	 * 
-	 * @param previousResult the array or object
-	 * @param ctx            the evaluation context
-	 * @param relativeNode   the relative node (not needed here)
-	 * @return a flux of ArrayResultNodes containing the element/attribute value of
-	 *         the original array/object corresponding to the integer/string result
-	 *         (index/attribute name) retrieved by evaluating the expression
-	 */
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
-			@NonNull Val relativeNode) {
-		return getExpression().evaluate(ctx, relativeNode).concatMap(expressionResult -> {
-			try {
-				return Flux.just(handleExpressionResultFor(previousResult, expressionResult));
-			} catch (PolicyEvaluationException e) {
-				return Flux.error(e);
-			}
-		});
-	}
-
-	private ResultNode handleExpressionResultFor(AbstractAnnotatedJsonNode previousResult, Val optResult)
-			throws PolicyEvaluationException {
-		JsonNode result = optResult.orElseThrow(() -> new PolicyEvaluationException("undefined value"));
-		final Val previousResultNode = previousResult.getNode();
-		if (result.isNumber()) {
-			if (previousResultNode.isDefined() && previousResultNode.get().isArray()) {
-				return handleArrayIndex(previousResultNode.get(), result);
-			} else {
-				// TODO:
-				// Maybe another message would be helpful. The problem here is not that
-				// the
-				// result type does not match, but the node the subscript is applied to is
-				// either undefined or not an array.
-				throw new PolicyEvaluationException(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType());
-			}
-		} else if (result.isTextual()) {
-			if (previousResultNode.isDefined()) {
-				return handleAttributeName(previousResultNode.get(), result);
-			} else {
-				// TODO:
-				// Maybe another message would be helpful. The problem here is not that
-				// the
-				// result type does not match, but the node the subscript is applied to is
-				// undefined.
-				throw new PolicyEvaluationException(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType());
-			}
-		} else {
-			throw new PolicyEvaluationException(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType());
+	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+		if (parentValue.isError()) {
+			return Flux.just(parentValue);
 		}
-	}
-
-	private ResultNode handleArrayIndex(JsonNode previousResult, JsonNode result) throws PolicyEvaluationException {
-		final int index = result.asInt();
-		if (!previousResult.has(index)) {
-			throw new PolicyEvaluationException(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index);
+		if (parentValue.isArray()) {
+			return expression.evaluate(ctx, relativeNode)
+					.map(index -> extractValueAt(parentValue.getArrayNode(), index));
 		}
-		return new JsonNodeWithParentArray(Val.of(previousResult.get(index)), Val.of(previousResult), index);
-	}
-
-	private ResultNode handleAttributeName(JsonNode previousResult, JsonNode result) {
-		final String attribute = result.asText();
-		if (!previousResult.has(attribute)) {
-			return new JsonNodeWithParentObject(Val.undefined(), Val.of(previousResult), attribute);
+		if (parentValue.isObject()) {
+			return expression.evaluate(ctx, relativeNode).map(index -> extractKey(parentValue.get(), index));
 		}
-		return new JsonNodeWithParentObject(Val.of(previousResult.get(attribute)), Val.of(previousResult), attribute);
+		return Val.errorFlux(EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S, parentValue);
 	}
 
-	/**
-	 * Applies the expression subscript to an array. The expression must evaluate to
-	 * an integer. This integer is used as the index to access the required array
-	 * element.
-	 * 
-	 * @param previousResult the array
-	 * @param ctx            the evaluation context
-	 * @param relativeNode   the relative node (not needed here)
-	 * @return a flux of ArrayResultNodes containing the element of the original
-	 *         array at the position corresponding to the integer result retrieved
-	 *         by evaluating the expression
-	 */
 	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
-		return getExpression().evaluate(ctx, previousResult.asJsonWithoutAnnotations()).concatMap(Val::toJsonNode)
-				.concatMap(expressionResult -> handleExpressionResultFor(previousResult, expressionResult));
+	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
+			FilterStatement statement) {
+		log.trace("apply expression step to: {}", parentValue);
+		if (!parentValue.isArray() && !parentValue.isObject()) {
+			// this means the element does not get selected does not get filtered
+			return Flux.just(parentValue);
+		}
+		return expression.evaluate(ctx, relativeNode)
+				.concatMap(key -> applyFilterStatement(key, parentValue, ctx, relativeNode, stepId, statement));
 	}
 
-	private Flux<ResultNode> handleExpressionResultFor(ArrayResultNode previousResult, JsonNode result) {
-		if (result.isNumber()) {
-			int index = result.asInt();
-			List<AbstractAnnotatedJsonNode> nodes = previousResult.getNodes();
-			if (index < 0 || index >= nodes.size()) {
-				return Flux.error(new PolicyEvaluationException(EXPRESSION_ACCESS_INDEX_NOT_FOUND, index));
-			}
-			return Flux.just(nodes.get(index));
-		} else {
-			return Flux.error(new PolicyEvaluationException(EXPRESSION_ACCESS_TYPE_MISMATCH, result.getNodeType()));
+	private Flux<Val> applyFilterStatement(Val key, Val parentValue, EvaluationContext ctx, Val relativeNode,
+			int stepId, FilterStatement statement) {
+		log.trace("apply expression result '{}'to: {}", key, parentValue);
+		if (key.isTextual() && parentValue.isObject()) {
+			// This is a KeyStep equivalent
+			return KeyStepImplCustom.applyKeyStepFilterStatement(key.getText(), parentValue, ctx, relativeNode, stepId,
+					statement);
 		}
+		if (key.isNumber() && parentValue.isArray()) {
+			// This is an IndexStep equivalent
+			return IndexStepImplCustom.applyFilterStatement(key.getBigDecimal(), parentValue, ctx, relativeNode, stepId,
+					statement);
+		}
+		return Val.errorFlux("Type mismatch. Tried to access {} with {}", parentValue.getValType(), key.getValType());
+	}
+
+	private Val extractValueAt(ArrayNode array, Val index) {
+		if (index.isError()) {
+			return index;
+		}
+		if (!index.isNumber()) {
+			return Val.error(ARRAY_ACCESSS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S, index);
+		}
+		var idx = index.get().asInt();
+		if (idx < 0 || idx > array.size()) {
+			return Val.error(INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D, array.size(), idx);
+		}
+		return Val.of(array.get(idx));
+	}
+
+	private Val extractKey(JsonNode object, Val key) {
+		if (key.isError()) {
+			return key;
+		}
+		if (!key.isTextual()) {
+			return Val.error(OBJECT_ACCESSS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S, key);
+		}
+		var fieldName = key.get().asText();
+		if (!object.has(fieldName)) {
+			return Val.UNDEFINED;
+		}
+		return Val.of(object.get(fieldName));
 	}
 
 }

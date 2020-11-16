@@ -22,8 +22,6 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 /**
  * Implements the evaluation of the 'in-array' operation. It checks if a value
@@ -38,30 +36,33 @@ public class ElementOfImplCustom extends ElementOfImpl {
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		final Flux<Val> value = getLeft().evaluate(ctx, relativeNode);
 		final Flux<Val> array = getRight().evaluate(ctx, relativeNode);
-		return Flux.combineLatest(value, array, Tuples::of).map(this::elementOf).distinctUntilChanged();
+		return Flux.combineLatest(value, array, this::elementOf);
 	}
 
 	/**
 	 * Checks if the value is contained in the array. 'undefined' is never contained
 	 * in any array.
-	 * 
-	 * @param tuple a tuple containing the value (T1) and the array (T2)
-	 * @return true if the value is contained in the array
 	 */
-	private Val elementOf(Tuple2<Val, Val> tuple) {
-		if (tuple.getT1().isUndefined() || tuple.getT2().isUndefined() || !tuple.getT2().get().isArray()) {
-			return Val.ofFalse();
+	private Val elementOf(Val needle, Val haystack) {
+		if (needle.isError()) {
+			return needle;
 		}
-		ArrayNode array = (ArrayNode) tuple.getT2().get();
+		if (haystack.isError()) {
+			return haystack;
+		}
+		if (needle.isUndefined() || haystack.isUndefined() || !haystack.isArray()) {
+			return Val.FALSE;
+		}
+		ArrayNode array = (ArrayNode) haystack.get();
 		for (JsonNode arrayItem : array) {
 			// numerically equivalent numbers may be noted differently in JSON.
 			// This equality is checked for here as well.
-			if (tuple.getT1().get().equals(arrayItem) || (tuple.getT1().get().isNumber() && arrayItem.isNumber()
-					&& tuple.getT1().get().decimalValue().compareTo(arrayItem.decimalValue()) == 0)) {
-				return Val.ofTrue();
+			if (needle.get().equals(arrayItem) || (needle.isNumber() && arrayItem.isNumber()
+					&& needle.get().decimalValue().compareTo(arrayItem.decimalValue()) == 0)) {
+				return Val.TRUE;
 			}
 		}
-		return Val.ofFalse();
+		return Val.FALSE;
 	}
 
 }

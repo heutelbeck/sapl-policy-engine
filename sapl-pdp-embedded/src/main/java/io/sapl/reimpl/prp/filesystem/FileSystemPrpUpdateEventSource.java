@@ -107,7 +107,7 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
 	private Flux<PrpUpdateEvent> directoryMonitor(ImmutableFileIndex seedIndex) {
 		return Flux.from(dirWatcherFlux).scan(Tuples.of(Optional.empty(), seedIndex), this::processWatcherEvent)
-				.filter(tuple -> tuple.getT1().isPresent()).map(Tuple2::getT1).map(Optional::get).log().distinct();
+				.filter(tuple -> tuple.getT1().isPresent()).map(Tuple2::getT1).map(Optional::get).log().distinctUntilChanged();
 	}
 
 	private Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> processWatcherEvent(

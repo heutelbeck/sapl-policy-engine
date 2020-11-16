@@ -17,11 +17,6 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
@@ -37,8 +32,6 @@ import reactor.core.publisher.Flux;
  */
 public class ArrayImplCustom extends ArrayImpl {
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	/**
 	 * The semantics of evaluating an array is as follows:
 	 *
@@ -53,14 +46,14 @@ public class ArrayImplCustom extends ArrayImpl {
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		// handle the empty array
 		if (getItems().size() == 0) {
-			return Flux.just(Val.of(JSON.arrayNode()));
+			return Flux.just(Val.of(Val.JSON.arrayNode()));
 		}
 		// aggregate child fluxes into a flux of a JSON array
-		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(getItems().size());
+		final List<Flux<Val>> itemFluxes = new ArrayList<>(getItems().size());
 		for (Expression item : getItems()) {
-			itemFluxes.add(item.evaluate(ctx, relativeNode).concatMap(Val::toJsonNode));
+			itemFluxes.add(item.evaluate(ctx, relativeNode));
 		}
-		return Flux.combineLatest(itemFluxes, Function.identity()).map(this::collectValuesToArrayNode).map(Val::of);
+		return Flux.combineLatest(itemFluxes, this::collectValuesToArrayNode);
 	}
 
 	/**
@@ -70,13 +63,19 @@ public class ArrayImplCustom extends ArrayImpl {
 	 * Jackson JsonNodes which do not have a concept of 'undefined'. Also as we want
 	 * to return valid JSON values 'undefined' may not occur anywhere.
 	 */
-	private JsonNode collectValuesToArrayNode(Object[] values) {
-		final ArrayNode resultArr = JSON.arrayNode();
-		for (Object untypedValue : values) {
-			JsonNode value = (JsonNode) untypedValue;
-			resultArr.add(value);
+	private Val collectValuesToArrayNode(Object[] values) {
+		var resultArr = Val.JSON.arrayNode();
+		for (var oVal : values) {
+			Val val = (Val) oVal;
+			if (val.isError()) {
+				return val;
+			}
+			if (val.isDefined()) {
+				// drop undefined
+				resultArr.add(val.get());
+			}
 		}
-		return resultArr;
+		return Val.of(resultArr);
 	}
 
 }

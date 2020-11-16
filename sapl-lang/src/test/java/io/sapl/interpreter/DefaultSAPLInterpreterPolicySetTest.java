@@ -38,6 +38,7 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import reactor.core.publisher.Hooks;
 
 public class DefaultSAPLInterpreterPolicySetTest {
 
@@ -53,6 +54,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 
 	@Before
 	public void init() throws FunctionException {
+		Hooks.onOperatorDebug();
 		authzSubscription = new AuthorizationSubscription(null, null, null, null);
 		attributeCtx = new AnnotationAttributeContext();
 		functionCtx = new AnnotationFunctionContext();

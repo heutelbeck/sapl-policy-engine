@@ -16,23 +16,20 @@
 package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.function.Function;
-import java.util.stream.IntStream;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.base.Functions;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.selection.AbstractAnnotatedJsonNode;
-import io.sapl.interpreter.selection.ArrayResultNode;
-import io.sapl.interpreter.selection.JsonNodeWithParentArray;
-import io.sapl.interpreter.selection.JsonNodeWithParentObject;
-import io.sapl.interpreter.selection.ResultNode;
-import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 /**
  * Implements the conditional subscript of an array (or object), written as
@@ -57,149 +54,172 @@ import reactor.core.publisher.Flux;
  * Grammar: Step: ... | '[' Subscript ']' | ... Subscript returns Step: ... |
  * {ConditionStep} '?' '(' expression=Expression ')' | ...
  */
+@Slf4j
 public class ConditionStepImplCustom extends ConditionStepImpl {
-
-	private static final String UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS = "'undefined' cannot be added to JSON array results.";
 
 	private static final String CONDITION_ACCESS_TYPE_MISMATCH = "Type mismatch. Condition access is only possible for array or object, but got '%s'.";
 
-	/**
-	 * Applies the conditional subscript to an abstract annotated JsonNode, which
-	 * can either be an array or an object.
-	 * 
-	 * @param previousResult the array or object
-	 * @param ctx            the evaluation context
-	 * @param relativeNode   the relative node (not needed here)
-	 * @return a flux of ArrayResultNodes containing the elements/attribute values
-	 *         of the original array/object for which the condition expression
-	 *         evaluates to true
-	 */
 	@Override
-	public Flux<ResultNode> apply(AbstractAnnotatedJsonNode previousResult, EvaluationContext ctx,
-			@NonNull Val relativeNode) {
-		final Val optPreviousResultNode = previousResult.getNode();
-		if (optPreviousResultNode.isUndefined()) {
-			return Flux.error(new PolicyEvaluationException("undefined value during conditional step evaluation."));
+	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+		if (parentValue.isError()) {
+			return Flux.just(parentValue);
 		}
-		final JsonNode previousResultNode = optPreviousResultNode.get();
-		if (previousResultNode.isArray()) {
-			return handleArrayNode(previousResultNode, ctx);
-		} else if (previousResultNode.isObject()) {
-			return handleObjectNode(previousResultNode, ctx);
-		} else {
-			return Flux.error(new PolicyEvaluationException(CONDITION_ACCESS_TYPE_MISMATCH,
-					Val.typeOf(previousResult.getNode())));
+		if (parentValue.isArray()) {
+			return applyToArray(parentValue.getArrayNode(), ctx, relativeNode);
 		}
+		if (parentValue.isObject()) {
+			return applyToObject(parentValue.getObjectNode(), ctx, relativeNode);
+		}
+		return Val.errorFlux(CONDITION_ACCESS_TYPE_MISMATCH, parentValue);
 	}
 
-	private Flux<ResultNode> handleArrayNode(JsonNode arrayNode, EvaluationContext ctx) {
-		// collect the fluxes providing the evaluated conditions for the array elements
-		final List<Flux<JsonNode>> itemFluxes = new ArrayList<>(arrayNode.size());
-		IntStream.range(0, arrayNode.size()).forEach(idx -> itemFluxes
-				.add(getExpression().evaluate(ctx, Val.of(arrayNode.get(idx))).concatMap(Val::toJsonNode)));
-		// handle the empty array
-		if (itemFluxes.isEmpty()) {
-			return Flux.just(new ArrayResultNode(new ArrayList<>()));
-		}
-		// the indices of the elements in the arrayNode correspond to the indices of the
-		// flux results, because combineLatest() preserves the order of the given list
-		// of
-		// fluxes in the results array passed to the combinator function
-		return Flux.combineLatest(itemFluxes, results -> {
-			final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-			// iterate over all condition results and collect the array elements related
-			// to a result representing true
-			IntStream.range(0, results.length).forEach(idx -> {
-				final JsonNode result = (JsonNode) results[idx];
-				if (result.isBoolean() && result.asBoolean()) {
-					resultList.add(new JsonNodeWithParentArray(Val.of(arrayNode.get(idx)), Val.of(arrayNode), idx));
-				}
-			});
-			return new ArrayResultNode(resultList);
-		});
-	}
-
-	private Flux<ResultNode> handleObjectNode(JsonNode objectNode, EvaluationContext ctx) {
-		// create three parallel lists collecting the field names and field values of
-		// the
-		// object and the fluxes providing the evaluated conditions for the field values
-		final List<String> fieldNames = new ArrayList<>();
-		final List<JsonNode> fieldValues = new ArrayList<>();
-		final List<Flux<JsonNode>> valueFluxes = new ArrayList<>();
-		final Iterator<String> it = objectNode.fieldNames();
-		while (it.hasNext()) {
-			final String fieldName = it.next();
-			final JsonNode fieldValue = objectNode.get(fieldName);
-			fieldNames.add(fieldName);
-			fieldValues.add(fieldValue);
-			valueFluxes.add(getExpression().evaluate(ctx, Val.of(fieldValue)).concatMap(Val::toJsonNode));
-		}
+	private Flux<Val> applyToObject(ObjectNode object, EvaluationContext ctx, Val relativeNode) {
 		// handle the empty object
-		if (valueFluxes.isEmpty()) {
-			return Flux.just(new ArrayResultNode(new ArrayList<>()));
+		if (object.isEmpty()) {
+			return Flux.just(Val.of(Val.JSON.arrayNode()));
 		}
-		// the indices of the elements in the fieldNames list and the fieldValues list
-		// correspond to the indices of the flux results, because combineLatest()
-		// preserves the order of the given list of fluxes in the results array passed
-		// to the combinator function
-		return Flux.combineLatest(valueFluxes, results -> {
-			final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-			// iterate over all condition results and collect the field values related to
-			// a result representing true
-			IntStream.range(0, results.length).forEach(idx -> {
-				final JsonNode result = (JsonNode) results[idx];
-				if (result.isBoolean() && result.asBoolean()) {
-					resultList.add(new JsonNodeWithParentObject(Val.of(fieldValues.get(idx)), Val.of(objectNode),
-							fieldNames.get(idx)));
-				}
-			});
-			return new ArrayResultNode(resultList);
-		});
+		// collect the fluxes providing the evaluated conditions for the array elements
+		final List<Flux<Tuple2<JsonNode, Val>>> itemFluxes = new ArrayList<>(object.size());
+		var iter = object.fields();
+		while (iter.hasNext()) {
+			var field = iter.next();
+			itemFluxes.add(getExpression().evaluate(ctx, Val.of(field.getValue())).map(expressionResult -> {
+				return Tuples.of(field.getValue(), expressionResult);
+			}));
+		}
+		return packageResultsInArray(itemFluxes);
 	}
 
-	/**
-	 * Applies the conditional subscript to an array.
-	 * 
-	 * @param previousResult the array
-	 * @param ctx            the evaluation context
-	 * @param relativeNode   the relative node (not needed here)
-	 * @return a flux of ArrayResultNodes containing the elements of the original
-	 *         array for which the condition expression evaluates to true
-	 */
-	@Override
-	public Flux<ResultNode> apply(ArrayResultNode previousResult, EvaluationContext ctx, @NonNull Val relativeNode) {
-		// create two parallel lists collecting the elements of the array
-		// and the fluxes providing the evaluated conditions for these elements
-		final List<AbstractAnnotatedJsonNode> arrayElements = new ArrayList<>(previousResult.getNodes().size());
-		final List<Flux<Val>> conditionResultFluxes = new ArrayList<>(previousResult.getNodes().size());
-		for (AbstractAnnotatedJsonNode arrayElement : previousResult) {
-			arrayElements.add(arrayElement);
-			conditionResultFluxes.add(getExpression().evaluate(ctx, arrayElement.getNode()));
-		}
+	private Flux<Val> applyToArray(ArrayNode arrayNode, EvaluationContext ctx, Val relativeNode) {
 		// handle the empty array
-		if (conditionResultFluxes.isEmpty()) {
-			return Flux.just(new ArrayResultNode(new ArrayList<>()));
+		if (arrayNode.isEmpty()) {
+			return Flux.just(Val.of(Val.JSON.arrayNode()));
 		}
-		// the indices of the elements in the arrayElements list correspond to the
-		// indices
-		// of the flux results, because combineLatest() preserves the order of the given
-		// list of fluxes in the results array passed to the combinator function
-		return Flux.combineLatest(conditionResultFluxes, Function.identity()).concatMap(results -> {
-			final List<AbstractAnnotatedJsonNode> resultList = new ArrayList<>();
-			// iterate over all condition results and collect the array elements
-			// related to a result representing true
-			for (int idx = 0; idx < results.length; idx++) {
-				Val optionalResult = ((Val) results[idx]);
-				if (optionalResult.isUndefined()) {
-					return Flux.error(new PolicyEvaluationException(UNDEFINED_CANNOT_BE_ADDED_TO_JSON_ARRAY_RESULTS));
+		// collect the fluxes providing the evaluated conditions for the array elements
+		final List<Flux<Tuple2<JsonNode, Val>>> itemFluxes = new ArrayList<>(arrayNode.size());
+		for (var value : arrayNode) {
+			itemFluxes.add(getExpression().evaluate(ctx, Val.of(value)).map(expressionResult -> {
+				return Tuples.of(value, expressionResult);
+			}));
+		}
+		return packageResultsInArray(itemFluxes);
+	}
+
+	private Flux<Val> packageResultsInArray(List<Flux<Tuple2<JsonNode, Val>>> itemFluxes) {
+		return Flux.combineLatest(itemFluxes, Functions.identity()).map(itemResults -> {
+			var resultArray = Val.JSON.arrayNode();
+			for (var itemResultObject : itemResults) {
+				@SuppressWarnings("unchecked")
+				var itemResult = (Tuple2<JsonNode, Val>) itemResultObject;
+				var conditionResult = itemResult.getT2();
+				if (conditionResult.isError()) {
+					return conditionResult;
 				}
-				final JsonNode result = optionalResult.get();
-				if (result.isBoolean() && result.asBoolean()) {
-					resultList.add(arrayElements.get(idx));
+				if (conditionResult.isBoolean() && conditionResult.getBoolean()) {
+					resultArray.add(itemResult.getT1());
 				}
 			}
-			return Flux.just(new ArrayResultNode(resultList));
+			return Val.of(resultArray);
 		});
+	}
+
+	@Override
+	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
+			FilterStatement statement) {
+		if (!parentValue.isObject() && !parentValue.isArray()) {
+			return Flux.just(parentValue);
+		}
+		if (parentValue.isArray()) {
+			return applyFilterStatementToArray(parentValue.getArrayNode(), ctx, relativeNode, stepId, statement);
+		}
+		return applyFilterStatementToObject(parentValue.getObjectNode(), ctx, relativeNode, stepId, statement);
+	}
+
+	private Flux<Val> applyFilterStatementToObject(ObjectNode object, EvaluationContext ctx, Val relativeNode,
+			int stepId, FilterStatement statement) {
+		// handle the empty object
+		if (object.isEmpty()) {
+			return Flux.just(Val.ofEmptyObject());
+		}
+		// collect the fluxes providing the evaluated conditions for the array elements
+		final List<Flux<Tuple2<String, Val>>> fieldFluxes = new ArrayList<>(object.size());
+		var iter = object.fields();
+		while (iter.hasNext()) {
+			var field = iter.next();
+			log.trace("inspect field {}", field);
+			fieldFluxes.add(getExpression().evaluate(ctx, Val.of(field.getValue())).concatMap(expressionResult -> {
+				if (expressionResult.isError()) {
+					return Flux.just(expressionResult);
+				}
+				if (!expressionResult.isBoolean()) {
+					return Val.errorFlux("Type mismatch. Condition did not evaluate to boolean. Was: {}",
+							expressionResult);
+				}
+				if (expressionResult.getBoolean()) {
+					log.trace("field matches due to fulfilled condition");
+					if (stepId == statement.getTarget().getSteps().size() - 1) {
+						// this was the final step. apply filter
+						log.trace("final step. select and filter!");
+						return FilterComponentImplCustom.applyFilterFunction(Val.of(field.getValue()),
+								statement.getArguments(),
+								FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx, Val.of(object),
+								statement.isEach());
+					} else {
+						// there are more steps. descent with them
+						log.trace("this step was successful. descent with next step...");
+						return statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(
+								Val.of(field.getValue()), ctx, relativeNode, stepId + 1, statement);
+					}
+				} else {
+					return Flux.just(Val.of(field.getValue()));
+				}
+			}).map(expressionResult -> {
+				return Tuples.of(field.getKey(), expressionResult);
+			}));
+		}
+		return Flux.combineLatest(fieldFluxes, RepackageUtil::recombineObject);
+	}
+
+	private Flux<Val> applyFilterStatementToArray(ArrayNode array, EvaluationContext ctx, Val relativeNode, int stepId,
+			FilterStatement statement) {
+		// handle the empty object
+		if (array.isEmpty()) {
+			return Flux.just(Val.ofEmptyArray());
+		}
+		// collect the fluxes providing the evaluated conditions for the array elements
+		final List<Flux<Val>> elementFluxes = new ArrayList<>(array.size());
+		var iter = array.elements();
+		while (iter.hasNext()) {
+			var element = iter.next();
+			log.trace("inspect element {}", element);
+			elementFluxes.add(getExpression().evaluate(ctx, Val.of(element)).concatMap(expressionResult -> {
+				if (expressionResult.isError()) {
+					return Flux.just(expressionResult);
+				}
+				if (!expressionResult.isBoolean()) {
+					return Val.errorFlux("Type mismatch. Condition did not evaluate to boolean. Was: {}",
+							expressionResult);
+				}
+				if (expressionResult.getBoolean()) {
+					log.trace("element matches due to fulfilled condition");
+					if (stepId == statement.getTarget().getSteps().size() - 1) {
+						// this was the final step. apply filter
+						log.trace("final step. select and filter!");
+						return FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
+								FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx, Val.of(array),
+								statement.isEach());
+					} else {
+						// there are more steps. descent with them
+						log.trace("this step was successful. descent with next step...");
+						return statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(Val.of(element),
+								ctx, relativeNode, stepId + 1, statement);
+					}
+				} else {
+					return Flux.just(Val.of(element));
+				}
+			}));
+		}
+		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
 	}
 
 }
