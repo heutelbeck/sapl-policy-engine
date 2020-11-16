@@ -15,6 +15,16 @@
  */
 package io.sapl.prp.inmemory.indexed.improved;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.sapl.api.prp.PolicyRetrievalResult;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.variables.VariableContext;
+import io.sapl.prp.inmemory.indexed.Bitmask;
+import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
+import io.sapl.prp.inmemory.indexed.IndexContainer;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -23,17 +33,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-
-import io.sapl.api.prp.PolicyRetrievalResult;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.variables.VariableContext;
-import io.sapl.prp.inmemory.indexed.Bitmask;
-import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
-import io.sapl.prp.inmemory.indexed.IndexContainer;
 
 //@Slf4j
 //@RequiredArgsConstructor
@@ -90,7 +89,7 @@ public class ImprovedIndexContainer implements IndexContainer {
 			if (!isReferenced(predicate, clauseCandidates))
 				continue;
 
-			Optional<Boolean> outcome = predicate.evaluateBlocking(functionCtx, variableCtx);
+			Optional<Boolean> outcome = predicate.evaluate(functionCtx, variableCtx).blockOptional();
 			if (!outcome.isPresent()) {
 				if (abortOnError) {
 					return new PolicyRetrievalResult(fetchPolicies(result), true);

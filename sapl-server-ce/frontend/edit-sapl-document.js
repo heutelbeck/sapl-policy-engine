@@ -18,7 +18,7 @@ class EditSaplDocument extends PolymerElement {
                     height: 100%;
                 }
             </style>
-<vaadin-vertical-layout style="margin: var(--lumo-space-s);">
+<vaadin-vertical-layout style="width: 100%; height: 100%;">
  <vaadin-horizontal-layout style="flex-wrap: wrap;" theme="spacing-s">
   <vaadin-text-field label="Policy Identifier" id="policyIdTextField" style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" readonly></vaadin-text-field>
   <vaadin-text-field label="Current Version" id="currentVersionTextField" style="margin: var(--lumo-space-s); padding: var(--lumo-space-s);" readonly></vaadin-text-field>
@@ -38,7 +38,7 @@ class EditSaplDocument extends PolymerElement {
     Unpublish 
   </vaadin-button>
  </vaadin-horizontal-layout>
- <sapl-editor id="saplEditor" document="policy \&quot;set by Vaadin View after instantiation ->\\u2588<-\&quot; permit" style="flex-grow: 1; align-self: stretch;">
+ <sapl-editor id="saplEditor" document="policy \&quot;set by Vaadin View after instantiation ->\\u2588<-\&quot; permit" style="width: 100%; height: 100%;">
    policy \"set by Vaadin View after instantiation -&gt;\\u2588&lt;-\" permit 
  </sapl-editor>
  <vaadin-horizontal-layout style="margin: var(--lumo-space-s); padding: var(--lumo-space-s); align-self: flex-end;">

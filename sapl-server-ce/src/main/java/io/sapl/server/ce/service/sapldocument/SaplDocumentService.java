@@ -10,13 +10,14 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import io.sapl.api.interpreter.DocumentAnalysisResult;
+import io.sapl.api.interpreter.DocumentType;
+import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.server.ce.model.sapldocument.SaplDocument;
-import io.sapl.server.ce.model.sapldocument.SaplDocumentType;
 import io.sapl.server.ce.model.sapldocument.SaplDocumentVersion;
 import io.sapl.server.ce.pdp.SaplDocumentPublisher;
 import io.sapl.server.ce.persistence.SaplDocumentsRepository;
 import io.sapl.server.ce.persistence.SaplDocumentsVersionRepository;
-import io.sapl.server.ce.utils.SaplDocumentUtils;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class SaplDocumentService {
 	private final SaplDocumentsRepository saplDocumentRepository;
 	private final SaplDocumentsVersionRepository saplDocumentVersionRepository;
 	private final SaplDocumentPublisher saplDocumentPublisher;
+	private final SAPLInterpreter saplInterpreter;
 
 	private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
 			.withLocale(Locale.GERMANY).withZone(ZoneId.systemDefault());
@@ -78,8 +80,10 @@ public class SaplDocumentService {
 	public SaplDocument createDefault() {
 		String documentValue = DEFAULT_DOCUMENT_VALUE;
 
-		SaplDocumentType type = SaplDocumentUtils.getType(documentValue);
-		String name = SaplDocumentUtils.getNameFromDocumentValue(documentValue);
+		DocumentAnalysisResult documentAnalysisResult = saplInterpreter.analyze(documentValue);
+
+		DocumentType type = documentAnalysisResult.getType();
+		String name = documentAnalysisResult.getName();
 
 		SaplDocument saplDocumentToCreate = new SaplDocument().setLastModified(this.getCurrentTimestampAsString())
 				.setName(name).setCurrentVersionNumber(1).setType(type);
@@ -103,9 +107,14 @@ public class SaplDocumentService {
 	public SaplDocumentVersion createVersion(long saplDocumentId, @NonNull String documentValue) {
 		SaplDocument saplDocument = this.getById(saplDocumentId);
 
+		DocumentAnalysisResult documentAnalysisResult = saplInterpreter.analyze(documentValue);
+		if (!documentAnalysisResult.isValid()) {
+			throw new IllegalArgumentException(String.format("document value is invalid (value: %s)", documentValue));
+		}
+
 		int newVersionNumber = saplDocument.getCurrentVersionNumber() + 1;
-		SaplDocumentType type = SaplDocumentUtils.getType(documentValue);
-		String newName = SaplDocumentUtils.getNameFromDocumentValue(documentValue);
+		DocumentType type = documentAnalysisResult.getType();
+		String newName = documentAnalysisResult.getName();
 
 		SaplDocumentVersion newSaplDocumentVersion = new SaplDocumentVersion().setSaplDocument(saplDocument)
 				.setVersionNumber(newVersionNumber).setValue(documentValue).setName(newName);
@@ -131,16 +140,24 @@ public class SaplDocumentService {
 	public void publishVersion(long saplDocumentId, int versionToPublish)
 			throws PublishedDocumentNameCollisionException {
 		SaplDocument saplDocument = this.getById(saplDocumentId);
+
+		// unpublish other version if published
+		if (saplDocument.getPublishedVersion() != null) {
+			unpublishVersion(saplDocumentId);
+		}
+
 		SaplDocumentVersion saplDocumentVersionToPublish = saplDocument.getVersion(versionToPublish);
 
-		this.checkForUniqueNameOfSaplDocumentToPublish(saplDocumentVersionToPublish);
+		this.checkForUniqueNameOfSaplDocumentToPublish(saplDocumentVersionToPublish.getName());
 
 		// update document
 		saplDocument.setPublishedVersion(saplDocumentVersionToPublish)
 				.setLastModified(this.getCurrentTimestampAsString());
 		this.saplDocumentRepository.save(saplDocument);
 
-		log.info(String.format("publish SAPL document: %s", saplDocumentVersionToPublish.getName()));
+		log.info(String.format("publish version %d of SAPL document with id %d (name: %s)",
+				saplDocumentVersionToPublish.getVersionNumber(), saplDocumentId,
+				saplDocumentVersionToPublish.getName()));
 
 		this.saplDocumentPublisher.publishSaplDocument(saplDocument);
 	}
@@ -153,10 +170,16 @@ public class SaplDocumentService {
 	public void unpublishVersion(long saplDocumentId) {
 		SaplDocument saplDocumentToUnpublish = this.getById(saplDocumentId);
 
+		SaplDocumentVersion publishedVersion = saplDocumentToUnpublish.getPublishedVersion();
+		if (publishedVersion == null) {
+			return;
+		}
+
 		saplDocumentToUnpublish.setPublishedVersion(null);
 		this.saplDocumentRepository.save(saplDocumentToUnpublish);
 
-		log.info(String.format("unpublish SAPL document: %s", saplDocumentToUnpublish.getName()));
+		log.info(String.format("unpublish version %d of SAPL document with id %d (name: %s)",
+				publishedVersion.getVersionNumber(), saplDocumentId, saplDocumentToUnpublish.getName()));
 
 		this.saplDocumentPublisher.unpublishSaplDocument(saplDocumentToUnpublish);
 	}
@@ -165,10 +188,8 @@ public class SaplDocumentService {
 		return this.dateFormatter.format(Instant.now());
 	}
 
-	private void checkForUniqueNameOfSaplDocumentToPublish(@NonNull SaplDocumentVersion saplDocumentVersionToPublish)
+	private void checkForUniqueNameOfSaplDocumentToPublish(@NonNull String name)
 			throws PublishedDocumentNameCollisionException {
-		String name = SaplDocumentUtils.getNameFromDocumentValue(saplDocumentVersionToPublish.getValue());
-
 		Collection<SaplDocument> saplDocumentsWithPublishedVersionWithEqualName = this.saplDocumentRepository
 				.getSaplDocumentsByNameOfPublishedVersion(name);
 

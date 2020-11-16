@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class VariablesService {
 	private static final ObjectMapper objectMapper = new ObjectMapper();
-	private static final String DEFAULT_JSON_VALUE = "{ \"property\" : \"value\" }";
+	private static final String DEFAULT_JSON_VALUE = "{\n  \"property\" : \"value\"\n}";
 
 	private final VariablesRepository variableRepository;
 	private final PDPConfigurationPublisher pdpConfigurationPublisher;

@@ -15,11 +15,11 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
+import com.google.common.base.Preconditions;
+
 import java.util.BitSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-
-import com.google.common.base.Preconditions;
 
 public class Bitmask {
 

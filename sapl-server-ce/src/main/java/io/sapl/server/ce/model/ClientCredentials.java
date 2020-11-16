@@ -7,6 +7,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Model for a set of credentials of a single client.
@@ -14,6 +15,7 @@ import lombok.Data;
 @Data
 @Table(name = "ClientCredentials")
 @Entity
+@NoArgsConstructor
 public class ClientCredentials {
 	/**
 	 * The unique identifier.
@@ -26,10 +28,12 @@ public class ClientCredentials {
 	/**
 	 * The key (user)
 	 */
+	@Column(length = 250, name = "clientKey", unique = true) // MariaDB / MySQL do not like a column with the name "key"
 	private String key;
 
 	/**
 	 * The hashed secret (password).
 	 */
+	@Column(length = 250, name = "clientSecretHash")
 	private String hashedSecret;
 }

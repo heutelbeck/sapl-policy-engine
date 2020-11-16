@@ -2,14 +2,15 @@ package io.sapl.server.ce.service;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import com.google.common.hash.Hashing;
 
 import io.sapl.server.ce.model.ClientCredentials;
-import io.sapl.server.ce.model.sapldocument.SaplDocument;
 import io.sapl.server.ce.persistence.ClientCredentialsRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,7 @@ public class ClientCredentialsService {
 	 * @return the instances
 	 */
 	public Collection<ClientCredentials> getAll() {
-		return this.clientCredentialsRepository.findAll();
+		return clientCredentialsRepository.findAll();
 	}
 
 	/**
@@ -36,27 +37,73 @@ public class ClientCredentialsService {
 	 * @return the amount
 	 */
 	public long getAmount() {
-		return this.clientCredentialsRepository.count();
+		return clientCredentialsRepository.count();
 	}
 
 	/**
-	 * Creates a new {@link SaplDocument} with a default document value.
+	 * Creates a new {@link ClientCredentials} with generated values for key and
+	 * secret.
 	 * 
-	 * @return the created {@link SaplDocument}
+	 * @return the created {@link ClientCredentials}
 	 */
 	public ClientCredentials createDefault() {
 		ClientCredentials clientCredentialsToCreate = new ClientCredentials();
 		clientCredentialsToCreate.setKey(UUID.randomUUID().toString());
-		clientCredentialsToCreate.setHashedSecret(this.hashSecret(UUID.randomUUID().toString()));
+		clientCredentialsToCreate
+				.setHashedSecret(hashSecret(UUID.randomUUID().toString(), clientCredentialsToCreate.getKey()));
 
-		ClientCredentials createdClientCredentials = this.clientCredentialsRepository.save(clientCredentialsToCreate);
+		ClientCredentials createdClientCredentials = clientCredentialsRepository.save(clientCredentialsToCreate);
 
 		log.info(String.format("created client credentials: key = %s", createdClientCredentials.getKey()));
 
 		return createdClientCredentials;
 	}
 
-	private String hashSecret(@NonNull String secret) {
-		return Hashing.sha512().hashString(secret, StandardCharsets.UTF_8).toString();
+	/**
+	 * Edits a specific {@link ClientCredentials}.
+	 * 
+	 * @param id     the id of the {@link ClientCredentials} to edit
+	 * @param key    the client key to store
+	 * @param secret the secret to store (<b>null</b> if no edit is intended)
+	 */
+	public void edit(@NonNull Long id, @NonNull String key, String secret) {
+		Optional<ClientCredentials> optionalClientCredentials = clientCredentialsRepository.findById(id);
+		if (optionalClientCredentials.isEmpty()) {
+			throw new IllegalArgumentException(String.format("client credentials with id %d was not found", id));
+		}
+
+		ClientCredentials clientCredentialsToEdit = optionalClientCredentials.get();
+		clientCredentialsToEdit.setKey(key);
+
+		if (secret != null) {
+			clientCredentialsToEdit.setHashedSecret(hashSecret(secret, key));
+		}
+
+		try {
+			clientCredentialsRepository.save(clientCredentialsToEdit);
+		} catch (DataIntegrityViolationException ex) {
+			throw new IllegalArgumentException(
+					"The provided credentials are invalid (e.g. referenced already used key).", ex);
+		}
+	}
+
+	/**
+	 * Deletes a specific {@link ClientCredentials}.
+	 * 
+	 * @param id the id of the {@link ClientCredentials} to delete
+	 */
+	public void delete(@NonNull Long id) {
+		this.clientCredentialsRepository.deleteById(id);
+	}
+
+	/**
+	 * Generates a {@link String} representing a hash code for a specified secret
+	 * 
+	 * @param secret the secret to hash
+	 * @param key    the client key of the credentials as salt
+	 * @return the {@link String} representing the hash code
+	 */
+	private String hashSecret(@NonNull String secret, @NonNull String key) {
+		return Hashing.sha512().hashString(secret + key, StandardCharsets.UTF_8).toString();
 	}
 }

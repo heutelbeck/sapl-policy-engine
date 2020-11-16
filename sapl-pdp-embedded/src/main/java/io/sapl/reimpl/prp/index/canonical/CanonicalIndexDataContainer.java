@@ -2,6 +2,7 @@ package io.sapl.reimpl.prp.index.canonical;
 
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.prp.inmemory.indexed.Bitmask;
+import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
 import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
 import io.sapl.prp.inmemory.indexed.improved.CTuple;
 import io.sapl.prp.inmemory.indexed.improved.Predicate;
@@ -16,6 +17,8 @@ public class CanonicalIndexDataContainer {
 
     Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments;
 
+    Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas;
+
     List<Predicate> predicateOrder;
 
     List<Set<DisjunctiveFormula>> relatedFormulas;
@@ -28,4 +31,12 @@ public class CanonicalIndexDataContainer {
 
     int[] numberOfFormulasWithConjunction;
 
+
+    public int[] getNumberOfLiteralsInConjunction() {
+        return numberOfLiteralsInConjunction.clone();
+    }
+
+    public int[] getNumberOfFormulasWithConjunction() {
+        return numberOfFormulasWithConjunction.clone();
+    }
 }

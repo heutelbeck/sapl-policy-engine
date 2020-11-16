@@ -15,6 +15,9 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -24,9 +27,12 @@ import com.google.common.base.Preconditions;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.impl.BasicIdentifierImpl;
+import io.sapl.grammar.sapl.impl.KeyStepImplCustom;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
+import org.eclipse.emf.common.util.EList;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -47,6 +53,7 @@ public class Bool {
 	private Map<String, String> imports;
 
 	private boolean isConstantExpression;
+
 
 	public Bool(boolean value) {
 		isConstantExpression = true;
@@ -76,8 +83,6 @@ public class Bool {
 		} catch (RuntimeException e) {
 			throw new PolicyEvaluationException(Exceptions.unwrap(e));
 		}
-		// TODO how can it be checked if result flux is defined and really contains a
-		// boolean node?
 		// throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result);
 		return resultFlux.filter(Val::isDefined).map(Val::get).filter(JsonNode::isBoolean).map(JsonNode::asBoolean)
 				.next();

@@ -5,13 +5,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.grammar.web.SAPLServlet;
+import io.sapl.vaadin.JsonEditorConfiguration;
 import io.sapl.vaadin.SaplEditorConfiguration;
 
 /**
- * Collection of initialization methods for Spring beans.
+ * Collection of initialization methods for Spring beans for editos.
  */
 @Configuration
-public class SAPLEditorServiceConfiguration {
+public class EditorConfiguration {
 	/**
 	 * Registers the bean {@link ServletRegistrationBean} with generic type
 	 * {@link SAPLServlet}.
@@ -41,5 +42,16 @@ public class SAPLEditorServiceConfiguration {
 		saplEditorConfiguration.setTextUpdateDelay(1);
 
 		return saplEditorConfiguration;
+	}
+
+	@Bean
+	public static JsonEditorConfiguration registerJsonEditorConfiguration() {
+		JsonEditorConfiguration configuration = new JsonEditorConfiguration();
+		configuration.setAutoCloseBrackets(true);
+		configuration.setHasLineNumbers(true);
+		configuration.setMatchBrackets(true);
+		configuration.setTextUpdateDelay(1);
+
+		return configuration;
 	}
 }

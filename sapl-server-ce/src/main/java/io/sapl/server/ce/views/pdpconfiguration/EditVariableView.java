@@ -7,7 +7,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.polymertemplate.Id;
 import com.vaadin.flow.component.polymertemplate.PolymerTemplate;
-import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
@@ -20,6 +20,7 @@ import io.sapl.server.ce.service.pdpconfiguration.InvalidJsonException;
 import io.sapl.server.ce.service.pdpconfiguration.VariablesService;
 import io.sapl.server.ce.views.MainView;
 import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
+import io.sapl.vaadin.JsonEditor;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -38,18 +39,18 @@ import lombok.extern.slf4j.Slf4j;
 @NoArgsConstructor
 public class EditVariableView extends PolymerTemplate<EditVariableView.EditVariableModel>
 		implements HasUrlParameter<Long> {
-	public static final String ROUTE = "pdp-config/variables/edit";
+	public static final String ROUTE = "pdp-config/edit-variable";
 
 	@Autowired
 	private VariablesService variableService;
 
 	private long variableId;
 
-	@Id(value = "nameTextArea")
-	private TextArea nameTextArea;
+	@Id(value = "nameTextField")
+	private TextField nameTextField;
 
-	@Id(value = "jsonValueTextArea")
-	private TextArea jsonValueTextArea;
+	@Id(value = "jsonEditor")
+	private JsonEditor jsonEditor;
 
 	@Id(value = "editButton")
 	private Button editButton;
@@ -65,33 +66,33 @@ public class EditVariableView extends PolymerTemplate<EditVariableView.EditVaria
 
 	@Override
 	public void setParameter(BeforeEvent event, Long parameter) {
-		this.variableId = parameter;
+		variableId = parameter;
 
-		this.reloadVariable();
-		this.addListener();
+		reloadVariable();
+		addListener();
 	}
 
 	private void reloadVariable() {
-		this.variable = this.variableService.getById(this.variableId);
+		variable = variableService.getById(variableId);
 
-		this.setUI();
+		setUI();
 	}
 
 	/**
 	 * Imports the previously set instance of {@link Variable} to the UI.
 	 */
 	private void setUI() {
-		this.nameTextArea.setValue(this.variable.getName());
-		this.jsonValueTextArea.setValue(this.variable.getJsonValue());
+		nameTextField.setValue(variable.getName());
+		jsonEditor.setDocument(variable.getJsonValue());
 	}
 
 	private void addListener() {
 		editButton.addClickListener(clickEvent -> {
-			String name = nameTextArea.getValue();
-			String jsonValue = jsonValueTextArea.getValue();
+			String name = nameTextField.getValue();
+			String jsonValue = jsonEditor.getDocument();
 
 			try {
-				variableService.edit(this.variableId, name, jsonValue);
+				variableService.edit(variableId, name, jsonValue);
 			} catch (InvalidJsonException ex) {
 				log.error("cannot edit variable due to invalid json", ex);
 				ErrorNotificationUtils.show("Value contains invalid JSON");

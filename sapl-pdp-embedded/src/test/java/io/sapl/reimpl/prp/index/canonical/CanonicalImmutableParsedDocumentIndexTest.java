@@ -12,26 +12,28 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.prp.inmemory.indexed.improved.ordering.NoPredicateOrderStrategy;
 import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.PrpUpdateEvent;
 import io.sapl.reimpl.prp.PrpUpdateEvent.Type;
 import io.sapl.reimpl.prp.PrpUpdateEvent.Update;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
-import reactor.core.publisher.Flux;
 
+import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class CanonicalImmutableParsedDocumentIndexText {
+@Ignore
+public class CanonicalImmutableParsedDocumentIndexTest {
 
     @Rule
     public Timeout globalTimeout = Timeout.seconds(60);
@@ -58,35 +60,39 @@ public class CanonicalImmutableParsedDocumentIndexText {
         variables = new HashMap<>();
     }
 
-
     @Test
-    public void test_misc() throws Exception {
-        //        List<Integer> numbers = IntStream.range(0, 500).boxed().collect(Collectors.toList());
+    public void test_return_empty_result_when_error_occurs() throws Exception {
+        InputStream resourceAsStream = getClass().getClassLoader()
+                .getResourceAsStream("it/error/policy_with_error.sapl");
+        SAPL withError = interpreter.parse(resourceAsStream);
 
-        List<Integer> integerList = Arrays.asList(1, 2, 1, 1, 3, 4, 2, 4, 1, 4, 3, 2, 4);
-        List<Integer> integersProcessedList = new ArrayList<>();
+        List<Update> updates = new ArrayList<>(3);
 
-        Flux<Integer> resultFlux = Flux.fromIterable(integerList)
-                .log()
-                .filter(integer -> !integersProcessedList.contains(integer))
-                .map(integer -> {
-                    integersProcessedList.add(integer);
-                    System.out.println("added " + integer + " to list of processed integers");
-                    return integer;
-                });
+        updates.add(new Update(Type.PUBLISH, withError, withError.toString()));
 
-        List<Integer> resultIntegerList = resultFlux.collectList().block();
-        System.out.println(resultIntegerList);
+        PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
+        ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
 
-        Assertions.assertThat(resultIntegerList).hasSize(4);
-        Assertions.assertThat(resultIntegerList).containsAll(Arrays.asList(1, 2, 3, 4));
+        AuthorizationSubscription authzSubscription = createRequestObject();
 
+        FunctionContext functionCtx = new AnnotationFunctionContext();
+
+        // when
+        PolicyRetrievalResult result = updatedIndex.retrievePolicies(authzSubscription, functionCtx, variables).block();
+
+        // then
+        Assertions.assertThat(result).isNotNull();
+        Assertions.assertThat(result.getMatchingDocuments()).isEmpty();
+        Assertions.assertThat(result.isErrorsInTarget()).isTrue();
     }
 
 
+
+    //Test must be repeated a couple of times to test implementation of "findOrphanedCandidates"
     @Test
     public void test_orphaned()  {
         // given
+        emptyIndex = new CanonicalImmutableParsedDocumentIndex(new NoPredicateOrderStrategy());
         FunctionContext functionCtx = new AnnotationFunctionContext();
         List<Update> updates = new ArrayList<>(3);
 

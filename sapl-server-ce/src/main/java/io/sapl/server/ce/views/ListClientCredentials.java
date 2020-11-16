@@ -6,8 +6,11 @@ import javax.annotation.PostConstruct;
 
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.polymertemplate.Id;
 import com.vaadin.flow.component.polymertemplate.PolymerTemplate;
@@ -21,6 +24,8 @@ import com.vaadin.flow.templatemodel.TemplateModel;
 
 import io.sapl.server.ce.model.ClientCredentials;
 import io.sapl.server.ce.service.ClientCredentialsService;
+import io.sapl.server.ce.views.utils.confirm.ConfirmUtils;
+import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -39,6 +44,8 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 
 	private final ClientCredentialsService clientCredentialsService;
 
+	private Long currentCredentialsId;
+
 	@Id(value = "clientCredentialsGrid")
 	private Grid<ClientCredentials> clientCredentialsGrid;
 
@@ -46,13 +53,19 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 	private TextField currentKeyTextField;
 
 	@Id(value = "currentSecretPasswordField")
-	private PasswordField currentSecretTextField;
+	private PasswordField currentSecretPasswordField;
 
 	@Id(value = "editCurrentClientCredentialsLayout")
 	private VerticalLayout editCurrentClientCredentialsLayout;
 
 	@Id(value = "createButton")
 	private Button createButton;
+
+	@Id(value = "isChangingSecretCheckBox")
+	private Checkbox isChangingSecretCheckBox;
+
+	@Id(value = "saveCurrentCredentialsButton")
+	private Button saveCurrentCredentialsButton;
 
 	@PostConstruct
 	private void postConstruct() {
@@ -64,7 +77,35 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 
 		createButton.addClickListener((clickEvent) -> {
 			clientCredentialsService.createDefault();
-			clientCredentialsGrid.getDataProvider().refreshAll();
+			refreshClientCredentialsGrid();
+		});
+
+		isChangingSecretCheckBox.addValueChangeListener(valueChangeEvent -> {
+			currentSecretPasswordField.setEnabled(valueChangeEvent.getValue());
+		});
+
+		saveCurrentCredentialsButton.addClickListener((clickEvent) -> {
+			String key = currentKeyTextField.getValue();
+
+			String secret;
+			if (isChangingSecretCheckBox.getValue()) {
+				secret = currentSecretPasswordField.getValue();
+				if (secret == null || secret.length() == 0) {
+					ErrorNotificationUtils.show("secret must be set");
+					return;
+				}
+			} else {
+				secret = null;
+			}
+
+			try {
+				clientCredentialsService.edit(currentCredentialsId, key, secret);
+			} catch (IllegalArgumentException ex) {
+				ErrorNotificationUtils.show(ex);
+				return;
+			}
+
+			refreshClientCredentialsGrid();
 		});
 
 		initClientCredentialsGrid();
@@ -73,13 +114,37 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 	private void initClientCredentialsGrid() {
 		clientCredentialsGrid.addColumn(ClientCredentials::getKey).setHeader("Key");
 
+		clientCredentialsGrid.addComponentColumn(currentClientCredential -> {
+			Button deleteButton = new Button("Remove", VaadinIcon.FILE_REMOVE.create());
+			deleteButton.addClickListener(clickEvent -> {
+				//@formatter:off
+				ConfirmUtils.letConfirm(
+						String.format("Should the client credentials with key \"%s\" really be deleted?", currentClientCredential.getKey()),
+						() -> {
+							clientCredentialsService.delete(currentClientCredential.getId());
+							refreshClientCredentialsGrid();
+						},
+						null);
+				//@formatter:on
+			});
+
+			HorizontalLayout componentsForEntry = new HorizontalLayout();
+			componentsForEntry.add(deleteButton);
+
+			return componentsForEntry;
+		});
+
 		clientCredentialsGrid.addSelectionListener(selection -> {
 			Optional<ClientCredentials> firstSelectedItemAsOptional = selection.getFirstSelectedItem();
 			firstSelectedItemAsOptional.ifPresentOrElse(clientCredentials -> {
+				currentCredentialsId = clientCredentials.getId();
+
 				editCurrentClientCredentialsLayout.setVisible(true);
 
 				currentKeyTextField.setValue(clientCredentials.getKey());
-				currentSecretTextField.setValue(clientCredentials.getHashedSecret());
+				currentSecretPasswordField.setValue("");
+				isChangingSecretCheckBox.setValue(false);
+				currentSecretPasswordField.setEnabled(false);
 			}, () -> {
 				editCurrentClientCredentialsLayout.setVisible(false);
 			});
@@ -93,6 +158,11 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 			return clientCredentialsService.getAll().stream().skip(offset).limit(limit);
 		}, query -> (int) clientCredentialsService.getAmount());
 		clientCredentialsGrid.setDataProvider(dataProvider);
+	}
+
+	private void refreshClientCredentialsGrid() {
+		clientCredentialsGrid.getDataProvider().refreshAll();
+		editCurrentClientCredentialsLayout.setVisible(false);
 	}
 
 	/**

@@ -1,0 +1,10 @@
+import io.sapl.prp.embedded.TestPIP as test
+
+policy "policy eat icecream"
+permit
+    action == "eat" & resource == "icecream"
+where
+    subject.<test.upper> == "WILLI";
+    time.dayOfWeekFrom("UTC".<clock.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";
+
+

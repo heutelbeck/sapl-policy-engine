@@ -38,13 +38,13 @@ import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
 import io.sapl.prp.inmemory.indexed.IndexContainer;
 import io.sapl.prp.inmemory.indexed.IndexCreationStrategy;
 import io.sapl.prp.inmemory.indexed.Literal;
-import io.sapl.prp.inmemory.indexed.improved.ordering.ExistingOrderStrategy;
+import io.sapl.prp.inmemory.indexed.improved.ordering.DefaultPredicateOrderStrategy;
 import io.sapl.prp.inmemory.indexed.improved.ordering.PredicateOrderStrategy;
 
 @Deprecated
 public class ImprovedIndexCreationStrategy implements IndexCreationStrategy {
 
-	private final PredicateOrderStrategy predicateOrderStrategy = new ExistingOrderStrategy();
+	private final PredicateOrderStrategy predicateOrderStrategy = new DefaultPredicateOrderStrategy();
 
 	@Override
 	public IndexContainer construct(final Map<String, SAPL> documents, final Map<String, DisjunctiveFormula> targets) {

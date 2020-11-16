@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
- * A SAPL document.
+ * A variable.
  */
 @Data
 @Table(name = "Variable")
@@ -22,7 +22,7 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 public class Variable {
 	/**
-	 * The unique identifier of the SAPL document.
+	 * The unique identifier of the variable.
 	 */
 	@Id
 	@GeneratedValue
