@@ -45,13 +45,11 @@ public class FilterSimpleImplCustomTest {
 		BasicValue expression = (BasicValue) policyAst.getTargetExpression();
 		log.info("expression = {}", expression);
 		EObjectUtil.dump(expression);
-		log.info("---------------------------");
 		try {
 			log.info("Evaluation result: {}", policy.evaluate(ctx).blockLast());
 		} catch (PolicyEvaluationException e) {
 			log.error("Evaluation failed: {}", e.getMessage());
 		}
-		log.info("---------------------------");
 		// filter.apply(Val.UNDEFINED, ctx, Val.UNDEFINED);
 		// expression.evaluate(ctx, Val.UNDEFINED).log().blockLast();
 	}
@@ -66,14 +64,12 @@ public class FilterSimpleImplCustomTest {
 		BasicValue expression = (BasicValue) policyAst.getTargetExpression();
 		log.info("expression = {}", expression);
 		EObjectUtil.dump(expression);
-		log.info("---------------------------");
 		try {
 			AuthorizationDecision x = policy.evaluate(ctx).blockLast();
 			log.info("Evaluation result: {}", x);
 		} catch (PolicyEvaluationException e) {
 			log.error("Evaluation failed: {}", e.getMessage());
 		}
-		log.info("---------------------------");
 		// filter.apply(Val.UNDEFINED, ctx, Val.UNDEFINED);
 		// expression.evaluate(ctx, Val.UNDEFINED).log().blockLast();
 	}
@@ -88,16 +84,15 @@ public class FilterSimpleImplCustomTest {
 		EObject expression = policyAst.getTargetExpression();
 		log.info("expression = {}", expression);
 		EObjectUtil.dump(expression);
-		log.info("---------------------------");
 		try {
 			AuthorizationDecision x = policy.evaluate(ctx).blockLast();
 			log.info("Evaluation result: {}", x);
 		} catch (PolicyEvaluationException e) {
 			log.error("Evaluation failed: {}", e.getMessage());
 		}
-		log.info("---------------------------");
 	}
 
+	@Ignore
 	@Test
 	public void BasicIdentifierTest() {
 		SAPL policy = INTERPETER
@@ -107,13 +102,11 @@ public class FilterSimpleImplCustomTest {
 		EObject expression = policyAST.getTargetExpression();
 		log.info("expression = {}", expression);
 		EObjectUtil.dump(expression);
-		log.info("---------------------------");
 		try {
 			AuthorizationDecision x = policy.evaluate(ctx).blockLast();
 			log.info("Evaluation result: {}", x);
 		} catch (PolicyEvaluationException e) {
 			log.error("Evaluation failed: {}", e.getMessage());
 		}
-		log.info("---------------------------");
 	}
 }

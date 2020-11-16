@@ -1,5 +1,14 @@
 package io.sapl.integrationtest;
 
+import java.util.HashMap;
+
+import org.assertj.core.api.Assertions;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.prp.PolicyRetrievalResult;
@@ -9,14 +18,8 @@ import io.sapl.reimpl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
 import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.reimpl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
-import org.assertj.core.api.Assertions;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
 
-import java.util.HashMap;
-
+@Ignore
 public class IntegrationTest {
 
     @Rule

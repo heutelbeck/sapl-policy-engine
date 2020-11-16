@@ -2,6 +2,7 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.logging.Level;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -31,6 +32,7 @@ public class SemanticEquivalenceAndHashTest {
 	private static final String POLICY_A2 = "policy \"a\" permit false";
 	private static final String POLICY_B2 = "policy \"a\" permit false";
 
+	@Ignore
 	@Test
 	public void doTest() {
 		var a = INTERPRETER.parse(POLICY_A2);

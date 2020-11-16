@@ -74,7 +74,6 @@ public class PermitOverridesCombinator extends AbstractEagerCombinator {
 			}
 			collector.add(decision);
 			if (decision.getResource().isPresent()) {
-				log.info("present: {}", decision.getResource());
 				if (resource.isPresent()) {
 					// this is a transformation uncertainty.
 					// another policy already defined a transformation
