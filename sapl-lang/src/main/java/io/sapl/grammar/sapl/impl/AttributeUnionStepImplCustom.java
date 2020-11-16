@@ -22,6 +22,7 @@ import java.util.Set;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
@@ -42,7 +43,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	private static final String UNION_TYPE_MISMATCH = "Type mismatch. Attribute union can only be applied to JSON Objects. But had: %s";
 
 	@Override
-	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -71,8 +72,8 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
-			FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
+			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
 		log.trace("apply key union step '{}' to: {}", attributes, parentValue);
 		if (!parentValue.isObject()) {
 			// this means the element does not get selected does not get filtered

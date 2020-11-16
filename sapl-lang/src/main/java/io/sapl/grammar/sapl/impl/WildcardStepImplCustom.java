@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
@@ -40,7 +41,7 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 	private static final String WILDCARD_ACCESS_TYPE_MISMATCH = "Type mismatch. Wildcard access expects object or array, but got: '%s'.";
 
 	@Override
-	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		if (parentValue.isError() || parentValue.isArray()) {
 			return Flux.just(parentValue);
 		}
@@ -58,8 +59,8 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
-			FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
+			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
 		return doApplyFilterStatement(parentValue, ctx, relativeNode, stepId, statement);
 	}
 

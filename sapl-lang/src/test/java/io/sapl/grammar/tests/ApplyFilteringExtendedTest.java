@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.tests;
 
-import static io.sapl.grammar.tests.ParserUtil.filterComponent;
+import static io.sapl.grammar.sapl.impl.util.ParserUtil.filterComponent;
 
 import java.io.IOException;
 

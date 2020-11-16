@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -42,7 +43,7 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	private static final String TYPE_MISMATCH_CAN_ONLY_ACCESS_ARRAYS_BY_INDEX_GOT_S = "Type mismatch. Can only access arrays by index, got: %s";
 
 	@Override
-	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -76,8 +77,8 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
-			FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
+			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
 		log.trace("apply index union step [{}] to: {}", indices, parentValue);
 		if (!parentValue.isArray()) {
 			// this means the element does not get selected does not get filtered

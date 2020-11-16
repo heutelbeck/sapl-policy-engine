@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.tests;
 
-import static io.sapl.grammar.tests.BasicValueUtil.basicValueFrom;
+import static io.sapl.grammar.sapl.impl.util.BasicValueUtil.basicValueFrom;
 import static org.mockito.Mockito.mock;
 
 import java.math.BigDecimal;
@@ -39,8 +39,8 @@ import io.sapl.grammar.sapl.Regex;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.StringLiteral;
 import io.sapl.grammar.sapl.UnaryMinus;
-import io.sapl.grammar.sapl.impl.MockUtil;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
+import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.test.StepVerifier;
 import reactor.test.StepVerifier.FirstStep;

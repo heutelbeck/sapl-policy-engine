@@ -24,6 +24,7 @@ import org.reactivestreams.Publisher;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -80,4 +81,9 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 		return Flux.combineLatest(itemFluxes, RepackageUtil::recombineArray);
 	}
 
+	@Override
+	public Flux<Val> evaluate(@NonNull EvaluationContext ctx,@NonNull  Val relativeNode)
+	{
+		throw new UnsupportedOperationException();
+	}
 }

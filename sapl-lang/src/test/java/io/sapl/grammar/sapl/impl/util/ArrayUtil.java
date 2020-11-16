@@ -1,4 +1,4 @@
-package io.sapl.grammar.tests;
+package io.sapl.grammar.sapl.impl.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;

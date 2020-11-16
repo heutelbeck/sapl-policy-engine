@@ -1,4 +1,4 @@
-package io.sapl.grammar.sapl.impl;
+package io.sapl.grammar.sapl.impl.scratchpad;
 
 import java.util.logging.Level;
 

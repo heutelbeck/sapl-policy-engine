@@ -1092,6 +1092,8 @@ In case `Step` is positive, `Start` defaults to 0 and `Stop` defaults to the len
 [NOTE]
 Applied to the Array `[1, 2, 3, 4, 5]`, the selection step `[-2:]` returns the Array `[4, 5]` (the last two elements).
 
+[NOTE]
+If start and end are to be left empty, the two colons must be separated by a whitespace to avoid confusion with the sub-template operator. So write `[: :-2]` instead of `[::-2]`.
 
 ====== Index Union `[index1, index2, ...]`
 

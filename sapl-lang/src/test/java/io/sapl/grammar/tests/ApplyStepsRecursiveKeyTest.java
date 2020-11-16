@@ -24,6 +24,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
+import io.sapl.grammar.sapl.impl.util.ArrayUtil;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.test.StepVerifier;
 

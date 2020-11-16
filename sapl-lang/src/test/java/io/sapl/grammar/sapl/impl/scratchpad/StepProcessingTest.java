@@ -1,4 +1,4 @@
-package io.sapl.grammar.sapl.impl;
+package io.sapl.grammar.sapl.impl.scratchpad;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -16,6 +16,7 @@ import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.Statement;
+import io.sapl.grammar.sapl.impl.EObjectUtil;
 import io.sapl.grammar.tests.MockPolicyInformationPoint;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;

@@ -1,10 +1,11 @@
-package io.sapl.grammar.sapl.impl;
+package io.sapl.grammar.sapl.impl.util;
 
 import org.eclipse.emf.common.util.EList;
 
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import lombok.experimental.UtilityClass;
 
 /**

@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
@@ -39,7 +40,7 @@ import reactor.util.function.Tuples;
 public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
 	@Override
-	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -68,8 +69,8 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
-			FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
+			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
 		return applyKeyStepFilterStatement(id, parentValue, ctx, relativeNode, stepId, statement);
 	}
 

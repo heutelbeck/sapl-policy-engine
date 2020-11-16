@@ -26,6 +26,7 @@ import com.google.common.base.Functions;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
@@ -60,7 +61,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	private static final String CONDITION_ACCESS_TYPE_MISMATCH = "Type mismatch. Condition access is only possible for array or object, but got '%s'.";
 
 	@Override
-	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
@@ -124,8 +125,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
-			FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
+			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
 		if (!parentValue.isObject() && !parentValue.isArray()) {
 			return Flux.just(parentValue);
 		}
@@ -162,8 +163,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 						log.trace("final step. select and filter!");
 						return FilterComponentImplCustom.applyFilterFunction(Val.of(field.getValue()),
 								statement.getArguments(),
-								FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx, Val.of(object),
-								statement.isEach());
+								FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
+								Val.of(object), statement.isEach());
 					} else {
 						// there are more steps. descent with them
 						log.trace("this step was successful. descent with next step...");
@@ -206,8 +207,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 						// this was the final step. apply filter
 						log.trace("final step. select and filter!");
 						return FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
-								FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx, Val.of(array),
-								statement.isEach());
+								FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
+								Val.of(array), statement.isEach());
 					} else {
 						// there are more steps. descent with them
 						log.trace("this step was successful. descent with next step...");

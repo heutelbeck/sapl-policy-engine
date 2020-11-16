@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 package io.sapl.grammar.tests;
-
-import static io.sapl.grammar.tests.BasicValueUtil.basicValueFrom;
+import static io.sapl.grammar.sapl.impl.util.BasicValueUtil.basicValueFrom;
 import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;

@@ -15,8 +15,8 @@
  */
 package io.sapl.grammar.tests;
 
-import static io.sapl.grammar.tests.ArrayUtil.numberArray;
-import static io.sapl.grammar.tests.BasicValueUtil.basicValueFrom;
+import static io.sapl.grammar.sapl.impl.util.ArrayUtil.numberArray;
+import static io.sapl.grammar.sapl.impl.util.BasicValueUtil.basicValueFrom;
 import static org.mockito.Mockito.mock;
 
 import java.math.BigDecimal;
@@ -28,6 +28,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
+import io.sapl.grammar.sapl.impl.util.BasicValueUtil;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.test.StepVerifier;
 

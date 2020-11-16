@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -42,28 +43,13 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	private static final String INDEX_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing an JSON array index [%s] expects array value, but got: '%s'.";
 
 	@Override
-	public Flux<Val> apply(Val parentValue, EvaluationContext ctx, Val relativeNode) {
+	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		if (parentValue.isError()) {
 			return Flux.just(parentValue);
 		}
-		if (parentValue.isUndefined() || !parentValue.isArray()) {
+		if (!parentValue.isArray()) {
 			return Val.errorFlux(INDEX_ACCESS_TYPE_MISMATCH, getIndex(), parentValue);
 		}
-//
-//		var originalArray = (ArrayNode) parentValue.get();
-//		var step = getStep() == null ? BigDecimal.ONE : getStep();
-//		if (BigDecimal.ZERO.equals(step)) {
-//			return Val.errorFlux(STEP_ZERO);
-//		}
-//		var index = getIndex();
-//		if (index != null && index.compareTo(BigDecimal.ZERO) < 0) {
-//			index = index.add(BigDecimal.valueOf(originalArray.size()));
-//		}
-//		var to = getTo() != null ? getTo() : BigDecimal.valueOf(originalArray.size());
-//		if (to != null && to.compareTo(BigDecimal.ZERO) < 0) {
-//			to = to.add(BigDecimal.valueOf(originalArray.size()));
-//		}
-//		log.trace("slicing: [{},{},{}]", index, to, step);
 
 		var array = (ArrayNode) parentValue.get();
 		var step = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
@@ -101,8 +87,8 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 	}
 
 	@Override
-	public Flux<Val> applyFilterStatement(Val parentValue, EvaluationContext ctx, Val relativeNode, int stepId,
-			FilterStatement statement) {
+	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
+			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
 		log.trace("apply array slicing step [{},{},{}] to: {}", getIndex(), getTo(), getStep(), parentValue);
 		if (!parentValue.isArray()) {
 			return Flux.just(parentValue);

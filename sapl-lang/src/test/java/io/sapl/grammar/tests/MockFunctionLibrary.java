@@ -31,7 +31,10 @@ public class MockFunctionLibrary {
 	public static Val emptyString(Val... parameters) {
 		return Val.of("");
 	}
-
+	@Function
+	public static Val nil(Val... parameters) {
+		return Val.NULL;
+	}
 	@Function
 	public static Val fail(Val... parameters) {
 		throw new FunctionException();

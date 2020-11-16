@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.tests;
 
-import static io.sapl.grammar.tests.ArrayUtil.numberArrayRange;
+import static io.sapl.grammar.sapl.impl.util.ArrayUtil.numberArrayRange;
 import static org.mockito.Mockito.mock;
 
 import org.junit.Test;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.tests;
+package io.sapl.grammar.sapl.impl.util;
 
 import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.SaplFactory;
@@ -21,7 +21,7 @@ import io.sapl.grammar.sapl.Value;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-class BasicValueUtil {
+public class BasicValueUtil {
 
 	public static BasicValue basicValueFrom(Value value) {
 		BasicValue basicValue = SaplFactory.eINSTANCE.createBasicValue();

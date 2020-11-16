@@ -1,4 +1,4 @@
-package io.sapl.grammar.tests;
+package io.sapl.grammar.sapl.impl.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
