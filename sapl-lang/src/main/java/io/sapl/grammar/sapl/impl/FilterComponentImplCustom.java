@@ -46,7 +46,7 @@ public class FilterComponentImplCustom extends FilterComponentImpl {
 
 		if (!each) {
 			return FunctionUtil.combineArgumentFluxes(arguments, ctx, relativeNode).concatMap(parameters -> FunctionUtil
-					.evaluateFunctionWithLeftHandArgumentMono(functionName, ctx, unfilteredValue, parameters).log());
+					.evaluateFunctionWithLeftHandArgumentMono(functionName, ctx, unfilteredValue, parameters));
 		}
 
 		// "|- each" may only applied to arrays

@@ -32,7 +32,7 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import reactor.test.StepVerifier;
 
-public class IndexUnionStepImplCustomTest {
+public class AttributeUnionStepImplCustomTest {
 
 	private EvaluationContext ctx;
 
@@ -48,43 +48,46 @@ public class IndexUnionStepImplCustomTest {
 	}
 
 	@Test
-	public void applyIndexUnionStepToNonArrayFails() throws IOException {
-		var expression = ParserUtil.expression("(undefined)[1,2]");
+	public void applySlicingToNonObject() throws IOException {
+		var expression = ParserUtil.expression("\"Otto\"['key1','key2']");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	public void applyToArray() throws IOException {
-		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9][0,1,-2,10,-10]");
-		var expected = Val.ofJson("[0,1,8]");
+	public void applyToEmptyObject() throws IOException {
+		var expression = ParserUtil.expression("{}['key1','key2']");
+		var expected = Val.ofEmptyArray();
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void applyToArrayOutOfBounds() throws IOException {
-		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9][100,-100]");
-		var expected = Val.ofJson("[]");
+	public void applyToObject() throws IOException {
+		var expression = ParserUtil
+				.expression("{ \"key1\" : null, \"key2\" : true,  \"key3\" : false }['key3','key2']");
+		var expected = Val.ofJson("[ true, false ]");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void filterNegativeStepArray() throws IOException {
-		var expression = ParserUtil.expression("\"Otto\" |- { @[1,2,3] : nil }");
-		var expected = Val.ofJson("\"Otto\"");
+	public void applyFilterToNonObject() throws IOException {
+		var expression = ParserUtil.expression("\"Otto\" |- { @['key1','key2'] : nil }");
+		var expected = Val.of("Otto");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void filterElementsInArray() throws IOException {
-		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9] |- { @[0,1,-2,10,-10] : nil }");
-		var expected = Val.ofJson("[null,null,2,3,4,5,6,7,null,9]");
+	public void filterElementsInObject() throws IOException {
+		var expression = ParserUtil
+				.expression("{ \"key1\" : 1, \"key2\" : 2,  \"key3\" : 3 } |- { @['key3','key1'] : nil }");
+		var expected = Val.ofJson("{ \"key1\" : null, \"key2\" : 2,  \"key3\" : null }");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
 	public void filterElementsInDescend() throws IOException {
-		var expression = ParserUtil.expression("[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[1,3][3] : nil }");
-		var expected = Val.ofJson("[[0,1,2,3],[0,1,2,null],[0,1,2,3],[0,1,2,null]]");
+		var expression = ParserUtil.expression(
+				"{ \"key1\" : [1,2,3], \"key2\" : [1,2,3],  \"key3\" : [1,2,3] } |- { @['key3','key1'][2] : nil }");
+		var expected = Val.ofJson("{ \"key1\" : [1,2,null], \"key2\" : [1,2,3],  \"key3\" : [1,2,null] }");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
 	}
 }

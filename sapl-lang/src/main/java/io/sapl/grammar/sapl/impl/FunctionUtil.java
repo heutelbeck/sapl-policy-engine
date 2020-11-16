@@ -43,7 +43,7 @@ public class FunctionUtil {
 		try {
 			return ctx.getFunctionCtx().evaluate(resolveAbsoluteFunctionName(functionName, ctx), parameters);
 		} catch (RuntimeException e) {
-			return Val.error(e.getMessage());
+			return Val.error(e);
 		}
 	}
 
@@ -59,7 +59,7 @@ public class FunctionUtil {
 		try {
 			return Mono.just(evaluateFunction(functionName, ctx, parameters));
 		} catch (RuntimeException e) {
-			return Mono.just(Val.error(e.getMessage()));
+			return Mono.just(Val.error(e));
 		}
 	}
 
@@ -73,7 +73,7 @@ public class FunctionUtil {
 		try {
 			return Mono.just(evaluateFunctionWithLeftHandArgument(functionName, ctx, leftHandArgument, parameters));
 		} catch (RuntimeException e) {
-			return Mono.just(Val.error(e.getMessage()));
+			return Mono.just(Val.error(e));
 		}
 	}
 
@@ -87,7 +87,7 @@ public class FunctionUtil {
 		try {
 			return ctx.getFunctionCtx().evaluate(resolveAbsoluteFunctionName(functionName, ctx), mergedParameters);
 		} catch (RuntimeException e) {
-			return Val.error(e.getMessage());
+			return Val.error(e);
 		}
 	}
 

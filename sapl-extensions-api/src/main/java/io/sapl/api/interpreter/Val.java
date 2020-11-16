@@ -84,6 +84,12 @@ public class Val {
 		return errorMessage == null ? new Val("Unknown Error") : new Val(String.format(errorMessage, args));
 	}
 
+	public static Val error(Throwable throwable) {
+		return (throwable.getMessage() == null || throwable.getMessage().isBlank())
+				? new Val(throwable.getClass().getSimpleName())
+				: new Val(throwable.getMessage());
+	}
+
 	public static Flux<Val> errorFlux(String errorMessage, Object... args) {
 		return Flux.just(error(errorMessage, args));
 	}
@@ -104,8 +110,8 @@ public class Val {
 	}
 
 	public JsonNode get() {
-		if (isError()) {		
-			throw new NoSuchElementException("Value is an error: "+getMessage());
+		if (isError()) {
+			throw new NoSuchElementException("Value is an error: " + getMessage());
 		}
 		if (value == null) {
 			throw new NoSuchElementException("Value undefined");
