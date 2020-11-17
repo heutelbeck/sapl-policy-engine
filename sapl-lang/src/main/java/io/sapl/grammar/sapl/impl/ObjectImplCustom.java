@@ -52,6 +52,7 @@ public class ObjectImplCustom extends ObjectImpl {
 		final List<Flux<Val>> valueFluxes = new ArrayList<>(getMembers().size());
 		for (Pair member : getMembers()) {
 			keys.add(member.getKey());
+			
 			valueFluxes.add(member.getValue().evaluate(ctx, relativeNode));
 		}
 

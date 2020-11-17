@@ -22,13 +22,12 @@ import org.reactivestreams.Publisher;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
-import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
 	@Override
-	public Flux<Val> apply(Val unfilteredValue, EvaluationContext ctx, @NonNull Val relativeNode) {
+	public Flux<Val> apply(Val unfilteredValue, EvaluationContext ctx, Val relativeNode) {
 		if (unfilteredValue.isError()) {
 			return Flux.just(unfilteredValue);
 		}

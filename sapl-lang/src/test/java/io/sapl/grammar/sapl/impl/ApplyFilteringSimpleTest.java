@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.tests;
+package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.util.ParserUtil.filterComponent;
 
@@ -24,6 +24,8 @@ import org.junit.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.FilterFunctionLibrary;
+import io.sapl.grammar.sapl.impl.util.ParserUtil;
+import io.sapl.grammar.tests.MockFunctionLibrary;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -43,6 +45,18 @@ public class ApplyFilteringSimpleTest {
 		functionCtx.loadLibrary(new FilterFunctionLibrary());
 		functionCtx.loadLibrary(new MockFunctionLibrary());
 		ctx = new EvaluationContext(functionCtx, variableCtx);
+	}
+
+	@Test
+	public void filterPropagatesError() throws IOException {
+		var expression = ParserUtil.expression("(10/0) |- filter.remove");
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+	}
+
+	@Test
+	public void filterUndefined() throws IOException {
+		var expression = ParserUtil.expression("undefined |- filter.remove");
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
