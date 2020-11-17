@@ -15,6 +15,9 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
+
 import java.io.IOException;
 
 import org.junit.Test;
@@ -23,7 +26,6 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.test.StepVerifier;
 
 public class ApplyStepsRecursiveKeyTest {
 
@@ -32,21 +34,21 @@ public class ApplyStepsRecursiveKeyTest {
 	@Test
 	public void recursiveKeyStepPropagatesErrors() throws IOException {
 		var expression = ParserUtil.expression("(10/0)..key");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx,expression);
 	}
 
 	@Test
 	public void recursiveKeyStepOnUndefinedIsEmpty() throws IOException {
 		var expression = ParserUtil.expression("undefined..key");
 		var expected = Val.ofEmptyArray();
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+		expressionEvaluatesTo(ctx,expression,expected);
 	}
 
 	@Test
 	public void applyToNull() throws IOException {
 		var expression = ParserUtil.expression("null..key");
 		var expected = Val.ofEmptyArray();
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+		expressionEvaluatesTo(ctx,expression,expected);
 	}
 
 	@Test
@@ -54,7 +56,7 @@ public class ApplyStepsRecursiveKeyTest {
 		var expression = ParserUtil.expression(
 				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..key");
 		var expected = Val.ofJson("[ \"value1\", \"value2\", \"value3\" ]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+		expressionEvaluatesTo(ctx,expression,expected);
 	}
 
 	@Test
@@ -62,7 +64,7 @@ public class ApplyStepsRecursiveKeyTest {
 		var expression = ParserUtil.expression(
 				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..yek");
 		var expected = Val.ofJson("[ ]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+		expressionEvaluatesTo(ctx,expression,expected);
 	}
 
 	@Test
@@ -73,7 +75,7 @@ public class ApplyStepsRecursiveKeyTest {
 						+ " |- { @..key : nil} ");
 		var expected = Val.ofJson(
 				"[{\"key\":null,\"array1\":[{\"key\":null},{\"key\":null}],\"array2\":[1,2,3,4,5]},{\"key\":null,\"array1\":[{\"key\":null},{\"key\":null}],\"array2\":[1,2,3,4,5]}]]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+		expressionEvaluatesTo(ctx,expression,expected);
 	}
 
 	@Test
@@ -84,14 +86,14 @@ public class ApplyStepsRecursiveKeyTest {
 						+ " |- { @..key..key2 : nil} ");
 		var expected = Val.ofJson(
 				"[{\"key\":\"value1\",\"array1\":[{\"key\":{\"key2\":null}},{\"key\":\"value3\"}],\"array2\":[1,2,3,4,5]},{\"key\":\"value1\",\"array1\":[{\"key\":\"value2\"},{\"key\":\"value3\"}],\"array2\":[1,2,3,4,5]}]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+		expressionEvaluatesTo(ctx,expression,expected);
 	}
 
 	@Test
 	public void filterArrayEmpty() throws IOException {
 		var expression = ParserUtil.expression("[] |- { @..key..key2 : nil} ");
 		var expected = Val.ofJson("[]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+		expressionEvaluatesTo(ctx,expression,expected);
 	}
 
 }

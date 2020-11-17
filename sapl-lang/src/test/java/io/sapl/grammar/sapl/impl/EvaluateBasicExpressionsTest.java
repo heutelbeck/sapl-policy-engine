@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+
 import java.io.IOException;
 
 import org.junit.Before;
@@ -69,7 +71,7 @@ public class EvaluateBasicExpressionsTest {
 	@Test
 	public void evaluateBasicRelativeNotAllowed() {
 		BasicRelative expression = FACTORY.createBasicRelative();
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -140,7 +142,7 @@ public class EvaluateBasicExpressionsTest {
 	@Test
 	public void evaluateBasicFunctionError() throws IOException {
 		var expression = ParserUtil.expression("error()");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test

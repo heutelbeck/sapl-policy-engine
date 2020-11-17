@@ -1,5 +1,6 @@
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -25,7 +26,7 @@ public class ArrayImplCustomTest {
 	@Test
 	public void arrayPropagatesErrors() throws IOException {
 		var expression = ParserUtil.expression("[true,(1/0)]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test

@@ -15,87 +15,50 @@
  */
 package io.sapl.grammar.tests;
 
-import static io.sapl.grammar.sapl.impl.util.ArrayUtil.numberArray;
-import static io.sapl.grammar.sapl.impl.util.BasicValueUtil.basicValueFrom;
-import static org.mockito.Mockito.mock;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import java.math.BigDecimal;
+import java.io.IOException;
 
 import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
-import io.sapl.grammar.sapl.impl.util.BasicValueUtil;
+import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.test.StepVerifier;
 
 public class ApplyStepsConditionTest {
 
-	private static SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
-	private static EvaluationContext CTX = mock(EvaluationContext.class);
+	EvaluationContext ctx = MockUtil.mockEvaluationContext();
 
 	@Test
-	public void conditionPropagatesErrors() {
-		var conditionStep = FACTORY.createConditionStep();
-		StepVerifier.create(conditionStep.apply(Val.error("TEST"), CTX, Val.UNDEFINED)).expectNext(Val.error("TEST"))
-				.verifyComplete();
+	public void propagatesErrors() throws IOException {
+		expressionErrors(ctx, "(10/0)[?(@>0)]");
 	}
 
 	@Test
-	public void applySlicingToNonObjectNonArray() {
-		var conditionStep = FACTORY.createConditionStep();
-		StepVerifier.create(conditionStep.apply(Val.UNDEFINED, CTX, Val.UNDEFINED)).expectNextMatches(Val::isError)
-				.verifyComplete();
+	public void onUndefinedError() throws IOException {
+		expressionErrors(ctx, "undefined[?(@>0)]");
 	}
 
 	@Test
-	public void applyToObjectConditionNotBoolean() throws JsonProcessingException {
-		// Construct test case: { "key" : null }[?null] == []
-		var parentValue = Val.ofJson("{ \"key\" : null }");
-		var conditionStep = FACTORY.createConditionStep();
-		var nullLiteral = FACTORY.createNullLiteral();
-		var expression = FACTORY.createBasicValue();
-		expression.setValue(nullLiteral);
-		conditionStep.setExpression(expression);
-		StepVerifier.create(conditionStep.apply(parentValue, CTX, Val.UNDEFINED)).expectNext(Val.ofEmptyArray())
-				.verifyComplete();
+	public void nonObjectNonArray() throws IOException {
+		expressionErrors(ctx, "\"Toastbrot\"[?(@>0)]");
+	}
+
+	@Test
+	public void applyToObjectConditionNotBoolean() {
+		expressionEvaluatesTo(ctx, "{ \"key\" : null }[?(null)]", "[]");
 	}
 
 	@Test
 	public void applyToArray() {
-		// Construct test case: [20, 5][@>10] == [20]
-		var parentValue = numberArray(20, 5);
-		var expectedResult = numberArray(20);
-
-		var conditionStep = FACTORY.createConditionStep();
-		var expression = FACTORY.createMore();
-		expression.setLeft(FACTORY.createBasicRelative());
-		var number = FACTORY.createNumberLiteral();
-		number.setNumber(BigDecimal.valueOf(10));
-		expression.setRight(BasicValueUtil.basicValueFrom(number));
-		conditionStep.setExpression(expression);
-
-		StepVerifier.create(conditionStep.apply(parentValue, CTX, Val.UNDEFINED)).expectNext(expectedResult)
-				.verifyComplete();
+		expressionEvaluatesTo(ctx, "[20, 5][?(@>10)]", "[20]");
 	};
 
 	@Test
 	public void applyToObjectNode() throws JsonProcessingException {
-		// Construct test case: { "key1" : 20, "key2" : 5 }[@>10] == [20]
-		var parentValue = Val.ofJson("{ \"key1\" : 20, \"key2\" : 5 }");
-		var expectedResult = numberArray(20);
-		var conditionStep = FACTORY.createConditionStep();
-		var expression = FACTORY.createMore();
-		expression.setLeft(FACTORY.createBasicRelative());
-		var number = FACTORY.createNumberLiteral();
-		number.setNumber(BigDecimal.valueOf(10));
-		expression.setRight(basicValueFrom(number));
-		conditionStep.setExpression(expression);
-		StepVerifier.create(conditionStep.apply(parentValue, CTX, Val.UNDEFINED)).expectNext(expectedResult)
-				.verifyComplete();
+		expressionEvaluatesTo(ctx, "{ \"key1\" : 20, \"key2\" : 5 }[?(@>10)]", "[20]");
 	}
 
 }

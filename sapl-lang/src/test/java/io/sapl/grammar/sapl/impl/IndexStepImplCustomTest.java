@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+
 import java.io.IOException;
 
 import org.junit.Before;
@@ -38,7 +40,7 @@ public class IndexStepImplCustomTest {
 	@Test
 	public void applyIndexStepToNonArrayFails() throws IOException {
 		var expression = ParserUtil.expression("undefined[0]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -51,7 +53,7 @@ public class IndexStepImplCustomTest {
 	@Test
 	public void applyPositiveOutOfBoundsToArrayNode() throws IOException {
 		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9][100]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -64,7 +66,7 @@ public class IndexStepImplCustomTest {
 	@Test
 	public void applyNegativeOutOfBoundsToArrayNode() throws IOException {
 		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9][-12]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test

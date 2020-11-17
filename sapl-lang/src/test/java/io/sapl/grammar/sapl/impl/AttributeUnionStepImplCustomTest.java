@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+
 import java.io.IOException;
 
 import org.junit.Before;
@@ -38,7 +40,7 @@ public class AttributeUnionStepImplCustomTest {
 	@Test
 	public void applySlicingToNonObject() throws IOException {
 		var expression = ParserUtil.expression("\"Otto\"['key1','key2']");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test

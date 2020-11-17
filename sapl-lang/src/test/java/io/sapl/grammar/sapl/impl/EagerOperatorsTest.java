@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -58,31 +59,31 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateEagerAndWrongDatatypeLeft() throws IOException {
 		var expression = ParserUtil.expression("5 & true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateEagerAndLeftTrueWrongDatatypeRight() throws IOException {
 		var expression = ParserUtil.expression("true & 5");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateEagerAndLeftFalseWrongDatatypeRight() throws IOException {
 		var expression = ParserUtil.expression("false & 5");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateEagerAndLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) & true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateEagerAndRightError() throws IOException {
 		var expression = ParserUtil.expression("true & (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -106,31 +107,31 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateEagerOrWrongDatatypeLeft() throws IOException {
 		var expression = ParserUtil.expression("5 | true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateEagerOrWrongDatatypeRightLeftFalse() throws IOException {
 		var expression = ParserUtil.expression("false | 7");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateEagerOrWrongDatatypeRightLeftTrue() throws IOException {
 		var expression = ParserUtil.expression("true | 7");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateEagerOrLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) | true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateEagerOrRightError() throws IOException {
 		var expression = ParserUtil.expression("true | (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -172,13 +173,13 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateNotEqualsLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) != true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateNotEqualsRightError() throws IOException {
 		var expression = ParserUtil.expression("true != (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -328,13 +329,13 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateEqualsLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) == true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateEqualsRightError() throws IOException {
 		var expression = ParserUtil.expression("true == (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -358,13 +359,13 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateMoreEqualsLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) >= 10");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateMoreEqualsRightError() throws IOException {
 		var expression = ParserUtil.expression("10 >= (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -388,13 +389,13 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateMoreLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) > 10");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateMoreRightError() throws IOException {
 		var expression = ParserUtil.expression("10 > (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -418,13 +419,13 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateLessEqualsLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) <= 10");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateLessEqualsRightError() throws IOException {
 		var expression = ParserUtil.expression("10 <= (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -448,31 +449,31 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateLessLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) < 10");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateLessRightError() throws IOException {
 		var expression = ParserUtil.expression("10 < (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void divEvaluationShouldFailWithNonNumberLeft() throws IOException {
 		var expression = ParserUtil.expression("null/10");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void divEvaluationShouldFailWithNonNumberRight() throws IOException {
 		var expression = ParserUtil.expression("10/null");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void divEvaluationShouldFailDivisionByZero() throws IOException {
 		var expression = ParserUtil.expression("10/0");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -485,13 +486,13 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateDivLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) / 5");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateDivRightError() throws IOException {
 		var expression = ParserUtil.expression("10 / (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	// FIXME.. why spaces needed ? "2.0-10" fails
@@ -538,13 +539,13 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateMinusLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) - 5");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateMinusRightError() throws IOException {
 		var expression = ParserUtil.expression("10 - (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -571,13 +572,13 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateMultiLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) * 5");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateMultiRightError() throws IOException {
 		var expression = ParserUtil.expression("10 * (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -597,13 +598,13 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateNotOnWrongType() throws IOException {
 		var expression = ParserUtil.expression("![1,2,3]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateNotOnError() throws IOException {
 		var expression = ParserUtil.expression("!(10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -616,13 +617,13 @@ public class EagerOperatorsTest {
 	@Test
 	public void unaryMinusOnError() throws IOException {
 		var expression = ParserUtil.expression("-(10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void unaryMinusWrongType() throws IOException {
 		var expression = ParserUtil.expression("-null");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -656,13 +657,13 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluatePlusLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) + 10");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluatePlusRightError() throws IOException {
 		var expression = ParserUtil.expression("10 + (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -713,12 +714,14 @@ public class EagerOperatorsTest {
 		var expected = Val.FALSE;
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
 	}
+
 	@Test
 	public void evaluateElementOfUndefinedNeedle() throws IOException {
 		var expression = ParserUtil.expression("undefined in [1,2,3]");
 		var expected = Val.FALSE;
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
 	}
+
 	@Test
 	public void evaluateElementOfNumbersTrue() throws IOException {
 		var expression = ParserUtil.expression("1 in [2, 1.0]");
@@ -732,7 +735,7 @@ public class EagerOperatorsTest {
 		var expected = Val.FALSE;
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
 	}
-	
+
 	@Test
 	public void evaluateElementOfNumbersTrue2() throws IOException {
 		var expression = ParserUtil.expression("1 in [2, 001.000]");
@@ -743,13 +746,13 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateElementOfLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) in []");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateElementOfRightError() throws IOException {
 		var expression = ParserUtil.expression("10 in (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -769,7 +772,7 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateRegExPatternError() throws IOException {
 		var expression = ParserUtil.expression("\"test\"=~\"***\"");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -796,18 +799,18 @@ public class EagerOperatorsTest {
 	@Test
 	public void evaluateRegExRightWrongType() throws IOException {
 		var expression = ParserUtil.expression("\"test\" =~ null");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateRegExLeftError() throws IOException {
 		var expression = ParserUtil.expression("(10/0) =~ null");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateRegExRightError() throws IOException {
 		var expression = ParserUtil.expression("\"aaa\" =~ (10/0)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 }

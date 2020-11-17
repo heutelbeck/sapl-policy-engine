@@ -1,5 +1,7 @@
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+
 import java.io.IOException;
 
 import org.junit.Before;
@@ -23,13 +25,13 @@ public class ArraySlicingStepImplCustomTest {
 	@Test
 	public void slicingPropagatesErrors() throws IOException {
 		var expression = ParserUtil.expression("(1/0)[0:1]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void applySlicingToNoArray() throws IOException {
 		var expression = ParserUtil.expression("\"abc\"[0:1]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -119,7 +121,7 @@ public class ArraySlicingStepImplCustomTest {
 	@Test
 	public void applySlicingStepZeroErrors() throws IOException {
 		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9][1:5:0]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -160,7 +162,7 @@ public class ArraySlicingStepImplCustomTest {
 	@Test
 	public void filterErrorOnZeroStep() throws IOException {
 		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9] |- { @[: :0] : nil }");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test

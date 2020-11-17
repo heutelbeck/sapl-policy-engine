@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.tests;
 
-import static io.sapl.grammar.sapl.impl.util.BasicValueUtil.basicValueFrom;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.basicValueFrom;
 import static org.mockito.Mockito.mock;
 
 import java.math.BigDecimal;

@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+
 import java.io.IOException;
 
 import org.junit.Before;
@@ -38,7 +40,7 @@ public class ApplyStepsKeyTest {
 	@Test
 	public void keyStepPropagatesErrors() throws IOException {
 		var expression = ParserUtil.expression("(10/0).key");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -93,7 +95,8 @@ public class ApplyStepsKeyTest {
 
 	@Test
 	public void filterObjectDescend() throws IOException {
-		var expression = ParserUtil.expression("{\"key\" : { \"key2\" : true}, \"other\" : false} |- { @.key.key2 : nil}");
+		var expression = ParserUtil
+				.expression("{\"key\" : { \"key2\" : true}, \"other\" : false} |- { @.key.key2 : nil}");
 		var expected = Val.ofJson("{\"key\" : {\"key2\" : null }, \"other\" : false}");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
 	}

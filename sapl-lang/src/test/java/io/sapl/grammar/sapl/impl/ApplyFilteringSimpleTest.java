@@ -15,7 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.grammar.sapl.impl.util.ParserUtil.filterComponent;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
 import java.io.IOException;
 
@@ -24,13 +25,11 @@ import org.junit.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.grammar.tests.MockFunctionLibrary;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.variables.VariableContext;
-import reactor.test.StepVerifier;
 
 public class ApplyFilteringSimpleTest {
 
@@ -49,53 +48,45 @@ public class ApplyFilteringSimpleTest {
 
 	@Test
 	public void filterPropagatesError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) |- filter.remove");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, "(10/0) |- filter.remove");
 	}
 
 	@Test
 	public void filterUndefined() throws IOException {
-		var expression = ParserUtil.expression("undefined |- filter.remove");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, "undefined |- filter.remove");
 	}
 
 	@Test
 	public void removeNoEach() throws IOException {
-		var root = Val.ofEmptyObject();
-		var filter = filterComponent("filter.remove");
-		var expectedResult = Val.UNDEFINED;
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+		var expression = "{} |- filter.remove";
+		var expected = Val.UNDEFINED;
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
 	public void removeEachNoArray() throws IOException {
-		var root = Val.ofEmptyObject();
-		var filter = filterComponent("each filter.remove");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, "{} |- each filter.remove");
 	}
 
 	@Test
 	public void removeEachArray() throws IOException {
-		var root = Val.ofJson("[ null ]");
-		var filter = filterComponent("each filter.remove");
-		var expectedResult = Val.ofEmptyArray();
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+		var expression = "[null] |- each filter.remove";
+		var expected = "[]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
 	public void emptyStringNoEach() throws IOException {
-		var root = Val.ofEmptyArray();
-		var filter = filterComponent("mock.emptyString");
-		var expectedResult = Val.of("");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+		var expression = "[] |- mock.emptyString";
+		var expected = "\"\"";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
 	public void emptyStringEach() throws IOException {
-		var root = Val.ofJson("[ null, 5 ]");
-		var filter = filterComponent("each mock.emptyString(null)");
-		var expectedResult = Val.ofJson("[ \"\", \"\" ]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+		var expression = "[ null, 5 ] |- each mock.emptyString(null)";
+		var expected = "[ \"\", \"\" ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 }

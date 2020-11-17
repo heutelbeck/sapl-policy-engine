@@ -20,29 +20,27 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.variables.VariableContext;
-import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 /**
  * Some helper methods for unit tests.
  */
-@UtilityClass
 public class MockUtil {
 	private static SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
 
-	public void mockPolicyTargetExpressionContainerExpression(Expression expression) {
+	public static void mockPolicyTargetExpressionContainerExpression(Expression expression) {
 		var policy = FACTORY.createPolicy();
 		var targetExpressionFeature = policy.eClass().getEStructuralFeature("targetExpression");
 		policy.eSet(targetExpressionFeature, expression);
 	}
 
-	public void mockPolicySetTargetExpressionContainerExpression(Expression expression) {
+	public static void mockPolicySetTargetExpressionContainerExpression(Expression expression) {
 		var policySet = FACTORY.createPolicySet();
 		var targetExpressionFeature = policySet.eClass().getEStructuralFeature("targetExpression");
 		policySet.eSet(targetExpressionFeature, expression);
 	}
 
-	public EvaluationContext mockEvaluationContext() {
+	public static EvaluationContext mockEvaluationContext() {
 		var ctx = mock(EvaluationContext.class);
 		var functionCtx = mock(FunctionContext.class);
 		when(functionCtx.evaluate(eq("mock.nil"), any())).thenReturn(Val.NULL);
@@ -87,7 +85,8 @@ public class MockUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void mockPolicyTargetExpressionContainerExpressionForAttributeFinderStep(AttributeFinderStep expression) {
+	public static void mockPolicyTargetExpressionContainerExpressionForAttributeFinderStep(
+			AttributeFinderStep expression) {
 		var basicIdentifier = FACTORY.createBasicIdentifier();
 		mockPolicyTargetExpressionContainerExpression(basicIdentifier);
 		var stepsFeature = basicIdentifier.eClass().getEStructuralFeature("steps");
@@ -96,7 +95,8 @@ public class MockUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void mockPolicySetTargetExpressionContainerExpressionForAttributeFinderStep(AttributeFinderStep expression) {
+	public static void mockPolicySetTargetExpressionContainerExpressionForAttributeFinderStep(
+			AttributeFinderStep expression) {
 		var basicIdentifier = FACTORY.createBasicIdentifier();
 		mockPolicySetTargetExpressionContainerExpression(basicIdentifier);
 		var stepsFeature = basicIdentifier.eClass().getEStructuralFeature("steps");

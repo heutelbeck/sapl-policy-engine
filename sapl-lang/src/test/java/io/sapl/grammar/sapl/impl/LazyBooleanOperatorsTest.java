@@ -1,5 +1,6 @@
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
@@ -38,13 +39,13 @@ public class LazyBooleanOperatorsTest {
 	@Test
 	public void andEvaluationShouldFailWithNonBooleanLeft() throws IOException {
 		var expression = ParserUtil.expression("null && true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void andEvaluationShouldFailWithNonBooleanRight() throws IOException {
 		var expression = ParserUtil.expression("true && null");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
@@ -97,13 +98,13 @@ public class LazyBooleanOperatorsTest {
 	@Test
 	public void orEvaluationShouldFailWithNonBooleanLeft() throws IOException {
 		var expression = ParserUtil.expression("null || true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void orEvaluationShouldFailWithNonBooleanRight() throws IOException {
 		var expression = ParserUtil.expression("false || null");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test

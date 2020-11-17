@@ -16,6 +16,8 @@
 package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.util.ParserUtil.filterComponent;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
 import java.io.IOException;
 
@@ -48,309 +50,262 @@ public class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	public void filterUndefined() throws IOException {
-		var root = Val.UNDEFINED;
-		var filter = filterComponent("{ @.name : filter.remove }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+	public void filterUndefined() {
+		expressionErrors(ctx, "undefined |- { @.name : filter.remove }");
 	}
 
 	@Test
-	public void filterError() throws IOException {
-		var root = Val.error("ERROR");
-		var filter = filterComponent("{ @.name : filter.remove }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(root).verifyComplete();
+	public void filterError() {
+		expressionErrors(ctx, "(10/0) |- { @.name : filter.remove }");
 	}
 
 	@Test
-	public void noStatements() throws IOException {
-		var root = Val.ofJson("{ \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }");
-		var filter = filterComponent("{ }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(root).verifyComplete();
+	public void noStatements() {
+		var root = "{ \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }";
+		var expression = root + " |-  { }";
+		expressionEvaluatesTo(ctx, expression, root);
 	}
 
 	@Test
-	public void removeKeyStepFromObject() throws IOException {
-		var root = Val.ofJson("{ \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }");
-		var filter = filterComponent("{ @.name : filter.remove }");
-		var expectedValue = Val.ofJson("{ \"job\" : \"recreational surgeon\" }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedValue).verifyComplete();
+	public void removeKeyStepFromObject() {
+		var expression = "{ \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" } |- { @.name : filter.remove }";
+		var expected = "{ \"job\" : \"recreational surgeon\" }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeElementTwoKeyStepsDownFromObject() throws IOException {
-		var root = Val.ofJson(
-				"{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\", \"wage\" : 1000000 } }");
-		var filter = filterComponent("{ @.job.wage : filter.remove }");
-		var expectedValue = Val
-				.ofJson("{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\" } }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedValue).verifyComplete();
+	public void removeElementTwoKeyStepsDownFromObject() {
+		var expression = "{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\", \"wage\" : 1000000 } } "
+				+ "|- { @.job.wage : filter.remove }";
+		var expected = "{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\" } }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeElementThreeKeyStepsDownFromObject() throws IOException {
-		var root = Val.ofJson(
-				"{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\",  \"wage\" : { \"monthly\" : 1000000, \"currency\" : \"GBP\"} } }");
-		var filter = filterComponent("{ @.job.wage.monthly : filter.remove }");
-		var expectedValue = Val.ofJson(
-				"{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\",  \"wage\" : { \"currency\" : \"GBP\"} } }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedValue).verifyComplete();
+	public void removeElementThreeKeyStepsDownFromObject() {
+		var expression = "{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\",  \"wage\" : { \"monthly\" : 1000000, \"currency\" : \"GBP\"} } } "
+				+ "|- { @.job.wage.monthly : filter.remove }";
+		var expected = "{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\",  \"wage\" : { \"currency\" : \"GBP\"} } }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeKeyStepFromArray() throws IOException {
-		var root = Val.ofJson(
-				"[ { \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }, { \"name\" : \"Billy the Kid\", \"job\" : \"professional perforator\" } ]");
-		var filter = filterComponent("{ @.name : filter.remove }");
-		var expectedValue = Val
-				.ofJson("[ { \"job\" : \"recreational surgeon\" }, { \"job\" : \"professional perforator\"} ] ");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedValue).verifyComplete();
+	public void removeKeyStepFromArray() {
+		var expression = "[ { \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }, { \"name\" : \"Billy the Kid\", \"job\" : \"professional perforator\" } ] "
+				+ "|- { @.name : filter.remove }";
+		var expected = "[ { \"job\" : \"recreational surgeon\" }, { \"job\" : \"professional perforator\"} ] ";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeNoStepsNoEach() throws IOException {
-		var root = Val.ofEmptyObject();
-		var filter = filterComponent("{ @ : filter.remove }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(Val.UNDEFINED).verifyComplete();
+	public void removeNoStepsNoEach() {
+		var expression = "{} |- { @ : filter.remove }";
+		var expected = Val.UNDEFINED;
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeEachNoArray() throws IOException {
-		var root = Val.ofEmptyObject();
-		var filter = filterComponent("{ each @ : filter.remove }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+	public void removeEachNoArray() {
+		expressionErrors(ctx, "{} |- { each @ : filter.remove }");
 	}
 
 	@Test
-	public void removeNoStepsEach() throws IOException {
-		var root = Val.ofJson("[ null, true ]");
-		var filter = filterComponent("{ each @ : filter.remove }");
-		var expectedResult = Val.ofEmptyArray();
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeNoStepsEach() {
+		var expression = "[ null, true ] |- { each @ : filter.remove }";
+		var expected = "[ ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void emptyStringNoStepsNoEach() throws IOException {
-		var root = Val.ofJson("[ null, true ]");
-		var filter = filterComponent("{ @ : mock.emptyString }");
-		var expectedResult = Val.of("");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void emptyStringNoStepsNoEach() {
+		var expression = "[ null, true ] |- { @ : mock.emptyString }";
+		var expected = "\"\"";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void emptyStringNoStepsEach() throws IOException {
-		var root = Val.ofJson("[ null, true ]");
-		var filter = filterComponent("{ each @ : mock.emptyString }");
-		var expectedResult = Val.ofJson("[ \"\", \"\" ]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void emptyStringNoStepsEach() {
+		var expression = "[ null, true ] |- { each @ : mock.emptyString }";
+		var expected = "[ \"\", \"\" ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void emptyStringEachNoArray() throws IOException {
-		var root = Val.ofJson("[ {}, true ]");
-		var filter = filterComponent("{ each @[0] : mock.emptyString }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+	public void emptyStringEachNoArray() {
+		expressionErrors(ctx, "[ {}, true ] |- { each @[0] : mock.emptyString }");
 	}
 
 	@Test
-	public void removeResultArrayNoEach() throws IOException {
-		var root = Val.ofJson("[ null, true ]");
-		var filter = filterComponent("{ @[0] : filter.remove }");
-		var expectedResult = Val.ofJson("[ true ]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeResultArrayNoEach() {
+		var expression = "[ null, true ] |-  { @[0] : filter.remove }";
+		var expected = "[ true ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void blackenIndexInSelectedField() throws IOException {
-		var root = Val.ofJson(
-				"[ { \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }, { \"name\" : \"Billy the Kid\", \"job\" : \"professional perforator\" } ]");
-		var filter = filterComponent("{ @[0].job : filter.blacken }");
-		var expectedValue = Val.ofJson(
-				"[ { \"name\" : \"Jack the Ripper\", \"job\" : \"XXXXXXXXXXXXXXXXXXXX\" }, { \"name\" : \"Billy the Kid\", \"job\" : \"professional perforator\" } ]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedValue).verifyComplete();
+	public void blackenIndexInSelectedField() {
+		var expression = "[ { \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }, { \"name\" : \"Billy the Kid\", \"job\" : \"professional perforator\" } ] "
+				+ "|- { @[0].job : filter.blacken }";
+		var expected = "[ { \"name\" : \"Jack the Ripper\", \"job\" : \"XXXXXXXXXXXXXXXXXXXX\" }, { \"name\" : \"Billy the Kid\", \"job\" : \"professional perforator\" } ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void blackenResultArrayNoEach() throws IOException {
-		var root = Val.ofJson("[ null, \"secret\", true ]");
-		var filter = filterComponent("{ @[-2] : filter.blacken }");
-		var expectedResult = Val.ofJson("[ null, \"XXXXXX\", true ]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void blackenResultArrayNoEach() {
+		var expression = "[ null, \"secret\", true ] |- { @[-2] : filter.blacken }";
+		var expected = "[ null, \"XXXXXX\", true ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeArraySliceNegative() throws IOException {
-		var root = Val.ofJson("[ 0, 1, 2, 3, 4, 5 ]");
-		var filter = filterComponent("{ @[-2:] : filter.remove }");
-		var expectedResult = Val.ofJson("[0, 1, 2, 3 ]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeArraySliceNegative() {
+		var expression = "[ 0, 1, 2, 3, 4, 5 ] |- { @[-2:] : filter.remove }";
+		var expected = "[0, 1, 2, 3 ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeArraySlicePositive() throws IOException {
-		var root = Val.ofJson("[ 0, 1, 2, 3, 4, 5 ]");
-		var filter = filterComponent("{ @[2:4:1] : filter.remove }");
-		var expectedResult = Val.ofJson("[ 0, 1, 4, 5 ]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeArraySlicePositive() {
+		var expression = "[ 0, 1, 2, 3, 4, 5 ] |- { @[2:4:1] : filter.remove }";
+		var expected = "[ 0, 1, 4, 5 ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeArraySliceNegativeTo() throws IOException {
-		var root = Val.ofJson("[ 1, 2, 3, 4, 5 ]");
-		var filter = filterComponent("{ @[0:-2:2] : filter.remove }");
-		var expectedResult = Val.ofJson("[ 2, 4, 5 ]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeArraySliceNegativeTo() {
+		var expression = "[ 1, 2, 3, 4, 5 ] |- { @[0:-2:2] : filter.remove }";
+		var expected = "[ 2, 4, 5 ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeArraySliceNegativeStep() throws IOException {
-		var root = Val.ofJson("[ 0, 1, 2, 3, 4, 5 ]");
-		var filter = filterComponent("{ @[1:5:-2] : filter.remove }");
-		var expectedResult = Val.ofJson("[ 0, 2, 4, 5 ]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeArraySliceNegativeStep() {
+		var expression = "[ 0, 1, 2, 3, 4, 5 ] |- { @[1:5:-2] : filter.remove }";
+		var expected = "[ 0, 2, 4, 5 ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeAttributeUnionStep() throws IOException {
-		var root = Val.ofJson("{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 }");
-		var filter = filterComponent("{ @[\"b\" , \"d\"] : filter.remove }");
-		var expectedResult = Val.ofJson("{ \"a\" : 1, \"c\" : 3 }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeAttributeUnionStep() {
+		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 } |- { @[\"b\" , \"d\"] : filter.remove }";
+		var expected = "{ \"a\" : 1, \"c\" : 3 }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeArrayElementInAttributeUnionStep() throws IOException {
-		var root = Val.ofJson("{ \"a\" : [0,1,2,3], \"b\" : [0,1,2,3], \"c\" : [0,1,2,3], \"d\" : [0,1,2,3] }");
-		var filter = filterComponent("{ @[\"b\" , \"d\"][1] : filter.remove }");
-		var expectedResult = Val.ofJson("{ \"a\" : [0,1,2,3], \"b\" : [0,2,3], \"c\" : [0,1,2,3], \"d\" : [0,2,3] }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeArrayElementInAttributeUnionStep() {
+		var expression = "{ \"a\" : [0,1,2,3], \"b\" : [0,1,2,3], \"c\" : [0,1,2,3], \"d\" : [0,1,2,3] } |- { @[\"b\" , \"d\"][1] : filter.remove }";
+		var expected = "{ \"a\" : [0,1,2,3], \"b\" : [0,2,3], \"c\" : [0,1,2,3], \"d\" : [0,2,3] }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void replaceWithEmptyStringArrayElementInAttributeUnionStep() throws IOException {
-		var root = Val.ofJson("{ \"a\" : [0,1,2,3], \"b\" : [0,1,2,3], \"c\" : [0,1,2,3], \"d\" : [0,1,2,3] }");
-		var filter = filterComponent("{ @[\"b\" , \"d\"][1] : mock.emptyString }");
-		var expectedResult = Val
-				.ofJson("{ \"a\" : [0,1,2,3], \"b\" : [0,\"\",2,3], \"c\" : [0,1,2,3], \"d\" : [0,\"\",2,3] }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void replaceWithEmptyStringArrayElementInAttributeUnionStep() {
+		var expression = "{ \"a\" : [0,1,2,3], \"b\" : [0,1,2,3], \"c\" : [0,1,2,3], \"d\" : [0,1,2,3] } |- { @[\"b\" , \"d\"][1] : mock.emptyString }";
+		var expected = "{ \"a\" : [0,1,2,3], \"b\" : [0,\"\",2,3], \"c\" : [0,1,2,3], \"d\" : [0,\"\",2,3] }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeIndexUnionStep() throws IOException {
-		var root = Val.ofJson("[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ]");
-		var filter = filterComponent("{ @[1,3] : filter.remove }");
-		var expectedResult = Val.ofJson("[ [0,1,2,3], [2,1,2,3], [4,1,2,3] ]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeIndexUnionStep() {
+		var expression = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ] |- { @[1,3] : filter.remove }";
+		var expected = "[ [0,1,2,3], [2,1,2,3], [4,1,2,3] ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void doubleRemoveIndexUnionStep() throws IOException {
-		var root = Val.ofJson("[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ]");
-		var filter = filterComponent("{ @[1,3][2,1] : filter.remove }");
-		var expectedResult = Val.ofJson("[ [0,1,2,3], [1,3], [2,1,2,3], [3,3], [4,1,2,3] ]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void doubleRemoveIndexUnionStep() {
+		var expression = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ] |- { @[1,3][2,1] : filter.remove }";
+		var expected = "[ [0,1,2,3], [1,3], [2,1,2,3], [3,3], [4,1,2,3] ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeExpressionStepArray() throws IOException {
-		var root = Val.ofJson("[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ]");
-		var filter = filterComponent("{ @[(1+2)] : filter.remove }");
-		var expectedResult = Val.ofJson("[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [4,1,2,3] ]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeExpressionStepArray() {
+		var expression = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ] |- { @[(1+2)] : filter.remove }";
+		var expected = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [4,1,2,3] ]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeExpressionStepObject() throws IOException {
-		var root = Val.ofJson("{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"cb\" : [0,1,2,3], \"d\" : [0,1,2,3] }");
-		var filter = filterComponent("{ @[(\"c\"+\"b\")] : filter.remove }");
-		var expectedResult = Val.ofJson("{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"d\" : [0,1,2,3] }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeExpressionStepObject() {
+		var expression = "{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"cb\" : [0,1,2,3], \"d\" : [0,1,2,3] } |- { @[(\"c\"+\"b\")] : filter.remove }";
+		var expected = "{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"d\" : [0,1,2,3] }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeConditionStepFromObject() throws IOException {
-		var root = Val.ofJson("{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 }");
-		var filter = filterComponent("{ @[?(@>2)] : filter.remove }");
-		var expectedResult = Val.ofJson("{ \"a\" : 1, \"b\" : 2 }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeConditionStepFromObject() {
+		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @[?(@>2)] : filter.remove }";
+		var expected = "{ \"a\" : 1, \"b\" : 2 }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void replaceConditionStepFromArray() throws IOException {
-		var root = Val.ofJson("[1,2,3,4,5]");
-		var filter = filterComponent("{ @[?(@>2)] : mock.emptyString }");
-		var expectedResult = Val.ofJson("[1,2,\"\", \"\", \"\"]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void replaceConditionStepFromArray() {
+		var expression = "[1,2,3,4,5] |- { @[?(@>2)] : mock.emptyString }";
+		var expected = "[1,2,\"\", \"\", \"\"]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void replaceWildcardStepArray() throws IOException {
-		var root = Val.ofJson("[1,2,3,4,5]");
-		var filter = filterComponent("{ @.* : mock.emptyString }");
-		var expectedResult = Val.ofJson("[ \"\", \"\",\"\", \"\", \"\"]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void replaceWildcardStepArray() {
+		var expression = "[1,2,3,4,5] |- { @.* : mock.emptyString }";
+		var expected = "[ \"\", \"\",\"\", \"\", \"\"]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void replaceWildcardStepObject() throws IOException {
-		var root = Val.ofJson("{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 }");
-		var filter = filterComponent("{ @.* : mock.emptyString }");
-		var expectedResult = Val.ofJson("{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void replaceWildcardStepObject() {
+		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @.* : mock.emptyString }";
+		var expected = "{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void replaceRecursiveWildcardStepArray() throws IOException {
-		var root = Val.ofJson("[1,2,3,4,5]");
-		var filter = filterComponent("{ @..* : mock.emptyString }");
-		var expectedResult = Val.ofJson("[ \"\", \"\",\"\", \"\", \"\"]");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void replaceRecursiveWildcardStepArray() {
+		var expression = "[1,2,3,4,5] |- { @..* : mock.emptyString }";
+		var expected = "[ \"\", \"\",\"\", \"\", \"\"]";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void replaceRecussiveWildcardStepObject() throws IOException {
-		var root = Val.ofJson("{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 }");
-		var filter = filterComponent("{ @..* : mock.emptyString }");
-		var expectedResult = Val.ofJson("{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void replaceRecussiveWildcardStepObject() {
+		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @..* : mock.emptyString }";
+		var expected = "{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void replaceRecussiveKeyStepObject() throws IOException {
-		var root = Val.ofJson(
-				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] }");
-		var filter = filterComponent("{ @..key : filter.blacken }");
-		var expectedResult = Val.ofJson(
-				"{ \"key\" : \"XXXXXX\", \"array1\" : [ { \"key\" : \"XXXXXX\" }, { \"key\" : \"XXXXXX\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void replaceRecussiveKeyStepObject() {
+		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
+				+ "|- { @..key : filter.blacken }";
+		var expected = "{ \"key\" : \"XXXXXX\", \"array1\" : [ { \"key\" : \"XXXXXX\" }, { \"key\" : \"XXXXXX\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void removeRecussiveIndexStepObject() throws IOException {
-		var root = Val.ofJson(
-				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] }");
-		var filter = filterComponent("{ @..[0] : filter.remove }");
-		var expectedResult = Val.ofJson(
-				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value3\" } ], \"array2\" : [ 2, 3, 4, 5 ] }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void removeRecussiveIndexStepObject() {
+		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
+				+ "|- { @..[0] : filter.remove }";
+		var expected = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value3\" } ], \"array2\" : [ 2, 3, 4, 5 ] }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
-	public void multipleFilterStatements() throws IOException {
-		var root = Val.ofJson(
-				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] }");
-		var filter = filterComponent(
-				"{ @..[0] : filter.remove, @..key : filter.blacken, @.array2[-1] : filter.remove }");
-		var expectedResult = Val.ofJson(
-				"{ \"key\" : \"XXXXXX\", \"array1\" : [ { \"key\" : \"XXXXXX\" } ], \"array2\" : [ 2, 3, 4 ] }");
-		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
+	public void multipleFilterStatements() {
+		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
+				+ "|- { @..[0] : filter.remove, @..key : filter.blacken, @.array2[-1] : filter.remove }";
+		var expected = "{ \"key\" : \"XXXXXX\", \"array1\" : [ { \"key\" : \"XXXXXX\" } ], \"array2\" : [ 2, 3, 4 ] }";
+		expressionEvaluatesTo(ctx, expression, expected);
 	}
 
 	@Test
 	public void complexWithFunctionAndRelative() throws IOException {
 		var root = Val.ofJson("{\"name\": \"Ben\", \"origin\": \"Berlin\"}");
 		var filter = filterComponent("{@.name : simple.append(\" from \", @.origin), @.origin : filter.remove}");
-		var expectedResult = Val.ofJson("{\"name\": \"Ben from Berlin\"}");
-		StepVerifier.create(filter.apply(root, ctx, root)).expectNext(expectedResult).verifyComplete();
+		var expected = Val.ofJson("{\"name\": \"Ben from Berlin\"}");
+		StepVerifier.create(filter.apply(root, ctx, root)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
@@ -358,8 +313,8 @@ public class ApplyFilteringExtendedTest {
 		var root = Val.ofJson(
 				"[ {\"name\": \"Ben\", \"origin\": \"Berlin\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}]");
 		var filter = filterComponent("{@.name : simple.append(\" from \", @.origin), @.origin : filter.remove}");
-		var expectedResult = Val.ofJson("[{\"name\": \"Ben from Berlin\"},{ \"name\": \"Felix from Zürich\"}]");
-		StepVerifier.create(filter.apply(root, ctx, root)).expectNext(expectedResult).verifyComplete();
+		var expected = Val.ofJson("[{\"name\": \"Ben from Berlin\"},{ \"name\": \"Felix from Zürich\"}]");
+		StepVerifier.create(filter.apply(root, ctx, root)).expectNext(expected).verifyComplete();
 	}
 
 }

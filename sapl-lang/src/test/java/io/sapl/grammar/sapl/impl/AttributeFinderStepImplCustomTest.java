@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -60,26 +61,26 @@ public class AttributeFinderStepImplCustomTest {
 	public void evaluateBasicAttributeInTargetPolicy() throws IOException {
 		var expression = ParserUtil.expression("\"\".<numbers>");
 		MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateBasicAttributeInTargetPolicySet() throws IOException {
 		var expression = ParserUtil.expression("\"\".<numbers>");
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateBasicAttributeOnUndefined() throws IOException {
 		var expression = ParserUtil.expression("undefined.<numbers>");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test
 	public void evaluateAttributeInFilterSelction() throws IOException {
 		var expression = ParserUtil.expression("123 |- { @.<numbers> : nil }");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+		expressionErrors(ctx, expression);
 	}
 
 	@Test

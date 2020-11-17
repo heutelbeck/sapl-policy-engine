@@ -4,19 +4,17 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
-import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@UtilityClass
 public class EObjectUtil {
 
-	public void dump(EObject eObject) {
+	public static void dump(EObject eObject) {
 		dumpEObjectTree(eObject, 0);
 	}
 
 	@SuppressWarnings("unchecked")
-	public void dumpEObjectTree(EObject eObject, int indent) {
+	public static void dumpEObjectTree(EObject eObject, int indent) {
 		log(indent, "Type: {}", eObject == null ? null : eObject.eClass().getName());
 		if (eObject == null) {
 			return;
@@ -40,7 +38,7 @@ public class EObjectUtil {
 		}
 	}
 
-	public void log(int indent, String message, Object... arguments) {
+	public static void log(int indent, String message, Object... arguments) {
 		log.trace("|  ".repeat(Math.max(0, indent - 1)) + "|- ".repeat(Math.min(1, indent)) + message, arguments);
 	}
 }
