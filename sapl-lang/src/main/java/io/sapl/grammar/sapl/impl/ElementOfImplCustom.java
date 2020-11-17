@@ -50,14 +50,19 @@ public class ElementOfImplCustom extends ElementOfImpl {
 		if (haystack.isError()) {
 			return haystack;
 		}
-		if (needle.isUndefined() || haystack.isUndefined() || !haystack.isArray()) {
+		if (needle.isUndefined() 
+				|| haystack.isUndefined() 
+				|| !haystack.isArray()) {
 			return Val.FALSE;
 		}
 		ArrayNode array = (ArrayNode) haystack.get();
 		for (JsonNode arrayItem : array) {
 			// numerically equivalent numbers may be noted differently in JSON.
 			// This equality is checked for here as well.
-			if (needle.get().equals(arrayItem) || (needle.isNumber() && arrayItem.isNumber()
+			if (needle.get().equals(arrayItem) 
+					|| 
+					(needle.isNumber() 
+							&& arrayItem.isNumber()
 					&& needle.get().decimalValue().compareTo(arrayItem.decimalValue()) == 0)) {
 				return Val.TRUE;
 			}

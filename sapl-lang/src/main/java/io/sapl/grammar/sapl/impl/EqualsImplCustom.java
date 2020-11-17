@@ -45,7 +45,6 @@ public class EqualsImplCustom extends EqualsImpl {
 	 * @return true if both values are equal
 	 */
 	private Val equals(Val left, Val right) {
-		log.trace("equals({},{})",left,right);
 		if (left.isError()) {
 			return left;
 		}
@@ -62,6 +61,7 @@ public class EqualsImplCustom extends EqualsImpl {
 		}
 		// if both values are numbers do a numerical comparison, as they may be
 		// represented differently in JSON
+		log.info("{} == {}",left,right);
 		if (left.get().isNumber() && right.get().isNumber()) {
 			return Val.of(left.get().decimalValue().compareTo(right.get().decimalValue()) == 0);
 		} else {

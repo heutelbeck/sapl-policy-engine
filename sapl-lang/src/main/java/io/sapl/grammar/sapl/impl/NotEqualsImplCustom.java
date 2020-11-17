@@ -43,10 +43,10 @@ public class NotEqualsImplCustom extends NotEqualsImpl {
 			return right;
 		}
 		if (left.isUndefined() && right.isUndefined()) {
-			return Val.TRUE;
+			return Val.FALSE;
 		}
 		if (left.isUndefined() || right.isUndefined()) {
-			return Val.FALSE;
+			return Val.TRUE;
 		}
 		if (left.get().isNumber() && right.get().isNumber()) {
 			return Val.of(left.get().decimalValue().compareTo(right.get().decimalValue()) != 0);

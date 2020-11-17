@@ -354,6 +354,9 @@ public class Val {
 	}
 
 	public static Val requireBoolean(Val value) {
+		if (value.isError()) {
+			return value;
+		}
 		if (value.isUndefined() || !value.get().isBoolean()) {
 			return Val.error(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(value));
 		}
@@ -368,6 +371,9 @@ public class Val {
 	}
 
 	public static Val requireJsonNode(Val value) {
+		if (value.isError()) {
+			return value;
+		}
 		if (value.isDefined()) {
 			return value;
 		}
@@ -410,6 +416,9 @@ public class Val {
 	}
 
 	public static Val requireArrayNode(Val value) {
+		if (value.isError()) {
+			return value;
+		}
 		if (value.isUndefined() || !value.get().isArray()) {
 			return Val.error(ARRAY_OPERATION_TYPE_MISMATCH_S, typeOf(value));
 		}
@@ -424,6 +433,9 @@ public class Val {
 	}
 
 	public static Val requireObjectNode(Val value) {
+		if (value.isError()) {
+			return value;
+		}
 		if (!value.isUndefined() || !value.get().isObject()) {
 			return Val.error(OBJECT_OPERATION_TYPE_MISMATCH_S, typeOf(value));
 		}
@@ -438,6 +450,9 @@ public class Val {
 	}
 
 	public static Val requireText(Val value) {
+		if (value.isError()) {
+			return value;
+		}
 		if (value.isUndefined() || !value.get().isTextual()) {
 			return Val.error(TEXT_OPERATION_TYPE_MISMATCH_S, typeOf(value));
 		}
@@ -452,6 +467,9 @@ public class Val {
 	}
 
 	public static Val requireBigDecimal(Val value) {
+		if (value.isError()) {
+			return value;
+		}
 		if (value.isUndefined() || !value.get().isNumber()) {
 			return Val.error(ARITHMETIC_OPERATION_TYPE_MISMATCH_S, typeOf(value));
 		}
