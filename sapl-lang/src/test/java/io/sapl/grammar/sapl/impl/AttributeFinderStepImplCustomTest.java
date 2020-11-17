@@ -13,46 +13,73 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.tests;
+package io.sapl.grammar.sapl.impl;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.HashMap;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
+import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-public class ApplyStepsAttributeFinderTest {
+public class AttributeFinderStepImplCustomTest {
 
 	private static SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
-	private static EvaluationContext CTX = mock(EvaluationContext.class);
 	private static String ATTRIBUTE = "attribute";
 	private static String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
-	@Test
-	public void applyToPolicyTarget() {
-		var step = attributeFinderStep();
-		MockUtil.mockPolicyTargetExpressionContainerExpressionForAttributeFinderStep(step);
-		StepVerifier.create(step.apply(Val.NULL, CTX, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+	private EvaluationContext ctx;
+
+	@Before
+	public void before() {
+		ctx = MockUtil.mockEvaluationContext();
 	}
 
 	@Test
-	public void applyToPolicySetTarget() {
-		var step = attributeFinderStep();
-		MockUtil.mockPolicySetTargetExpressionContainerExpressionForAttributeFinderStep(step);
-		StepVerifier.create(step.apply(Val.NULL, CTX, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+	public void evaluateBasicAttributeFlux() throws IOException {
+		var expression = ParserUtil.expression("\"\".<numbers>");
+		var expected = new Val[] { Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5) };
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	}
+
+	@Test
+	public void evaluateBasicAttributeInTargetPolicy() throws IOException {
+		var expression = ParserUtil.expression("\"\".<numbers>");
+		MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+	}
+
+	@Test
+	public void evaluateBasicAttributeInTargetPolicySet() throws IOException {
+		var expression = ParserUtil.expression("\"\".<numbers>");
+		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+	}
+
+	@Test
+	public void evaluateBasicAttributeOnUndefined() throws IOException {
+		var expression = ParserUtil.expression("undefined.<numbers>");
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+	}
+
+	@Test
+	public void evaluateAttributeInFilterSelction() throws IOException {
+		var expression = ParserUtil.expression("123 |- { @.<numbers> : nil }");
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test

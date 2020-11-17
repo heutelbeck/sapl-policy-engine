@@ -40,6 +40,9 @@ public class KeyStepImplCustom extends KeyStepImpl {
 
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
+		if (parentValue.isError()) {
+			return Flux.just(parentValue);
+		}
 
 		if (!parentValue.isObject() && !parentValue.isArray()) {
 			return Val.undefinedFlux();

@@ -95,6 +95,9 @@ public class VariableContext {
 	}
 
 	public Val get(String identifier) {
+		if (!variables.containsKey(identifier)) {
+			return Val.UNDEFINED;
+		}
 		return Val.of(variables.get(identifier));
 	}
 

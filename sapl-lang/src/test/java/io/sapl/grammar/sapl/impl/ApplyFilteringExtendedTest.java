@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.tests;
+package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.util.ParserUtil.filterComponent;
 
@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.FilterFunctionLibrary;
+import io.sapl.grammar.tests.MockFunctionLibrary;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.SimpleFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -44,6 +45,27 @@ public class ApplyFilteringExtendedTest {
 		functionCtx.loadLibrary(new MockFunctionLibrary());
 		functionCtx.loadLibrary(new SimpleFunctionLibrary());
 		ctx = new EvaluationContext(functionCtx, variableCtx);
+	}
+
+	@Test
+	public void filterUndefined() throws IOException {
+		var root = Val.UNDEFINED;
+		var filter = filterComponent("{ @.name : filter.remove }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
+	}
+
+	@Test
+	public void filterError() throws IOException {
+		var root = Val.error("ERROR");
+		var filter = filterComponent("{ @.name : filter.remove }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(root).verifyComplete();
+	}
+
+	@Test
+	public void noStatements() throws IOException {
+		var root = Val.ofJson("{ \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }");
+		var filter = filterComponent("{ }");
+		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(root).verifyComplete();
 	}
 
 	@Test
@@ -312,12 +334,12 @@ public class ApplyFilteringExtendedTest {
 		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
 	}
 
-
 	@Test
 	public void multipleFilterStatements() throws IOException {
 		var root = Val.ofJson(
 				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] }");
-		var filter = filterComponent("{ @..[0] : filter.remove, @..key : filter.blacken, @.array2[-1] : filter.remove }");
+		var filter = filterComponent(
+				"{ @..[0] : filter.remove, @..key : filter.blacken, @.array2[-1] : filter.remove }");
 		var expectedResult = Val.ofJson(
 				"{ \"key\" : \"XXXXXX\", \"array1\" : [ { \"key\" : \"XXXXXX\" } ], \"array2\" : [ 2, 3, 4 ] }");
 		StepVerifier.create(filter.apply(root, ctx, Val.UNDEFINED)).expectNext(expectedResult).verifyComplete();
@@ -330,10 +352,11 @@ public class ApplyFilteringExtendedTest {
 		var expectedResult = Val.ofJson("{\"name\": \"Ben from Berlin\"}");
 		StepVerifier.create(filter.apply(root, ctx, root)).expectNext(expectedResult).verifyComplete();
 	}
-	
+
 	@Test
 	public void complexWithFunctionAndRelativeArray() throws IOException {
-		var root = Val.ofJson("[ {\"name\": \"Ben\", \"origin\": \"Berlin\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}]");
+		var root = Val.ofJson(
+				"[ {\"name\": \"Ben\", \"origin\": \"Berlin\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}]");
 		var filter = filterComponent("{@.name : simple.append(\" from \", @.origin), @.origin : filter.remove}");
 		var expectedResult = Val.ofJson("[{\"name\": \"Ben from Berlin\"},{ \"name\": \"Felix from Zürich\"}]");
 		StepVerifier.create(filter.apply(root, ctx, root)).expectNext(expectedResult).verifyComplete();

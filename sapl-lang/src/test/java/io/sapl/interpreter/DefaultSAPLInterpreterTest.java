@@ -43,7 +43,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.impl.EObjectUtil;
+import io.sapl.grammar.sapl.impl.util.EObjectUtil;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;

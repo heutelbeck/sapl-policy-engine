@@ -192,12 +192,13 @@ public class EagerOperatorsTest {
 		var expression = ParserUtil.expression("12 != \"x\"");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
 	}
-	
+
 	@Test
 	public void evaluateNotEqualsArraysFalse() throws IOException {
 		var expression = ParserUtil.expression("[1,2,3] != [1,2,3])");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
 	}
+
 	@Test
 	public void evaluateNotEqualsArraysTrue() throws IOException {
 		var expression = ParserUtil.expression("[1,3] != [1,2,3])");
@@ -209,11 +210,13 @@ public class EagerOperatorsTest {
 		var expression = ParserUtil.expression("{ \"key\" : true } != { \"key\" : true })");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
 	}
+
 	@Test
 	public void evaluateNotEqualsObjectsTrue() throws IOException {
 		var expression = ParserUtil.expression("{ \"key\" : true } != { \"key\" : false })");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
 	}
+
 	@Test
 	public void evaluateNotEqualsBothUndefinedFalse() throws IOException {
 		var expression = ParserUtil.expression("undefined != undefined");
@@ -255,7 +258,7 @@ public class EagerOperatorsTest {
 		var expression = ParserUtil.expression("null == null");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
 	}
-	
+
 	@Test
 	public void evaluateEqualsBothUndefinedTrue() throws IOException {
 		var expression = ParserUtil.expression("undefined == undefined");
@@ -297,12 +300,13 @@ public class EagerOperatorsTest {
 		var expression = ParserUtil.expression("12 == \"x\"");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
 	}
-	
+
 	@Test
 	public void evaluateEqualsArraysTrue() throws IOException {
 		var expression = ParserUtil.expression("[1,2,3] == [1,2,3])");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
 	}
+
 	@Test
 	public void evaluateEqualsArraysFalse() throws IOException {
 		var expression = ParserUtil.expression("[1,3] == [1,2,3])");
@@ -314,6 +318,7 @@ public class EagerOperatorsTest {
 		var expression = ParserUtil.expression("{ \"key\" : true } == { \"key\" : true })");
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
 	}
+
 	@Test
 	public void evaluateEqualsObjectsFalse() throws IOException {
 		var expression = ParserUtil.expression("{ \"key\" : true } == { \"key\" : false })");
@@ -699,6 +704,39 @@ public class EagerOperatorsTest {
 	public void evaluateElementOfNullLeftAndArrayWithNullElementTrue() throws IOException {
 		var expression = ParserUtil.expression("null in [null]");
 		var expected = Val.TRUE;
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	}
+
+	@Test
+	public void evaluateElementOfUndefinedHaystack() throws IOException {
+		var expression = ParserUtil.expression("\"C\" in undefined");
+		var expected = Val.FALSE;
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	}
+	@Test
+	public void evaluateElementOfUndefinedNeedle() throws IOException {
+		var expression = ParserUtil.expression("undefined in [1,2,3]");
+		var expected = Val.FALSE;
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	}
+	@Test
+	public void evaluateElementOfNumbersTrue() throws IOException {
+		var expression = ParserUtil.expression("1 in [2, 1.0]");
+		var expected = Val.TRUE;
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	}
+
+	@Test
+	public void evaluateElementOfNumbersFalse() throws IOException {
+		var expression = ParserUtil.expression("1 in [2, \"1.0\"]");
+		var expected = Val.FALSE;
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	}
+	
+	@Test
+	public void evaluateElementOfNumbersTrue2() throws IOException {
+		var expression = ParserUtil.expression("1 in [2, 001.000]");
+		var expected = Val.FALSE;
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
 	}
 

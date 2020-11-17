@@ -18,7 +18,6 @@ package io.sapl.grammar.sapl.impl;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -27,7 +26,6 @@ import reactor.core.publisher.Flux;
  * Grammar: Comparison returns Expression: Prefixed (({Equals.left=current}
  * '==') right=Prefixed)? ;
  */
-@Slf4j
 public class EqualsImplCustom extends EqualsImpl {
 
 	@Override
@@ -61,7 +59,6 @@ public class EqualsImplCustom extends EqualsImpl {
 		}
 		// if both values are numbers do a numerical comparison, as they may be
 		// represented differently in JSON
-		log.info("{} == {}",left,right);
 		if (left.get().isNumber() && right.get().isNumber()) {
 			return Val.of(left.get().decimalValue().compareTo(right.get().decimalValue()) == 0);
 		} else {

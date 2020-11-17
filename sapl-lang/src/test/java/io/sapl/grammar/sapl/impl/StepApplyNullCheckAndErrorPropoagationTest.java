@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -46,22 +47,24 @@ public class StepApplyNullCheckAndErrorPropoagationTest {
 		return (List<Object>) instances;
 	}
 
+	@Before
+	public void before() {
+		log.trace("step: {}", step.getClass().getSimpleName());
+	}
+	
 	@Test(expected = NullPointerException.class)
 	public void nullEvaluationContext() {
 		step.apply(Val.UNDEFINED, null, Val.UNDEFINED);
-		log.info("step: {}", step.getClass().getSimpleName());
 	}
 
 	@Test(expected = NullPointerException.class)
 	public void nullRelativeNode() {
 		step.apply(Val.UNDEFINED, ctx, null);
-		log.info("step: {}", step.getClass().getSimpleName());
 	}
 
 	@Test(expected = NullPointerException.class)
 	public void nullParentNode() {
 		step.apply(null, ctx, Val.UNDEFINED);
-		log.info("step: {}", step.getClass().getSimpleName());
 	}
 
 	@Test
@@ -73,24 +76,20 @@ public class StepApplyNullCheckAndErrorPropoagationTest {
 	@Test(expected = NullPointerException.class)
 	public void nullEvaluationContextFilter() {
 		step.applyFilterStatement(Val.UNDEFINED, null, Val.UNDEFINED, 0, mock(FilterStatement.class));
-		log.info("step: {}", step.getClass().getSimpleName());
 	}
 
 	@Test(expected = NullPointerException.class)
 	public void nullRelativeNodeFilter() {
 		step.applyFilterStatement(Val.UNDEFINED, ctx, null, 0, mock(FilterStatement.class));
-		log.info("step: {}", step.getClass().getSimpleName());
 	}
 
 	@Test(expected = NullPointerException.class)
 	public void nullParentNodeFilter() {
 		step.applyFilterStatement(null, ctx, Val.UNDEFINED, 0, mock(FilterStatement.class));
-		log.info("step: {}", step.getClass().getSimpleName());
 	}
 
 	@Test(expected = NullPointerException.class)
 	public void nullFilterStatementFilter() {
 		step.applyFilterStatement(Val.UNDEFINED, ctx, Val.UNDEFINED, 0, null);
-		log.info("step: {}", step.getClass().getSimpleName());
 	}
 }

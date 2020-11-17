@@ -22,7 +22,6 @@ import io.sapl.api.interpreter.Val
 import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.Decision
-import io.sapl.grammar.sapl.impl.EObjectUtil
 import io.sapl.interpreter.DefaultSAPLInterpreter
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
@@ -285,8 +284,6 @@ class FilterFunctionLibraryTest {
 
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
-		val poli = INTERPRETER.parse(policyDefinition);
-		EObjectUtil.dump(poli);
 		val authzDecision = INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES).blockFirst()
 

@@ -35,7 +35,7 @@ public class EvaluableEvaluateNullCheckTest {
 		var classes = reflections.getSubTypesOf(Evaluable.class);
 		List<Object> instances = new ArrayList<Object>(classes.size());
 		for (var clazz : classes) {
-			if (clazz.getSimpleName().endsWith("ImplCustom")) {
+			if (clazz.getSimpleName().endsWith("ImplCustom") && !clazz.getSimpleName().equals("BasicExpressionImplCustom")) {
 				instances.add(clazz.getDeclaredConstructor().newInstance());
 			}
 		}

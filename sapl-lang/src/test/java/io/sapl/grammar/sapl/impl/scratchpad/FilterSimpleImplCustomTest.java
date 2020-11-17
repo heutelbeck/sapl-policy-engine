@@ -12,7 +12,7 @@ import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.BasicValue;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.impl.EObjectUtil;
+import io.sapl.grammar.sapl.impl.util.EObjectUtil;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;

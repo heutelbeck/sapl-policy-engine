@@ -244,12 +244,21 @@ public class Val {
 		}
 
 		Val other = (Val) obj;
-		if (value == other.value) {
-			return true;
+
+		if (isError() != other.isError()) {
+			return false;
+		}
+
+		if (isError()) {
+			return errorMessage.equals(other.getMessage());
 		}
 
 		if (isDefined() != other.isDefined()) {
 			return false;
+		}
+
+		if (value == other.value) {
+			return true;
 		}
 
 		return JsonNumEquals.getInstance().equivalent(value, other.value);

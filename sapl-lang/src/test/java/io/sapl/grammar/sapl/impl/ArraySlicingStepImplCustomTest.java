@@ -1,20 +1,14 @@
 package io.sapl.grammar.sapl.impl;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.io.IOException;
-import java.util.HashMap;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
 import reactor.test.StepVerifier;
 
 public class ArraySlicingStepImplCustomTest {
@@ -23,13 +17,7 @@ public class ArraySlicingStepImplCustomTest {
 
 	@Before
 	public void before() {
-		ctx = mock(EvaluationContext.class);
-		var functionCtx = mock(FunctionContext.class);
-		when(functionCtx.evaluate(eq("mock.nil"), any())).thenReturn(Val.NULL);
-		when(ctx.getFunctionCtx()).thenReturn(functionCtx);
-		var imports = new HashMap<String, String>();
-		imports.put("nil", "mock.nil");
-		when(ctx.getImports()).thenReturn(imports);
+		ctx = MockUtil.mockEvaluationContext();
 	}
 
 	@Test

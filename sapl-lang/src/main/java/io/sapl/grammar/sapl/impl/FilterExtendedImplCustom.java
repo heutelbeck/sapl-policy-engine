@@ -35,7 +35,7 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 		if (unfilteredValue.isUndefined()) {
 			return Val.errorFlux(FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES);
 		}
-		if (statements == null || statements.isEmpty()) {
+		if (statements == null) {
 			return Flux.just(unfilteredValue);
 		}
 		return Flux.just(unfilteredValue).switchMap(applyFilterStatements(ctx, relativeNode));
@@ -48,7 +48,7 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
 	private Function<? super Val, Publisher<? extends Val>> applyFilterStatements(int statementId,
 			EvaluationContext ctx, Val relativeNode) {
-		if (statements == null || statementId == statements.size()) {
+		if (statementId == statements.size()) {
 			return Flux::just;
 		}
 		return value -> applyFilterStatement(value, statements.get(statementId), ctx, relativeNode)
@@ -57,7 +57,7 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 
 	private Flux<Val> applyFilterStatement(Val unfilteredValue, FilterStatement statement, EvaluationContext ctx,
 			Val relativeNode) {
-		if (statement.getTarget().getSteps() == null || statement.getTarget().getSteps().size() == 0) {
+		if (statement.getTarget().getSteps().size() == 0) {
 			// the expression has no steps. apply filter to unfiltered node directly
 			return applyFilterFunction(unfilteredValue, statement.getArguments(),
 					FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx, relativeNode,
