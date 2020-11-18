@@ -39,8 +39,6 @@ import reactor.util.function.Tuples;
 @Slf4j
 public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
-	private static final String INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D = "Index out of bounds. Index must be between 0 and %d, was: %d ";
-
 	@Override
 	public Flux<Val> apply(@NonNull Val parentValue, @NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		if (parentValue.isError()) {
@@ -59,14 +57,13 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 				results.add(node.get(idx));
 			}
 			for (var item : ((ArrayNode) node)) {
-				collect(idx, item, results);
+				collect(index, item, results);
 			}
 		} else if (node.isObject()) {
-			var idx = normalizeIndex(index, node.size());
 			var iter = node.fields();
 			while (iter.hasNext()) {
 				var item = iter.next().getValue();
-				collect(idx, item, results);
+				collect(index, item, results);
 			}
 		}
 		return results;
@@ -96,9 +93,6 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 		}
 		var array = parentValue.getArrayNode();
 		var idx = normalizeIndex(index, array.size());
-		if (idx < 0 || idx > array.size()) {
-			return Val.errorFlux(INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D, array.size(), idx);
-		}
 		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
 		for (var i = 0; i < array.size(); i++) {
 			var element = array.get(i);
@@ -120,7 +114,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 				}
 			} else {
 				log.trace("array element not an object. Do recusive search for first match.");
-				elementFluxes.add(applyFilterStatement(idx, Val.of(element), ctx, relativeNode, stepId, statement));
+				elementFluxes.add(applyFilterStatement(index, Val.of(element), ctx, relativeNode, stepId, statement));
 			}
 		}
 		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);

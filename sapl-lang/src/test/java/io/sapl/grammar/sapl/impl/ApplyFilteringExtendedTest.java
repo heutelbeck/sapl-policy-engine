@@ -212,14 +212,6 @@ public class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	public void removeRecussiveIndexStepObject() {
-		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
-				+ "|- { @..[0] : filter.remove }";
-		var expected = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value3\" } ], \"array2\" : [ 2, 3, 4, 5 ] }";
-		expressionEvaluatesTo(CTX, expression, expected);
-	}
-
-	@Test
 	public void multipleFilterStatements() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
 				+ "|- { @..[0] : filter.remove, @..key : filter.blacken, @.array2[-1] : filter.remove }";
