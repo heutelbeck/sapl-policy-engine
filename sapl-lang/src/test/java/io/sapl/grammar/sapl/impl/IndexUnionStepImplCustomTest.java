@@ -1,7 +1,7 @@
 /**
  * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License";
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -16,65 +16,54 @@
 package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import java.io.IOException;
-
-import org.junit.Before;
 import org.junit.Test;
 
-import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.test.StepVerifier;
 
 public class IndexUnionStepImplCustomTest {
 
-	private EvaluationContext ctx;
+	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
 
-	@Before
-	public void before() {
-		ctx = MockUtil.mockEvaluationContext();
+	@Test
+	public void applyIndexUnionStepToNonArrayFails() {
+		expressionErrors(CTX, "(undefined)[1,2]");
 	}
 
 	@Test
-	public void applyIndexUnionStepToNonArrayFails() throws IOException {
-		var expression = ParserUtil.expression("(undefined)[1,2]");
-		expressionErrors(ctx, expression);
+	public void applyToArray() {
+		var expression = "[0,1,2,3,4,5,6,7,8,9][0,1,-2,10,-10]";
+		var expected = "[0,1,8]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyToArray() throws IOException {
-		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9][0,1,-2,10,-10]");
-		var expected = Val.ofJson("[0,1,8]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void applyToArrayOutOfBounds() {
+		var expression = "[0,1,2,3,4,5,6,7,8,9][100,-100]";
+		var expected = "[]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyToArrayOutOfBounds() throws IOException {
-		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9][100,-100]");
-		var expected = Val.ofJson("[]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void filterNegativeStepArray() {
+		var expression = "\"Otto\" |- { @[1,2,3] : nil }";
+		var expected = "\"Otto\"";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterNegativeStepArray() throws IOException {
-		var expression = ParserUtil.expression("\"Otto\" |- { @[1,2,3] : nil }");
-		var expected = Val.ofJson("\"Otto\"");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void filterElementsInArray() {
+		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[0,1,-2,10,-10] : nil }";
+		var expected = "[null,null,2,3,4,5,6,7,null,9]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterElementsInArray() throws IOException {
-		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9] |- { @[0,1,-2,10,-10] : nil }");
-		var expected = Val.ofJson("[null,null,2,3,4,5,6,7,null,9]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
-	}
-
-	@Test
-	public void filterElementsInDescend() throws IOException {
-		var expression = ParserUtil.expression("[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[1,3][3] : nil }");
-		var expected = Val.ofJson("[[0,1,2,3],[0,1,2,null],[0,1,2,3],[0,1,2,null]]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void filterElementsInDescend() {
+		var expression = "[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[1,3][3] : nil }";
+		var expected = "[[0,1,2,3],[0,1,2,null],[0,1,2,3],[0,1,2,null]]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 }

@@ -18,75 +18,57 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import java.io.IOException;
-
-import org.junit.Before;
 import org.junit.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.grammar.tests.MockFunctionLibrary;
+import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.variables.VariableContext;
 
 public class ApplyFilteringSimpleTest {
 
-	private VariableContext variableCtx;
-	private FunctionContext functionCtx;
-	private EvaluationContext ctx;
+	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
 
-	@Before
-	public void before() {
-		variableCtx = new VariableContext();
-		functionCtx = new AnnotationFunctionContext();
-		functionCtx.loadLibrary(new FilterFunctionLibrary());
-		functionCtx.loadLibrary(new MockFunctionLibrary());
-		ctx = new EvaluationContext(functionCtx, variableCtx);
+	@Test
+	public void filterPropagatesError() {
+		expressionErrors(CTX, "(10/0) |- filter.remove");
 	}
 
 	@Test
-	public void filterPropagatesError() throws IOException {
-		expressionErrors(ctx, "(10/0) |- filter.remove");
+	public void filterUndefined() {
+		expressionErrors(CTX, "undefined |- filter.remove");
 	}
 
 	@Test
-	public void filterUndefined() throws IOException {
-		expressionErrors(ctx, "undefined |- filter.remove");
-	}
-
-	@Test
-	public void removeNoEach() throws IOException {
+	public void removeNoEach() {
 		var expression = "{} |- filter.remove";
 		var expected = Val.UNDEFINED;
-		expressionEvaluatesTo(ctx, expression, expected);
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void removeEachNoArray() throws IOException {
-		expressionErrors(ctx, "{} |- each filter.remove");
+	public void removeEachNoArray() {
+		expressionErrors(CTX, "{} |- each filter.remove");
 	}
 
 	@Test
-	public void removeEachArray() throws IOException {
+	public void removeEachArray() {
 		var expression = "[null] |- each filter.remove";
 		var expected = "[]";
-		expressionEvaluatesTo(ctx, expression, expected);
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void emptyStringNoEach() throws IOException {
+	public void emptyStringNoEach() {
 		var expression = "[] |- mock.emptyString";
 		var expected = "\"\"";
-		expressionEvaluatesTo(ctx, expression, expected);
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void emptyStringEach() throws IOException {
+	public void emptyStringEach() {
 		var expression = "[ null, 5 ] |- each mock.emptyString(null)";
 		var expected = "[ \"\", \"\" ]";
-		expressionEvaluatesTo(ctx, expression, expected);
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 }

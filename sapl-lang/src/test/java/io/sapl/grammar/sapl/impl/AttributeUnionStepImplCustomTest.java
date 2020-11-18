@@ -1,7 +1,7 @@
 /**
  * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License";
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -16,68 +16,55 @@
 package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import java.io.IOException;
-
-import org.junit.Before;
 import org.junit.Test;
 
-import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.test.StepVerifier;
 
 public class AttributeUnionStepImplCustomTest {
 
-	private EvaluationContext ctx;
+	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
 
-	@Before
-	public void before() {
-		ctx = MockUtil.mockEvaluationContext();
+	@Test
+	public void applySlicingToNonObject() {
+		var expression = "\"Otto\"['key1','key2']";
+		expressionErrors(CTX, expression);
 	}
 
 	@Test
-	public void applySlicingToNonObject() throws IOException {
-		var expression = ParserUtil.expression("\"Otto\"['key1','key2']");
-		expressionErrors(ctx, expression);
+	public void applyToEmptyObject() {
+		var expression = "{}['key1','key2']";
+		var expected = "[]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyToEmptyObject() throws IOException {
-		var expression = ParserUtil.expression("{}['key1','key2']");
-		var expected = Val.ofEmptyArray();
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void applyToObject() {
+		var expression = "{ \"key1\" : null, \"key2\" : true,  \"key3\" : false }['key3','key2']";
+		var expected = "[ true, false ]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyToObject() throws IOException {
-		var expression = ParserUtil
-				.expression("{ \"key1\" : null, \"key2\" : true,  \"key3\" : false }['key3','key2']");
-		var expected = Val.ofJson("[ true, false ]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void applyFilterToNonObject() {
+		var expression = "\"Otto\" |- { @['key1','key2'] : nil }";
+		var expected = "\"Otto\"";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyFilterToNonObject() throws IOException {
-		var expression = ParserUtil.expression("\"Otto\" |- { @['key1','key2'] : nil }");
-		var expected = Val.of("Otto");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void filterElementsInObject() {
+		var expression = "{ \"key1\" : 1, \"key2\" : 2,  \"key3\" : 3 } |- { @['key3','key1'] : nil }";
+		var expected = "{ \"key1\" : null, \"key2\" : 2,  \"key3\" : null }";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterElementsInObject() throws IOException {
-		var expression = ParserUtil
-				.expression("{ \"key1\" : 1, \"key2\" : 2,  \"key3\" : 3 } |- { @['key3','key1'] : nil }");
-		var expected = Val.ofJson("{ \"key1\" : null, \"key2\" : 2,  \"key3\" : null }");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
-	}
-
-	@Test
-	public void filterElementsInDescend() throws IOException {
-		var expression = ParserUtil.expression(
-				"{ \"key1\" : [1,2,3], \"key2\" : [1,2,3],  \"key3\" : [1,2,3] } |- { @['key3','key1'][2] : nil }");
-		var expected = Val.ofJson("{ \"key1\" : [1,2,null], \"key2\" : [1,2,3],  \"key3\" : [1,2,null] }");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void filterElementsInDescend() {
+		var expression = "{ \"key1\" : [1,2,3], \"key2\" : [1,2,3],  \"key3\" : [1,2,3] } |- { @['key3','key1'][2] : nil }";
+		var expected = "{ \"key1\" : [1,2,null], \"key2\" : [1,2,3],  \"key3\" : [1,2,null] }";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 }

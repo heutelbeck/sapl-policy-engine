@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -18,14 +17,12 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
-import lombok.extern.slf4j.Slf4j;
 import reactor.test.StepVerifier;
 
-@Slf4j
 @RunWith(Parameterized.class)
 public class StepApplyNullCheckAndErrorPropoagationTest {
 
-	EvaluationContext ctx = mock(EvaluationContext.class);
+	private final static EvaluationContext CTX = mock(EvaluationContext.class);
 
 	private Step step;
 
@@ -47,11 +44,6 @@ public class StepApplyNullCheckAndErrorPropoagationTest {
 		return (List<Object>) instances;
 	}
 
-	@Before
-	public void before() {
-		log.trace("step: {}", step.getClass().getSimpleName());
-	}
-	
 	@Test(expected = NullPointerException.class)
 	public void nullEvaluationContext() {
 		step.apply(Val.UNDEFINED, null, Val.UNDEFINED);
@@ -59,18 +51,18 @@ public class StepApplyNullCheckAndErrorPropoagationTest {
 
 	@Test(expected = NullPointerException.class)
 	public void nullRelativeNode() {
-		step.apply(Val.UNDEFINED, ctx, null);
+		step.apply(Val.UNDEFINED, CTX, null);
 	}
 
 	@Test(expected = NullPointerException.class)
 	public void nullParentNode() {
-		step.apply(null, ctx, Val.UNDEFINED);
+		step.apply(null, CTX, Val.UNDEFINED);
 	}
 
 	@Test
 	public void stepsPropagateErrors() {
 		var error = Val.error("TEST");
-		StepVerifier.create(step.apply(error, ctx, Val.UNDEFINED)).expectNext(error).verifyComplete();
+		StepVerifier.create(step.apply(error, CTX, Val.UNDEFINED)).expectNext(error).verifyComplete();
 	}
 
 	@Test(expected = NullPointerException.class)
@@ -80,16 +72,16 @@ public class StepApplyNullCheckAndErrorPropoagationTest {
 
 	@Test(expected = NullPointerException.class)
 	public void nullRelativeNodeFilter() {
-		step.applyFilterStatement(Val.UNDEFINED, ctx, null, 0, mock(FilterStatement.class));
+		step.applyFilterStatement(Val.UNDEFINED, CTX, null, 0, mock(FilterStatement.class));
 	}
 
 	@Test(expected = NullPointerException.class)
 	public void nullParentNodeFilter() {
-		step.applyFilterStatement(null, ctx, Val.UNDEFINED, 0, mock(FilterStatement.class));
+		step.applyFilterStatement(null, CTX, Val.UNDEFINED, 0, mock(FilterStatement.class));
 	}
 
 	@Test(expected = NullPointerException.class)
 	public void nullFilterStatementFilter() {
-		step.applyFilterStatement(Val.UNDEFINED, ctx, Val.UNDEFINED, 0, null);
+		step.applyFilterStatement(Val.UNDEFINED, CTX, Val.UNDEFINED, 0, null);
 	}
 }

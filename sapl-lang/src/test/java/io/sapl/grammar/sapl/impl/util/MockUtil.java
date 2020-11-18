@@ -61,6 +61,24 @@ public class MockUtil {
 				return Val.of(array);
 			}
 		});
+		when(functionCtx.evaluate(eq("filter.remove"), any())).thenReturn(Val.UNDEFINED);
+		when(functionCtx.evaluate(eq("filter.blacken"), any())).thenAnswer(new Answer<Val>() {
+			@Override
+			public Val answer(InvocationOnMock invocation) {
+				var str = ((Val) invocation.getArgument(1)).getText();
+				return Val.of(("X".repeat(str.length())));
+			}
+		});
+		when(functionCtx.evaluate(eq("simple.append"), any())).thenAnswer(new Answer<Val>() {
+			@Override
+			public Val answer(InvocationOnMock invocation) {
+				var builder = new StringBuilder();
+				for (int i = 1; i < invocation.getArguments().length; i++) {
+					builder.append(((Val) invocation.getArgument(i)).getText());
+				}
+				return Val.of(builder.toString());
+			}
+		});
 		when(ctx.getFunctionCtx()).thenReturn(functionCtx);
 		var attributeCtx = mock(AttributeContext.class);
 		when(attributeCtx.evaluate(eq("test.nilflux"), any(), any(), any())).thenReturn(Flux.just(Val.NULL));
@@ -69,6 +87,9 @@ public class MockUtil {
 		when(ctx.getAttributeCtx()).thenReturn(attributeCtx);
 		var imports = new HashMap<String, String>();
 		imports.put("nil", "mock.nil");
+		imports.put("remove", "filter.remove");
+		imports.put("append", "simple.append");
+		imports.put("blacken", "filter.blacken");
 		imports.put("error", "mock.error");
 		imports.put("emptyString", "mock.emptyString");
 		imports.put("exception", "mock.exception");

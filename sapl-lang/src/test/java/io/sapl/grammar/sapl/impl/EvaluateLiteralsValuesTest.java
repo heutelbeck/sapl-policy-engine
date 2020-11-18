@@ -15,84 +15,67 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 import static org.mockito.Mockito.mock;
-
-import java.io.IOException;
 
 import org.junit.Test;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.test.StepVerifier;
 
 public class EvaluateLiteralsValuesTest {
 
-	private EvaluationContext ctx = mock(EvaluationContext.class);
+	private final static EvaluationContext CTX = mock(EvaluationContext.class);
 
 	@Test
-	public void evaluateNullLiteral() throws IOException {
-		var expression = ParserUtil.expression("null");
-		var expected = Val.NULL;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateNullLiteral() {
+		expressionEvaluatesTo(CTX, "null", "null");
 	}
 
 	@Test
-	public void evaluateTrueLiteral() throws IOException {
-		var expression = ParserUtil.expression("true");
-		var expected = Val.TRUE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateTrueLiteral() {
+		expressionEvaluatesTo(CTX, "true", "true");
 	}
 
 	@Test
-	public void evaluateFalseLiteral() throws IOException {
-		var expression = ParserUtil.expression("false");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateFalseLiteral() {
+		expressionEvaluatesTo(CTX, "false", "false");
 	}
 
 	@Test
-	public void evaluateStringLiteral() throws IOException {
-		var expression = ParserUtil.expression("\"Otto\"");
-		var expected = Val.of("Otto");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateStringLiteral() {
+		expressionEvaluatesTo(CTX, "\"Otto\"", "\"Otto\"");
 	}
 
 	@Test
-	public void evaluateNumberLiteral() throws IOException {
-		var expression = ParserUtil.expression("666");
-		var expected = Val.of(666);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateNumberLiteral() {
+		expressionEvaluatesTo(CTX, "666", "666");
 	}
 
 	@Test
-	public void evaluateEmptyObject() throws IOException {
-		var expression = ParserUtil.expression("{}");
-		var expected = Val.ofEmptyObject();
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateNumberLiteral2() {
+		expressionEvaluatesTo(CTX, "1", "1.0");
 	}
 
 	@Test
-	public void evaluateObject() throws IOException {
+	public void evaluateEmptyObject() {
+		expressionEvaluatesTo(CTX, "{}", "{}");
+	}
+
+	@Test
+	public void evaluateObject() {
 		var json = "{ \"key1\" : null, \"key2\" : true }";
-		var expression = ParserUtil.expression(json);
-		var expected = Val.ofJson(json);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+		expressionEvaluatesTo(CTX, json, json);
 	}
 
 	@Test
-	public void evaluateEmptyArray() throws IOException {
-		var expression = ParserUtil.expression("[]");
-		var expected = Val.ofEmptyArray();
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateEmptyArray() {
+		expressionEvaluatesTo(CTX, "[]", "[]");
 	}
 
 	@Test
-	public void evaluateArray() throws IOException {
+	public void evaluateArray() {
 		var json = "[null,true,false]";
-		var expression = ParserUtil.expression(json);
-		var expected = Val.ofJson(json);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+		expressionEvaluatesTo(CTX, json, json);
 	}
 
 }

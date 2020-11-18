@@ -359,8 +359,9 @@ public class Val {
 	public String getText() {
 		if (isTextual()) {
 			return value.textValue();
+		} else {
+			return value.toString();
 		}
-		throw new PolicyEvaluationException(TEXT_OPERATION_TYPE_MISMATCH_S, typeOf(this));
 	}
 
 	public static Val requireBoolean(Val value) {

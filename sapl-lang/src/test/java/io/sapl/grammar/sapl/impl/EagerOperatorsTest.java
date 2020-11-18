@@ -16,6 +16,7 @@
 package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -23,794 +24,635 @@ import java.io.IOException;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.test.StepVerifier;
 
 public class EagerOperatorsTest {
 
-	EvaluationContext ctx = mock(EvaluationContext.class);
+	EvaluationContext CTX = mock(EvaluationContext.class);
 
 	@Test
-	public void evaluateEagerAndFalseFalse() throws IOException {
-		var expression = ParserUtil.expression("false & false");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEagerAndFalseFalse() {
+		expressionEvaluatesTo(CTX, "false & false", "false");
 	}
 
 	@Test
-	public void evaluateEagerAndTrueFalse() throws IOException {
-		var expression = ParserUtil.expression("true & false");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEagerAndTrueFalse() {
+		expressionEvaluatesTo(CTX, "true & false", "false");
 	}
 
 	@Test
-	public void evaluateEagerAndFalseTrue() throws IOException {
-		var expression = ParserUtil.expression("false & true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEagerAndFalseTrue() {
+		expressionEvaluatesTo(CTX, "false & true", "false");
 	}
 
 	@Test
-	public void evaluateEagerAndTrueTrue() throws IOException {
-		var expression = ParserUtil.expression("true & true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateEagerAndTrueTrue() {
+		expressionEvaluatesTo(CTX, "true & true", "true");
 	}
 
 	@Test
-	public void evaluateEagerAndWrongDatatypeLeft() throws IOException {
-		var expression = ParserUtil.expression("5 & true");
-		expressionErrors(ctx, expression);
+	public void evaluateEagerAndWrongDatatypeLeft() {
+		expressionErrors(CTX, "5 & true");
 	}
 
 	@Test
-	public void evaluateEagerAndLeftTrueWrongDatatypeRight() throws IOException {
-		var expression = ParserUtil.expression("true & 5");
-		expressionErrors(ctx, expression);
+	public void evaluateEagerAndLeftTrueWrongDatatypeRight() {
+		expressionErrors(CTX, "true & 5");
 	}
 
 	@Test
-	public void evaluateEagerAndLeftFalseWrongDatatypeRight() throws IOException {
-		var expression = ParserUtil.expression("false & 5");
-		expressionErrors(ctx, expression);
+	public void evaluateEagerAndLeftFalseWrongDatatypeRight() {
+		expressionErrors(CTX, "false & 5");
 	}
 
 	@Test
-	public void evaluateEagerAndLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) & true");
-		expressionErrors(ctx, expression);
+	public void evaluateEagerAndLeftError() {
+		expressionErrors(CTX, "(10/0) & true");
 	}
 
 	@Test
-	public void evaluateEagerAndRightError() throws IOException {
-		var expression = ParserUtil.expression("true & (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateEagerAndRightError() {
+		expressionErrors(CTX, "true & (10/0)");
 	}
 
 	@Test
-	public void evaluateEagerOrFalseFalse() throws IOException {
-		var expression = ParserUtil.expression("false | false");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEagerOrFalseFalse() {
+		expressionEvaluatesTo(CTX, "false | false", "false");
 	}
 
 	@Test
-	public void evaluateEagerOrTrueFalse() throws IOException {
-		var expression = ParserUtil.expression("true | false");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateEagerOrTrueFalse() {
+		expressionEvaluatesTo(CTX, "true | false", "true");
 	}
 
 	@Test
-	public void evaluateEagerOrFalseTrue() throws IOException {
-		var expression = ParserUtil.expression("false | true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateEagerOrFalseTrue() {
+		expressionEvaluatesTo(CTX, "false | true", "true");
 	}
 
 	@Test
-	public void evaluateEagerOrWrongDatatypeLeft() throws IOException {
-		var expression = ParserUtil.expression("5 | true");
-		expressionErrors(ctx, expression);
+	public void evaluateEagerOrWrongDatatypeLeft() {
+		expressionErrors(CTX, "5 | true");
 	}
 
 	@Test
-	public void evaluateEagerOrWrongDatatypeRightLeftFalse() throws IOException {
-		var expression = ParserUtil.expression("false | 7");
-		expressionErrors(ctx, expression);
+	public void evaluateEagerOrWrongDatatypeRightLeftFalse() {
+		expressionErrors(CTX, "false | 7");
 	}
 
 	@Test
-	public void evaluateEagerOrWrongDatatypeRightLeftTrue() throws IOException {
-		var expression = ParserUtil.expression("true | 7");
-		expressionErrors(ctx, expression);
+	public void evaluateEagerOrWrongDatatypeRightLeftTrue() {
+		expressionErrors(CTX, "true | 7");
 	}
 
 	@Test
-	public void evaluateEagerOrLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) | true");
-		expressionErrors(ctx, expression);
+	public void evaluateEagerOrLeftError() {
+		expressionErrors(CTX, "(10/0) | true");
 	}
 
 	@Test
-	public void evaluateEagerOrRightError() throws IOException {
-		var expression = ParserUtil.expression("true | (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateEagerOrRightError() {
+		expressionErrors(CTX, "true | (10/0)");
 	}
 
 	@Test
-	public void evaluateNotEqualsFalse() throws IOException {
-		var expression = ParserUtil.expression("true != true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateNotEqualsFalse() {
+		expressionEvaluatesTo(CTX, "true != true", "false");
 	}
 
 	@Test
-	public void evaluateNotEqualsTrue() throws IOException {
-		var expression = ParserUtil.expression("null != true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateNotEqualsTrue() {
+		expressionEvaluatesTo(CTX, "null != true", "true");
 	}
 
 	@Test
-	public void evaluateNotEqualsNullLeftAndStringRightTrue() throws IOException {
-		var expression = ParserUtil.expression("null != \"x\"");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateNotEqualsNullLeftAndStringRightTrue() {
+		expressionEvaluatesTo(CTX, "null != \"x\"", "true");
 	}
 
 	@Test
-	public void evaluateNotEqualsNullLeftAndNullRightFalse() throws IOException {
-		var expression = ParserUtil.expression("null != null");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateNotEqualsNullLeftAndNullRightFalse() {
+		expressionEvaluatesTo(CTX, "null != null", "false");
 	}
 
 	@Test
-	public void evaluateNotEqualsNumericalFalse() throws IOException {
-		var expression = ParserUtil.expression("17 != 17.0");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateNotEqualsNumericalFalse() {
+		expressionEvaluatesTo(CTX, "17 != 17.0", "false");
 	}
 
 	@Test
-	public void evaluateNotEqualsNumericalTrue() throws IOException {
-		var expression = ParserUtil.expression("17 != (17+2)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateNotEqualsNumericalTrue() {
+		expressionEvaluatesTo(CTX, "17 != (17+2)", "true");
 	}
 
 	@Test
-	public void evaluateNotEqualsLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) != true");
-		expressionErrors(ctx, expression);
+	public void evaluateNotEqualsLeftError() {
+		expressionErrors(CTX, "(10/0) != true");
 	}
 
 	@Test
-	public void evaluateNotEqualsRightError() throws IOException {
-		var expression = ParserUtil.expression("true != (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateNotEqualsRightError() {
+		expressionErrors(CTX, "true != (10/0)");
 	}
 
 	@Test
-	public void evaluateNotEqualsOnlyRightNumberFalse() throws IOException {
-		var expression = ParserUtil.expression("\"x\" != 12");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateNotEqualsOnlyRightNumberFalse() {
+		expressionEvaluatesTo(CTX, "\"x\" != 12", "true");
 	}
 
 	@Test
-	public void evaluateNotEqualsOnlyLeftNumberFalse() throws IOException {
-		var expression = ParserUtil.expression("12 != \"x\"");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateNotEqualsOnlyLeftNumberFalse() {
+		expressionEvaluatesTo(CTX, "12 != \"x\"", "true");
 	}
 
 	@Test
-	public void evaluateNotEqualsArraysFalse() throws IOException {
-		var expression = ParserUtil.expression("[1,2,3] != [1,2,3])");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateNotEqualsArraysFalse() {
+		expressionEvaluatesTo(CTX, "[1,2,3] != [1,2,3]", "false");
 	}
 
 	@Test
-	public void evaluateNotEqualsArraysTrue() throws IOException {
-		var expression = ParserUtil.expression("[1,3] != [1,2,3])");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateNotEqualsArraysTrue() {
+		expressionEvaluatesTo(CTX, "[1,3] != [1,2,3]", "true");
 	}
 
 	@Test
-	public void evaluateNotEqualsObjectsFalse() throws IOException {
-		var expression = ParserUtil.expression("{ \"key\" : true } != { \"key\" : true })");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateNotEqualsObjectsFalse() {
+		expressionEvaluatesTo(CTX, "{ \"key\" : true } != { \"key\" : true })", "false");
 	}
 
 	@Test
-	public void evaluateNotEqualsObjectsTrue() throws IOException {
-		var expression = ParserUtil.expression("{ \"key\" : true } != { \"key\" : false })");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateNotEqualsObjectsTrue() {
+		expressionEvaluatesTo(CTX, "{ \"key\" : true } != { \"key\" : false })", "true");
 	}
 
 	@Test
-	public void evaluateNotEqualsBothUndefinedFalse() throws IOException {
-		var expression = ParserUtil.expression("undefined != undefined");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateNotEqualsBothUndefinedFalse() {
+		expressionEvaluatesTo(CTX, "undefined != undefined", "false");
 	}
 
 	@Test
-	public void evaluateNotEqualsLeftUndefinedTrue() throws IOException {
-		var expression = ParserUtil.expression("undefined != 0");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateNotEqualsLeftUndefinedTrue() {
+		expressionEvaluatesTo(CTX, "undefined != 0", "true");
 	}
 
 	@Test
-	public void evaluateNotEqualsRightUndefinedTrue() throws IOException {
-		var expression = ParserUtil.expression("0 != undefined");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateNotEqualsRightUndefinedTrue() {
+		expressionEvaluatesTo(CTX, "0 != undefined", "true");
 	}
 
 	@Test
-	public void evaluateEqualsTrue() throws IOException {
-		var expression = ParserUtil.expression("true == true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateEqualsTrue() {
+		expressionEvaluatesTo(CTX, "true == true", "true");
 	}
 
 	@Test
-	public void evaluateEqualsFalse() throws IOException {
-		var expression = ParserUtil.expression("null == true");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEqualsFalse() {
+		expressionEvaluatesTo(CTX, "null == true", "false");
 	}
 
 	@Test
-	public void evaluateEqualsNullLeftAndStringRightFalse() throws IOException {
-		var expression = ParserUtil.expression("null == \"a\"");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEqualsNullLeftAndStringRightFalse() {
+		expressionEvaluatesTo(CTX, "null == \"a\"", "false");
 	}
 
 	@Test
-	public void evaluateEqualsNullLeftAndNullRightTrue() throws IOException {
-		var expression = ParserUtil.expression("null == null");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateEqualsNullLeftAndNullRightTrue() {
+		expressionEvaluatesTo(CTX, "null == null", "true");
 	}
 
 	@Test
-	public void evaluateEqualsBothUndefinedTrue() throws IOException {
-		var expression = ParserUtil.expression("undefined == undefined");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateEqualsBothUndefinedTrue() {
+		expressionEvaluatesTo(CTX, "undefined == undefined", "true");
 	}
 
 	@Test
-	public void evaluateEqualsLeftUndefinedFalse() throws IOException {
-		var expression = ParserUtil.expression("undefined == 0");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEqualsLeftUndefinedFalse() {
+		expressionEvaluatesTo(CTX, "undefined == 0", "false");
 	}
 
 	@Test
-	public void evaluateEqualsRightUndefinedFalse() throws IOException {
-		var expression = ParserUtil.expression("0 == undefined");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEqualsRightUndefinedFalse() {
+		expressionEvaluatesTo(CTX, "0 == undefined", "false");
 	}
 
 	@Test
-	public void evaluateEqualsNumbersTrue() throws IOException {
-		var expression = ParserUtil.expression("10.0 == (12 - 2)");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateEqualsNumbersTrue() {
+		expressionEvaluatesTo(CTX, "10.0 == (12 - 2)", "true");
 	}
 
 	@Test
-	public void evaluateEqualsNumbersFalse() throws IOException {
-		var expression = ParserUtil.expression("10.0 == 12");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEqualsNumbersFalse() {
+		expressionEvaluatesTo(CTX, "10.0 == 12", "false");
 	}
 
 	@Test
-	public void evaluateEqualsOnlyRightNumberFalse() throws IOException {
-		var expression = ParserUtil.expression("\"x\" == 12");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEqualsOnlyRightNumberFalse() {
+		expressionEvaluatesTo(CTX, "\"x\" == 12", "false");
 	}
 
 	@Test
-	public void evaluateEqualsOnlyLeftNumberFalse() throws IOException {
-		var expression = ParserUtil.expression("12 == \"x\"");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEqualsOnlyLeftNumberFalse() {
+		expressionEvaluatesTo(CTX, "12 == \"x\"", "false");
 	}
 
 	@Test
-	public void evaluateEqualsArraysTrue() throws IOException {
-		var expression = ParserUtil.expression("[1,2,3] == [1,2,3])");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateEqualsArraysTrue() {
+		expressionEvaluatesTo(CTX, "[1,2,3] == [1,2,3]", "true");
 	}
 
 	@Test
-	public void evaluateEqualsArraysFalse() throws IOException {
-		var expression = ParserUtil.expression("[1,3] == [1,2,3])");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEqualsArraysFalse() {
+		expressionEvaluatesTo(CTX, "[1,3] == [1,2,3]", "false");
 	}
 
 	@Test
-	public void evaluateEqualsObjectsTrue() throws IOException {
-		var expression = ParserUtil.expression("{ \"key\" : true } == { \"key\" : true })");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateEqualsObjectsTrue() {
+		expressionEvaluatesTo(CTX, "{ \"key\" : true } == { \"key\" : true }", "true");
 	}
 
 	@Test
-	public void evaluateEqualsObjectsFalse() throws IOException {
-		var expression = ParserUtil.expression("{ \"key\" : true } == { \"key\" : false })");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateEqualsObjectsFalse() {
+		expressionEvaluatesTo(CTX, "{ \"key\" : true } == { \"key\" : false })", "false");
 	}
 
 	@Test
-	public void evaluateEqualsLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) == true");
-		expressionErrors(ctx, expression);
+	public void evaluateEqualsLeftError() {
+		expressionErrors(CTX, "(10/0) == true");
 	}
 
 	@Test
-	public void evaluateEqualsRightError() throws IOException {
-		var expression = ParserUtil.expression("true == (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateEqualsRightError() {
+		expressionErrors(CTX, "true == (10/0)");
 	}
 
 	@Test
-	public void evaluateMoreEquals1ge1() throws IOException {
-		var expression = ParserUtil.expression("1 >= 1");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateMoreEquals1ge1() {
+		expressionEvaluatesTo(CTX, "1 >= 1", "true");
 	}
 
 	@Test
-	public void evaluateMoreEquals1ge10() throws IOException {
-		var expression = ParserUtil.expression("1 >= 10");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateMoreEquals1ge10() {
+		expressionEvaluatesTo(CTX, "1 >= 10", "false");
 	}
 
 	@Test
-	public void evaluateMoreEquals10ge1() throws IOException {
-		var expression = ParserUtil.expression("10 >= 1");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateMoreEquals10ge1() {
+		expressionEvaluatesTo(CTX, "10 >= 1", "true");
 	}
 
 	@Test
-	public void evaluateMoreEqualsLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) >= 10");
-		expressionErrors(ctx, expression);
+	public void evaluateMoreEqualsLeftError() {
+		expressionErrors(CTX, "(10/0) >= 10");
 	}
 
 	@Test
-	public void evaluateMoreEqualsRightError() throws IOException {
-		var expression = ParserUtil.expression("10 >= (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateMoreEqualsRightError() {
+		expressionErrors(CTX, "10 >= (10/0)");
 	}
 
 	@Test
-	public void evaluateMore1gt1() throws IOException {
-		var expression = ParserUtil.expression("1 > 1");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateMore1gt1() {
+		expressionEvaluatesTo(CTX, "1 > 1", "false");
 	}
 
 	@Test
-	public void evaluateMore1gt10() throws IOException {
-		var expression = ParserUtil.expression("1 > 10");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateMore1gt10() {
+		expressionEvaluatesTo(CTX, "1 > 10", "false");
 	}
 
 	@Test
-	public void evaluateMore10gt1() throws IOException {
-		var expression = ParserUtil.expression("10 > 1");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateMore10gt1() {
+		expressionEvaluatesTo(CTX, "10 > 1", "true");
 	}
 
 	@Test
-	public void evaluateMoreLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) > 10");
-		expressionErrors(ctx, expression);
+	public void evaluateMoreLeftError() {
+		expressionErrors(CTX, "(10/0) > 10");
 	}
 
 	@Test
-	public void evaluateMoreRightError() throws IOException {
-		var expression = ParserUtil.expression("10 > (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateMoreRightError() {
+		expressionErrors(CTX, "10 > (10/0)");
 	}
 
 	@Test
-	public void evaluateLessEquals1le1() throws IOException {
-		var expression = ParserUtil.expression("1 <= 1");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateLessEquals1le1() {
+		expressionEvaluatesTo(CTX, "1 <= 1", "true");
 	}
 
 	@Test
-	public void evaluateLessEquals1le10() throws IOException {
-		var expression = ParserUtil.expression("1 <= 10");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateLessEquals1le10() {
+		expressionEvaluatesTo(CTX, "1 <= 10", "true");
 	}
 
 	@Test
-	public void evaluateLessEquals10le1() throws IOException {
-		var expression = ParserUtil.expression("10 <= 1");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateLessEquals10le1() {
+		expressionEvaluatesTo(CTX, "10 <= 1", "false");
 	}
 
 	@Test
-	public void evaluateLessEqualsLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) <= 10");
-		expressionErrors(ctx, expression);
+	public void evaluateLessEqualsLeftError() {
+		expressionErrors(CTX, "(10/0) <= 10");
 	}
 
 	@Test
-	public void evaluateLessEqualsRightError() throws IOException {
-		var expression = ParserUtil.expression("10 <= (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateLessEqualsRightError() {
+		expressionErrors(CTX, "10 <= (10/0)");
 	}
 
 	@Test
-	public void evaluateLess1lt1() throws IOException {
-		var expression = ParserUtil.expression("1 < 1");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateLess1lt1() {
+		expressionEvaluatesTo(CTX, "1 < 1", "false");
 	}
 
 	@Test
-	public void evaluateLess1lt10() throws IOException {
-		var expression = ParserUtil.expression("1 < 10");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.TRUE).verifyComplete();
+	public void evaluateLess1lt10() {
+		expressionEvaluatesTo(CTX, "1 < 10", "true");
 	}
 
 	@Test
-	public void evaluateLess10lt1() throws IOException {
-		var expression = ParserUtil.expression("10 < 1");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(Val.FALSE).verifyComplete();
+	public void evaluateLess10lt1() {
+		expressionEvaluatesTo(CTX, "10 < 1", "false");
 	}
 
 	@Test
-	public void evaluateLessLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) < 10");
-		expressionErrors(ctx, expression);
+	public void evaluateLessLeftError() {
+		expressionErrors(CTX, "(10/0) < 10");
 	}
 
 	@Test
-	public void evaluateLessRightError() throws IOException {
-		var expression = ParserUtil.expression("10 < (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateLessRightError() {
+		expressionErrors(CTX, "10 < (10/0)");
 	}
 
 	@Test
-	public void divEvaluationShouldFailWithNonNumberLeft() throws IOException {
-		var expression = ParserUtil.expression("null/10");
-		expressionErrors(ctx, expression);
+	public void divEvaluationShouldFailWithNonNumberLeft() {
+		expressionErrors(CTX, "null/10");
 	}
 
 	@Test
-	public void divEvaluationShouldFailWithNonNumberRight() throws IOException {
-		var expression = ParserUtil.expression("10/null");
-		expressionErrors(ctx, expression);
+	public void divEvaluationShouldFailWithNonNumberRight() {
+		expressionErrors(CTX, "10/null");
 	}
 
 	@Test
-	public void divEvaluationShouldFailDivisionByZero() throws IOException {
-		var expression = ParserUtil.expression("10/0");
-		expressionErrors(ctx, expression);
+	public void divEvaluationShouldFailDivisionByZero() {
+		expressionErrors(CTX, "10/0");
 	}
 
 	@Test
-	public void divEvaluationSucceed() throws IOException {
-		var expression = ParserUtil.expression("10/2");
-		var expected = Val.of(5);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void divEvaluationSucceed() {
+		expressionEvaluatesTo(CTX, "10/2", "5");
 	}
 
 	@Test
-	public void evaluateDivLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) / 5");
-		expressionErrors(ctx, expression);
+	public void evaluateDivLeftError() {
+		expressionErrors(CTX, "(10/0) / 5");
 	}
 
 	@Test
-	public void evaluateDivRightError() throws IOException {
-		var expression = ParserUtil.expression("10 / (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateDivRightError() {
+		expressionErrors(CTX, "10 / (10/0)");
 	}
 
-	// FIXME.. why spaces needed ? "2.0-10" fails
+	// FIXME: why spaces needed ? "2.0-10" fails
 	@Test
-	public void evaluate2Minus10() throws IOException {
-		var expression = ParserUtil.expression("2.0 - 10");
-		var expected = Val.of(-8);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluate2Minus10() {
+		expressionEvaluatesTo(CTX, "2.0 - 10", "-8");
 	}
 
-	// FIXME.. why spaces needed ? "10-2" fails
+	// FIXME: why spaces needed ? "10-2" fails
 	@Test
-	public void evaluate10Minus2() throws IOException {
-		var expression = ParserUtil.expression("10 - 2");
-		var expected = Val.of(8);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluate10Minus2() {
+		expressionEvaluatesTo(CTX, "10 - 2", "8");
 	}
 
 	@Test
-	public void evaluate1Minus1() throws IOException {
-		var expression = ParserUtil.expression("1 - 1");
-		var expected = Val.of(0);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluate1Minus1() {
+		expressionEvaluatesTo(CTX, "1 - 1", "0");
 	}
 
+	@Test
 	@Ignore
-	@Test
-	// FIXME
-	public void evaluate1Minus1BAD() throws IOException {
-		var expression = ParserUtil.expression("1-1");
-		var expected = Val.of(0);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	// FIXME: needs spaces
+	public void evaluate1Minus1BAD() {
+		expressionEvaluatesTo(CTX, "1-1", "0");
 	}
 
+	@Test
 	@Ignore
-	@Test
-	// FIXME
-	public void evaluateBAD() throws IOException {
-		var expression = ParserUtil.expression("5+5-3");
-		var expected = Val.of(7);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	// FIXME: needs spaces
+	public void evaluateBAD() {
+		expressionEvaluatesTo(CTX, "5+5-3", "7");
 	}
 
 	@Test
-	public void evaluateMinusLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) - 5");
-		expressionErrors(ctx, expression);
+	public void evaluateMinusLeftError() {
+		expressionErrors(CTX, "(10/0) - 5");
 	}
 
 	@Test
-	public void evaluateMinusRightError() throws IOException {
-		var expression = ParserUtil.expression("10 - (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateMinusRightError() {
+		expressionErrors(CTX, "10 - (10/0)");
 	}
 
 	@Test
-	public void evaluate2Multi10() throws IOException {
-		var expression = ParserUtil.expression("2*10");
-		var expected = Val.of(20);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluate2Multi10() {
+		expressionEvaluatesTo(CTX, "2*10", "20");
 	}
 
 	@Test
-	public void evaluate10Multi2() throws IOException {
-		var expression = ParserUtil.expression("10*2");
-		var expected = Val.of(20);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluate10Multi2() {
+		expressionEvaluatesTo(CTX, "10*2", "20");
 	}
 
 	@Test
-	public void evaluate1Multi1() throws IOException {
-		var expression = ParserUtil.expression("1*1");
-		var expected = Val.of(1);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluate1Multi1() {
+		expressionEvaluatesTo(CTX, "1*1", "1");
 	}
 
 	@Test
-	public void evaluateMultiLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) * 5");
-		expressionErrors(ctx, expression);
+	public void evaluateMultiLeftError() {
+		expressionErrors(CTX, "(10/0) * 5");
 	}
 
 	@Test
-	public void evaluateMultiRightError() throws IOException {
-		var expression = ParserUtil.expression("10 * (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateMultiRightError() {
+		expressionErrors(CTX, "10 * (10/0)");
 	}
 
 	@Test
-	public void evaluateNotOnBooleanTrue() throws IOException {
-		var expression = ParserUtil.expression("!true");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateNotOnBooleanTrue() {
+		expressionEvaluatesTo(CTX, "!true", "false");
 	}
 
 	@Test
-	public void evaluateNotOnBooleanFalse() throws IOException {
-		var expression = ParserUtil.expression("!false");
-		var expected = Val.TRUE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateNotOnBooleanFalse() {
+		expressionEvaluatesTo(CTX, "!false", "true");
 	}
 
 	@Test
-	public void evaluateNotOnWrongType() throws IOException {
-		var expression = ParserUtil.expression("![1,2,3]");
-		expressionErrors(ctx, expression);
+	public void evaluateNotOnWrongType() {
+		expressionErrors(CTX, "![1,2,3]");
 	}
 
 	@Test
-	public void evaluateNotOnError() throws IOException {
-		var expression = ParserUtil.expression("!(10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateNotOnError() {
+		expressionErrors(CTX, "!(10/0)");
 	}
 
 	@Test
-	public void unaryMinus() throws IOException {
-		var expression = ParserUtil.expression("-(1)");
-		var expected = Val.of(-1);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void unaryMinus() {
+		expressionEvaluatesTo(CTX, "-(1)", "-1");
 	}
 
 	@Test
-	public void unaryMinusOnError() throws IOException {
-		var expression = ParserUtil.expression("-(10/0)");
-		expressionErrors(ctx, expression);
+	public void unaryMinusOnError() {
+		expressionErrors(CTX, "-(10/0)");
 	}
 
 	@Test
-	public void unaryMinusWrongType() throws IOException {
-		var expression = ParserUtil.expression("-null");
-		expressionErrors(ctx, expression);
+	public void unaryMinusWrongType() {
+		expressionErrors(CTX, "-null");
 	}
 
 	@Test
-	public void evaluatePlusOnStrings() throws IOException {
-		var expression = ParserUtil.expression("\"part a &\" + \" part b\"");
-		var expected = Val.of("part a & part b");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluatePlusOnStrings() {
+		expressionEvaluatesTo(CTX, "\"part a &\" + \" part b\"", "\"part a & part b\"");
 	}
 
 	@Test
-	public void evaluatePlusOnLeftString() throws IOException {
-		var expression = ParserUtil.expression("\"part a &\" + 1");
-		var expected = Val.of("part a &1");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluatePlusOnLeftString() {
+		expressionEvaluatesTo(CTX, "\"part a &\" + 1", "\"part a &1\"");
 	}
 
 	@Test
-	public void evaluatePlusOnRightString() throws IOException {
-		var expression = ParserUtil.expression("1 + \"part a &\"");
-		var expected = Val.of("1part a &");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluatePlusOnRightString() {
+		expressionEvaluatesTo(CTX, "1 + \"part a &\"", "\"1part a &\"");
 	}
 
 	@Test
-	public void evaluatePlusOnNumbers() throws IOException {
-		var expression = ParserUtil.expression("1+2");
-		var expected = Val.of(3);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluatePlusOnNumbers() {
+		expressionEvaluatesTo(CTX, "1+2", "3");
 	}
 
 	@Test
-	public void evaluatePlusLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) + 10");
-		expressionErrors(ctx, expression);
+	public void evaluatePlusLeftError() {
+		expressionErrors(CTX, "(10/0) + 10");
 	}
 
 	@Test
-	public void evaluatePlusRightError() throws IOException {
-		var expression = ParserUtil.expression("10 + (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluatePlusRightError() {
+		expressionErrors(CTX, "10 + (10/0)");
 	}
 
 	@Test
-	public void evaluateElementOfOnWrongType() throws IOException {
-		var expression = ParserUtil.expression("\"A\" in \"B\"");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateElementOfOnWrongType() {
+		expressionEvaluatesTo(CTX, "\"A\" in \"B\"", "false");
 	}
 
 	@Test
-	public void evaluateElementOfOneElement() throws IOException {
-		var expression = ParserUtil.expression("\"A\" in [\"A\"]");
-		var expected = Val.TRUE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateElementOfOneElement() {
+		expressionEvaluatesTo(CTX, "\"A\" in [\"A\"]", "true");
 	}
 
 	@Test
-	public void evaluateElementOfTwoElementsTrue() throws IOException {
-		var expression = ParserUtil.expression("\"A\" in [\"B\", \"A\"]");
-		var expected = Val.TRUE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateElementOfTwoElementsTrue() {
+		expressionEvaluatesTo(CTX, "\"A\" in [\"B\", \"A\"]", "true");
 	}
 
 	@Test
-	public void evaluateElementOfTwoElementsFalse() throws IOException {
-		var expression = ParserUtil.expression("\"C\" in [\"B\", \"A\"]");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateElementOfTwoElementsFalse() {
+		expressionEvaluatesTo(CTX, "\"C\" in [\"B\", \"A\"]", "false");
 	}
 
 	@Test
-	public void evaluateElementOfNullLeftAndEmptyArrayFalse() throws IOException {
-		var expression = ParserUtil.expression("null in []");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateElementOfNullLeftAndEmptyArrayFalse() {
+		expressionEvaluatesTo(CTX, "null in []", "false");
 	}
 
 	@Test
-	public void evaluateElementOfNullLeftAndArrayWithNullElementTrue() throws IOException {
-		var expression = ParserUtil.expression("null in [null]");
-		var expected = Val.TRUE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateElementOfNullLeftAndArrayWithNullElementTrue() {
+		expressionEvaluatesTo(CTX, "null in [null]", "true");
 	}
 
 	@Test
-	public void evaluateElementOfUndefinedHaystack() throws IOException {
-		var expression = ParserUtil.expression("\"C\" in undefined");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateElementOfUndefinedHaystack() {
+		expressionEvaluatesTo(CTX, "\"C\" in undefined", "false");
 	}
 
 	@Test
-	public void evaluateElementOfUndefinedNeedle() throws IOException {
-		var expression = ParserUtil.expression("undefined in [1,2,3]");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateElementOfUndefinedNeedle() {
+		expressionEvaluatesTo(CTX, "undefined in [1,2,3]", "false");
 	}
 
 	@Test
-	public void evaluateElementOfNumbersTrue() throws IOException {
-		var expression = ParserUtil.expression("1 in [2, 1.0]");
-		var expected = Val.TRUE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateElementOfNumbersTrue() {
+		expressionEvaluatesTo(CTX, "1 in [2, 1.0]", "true");
 	}
 
 	@Test
-	public void evaluateElementOfNumbersFalse() throws IOException {
-		var expression = ParserUtil.expression("1 in [2, \"1.0\"]");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateElementOfNumbersFalse() {
+		expressionEvaluatesTo(CTX, "1 in [2, \"1.0\"]", "false");
 	}
 
 	@Test
 	public void evaluateElementOfNumbersTrue2() throws IOException {
-		var expression = ParserUtil.expression("1 in [2, 001.000]");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+		expressionEvaluatesTo(CTX, "1 in [2, 1.000]", "true");
 	}
 
 	@Test
-	public void evaluateElementOfLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) in []");
-		expressionErrors(ctx, expression);
+	public void evaluateElementOfLeftError() {
+		expressionErrors(CTX, "(10/0) in []");
 	}
 
 	@Test
-	public void evaluateElementOfRightError() throws IOException {
-		var expression = ParserUtil.expression("10 in (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateElementOfRightError() {
+		expressionErrors(CTX, "10 in (10/0)");
 	}
 
 	@Test
-	public void evaluateRegExTrue() throws IOException {
-		var expression = ParserUtil.expression("\"test\"=~\".*\"");
-		var expected = Val.TRUE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateRegExTrue() {
+		expressionEvaluatesTo(CTX, "\"test\"=~\".*\"", "true");
 	}
 
 	@Test
-	public void evaluateRegExFalse() throws IOException {
-		var expression = ParserUtil.expression("\"test\"=~\".\"");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateRegExFalse() {
+		expressionEvaluatesTo(CTX, "\"test\"=~\".\"", "false");
 	}
 
 	@Test
-	public void evaluateRegExPatternError() throws IOException {
-		var expression = ParserUtil.expression("\"test\"=~\"***\"");
-		expressionErrors(ctx, expression);
+	public void evaluateRegExPatternError() {
+		expressionErrors(CTX, "\"test\"=~\"***\"");
 	}
 
 	@Test
-	public void evaluateRegExLeftNull() throws IOException {
-		var expression = ParserUtil.expression("null =~ \"\"");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateRegExLeftNull() {
+		expressionEvaluatesTo(CTX, "null =~ \"\"", "false");
 	}
 
 	@Test
-	public void evaluateRegExLeftUndefined() throws IOException {
-		var expression = ParserUtil.expression("undefined =~ \"\"");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateRegExLeftUndefined() {
+		expressionEvaluatesTo(CTX, "undefined =~ \"\"", "false");
 	}
 
 	@Test
-	public void evaluateRegExLeftWrongType() throws IOException {
-		var expression = ParserUtil.expression("666 =~ \"\"");
-		var expected = Val.FALSE;
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateRegExLeftWrongType() {
+		expressionEvaluatesTo(CTX, "666 =~ \"\"", "false");
 	}
 
 	@Test
-	public void evaluateRegExRightWrongType() throws IOException {
-		var expression = ParserUtil.expression("\"test\" =~ null");
-		expressionErrors(ctx, expression);
+	public void evaluateRegExRightWrongType() {
+		expressionErrors(CTX, "\"test\" =~ null");
 	}
 
 	@Test
-	public void evaluateRegExLeftError() throws IOException {
-		var expression = ParserUtil.expression("(10/0) =~ null");
-		expressionErrors(ctx, expression);
+	public void evaluateRegExLeftError() {
+		expressionErrors(CTX, "(10/0) =~ null");
 	}
 
 	@Test
-	public void evaluateRegExRightError() throws IOException {
-		var expression = ParserUtil.expression("\"aaa\" =~ (10/0)");
-		expressionErrors(ctx, expression);
+	public void evaluateRegExRightError() {
+		expressionErrors(CTX, "\"aaa\" =~ (10/0)");
 	}
 }

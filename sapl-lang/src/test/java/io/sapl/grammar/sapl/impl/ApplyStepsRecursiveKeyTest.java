@@ -1,7 +1,7 @@
 /**
  * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License";
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -18,82 +18,71 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import java.io.IOException;
-
 import org.junit.Test;
 
-import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.EvaluationContext;
 
 public class ApplyStepsRecursiveKeyTest {
 
-	EvaluationContext ctx = MockUtil.mockEvaluationContext();
+	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
 
 	@Test
-	public void recursiveKeyStepPropagatesErrors() throws IOException {
-		var expression = ParserUtil.expression("(10/0)..key");
-		expressionErrors(ctx,expression);
+	public void recursiveKeyStepPropagatesErrors() {
+		expressionErrors(CTX, "(10/0)..key");
 	}
 
 	@Test
-	public void recursiveKeyStepOnUndefinedIsEmpty() throws IOException {
-		var expression = ParserUtil.expression("undefined..key");
-		var expected = Val.ofEmptyArray();
-		expressionEvaluatesTo(ctx,expression,expected);
+	public void recursiveKeyStepOnUndefinedIsEmpty() {
+		var expression = "undefined..key";
+		var expected = "[]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyToNull() throws IOException {
-		var expression = ParserUtil.expression("null..key");
-		var expected = Val.ofEmptyArray();
-		expressionEvaluatesTo(ctx,expression,expected);
+	public void applyToNull() {
+		var expression = "null..key";
+		var expected = "[]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyToObject() throws IOException {
-		var expression = ParserUtil.expression(
-				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..key");
-		var expected = Val.ofJson("[ \"value1\", \"value2\", \"value3\" ]");
-		expressionEvaluatesTo(ctx,expression,expected);
+	public void applyToObject() {
+		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..key";
+		var expected = "[ \"value1\", \"value2\", \"value3\" ]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyToObjectNotPresent() throws IOException {
-		var expression = ParserUtil.expression(
-				"{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..yek");
-		var expected = Val.ofJson("[ ]");
-		expressionEvaluatesTo(ctx,expression,expected);
+	public void applyToObjectNotPresent() {
+		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..yek";
+		var expected = "[ ]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterArray() throws IOException {
-		var expression = ParserUtil.expression(
-				"[ { \"key\" : \"value1\", \"array1\" : [ { \"key\" : { \"key2\": \"value2\" } }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}, "
-						+ " { \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]} ]"
-						+ " |- { @..key : nil} ");
-		var expected = Val.ofJson(
-				"[{\"key\":null,\"array1\":[{\"key\":null},{\"key\":null}],\"array2\":[1,2,3,4,5]},{\"key\":null,\"array1\":[{\"key\":null},{\"key\":null}],\"array2\":[1,2,3,4,5]}]]");
-		expressionEvaluatesTo(ctx,expression,expected);
+	public void filterArray() {
+		var expression = "[ { \"key\" : \"value1\", \"array1\" : [ { \"key\" : { \"key2\": \"value2\" } }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}, "
+				+ " { \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]} ]"
+				+ " |- { @..key : nil} ";
+		var expected = "[{\"key\":null,\"array1\":[{\"key\":null},{\"key\":null}],\"array2\":[1,2,3,4,5]},{\"key\":null,\"array1\":[{\"key\":null},{\"key\":null}],\"array2\":[1,2,3,4,5]}]]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterArrayDescend() throws IOException {
-		var expression = ParserUtil.expression(
-				"[ { \"key\" : \"value1\", \"array1\" : [ { \"key\" : { \"key2\": \"value2\" } }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}, "
-						+ " { \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]} ]"
-						+ " |- { @..key..key2 : nil} ");
-		var expected = Val.ofJson(
-				"[{\"key\":\"value1\",\"array1\":[{\"key\":{\"key2\":null}},{\"key\":\"value3\"}],\"array2\":[1,2,3,4,5]},{\"key\":\"value1\",\"array1\":[{\"key\":\"value2\"},{\"key\":\"value3\"}],\"array2\":[1,2,3,4,5]}]");
-		expressionEvaluatesTo(ctx,expression,expected);
+	public void filterArrayDescend() {
+		var expression = "[ { \"key\" : \"value1\", \"array1\" : [ { \"key\" : { \"key2\": \"value2\" } }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}, "
+				+ " { \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]} ]"
+				+ " |- { @..key..key2 : nil}";
+		var expected = "[{\"key\":\"value1\",\"array1\":[{\"key\":{\"key2\":null}},{\"key\":\"value3\"}],\"array2\":[1,2,3,4,5]},{\"key\":\"value1\",\"array1\":[{\"key\":\"value2\"},{\"key\":\"value3\"}],\"array2\":[1,2,3,4,5]}]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterArrayEmpty() throws IOException {
-		var expression = ParserUtil.expression("[] |- { @..key..key2 : nil} ");
-		var expected = Val.ofJson("[]");
-		expressionEvaluatesTo(ctx,expression,expected);
+	public void filterArrayEmpty() {
+		var expression = "[] |- { @..key..key2 : nil} ";
+		var expected = "[]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 }

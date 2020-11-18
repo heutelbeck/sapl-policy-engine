@@ -20,7 +20,7 @@ import io.sapl.interpreter.EvaluationContext;
 @RunWith(Parameterized.class)
 public class EvaluableEvaluateNullCheckTest {
 
-	EvaluationContext ctx = mock(EvaluationContext.class);
+	private final static EvaluationContext CTX = mock(EvaluationContext.class);
 
 	private Evaluable evaluable;
 
@@ -35,7 +35,8 @@ public class EvaluableEvaluateNullCheckTest {
 		var classes = reflections.getSubTypesOf(Evaluable.class);
 		List<Object> instances = new ArrayList<Object>(classes.size());
 		for (var clazz : classes) {
-			if (clazz.getSimpleName().endsWith("ImplCustom") && !clazz.getSimpleName().equals("BasicExpressionImplCustom")) {
+			if (clazz.getSimpleName().endsWith("ImplCustom")
+					&& !clazz.getSimpleName().equals("BasicExpressionImplCustom")) {
 				instances.add(clazz.getDeclaredConstructor().newInstance());
 			}
 		}
@@ -49,6 +50,6 @@ public class EvaluableEvaluateNullCheckTest {
 
 	@Test(expected = NullPointerException.class)
 	public void nullullRelativeNode() {
-		evaluable.evaluate(ctx, null);
+		evaluable.evaluate(CTX, null);
 	}
 }

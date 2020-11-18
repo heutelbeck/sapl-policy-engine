@@ -16,6 +16,7 @@
 package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -24,7 +25,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.HashMap;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import io.sapl.api.interpreter.Val;
@@ -43,44 +43,37 @@ public class AttributeFinderStepImplCustomTest {
 	private static String ATTRIBUTE = "attribute";
 	private static String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
-	private EvaluationContext ctx;
-
-	@Before
-	public void before() {
-		ctx = MockUtil.mockEvaluationContext();
-	}
+	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
 
 	@Test
-	public void evaluateBasicAttributeFlux() throws IOException {
-		var expression = ParserUtil.expression("\"\".<numbers>");
-		var expected = new Val[] { Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5) };
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void evaluateBasicAttributeFlux() {
+		var expression = "\"\".<numbers>";
+		var expected = new String[] { "0", "1", "2", "3", "4", "5" };
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void evaluateBasicAttributeInTargetPolicy() throws IOException {
 		var expression = ParserUtil.expression("\"\".<numbers>");
 		MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
-		expressionErrors(ctx, expression);
+		expressionErrors(CTX, expression);
 	}
 
 	@Test
 	public void evaluateBasicAttributeInTargetPolicySet() throws IOException {
 		var expression = ParserUtil.expression("\"\".<numbers>");
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
-		expressionErrors(ctx, expression);
+		expressionErrors(CTX, expression);
 	}
 
 	@Test
-	public void evaluateBasicAttributeOnUndefined() throws IOException {
-		var expression = ParserUtil.expression("undefined.<numbers>");
-		expressionErrors(ctx, expression);
+	public void evaluateBasicAttributeOnUndefined() {
+		expressionErrors(CTX, "undefined.<numbers>");
 	}
 
 	@Test
-	public void evaluateAttributeInFilterSelction() throws IOException {
-		var expression = ParserUtil.expression("123 |- { @.<numbers> : nil }");
-		expressionErrors(ctx, expression);
+	public void evaluateAttributeInFilterSelction() {
+		expressionErrors(CTX, "123 |- { @.<numbers> : nil }");
 	}
 
 	@Test

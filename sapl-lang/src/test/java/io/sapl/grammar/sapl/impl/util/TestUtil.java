@@ -38,7 +38,7 @@ public class TestUtil {
 			var expectations = new Val[expected.length];
 			var i = 0;
 			for (var ex : expected) {
-				expectations[i] = Val.ofJson(ex);
+				expectations[i++] = Val.ofJson(ex);
 			}
 			expressionEvaluatesTo(ctx, ParserUtil.expression(expression), expectations);
 		} catch (IOException e) {

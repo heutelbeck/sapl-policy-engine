@@ -1,46 +1,39 @@
 package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
-import static org.mockito.Mockito.mock;
-
-import java.io.IOException;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
 import org.junit.Test;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
+import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.test.StepVerifier;
 
 public class ArrayImplCustomTest {
 
-	EvaluationContext ctx = mock(EvaluationContext.class);
+	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
 
 	@Test
-	public void simpleArrayToVal() throws IOException {
-		var expression = ParserUtil.expression("[true,false]");
-		var expected = Val.ofJson("[true,false]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void simpleArrayToVal() {
+		var expression = "[true,false]";
+		var expected = "[true,false]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void arrayPropagatesErrors() throws IOException {
-		var expression = ParserUtil.expression("[true,(1/0)]");
-		expressionErrors(ctx, expression);
+	public void arrayPropagatesErrors() {
+		expressionErrors(CTX, "[true,(1/0)]");
 	}
 
 	@Test
-	public void emptyArray() throws IOException {
-		var expression = ParserUtil.expression("[]");
-		var expected = Val.ofJson("[]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void emptyArray() {
+		expressionEvaluatesTo(CTX, "[]", "[]");
 	}
 
 	@Test
-	public void dropsUndefined() throws IOException {
-		var expression = ParserUtil.expression("[true,undefined,false,undefined]");
-		var expected = Val.ofJson("[true,false]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void dropsUndefined() {
+		var expression = "[true,undefined,false,undefined]";
+		var expected = "[true,false]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 }

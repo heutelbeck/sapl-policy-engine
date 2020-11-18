@@ -16,85 +16,67 @@
 package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
+import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import java.io.IOException;
-
-import org.junit.Before;
 import org.junit.Test;
 
-import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
-import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.EvaluationContext;
-import reactor.test.StepVerifier;
 
 public class IndexStepImplCustomTest {
 
-	private EvaluationContext ctx;
+	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
 
-	@Before
-	public void before() {
-		ctx = MockUtil.mockEvaluationContext();
+	@Test
+	public void applyIndexStepToNonArrayFails() {
+		expressionErrors(CTX, "undefined[0]");
 	}
 
 	@Test
-	public void applyIndexStepToNonArrayFails() throws IOException {
-		var expression = ParserUtil.expression("undefined[0]");
-		expressionErrors(ctx, expression);
+	public void applyPositiveExistingToArrayNode() {
+		expressionEvaluatesTo(CTX, "[0,1,2,3,4,5,6,7,8,9][5]", "5");
 	}
 
 	@Test
-	public void applyPositiveExistingToArrayNode() throws IOException {
-		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9][5]");
-		var expected = Val.of(5);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void applyPositiveOutOfBoundsToArrayNode() {
+		expressionErrors(CTX, "[0,1,2,3,4,5,6,7,8,9][100]");
 	}
 
 	@Test
-	public void applyPositiveOutOfBoundsToArrayNode() throws IOException {
-		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9][100]");
-		expressionErrors(ctx, expression);
+	public void applyNegativeExistingToArrayNode() {
+		expressionEvaluatesTo(CTX, "[0,1,2,3,4,5,6,7,8,9][-2]", "8");
+
 	}
 
 	@Test
-	public void applyNegativeExistingToArrayNode() throws IOException {
-		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9][-2]");
-		var expected = Val.of(8);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void applyNegativeOutOfBoundsToArrayNode() {
+		expressionErrors(CTX, "[0,1,2,3,4,5,6,7,8,9][-12]");
 	}
 
 	@Test
-	public void applyNegativeOutOfBoundsToArrayNode() throws IOException {
-		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9][-12]");
-		expressionErrors(ctx, expression);
+	public void filterOutOfBounds1() {
+		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[-12] : nil }";
+		var expected = "[0,1,2,3,4,5,6,7,8,9]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterOutOfBounds1() throws IOException {
-		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9] |- { @[-12] : nil }");
-		var expected = Val.ofJson("[0,1,2,3,4,5,6,7,8,9]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void filterElementsInDescend() {
+		var expression = "[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[3][2] : nil }";
+		var expected = "[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,null,3]]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterElementsInDescend() throws IOException {
-		var expression = ParserUtil.expression("[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[3][2] : nil }");
-		var expected = Val.ofJson("[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,null,3]]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void filterOutOfBounds2() {
+		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[12] : nil }";
+		var expected = "[0,1,2,3,4,5,6,7,8,9]";
+		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterOutOfBounds2() throws IOException {
-		var expression = ParserUtil.expression("[0,1,2,3,4,5,6,7,8,9] |- { @[12] : nil }");
-		var expected = Val.ofJson("[0,1,2,3,4,5,6,7,8,9]");
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
-	}
-
-	@Test
-	public void filterNonArray() throws IOException {
-		var expression = ParserUtil.expression("666 |- { @[2] : nil }");
-		var expected = Val.of(666);
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+	public void filterNonArray() {
+		expressionEvaluatesTo(CTX, "666 |- { @[2] : nil }", "666");
 	}
 
 }
