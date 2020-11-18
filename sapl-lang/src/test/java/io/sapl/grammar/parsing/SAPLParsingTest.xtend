@@ -1,33 +1,32 @@
 /**
  * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.tests
+package io.sapl.grammar.parsing
 
 import com.google.inject.Inject
-import org.eclipse.xtext.diagnostics.Diagnostic
-
-import org.junit.Assert
-import org.junit.Test
-
-import org.eclipse.xtext.testing.XtextRunner
-import org.eclipse.xtext.testing.InjectWith
-import org.junit.runner.RunWith
-import org.eclipse.xtext.testing.util.ParseHelper
-import org.eclipse.xtext.testing.validation.ValidationTestHelper
 import io.sapl.grammar.sapl.SAPL
 import io.sapl.grammar.sapl.SaplPackage
+import io.sapl.grammar.tests.SAPLInjectorProvider
+import org.eclipse.xtext.diagnostics.Diagnostic
+import org.eclipse.xtext.testing.InjectWith
+import org.eclipse.xtext.testing.XtextRunner
+import org.eclipse.xtext.testing.util.ParseHelper
+import org.eclipse.xtext.testing.validation.ValidationTestHelper
+import org.junit.Assert
+import org.junit.Test
+import org.junit.runner.RunWith
 
 @RunWith(XtextRunner)
 @InjectWith(SAPLInjectorProvider)
@@ -102,37 +101,37 @@ class SAPLParsingTest {
 		'''.parse.assertNoErrors
 	}
 
-    // the null pointer exception is caused by a bug in the testing framework occurring when you have
+	// the null pointer exception is caused by a bug in the testing framework occurring when you have
 	// the abstract root class and use expectError. 
 	// See also: https://www.eclipse.org/forums/index.php/t/1071631/ expecting it is a workaround 
-	@Test	
+	@Test
 	def void emptyPolicy() {
 		''' '''.parse.assertError(SaplPackage::eINSTANCE.SAPL, Diagnostic.SYNTAX_DIAGNOSTIC,
 			"no viable alternative at input '<EOF>'");
 	}
 
 	@Test
-	def void malformedHeader01() {
+	def void header01() {
 		'''
 			policy "test policy"
 			permit test
-		'''.parse.assertNoErrors // .parse.assertError(SAPLPackage::eINSTANCE.policy, Diagnostic.SYNTAX_DIAGNOSTIC, "no viable alternative at input '<EOF>'")
+		'''.parse.assertNoErrors
 	}
 
 	@Test
-	def void malformedHeader02() {
+	def void header02() {
 		'''
 			policy "test policy"
 			permit false
-		'''.parse.assertNoErrors // .parse.assertError(SAPLPackage::eINSTANCE.policy, Diagnostic.SYNTAX_DIAGNOSTIC, "no viable alternative at input '<EOF>'")
+		'''.parse.assertNoErrors
 	}
 
 	@Test
-	def void malformedHeader03() {
+	def void header03() {
 		'''
 			policy "test policy"
 			permit { "test" : 0.12 }
-		'''.parse.assertNoErrors // .parse.assertError(SAPLPackage::eINSTANCE.policy, Diagnostic.SYNTAX_DIAGNOSTIC, "no viable alternative at input '<EOF>'")
+		'''.parse.assertNoErrors
 	}
 
 	@Test
@@ -370,7 +369,7 @@ class SAPLParsingTest {
 			  action =~ "HTTP.GET";
 		'''.parse.assertNoErrors
 	}
-	
+
 	@Test
 	def void simpleTransformPolicy() {
 		'''
@@ -380,7 +379,7 @@ class SAPLParsingTest {
 					true
 		'''.parse.assertNoErrors
 	}
-	
+
 	@Test
 	def void ourPuppetDoctorTransformPolicy() {
 		'''
@@ -395,7 +394,7 @@ class SAPLParsingTest {
 					}
 		'''.parse.assertNoErrors
 	}
-	
+
 	@Test
 	def void ourPuppetFamilymemberTransformPolicy() {
 		'''
@@ -414,7 +413,7 @@ class SAPLParsingTest {
 					}
 		'''.parse.assertNoErrors
 	}
-	
+
 	@Test
 	def void ourPuppetIntroducerTransformPolicy() {
 		'''

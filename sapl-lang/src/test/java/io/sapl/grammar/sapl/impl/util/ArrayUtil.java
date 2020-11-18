@@ -7,6 +7,8 @@ import io.sapl.api.interpreter.Val;
 
 public class ArrayUtil {
 
+	private final static JsonNumEquivalence EQ = new JsonNumEquivalence();
+
 	public static Val numberArray(Integer... vals) {
 		var array = Val.JSON.arrayNode();
 		for (var val : vals) {
@@ -45,7 +47,7 @@ public class ArrayUtil {
 		var iter = arrayNode.elements();
 		while (iter.hasNext()) {
 			var arrayElement = iter.next();
-			if (element.equals(arrayElement))
+			if (EQ.equivalent(element, arrayElement))
 				return true;
 		}
 		return false;
