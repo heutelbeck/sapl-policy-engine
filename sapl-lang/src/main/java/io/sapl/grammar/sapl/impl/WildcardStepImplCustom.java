@@ -105,9 +105,6 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 
 	private static Flux<Val> applyFilterStatementToArray(ArrayNode array, EvaluationContext ctx, Val relativeNode,
 			int stepId, FilterStatement statement) {
-		if (array.isEmpty()) {
-			return Flux.just(Val.ofEmptyArray());
-		}
 		var elementFluxes = new ArrayList<Flux<Val>>(array.size());
 		var elements = array.elements();
 		while (elements.hasNext()) {

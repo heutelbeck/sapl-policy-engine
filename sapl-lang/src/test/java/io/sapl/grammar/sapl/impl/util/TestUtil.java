@@ -63,7 +63,7 @@ public class TestUtil {
 	}
 
 	public static void expressionEvaluatesTo(EvaluationContext ctx, Expression expression, Val... expected) {
-		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNext(expected).verifyComplete();
+		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED).log()).expectNext(expected).verifyComplete();
 	}
 
 	public static void expressionErrors(EvaluationContext ctx, Expression expression) {

@@ -204,62 +204,6 @@ public class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	public void removeExpressionStepArray() {
-		var expression = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ] |- { @[(1+2)] : filter.remove }";
-		var expected = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [4,1,2,3] ]";
-		expressionEvaluatesTo(CTX, expression, expected);
-	}
-
-	@Test
-	public void removeExpressionStepObject() {
-		var expression = "{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"cb\" : [0,1,2,3], \"d\" : [0,1,2,3] } |- { @[(\"c\"+\"b\")] : filter.remove }";
-		var expected = "{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"d\" : [0,1,2,3] }";
-		expressionEvaluatesTo(CTX, expression, expected);
-	}
-
-	@Test
-	public void removeConditionStepFromObject() {
-		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @[?(@>2)] : filter.remove }";
-		var expected = "{ \"a\" : 1, \"b\" : 2 }";
-		expressionEvaluatesTo(CTX, expression, expected);
-	}
-
-	@Test
-	public void replaceConditionStepFromArray() {
-		var expression = "[1,2,3,4,5] |- { @[?(@>2)] : mock.emptyString }";
-		var expected = "[1,2,\"\", \"\", \"\"]";
-		expressionEvaluatesTo(CTX, expression, expected);
-	}
-
-	@Test
-	public void replaceWildcardStepArray() {
-		var expression = "[1,2,3,4,5] |- { @.* : mock.emptyString }";
-		var expected = "[ \"\", \"\",\"\", \"\", \"\"]";
-		expressionEvaluatesTo(CTX, expression, expected);
-	}
-
-	@Test
-	public void replaceWildcardStepObject() {
-		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @.* : mock.emptyString }";
-		var expected = "{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }";
-		expressionEvaluatesTo(CTX, expression, expected);
-	}
-
-	@Test
-	public void replaceRecursiveWildcardStepArray() {
-		var expression = "[1,2,3,4,5] |- { @..* : mock.emptyString }";
-		var expected = "[ \"\", \"\",\"\", \"\", \"\"]";
-		expressionEvaluatesTo(CTX, expression, expected);
-	}
-
-	@Test
-	public void replaceRecussiveWildcardStepObject() {
-		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @..* : mock.emptyString }";
-		var expected = "{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }";
-		expressionEvaluatesTo(CTX, expression, expected);
-	}
-
-	@Test
 	public void replaceRecussiveKeyStepObject() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
 				+ "|- { @..key : filter.blacken }";

@@ -77,7 +77,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	private Flux<Val> applyToObject(ObjectNode object, EvaluationContext ctx, Val relativeNode) {
 		// handle the empty object
 		if (object.isEmpty()) {
-			return Flux.just(Val.of(Val.JSON.arrayNode()));
+			return Flux.just(Val.ofEmptyArray());
 		}
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<Tuple2<JsonNode, Val>>> itemFluxes = new ArrayList<>(object.size());
@@ -94,7 +94,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	private Flux<Val> applyToArray(ArrayNode arrayNode, EvaluationContext ctx, Val relativeNode) {
 		// handle the empty array
 		if (arrayNode.isEmpty()) {
-			return Flux.just(Val.of(Val.JSON.arrayNode()));
+			return Flux.just(Val.ofEmptyArray());
 		}
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<Tuple2<JsonNode, Val>>> itemFluxes = new ArrayList<>(arrayNode.size());
