@@ -25,7 +25,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class IndexUnionStepImplCustomTest {
 
-	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void applyIndexUnionStepToNonArrayFails() {
@@ -48,21 +48,21 @@ public class IndexUnionStepImplCustomTest {
 
 	@Test
 	public void filterNegativeStepArray() {
-		var expression = "\"Otto\" |- { @[1,2,3] : nil }";
+		var expression = "\"Otto\" |- { @[1,2,3] : mock.nil }";
 		var expected = "\"Otto\"";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterElementsInArray() {
-		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[0,1,-2,10,-10] : nil }";
+		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[0,1,-2,10,-10] : mock.nil }";
 		var expected = "[null,null,2,3,4,5,6,7,null,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterElementsInDescend() {
-		var expression = "[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[1,3][3] : nil }";
+		var expression = "[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[1,3][3] : mock.nil }";
 		var expected = "[[0,1,2,3],[0,1,2,null],[0,1,2,3],[0,1,2,null]]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}

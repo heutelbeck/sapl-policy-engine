@@ -27,7 +27,7 @@ import reactor.test.StepVerifier;
 
 public class EvaluateBasicExpressionsTest {
 
-	private static final EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void evaluateBasicValue() {
@@ -62,7 +62,7 @@ public class EvaluateBasicExpressionsTest {
 
 	@Test
 	public void evaluateBasicFilter() {
-		var expression = "[1,2,3] |- { @.* : nil }";
+		var expression = "[1,2,3] |- { @.* : mock.nil }";
 		var expected = "[null,null,null]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
@@ -90,28 +90,28 @@ public class EvaluateBasicExpressionsTest {
 
 	@Test
 	public void evaluateBasicFunctionNoArgs() {
-		var expression = "nil()";
+		var expression = "mock.nil()";
 		var expected = "null";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void evaluateBasicFunctionOneArg() {
-		var expression = "parameters(null)";
+		var expression = "mock.parameters(null)";
 		var expected = "[null]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void evaluateBasicFunctionOneFluxOfArgs() {
-		var expression = "parameters(\"\".<numbers>)";
+		var expression = "mock.parameters(\"\".<test.numbers>)";
 		var expected = new String[] { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]" };
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void evaluateBasicFunctionMoreArgs() {
-		var expression = "parameters(null, \"Herbert\", 123)";
+		var expression = "mock.parameters(null, \"Herbert\", 123)";
 		var expected = "[null, \"Herbert\", 123]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}

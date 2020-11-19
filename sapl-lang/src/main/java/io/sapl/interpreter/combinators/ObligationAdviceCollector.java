@@ -27,58 +27,49 @@ import io.sapl.api.pdp.Decision;
 
 public class ObligationAdviceCollector {
 
-	private EnumMap<Type, Map<Decision, ArrayNode>> obligationAdvice;
+	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	public enum Type {
-		OBLIGATION, ADVICE
-	}
+	Map<Decision, ArrayNode> obligations = new EnumMap<>(Decision.class);
+	Map<Decision, ArrayNode> advices = new EnumMap<>(Decision.class);
 
 	public ObligationAdviceCollector() {
-		obligationAdvice = new EnumMap<>(Type.class);
-
-		Map<Decision, ArrayNode> obligationMap = new EnumMap<>(Decision.class);
-		obligationMap.put(Decision.DENY, JsonNodeFactory.instance.arrayNode());
-		obligationMap.put(Decision.PERMIT, JsonNodeFactory.instance.arrayNode());
-
-		Map<Decision, ArrayNode> adviceMap = new EnumMap<>(Decision.class);
-		adviceMap.put(Decision.DENY, JsonNodeFactory.instance.arrayNode());
-		adviceMap.put(Decision.PERMIT, JsonNodeFactory.instance.arrayNode());
-
-		obligationAdvice.put(Type.OBLIGATION, obligationMap);
-		obligationAdvice.put(Type.ADVICE, adviceMap);
+		obligations.put(Decision.DENY, JSON.arrayNode());
+		obligations.put(Decision.PERMIT, JSON.arrayNode());
+		advices.put(Decision.DENY, JSON.arrayNode());
+		advices.put(Decision.PERMIT, JSON.arrayNode());
 	}
 
-	public void add(Decision decision, AuthorizationDecision authzDecision) {
-		if (authzDecision.getObligations().isPresent()) {
-			obligationAdvice.get(Type.OBLIGATION).get(decision).addAll(authzDecision.getObligations().get());
-		}
-		if (authzDecision.getAdvices().isPresent()) {
-			obligationAdvice.get(Type.ADVICE).get(decision).addAll(authzDecision.getAdvices().get());
-		}
+	public void registerDecisionsObligationsAndAdvices(AuthorizationDecision authzDecision) {
+		if (authzDecision.getDecision() != Decision.PERMIT && authzDecision.getDecision() != Decision.DENY)
+			return;
+		registerObligationIfPresent(authzDecision);
+		registerAdviceIfPresent(authzDecision);
+	}
+
+	private void registerAdviceIfPresent(AuthorizationDecision authzDecision) {
+		if (authzDecision.getAdvices().isPresent())
+			advices.get(authzDecision.getDecision()).addAll(authzDecision.getAdvices().get());
+	}
+
+	private void registerObligationIfPresent(AuthorizationDecision authzDecision) {
+		if (authzDecision.getObligations().isPresent())
+			obligations.get(authzDecision.getDecision()).addAll(authzDecision.getObligations().get());
 	}
 
 	public void add(AuthorizationDecision authzDecision) {
-		add(authzDecision.getDecision(), authzDecision);
+		registerDecisionsObligationsAndAdvices(authzDecision);
 	}
 
 	public Optional<ArrayNode> getObligations(Decision decision) {
-		return get(Type.OBLIGATION, decision);
+		if ((decision == Decision.PERMIT || decision == Decision.DENY) && obligations.get(decision).size() > 0)
+			return Optional.of(obligations.get(decision));
+		return Optional.empty();
 	}
 
 	public Optional<ArrayNode> getAdvices(Decision decision) {
-		return get(Type.ADVICE, decision);
-	}
-
-	public Optional<ArrayNode> get(Type type, Decision decision) {
-		if (decision != Decision.PERMIT && decision != Decision.DENY) {
-			return Optional.empty();
-		}
-		ArrayNode returnNode = obligationAdvice.get(type).get(decision);
-		if (returnNode.size() > 0) {
-			return Optional.of(returnNode);
-		} else {
-			return Optional.empty();
-		}
+		if ((decision == Decision.PERMIT || decision == Decision.DENY) && advices.get(decision).size() > 0)
+			return Optional.of(advices.get(decision));
+		return Optional.empty();
 	}
 
 }

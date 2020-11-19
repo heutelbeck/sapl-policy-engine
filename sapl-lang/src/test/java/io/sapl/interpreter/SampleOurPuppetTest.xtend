@@ -1,12 +1,12 @@
 /**
  * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,11 +19,10 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import io.sapl.api.interpreter.PolicyEvaluationException
-import io.sapl.api.pdp.Decision
-import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.AuthorizationDecision
+import io.sapl.api.pdp.AuthorizationSubscription
+import io.sapl.api.pdp.Decision
 import io.sapl.functions.FilterFunctionLibrary
-import io.sapl.interpreter.DefaultSAPLInterpreter
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
@@ -44,12 +43,13 @@ import static org.hamcrest.MatcherAssert.assertThat
 
 class SampleOurPuppetTest {
 
-	 static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-	 static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-	 static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
-	 static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
-	 static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(
-		new HashMap<String, JsonNode>());
+	static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
+	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>());
+	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
+		SYSTEM_VARIABLES);
 
 	@Before
 	def void init() {
@@ -130,10 +130,11 @@ class SampleOurPuppetTest {
 		} catch (Exception e) {
 		}
 
-		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())
+		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
+			Optional.empty(), Optional.empty())
 
 		assertThat("anonymizing patient data for annotators not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
 			equalTo(expectedAuthzDecision));
 	}
 
@@ -199,8 +200,10 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("anonymizing patient data for doctors not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			equalTo(
+				new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
+					Optional.empty())));
 	}
 
 	@Test
@@ -306,8 +309,10 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("truncating detected situations for familymembers not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			equalTo(
+				new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
+					Optional.empty())));
 	}
 
 	@Test
@@ -380,7 +385,7 @@ class SampleOurPuppetTest {
 					@.detected_situations.sensordata : filter.remove,
 					@.detected_situations.puppetaction : filter.remove
 				}
-				''';
+			''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -403,8 +408,10 @@ class SampleOurPuppetTest {
 		''', JsonNode);
 
 		assertThat("truncating detected situations for professional caregivers not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			equalTo(
+				new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
+					Optional.empty())));
 	}
 
 	@Test
@@ -423,36 +430,36 @@ class SampleOurPuppetTest {
 				"patientid":"123456789012345678901212345678901234567890121234567890123456789999",
 				"detected_situations":[
 					{
-			     		"datetime":"2017-05-03T18:25:43.511Z",
-			     		"captureid":"123456789012345678901212345678901234567890121234567890123456781234",
-			     		"status":"OK",
-			     		"situation":"NORMAL",
-			     		"sensordata":{
-			     		    "pulse":{  
-			     		        "value":63
-			     		    },
-			     		    "skinresistance":{  
-			     		        "value":205.6
-			     		    },
-			     		    "facialexpression":"foo"
+					   		"datetime":"2017-05-03T18:25:43.511Z",
+					   		"captureid":"123456789012345678901212345678901234567890121234567890123456781234",
+					   		"status":"OK",
+					   		"situation":"NORMAL",
+					   		"sensordata":{
+					   		    "pulse":{  
+					   		        "value":63
+					   		    },
+					   		    "skinresistance":{  
+					   		        "value":205.6
+					   		    },
+					   		    "facialexpression":"foo"
 					   	},
 					   	"puppetaction":{
 					   		"foo":"bar"
 					   	}
 					},
 					{
-			     		"datetime":"2012-04-23T19:27:41.327Z",
-			     		"captureid":"123456789012345678901212345678901234567890121234567890123456781235",
-			     		"status":"OK",
-			     		"situation":"NORMAL",
-			     		"sensordata":{
-			     		    "pulse":{  
-			     		        "value":66
-			     		    },
-			     		    "skinresistance":{  
-			     		        "value":187.3
-			     		    },
-			     		    "facialexpression":"bar"
+					   		"datetime":"2012-04-23T19:27:41.327Z",
+					   		"captureid":"123456789012345678901212345678901234567890121234567890123456781235",
+					   		"status":"OK",
+					   		"situation":"NORMAL",
+					   		"sensordata":{
+					   		    "pulse":{  
+					   		        "value":66
+					   		    },
+					   		    "skinresistance":{  
+					   		        "value":187.3
+					   		    },
+					   		    "facialexpression":"bar"
 					   	},
 					   	"puppetaction":{
 							"foo":"bar"
@@ -481,7 +488,7 @@ class SampleOurPuppetTest {
 							"status" : @.status
 						}
 					}
-				''';
+			''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -498,7 +505,9 @@ class SampleOurPuppetTest {
 
 		Hooks.onOperatorDebug()
 		assertThat("truncating detected situations for puppetintroducers not working as expected",
-			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
-			equalTo(new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(), Optional.empty())));
+			INTERPRETER.evaluate(authzSubscription_object, policyDefinition, PDP_EVALUATION_CONTEXT).blockFirst(),
+			equalTo(
+				new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource), Optional.empty(),
+					Optional.empty())));
 	}
 }

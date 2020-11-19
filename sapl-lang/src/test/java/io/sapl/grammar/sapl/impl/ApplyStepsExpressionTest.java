@@ -26,7 +26,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class ApplyStepsExpressionTest {
 
-	private static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void expressionStepPropagatesErrors1() {
@@ -95,7 +95,7 @@ public class ApplyStepsExpressionTest {
 
 	@Test
 	public void filterNonArrayNonObject() {
-		expressionEvaluatesTo(CTX, "123 |- { @[(1+1)] : nil }", "123");
+		expressionEvaluatesTo(CTX, "123 |- { @[(1+1)] : mock.nil }", "123");
 	}
 
 	@Test

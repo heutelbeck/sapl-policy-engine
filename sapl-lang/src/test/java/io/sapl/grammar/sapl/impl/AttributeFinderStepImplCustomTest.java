@@ -43,37 +43,37 @@ public class AttributeFinderStepImplCustomTest {
 	private static String ATTRIBUTE = "attribute";
 	private static String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
-	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void evaluateBasicAttributeFlux() {
-		var expression = "\"\".<numbers>";
+		var expression = "\"\".<test.numbers>";
 		var expected = new String[] { "0", "1", "2", "3", "4", "5" };
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void evaluateBasicAttributeInTargetPolicy() throws IOException {
-		var expression = ParserUtil.expression("\"\".<numbers>");
+		var expression = ParserUtil.expression("\"\".<test.numbers>");
 		MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
 		expressionErrors(CTX, expression);
 	}
 
 	@Test
 	public void evaluateBasicAttributeInTargetPolicySet() throws IOException {
-		var expression = ParserUtil.expression("\"\".<numbers>");
+		var expression = ParserUtil.expression("\"\".<test.numbers>");
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
 		expressionErrors(CTX, expression);
 	}
 
 	@Test
 	public void evaluateBasicAttributeOnUndefined() {
-		expressionErrors(CTX, "undefined.<numbers>");
+		expressionErrors(CTX, "undefined.<test.numbers>");
 	}
 
 	@Test
 	public void evaluateAttributeInFilterSelction() {
-		expressionErrors(CTX, "123 |- { @.<numbers> : nil }");
+		expressionErrors(CTX, "123 |- { @.<test.numbers> : mock.nil }");
 	}
 
 	@Test

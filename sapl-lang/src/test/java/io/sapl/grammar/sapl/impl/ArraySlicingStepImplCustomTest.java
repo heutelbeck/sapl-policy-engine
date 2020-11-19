@@ -10,7 +10,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class ArraySlicingStepImplCustomTest {
 
-	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void slicingPropagatesErrors() {
@@ -135,41 +135,41 @@ public class ArraySlicingStepImplCustomTest {
 
 	@Test
 	public void filterDefaultsToIdentity() {
-		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[:] : nil }";
+		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[:] : mock.nil }";
 		var expected = "[null,null,null,null,null,null,null,null,null,null]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterDefaultsToIdentityDescendStep() {
-		var expression = "[[10,11,12,13,14],0,1,2,3,4,5,6,7,8,9] |- { @[:][-2:] : nil }";
+		var expression = "[[10,11,12,13,14],0,1,2,3,4,5,6,7,8,9] |- { @[:][-2:] : mock.nil }";
 		var expected = "[[10,11,12,null,null],0,1,2,3,4,5,6,7,8,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterErrorOnZeroStep() {
-		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[: :0] : nil }";
+		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[: :0] : mock.nil }";
 		expressionErrors(CTX, expression);
 	}
 
 	@Test
 	public void filterEmptyArray() {
-		var expression = "[] |- { @[:] : nil }";
+		var expression = "[] |- { @[:] : mock.nil }";
 		var expected = "[]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterNegativeStepArray() {
-		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[: :-2] : nil }";
+		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[: :-2] : mock.nil }";
 		var expected = "[null,1,null,3,null,5,null,7,null,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterNegativeTo() {
-		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[:-2] : nil }";
+		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[:-2] : mock.nil }";
 		var expected = "[null,null,null,null,null,null,null,null,8,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}

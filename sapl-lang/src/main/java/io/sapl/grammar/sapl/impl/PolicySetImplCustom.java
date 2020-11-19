@@ -15,10 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import java.util.HashSet;
 import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.ValueDefinition;
@@ -30,7 +32,6 @@ import io.sapl.interpreter.combinators.OnlyOneApplicableCombinator;
 import io.sapl.interpreter.combinators.PermitOverridesCombinator;
 import io.sapl.interpreter.combinators.PermitUnlessDenyCombinator;
 import io.sapl.interpreter.combinators.PolicyCombinator;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
@@ -57,18 +58,34 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate(@NonNull EvaluationContext ctx) {
-		return Flux.just(Tuples.of(Val.TRUE, ctx.copy())).switchMap(evaluateValueDefinitions(0))
-				.switchMap(this::evalPolicies);
-	}
-
-	private Flux<AuthorizationDecision> evalPolicies(Tuple2<Val, EvaluationContext> t) {
-		if (t.getT1().isError()) {
-			log.debug("| |- Error in the value definitions of the policy set. Policy evaluated INDETERMINATE.: {}",
-					t.getT1().getMessage());
+	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
+		if (!policyNamesAreUnique()) {
+			log.debug("| |- Policy Set '{}'. Policy names are not uniqe. INDETERMINATE", saplName);
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
-		return combinatorFor(getAlgorithm()).combinePolicies(policies, t.getT2());
+		return Flux.just(Tuples.of(Val.TRUE, ctx)).switchMap(evaluateValueDefinitions(0)).switchMap(this::evalPolicies)
+				.doOnNext(authzDecision -> log.debug("| |- Policy Set '{}' evaluates to: {}", authzDecision));
+	}
+
+	// TODO: move into validation at parse time, remove from evaluation
+	private boolean policyNamesAreUnique() {
+		var policyNames = new HashSet<String>(policies.size());
+		for (var policy : policies) {
+			if (!policyNames.add(policy.getSaplName()))
+				return false;
+		}
+		return true;
+	}
+
+	private Flux<AuthorizationDecision> evalPolicies(
+			Tuple2<Val, EvaluationContext> valueDefinitionSuccessAndScopedEvaluationContext) {
+		if (valueDefinitionSuccessAndScopedEvaluationContext.getT1().isError()) {
+			log.debug("| |- Error in the value definitions of the policy set. Policy evaluated INDETERMINATE.: {}",
+					valueDefinitionSuccessAndScopedEvaluationContext.getT1().getMessage());
+			return Flux.just(AuthorizationDecision.INDETERMINATE);
+		}
+		return combinatorFor(getAlgorithm()).combinePolicies(policies,
+				valueDefinitionSuccessAndScopedEvaluationContext.getT2());
 
 	}
 
@@ -77,26 +94,38 @@ public class PolicySetImplCustom extends PolicySetImpl {
 		if (valueDefinitions == null || valueDefinitionId == valueDefinitions.size()) {
 			return Flux::just;
 		}
-		return previousAndContext -> {
-			return evaluateValueDefinition(previousAndContext.getT1(), valueDefinitions.get(valueDefinitionId),
-					previousAndContext.getT2()).switchMap(evaluateValueDefinitions(valueDefinitionId + 1));
+		return valueDefinitionSuccessAndScopedEvaluationContext -> {
+			return evaluateValueDefinition(valueDefinitionSuccessAndScopedEvaluationContext.getT1(),
+					valueDefinitions.get(valueDefinitionId), valueDefinitionSuccessAndScopedEvaluationContext.getT2())
+							.switchMap(evaluateValueDefinitions(valueDefinitionId + 1));
 		};
 	}
 
 	private Flux<Tuple2<Val, EvaluationContext>> evaluateValueDefinition(Val previousResult,
 			ValueDefinition valueDefinition, EvaluationContext ctx) {
-		if (previousResult.isError() || !previousResult.getBoolean()) {
+		if (previousResult.isError()) {
 			return Flux.just(Tuples.of(previousResult, ctx));
 		}
-		return valueDefinition.getEval().evaluate(ctx, Val.UNDEFINED).concatMap(evaluatedValue -> {
-			if (evaluatedValue.isDefined()) {
-				var newCtx = ctx.copy();
-				newCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
-				return Flux.just(Tuples.of(Val.TRUE, newCtx));
-			} else {
-				return Flux.just(Tuples.of(Val.error(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL), ctx));
+		return valueDefinition.getEval().evaluate(ctx, Val.UNDEFINED)
+				.concatMap(derivePolicySetScopeEvaluationContext(valueDefinition, ctx));
+	}
+
+	private Function<? super Val, ? extends Publisher<? extends Tuple2<Val, EvaluationContext>>> derivePolicySetScopeEvaluationContext(
+			ValueDefinition valueDefinition, EvaluationContext ctx) {
+		return evaluatedValue -> {
+			if (evaluatedValue.isError()) {
+				return Flux.just(Tuples.of(evaluatedValue, ctx));
 			}
-		});
+			if (evaluatedValue.isDefined()) {
+				try {
+					var scopedCtx = ctx.withEnvironmentVariable(valueDefinition.getName(), evaluatedValue.get());
+					return Flux.just(Tuples.of(Val.TRUE, scopedCtx));
+				} catch (PolicyEvaluationException e) {
+					return Flux.just(Tuples.of(Val.error(e), ctx));
+				}
+			}
+			return Flux.just(Tuples.of(Val.TRUE, ctx));
+		};
 	}
 
 	private PolicyCombinator combinatorFor(String algorithm) {

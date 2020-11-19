@@ -16,15 +16,11 @@
 package io.sapl.api.interpreter;
 
 import java.io.InputStream;
-import java.util.Map;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 public interface SAPLInterpreter {
@@ -36,6 +32,7 @@ public interface SAPLInterpreter {
 	 * @param saplDefinition a String containing a SAPL document
 	 * @return A parse tree of the document @ in case an error occurs during
 	 *         parsing. This may be either a syntax error or an IO error.
+	 * @throws PolicyEvaluationException
 	 */
 	SAPL parse(String saplDefinition);
 
@@ -46,6 +43,7 @@ public interface SAPLInterpreter {
 	 * @param saplInputStream an InputStream containing a SAPL document
 	 * @return A parse tree of the document @ in case an error occurs during
 	 *         parsing. This may be either a syntax error or an IO error.
+	 * @throws PolicyEvaluationException
 	 */
 	SAPL parse(InputStream saplInputStream);
 
@@ -57,14 +55,11 @@ public interface SAPLInterpreter {
 	 * 
 	 * @param authzSubscription the authorization subscription object
 	 * @param saplDefinition    the String representing the SAPL document
-	 * @param attributeCtx      the attribute context
-	 * @param functionCtx       the function context
-	 * @param systemVariables   the system variables, a Map between the variable
-	 *                          name and its value
+	 * @param evaluationCtx     the PDP scoped evaluation context
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDefinition,
-			AttributeContext attributeCtx, FunctionContext functionCtx, Map<String, JsonNode> systemVariables);
+			EvaluationContext evaluationCtx);
 
 	/**
 	 * Method which analyzes a String containing a SAPL document.

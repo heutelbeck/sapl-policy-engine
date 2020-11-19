@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jackson.JsonNumEquals;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class Val {
 
@@ -94,6 +95,9 @@ public class Val {
 		return Flux.just(error(errorMessage, args));
 	}
 
+	public static Mono<Val> errorMono(String errorMessage, Object... args) {
+		return Mono.just(error(errorMessage, args));
+	}
 	public String getMessage() {
 		if (isError()) {
 			return errorMessage;

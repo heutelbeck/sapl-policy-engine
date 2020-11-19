@@ -13,7 +13,7 @@ import com.google.common.collect.Sets;
 
 // https://stackoverflow.com/questions/23425454/compare-two-json-objects-with-tolerance-for-numbers
 public class JsonNumEquivalence extends Equivalence<JsonNode> {
-	
+
 	protected boolean doNumEquivalent(final JsonNode a, final JsonNode b) {
 		return a.decimalValue().equals(b.decimalValue());
 	}

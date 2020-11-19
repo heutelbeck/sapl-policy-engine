@@ -23,6 +23,7 @@ import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.Decision
 import io.sapl.interpreter.DefaultSAPLInterpreter
+import io.sapl.interpreter.EvaluationContext
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
@@ -46,6 +47,8 @@ class FilterFunctionLibraryTest {
 	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>());
 	static final FilterFunctionLibrary LIBRARY = new FilterFunctionLibrary();
+	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
+		SYSTEM_VARIABLES);
 
 	@Before
 	def void init() {
@@ -232,8 +235,8 @@ class FilterFunctionLibraryTest {
 
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
-		val authzDecision = INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES).blockFirst()
+		val authzDecision = INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).
+			blockFirst()
 
 		assertThat("builtin function blacken() not working as expected", authzDecision, equalTo(expectedAuthzDecision))
 	}
@@ -284,8 +287,8 @@ class FilterFunctionLibraryTest {
 
 		val expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 			Optional.empty(), Optional.empty())
-		val authzDecision = INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES).blockFirst()
+		val authzDecision = INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT).
+			blockFirst()
 
 		assertThat("builtin function replace() not working as expected", authzDecision, equalTo(expectedAuthzDecision))
 	}

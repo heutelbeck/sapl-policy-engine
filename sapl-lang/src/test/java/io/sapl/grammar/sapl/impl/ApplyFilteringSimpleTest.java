@@ -26,7 +26,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class ApplyFilteringSimpleTest {
 
-	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void filterPropagatesError() {

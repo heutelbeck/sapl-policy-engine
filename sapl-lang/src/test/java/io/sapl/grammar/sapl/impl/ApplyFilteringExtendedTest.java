@@ -30,7 +30,7 @@ import reactor.test.StepVerifier;
 
 public class ApplyFilteringExtendedTest {
 
-	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void filterUndefined() {

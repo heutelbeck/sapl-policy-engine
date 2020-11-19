@@ -17,16 +17,13 @@ package io.sapl.interpreter.combinators;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -34,11 +31,9 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
 public class PermitOverridesTest {
@@ -53,24 +48,19 @@ public class PermitOverridesTest {
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
 			null, null, JSON.booleanNode(true), null);
 
-	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
-
-	private AttributeContext attributeCtx;
-
-	private FunctionContext functionCtx;
+	private EvaluationContext evaluationCtx;
 
 	@Before
 	public void init() {
-		Hooks.onOperatorDebug();
-		attributeCtx = new AnnotationAttributeContext();
-		functionCtx = new AnnotationFunctionContext();
+		var attributeCtx = new AnnotationAttributeContext();
+		var functionCtx = new AnnotationFunctionContext();
+		evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, new HashMap<>());
 	}
 
 	@Test
 	public void permit() {
 		String policySet = "set \"tests\" permit-overrides" + " policy \"testp\" permit";
-		StepVerifier.create(
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES))
+		StepVerifier.create(INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx))
 				.expectNextMatches(isDecision(Decision.PERMIT)).verifyComplete();
 	}
 
@@ -82,39 +72,35 @@ public class PermitOverridesTest {
 	public void deny() {
 		String policySet = "set \"tests\" permit-overrides" + " policy \"testp\" deny";
 
-		INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).take(1)
-				.subscribe(response -> {
-					final Decision expected = Decision.DENY;
-					final Decision actual = response.getDecision();
-					assertEquals("should return deny if the only policy evaluates to deny", expected, actual);
-				});
+		INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).take(1).subscribe(response -> {
+			final Decision expected = Decision.DENY;
+			final Decision actual = response.getDecision();
+			assertEquals("should return deny if the only policy evaluates to deny", expected, actual);
+		});
 	}
 
 	@Test
 	public void notApplicableTarget() {
 		String policySet = "set \"tests\" permit-overrides" + " policy \"testp\" deny true == false";
 
-		INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).take(1)
-				.subscribe(response -> {
-					final Decision expected = Decision.NOT_APPLICABLE;
-					final Decision actual = response.getDecision();
-					assertEquals("should return not applicable if the only policy target evaluates to not applicable",
-							expected, actual);
-				});
+		INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).take(1).subscribe(response -> {
+			final Decision expected = Decision.NOT_APPLICABLE;
+			final Decision actual = response.getDecision();
+			assertEquals("should return not applicable if the only policy target evaluates to not applicable", expected,
+					actual);
+		});
 	}
 
 	@Test
 	public void notApplicableCondition() {
 		String policySet = "set \"tests\" permit-overrides" + " policy \"testp\" deny where true == false;";
 
-		INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).take(1)
-				.subscribe(response -> {
-					final Decision expected = Decision.NOT_APPLICABLE;
-					final Decision actual = response.getDecision();
-					assertEquals(
-							"should return not applicable if the only policy condition evaluates to not applicable",
-							expected, actual);
-				});
+		INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).take(1).subscribe(response -> {
+			final Decision expected = Decision.NOT_APPLICABLE;
+			final Decision actual = response.getDecision();
+			assertEquals("should return not applicable if the only policy condition evaluates to not applicable",
+					expected, actual);
+		});
 	}
 
 	@Test
@@ -122,8 +108,7 @@ public class PermitOverridesTest {
 		String policySet = "set \"tests\" permit-overrides " + "policy \"testp\" permit \"a\" < 5";
 
 		assertEquals("should return indeterminate if the only target is indeterminate", Decision.INDETERMINATE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -131,8 +116,7 @@ public class PermitOverridesTest {
 		String policySet = "set \"tests\" permit-overrides" + " policy \"testp\" permit where \"a\" < 5;";
 
 		assertEquals("should return indeterminate if the only condition is indeterminate", Decision.INDETERMINATE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -140,8 +124,7 @@ public class PermitOverridesTest {
 		String policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" permit" + " policy \"testp2\" deny";
 
 		assertEquals("should return permit if any policy evaluates to permit", Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -150,8 +133,7 @@ public class PermitOverridesTest {
 				+ " policy \"testp2\" permit where \"a\" > 5;";
 
 		assertEquals("should return permit if any policy evaluates to permit", Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -160,8 +142,7 @@ public class PermitOverridesTest {
 				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" permit";
 
 		assertEquals("should return permit if any policy evaluates to permit", Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -171,8 +152,7 @@ public class PermitOverridesTest {
 				+ " policy \"testp5\" permit";
 
 		assertEquals("should return permit if any policy evaluates to permit", Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -182,8 +162,7 @@ public class PermitOverridesTest {
 
 		assertEquals("should return indeterminate if only indeterminate, deny and not applicable present",
 				Decision.INDETERMINATE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -192,8 +171,7 @@ public class PermitOverridesTest {
 				+ " policy \"testp2\" permit true == false";
 
 		assertEquals("should return deny if only deny and not applicable present", Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -204,8 +182,7 @@ public class PermitOverridesTest {
 		assertEquals(
 				"should return indeterminate if final decision would be permit and there is a transformation incertainty",
 				Decision.INDETERMINATE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -215,8 +192,7 @@ public class PermitOverridesTest {
 
 		assertEquals("should return deny if final decision would be deny and there is a transformation incertainty",
 				Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -224,8 +200,7 @@ public class PermitOverridesTest {
 		String policySet = "set \"tests\" permit-overrides" + " policy \"testp\" permit transform true";
 
 		assertEquals("should return permit if there is no transformation incertainty", Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -234,8 +209,7 @@ public class PermitOverridesTest {
 
 		assertEquals("should return resource if there is no transformation incertainty",
 				Optional.of(JSON.booleanNode(true)),
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getResource());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getResource());
 	}
 
 	@Test
@@ -243,8 +217,7 @@ public class PermitOverridesTest {
 		String policySet = "set \"tests\" permit-overrides" + " policy \"testp1\" permit" + " policy \"testp2\" permit";
 
 		assertEquals("should return permit if there is no transformation incertainty", Decision.PERMIT, INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getDecision());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -259,9 +232,9 @@ public class PermitOverridesTest {
 		obligation.add(JSON.textNode("obligation1"));
 		obligation.add(JSON.textNode("obligation2"));
 
-		assertEquals("should collect all deny obligation", Optional.of(obligation), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getObligations());
+		assertEquals("should collect all deny obligation", Optional.of(obligation),
+				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst()
+						.getObligations());
 	}
 
 	@Test
@@ -277,8 +250,7 @@ public class PermitOverridesTest {
 		advice.add(JSON.textNode("advice2"));
 
 		assertEquals("should collect all deny advice", Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
 	}
 
 	@Test
@@ -293,9 +265,9 @@ public class PermitOverridesTest {
 		obligation.add(JSON.textNode("obligation1"));
 		obligation.add(JSON.textNode("obligation2"));
 
-		assertEquals("should collect all permit obligation", Optional.of(obligation), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getObligations());
+		assertEquals("should collect all permit obligation", Optional.of(obligation),
+				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst()
+						.getObligations());
 	}
 
 	@Test
@@ -311,8 +283,7 @@ public class PermitOverridesTest {
 		advice.add(JSON.textNode("advice2"));
 
 		assertEquals("should collect all permit advice", Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
 	}
 
 }

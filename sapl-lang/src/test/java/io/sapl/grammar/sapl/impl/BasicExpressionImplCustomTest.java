@@ -24,7 +24,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class BasicExpressionImplCustomTest {
 
-	private static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void basicExpressionWithStep() {
@@ -33,7 +33,7 @@ public class BasicExpressionImplCustomTest {
 
 	@Test
 	public void basicExpressionWithFilter() {
-		expressionEvaluatesTo(CTX, "null |- emptyString", "\"\"");
+		expressionEvaluatesTo(CTX, "null |- mock.emptyString", "\"\"");
 	}
 
 	@Test

@@ -31,7 +31,7 @@ import reactor.test.StepVerifier;
 
 public class ApplyStepsRecursiveWildcardTest {
 
-	private static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void stepPropagatesErrors() {
@@ -57,7 +57,7 @@ public class ApplyStepsRecursiveWildcardTest {
 
 	@Test
 	public void filterArray() {
-		var expression = "[1,2,[3,4,5], { \"key\" : [6,7,8], \"key2\": { \"key3\" : 9 } }] |- { @..* : nil }";
+		var expression = "[1,2,[3,4,5], { \"key\" : [6,7,8], \"key2\": { \"key3\" : 9 } }] |- { @..* : mock.nil }";
 		var expected = "[null,null,null,null]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
@@ -68,7 +68,7 @@ public class ApplyStepsRecursiveWildcardTest {
 		var expected = Val.ofJson(
 				"[1,2,3,4,5,\"value1\",[{\"key\":\"value2\"},{\"key\":\"value3\"}],{\"key\":\"value2\"},\"value2\",{\"key\":\"value3\"},\"value3\",[1,2,3,4,5]]");
 		expressionEvaluatesTo(CTX, "null..*", "[]");
-		StepVerifier.create(ParserUtil.expression(expression).evaluate(CTX, Val.UNDEFINED).log())
+		StepVerifier.create(ParserUtil.expression(expression).evaluate(CTX, Val.UNDEFINED))
 				.expectNextMatches(result -> ArrayUtil.arraysMatchWithSetSemantics(result, expected)).verifyComplete();
 	}
 

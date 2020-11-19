@@ -17,9 +17,7 @@ package io.sapl.interpreter;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import org.junit.Before;
@@ -35,38 +33,32 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import reactor.core.publisher.Hooks;
 
 public class DefaultSAPLInterpreterPolicySetTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+	private EvaluationContext evaluationCtx;
 
 	private AuthorizationSubscription authzSubscription;
-
-	private AttributeContext attributeCtx;
-
-	private FunctionContext functionCtx;
 
 	@Before
 	public void init() throws FunctionException {
 		Hooks.onOperatorDebug();
 		authzSubscription = new AuthorizationSubscription(null, null, null, null);
-		attributeCtx = new AnnotationAttributeContext();
-		functionCtx = new AnnotationFunctionContext();
+		var attributeCtx = new AnnotationAttributeContext();
+		var functionCtx = new AnnotationFunctionContext();
 		functionCtx.loadLibrary(new FilterFunctionLibrary());
+		evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, new HashMap<>());
 	}
 
 	@Test
 	public void setPermit() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp\" permit";
 		AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
 		assertEquals("simple policy set should evaluate to permit", expected, actual);
 	}
 
@@ -74,8 +66,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void setDeny() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp\" deny";
 		AuthorizationDecision expected = AuthorizationDecision.DENY;
-		AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
 		assertEquals("simple policy set should evaluate to deny", expected, actual);
 	}
 
@@ -83,8 +74,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void setNotApplicable() {
 		String policySet = "set \"tests\" deny-overrides " + "for true == false " + "policy \"testp\" deny";
 		AuthorizationDecision expected = AuthorizationDecision.NOT_APPLICABLE;
-		AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
 		assertEquals("simple policy set should evaluate to not applicable", expected, actual);
 	}
 
@@ -92,8 +82,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void noApplicablePolicies() {
 		String policySet = "set \"tests\" deny-overrides " + "for true " + "policy \"testp\" deny true == false";
 		AuthorizationDecision expected = AuthorizationDecision.NOT_APPLICABLE;
-		AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
 		assertEquals("set with no applicable policies should evaluate to not applicable", expected, actual);
 	}
 
@@ -101,8 +90,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void setIndeterminate() {
 		String policySet = "set \"tests\" deny-overrides" + "for \"a\" > 4 " + "policy \"testp\" permit";
 		AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
 		assertEquals("simple policy set should evaluate to indeterminate", expected, actual);
 	}
 
@@ -110,8 +98,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	public void denyOverridesPermitAndDeny() {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit " + "policy \"testp2\" deny";
 		AuthorizationDecision expected = AuthorizationDecision.DENY;
-		AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
 		assertEquals("algorithm should return deny if any policy evaluates to deny", expected, actual);
 	}
 
@@ -120,8 +107,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
 				+ "policy \"testp2\" permit true == false " + "policy \"testp3\" deny";
 		AuthorizationDecision expected = AuthorizationDecision.DENY;
-		AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
 		assertEquals("algorithm should return deny if any policy evaluates to deny", expected, actual);
 	}
 
@@ -132,8 +118,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 				"policy \"testp2\" permit \"a\" < 5 " + //
 				"policy \"testp3\" deny";
 		AuthorizationDecision expected = AuthorizationDecision.DENY;
-		AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
 		assertEquals("algorithm should return deny if any policy evaluates to deny", expected, actual);
 	}
 
@@ -143,8 +128,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 				"set \"tests\" deny-overrides " + //
 				"policy \"testp1\" permit transform true |- replace(false)";
 		Optional<BooleanNode> expected = Optional.of(JsonNodeFactory.instance.booleanNode(false));
-		Optional<JsonNode> actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
+		Optional<JsonNode> actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst()
 				.getResource();
 		assertEquals("imports for policy set must be available in policies", expected, actual);
 	}
@@ -156,8 +140,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 				"set \"tests\" deny-overrides " + //
 				"policy \"testp1\" permit where true;";
 		AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
 		assertEquals("imports for policy set must not contain duplicates", expected, actual);
 	}
 
@@ -167,9 +150,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 				"var var1 = true; " + //
 				"policy \"testp1\" permit var1 == true";
 		Decision expected = Decision.PERMIT;
-		Decision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
-				.getDecision();
+		Decision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst().getDecision();
 		assertEquals("variables defined for policy set must be available in policies", expected, actual);
 	}
 
@@ -179,8 +160,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 				"var var1 = true / null; " + //
 				"policy \"testp1\" permit";
 		AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
 		assertEquals("error in policy set variable definition should lead to indeterminate", expected, actual);
 	}
 
@@ -191,9 +171,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 				"policy \"testp1\" permit where var var1 = 10; var1 == 10; " + //
 				"policy \"testp2\" deny where !(var1 == true);";
 		Decision expected = Decision.PERMIT;
-		Decision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst()
-				.getDecision();
+		Decision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst().getDecision();
 		assertEquals("it should be possible to overwrite a variable in a policy", expected, actual);
 	}
 
@@ -203,8 +181,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 				"var subject = null;  " + //
 				"policy \"test\" permit";
 		AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
 		assertEquals("'subject' as variable name should evaluate to indeterminate", expected, actual);
 	}
 
@@ -214,8 +191,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 				"policy \"pol1\" permit where var p1 = 10; p1 == 10; " + //
 				"policy \"pol2\" deny where p1 == undefined;";
 		AuthorizationDecision expected = AuthorizationDecision.DENY;
-		AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES).blockFirst();
+		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
 		assertEquals("variable p1 from policy pol1 should not be defined in policy pol2", expected, actual);
 	}
 

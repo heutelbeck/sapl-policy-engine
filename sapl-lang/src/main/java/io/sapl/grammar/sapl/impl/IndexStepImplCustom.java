@@ -51,7 +51,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 		}
 		var array = parentValue.getArrayNode();
 		var idx = normalizeIndex(index, array);
-		if (idx < 0 || idx > array.size()) {
+		if (idx < 0 || idx >= array.size()) {
 			return Val.errorFlux(INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D, array.size(), idx);
 		}
 		return Flux.just(Val.of(array.get(idx)));
@@ -81,7 +81,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 		}
 		var array = parentValue.getArrayNode();
 		var idx = normalizeIndex(index, array);
-		if (idx < 0 || idx > array.size()) {
+		if (idx < 0 || idx >= array.size()) {
 			// this means the element does not get selected does not get filtered
 			return Flux.just(parentValue);
 		}

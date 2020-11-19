@@ -22,6 +22,7 @@ import io.sapl.api.interpreter.Val
 import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.interpreter.DefaultSAPLInterpreter
+import io.sapl.interpreter.EvaluationContext
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
@@ -46,6 +47,8 @@ class TemporalFunctionLibraryTest {
 	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext()
 	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext()
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>())
+	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
+		SYSTEM_VARIABLES);
 
 	static final String authzSubscription = '''
 		{
@@ -95,8 +98,8 @@ class TemporalFunctionLibraryTest {
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
-		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES).blockFirst()
+		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT).
+			blockFirst()
 
 		assertThat("temporal functions not working as expected", authzDecision, equalTo(expectedAuthzDecision))
 	}
@@ -112,8 +115,8 @@ class TemporalFunctionLibraryTest {
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE
-		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES).blockFirst()
+		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT).
+			blockFirst()
 
 		assertThat("temporal functions not working as expected", authzDecision, equalTo(expectedAuthzDecision))
 	}
@@ -134,8 +137,8 @@ class TemporalFunctionLibraryTest {
 		} else {
 			expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE
 		}
-		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES).blockFirst()
+		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT).
+			blockFirst()
 
 		assertThat("dayOfWeek() not working as expected", authzDecision, equalTo(expectedAuthzDecision))
 	}
@@ -151,8 +154,8 @@ class TemporalFunctionLibraryTest {
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
-		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES).blockFirst()
+		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT).
+			blockFirst()
 
 		assertThat("localDateTime() not working as expected", authzDecision, equalTo(expectedAuthzDecision))
 	}
@@ -168,8 +171,8 @@ class TemporalFunctionLibraryTest {
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
-		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES).blockFirst()
+		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT).
+			blockFirst()
 
 		assertThat("localTime() not working as expected", authzDecision, equalTo(expectedAuthzDecision))
 	}
@@ -186,8 +189,8 @@ class TemporalFunctionLibraryTest {
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
-		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES).blockFirst()
+		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT).
+			blockFirst()
 
 		assertThat("localHour() not working as expected", authzDecision, equalTo(expectedAuthzDecision))
 	}
@@ -204,8 +207,8 @@ class TemporalFunctionLibraryTest {
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
-		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES).blockFirst()
+		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT).
+			blockFirst()
 
 		assertThat("localMinute() not working as expected", authzDecision, equalTo(expectedAuthzDecision))
 	}
@@ -222,8 +225,8 @@ class TemporalFunctionLibraryTest {
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
-		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, ATTRIBUTE_CTX, FUNCTION_CTX,
-			SYSTEM_VARIABLES).blockFirst()
+		val authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT).
+			blockFirst()
 
 		assertThat("localSecond() not working as expected", authzDecision, equalTo(expectedAuthzDecision))
 	}

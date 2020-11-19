@@ -26,7 +26,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class ApplyStepsKeyTest {
 
-	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void keyStepPropagatesErrors() {
@@ -65,35 +65,35 @@ public class ApplyStepsKeyTest {
 
 	@Test
 	public void filterNonObjectOrArray() {
-		var expression = "\"Gudrun\" |- { @.key : nil }";
+		var expression = "\"Gudrun\" |- { @.key : mock.nil }";
 		var expected = "\"Gudrun\"";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterObject() {
-		var expression = "{\"key\" : true, \"other\" : false} |- { @.key : nil}";
+		var expression = "{\"key\" : true, \"other\" : false} |- { @.key : mock.nil}";
 		var expected = "{\"key\" : null, \"other\" : false}";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterObjectDescend() {
-		var expression = "{\"key\" : { \"key2\" : true}, \"other\" : false} |- { @.key.key2 : nil}";
+		var expression = "{\"key\" : { \"key2\" : true}, \"other\" : false} |- { @.key.key2 : mock.nil}";
 		var expected = "{\"key\" : {\"key2\" : null }, \"other\" : false}";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterArray() {
-		var expression = "[ {\"key\" : true, \"other\" : false} , false ] |- { @.key : nil}";
+		var expression = "[ {\"key\" : true, \"other\" : false} , false ] |- { @.key : mock.nil}";
 		var expected = "[ {\"key\" : null, \"other\" : false} , false ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterEmptyrray() {
-		var expression = "[] |- { @.key : nil}";
+		var expression = "[] |- { @.key : mock.nil}";
 		var expected = "[]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}

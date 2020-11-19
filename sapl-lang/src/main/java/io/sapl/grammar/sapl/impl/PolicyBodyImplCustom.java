@@ -19,6 +19,7 @@ import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
@@ -35,8 +36,6 @@ import reactor.util.function.Tuples;
 public class PolicyBodyImplCustom extends PolicyBodyImpl {
 
 	private static final String STATEMENT_NOT_BOOLEAN = "Evaluation error: Statement must evaluate to a boolean value, but was: '%s'.";
-
-	protected static final String CANNOT_ASSIGN_UNDEFINED_TO_A_VAL = "Cannot assign undefined to a val.";
 
 	/**
 	 * Evaluates all statements of this policy body within the given evaluation
@@ -60,10 +59,6 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 	 */
 	@Override
 	public Flux<Decision> evaluate(Decision entitlement, EvaluationContext ctx) {
-		if (statements == null || statements.isEmpty()) {
-			return Flux.just(entitlement);
-		}
-
 		return Flux.just(Tuples.of(Val.TRUE, ctx)).concatMap(evaluateStatements(0)).map(Tuple2::getT1).map(val -> {
 			if (val.isError()) {
 				log.debug("Error evaluation statements: {}", val.getMessage());
@@ -99,15 +94,26 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 		if (previousResult.isError() || !previousResult.getBoolean()) {
 			return Flux.just(Tuples.of(previousResult, ctx));
 		}
-		return valueDefinition.getEval().evaluate(ctx, Val.UNDEFINED).concatMap(evaluatedValue -> {
-			if (evaluatedValue.isDefined()) {
-				var newCtx = ctx.copy();
-				newCtx.getVariableCtx().put(valueDefinition.getName(), evaluatedValue.get());
-				return Flux.just(Tuples.of(Val.TRUE, newCtx));
-			} else {
-				return Flux.just(Tuples.of(Val.error(CANNOT_ASSIGN_UNDEFINED_TO_A_VAL), ctx));
+		return valueDefinition.getEval().evaluate(ctx, Val.UNDEFINED)
+				.concatMap(derivePolicyBodyScopeEvaluationContext(valueDefinition, ctx));
+	}
+
+	private Function<? super Val, ? extends Publisher<? extends Tuple2<Val, EvaluationContext>>> derivePolicyBodyScopeEvaluationContext(
+			ValueDefinition valueDefinition, EvaluationContext ctx) {
+		return evaluatedValue -> {
+			if (evaluatedValue.isError()) {
+				return Flux.just(Tuples.of(evaluatedValue, ctx));
 			}
-		});
+			if (evaluatedValue.isDefined()) {
+				try {
+					var scopedCtx = ctx.withEnvironmentVariable(valueDefinition.getName(), evaluatedValue.get());
+					return Flux.just(Tuples.of(Val.TRUE, scopedCtx));
+				} catch (PolicyEvaluationException e) {
+					return Flux.just(Tuples.of(Val.error(e), ctx));
+				}
+			}
+			return Flux.just(Tuples.of(Val.TRUE, ctx));
+		};
 	}
 
 	private Flux<Tuple2<Val, EvaluationContext>> evaluateCondition(Val previousResult, Condition condition,

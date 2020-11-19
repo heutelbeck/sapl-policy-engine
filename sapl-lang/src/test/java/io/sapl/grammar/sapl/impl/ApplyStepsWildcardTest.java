@@ -25,7 +25,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class ApplyStepsWildcardTest {
 
-	private static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void wildcardStepPropagatesErrors() {
@@ -35,6 +35,11 @@ public class ApplyStepsWildcardTest {
 	@Test
 	public void wildcardStepOnOtherThanArrayOrObjectFails() {
 		expressionErrors(CTX, "\"\".*");
+	}
+
+	@Test
+	public void wildcardStepOnUndefinedFails() {
+		expressionErrors(CTX, "undefined.*");
 	}
 
 	@Test
@@ -97,14 +102,14 @@ public class ApplyStepsWildcardTest {
 	@Test
 	public void filterInArrayDescend() {
 		var expression = "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [ \"Mary\", \"Louis\", \"Paul\" ] } } "
-				+ "|- { @..children[*] : nil }";
+				+ "|- { @..children[*] : mock.nil }";
 		var expected = "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [null,null,null] } } ";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterInArrayDescend2() {
-		var expression = "[ {\"a\" : 1},{\"b\" : 2}] |- { @[*].b : nil }";
+		var expression = "[ {\"a\" : 1},{\"b\" : 2}] |- { @[*].b : mock.nil }";
 		var expected = "[ {\"a\" : 1},{\"b\" : null}]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}

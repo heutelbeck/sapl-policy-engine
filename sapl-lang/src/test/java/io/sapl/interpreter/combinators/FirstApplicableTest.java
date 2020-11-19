@@ -17,25 +17,21 @@ package io.sapl.interpreter.combinators;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
 
 public class FirstApplicableTest {
 
@@ -49,16 +45,13 @@ public class FirstApplicableTest {
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
 			null, null, JSON.booleanNode(true), null);
 
-	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
-
-	private AttributeContext attributeCtx;
-
-	private FunctionContext functionCtx;
+	private EvaluationContext evaluationCtx;
 
 	@Before
 	public void init() {
-		attributeCtx = new AnnotationAttributeContext();
-		functionCtx = new AnnotationFunctionContext();
+		var attributeCtx = new AnnotationAttributeContext();
+		var functionCtx = new AnnotationFunctionContext();
+		evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, new HashMap<>());
 	}
 
 	@Test
@@ -66,8 +59,7 @@ public class FirstApplicableTest {
 		String policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit";
 
 		assertEquals("should return permit if the only policy evaluates to permit", Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -75,8 +67,7 @@ public class FirstApplicableTest {
 		String policySet = "set \"tests\" first-applicable" + " policy \"testp\" deny";
 
 		assertEquals("should return deny if the only policy evaluates to deny", Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -85,8 +76,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return not applicable if the only policy target evaluates to not applicable",
 				Decision.NOT_APPLICABLE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -95,8 +85,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return not applicable if the only policy condition evaluates to not applicable",
 				Decision.NOT_APPLICABLE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -104,8 +93,7 @@ public class FirstApplicableTest {
 		String policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit \"a\" < 5";
 
 		assertEquals("should return indeterminate if the only target is indeterminate", Decision.INDETERMINATE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -113,8 +101,7 @@ public class FirstApplicableTest {
 		String policySet = "set \"tests\" first-applicable" + " policy \"testp\" permit where \"a\" < 5;";
 
 		assertEquals("should return indeterminate if the only condition is indeterminate", Decision.INDETERMINATE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -122,8 +109,7 @@ public class FirstApplicableTest {
 		String policySet = "set \"tests\" first-applicable" + " policy \"testp1\" permit" + " policy \"testp2\" deny";
 
 		assertEquals("should return permit if the first policy evalautes to permit", Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -132,8 +118,7 @@ public class FirstApplicableTest {
 				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" deny";
 
 		assertEquals("should return deny if the first applicable policy evaluates to deny", Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -142,8 +127,7 @@ public class FirstApplicableTest {
 				+ " policy \"testp2\" permit transform false";
 
 		assertEquals("should return permit even if two matching policies have transformation", Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -153,8 +137,7 @@ public class FirstApplicableTest {
 
 		assertEquals("should return resource if the first policy evaluated to permit has transformation",
 				Optional.of(JSON.booleanNode(true)),
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getResource());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getResource());
 	}
 
 	@Test
@@ -166,9 +149,9 @@ public class FirstApplicableTest {
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
 
-		assertEquals("should collect obligation of first deny policy only", Optional.of(obligation), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getObligations());
+		assertEquals("should collect obligation of first deny policy only", Optional.of(obligation),
+				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst()
+						.getObligations());
 	}
 
 	@Test
@@ -181,8 +164,7 @@ public class FirstApplicableTest {
 		advice.add(JSON.textNode("advice1"));
 
 		assertEquals("should collect advice of first deny policy only", Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
 	}
 
 	@Test
@@ -194,9 +176,9 @@ public class FirstApplicableTest {
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
 
-		assertEquals("should collect obligation of first permit policy only", Optional.of(obligation), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getObligations());
+		assertEquals("should collect obligation of first permit policy only", Optional.of(obligation),
+				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst()
+						.getObligations());
 	}
 
 	@Test
@@ -209,8 +191,7 @@ public class FirstApplicableTest {
 		advice.add(JSON.textNode("advice1"));
 
 		assertEquals("should collect advice of first permit policy only", Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
 	}
 
 }

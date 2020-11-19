@@ -1,25 +1,27 @@
 package io.sapl.grammar.sapl.impl.util;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.util.HashMap;
+import java.util.Map;
 
 import org.eclipse.emf.common.util.EList;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
+import io.sapl.api.pip.Attribute;
+import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.api.validation.Text;
+import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.interpreter.variables.VariableContext;
+import io.sapl.interpreter.SimpleFunctionLibrary;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Flux;
 
 /**
@@ -40,69 +42,77 @@ public class MockUtil {
 		policySet.eSet(targetExpressionFeature, expression);
 	}
 
-	public static EvaluationContext mockEvaluationContext() {
-		var ctx = mock(EvaluationContext.class);
-		var functionCtx = mock(FunctionContext.class);
-		when(functionCtx.evaluate(eq("mock.nil"), any())).thenReturn(Val.NULL);
-		when(functionCtx.evaluate(eq("mock.emptyString"), any())).thenReturn(Val.of(""));
-		when(functionCtx.evaluate(eq("mock.error"), any())).thenReturn(Val.error("Mocked error in function."));
-		when(functionCtx.evaluate(eq("mock.exception"), any()))
-				.thenThrow(new RuntimeException("Mocked exception in function."));
-		when(functionCtx.evaluate(eq("mock.parameters"), any())).thenAnswer(new Answer<Val>() {
-			@Override
-			public Val answer(InvocationOnMock invocation) {
-				var array = Val.JSON.arrayNode();
-				for (var i = 1; i < invocation.getArguments().length; i++) {
-					var val = (Val) invocation.getArguments()[i];
-					if (val.isDefined()) {
-						array.add(val.get());
-					}
-				}
-				return Val.of(array);
-			}
-		});
-		when(functionCtx.evaluate(eq("filter.remove"), any())).thenReturn(Val.UNDEFINED);
-		when(functionCtx.evaluate(eq("filter.blacken"), any())).thenAnswer(new Answer<Val>() {
-			@Override
-			public Val answer(InvocationOnMock invocation) {
-				var str = ((Val) invocation.getArgument(1)).getText();
-				return Val.of(("X".repeat(str.length())));
-			}
-		});
-		when(functionCtx.evaluate(eq("simple.append"), any())).thenAnswer(new Answer<Val>() {
-			@Override
-			public Val answer(InvocationOnMock invocation) {
-				var builder = new StringBuilder();
-				for (int i = 1; i < invocation.getArguments().length; i++) {
-					builder.append(((Val) invocation.getArgument(i)).getText());
-				}
-				return Val.of(builder.toString());
-			}
-		});
-		when(ctx.getFunctionCtx()).thenReturn(functionCtx);
-		var attributeCtx = mock(AttributeContext.class);
-		when(attributeCtx.evaluate(eq("test.nilflux"), any(), any(), any())).thenReturn(Flux.just(Val.NULL));
-		when(attributeCtx.evaluate(eq("test.numbers"), any(), any(), any()))
-				.thenReturn(Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5)));
-		when(ctx.getAttributeCtx()).thenReturn(attributeCtx);
-		var imports = new HashMap<String, String>();
-		imports.put("nil", "mock.nil");
-		imports.put("remove", "filter.remove");
-		imports.put("append", "simple.append");
-		imports.put("blacken", "filter.blacken");
-		imports.put("error", "mock.error");
-		imports.put("emptyString", "mock.emptyString");
-		imports.put("exception", "mock.exception");
-		imports.put("parameters", "mock.parameters");
-		imports.put("nilflux", "test.nilflux");
-		imports.put("numbers", "test.numbers");
-		when(ctx.getImports()).thenReturn(imports);
-		var variableCtx = mock(VariableContext.class);
-		when(variableCtx.get(any())).thenReturn(Val.UNDEFINED);
-		when(variableCtx.get("nullVariable")).thenReturn(Val.NULL);
-		when(ctx.getVariableCtx()).thenReturn(variableCtx);
+	public static EvaluationContext constructTestEnvironmentEvaluationContext() {
 
-		return ctx;
+		var attributeCtx = new AnnotationAttributeContext();
+		attributeCtx.loadPolicyInformationPoint(new TestPolicyInformationPoint());
+
+		var functionCtx = new AnnotationFunctionContext();
+		functionCtx.loadLibrary(new SimpleFunctionLibrary());
+		functionCtx.loadLibrary(new FilterFunctionLibrary());
+		functionCtx.loadLibrary(new TestFunctionLibrary());
+
+		var variables = new HashMap<String, JsonNode>(1);
+		variables.put("nullVariable", Val.JSON.nullNode());
+
+		var evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variables);
+		var imports = new HashMap<String, String>();
+
+		evaluationCtx = evaluationCtx.withImports(imports);
+
+		return evaluationCtx;
+	}
+
+	@FunctionLibrary(name = "mock")
+	public static class TestFunctionLibrary {
+		@Function
+		public Val nil(Val... parameters) {
+			return Val.NULL;
+		}
+
+		@Function
+		public Val emptyString(Val... parameters) {
+			return Val.of("");
+		}
+
+		@Function
+		public Val error(Val... parameters) {
+			return Val.error("INTENTIONALLY CREATED TEST ERROR");
+		}
+
+		@Function
+		public Val exception(Val... parameters) {
+			throw new RuntimeException("INTENTIONALLY THROWN TEST EXCEPTION");
+		}
+
+		@Function
+		public Val parameters(Val... parameters) {
+			var array = Val.JSON.arrayNode();
+			for (var param : parameters)
+				array.add(param.get());
+			return Val.of(array);
+		}
+	}
+
+	@PolicyInformationPoint(name = "test")
+	public static class TestPolicyInformationPoint {
+
+		@Attribute
+		public Flux<Val> nilflux(Val value, Map<String, JsonNode> variables) {
+			return Flux.just(Val.NULL);
+		}
+
+		@Attribute
+		public Flux<Val> numbers(Val value, Map<String, JsonNode> variables) {
+			return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));
+		}
+
+		@Attribute
+		public Flux<Val> numbersWithError(@Text Val value, Map<String, JsonNode> variables) {
+			return Flux.just(Val.of(0), Val.of(1), Val.error("INTENTIONAL ERROR IN SEQUENCE"), Val.of(3), Val.of(4),
+					Val.of(5));
+		}
+
 	}
 
 	@SuppressWarnings("unchecked")

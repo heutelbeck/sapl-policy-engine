@@ -27,7 +27,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class ApplyStepsRecursiveIndexTest {
 
-	private static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void recursiveIndexStepPropagatesErrors() {
@@ -66,7 +66,7 @@ public class ApplyStepsRecursiveIndexTest {
 
 	@Test
 	public void filterApplyIndex() {
-		expressionEvaluatesTo(CTX, "[ [1,2,3], [4,5,6,7] ] |- { @..[-4] : nil }", "[ [1,2,3], [null,5,6,7] ]");
+		expressionEvaluatesTo(CTX, "[ [1,2,3], [4,5,6,7] ] |- { @..[-4] : mock.nil }", "[ [1,2,3], [null,5,6,7] ]");
 	}
 
 	@Test

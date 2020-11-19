@@ -25,7 +25,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class AttributeUnionStepImplCustomTest {
 
-	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void applySlicingToNonObject() {
@@ -49,21 +49,21 @@ public class AttributeUnionStepImplCustomTest {
 
 	@Test
 	public void applyFilterToNonObject() {
-		var expression = "\"Otto\" |- { @['key1','key2'] : nil }";
+		var expression = "\"Otto\" |- { @['key1','key2'] : mock.nil }";
 		var expected = "\"Otto\"";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterElementsInObject() {
-		var expression = "{ \"key1\" : 1, \"key2\" : 2,  \"key3\" : 3 } |- { @['key3','key1'] : nil }";
+		var expression = "{ \"key1\" : 1, \"key2\" : 2,  \"key3\" : 3 } |- { @['key3','key1'] : mock.nil }";
 		var expected = "{ \"key1\" : null, \"key2\" : 2,  \"key3\" : null }";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterElementsInDescend() {
-		var expression = "{ \"key1\" : [1,2,3], \"key2\" : [1,2,3],  \"key3\" : [1,2,3] } |- { @['key3','key1'][2] : nil }";
+		var expression = "{ \"key1\" : [1,2,3], \"key2\" : [1,2,3],  \"key3\" : [1,2,3] } |- { @['key3','key1'][2] : mock.nil }";
 		var expected = "{ \"key1\" : [1,2,null], \"key2\" : [1,2,3],  \"key3\" : [1,2,null] }";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}

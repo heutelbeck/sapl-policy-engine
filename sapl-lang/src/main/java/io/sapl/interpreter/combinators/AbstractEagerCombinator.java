@@ -16,21 +16,13 @@
 package io.sapl.interpreter.combinators;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.interpreter.variables.VariableContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuples;
@@ -39,34 +31,21 @@ import reactor.util.function.Tuples;
 public abstract class AbstractEagerCombinator implements DocumentsCombinator, PolicyCombinator {
 
 	@Override
-	public Flux<AuthorizationDecision> combineMatchingDocuments(Collection<SAPL> matchingSaplDocuments,
-			boolean errorsInTarget, AuthorizationSubscription authzSubscription, AttributeContext attributeCtx,
-			FunctionContext functionCtx, Map<String, JsonNode> systemVariables) {
+	public Flux<AuthorizationDecision> combineMatchingDocuments(PolicyRetrievalResult policyRetrievalResult,
+			EvaluationContext evaluationCtx) {
 		log.debug("|-- Combining matching documents");
-
-		final VariableContext variableCtx;
-		try {
-			variableCtx = new VariableContext(authzSubscription, systemVariables);
-		} catch (PolicyEvaluationException e) {
-			// Error -> default to INDETERMINATE
-			log.debug("| |-- Error with context initialization. Cannot evaluate policies. Default to {}. {}",
-					AuthorizationDecision.INDETERMINATE, e.getMessage());
-			return Flux.just(AuthorizationDecision.INDETERMINATE);
-		}
-
-		var evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, variableCtx);
-
+		var matchingSaplDocuments = policyRetrievalResult.getMatchingDocuments();
 		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (SAPL document : matchingSaplDocuments) {
 			log.debug("| |-- Evaluate: {} ({})", document.getPolicyElement().getSaplName(),
 					document.getPolicyElement().getClass().getName());
-			// do not first check match again. directly evaluate the rules
 			authzDecisionFluxes.add(document.evaluate(evaluationCtx));
 		}
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
-			return Flux.just(combineDecisions(new AuthorizationDecision[0], errorsInTarget));
+			return Flux.just(combineDecisions(new AuthorizationDecision[0], policyRetrievalResult.isErrorsInTarget()));
 		}
-		return Flux.combineLatest(authzDecisionFluxes, decisions -> combineDecisions(decisions, errorsInTarget));
+		return Flux.combineLatest(authzDecisionFluxes,
+				decisions -> combineDecisions(decisions, policyRetrievalResult.isErrorsInTarget()));
 	}
 
 	@Override

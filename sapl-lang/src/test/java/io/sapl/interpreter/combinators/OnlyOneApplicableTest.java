@@ -17,25 +17,21 @@ package io.sapl.interpreter.combinators;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
 
 public class OnlyOneApplicableTest {
 
@@ -49,16 +45,13 @@ public class OnlyOneApplicableTest {
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
 			null, null, JSON.booleanNode(true), null);
 
-	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
-
-	private AttributeContext attributeCtx;
-
-	private FunctionContext functionCtx;
+	private EvaluationContext evaluationCtx;
 
 	@Before
 	public void init() {
-		attributeCtx = new AnnotationAttributeContext();
-		functionCtx = new AnnotationFunctionContext();
+		var attributeCtx = new AnnotationAttributeContext();
+		var functionCtx = new AnnotationFunctionContext();
+		evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, new HashMap<>());
 	}
 
 	@Test
@@ -66,8 +59,7 @@ public class OnlyOneApplicableTest {
 		String policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" permit";
 
 		assertEquals("should return permit if the only policy evaluates to permit", Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -75,8 +67,7 @@ public class OnlyOneApplicableTest {
 		String policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" deny";
 
 		assertEquals("should return deny if the only policy evaluates to deny", Decision.DENY,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -85,8 +76,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return not applicable if the only policy target evaluates to not applicable",
 				Decision.NOT_APPLICABLE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -95,8 +85,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return not applicable if the only policy condition evaluates to not applicable",
 				Decision.NOT_APPLICABLE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -104,8 +93,7 @@ public class OnlyOneApplicableTest {
 		String policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" permit \"a\" < 5";
 
 		assertEquals("should return indeterminate if the only target is indeterminate", Decision.INDETERMINATE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -113,8 +101,7 @@ public class OnlyOneApplicableTest {
 		String policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" permit where \"a\" < 5;";
 
 		assertEquals("should return indeterminate if the only condition is indeterminate", Decision.INDETERMINATE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -123,8 +110,7 @@ public class OnlyOneApplicableTest {
 				+ " policy \"testp2\" permit true" + " policy \"testp3\" permit false";
 
 		assertEquals("should return permit if only matching policy evaluates to permit", Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -133,8 +119,7 @@ public class OnlyOneApplicableTest {
 				+ " policy \"testp2\" deny";
 
 		assertEquals("should return indeterminate if more than one policy matching", Decision.INDETERMINATE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -143,8 +128,7 @@ public class OnlyOneApplicableTest {
 				+ " policy \"testp2\" permit";
 
 		assertEquals("should return indeterminate if more than one policy matching", Decision.INDETERMINATE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -156,8 +140,7 @@ public class OnlyOneApplicableTest {
 				"should return indeterminate if more than one policy matching, "
 						+ "even if only one evaluates to permit or deny",
 				Decision.INDETERMINATE,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -165,8 +148,7 @@ public class OnlyOneApplicableTest {
 		String policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" permit transform true";
 
 		assertEquals("should return permit if there is no transformation incertainty", Decision.PERMIT,
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getDecision());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
@@ -175,8 +157,7 @@ public class OnlyOneApplicableTest {
 
 		assertEquals("should return resource if there is no transformation incertainty",
 				Optional.of(JSON.booleanNode(true)),
-				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-						.blockFirst().getResource());
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getResource());
 	}
 
 	@Test
@@ -190,9 +171,9 @@ public class OnlyOneApplicableTest {
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
 
-		assertEquals("should collect deny obligation of only matching policy", Optional.of(obligation), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getObligations());
+		assertEquals("should collect deny obligation of only matching policy", Optional.of(obligation),
+				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst()
+						.getObligations());
 	}
 
 	@Test
@@ -207,8 +188,7 @@ public class OnlyOneApplicableTest {
 		advice.add(JSON.textNode("advice1"));
 
 		assertEquals("should collect deny advice of only matching policy", Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
 	}
 
 	@Test
@@ -222,9 +202,9 @@ public class OnlyOneApplicableTest {
 		ArrayNode obligation = JSON.arrayNode();
 		obligation.add(JSON.textNode("obligation1"));
 
-		assertEquals("should collect permit obligation of only matching policy", Optional.of(obligation), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getObligations());
+		assertEquals("should collect permit obligation of only matching policy", Optional.of(obligation),
+				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst()
+						.getObligations());
 	}
 
 	@Test
@@ -239,8 +219,7 @@ public class OnlyOneApplicableTest {
 		advice.add(JSON.textNode("advice1"));
 
 		assertEquals("should collect permit advice of only matching policy", Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
 	}
 
 }

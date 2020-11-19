@@ -25,7 +25,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class ApplyStepsRecursiveKeyTest {
 
-	private final static EvaluationContext CTX = MockUtil.mockEvaluationContext();
+	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
 
 	@Test
 	public void recursiveKeyStepPropagatesErrors() {
@@ -64,7 +64,7 @@ public class ApplyStepsRecursiveKeyTest {
 	public void filterArray() {
 		var expression = "[ { \"key\" : \"value1\", \"array1\" : [ { \"key\" : { \"key2\": \"value2\" } }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}, "
 				+ " { \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]} ]"
-				+ " |- { @..key : nil} ";
+				+ " |- { @..key : mock.nil} ";
 		var expected = "[{\"key\":null,\"array1\":[{\"key\":null},{\"key\":null}],\"array2\":[1,2,3,4,5]},{\"key\":null,\"array1\":[{\"key\":null},{\"key\":null}],\"array2\":[1,2,3,4,5]}]]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
@@ -73,14 +73,14 @@ public class ApplyStepsRecursiveKeyTest {
 	public void filterArrayDescend() {
 		var expression = "[ { \"key\" : \"value1\", \"array1\" : [ { \"key\" : { \"key2\": \"value2\" } }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}, "
 				+ " { \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]} ]"
-				+ " |- { @..key..key2 : nil}";
+				+ " |- { @..key..key2 : mock.nil}";
 		var expected = "[{\"key\":\"value1\",\"array1\":[{\"key\":{\"key2\":null}},{\"key\":\"value3\"}],\"array2\":[1,2,3,4,5]},{\"key\":\"value1\",\"array1\":[{\"key\":\"value2\"},{\"key\":\"value3\"}],\"array2\":[1,2,3,4,5]}]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
 	public void filterArrayEmpty() {
-		var expression = "[] |- { @..key..key2 : nil} ";
+		var expression = "[] |- { @..key..key2 : mock.nil} ";
 		var expected = "[]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}

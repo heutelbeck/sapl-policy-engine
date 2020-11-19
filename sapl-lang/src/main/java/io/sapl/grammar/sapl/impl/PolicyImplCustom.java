@@ -15,19 +15,16 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Optional;
+import java.util.function.Function;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import org.reactivestreams.Publisher;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.EvaluationContext;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 @Slf4j
 public class PolicyImplCustom extends PolicyImpl {
@@ -53,84 +50,86 @@ public class PolicyImplCustom extends PolicyImpl {
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate(@NonNull EvaluationContext ctx) {
-		final EvaluationContext policyCtx = ctx.copy();
-		final Decision entitlement = PERMIT.equals(getEntitlement()) ? Decision.PERMIT : Decision.DENY;
-		final Flux<Decision> decisionFlux = getBody() != null ? getBody().evaluate(entitlement, policyCtx)
-				: Flux.just(entitlement);
+	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
+		var decision = PERMIT.equals(getEntitlement()) ? Decision.PERMIT : Decision.DENY;
+		return Flux.just(decision).concatMap(evaluateBody(ctx)).map(AuthorizationDecision::new)
+				.concatMap(addObligation(ctx)).concatMap(addAdvice(ctx)).concatMap(addResource(ctx))
+				.doOnNext(authzDecision -> log.debug("| |- Decision of '{}': {}", saplName, authzDecision));
+	}
 
-		return decisionFlux.switchMap(decision -> {
-			if (decision == Decision.PERMIT || decision == Decision.DENY) {
-				return evaluateObligationsAndAdvice(policyCtx).map(obligationAndAdvice -> {
-					var obligation = obligationAndAdvice.getT1();
-					var advice = obligationAndAdvice.getT2();
-					if (obligation.isError()) {
-						log.debug("| |- Error in obligation evaluation. INDETERMINATE: " + obligation.getMessage());
-						return AuthorizationDecision.INDETERMINATE;
-					}
-					if (advice.isError()) {
-						log.debug("| |- Error in advice evaluation. INDETERMINATE: " + advice.getMessage());
-						return AuthorizationDecision.INDETERMINATE;
-					}
-					return new AuthorizationDecision(decision, Optional.empty(), wrapInArrayIfExists(obligation),
-							wrapInArrayIfExists(advice));
-				});
-			} else {
-				return Flux.just(new AuthorizationDecision(decision));
+	private Function<? super Decision, Publisher<? extends Decision>> evaluateBody(EvaluationContext ctx) {
+		return entiltmnt -> getBody() == null ? Flux.just(entiltmnt) : getBody().evaluate(entiltmnt, ctx);
+
+	}
+
+	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addObligation(
+			EvaluationContext evaluationCtx) {
+		return previousDecision -> evaluateObligations(evaluationCtx).map(obligation -> {
+			if (obligation.isError()) {
+				log.debug("| |- Error in obligation evaluation. INDETERMINATE: " + obligation.getMessage());
+				return AuthorizationDecision.INDETERMINATE;
 			}
-		}).switchMap(authzDecision -> {
-			var decision = authzDecision.getDecision();
-			if (decision == Decision.PERMIT) {
-				return evaluateTransformation(policyCtx).map(resource -> {
-					if (resource.isEmpty()) {
-						return authzDecision;
-					}
-					if (resource.get().isError()) {
-						log.debug("| |- Error in resource evaluation. INDETERMINATE: " + resource.get());
-						return AuthorizationDecision.INDETERMINATE;
-					}
-					if (resource.get().isUndefined()) {
-						log.debug("| |- Error: Resource evaluated to 'undefined'. INDETERMINATE: " + resource.get());
-						return AuthorizationDecision.INDETERMINATE;
-					}
-					return new AuthorizationDecision(decision, Optional.of(resource.get().get()),
-							authzDecision.getObligations(), authzDecision.getAdvices());
-				});
-			} else {
-				return Flux.just(authzDecision);
+			if (obligation.isUndefined()) {
+				log.debug("| |- Undefined obligation. INDETERMINATE");
+				return AuthorizationDecision.INDETERMINATE;
 			}
-		});
+			var obligationArray = Val.JSON.arrayNode();
+			obligationArray.add(obligation.get());
+			return previousDecision.withObligations(obligationArray);
+		}).defaultIfEmpty(previousDecision);
+
 	}
 
-	private Optional<ArrayNode> wrapInArrayIfExists(Val value) {
-		if (value.isDefined()) {
-			var array = Val.JSON.arrayNode();
-			array.add(value.get());
-			return Optional.of(array);
-		}
-		return Optional.empty();
+	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addAdvice(
+			EvaluationContext evaluationCtx) {
+		return previousDecision -> evaluateAdvices(evaluationCtx).map(advice -> {
+			if (advice.isError()) {
+				log.debug("| |- Error in advice evaluation. INDETERMINATE: " + advice.getMessage());
+				return AuthorizationDecision.INDETERMINATE;
+			}
+			if (advice.isUndefined()) {
+				log.debug("| |- Undefined advice. INDETERMINATE");
+				return AuthorizationDecision.INDETERMINATE;
+			}
+			var adviceArray = Val.JSON.arrayNode();
+			adviceArray.add(advice.get());
+			return previousDecision.withAdvices(adviceArray);
+		}).defaultIfEmpty(previousDecision);
 	}
 
-	private Flux<Tuple2<Val, Val>> evaluateObligationsAndAdvice(EvaluationContext evaluationCtx) {
-		Flux<Val> obligationsFlux;
-		if (getObligation() != null) {
-			obligationsFlux = getObligation().evaluate(evaluationCtx, Val.UNDEFINED);
-		} else {
-			obligationsFlux = Val.undefinedFlux();
-		}
-		Flux<Val> adviceFlux;
-		if (getAdvice() != null) {
-			adviceFlux = getAdvice().evaluate(evaluationCtx, Val.UNDEFINED);
-		} else {
-			adviceFlux = Val.undefinedFlux();
-		}
-		return Flux.combineLatest(obligationsFlux, adviceFlux, Tuples::of);
+	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addResource(
+			EvaluationContext evaluationCtx) {
+		return previousDecision -> evaluateTransformation(evaluationCtx).map(transformation -> {
+			if (transformation.isError()) {
+				log.debug("| |- Error in transformation evaluation. INDETERMINATE: " + transformation.getMessage());
+				return AuthorizationDecision.INDETERMINATE;
+			}
+			if (transformation.isUndefined()) {
+				log.debug("| |- Undefined transformation. INDETERMINATE");
+				return AuthorizationDecision.INDETERMINATE;
+			}
+			return previousDecision.withResource(transformation.get());
+		}).defaultIfEmpty(previousDecision);
 	}
 
-	private Flux<Optional<Val>> evaluateTransformation(EvaluationContext evaluationCtx) {
+	private Flux<Val> evaluateObligations(EvaluationContext evaluationCtx) {
+		if (getObligation() == null) {
+			return Flux.empty();
+		}
+		return getObligation().evaluate(evaluationCtx, Val.UNDEFINED);
+	}
+
+	private Flux<Val> evaluateAdvices(EvaluationContext evaluationCtx) {
+		if (getAdvice() == null) {
+			return Flux.empty();
+		}
+		return getAdvice().evaluate(evaluationCtx, Val.UNDEFINED);
+	}
+
+	private Flux<Val> evaluateTransformation(EvaluationContext evaluationCtx) {
 		if (getTransformation() == null) {
-			return Flux.just(Optional.empty());
+			return Flux.empty();
 		}
-		return getTransformation().evaluate(evaluationCtx, Val.UNDEFINED).map(Optional::of);
+		return getTransformation().evaluate(evaluationCtx, Val.UNDEFINED);
 	}
 }

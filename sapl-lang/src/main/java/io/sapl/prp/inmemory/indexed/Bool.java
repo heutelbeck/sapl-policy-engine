@@ -25,9 +25,6 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.variables.VariableContext;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -65,34 +62,22 @@ public class Bool {
 		throw new IllegalStateException(BOOL_NOT_IMMUTABLE);
 	}
 
-	public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
-
-		Flux<Val> resultFlux;
-		try {
-			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
-
-			resultFlux = !isConstantExpression ? expression.evaluate(ctx, Val.UNDEFINED)
-					: Flux.just(constant ? Val.TRUE : Val.FALSE);
-		} catch (RuntimeException e) {
-			throw new PolicyEvaluationException(Exceptions.unwrap(e));
-		}
-		// throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result);
+	public Mono<Boolean> evaluate(EvaluationContext evaluationContext) {
+		EvaluationContext ctx = evaluationContext.withImports(imports);
+		Flux<Val> resultFlux = !isConstantExpression ? expression.evaluate(ctx, Val.UNDEFINED)
+				: Flux.just(constant ? Val.TRUE : Val.FALSE);
 		return resultFlux.filter(Val::isDefined).map(Val::get).filter(JsonNode::isBoolean).map(JsonNode::asBoolean)
 				.next();
 	}
 
-	public boolean evaluateBlocking(final FunctionContext functionCtx, final VariableContext variableCtx) {
+	public boolean evaluateBlocking(EvaluationContext evaluationContext) {
 		if (!isConstantExpression) {
-			EvaluationContext ctx = new EvaluationContext(functionCtx, variableCtx, imports);
-			try {
-				Val result = expression.evaluate(ctx, Val.UNDEFINED).blockFirst();
-				if (Objects.nonNull(result) && result.isDefined() && result.get().isBoolean()) {
-					return result.get().asBoolean();
-				}
-				throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result);
-			} catch (RuntimeException e) {
-				throw new PolicyEvaluationException(Exceptions.unwrap(e));
+			EvaluationContext ctx = evaluationContext.withImports(imports);
+			Val result = expression.evaluate(ctx, Val.UNDEFINED).blockFirst();
+			if (Objects.nonNull(result) && result.isDefined() && result.get().isBoolean()) {
+				return result.get().asBoolean();
 			}
+			throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result);
 		}
 		return constant;
 	}

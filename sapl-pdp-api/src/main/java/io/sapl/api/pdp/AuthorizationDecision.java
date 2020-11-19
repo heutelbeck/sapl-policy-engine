@@ -112,6 +112,18 @@ public class AuthorizationDecision {
 		return thisOptional.get().equals(otherOptional.get());
 	}
 
+	public AuthorizationDecision withObligations(ArrayNode newObligations) {
+		return new AuthorizationDecision(decision, resource, Optional.of(newObligations), advices);
+	}
+
+	public AuthorizationDecision withAdvices(ArrayNode newAdvices) {
+		return new AuthorizationDecision(decision, resource, obligations, Optional.of(newAdvices));
+	}
+
+	public AuthorizationDecision withResource(JsonNode newResource) {
+		return new AuthorizationDecision(decision, Optional.of(newResource), obligations, advices);
+	}
+
 	@Override
 	public int hashCode() {
 		final int PRIME = 59;

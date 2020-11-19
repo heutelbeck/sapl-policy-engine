@@ -15,59 +15,41 @@
  */
 package io.sapl.interpreter;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.variables.VariableContext;
 import lombok.Getter;
+import lombok.NonNull;
 
 @Getter
 public class EvaluationContext {
 
 	AttributeContext attributeCtx;
-
 	FunctionContext functionCtx;
-
 	VariableContext variableCtx;
-
 	Map<String, String> imports;
 
-	public EvaluationContext() {
-		this.variableCtx = new VariableContext();
+	public EvaluationContext(@NonNull AttributeContext attributeCtx, @NonNull FunctionContext functionCtx,
+			Map<String, JsonNode> environmentVariables) {
+		this.attributeCtx = attributeCtx;
+		this.functionCtx = functionCtx;
+		this.variableCtx = new VariableContext(environmentVariables);
 		this.imports = new HashMap<>();
 	}
 
-	public EvaluationContext(FunctionContext functionContext, VariableContext variableContext) {
-		this.functionCtx = requireNonNull(functionContext);
-		this.variableCtx = requireNonNull(variableContext);
-		this.imports = new HashMap<>();
-	}
-
-	public EvaluationContext(FunctionContext functionContext, VariableContext variableContext,
-			Map<String, String> imports) {
-		this.functionCtx = requireNonNull(functionContext);
-		this.variableCtx = requireNonNull(variableContext);
-		this.imports = imports == null ? new HashMap<>() : new HashMap<>(imports);
-	}
-
-	public EvaluationContext(AttributeContext attributeContext, FunctionContext functionContext,
-			VariableContext variableContext) {
-		this.attributeCtx = requireNonNull(attributeContext);
-		this.functionCtx = requireNonNull(functionContext);
-		this.variableCtx = requireNonNull(variableContext);
-		this.imports = new HashMap<>();
-	}
-
-	public EvaluationContext(AttributeContext attributeContext, FunctionContext functionContext,
-			VariableContext variableContext, Map<String, String> imports) {
-		this.attributeCtx = requireNonNull(attributeContext);
-		this.functionCtx = requireNonNull(functionContext);
-		this.variableCtx = requireNonNull(variableContext);
-		this.imports = imports == null ? new HashMap<>() : new HashMap<>(imports);
+	private EvaluationContext(@NonNull AttributeContext attributeContext, @NonNull FunctionContext functionContext,
+			@NonNull VariableContext variableContext, @NonNull Map<String, String> imports) {
+		this.attributeCtx = attributeContext;
+		this.functionCtx = functionContext;
+		this.variableCtx = variableContext;
+		this.imports = new HashMap<>(imports);
 	}
 
 	/**
@@ -79,11 +61,20 @@ public class EvaluationContext {
 	 * narrower scope, it should be copied to make sure, the current context is not
 	 * polluted by elements of the narrower scope when after the narrower scope has
 	 * been processed.
-	 * 
-	 * @return a copy of this evaluation context to be passed to narrower scopes.
 	 */
-	public EvaluationContext copy() {
-		return new EvaluationContext(attributeCtx, functionCtx, variableCtx.copy(), new HashMap<>(imports));
+	public EvaluationContext withEnvironmentVariable(String identifier, JsonNode value)
+			throws PolicyEvaluationException {
+		return new EvaluationContext(attributeCtx, functionCtx, variableCtx.withEnvironmentVariable(identifier, value),
+				imports);
+	}
+
+	public EvaluationContext withImports(Map<String, String> localImports) {
+		return new EvaluationContext(attributeCtx, functionCtx, variableCtx, localImports);
+	}
+
+	public EvaluationContext forAuthorizationSubscription(AuthorizationSubscription authzSubscription) {
+		return new EvaluationContext(attributeCtx, functionCtx,
+				variableCtx.forAuthorizationSubscription(authzSubscription), imports);
 	}
 
 }

@@ -19,14 +19,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -34,20 +34,16 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 
-import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.DocumentAnalysisResult;
 import io.sapl.api.interpreter.DocumentType;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.impl.util.EObjectUtil;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.TestPIP;
 import reactor.core.publisher.Hooks;
 
@@ -61,30 +57,23 @@ public class DefaultSAPLInterpreterTest {
 			+ "\"emptyArray\" : []," + "\"textArray\" : [ \"one\", \"two\" ]," + "\"emptyObject\" : {},"
 			+ "\"objectArray\" : [ {\"id\" : \"1\", \"name\" : \"one\"}, {\"id\" : \"2\", \"name\" : \"two\"} ] " + "},"
 			+ "\"environment\" : { " + "\"ipAddress\" : \"10.10.10.254\"," + "\"year\" : 2016" + "}" + " }";
-
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
-
+	private EvaluationContext evaluationCtx;
 	private AuthorizationSubscription authzSubscription;
 
-	private AttributeContext attributeCtx;
-
-	private FunctionContext functionCtx;
-
 	@Before
-	public void init() throws IOException, FunctionException, AttributeException {
+	public void init() throws JsonMappingException, JsonProcessingException {
 		Hooks.onOperatorDebug();
 		authzSubscription = MAPPER.readValue(AUTHZ_SUBSCRIPTION_JSON, AuthorizationSubscription.class);
-		attributeCtx = new AnnotationAttributeContext();
+		var attributeCtx = new AnnotationAttributeContext();
 		attributeCtx.loadPolicyInformationPoint(new TestPIP());
-		functionCtx = new AnnotationFunctionContext();
+		var functionCtx = new AnnotationFunctionContext();
 		functionCtx.loadLibrary(new SimpleFunctionLibrary());
 		functionCtx.loadLibrary(new FilterFunctionLibrary());
+		evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, new HashMap<>());
 	}
 
 	@Test
@@ -126,8 +115,7 @@ public class DefaultSAPLInterpreterTest {
 	public void permitAll() {
 		final String policyDefinition = "policy \"test\" permit";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("permit all did not evaluate to permit", expected, actual);
 	}
@@ -136,8 +124,7 @@ public class DefaultSAPLInterpreterTest {
 	public void denyAll() {
 		final String policyDefinition = "policy \"test\" deny";
 		final AuthorizationDecision expected = AuthorizationDecision.DENY;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("deny all did not evaluate to deny", expected, actual);
 	}
@@ -146,8 +133,7 @@ public class DefaultSAPLInterpreterTest {
 	public void permitFalse() {
 		final String policyDefinition = "policy \"test\" permit false";
 		final AuthorizationDecision expected = AuthorizationDecision.NOT_APPLICABLE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("false in target did not lead to not_applicable result", expected, actual);
 	}
@@ -156,8 +142,7 @@ public class DefaultSAPLInterpreterTest {
 	public void permitParseError() {
 		final String policyDefinition = "--- policy \"test\" permit ---";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("parse error should lead to indeterminate", expected, actual);
 	}
@@ -166,8 +151,7 @@ public class DefaultSAPLInterpreterTest {
 	public void targetNotBoolean() {
 		final String policyDefinition = "policy \"test\" permit 20";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("target expression type mismatch not detected", expected, actual);
 	}
@@ -182,8 +166,7 @@ public class DefaultSAPLInterpreterTest {
 	public void processParsedEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit resource.emptyArray == []";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("a parsed empty array cannot be processed", expected, actual);
 	}
@@ -192,8 +175,7 @@ public class DefaultSAPLInterpreterTest {
 	public void processParsedEmptyObject() {
 		final String policyDefinition = "policy \"test\" permit resource.emptyObject == {}";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("a parsed empty object cannot be processed", expected, actual);
 	}
@@ -202,8 +184,7 @@ public class DefaultSAPLInterpreterTest {
 	public void evaluateWorkingBodyTrue() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where true;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("evaluateRule behaves unexpectedly", expected, actual);
 	}
@@ -212,8 +193,7 @@ public class DefaultSAPLInterpreterTest {
 	public void evaluateWorkingBodyFalse() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where false;";
 		final AuthorizationDecision expected = AuthorizationDecision.NOT_APPLICABLE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("evaluateRule behaves unexpectedly", expected, actual);
 	}
@@ -222,8 +202,7 @@ public class DefaultSAPLInterpreterTest {
 	public void evaluateWorkingBodyError() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where 4 && true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("evaluateRule behaves unexpectedly", expected, actual);
 	}
@@ -232,8 +211,7 @@ public class DefaultSAPLInterpreterTest {
 	public void echoAttributeFinder() {
 		final String policyDefinition = "policy \"test\" permit where var variable = [1,2,3]; variable.<sapl.pip.test.echo> == variable;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("external attribute finder not evaluated as expected", expected, actual);
 	}
@@ -247,8 +225,7 @@ public class DefaultSAPLInterpreterTest {
 		// attributeCtx, functionCtx, SYSTEM_VARIABLES))
 		// .expectNext(expected)
 		// .verifyComplete();
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("external attribute finder was allowed in target", expected, actual);
 	}
@@ -258,8 +235,7 @@ public class DefaultSAPLInterpreterTest {
 	public void attributeFinderWithArgumentsTest() {
 		final String policyDefinition = "policy \"test\" permit where var variable = \"hello\"; variable.<sapl.pip.test.echoRepeat(2)> == (variable + variable);";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("external attribute finder not evaluated as expected", expected, actual);
 	}
@@ -268,8 +244,7 @@ public class DefaultSAPLInterpreterTest {
 	public void bodyStatementNotBoolean() {
 		final String policyDefinition = "policy \"test\" permit where null;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("non boolean statement should lead to an error", expected, actual);
 	}
@@ -278,8 +253,7 @@ public class DefaultSAPLInterpreterTest {
 	public void variableRedefinition() {
 		final String policyDefinition = "policy \"test\" permit where var test = null; var test = 2; test == 2;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("redefinition of value was not allowed", expected, actual);
 	}
@@ -288,8 +262,7 @@ public class DefaultSAPLInterpreterTest {
 	public void unboundVariable() {
 		final String policyDefinition = "policy \"test\" permit where variable;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("access to unbound variable should lead to an error", expected, actual);
 	}
@@ -298,8 +271,7 @@ public class DefaultSAPLInterpreterTest {
 	public void functionCall() {
 		final String policyDefinition = "policy \"test\" permit where simple.append(\"a\",\"b\") == \"ab\";";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("function call not evaluated as expected", expected, actual);
 	}
@@ -308,8 +280,7 @@ public class DefaultSAPLInterpreterTest {
 	public void functionCallImport() {
 		final String policyDefinition = "import simple.append policy \"test\" permit where append(\"a\",\"b\") == \"ab\";";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("function call with import not evaluated as expected", expected, actual);
 	}
@@ -318,8 +289,7 @@ public class DefaultSAPLInterpreterTest {
 	public void functionCallError() {
 		final String policyDefinition = "policy \"test\" permit where append(null) == \"ab\";";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("function call error should lead to indeterminate", expected, actual);
 	}
@@ -328,8 +298,7 @@ public class DefaultSAPLInterpreterTest {
 	public void keyStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where undefined.key == undefined;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("key step on undefined did not evaluate to undefined", expected, actual);
 	}
@@ -338,8 +307,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveKeyStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where undefined..key == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive key step on undefined did not evaluate to []", expected, actual);
 	}
@@ -348,8 +316,7 @@ public class DefaultSAPLInterpreterTest {
 	public void keyStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where \"foo\".key == undefined;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("key step on string did not evaluate to undefined", expected, actual);
 	}
@@ -358,8 +325,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveKeyStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where \"foo\"..key == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive key step on string did not evaluate to []", expected, actual);
 	}
@@ -368,8 +334,7 @@ public class DefaultSAPLInterpreterTest {
 	public void keyStepWithUnknownKey() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": 1}.key == undefined;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("key step with unknown key did not evaluate to undefined", expected, actual);
 	}
@@ -378,8 +343,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveKeyStepWithUnknownKey() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": 1}..key == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive key step with unknown key did not evaluate to the empty array", expected, actual);
 	}
@@ -388,8 +352,7 @@ public class DefaultSAPLInterpreterTest {
 	public void keyStepWithKnownKey() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": 1}.key == 1;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("key step with known key did not evaluate to the value", expected, actual);
 	}
@@ -398,8 +361,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveKeyStepWithKnownKey() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": 1}..key == [1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive key step with known key did not evaluate to an array containing the value", expected,
 				actual);
@@ -409,8 +371,7 @@ public class DefaultSAPLInterpreterTest {
 	public void keyStepWithKnownKeyInChildObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}.key == undefined;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("key step with known key in child object did not evaluate to undefined", expected, actual);
 	}
@@ -419,8 +380,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveKeyStepWithKnownKeyInChildObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}..key == [1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals(
 				"recursive key step with known key in child object did not evaluate to an array containing the value",
@@ -431,8 +391,7 @@ public class DefaultSAPLInterpreterTest {
 	public void keyStepWithKnownKeyInParentAndChildObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": 1}}.key == {\"key\": 1};";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("key step with known key in parent and child object did not evaluate to child object", expected,
 				actual);
@@ -442,8 +401,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveKeyStepWithKnownKeyInParentAndChildObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": 1}}..key == [{\"key\": 1}, 1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals(
 				"recursive key step with known key in parent and child object did not evaluate to an array containing the values",
@@ -454,8 +412,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveKeyStepComplex() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": [{\"key\": 1}, {\"key\": 2}]}}..key == [{\"key\": [{\"key\": 1}, {\"key\": 2}]}, [{\"key\": 1}, {\"key\": 2}], 1, 2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive key step on complex object did not evaluate as expected", expected, actual);
 	}
@@ -464,8 +421,7 @@ public class DefaultSAPLInterpreterTest {
 	public void indexStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = undefined[0]; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("index step on undefined did not throw an exception", expected, actual);
 	}
@@ -474,8 +430,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveIndexStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where undefined..[0] == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive index step on undefined did not return []", expected, actual);
 	}
@@ -484,8 +439,7 @@ public class DefaultSAPLInterpreterTest {
 	public void indexStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where var error = \"foo\"[0]; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("index step on string did not throw an exception", expected, actual);
 	}
@@ -494,8 +448,7 @@ public class DefaultSAPLInterpreterTest {
 	public void indexStepOnArrayWithUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = [undefined][0]; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("index step on array with undefined did not throw an exception", expected, actual);
 	}
@@ -504,8 +457,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveIndexStepOnArrayWithUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = [undefined]..[0]; error == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive index step on array with undefined did not return []", expected, actual);
 	}
@@ -514,8 +466,7 @@ public class DefaultSAPLInterpreterTest {
 	public void indexStepOnArrayWithIndexOutOfBounds() {
 		final String policyDefinition = "policy \"test\" permit where var error = [0,1][2]; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("index step on array with index out of bounds did not throw an exception", expected, actual);
 	}
@@ -524,8 +475,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveIndexStepOnArrayWithIndexOutOfBounds() {
 		final String policyDefinition = "policy \"test\" permit where [0,1]..[2] == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive index step on array with index out of bounds did not throw an exception", expected,
 				actual);
@@ -535,8 +485,7 @@ public class DefaultSAPLInterpreterTest {
 	public void indexStepOnArrayWithValidIndex() {
 		final String policyDefinition = "policy \"test\" permit where [0,1][1] == 1;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("index step on array with valid index did not evaluate to array element", expected, actual);
 	}
@@ -545,8 +494,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveIndexStepOnArrayWithValidIndex() {
 		final String policyDefinition = "policy \"test\" permit where [0,1]..[1] == [1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals(
 				"recursive index step on array with valid index did not evaluate to array containing the correct element",
@@ -557,8 +505,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveIndexStepOnArrayWithChildArray1() {
 		final String policyDefinition = "policy \"test\" permit where [[0,1], 2]..[1] == [2, 1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive index step on array with child array (1) did not evaluate as expected", expected,
 				actual);
@@ -568,8 +515,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveIndexStepOnArrayWithChildArray2() {
 		final String policyDefinition = "policy \"test\" permit where [0, [0,1]]..[1] == [[0,1], 1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive index step on array with child array (2) did not evaluate as expected", expected,
 				actual);
@@ -579,8 +525,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveIndexStepOnArrayWithChildArray3() {
 		final String policyDefinition = "policy \"test\" permit where [0, [0, 1, 2]]..[2] == [2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive index step on array with child array (3) did not evaluate as expected", expected,
 				actual);
@@ -590,8 +535,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveIndexStepComplex() {
 		final String policyDefinition = "policy \"test\" permit where [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2]]..[2] == [2, 5];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive index step on complex array did not evaluate as expected", expected, actual);
 	}
@@ -600,8 +544,7 @@ public class DefaultSAPLInterpreterTest {
 	public void wildcardStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = undefined.*; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("wildcard step on undefined did not throw an exception", expected, actual);
 	}
@@ -610,8 +553,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveWildcardStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = undefined..*; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive wildcard step on undefined did not throw an exception", expected, actual);
 	}
@@ -620,8 +562,7 @@ public class DefaultSAPLInterpreterTest {
 	public void wildcardStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where var error = \"foo\".*; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("wildcard step on string did not throw an exception", expected, actual);
 	}
@@ -630,8 +571,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveWildcardStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where \"foo\"..* == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive wildcard step on string did not return []", expected, actual);
 	}
@@ -640,8 +580,7 @@ public class DefaultSAPLInterpreterTest {
 	public void wildcardStepOnEmptyObject() {
 		final String policyDefinition = "policy \"test\" permit where {}.* == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("wildcard step on empty object did not evaluate to the empty array", expected, actual);
 	}
@@ -650,8 +589,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveWildcardStepOnEmptyObject() {
 		final String policyDefinition = "policy \"test\" permit where {}..* == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive wildcard step on empty object did not evaluate to the empty array", expected, actual);
 	}
@@ -660,8 +598,7 @@ public class DefaultSAPLInterpreterTest {
 	public void wildcardStepOnEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit where [].* == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("wildcard step on empty array did not evaluate to the empty array", expected, actual);
 	}
@@ -670,8 +607,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveWildcardStepOnEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit where []..* == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive wildcard step on empty array did not evaluate to the empty array", expected, actual);
 	}
@@ -680,8 +616,7 @@ public class DefaultSAPLInterpreterTest {
 	public void wildcardStepOnSimpleObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": 1, \"attr\": 2}.* == [1, 2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("wildcard step on simple object did not evaluate to array of values", expected, actual);
 	}
@@ -690,8 +625,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveWildcardStepOnSimpleObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": 1, \"attr\": 2}..* == [1, 2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive wildcard step on simple object did not evaluate to array of values", expected, actual);
 	}
@@ -700,8 +634,7 @@ public class DefaultSAPLInterpreterTest {
 	public void wildcardStepOnSimpleArray() {
 		final String policyDefinition = "policy \"test\" permit where [1, 2].* == [1, 2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("wildcard step on simple array did not evaluate to same array", expected, actual);
 	}
@@ -710,8 +643,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveWildcardStepOnSimpleArray() {
 		final String policyDefinition = "policy \"test\" permit where [1, 2]..* == [1, 2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive wildcard step on simple array did not evaluate to array of elements", expected, actual);
 	}
@@ -720,8 +652,7 @@ public class DefaultSAPLInterpreterTest {
 	public void wildcardStepOnHierarchicalObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}.* == [{\"key\": 1}];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("wildcard step on hierarchical object did not evaluate to array of top level values", expected,
 				actual);
@@ -731,8 +662,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveWildcardStepOnHierarchicalObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}..* == [{\"key\": 1}, 1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive wildcard step on hierarchical object did not evaluate to array of all values", expected,
 				actual);
@@ -742,8 +672,7 @@ public class DefaultSAPLInterpreterTest {
 	public void wildcardStepOnHierarchicalArray() {
 		final String policyDefinition = "policy \"test\" permit where [0, [1, 2]].* == [0, [1, 2]];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("wildcard step on hierarchical array did not evaluate to same array", expected, actual);
 	}
@@ -752,8 +681,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveWildcardStepOnHierarchicalArray() {
 		final String policyDefinition = "policy \"test\" permit where [0, [1, 2]]..* == [0, [1, 2], 1, 2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("recursive wildcard step on hierarchical array did not evaluate as expected", expected, actual);
 	}
@@ -762,8 +690,7 @@ public class DefaultSAPLInterpreterTest {
 	public void recursiveWildcardStepComplex() {
 		final String policyDefinition = "policy \"test\" permit where [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2], 6]..* == [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2], {\"text\": 1, \"arr\": [3, 4, 5]}, 1, [3, 4, 5], 3, 4, 5, 1, 2, 6];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("complex recursive wildcard step did not evaluate as expected", expected, actual);
 	}
@@ -772,8 +699,7 @@ public class DefaultSAPLInterpreterTest {
 	public void conditionStepOnEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit where [][?(@ == undefined)] == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("condition step on empty array did not evaluate to empty array", expected, actual);
 	}
@@ -782,8 +708,7 @@ public class DefaultSAPLInterpreterTest {
 	public void conditionStepOnEmptyObject() {
 		final String policyDefinition = "policy \"test\" permit where {}[?(@ == undefined)] == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("condition step on empty object did not evaluate to empty array", expected, actual);
 	}
@@ -794,8 +719,7 @@ public class DefaultSAPLInterpreterTest {
 		SAPL s = INTERPRETER.parse(policyDefinition);
 		EObjectUtil.dump(s);
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("function call on object node passing relative arguments not evaluated as expected", expected,
 				actual);
@@ -805,8 +729,7 @@ public class DefaultSAPLInterpreterTest {
 	public void functionCallOnEachArrayItemWithRelativeArguments() {
 		final String policyDefinition = "import simple.* import filter.* policy \"test\" permit where [{\"name\": \"Hans\", \"origin\": \"Hagen\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}] |- { @..name : append(\" aus \", @.origin),  @..origin : remove} == [{\"name\": \"Hans aus Hagen\"}, {\"name\": \"Felix aus Zürich\"}];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("function call on each array item passing relative arguments not evaluated as expected", expected,
 				actual);
@@ -816,8 +739,7 @@ public class DefaultSAPLInterpreterTest {
 	public void filterExtended() throws IOException {
 		final String policyDefinition = "policy \"test\" permit transform [\"foo\", \"bars\"] |- {each @.<sapl.pip.test.echo> : simple.length}";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("permit all did not evaluate to permit", expected, actual);
 	}
@@ -826,8 +748,7 @@ public class DefaultSAPLInterpreterTest {
 	public void subtemplateOnEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit where [] :: { \"name\": \"foo\" } == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("subtemplate on empty array did not evaluate to empty array", expected, actual);
 	}
@@ -837,8 +758,7 @@ public class DefaultSAPLInterpreterTest {
 		final String policyDefinition = "policy \"test\" permit transform null";
 		final Optional<NullNode> expected = Optional.of(JSON.nullNode());
 		final AuthorizationDecision authzDecision = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+				.evaluate(authzSubscription, policyDefinition, evaluationCtx).blockFirst();
 		final Optional<JsonNode> actual = authzDecision.getResource();
 		assertEquals("transformation not evaluated as expected", expected, actual);
 	}
@@ -847,8 +767,7 @@ public class DefaultSAPLInterpreterTest {
 	public void transformationError() {
 		final String policyDefinition = "policy \"test\" permit transform null * true";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("error in transformation should evaluate to indeterminate", expected, actual);
 	}
@@ -862,8 +781,7 @@ public class DefaultSAPLInterpreterTest {
 		final Optional<ArrayNode> expected = Optional.of(expectedObligation);
 
 		final AuthorizationDecision authzDecision = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+				.evaluate(authzSubscription, policyDefinition, evaluationCtx).blockFirst();
 		final Optional<ArrayNode> actual = authzDecision.getObligations();
 
 		assertEquals("obligation not evaluated as expected", expected, actual);
@@ -873,8 +791,7 @@ public class DefaultSAPLInterpreterTest {
 	public void obligationError() {
 		final String policyDefinition = "policy \"test\" permit obligation \"a\" > 5";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("error in obligation evaluation should evaluate to indeterminate", expected, actual);
 	}
@@ -888,8 +805,7 @@ public class DefaultSAPLInterpreterTest {
 		final Optional<ArrayNode> expected = Optional.of(expectedAdvice);
 
 		final AuthorizationDecision authzDecision = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
-				.blockFirst();
+				.evaluate(authzSubscription, policyDefinition, evaluationCtx).blockFirst();
 		final Optional<ArrayNode> actual = authzDecision.getAdvices();
 
 		assertEquals("advice not evaluated as expected", expected, actual);
@@ -899,8 +815,7 @@ public class DefaultSAPLInterpreterTest {
 	public void adviceError() {
 		final String policyDefinition = "policy \"test\" permit advice \"a\" > 5";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("error in advice evaluation should evaluate to indeterminate", expected, actual);
 	}
@@ -909,8 +824,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importWildcard() {
 		final String policyDefinition = "import simple.* policy \"test\" permit where var a = append(\"a\",\"b\");";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("wildcard import not working", expected, actual);
 	}
@@ -919,8 +833,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importAttributeFinder() {
 		final String policyDefinition = "import sapl.pip.test.echo policy \"test\" permit where \"echo\" == \"echo\".<echo>;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("attribute finder import not working", expected, actual);
 	}
@@ -929,8 +842,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importLibrary() {
 		final String policyDefinition = "import simple as simple_lib policy \"test\" permit where var a = simple_lib.append(\"a\",\"b\");";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("library import with alias not working", expected, actual);
 	}
@@ -939,8 +851,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importMultiple() {
 		final String policyDefinition = "import simple.length import simple.append policy \"test\" permit where var a = append(\"a\",\"b\");";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("multiple imports not working", expected, actual);
 	}
@@ -949,8 +860,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importNonExistingFunction() {
 		final String policyDefinition = "import simple.non_existing policy \"test\" permit where true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("importing non existing function should cause an error", expected, actual);
 	}
@@ -959,8 +869,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importDuplicateFunction() {
 		final String policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("importing duplicate short name should cause an error", expected, actual);
 	}
@@ -969,8 +878,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importDuplicateFunctionMatchingPolicy() {
 		final String policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("importing duplicate short name should cause an error", expected, actual);
 	}
@@ -979,8 +887,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importDuplicateWildcard() {
 		final String policyDefinition = "import simple.append import simple.* policy \"test\" permit where true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("importing duplicate short name should cause an error", expected, actual);
 	}
@@ -989,8 +896,7 @@ public class DefaultSAPLInterpreterTest {
 	public void importDuplicateAlias() {
 		final String policyDefinition = "import simple as test import simple as test policy \"test\" permit where true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, SYSTEM_VARIABLES)
+		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("importing duplicate aliased name should cause an error", expected, actual);
 	}

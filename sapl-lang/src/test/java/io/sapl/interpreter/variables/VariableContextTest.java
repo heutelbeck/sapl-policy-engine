@@ -22,7 +22,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.Test;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -42,16 +47,18 @@ public class VariableContextTest {
 
 	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthorizationSubscription(null, null,
 			null, null);
+	private static final Map<String, JsonNode> EMPTY_MAP = new HashMap<>();
 
 	@Test
 	public void emtpyInitializationTest() {
-		VariableContext ctx = new VariableContext();
+		VariableContext ctx = new VariableContext(EMPTY_MAP);
 		assertThat("context was not created and is null", ctx, not(nullValue()));
 	}
 
 	@Test
 	public void authzSubscriptionInitializationTest() {
-		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
+		VariableContext ctx = new VariableContext(EMPTY_MAP);
+		ctx = ctx.forAuthorizationSubscription(AUTH_SUBSCRIPTION);
 		assertTrue("context was not created or did not remember values",
 				ctx != null && ctx.get("subject").equals(SUBJECT_NODE) && ctx.get("action").equals(ACTION_NODE)
 						&& ctx.get("resource").equals(RESOURCE_NODE)
@@ -60,7 +67,8 @@ public class VariableContextTest {
 
 	@Test
 	public void emptyauthzSubscriptionInitializationTest() {
-		VariableContext ctx = new VariableContext(EMPTY_AUTH_SUBSCRIPTION);
+		VariableContext ctx = new VariableContext(EMPTY_MAP);
+		ctx = ctx.forAuthorizationSubscription(EMPTY_AUTH_SUBSCRIPTION);
 		assertTrue("context was not created or did not remember values",
 				ctx != null && ctx.get("subject").equals(Val.ofNull()) && ctx.get("action").equals(Val.ofNull())
 						&& ctx.get("resource").equals(Val.ofNull()) && ctx.get("environment").equals(Val.ofNull()));
@@ -68,28 +76,32 @@ public class VariableContextTest {
 
 	@Test
 	public void notExistsTest() {
-		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
+		VariableContext ctx = new VariableContext(EMPTY_MAP);
+		ctx = ctx.forAuthorizationSubscription(AUTH_SUBSCRIPTION);
 		assertFalse("var should not be existing in freshly created context", ctx.exists(VAR_ID));
 	}
 
 	@Test
 	public void existsTest() {
-		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
-		ctx.put(VAR_ID, VAR_NODE.get());
+		VariableContext ctx = new VariableContext(EMPTY_MAP);
+		ctx = ctx.forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+		ctx = ctx.withEnvironmentVariable(VAR_ID, VAR_NODE.get());
 		assertTrue("var should be existing in freshly created context", ctx.get(VAR_ID).equals(VAR_NODE));
 	}
 
 	@Test
 	public void doubleRegistrationOverwrite() {
-		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
-		ctx.put(VAR_ID, VAR_NODE.get());
-		ctx.put(VAR_ID, VAR_NODE_NEW.get());
-		assertTrue("", ctx.get(VAR_ID).equals(VAR_NODE_NEW));
+		VariableContext ctx = new VariableContext(EMPTY_MAP);
+		ctx = ctx.forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+		ctx = ctx.withEnvironmentVariable(VAR_ID, VAR_NODE.get());
+		ctx = ctx.withEnvironmentVariable(VAR_ID, VAR_NODE_NEW.get());
+		assertTrue("overwrites variables", ctx.get(VAR_ID).equals(VAR_NODE_NEW));
 	}
 
 	@Test
 	public void failGetUndefined() {
-		VariableContext ctx = new VariableContext(AUTH_SUBSCRIPTION);
+		VariableContext ctx = new VariableContext(EMPTY_MAP);
+		ctx = ctx.forAuthorizationSubscription(AUTH_SUBSCRIPTION);
 		assertThat("returns undefined", ctx.get(VAR_ID), is(Val.UNDEFINED));
 	}
 
