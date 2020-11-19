@@ -15,6 +15,9 @@
  */
 package io.sapl.pdp.embedded;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -23,6 +26,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
 import reactor.core.publisher.Flux;
@@ -32,12 +36,11 @@ public class EmbeddedPolicyDecisionPointTest {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private EmbeddedPolicyDecisionPoint pdp;
+	private PolicyDecisionPoint pdp;
 
 	@Before
 	public void setUp() throws Exception {
-		pdp = EmbeddedPolicyDecisionPoint.builder().withResourcePDPConfigurationProvider()
-				.withResourcePolicyRetrievalPoint().withPolicyInformationPoint(new TestPIP()).build();
+		pdp = PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(List.of(new TestPIP()), new ArrayList<Object>());
 	}
 
 	@Test
@@ -99,21 +102,17 @@ public class EmbeddedPolicyDecisionPointTest {
 		StepVerifier.create(flux).expectNextMatches(iad -> {
 			if (iad.getAuthorizationSubscriptionId().equals("id1")) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.PERMIT);
-			}
-			else if (iad.getAuthorizationSubscriptionId().equals("id2")) {
+			} else if (iad.getAuthorizationSubscriptionId().equals("id2")) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY);
-			}
-			else {
+			} else {
 				throw new IllegalStateException("Invalid subscription id: " + iad.getAuthorizationSubscriptionId());
 			}
 		}).expectNextMatches(iad -> {
 			if (iad.getAuthorizationSubscriptionId().equals("id1")) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.PERMIT);
-			}
-			else if (iad.getAuthorizationSubscriptionId().equals("id2")) {
+			} else if (iad.getAuthorizationSubscriptionId().equals("id2")) {
 				return iad.getAuthorizationDecision().equals(AuthorizationDecision.DENY);
-			}
-			else {
+			} else {
 				throw new IllegalStateException("Invalid subscription id: " + iad.getAuthorizationSubscriptionId());
 			}
 		}).thenCancel().verify();

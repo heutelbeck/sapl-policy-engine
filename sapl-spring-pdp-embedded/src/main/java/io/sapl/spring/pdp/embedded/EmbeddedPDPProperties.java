@@ -23,10 +23,15 @@ import lombok.Data;
 @ConfigurationProperties(prefix = "io.sapl.pdp.embedded")
 public class EmbeddedPDPProperties {
 	private PDPDataSource pdpConfigType = PDPDataSource.RESOURCES;
+	private IndexType index = IndexType.NAIVE;
 	private String configPath = "/policies";
 	private String policiesPath = "/policies";
 
 	public enum PDPDataSource {
 		RESOURCES, FILESYSTEM
+	}
+
+	public enum IndexType {
+		NAIVE, CANONICAL
 	}
 }

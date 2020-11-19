@@ -4,8 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.variables.VariableContext;
+import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.inmemory.indexed.Bitmask;
 import io.sapl.prp.inmemory.indexed.Bool;
 import lombok.Getter;
@@ -28,9 +27,9 @@ public class Predicate {
 		this.bool = Preconditions.checkNotNull(bool);
 	}
 
-	public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx) {
+	public Mono<Boolean> evaluate(EvaluationContext subscriptionScopedEvaluationCtx) {
 		try {
-			return getBool().evaluate(functionCtx, variableCtx);
+			return getBool().evaluate(subscriptionScopedEvaluationCtx);
 		} catch (PolicyEvaluationException e) {
 			log.debug(Throwables.getStackTraceAsString(e));
 			return Mono.error(e);

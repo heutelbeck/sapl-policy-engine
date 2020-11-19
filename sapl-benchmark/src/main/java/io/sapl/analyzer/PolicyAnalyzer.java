@@ -1,23 +1,6 @@
 package io.sapl.analyzer;
 
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.SAPLInterpreter;
-import io.sapl.benchmark.PolicyGeneratorConfiguration;
-import io.sapl.generator.DomainData;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder.IndexType;
-import io.sapl.prp.inmemory.indexed.Bool;
-import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
-import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
-import io.sapl.prp.inmemory.indexed.Literal;
-import io.sapl.prp.inmemory.indexed.TreeWalker;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -27,6 +10,23 @@ import java.util.HashMap;
 import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.SAPLInterpreter;
+import io.sapl.benchmark.IndexType;
+import io.sapl.benchmark.PolicyGeneratorConfiguration;
+import io.sapl.generator.DomainData;
+import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.prp.inmemory.indexed.Bool;
+import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
+import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
+import io.sapl.prp.inmemory.indexed.Literal;
+import io.sapl.prp.inmemory.indexed.TreeWalker;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PolicyAnalyzer {

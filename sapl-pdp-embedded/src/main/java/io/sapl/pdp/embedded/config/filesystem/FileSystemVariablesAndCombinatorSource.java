@@ -22,7 +22,8 @@ import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
 import io.sapl.directorywatcher.DirectoryWatchEventFluxSinkAdapter;
 import io.sapl.directorywatcher.DirectoryWatcher;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
-import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
+import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
+import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -30,7 +31,7 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
-public class FileSystemPDPConfigurationProvider implements PDPConfigurationProvider {
+public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 
 	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 	private static final Pattern CONFIG_FILE_REGEX_PATTERN = Pattern.compile("pdp\\.json");
@@ -42,7 +43,7 @@ public class FileSystemPDPConfigurationProvider implements PDPConfigurationProvi
 	private Flux<PolicyDecisionPointConfiguration> configFlux;
 	private Disposable monitorSubscription;
 
-	public FileSystemPDPConfigurationProvider(String configurationPath) {
+	public FileSystemVariablesAndCombinatorSource(String configurationPath) {
 
 		// First resolve actual path
 
@@ -87,7 +88,7 @@ public class FileSystemPDPConfigurationProvider implements PDPConfigurationProvi
 	@Override
 	public Flux<DocumentsCombinator> getDocumentsCombinator() {
 		return Flux.from(configFlux).map(PolicyDecisionPointConfiguration::getAlgorithm).distinctUntilChanged()
-				.map(this::convert);
+				.map(DocumentsCombinatorFactory::getCombinator);
 	}
 
 	@Override

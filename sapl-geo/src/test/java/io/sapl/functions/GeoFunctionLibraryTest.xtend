@@ -19,9 +19,10 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import io.sapl.api.interpreter.PolicyEvaluationException
-import io.sapl.api.pdp.Decision
 import io.sapl.api.pdp.AuthorizationSubscription
+import io.sapl.api.pdp.Decision
 import io.sapl.interpreter.DefaultSAPLInterpreter
+import io.sapl.interpreter.EvaluationContext
 import io.sapl.interpreter.functions.AnnotationFunctionContext
 import io.sapl.interpreter.functions.FunctionContext
 import io.sapl.interpreter.pip.AnnotationAttributeContext
@@ -41,6 +42,8 @@ class GeoFunctionLibraryTest {
 	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
 	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
 	static Map<String, JsonNode> variables = new HashMap<String, JsonNode>();
+	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
+		variables);
 	static JsonNode subject;
 	static JsonNode resource;
 
@@ -513,6 +516,6 @@ class GeoFunctionLibraryTest {
 
 	def Decision getDecision(String policyDefinition) {
 		return INTERPRETER.evaluate(new AuthorizationSubscription(subject, null, resource, null), policyDefinition,
-			ATTRIBUTE_CTX, FUNCTION_CTX, variables).blockFirst().getDecision();
+			PDP_EVALUATION_CONTEXT).blockFirst().getDecision();
 	}
 }

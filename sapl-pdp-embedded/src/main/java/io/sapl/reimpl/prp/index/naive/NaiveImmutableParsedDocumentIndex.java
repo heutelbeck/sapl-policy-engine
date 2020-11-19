@@ -1,18 +1,11 @@
 package io.sapl.reimpl.prp.index.naive;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.variables.VariableContext;
 import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.PrpUpdateEvent;
 import lombok.ToString;
@@ -38,20 +31,11 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 	}
 
 	@Override
-	public Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
-			FunctionContext functionCtx, Map<String, JsonNode> variables) {
-		VariableContext variableCtx;
-		try {
-			variableCtx = new VariableContext(authzSubscription, variables);
-		} catch (PolicyEvaluationException e) {
-			return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true));
-		}
-		var evaluationCtx = new EvaluationContext(functionCtx, variableCtx);
-
+	public Mono<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext) {
 		var retrieval = Mono.just(new PolicyRetrievalResult());
 		for (SAPL document : documents.values()) {
 			retrieval = retrieval.flatMap(decision -> {
-				return document.matches(evaluationCtx).map(match -> {
+				return document.matches(subscriptionScopedEvaluationContext).map(match -> {
 					if (match.isError()) {
 						return decision.withError();
 					}

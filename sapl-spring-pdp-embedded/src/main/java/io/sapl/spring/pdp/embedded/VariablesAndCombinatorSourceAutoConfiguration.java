@@ -15,17 +15,16 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.prp.PolicyRetrievalPoint;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
+import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
+import io.sapl.pdp.embedded.config.filesystem.FileSystemVariablesAndCombinatorSource;
+import io.sapl.pdp.embedded.config.resources.ResourcesVariablesAndCombinatorSource;
+import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,17 +33,19 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @ComponentScan("io.sapl.spring")
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
-@AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
-public class PDPAutoConfiguration {
+public class VariablesAndCombinatorSourceAutoConfiguration {
 
-	private final PolicyRetrievalPoint policyRetrievalPoint;
-	private final PDPConfigurationProvider configurationProvider;
+	private final EmbeddedPDPProperties pdpProperties;
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PolicyDecisionPoint policyDecisionPoint() {
-		log.info("Deploying embedded Policy Decision Point.");
-		return new EmbeddedPolicyDecisionPoint(configurationProvider, policyRetrievalPoint);
-	}
+	public VariablesAndCombinatorSource vareiablesAndCombinatorSource() {
+		log.info("Deploying VariablesAndCombinatorSource configuration provider. Sourcing data from: {} {}",
+				pdpProperties.getPdpConfigType(), pdpProperties.getConfigPath());
 
+		if (pdpProperties.getPdpConfigType() == PDPDataSource.FILESYSTEM)
+			return new FileSystemVariablesAndCombinatorSource(pdpProperties.getConfigPath());
+
+		return new ResourcesVariablesAndCombinatorSource(pdpProperties.getConfigPath());
+	}
 }

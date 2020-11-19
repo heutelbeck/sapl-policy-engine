@@ -87,7 +87,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	public Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments) {
 		final AttributeFinderMetadata metadata = attributeMetadataByAttributeName.get(attribute);
 		if (metadata == null) {
-			return Flux.error(new AttributeException(UNKNOWN_ATTRIBUTE, attribute));
+			return Flux.just(Val.error(UNKNOWN_ATTRIBUTE, attribute));
 		}
 
 		final Object pip = metadata.getPolicyInformationPoint();
@@ -109,7 +109,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
 				| IllegalParameterType e) {
 			log.error(e.getMessage());
-			return Flux.error(new AttributeException(e));
+			return Flux.just(Val.error(e));
 		}
 	}
 

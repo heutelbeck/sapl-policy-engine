@@ -26,10 +26,6 @@ import io.sapl.generator.DomainGenerator;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder.IndexType;
-import io.sapl.prp.inmemory.indexed.improved.ImprovedDocumentIndex;
-import io.sapl.prp.inmemory.simple.SimpleParsedDocumentIndex;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,7 +42,7 @@ public class TestRunner {
 
 	private static final SAPLInterpreter SAPL_INTERPRETER = new DefaultSAPLInterpreter();
 
-	private ParsedDocumentIndex getDocumentIndex(EmbeddedPolicyDecisionPoint.Builder.IndexType indexType) {
+	private ParsedDocumentIndex getDocumentIndex(IndexType indexType) {
 		switch (indexType) {
 		case IMPROVED:
 			return new ImprovedDocumentIndex(new AnnotationFunctionContext());

@@ -1,16 +1,5 @@
 package io.sapl.reimpl.prp.index.canonical;
 
-import io.sapl.prp.inmemory.indexed.Bitmask;
-import io.sapl.prp.inmemory.indexed.Bool;
-import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
-import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
-import io.sapl.prp.inmemory.indexed.Literal;
-import io.sapl.prp.inmemory.indexed.improved.CTuple;
-import io.sapl.prp.inmemory.indexed.improved.Predicate;
-import org.assertj.core.api.Assertions;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,6 +7,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.assertj.core.api.Assertions;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import io.sapl.prp.inmemory.indexed.Bitmask;
+import io.sapl.prp.inmemory.indexed.Bool;
+import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
+import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
+import io.sapl.prp.inmemory.indexed.Literal;
+import io.sapl.prp.inmemory.indexed.improved.CTuple;
+import io.sapl.prp.inmemory.indexed.improved.Predicate;
 
 @Ignore
 public class CanonicalIndexAlgorithmTest {
@@ -222,7 +223,7 @@ public class CanonicalIndexAlgorithmTest {
         Bitmask satisfiableCandidates = new Bitmask();
         int[] eliminatedFormulasWithConjunction = new int[]{};
         int[] numberOfFormulasWithConjunction = new int[]{};
-        Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction = new HashMap();
+        Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction = new HashMap<>();
 
         Assertions.assertThat(CanonicalIndexAlgorithm.findOrphanedCandidates(candidates, satisfiableCandidates,
                 eliminatedFormulasWithConjunction, conjunctionsInFormulasReferencingConjunction,

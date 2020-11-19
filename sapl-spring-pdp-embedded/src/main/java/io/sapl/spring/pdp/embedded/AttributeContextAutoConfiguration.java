@@ -15,36 +15,46 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import java.util.Collection;
+
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.prp.PolicyRetrievalPoint;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
-import lombok.RequiredArgsConstructor;
+import io.sapl.api.functions.FunctionException;
+import io.sapl.api.pip.AttributeException;
+import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.interpreter.pip.AttributeContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
-@RequiredArgsConstructor
-@ComponentScan("io.sapl.spring")
-@EnableConfigurationProperties(EmbeddedPDPProperties.class)
+@ComponentScan("io.sapl")
 @AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
-public class PDPAutoConfiguration {
+public class AttributeContextAutoConfiguration {
 
-	private final PolicyRetrievalPoint policyRetrievalPoint;
-	private final PDPConfigurationProvider configurationProvider;
+	private final Collection<Object> policyInformationPoints;
+
+	public AttributeContextAutoConfiguration(ConfigurableApplicationContext applicationContext) {
+		policyInformationPoints = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class).values();
+	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PolicyDecisionPoint policyDecisionPoint() {
-		log.info("Deploying embedded Policy Decision Point.");
-		return new EmbeddedPolicyDecisionPoint(configurationProvider, policyRetrievalPoint);
+	public AttributeContext attributeContext() throws AttributeException {
+		var ctx = new AnnotationAttributeContext();
+		for (var entry : policyInformationPoints) {
+			log.debug("loading Policy Information Point: {}", entry.getClass().getSimpleName());
+			try {
+				ctx.loadPolicyInformationPoint(entry);
+			} catch (SecurityException | IllegalArgumentException | FunctionException e) {
+				throw new AttributeException(e);
+			}
+		}
+		return ctx;
 	}
-
 }

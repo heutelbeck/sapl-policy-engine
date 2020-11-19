@@ -38,13 +38,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
-import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
+import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
+import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 @Slf4j
-public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvider {
+public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 
 	private static final String DEFAULT_CONFIG_PATH = "/policies";
 	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
@@ -52,19 +53,19 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 	private final ObjectMapper mapper;
 	private final PolicyDecisionPointConfiguration config;
 
-	public ResourcesPDPConfigurationProvider() {
+	public ResourcesVariablesAndCombinatorSource() {
 		this(DEFAULT_CONFIG_PATH);
 	}
 
-	public ResourcesPDPConfigurationProvider(String configPath) {
+	public ResourcesVariablesAndCombinatorSource(String configPath) {
 		this(configPath, new ObjectMapper());
 	}
 
-	public ResourcesPDPConfigurationProvider(@NonNull String configPath, @NonNull ObjectMapper mapper) {
-		this(ResourcesPDPConfigurationProvider.class, configPath, mapper);
+	public ResourcesVariablesAndCombinatorSource(@NonNull String configPath, @NonNull ObjectMapper mapper) {
+		this(ResourcesVariablesAndCombinatorSource.class, configPath, mapper);
 	}
 
-	public ResourcesPDPConfigurationProvider(@NonNull Class<?> clazz, @NonNull String configPath,
+	public ResourcesVariablesAndCombinatorSource(@NonNull Class<?> clazz, @NonNull String configPath,
 			@NonNull ObjectMapper mapper) {
 		log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 		this.mapper = mapper;
@@ -135,7 +136,7 @@ public class ResourcesPDPConfigurationProvider implements PDPConfigurationProvid
 
 	@Override
 	public Flux<DocumentsCombinator> getDocumentsCombinator() {
-		return Flux.just(config.getAlgorithm()).map(this::convert);
+		return Flux.just(config.getAlgorithm()).map(DocumentsCombinatorFactory::getCombinator);
 	}
 
 	@Override

@@ -70,7 +70,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 		log.trace("evaluate {}({})", function, parameters);
 		final FunctionMetadata metadata = functions.get(function);
 		if (metadata == null) {
-			throw new FunctionException(UNKNOWN_FUNCTION, function);
+			return Val.error(UNKNOWN_FUNCTION, function);
 		}
 		final Parameter[] funParams = metadata.getFunction().getParameters();
 		try {

@@ -21,11 +21,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.pdp.embedded.config.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
-import io.sapl.pdp.embedded.config.filesystem.FileSystemPDPConfigurationProvider;
-import io.sapl.pdp.embedded.config.resources.ResourcesPDPConfigurationProvider;
+import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,19 +36,14 @@ import lombok.extern.slf4j.Slf4j;
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class PDPConfigurationProviderAutoConfiguration {
 
-	private final EmbeddedPDPProperties pdpProperties;
-	private final ObjectMapper mapper;
+	private AttributeContext attributeCtx;
+	private FunctionContext functionCtx;
+	private VariablesAndCombinatorSource combinatorProvider;
 
 	@Bean
 	@ConditionalOnMissingBean
 	public PDPConfigurationProvider pdpConfigurationProvider() {
-		var configPath = pdpProperties.getConfigPath();
-		if (pdpProperties.getPdpConfigType() == EmbeddedPDPProperties.PDPDataSource.FILESYSTEM) {
-			log.info("using monitored config file from the filesystem: {}", configPath);
-			return new FileSystemPDPConfigurationProvider(configPath);
-		} else {
-			log.info("using static config file from bundled resource at: {}", configPath);
-			return new ResourcesPDPConfigurationProvider(ResourcesPDPConfigurationProvider.class, configPath, mapper);
-		}
+		log.info("Deploying PDP configuration provider.");
+		return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider);
 	}
 }

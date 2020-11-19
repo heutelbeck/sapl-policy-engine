@@ -60,9 +60,9 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.interpreter.pip.contracts.Authorization;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder.IndexType;
+import io.sapl.pdp.embedded.PolicyDecisionPointFactory;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -155,7 +155,7 @@ public class EthereumIntegrationTest {
 
 	private static EthereumPolicyInformationPoint ethPip;
 
-	private static EmbeddedPolicyDecisionPoint pdp;
+	private static PolicyDecisionPoint pdp;
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -181,10 +181,8 @@ public class EthereumIntegrationTest {
 		String path = "src/test/resources";
 		File file = new File(path);
 		String absolutePath = file.getAbsolutePath();
-
-		pdp = EmbeddedPolicyDecisionPoint.builder().withFilesystemPDPConfigurationProvider(absolutePath + "/policies")
-				.withFilesystemPolicyRetrievalPoint(absolutePath + "/policies", IndexType.SIMPLE)
-				.withPolicyInformationPoint(ethPip).build();
+		pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(absolutePath + "/policies", List.of(ethPip),
+				List.of());
 
 		Credentials credentials = Credentials.create(USER1_PRIVATE_KEY);
 		transactionReceiptUser2 = Transfer.sendFunds(web3j, credentials, USER2_ADDRESS,

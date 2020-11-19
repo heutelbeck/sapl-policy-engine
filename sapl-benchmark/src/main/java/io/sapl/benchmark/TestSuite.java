@@ -15,10 +15,10 @@
  ******************************************************************************/
 package io.sapl.benchmark;
 
-import lombok.Builder;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import lombok.Builder;
 
 @Builder
 public class TestSuite {

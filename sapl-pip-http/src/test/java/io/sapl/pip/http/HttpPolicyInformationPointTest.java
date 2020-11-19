@@ -41,6 +41,7 @@ import com.google.common.net.HttpHeaders;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Flux;
 
@@ -81,11 +82,11 @@ public class HttpPolicyInformationPointTest {
 
 	@Test
 	public void postRequest() throws AttributeException, IOException {
-		final HttpPolicyInformationPoint pip = new HttpPolicyInformationPoint(requestExecutor);
-		final AnnotationAttributeContext attributeCtx = new AnnotationAttributeContext();
-		final EvaluationContext evalCtx = new EvaluationContext();
+		var pip = new HttpPolicyInformationPoint(requestExecutor);
+		var attributeCtx = new AnnotationAttributeContext();
 		attributeCtx.loadPolicyInformationPoint(pip);
-		Val returnedAttribute = attributeCtx.evaluate("http.post", actualRequestSpec, evalCtx, null).blockFirst();
+		var evaluationCtx = new EvaluationContext(attributeCtx, new AnnotationFunctionContext(), new HashMap<>());
+		var returnedAttribute = attributeCtx.evaluate("http.post", actualRequestSpec, evaluationCtx, null).blockFirst();
 		assertEquals("return value not matching", Val.of(result), returnedAttribute);
 		verify(requestExecutor).executeReactiveRequest(eq(expectedRequestSpec), eq(POST));
 	}
