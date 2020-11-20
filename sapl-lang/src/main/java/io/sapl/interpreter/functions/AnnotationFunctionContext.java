@@ -56,17 +56,16 @@ public class AnnotationFunctionContext implements FunctionContext {
 	/**
 	 * Create context from a list of function libraries.
 	 * 
-	 * @param libraries list of function libraries
-	 * @throws FunctionException if loading libraries fails
+	 * @param libraries list of function libraries @ if loading libraries fails
 	 */
-	public AnnotationFunctionContext(Object... libraries) throws FunctionException {
+	public AnnotationFunctionContext(Object... libraries) {
 		for (Object library : libraries) {
 			loadLibrary(library);
 		}
 	}
 
 	@Override
-	public Val evaluate(String function, Val... parameters) throws FunctionException {
+	public Val evaluate(String function, Val... parameters) {
 		log.trace("evaluate {}({})", function, parameters);
 		final FunctionMetadata metadata = functions.get(function);
 		if (metadata == null) {
@@ -89,14 +88,20 @@ public class AnnotationFunctionContext implements FunctionContext {
 			} else {
 				return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getPararmeterCardinality(), parameters.length);
 			}
-		} catch (IllegalParameterType | IllegalAccessException | IllegalArgumentException
-				| InvocationTargetException e) {
-			return Val.error("error during function evaluation %s(%s): %s", function, parameters, e.getMessage());
+		} catch (RuntimeException | IllegalParameterType | IllegalAccessException | InvocationTargetException e) {
+			var params = new StringBuilder();
+			for (var i = 0; i < parameters.length; i++) {
+				params.append(parameters[i]);
+				if (i < parameters.length - 2)
+					params.append(',');
+			}
+			return Val.error("Error during evaluation of function %s(%s): %s", function, params.toString(),
+					e.getMessage());
 		}
 	}
 
 	@Override
-	public final void loadLibrary(Object library) throws FunctionException {
+	public final void loadLibrary(Object library) {
 		Class<?> clazz = library.getClass();
 
 		FunctionLibrary libAnnotation = clazz.getAnnotation(FunctionLibrary.class);
@@ -123,8 +128,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	}
 
-	private final void importFunction(Object library, String libName, LibraryDocumentation libMeta, Method method)
-			throws FunctionException {
+	private final void importFunction(Object library, String libName, LibraryDocumentation libMeta, Method method) {
 		Function funAnnotation = method.getAnnotation(Function.class);
 		String funName = funAnnotation.name();
 		if (funName.isEmpty()) {
@@ -148,7 +152,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 	}
 
 	@Override
-	public Boolean provides(String function) {
+	public Boolean isProvidedFunction(String function) {
 		return functions.containsKey(function);
 	}
 
@@ -162,7 +166,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 	}
 
 	@Override
-	public Collection<String> functionsInLibrary(String libraryName) {
+	public Collection<String> providedFunctionsOfLibrary(String libraryName) {
 		Collection<String> libs = libraries.get(libraryName);
 		if (libs != null) {
 			return libs;

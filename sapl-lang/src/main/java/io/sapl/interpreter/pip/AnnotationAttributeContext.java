@@ -224,7 +224,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public Boolean provides(String attribute) {
+	public Boolean isProvidedFunction(String attribute) {
 		return attributeMetadataByAttributeName.containsKey(attribute);
 	}
 
@@ -234,7 +234,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public Collection<String> findersInLibrary(String pipName) {
+	public Collection<String> providedFunctionsOfLibrary(String pipName) {
 		Collection<String> pips = attributeNamesByPipName.get(pipName);
 		if (pips != null) {
 			return pips;

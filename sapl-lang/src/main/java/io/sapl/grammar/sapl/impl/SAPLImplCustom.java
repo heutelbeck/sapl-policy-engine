@@ -15,18 +15,17 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.interpreter.pip.LibraryFunctionProvider;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -39,149 +38,97 @@ public class SAPLImplCustom extends SAPLImpl {
 	private static final String WILDCARD_IMPORT_EXISTS = "Wildcard import of '%s' not possible as an import for name '%s' already exists.";
 	private static final String LIBRARY_IMPORT_EXISTS = "Library import of '%s' not possible as an import for name '%s' already exists.";
 
-	/**
-	 * Checks whether the SAPL document matches a AuthorizationSubscription by
-	 * evaluating the document's target expression. No custom variables are provided
-	 * and imports are extracted from the document.
-	 * 
-	 * @param ctx the evaluation context in which the document's target expression
-	 *            is be evaluated. It must contain
-	 *            <ul>
-	 *            <li>the function context, as functions can be used in the target
-	 *            expression</li>
-	 *            <li>the variable context holding the four authorization
-	 *            subscription variables 'subject', 'action', 'resource' and
-	 *            'environment' combined with system variables from the PDP
-	 *            configuration</li>
-	 *            </ul>
-	 * @return {@code true} if the target expression evaluates to {@code true},
-	 *         {@code false} otherwise. @ in case there is an error while evaluating
-	 *         the target expression
-	 */
 	@Override
-	public Mono<Val> matches(EvaluationContext ctx) {
+	public Mono<Val> matches(EvaluationContext subscriptionScopedEvaluationContext) {
 		try {
-			return scopedMatches(createScopedContextWithFunctionImports(ctx));
+			return getPolicyElement().matches(documentScopedEvaluationContext(subscriptionScopedEvaluationContext));
 		} catch (PolicyEvaluationException e) {
 			log.trace("| | |-- Error during matching: {}", e.getMessage());
 			return Mono.just(Val.error(e));
 		}
 	}
 
-	private Mono<Val> scopedMatches(EvaluationContext ctx) {
-		return getPolicyElement().matches(ctx);
-	}
-
-	/**
-	 * Evaluates the body of the SAPL document (containing a policy set or a policy)
-	 * within the given evaluation context and returns a {@link Flux} of
-	 * {@link AuthorizationDecision} objects.
-	 * 
-	 * @param ctx the evaluation context in which the document's body is evaluated.
-	 *            It must contain
-	 *            <ul>
-	 *            <li>the attribute context</li>
-	 *            <li>the function context</li>
-	 *            <li>the variable context holding the four authorization
-	 *            subscription variables 'subject', 'action', 'resource' and
-	 *            'environment' combined with system variables from the PDP
-	 *            configuration</li>
-	 *            </ul>
-	 * @return a {@link Flux} of {@link AuthorizationDecision} objects.
-	 */
 	@Override
-	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
-		EvaluationContext scopedCtx;
+	public Flux<AuthorizationDecision> evaluate(EvaluationContext subscriptionScopedEvaluationContext) {
+		log.trace("| | |-- SAPL Evaluate: {} ({})", getPolicyElement().getSaplName(),
+				getPolicyElement().getClass().getName());
+		EvaluationContext documentScopedEvaluationContext;
 		try {
-			scopedCtx = createScopedContextWithFunctionAndAttributeImports(ctx);
+			documentScopedEvaluationContext = documentScopedEvaluationContext(subscriptionScopedEvaluationContext);
 		} catch (PolicyEvaluationException e) {
 			log.trace("| | |-- INDETERMINATE. The imports evaluated with en error: {}", e.getMessage());
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
-		log.trace("| | |-- SAPL Evaluate: {} ({})", getPolicyElement().getSaplName(),
-				getPolicyElement().getClass().getName());
-		return Flux.from(scopedMatches(scopedCtx)).switchMap(matches -> {
-			if (matches.isError()) {
-				log.trace("| | |-- INDETERMINATE. Error in target expression: {}", matches.getMessage());
-				return Flux.just(AuthorizationDecision.INDETERMINATE);
-			}
-			if (!matches.getBoolean()) {
-				log.trace("| | |-- NOT_APPLICABLE. Target not matching.");
-				return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
-			}
-			log.trace("| | |-- Is applicable: {} ", getPolicyElement().getSaplName());
-			return getPolicyElement().evaluate(scopedCtx).doOnNext(this::logAuthzDecision);
-		});
+		return getPolicyElement().evaluate(documentScopedEvaluationContext).doOnNext(this::logAuthzDecision);
 	}
 
 	@Override
-	public Map<String, String> fetchFunctionImports(FunctionContext functionCtx) {
-		return fetchFunctionAndPipImports(functionCtx, null, false);
-	}
-
-	private EvaluationContext createScopedContextWithFunctionImports(EvaluationContext originalCtx)
+	public EvaluationContext documentScopedEvaluationContext(EvaluationContext subscriptionScopedEvaluationContext)
 			throws PolicyEvaluationException {
-		return originalCtx.withImports(fetchFunctionImports(originalCtx.getFunctionCtx()));
+		return subscriptionScopedEvaluationContext.withImports(fetchImports(subscriptionScopedEvaluationContext));
 	}
 
-	private EvaluationContext createScopedContextWithFunctionAndAttributeImports(EvaluationContext originalCtx)
-			throws PolicyEvaluationException {
-		return originalCtx.withImports(
-				fetchFunctionAndPipImports(originalCtx.getFunctionCtx(), originalCtx.getAttributeCtx(), true));
-	}
-
-	// TODO: get rid of boolean, split functions. this is rude
-	private Map<String, String> fetchFunctionAndPipImports(FunctionContext functionCtx, AttributeContext attributeCtx,
-			boolean includeAttributes) {
-		var imports = new HashMap<String, String>(getImports().size(), 1.0F);
+	private Map<String, String> fetchImports(EvaluationContext subscriptionScopedEvaluationContext) {
+		var imports = new HashMap<String, String>();
 		for (var anImport : getImports()) {
-			var library = String.join(".", anImport.getLibSteps());
-			if (anImport instanceof WildcardImport) {
-				fetchWildcardImports(imports, library, functionCtx.functionsInLibrary(library));
-				if (includeAttributes)
-					fetchWildcardImports(imports, library, attributeCtx.findersInLibrary(library));
-			} else if (anImport instanceof LibraryImport) {
-				var alias = ((LibraryImport) anImport).getLibAlias();
-				fetchLibraryImports(imports, library, alias, functionCtx.functionsInLibrary(library));
-				if (includeAttributes)
-					fetchLibraryImports(imports, library, alias, attributeCtx.findersInLibrary(library));
-			} else {
-				var functionName = anImport.getFunctionName();
-				var fullyQualified = String.join(".", library, functionName);
-				if (imports.containsKey(functionName)) {
-					throw new PolicyEvaluationException(IMPORT_EXISTS, fullyQualified);
-				}
-				if (!(functionCtx.provides(fullyQualified)
-						|| (includeAttributes && attributeCtx.provides(fullyQualified)))) {
-					throw new PolicyEvaluationException(IMPORT_NOT_FOUND, fullyQualified);
-				}
-				imports.put(functionName, fullyQualified);
-			}
+			addImport(anImport, imports, subscriptionScopedEvaluationContext);
 		}
 		return imports;
 	}
 
-	private void fetchWildcardImports(Map<String, String> imports, String library, Collection<String> libraryItems)
-			throws PolicyEvaluationException {
-		for (var name : libraryItems) {
-			if (imports.put(name, String.join(".", library, name)) != null) {
+	private void addImport(Import anImport, HashMap<String, String> imports,
+			EvaluationContext subscriptionScopedEvaluationContext) {
+		var library = String.join(".", anImport.getLibSteps());
+		if (anImport instanceof WildcardImport) {
+			addWildcardImports(imports, library, subscriptionScopedEvaluationContext.getAttributeCtx());
+			addWildcardImports(imports, library, subscriptionScopedEvaluationContext.getFunctionCtx());
+		} else if (anImport instanceof LibraryImport) {
+			var alias = ((LibraryImport) anImport).getLibAlias();
+			addLibraryImports(imports, library, alias, subscriptionScopedEvaluationContext.getAttributeCtx());
+			addLibraryImports(imports, library, alias, subscriptionScopedEvaluationContext.getFunctionCtx());
+		} else
+			addBasicImport(anImport, library, imports, subscriptionScopedEvaluationContext);
+	}
+
+	private void addBasicImport(Import anImport, String library, HashMap<String, String> imports,
+			EvaluationContext subscriptionScopedEvaluationContext) {
+		var functionName = anImport.getFunctionName();
+		var fullyQualifiedFunctionName = String.join(".", library, functionName);
+
+		if (imports.containsKey(functionName))
+			throw new PolicyEvaluationException(IMPORT_EXISTS, fullyQualifiedFunctionName);
+
+		if (evaluationContextProvidesFunction(subscriptionScopedEvaluationContext, fullyQualifiedFunctionName))
+			imports.put(functionName, fullyQualifiedFunctionName);
+		else
+			throw new PolicyEvaluationException(IMPORT_NOT_FOUND, fullyQualifiedFunctionName);
+	}
+
+	private boolean evaluationContextProvidesFunction(EvaluationContext subscriptionScopedEvaluationContext,
+			String fullyQualifiedFunctionName) {
+		return subscriptionScopedEvaluationContext.getFunctionCtx().isProvidedFunction(fullyQualifiedFunctionName)
+				|| subscriptionScopedEvaluationContext.getAttributeCtx().isProvidedFunction(fullyQualifiedFunctionName);
+	}
+
+	private void addWildcardImports(Map<String, String> imports, String library,
+			LibraryFunctionProvider functionProvider) throws PolicyEvaluationException {
+		for (var name : functionProvider.providedFunctionsOfLibrary(library)) {
+			if (imports.put(name, String.join(".", library, name)) != null)
 				throw new PolicyEvaluationException(WILDCARD_IMPORT_EXISTS, library, name);
-			}
 		}
 	}
 
-	private void fetchLibraryImports(Map<String, String> imports, String library, String alias,
-			Collection<String> libraryItems) {
-		for (var name : libraryItems) {
+	private void addLibraryImports(Map<String, String> imports, String library, String alias,
+			LibraryFunctionProvider functionProvider) {
+		for (var name : functionProvider.providedFunctionsOfLibrary(library)) {
 			var key = String.join(".", alias, name);
-			if (imports.put(key, String.join(".", library, name)) != null) {
+			if (imports.put(key, String.join(".", library, name)) != null)
 				throw new PolicyEvaluationException(LIBRARY_IMPORT_EXISTS, library, name);
-			}
 		}
 	}
 
 	private void logAuthzDecision(AuthorizationDecision r) {
-		log.trace("| | |-- {}. Document: {} full: {}", r.getDecision(), getPolicyElement().getSaplName(), r);
+		log.trace("| | |-- {} document {} evaluated to: {}", r.getDecision(), getPolicyElement().getSaplName(), r);
 	}
 
 }

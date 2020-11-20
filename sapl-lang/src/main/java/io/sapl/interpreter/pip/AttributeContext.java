@@ -23,13 +23,9 @@ import io.sapl.grammar.sapl.Arguments;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
-public interface AttributeContext {
+public interface AttributeContext extends LibraryFunctionProvider {
 
 	Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments);
-
-	Boolean provides(String function);
-
-	Collection<String> findersInLibrary(String pipName);
 
 	void loadPolicyInformationPoint(Object pip) throws AttributeException;
 

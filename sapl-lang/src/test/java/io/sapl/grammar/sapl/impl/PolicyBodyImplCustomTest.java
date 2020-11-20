@@ -90,6 +90,34 @@ public class PolicyBodyImplCustomTest {
 	}
 
 	@Test
+	public void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableSubjectError() {
+		var policy = INTERPRETER.parse("policy \"p\" permit where var subject = {};");
+		var expected = AuthorizationDecision.INDETERMINATE;
+		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
+	}
+
+	@Test
+	public void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableActionError() {
+		var policy = INTERPRETER.parse("policy \"p\" permit where var action = {};");
+		var expected = AuthorizationDecision.INDETERMINATE;
+		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
+	}
+
+	@Test
+	public void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableResourceError() {
+		var policy = INTERPRETER.parse("policy \"p\" permit where var resource = {};");
+		var expected = AuthorizationDecision.INDETERMINATE;
+		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
+	}
+
+	@Test
+	public void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableEnvironmentError() {
+		var policy = INTERPRETER.parse("policy \"p\" permit where var environment = {};");
+		var expected = AuthorizationDecision.INDETERMINATE;
+		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
+	}
+
+	@Test
 	public void lazyStatementEvaluationVarDef() {
 		var policy = INTERPRETER.parse("policy \"p\" permit true where false; var variable = (10/0);");
 		var expected = AuthorizationDecision.NOT_APPLICABLE;

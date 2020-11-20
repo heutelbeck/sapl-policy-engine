@@ -46,18 +46,7 @@ public class FunctionUtil {
 	}
 
 	private Val evaluateFunction(String functionName, EvaluationContext ctx, Val... parameters) {
-		try {
-			return ctx.getFunctionCtx().evaluate(resolveAbsoluteFunctionName(functionName, ctx), parameters);
-		} catch (RuntimeException e) {
-			var params = new StringBuilder();
-			for (var i = 0; i < parameters.length; i++) {
-				params.append(parameters[i]);
-				if (i < parameters.length - 2)
-					params.append(',');
-			}
-			return Val.error("Error during evaluation of function %s(%s): %s", functionName, params.toString(),
-					e.getMessage());
-		}
+		return ctx.getFunctionCtx().evaluate(resolveAbsoluteFunctionName(functionName, ctx), parameters);
 	}
 
 	private Stream<Flux<Val>> argumentFluxes(Arguments arguments, EvaluationContext ctx, Val relativeNode) {

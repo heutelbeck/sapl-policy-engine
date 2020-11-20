@@ -17,6 +17,7 @@ package io.sapl.spring.pdp.embedded;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -26,6 +27,9 @@ import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.prp.PolicyRetrievalPoint;
+import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.reimpl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
 import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.PrpUpdateEventSource;
@@ -44,6 +48,8 @@ public class PRPAutoConfiguration {
 
 	private final EmbeddedPDPProperties pdpProperties;
 	private final PrpUpdateEventSource eventSource;
+	private final FunctionContext functionContext;
+	private final AttributeContext attributeContext;
 
 	@Bean
 	@ConditionalOnMissingBean
@@ -54,7 +60,12 @@ public class PRPAutoConfiguration {
 		if (pdpProperties.getIndex() == IndexType.NAIVE) {
 			seedIndex = new NaiveImmutableParsedDocumentIndex();
 		} else {
-			seedIndex = new CanonicalImmutableParsedDocumentIndex();
+			// This index type has to normalize function calls based on import statements
+			// Variables need not to be bound here. Thus, this hind of static PDP scoped
+			// evaluation context is sufficient. Variables will be bound later in the
+			// subscription scoped EvaluationContext handed over for lookup.
+			seedIndex = new CanonicalImmutableParsedDocumentIndex(
+					new EvaluationContext(attributeContext, functionContext, new HashMap<>()));
 		}
 		return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, eventSource);
 	}

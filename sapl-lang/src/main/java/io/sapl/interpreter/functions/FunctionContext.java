@@ -19,14 +19,11 @@ import java.util.Collection;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.interpreter.pip.LibraryFunctionProvider;
 
-public interface FunctionContext {
+public interface FunctionContext extends LibraryFunctionProvider {
 
 	Val evaluate(String function, Val... parameters);
-
-	Boolean provides(String function);
-
-	Collection<String> functionsInLibrary(String libraryName);
 
 	void loadLibrary(Object library) throws FunctionException;
 

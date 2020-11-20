@@ -1,5 +1,7 @@
 package io.sapl.reimpl.prp.index.canonical;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -36,6 +37,8 @@ import io.sapl.reimpl.prp.PrpUpdateEvent.Update;
 
 @Ignore
 public class CanonicalImmutableParsedDocumentIndexTest {
+	private static final EvaluationContext PDP_SCOPED_EVALUATION_CONTEXT = new EvaluationContext(
+			new AnnotationAttributeContext(), new AnnotationFunctionContext(), new HashMap<>());
 
 	@Rule
 	public Timeout globalTimeout = Timeout.seconds(60);
@@ -58,7 +61,7 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 		}
 		interpreter = new DefaultSAPLInterpreter();
 		json = JsonNodeFactory.instance;
-		emptyIndex = new CanonicalImmutableParsedDocumentIndex();
+		emptyIndex = new CanonicalImmutableParsedDocumentIndex(PDP_SCOPED_EVALUATION_CONTEXT);
 		variables = new HashMap<>();
 	}
 
@@ -84,9 +87,9 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
 
 		// then
-		Assertions.assertThat(result).isNotNull();
-		Assertions.assertThat(result.getMatchingDocuments()).isEmpty();
-		Assertions.assertThat(result.isErrorsInTarget()).isTrue();
+		assertThat(result).isNotNull();
+		assertThat(result.getMatchingDocuments()).isEmpty();
+		assertThat(result.isErrorsInTarget()).isTrue();
 	}
 
 	// Test must be repeated a couple of times to test implementation of
@@ -94,7 +97,8 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 	@Test
 	public void test_orphaned() {
 		// given
-		emptyIndex = new CanonicalImmutableParsedDocumentIndex(new NoPredicateOrderStrategy());
+		emptyIndex = new CanonicalImmutableParsedDocumentIndex(new NoPredicateOrderStrategy(),
+				PDP_SCOPED_EVALUATION_CONTEXT);
 		List<Update> updates = new ArrayList<>(3);
 
 		String def1 = "policy \"p_0\" permit !resource.x1";
@@ -126,9 +130,9 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
 
 		// then
-		Assertions.assertThat(result).isNotNull();
-		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-		Assertions.assertThat(result.getMatchingDocuments()).hasSize(3).contains(doc1, doc2);
+		assertThat(result).isNotNull();
+		assertThat(result.isErrorsInTarget()).isFalse();
+		assertThat(result.getMatchingDocuments()).hasSize(3).contains(doc1, doc2);
 	}
 
 	@Test
@@ -155,9 +159,9 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
 
 		// then
-		Assertions.assertThat(result).isNotNull();
-		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
+		assertThat(result).isNotNull();
+		assertThat(result.isErrorsInTarget()).isFalse();
+		assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
 	}
 
 	@Test
@@ -192,9 +196,9 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 		// when
 		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
 		// then
-		Assertions.assertThat(result).isNotNull();
-		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-		Assertions.assertThat(result.getMatchingDocuments()).isEmpty();
+		assertThat(result).isNotNull();
+		assertThat(result.isErrorsInTarget()).isFalse();
+		assertThat(result.getMatchingDocuments()).isEmpty();
 	}
 
 	@Test
@@ -219,9 +223,9 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 		// when
 		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
 		// then
-		Assertions.assertThat(result).isNotNull();
-		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
-		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
+		assertThat(result).isNotNull();
+		assertThat(result.isErrorsInTarget()).isFalse();
+		assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
 	}
 
 	private AuthorizationSubscription createRequestObject() {

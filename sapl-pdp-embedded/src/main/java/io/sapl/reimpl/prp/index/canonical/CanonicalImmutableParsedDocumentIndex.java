@@ -12,7 +12,6 @@ import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.prp.inmemory.indexed.Bool;
 import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
 import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
@@ -31,22 +30,24 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 	private final CanonicalIndexDataContainer indexDataContainer;
 	private final Map<String, SAPL> documents;
 	private final PredicateOrderStrategy predicateOrderStrategy;
+	private final EvaluationContext pdpScopedEvaluationContext;
 
-	public CanonicalImmutableParsedDocumentIndex(PredicateOrderStrategy predicateOrderStrategy) {
-		this(Collections.emptyMap(), predicateOrderStrategy);
+	public CanonicalImmutableParsedDocumentIndex(PredicateOrderStrategy predicateOrderStrategy,
+			EvaluationContext pdpScopedEvaluationContext) {
+		this(Collections.emptyMap(), predicateOrderStrategy, pdpScopedEvaluationContext);
 	}
 
-	public CanonicalImmutableParsedDocumentIndex() {
-		this(Collections.emptyMap(), new DefaultPredicateOrderStrategy());
+	public CanonicalImmutableParsedDocumentIndex(EvaluationContext pdpScopedEvaluationContext) {
+		this(Collections.emptyMap(), new DefaultPredicateOrderStrategy(), pdpScopedEvaluationContext);
 	}
 
 	private CanonicalImmutableParsedDocumentIndex(Map<String, SAPL> updatedDocuments,
-			PredicateOrderStrategy predicateOrderStrategy) {
-
+			PredicateOrderStrategy predicateOrderStrategy, EvaluationContext pdpScopedEvaluationContext) {
 		this.documents = updatedDocuments;
 		this.predicateOrderStrategy = predicateOrderStrategy;
-		Map<String, DisjunctiveFormula> targets = this.documents.entrySet().stream()
-				.collect(Collectors.toMap(Entry::getKey, entry -> retainTarget(entry.getValue())));
+		this.pdpScopedEvaluationContext = pdpScopedEvaluationContext;
+		Map<String, DisjunctiveFormula> targets = this.documents.entrySet().stream().collect(
+				Collectors.toMap(Entry::getKey, entry -> retainTarget(entry.getValue(), pdpScopedEvaluationContext)));
 
 		this.indexDataContainer = new CanonicalIndexDataCreationStrategy(predicateOrderStrategy).constructNew(documents,
 				targets);
@@ -68,17 +69,19 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 		applyEvent(newDocuments, event);
 		log.debug("returning index with updated documents. before: {}, after: {}", documents.size(),
 				newDocuments.size());
-		return new CanonicalImmutableParsedDocumentIndex(newDocuments, predicateOrderStrategy);
+		return new CanonicalImmutableParsedDocumentIndex(newDocuments, predicateOrderStrategy,
+				pdpScopedEvaluationContext);
 	}
 
-	private DisjunctiveFormula retainTarget(SAPL sapl) {
+	private DisjunctiveFormula retainTarget(SAPL sapl, EvaluationContext pdpScopedEvaluationContext) {
 		try {
 			Expression targetExpression = sapl.getPolicyElement().getTargetExpression();
 			DisjunctiveFormula targetFormula;
 			if (targetExpression == null) {
 				targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
 			} else {
-				Map<String, String> imports = sapl.fetchFunctionImports(new AnnotationFunctionContext());
+				Map<String, String> imports = sapl.documentScopedEvaluationContext(pdpScopedEvaluationContext)
+						.getImports();
 				targetFormula = TreeWalker.walk(targetExpression, imports);
 			}
 

@@ -28,15 +28,15 @@ public class IntegrationTest {
 	public Timeout globalTimeout = Timeout.seconds(60);
 
 	private SAPLInterpreter interpreter;
-
 	private ImmutableParsedDocumentIndex seedIndex;
-
+	private static final EvaluationContext PDP_SCOPED_EVALUATION_CONTEXT = new EvaluationContext(new AnnotationAttributeContext(),
+			new AnnotationFunctionContext(), new HashMap<>());
 	private static final AuthorizationSubscription EMPTY_SUBSCRIPTION = AuthorizationSubscription.of(null, null, null);
 
 	@Before
 	public void setUp() {
 		interpreter = new DefaultSAPLInterpreter();
-		seedIndex = new CanonicalImmutableParsedDocumentIndex();
+		seedIndex = new CanonicalImmutableParsedDocumentIndex(PDP_SCOPED_EVALUATION_CONTEXT);
 	}
 
 	@Test
