@@ -20,7 +20,6 @@ import io.sapl.prp.inmemory.indexed.Literal;
 import io.sapl.prp.inmemory.indexed.improved.CTuple;
 import io.sapl.prp.inmemory.indexed.improved.Predicate;
 
-@Ignore
 public class CanonicalIndexAlgorithmTest {
 
     @Test
