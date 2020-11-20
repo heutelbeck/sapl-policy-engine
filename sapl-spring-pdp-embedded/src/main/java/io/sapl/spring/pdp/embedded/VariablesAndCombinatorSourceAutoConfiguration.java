@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
+import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
 import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.embedded.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import io.sapl.pdp.embedded.config.resources.ResourcesVariablesAndCombinatorSource;
@@ -38,7 +39,7 @@ public class VariablesAndCombinatorSourceAutoConfiguration {
 	private final EmbeddedPDPProperties pdpProperties;
 
 	@Bean
-	@ConditionalOnMissingBean
+	@ConditionalOnMissingBean(PDPConfigurationProvider.class)
 	public VariablesAndCombinatorSource vareiablesAndCombinatorSource() {
 		log.info("Deploying VariablesAndCombinatorSource configuration provider. Sourcing data from: {} {}",
 				pdpProperties.getPdpConfigType(), pdpProperties.getConfigPath());

@@ -12,7 +12,7 @@ import com.vaadin.flow.spring.annotation.EnableVaadin;
  */
 @EnableVaadin("io.sapl.server.ce")
 @ComponentScan("io.sapl.server") // Scan PDP Endpoint
-@SpringBootApplication(exclude = ErrorMvcAutoConfiguration.class)
+@SpringBootApplication(exclude = { ErrorMvcAutoConfiguration.class })
 public class PdpServerApplication {
 	/**
 	 * The main method.

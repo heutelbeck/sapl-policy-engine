@@ -7,5 +7,6 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   io.sapl.spring.pdp.embedded.PDPConfigurationProviderAutoConfiguration,\
   io.sapl.spring.pdp.embedded.PRPAutoConfiguration,\
   io.sapl.spring.pdp.embedded.AttributeContextAutoConfiguration, \
-  io.sapl.spring.pdp.embedded.VariablesAndCombinatorSourceAutoConfiguration
+  io.sapl.spring.pdp.embedded.VariablesAndCombinatorSourceAutoConfiguration, \
+  io.sapl.spring.pdp.embedded.PrpUpdateEventSourceAutoConfiguration 
   

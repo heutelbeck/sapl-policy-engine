@@ -13,14 +13,16 @@ import org.springframework.stereotype.Service;
 import io.sapl.api.interpreter.DocumentAnalysisResult;
 import io.sapl.api.interpreter.DocumentType;
 import io.sapl.api.interpreter.SAPLInterpreter;
+import io.sapl.reimpl.prp.PrpUpdateEvent;
+import io.sapl.reimpl.prp.PrpUpdateEventSource;
 import io.sapl.server.ce.model.sapldocument.SaplDocument;
 import io.sapl.server.ce.model.sapldocument.SaplDocumentVersion;
-import io.sapl.server.ce.pdp.SaplDocumentPublisher;
 import io.sapl.server.ce.persistence.SaplDocumentsRepository;
 import io.sapl.server.ce.persistence.SaplDocumentsVersionRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 /**
  * Service for reading and managing {@link SaplDocument} instances.
@@ -28,16 +30,22 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SaplDocumentService {
+public class SaplDocumentService implements PrpUpdateEventSource {
 	private static final String DEFAULT_DOCUMENT_VALUE = "policy \"all deny\"\ndeny";
 
 	private final SaplDocumentsRepository saplDocumentRepository;
 	private final SaplDocumentsVersionRepository saplDocumentVersionRepository;
-	private final SaplDocumentPublisher saplDocumentPublisher;
 	private final SAPLInterpreter saplInterpreter;
 
 	private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
 			.withLocale(Locale.GERMANY).withZone(ZoneId.systemDefault());
+
+	@Override
+	public Flux<PrpUpdateEvent> getUpdates() {
+
+		// TODO Auto-generated method stub
+		return Flux.empty();
+	}
 
 	/**
 	 * Gets all {@link SaplDocument}s.
@@ -159,7 +167,7 @@ public class SaplDocumentService {
 				saplDocumentVersionToPublish.getVersionNumber(), saplDocumentId,
 				saplDocumentVersionToPublish.getName()));
 
-		this.saplDocumentPublisher.publishSaplDocument(saplDocument);
+		// this.saplDocumentPublisher.publishSaplDocument(saplDocument);
 	}
 
 	/**
@@ -181,7 +189,7 @@ public class SaplDocumentService {
 		log.info(String.format("unpublish version %d of SAPL document with id %d (name: %s)",
 				publishedVersion.getVersionNumber(), saplDocumentId, saplDocumentToUnpublish.getName()));
 
-		this.saplDocumentPublisher.unpublishSaplDocument(saplDocumentToUnpublish);
+		// this.saplDocumentPublisher.unpublishSaplDocument(saplDocumentToUnpublish);
 	}
 
 	private String getCurrentTimestampAsString() {
@@ -199,4 +207,11 @@ public class SaplDocumentService {
 					saplDocument.getPublishedVersion().getVersionNumber());
 		}
 	}
+
+	@Override
+	public void dispose() {
+		// TODO Auto-generated method stub
+
+	}
+
 }

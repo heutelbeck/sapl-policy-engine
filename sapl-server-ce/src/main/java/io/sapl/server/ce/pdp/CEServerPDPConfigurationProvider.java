@@ -14,7 +14,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
+import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
+import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.pdp.embedded.config.PDPConfiguration;
 import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import io.sapl.server.ce.service.pdpconfiguration.CombiningAlgorithmService;
@@ -33,14 +38,16 @@ public class CEServerPDPConfigurationProvider implements PDPConfigurationProvide
 	private static JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
 
 	@Autowired
+	private AttributeContext attributeCtx;
+	@Autowired
+	private FunctionContext functionCtx;
+	@Autowired
 	private CombiningAlgorithmService combiningAlgorithmService;
-
 	@Autowired
 	private VariablesService variableService;
 
 	@Getter
 	private Flux<DocumentsCombinator> documentsCombinator;
-
 	@Getter
 	private Flux<Map<String, JsonNode>> variables;
 
@@ -57,11 +64,19 @@ public class CEServerPDPConfigurationProvider implements PDPConfigurationProvide
 	}
 
 	@Override
+	public Flux<PDPConfiguration> pdpConfiguration() {
+		return Flux.combineLatest(Flux.from(documentsCombinator), Flux.from(variables), this::createConfiguration);
+	}
+
+	private PDPConfiguration createConfiguration(DocumentsCombinator combinator, Map<String, JsonNode> variables) {
+		return new PDPConfiguration(new EvaluationContext(attributeCtx, functionCtx, variables), combinator);
+	}
+
+	@Override
 	public void publishCombiningAlgorithm(@NonNull PolicyDocumentCombiningAlgorithm algorithm) {
 		this.documentCombiningAlgorithmFluxSink.next(algorithm);
 	}
 
-	@Override
 	public void publishVariables(@NonNull Collection<Variable> variables) {
 		this.variableFluxSink.next(variables);
 	}
@@ -86,18 +101,15 @@ public class CEServerPDPConfigurationProvider implements PDPConfigurationProvide
 		ReplayProcessor<PolicyDocumentCombiningAlgorithm> combiningAlgorithmProcessor = ReplayProcessor
 				.<PolicyDocumentCombiningAlgorithm>create();
 		this.documentCombiningAlgorithmFluxSink = combiningAlgorithmProcessor.sink();
-		this.documentsCombinator = combiningAlgorithmProcessor
-				.map((PolicyDocumentCombiningAlgorithm algorithm) -> this.convert(algorithm))
-				.share()
-				.cache();
+		this.documentsCombinator = combiningAlgorithmProcessor.map(
+				(PolicyDocumentCombiningAlgorithm algorithm) -> DocumentsCombinatorFactory.getCombinator(algorithm))
+				.share().cache();
 		this.monitorAlgorithm = this.documentsCombinator.subscribe();
 
 		ReplayProcessor<Collection<Variable>> variablesProcessor = ReplayProcessor.<Collection<Variable>>create();
 		this.variableFluxSink = variablesProcessor.sink();
-		this.variables = variablesProcessor
-				.map((Collection<Variable> variables) -> generateVariablesAsMap(variables))
-				.share()
-				.cache();
+		this.variables = variablesProcessor.map((Collection<Variable> variables) -> generateVariablesAsMap(variables))
+				.share().cache();
 		this.monitorVariables = this.variables.subscribe();
 		// @formatter:on
 	}
@@ -112,6 +124,10 @@ public class CEServerPDPConfigurationProvider implements PDPConfigurationProvide
 
 	@Override
 	public void dispose() {
-		// NOP
+		if (!monitorAlgorithm.isDisposed())
+			monitorAlgorithm.dispose();
+		if (!monitorVariables.isDisposed())
+			monitorVariables.dispose();
 	}
+
 }

@@ -25,12 +25,10 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.prp.PolicyRetrievalPoint;
-import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;
 import io.sapl.reimpl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
 import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
-import io.sapl.reimpl.prp.filesystem.FileSystemPrpUpdateEventSource;
+import io.sapl.reimpl.prp.PrpUpdateEventSource;
 import io.sapl.reimpl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.IndexType;
@@ -44,14 +42,13 @@ import lombok.extern.slf4j.Slf4j;
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class PRPAutoConfiguration {
 
-	private final SAPLInterpreter interpreter;
 	private final EmbeddedPDPProperties pdpProperties;
+	private final PrpUpdateEventSource eventSource;
 
 	@Bean
 	@ConditionalOnMissingBean
 	public PolicyRetrievalPoint policyRetrievalPoint()
 			throws IOException, URISyntaxException, PolicyEvaluationException {
-		var policiesFolder = pdpProperties.getPoliciesPath();
 		log.info("Using index type: {}", pdpProperties.getIndex());
 		ImmutableParsedDocumentIndex seedIndex;
 		if (pdpProperties.getIndex() == IndexType.NAIVE) {
@@ -59,16 +56,6 @@ public class PRPAutoConfiguration {
 		} else {
 			seedIndex = new CanonicalImmutableParsedDocumentIndex();
 		}
-		if (pdpProperties.getPdpConfigType() == EmbeddedPDPProperties.PDPDataSource.FILESYSTEM) {
-			log.info("creating embedded PDP sourcing and monitoring access policies from the filesystem: {}",
-					policiesFolder);
-			var source = new FileSystemPrpUpdateEventSource(policiesFolder, interpreter);
-			return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
-		} else {
-			log.info("creating embedded PDP sourcing access policies from fixed bundled resources at: {}",
-					policiesFolder);
-			var source = new ResourcesPrpUpdateEventSource(policiesFolder, interpreter);
-			return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
-		}
+		return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, eventSource);
 	}
 }
