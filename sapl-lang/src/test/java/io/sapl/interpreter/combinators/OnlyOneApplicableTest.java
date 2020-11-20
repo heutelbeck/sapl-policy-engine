@@ -15,6 +15,7 @@
  */
 package io.sapl.interpreter.combinators;
 
+import static io.sapl.interpreter.combinators.CombinatorMockUtil.mockPolicyRetrievalResult;
 import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
@@ -26,12 +27,15 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import reactor.test.StepVerifier;
 
 public class OnlyOneApplicableTest {
 
@@ -46,12 +50,102 @@ public class OnlyOneApplicableTest {
 			null, null, JSON.booleanNode(true), null);
 
 	private EvaluationContext evaluationCtx;
+	private OnlyOneApplicableCombinator combinator = new OnlyOneApplicableCombinator();
 
 	@Before
 	public void init() {
 		var attributeCtx = new AnnotationAttributeContext();
 		var functionCtx = new AnnotationFunctionContext();
 		evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, new HashMap<>());
+	}
+
+	@Test
+	public void combineDocumentsOneDeny() {
+		var given = mockPolicyRetrievalResult(false, new AuthorizationDecision[] { AuthorizationDecision.DENY });
+		var expected = AuthorizationDecision.DENY;
+		verifyDocumentsCombinator(given, expected);
+	}
+
+	@Test
+	public void combineDocumentsOnePermit() {
+		var given = mockPolicyRetrievalResult(false, new AuthorizationDecision[] { AuthorizationDecision.PERMIT });
+		var expected = AuthorizationDecision.PERMIT;
+		verifyDocumentsCombinator(given, expected);
+	}
+
+	@Test
+	public void combineDocumentsOneIndeterminate() {
+		var given = mockPolicyRetrievalResult(false,
+				new AuthorizationDecision[] { AuthorizationDecision.INDETERMINATE });
+		var expected = AuthorizationDecision.INDETERMINATE;
+		verifyDocumentsCombinator(given, expected);
+	}
+
+	@Test
+	public void combineDocumentsOneNotApplicable() {
+		var given = mockPolicyRetrievalResult(false,
+				new AuthorizationDecision[] { AuthorizationDecision.NOT_APPLICABLE });
+		var expected = AuthorizationDecision.NOT_APPLICABLE;
+		verifyDocumentsCombinator(given, expected);
+	}
+
+	@Test
+	public void combineDocumentsNoDocs() {
+		var given = mockPolicyRetrievalResult(false, new AuthorizationDecision[] {});
+		var expected = AuthorizationDecision.NOT_APPLICABLE;
+		verifyDocumentsCombinator(given, expected);
+	}
+
+	@Test
+	public void combineDocumentsNoDocsButError() {
+		var given = mockPolicyRetrievalResult(true, new AuthorizationDecision[] {});
+		var expected = AuthorizationDecision.INDETERMINATE;
+		verifyDocumentsCombinator(given, expected);
+	}
+
+	@Test
+	public void combineDocumentsMoreDocsWithError() {
+		var given = mockPolicyRetrievalResult(true, new AuthorizationDecision[] { AuthorizationDecision.DENY,
+				AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.PERMIT });
+		var expected = AuthorizationDecision.INDETERMINATE;
+		verifyDocumentsCombinator(given, expected);
+	}
+
+	@Test
+	public void combineDocumentsMoreDocs() {
+		var given = mockPolicyRetrievalResult(false, new AuthorizationDecision[] { AuthorizationDecision.DENY,
+				AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.PERMIT });
+		var expected = AuthorizationDecision.INDETERMINATE;
+		verifyDocumentsCombinator(given, expected);
+	}
+
+	private void verifyDocumentsCombinator(PolicyRetrievalResult given, AuthorizationDecision expected) {
+		StepVerifier.create(combinator.combineMatchingDocuments(given, evaluationCtx)).expectNext(expected)
+				.verifyComplete();
+	}
+
+	@Test
+	public void collectWithError() {
+		String policySet = "set \"tests\" only-one-applicable" + " policy \"testp1\" deny "
+				+ " policy \"testp2\" permit where (10/0);";
+		assertEquals("should collect deny obligation of only matching policy", AuthorizationDecision.INDETERMINATE,
+				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst());
+	}
+
+	@Test
+	public void collectWithError2() {
+		String policySet = "set \"tests\" only-one-applicable" + " policy \"testp1\" deny where (10/0);"
+				+ " policy \"testp2\" permit";
+		assertEquals("should collect deny obligation of only matching policy", AuthorizationDecision.INDETERMINATE,
+				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst());
+	}
+
+	@Test
+	public void collectWithError3() {
+		String policySet = "set \"tests\" only-one-applicable" + " policy \"testp1\" deny where (10/0);"
+				+ " policy \"testp2\" permit where (10/0)";
+		assertEquals("should collect deny obligation of only matching policy", AuthorizationDecision.INDETERMINATE,
+				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst());
 	}
 
 	@Test

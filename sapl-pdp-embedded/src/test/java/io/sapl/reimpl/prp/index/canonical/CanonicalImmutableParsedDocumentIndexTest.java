@@ -1,6 +1,7 @@
 package io.sapl.reimpl.prp.index.canonical;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -132,7 +133,9 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 		// then
 		assertThat(result).isNotNull();
 		assertThat(result.isErrorsInTarget()).isFalse();
-		assertThat(result.getMatchingDocuments()).hasSize(3).contains(doc1, doc2);
+		assertThat(result.getMatchingDocuments()).hasSize(3);
+		assertTrue(result.getMatchingDocuments().contains(doc1));
+		assertTrue(result.getMatchingDocuments().contains(doc2));
 	}
 
 	@Test
@@ -153,14 +156,16 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 		log.info("->{}", authzSubscription);
 		var subscriptionScopedEvaluationCtx = new EvaluationContext(new AnnotationAttributeContext(),
 				new AnnotationFunctionContext(), variables).forAuthorizationSubscription(authzSubscription);
-		
+
 		// when
 		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
 
 		// then
 		assertThat(result).isNotNull();
 		assertThat(result.isErrorsInTarget()).isFalse();
-		assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
+		assertThat(result.getMatchingDocuments()).hasSize(1);
+		assertTrue(result.getMatchingDocuments().contains(document));
+
 	}
 
 	@Test
@@ -224,7 +229,8 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 		// then
 		assertThat(result).isNotNull();
 		assertThat(result.isErrorsInTarget()).isFalse();
-		assertThat(result.getMatchingDocuments()).hasSize(1).contains(document);
+		assertThat(result.getMatchingDocuments()).hasSize(1);
+		assertTrue(result.getMatchingDocuments().contains(document));
 	}
 
 	private AuthorizationSubscription createRequestObject() {

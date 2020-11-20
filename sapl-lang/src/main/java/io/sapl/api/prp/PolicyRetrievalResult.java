@@ -21,7 +21,7 @@ import java.util.Iterator;
 
 import org.eclipse.emf.ecore.util.EcoreUtil;
 
-import io.sapl.grammar.sapl.SAPL;
+import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
@@ -29,10 +29,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PolicyRetrievalResult {
 
-	Collection<SAPL> matchingDocuments = new ArrayList<>();;
+	Collection<? extends AuthorizationDecisionEvaluable> matchingDocuments = new ArrayList<>();
 	boolean errorsInTarget = false;
 
-	public Collection<SAPL> getMatchingDocuments() {
+	public Collection<? extends AuthorizationDecisionEvaluable> getMatchingDocuments() {
 		return this.matchingDocuments;
 	}
 
@@ -40,14 +40,14 @@ public class PolicyRetrievalResult {
 		return this.errorsInTarget;
 	}
 
-	public PolicyRetrievalResult withMatch(SAPL match) {
-		var matches = new ArrayList<SAPL>(matchingDocuments);
+	public PolicyRetrievalResult withMatch(AuthorizationDecisionEvaluable match) {
+		var matches = new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments);
 		matches.add(match);
 		return new PolicyRetrievalResult(matches, errorsInTarget);
 	}
 
 	public PolicyRetrievalResult withError() {
-		return new PolicyRetrievalResult(new ArrayList<SAPL>(matchingDocuments), true);
+		return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments), true);
 	}
 
 	@Override
@@ -65,7 +65,8 @@ public class PolicyRetrievalResult {
 		return this.isErrorsInTarget() == otherResult.isErrorsInTarget();
 	}
 
-	private static boolean areEqual(Collection<SAPL> thisMatchingDocuments, Collection<SAPL> otherMatchingDocuments) {
+	private static boolean areEqual(Collection<? extends AuthorizationDecisionEvaluable> thisMatchingDocuments,
+			Collection<? extends AuthorizationDecisionEvaluable> otherMatchingDocuments) {
 		if (thisMatchingDocuments == null) {
 			return otherMatchingDocuments == null;
 		}
@@ -75,8 +76,8 @@ public class PolicyRetrievalResult {
 		if (thisMatchingDocuments.size() != otherMatchingDocuments.size()) {
 			return false;
 		}
-		final Iterator<SAPL> thisIterator = thisMatchingDocuments.iterator();
-		final Iterator<SAPL> otherIterator = otherMatchingDocuments.iterator();
+		final Iterator<? extends AuthorizationDecisionEvaluable> thisIterator = thisMatchingDocuments.iterator();
+		final Iterator<? extends AuthorizationDecisionEvaluable> otherIterator = otherMatchingDocuments.iterator();
 		while (thisIterator.hasNext()) {
 			if (!EcoreUtil.equals(thisIterator.next(), otherIterator.next())) {
 				return false;
@@ -89,7 +90,7 @@ public class PolicyRetrievalResult {
 	public int hashCode() {
 		final int PRIME = 59;
 		int result = 1;
-		final Collection<SAPL> thisMatchingDocuments = getMatchingDocuments();
+		final Collection<? extends AuthorizationDecisionEvaluable> thisMatchingDocuments = getMatchingDocuments();
 		result = result * PRIME + (thisMatchingDocuments == null ? 43 : thisMatchingDocuments.hashCode());
 		result = result * PRIME + (isErrorsInTarget() ? 79 : 97);
 		return result;

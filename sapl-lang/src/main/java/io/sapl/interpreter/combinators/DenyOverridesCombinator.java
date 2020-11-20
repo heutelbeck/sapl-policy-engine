@@ -15,12 +15,16 @@
  */
 package io.sapl.interpreter.combinators;
 
+import static io.sapl.api.pdp.Decision.DENY;
+import static io.sapl.api.pdp.Decision.INDETERMINATE;
+import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
+import static io.sapl.api.pdp.Decision.PERMIT;
+
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -44,29 +48,28 @@ import lombok.extern.slf4j.Slf4j;
  * ii) Otherwise the decision is NOT_APPLICABLE.
  */
 @Slf4j
-public class DenyOverridesCombinator extends AbstractEagerCombinator {
+public class DenyOverridesCombinator extends AbstractEagerCombinator implements PolicyCombinator {
 
 	@Override
-	protected AuthorizationDecision combineDecisions(Object[] decisions, boolean errorsInTarget) {
+	protected AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions, boolean errorsInTarget) {
 		if ((decisions == null || decisions.length == 0) && !errorsInTarget) {
 			return AuthorizationDecision.NOT_APPLICABLE;
 		}
-		var entitlement = errorsInTarget ? Decision.INDETERMINATE : Decision.NOT_APPLICABLE;
+		var entitlement = errorsInTarget ? INDETERMINATE : NOT_APPLICABLE;
 		var collector = new ObligationAdviceCollector();
 		Optional<JsonNode> resource = Optional.empty();
-		for (var oDecision : decisions) {
-			var decision = (AuthorizationDecision) oDecision;
-			if (decision.getDecision() == Decision.DENY) {
-				entitlement = Decision.DENY;
+		for (var decision : decisions) {
+			if (decision.getDecision() == DENY) {
+				entitlement = DENY;
 			}
-			if (decision.getDecision() == Decision.INDETERMINATE) {
-				if (entitlement != Decision.DENY) {
-					entitlement = Decision.INDETERMINATE;
+			if (decision.getDecision() == INDETERMINATE) {
+				if (entitlement != DENY) {
+					entitlement = INDETERMINATE;
 				}
 			}
-			if (decision.getDecision() == Decision.PERMIT) {
-				if (entitlement == Decision.NOT_APPLICABLE) {
-					entitlement = Decision.PERMIT;
+			if (decision.getDecision() == PERMIT) {
+				if (entitlement == NOT_APPLICABLE) {
+					entitlement = PERMIT;
 				}
 			}
 			collector.add(decision);
@@ -76,8 +79,8 @@ public class DenyOverridesCombinator extends AbstractEagerCombinator {
 					// another policy already defined a transformation
 					// this the overall result is basically INDETERMINATE.
 					// However, existing DENY overrides with this algorithm.
-					if (entitlement != Decision.DENY) {
-						entitlement = Decision.INDETERMINATE;
+					if (entitlement != DENY) {
+						entitlement = INDETERMINATE;
 					}
 				} else {
 					resource = decision.getResource();

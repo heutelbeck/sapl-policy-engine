@@ -38,14 +38,11 @@ public class EvaluationContext {
 
 	public EvaluationContext(@NonNull AttributeContext attributeCtx, @NonNull FunctionContext functionCtx,
 			Map<String, JsonNode> environmentVariables) {
-		this.attributeCtx = attributeCtx;
-		this.functionCtx = functionCtx;
-		this.variableCtx = new VariableContext(environmentVariables);
-		this.imports = new HashMap<>();
+		this(attributeCtx, functionCtx, new VariableContext(environmentVariables), new HashMap<>(1));
 	}
 
-	private EvaluationContext(@NonNull AttributeContext attributeContext, @NonNull FunctionContext functionContext,
-			@NonNull VariableContext variableContext, @NonNull Map<String, String> imports) {
+	private EvaluationContext(AttributeContext attributeContext, FunctionContext functionContext,
+			VariableContext variableContext, Map<String, String> imports) {
 		this.attributeCtx = attributeContext;
 		this.functionCtx = functionContext;
 		this.variableCtx = variableContext;

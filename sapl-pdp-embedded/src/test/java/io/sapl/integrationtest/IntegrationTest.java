@@ -12,6 +12,7 @@ import org.junit.rules.Timeout;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.prp.PolicyRetrievalResult;
+import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -67,7 +68,7 @@ public class IntegrationTest {
 	@Test
 	public void return_error_flag_when_evaluation_throws_exception() {
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/error", interpreter);
-		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);		
+		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
 				new HashMap<>());
 		evaluationCtx = evaluationCtx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
@@ -93,8 +94,8 @@ public class IntegrationTest {
 		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1);
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
 
-		Assertions.assertThat(result.getMatchingDocuments().stream().findFirst().get().getPolicyElement().getSaplName())
-				.isEqualTo("policy read");
+		Assertions.assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get()
+				.getPolicyElement().getSaplName()).isEqualTo("policy read");
 
 		authzSubscription = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
@@ -108,8 +109,8 @@ public class IntegrationTest {
 		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1);
 		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
 
-		Assertions.assertThat(result.getMatchingDocuments().stream().findFirst().get().getPolicyElement().getSaplName())
-				.isEqualTo("policy eat icecream");
+		Assertions.assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get()
+				.getPolicyElement().getSaplName()).isEqualTo("policy eat icecream");
 	}
 
 	@Test

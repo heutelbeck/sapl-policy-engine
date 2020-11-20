@@ -2,6 +2,7 @@ package io.sapl.reimpl.prp;
 
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
+import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
@@ -41,9 +42,11 @@ public class GenericInMemoryIndexedPolicyRetrievalPoint implements PolicyRetriev
 			log.trace("|-- Matching documents: NONE");
 		} else {
 			log.trace("|-- Matching documents:");
-			for (SAPL doc : result.getMatchingDocuments()) {
-				log.trace("| |-- * {} ({})", doc.getPolicyElement().getSaplName(),
-						doc.getPolicyElement().getClass().getName());
+			for (AuthorizationDecisionEvaluable doc : result.getMatchingDocuments()) {
+				log.trace("| |-- * {} ({})",
+						(doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getSaplName() : doc.toString(),
+						(doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getClass().getSimpleName()
+								: doc.toString());
 			}
 		}
 		log.trace("|");

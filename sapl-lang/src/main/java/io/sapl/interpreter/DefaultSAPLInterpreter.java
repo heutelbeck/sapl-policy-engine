@@ -55,12 +55,12 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	@Override
 	public SAPL parse(String saplDefinition) {
-		return loadAsResource(saplDefinition);
+		return parse(new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8)));
 	}
 
 	@Override
 	public SAPL parse(InputStream saplInputStream) {
-		return (SAPL) loadAsResource(saplInputStream);
+		return loadAsResource(saplInputStream);
 	}
 
 	@Override
@@ -95,7 +95,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	public DocumentAnalysisResult analyze(String policyDefinition) {
 		SAPL saplDocument;
 		try {
-			saplDocument = loadAsResource(policyDefinition);
+			saplDocument = parse(policyDefinition);
 		} catch (PolicyEvaluationException e) {
 			return new DocumentAnalysisResult(false, "", null, e.getMessage());
 		}
@@ -105,10 +105,6 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	private DocumentType typeOfDocument(SAPL saplDocument) {
 		return saplDocument.getPolicyElement() instanceof PolicySet ? DocumentType.POLICY_SET : DocumentType.POLICY;
-	}
-
-	private static SAPL loadAsResource(String saplDefinition) {
-		return loadAsResource(new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8)));
 	}
 
 	private static SAPL loadAsResource(InputStream policyInputStream) {

@@ -15,12 +15,14 @@
  */
 package io.sapl.interpreter.combinators;
 
+import static io.sapl.api.pdp.Decision.DENY;
+import static io.sapl.api.pdp.Decision.PERMIT;
+
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -36,20 +38,19 @@ import lombok.extern.slf4j.Slf4j;
  * - Otherwise the decision is DENY.
  */
 @Slf4j
-public class DenyUnlessPermitCombinator extends AbstractEagerCombinator {
+public class DenyUnlessPermitCombinator extends AbstractEagerCombinator implements PolicyCombinator {
 
 	@Override
-	protected AuthorizationDecision combineDecisions(Object[] decisions, boolean errorsInTarget) {
+	protected AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions, boolean errorsInTarget) {
 		if (decisions == null || decisions.length == 0) {
 			return AuthorizationDecision.DENY;
 		}
-		var entitlement = Decision.DENY;
+		var entitlement = DENY;
 		var collector = new ObligationAdviceCollector();
 		Optional<JsonNode> resource = Optional.empty();
-		for (var oDecision : decisions) {
-			var decision = (AuthorizationDecision) oDecision;
-			if (decision.getDecision() == Decision.PERMIT) {
-				entitlement = Decision.PERMIT;
+		for (var decision : decisions) {
+			if (decision.getDecision() == PERMIT) {
+				entitlement = PERMIT;
 			}
 			collector.add(decision);
 			if (decision.getResource().isPresent()) {
@@ -58,7 +59,7 @@ public class DenyUnlessPermitCombinator extends AbstractEagerCombinator {
 					// another policy already defined a transformation
 					// this the overall result is basically INDETERMINATE.
 					// However, DENY overrides with this algorithm.
-					entitlement = Decision.DENY;
+					entitlement = DENY;
 				} else {
 					resource = decision.getResource();
 				}

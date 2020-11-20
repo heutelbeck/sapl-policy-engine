@@ -15,13 +15,14 @@
  */
 package io.sapl.interpreter.combinators;
 
+import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
+
 import java.util.List;
 import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -59,13 +60,13 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 		return Flux.just(AuthorizationDecision.NOT_APPLICABLE).flatMap(combine(0, policies, ctx));
 	}
 
-	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> combine(int policyId,
+	private Function<AuthorizationDecision, Publisher<? extends AuthorizationDecision>> combine(int policyId,
 			List<Policy> policies, EvaluationContext ctx) {
 		if (policyId == policies.size()) {
 			return Flux::just;
 		}
 		return decicion -> evaluatePolicy(policies.get(policyId), ctx).switchMap(newDecision -> {
-			if (newDecision.getDecision() != Decision.NOT_APPLICABLE) {
+			if (newDecision.getDecision() != NOT_APPLICABLE) {
 				return Flux.just(newDecision);
 			}
 			return Flux.just(newDecision).switchMap(combine(policyId + 1, policies, ctx));
@@ -83,4 +84,5 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 			return policy.evaluate(ctx);
 		});
 	}
+
 }

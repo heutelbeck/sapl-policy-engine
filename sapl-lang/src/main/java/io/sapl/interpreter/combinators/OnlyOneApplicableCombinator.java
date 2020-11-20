@@ -15,15 +15,9 @@
  */
 package io.sapl.interpreter.combinators;
 
-import java.util.ArrayList;
-import java.util.List;
+import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.prp.PolicyRetrievalResult;
-import io.sapl.grammar.sapl.Policy;
-import io.sapl.interpreter.EvaluationContext;
-import reactor.core.publisher.Flux;
-import reactor.util.function.Tuples;
 
 /**
  * This algorithm is used if policy sets and policies are constructed in a way
@@ -46,43 +40,17 @@ import reactor.util.function.Tuples;
  * decision is the result of evaluating this policy document.
  *
  */
-public class OnlyOneApplicableCombinator implements DocumentsCombinator, PolicyCombinator {
+public class OnlyOneApplicableCombinator extends AbstractEagerCombinator implements PolicyCombinator {
 
 	@Override
-	public Flux<AuthorizationDecision> combineMatchingDocuments(PolicyRetrievalResult policyRetrievalResult,
-			EvaluationContext evaluationCtx) {
-		var matchingSaplDocuments = policyRetrievalResult.getMatchingDocuments();
-		if (policyRetrievalResult.isErrorsInTarget() || matchingSaplDocuments.size() > 1) {
-			return Flux.just(AuthorizationDecision.INDETERMINATE);
-		}
-		if (matchingSaplDocuments.size() == 1) {
-			var matchingDocument = matchingSaplDocuments.iterator().next();
-			return matchingDocument.evaluate(evaluationCtx);
-		}
-		return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
-	}
+	protected AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions, boolean errorsInTarget) {
+		if (errorsInTarget || decisions.length > 1)
+			return AuthorizationDecision.INDETERMINATE;
 
-	@Override
-	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
-		return Flux.fromIterable(policies)
-				.concatMap(policy -> policy.matches(ctx).map(match -> Tuples.of(match, policy)))
-				.reduce(Tuples.of(Boolean.FALSE, new ArrayList<Policy>(policies.size())), (state, match) -> {
-					var newState = new ArrayList<>(state.getT2());
-					if (match.getT1().isBoolean() && match.getT1().getBoolean()) {
-						newState.add(match.getT2());
-					}
-					return Tuples.of(state.getT1() || match.getT1().isError(), newState);
-				}).flux().concatMap(matching -> doCombine(matching.getT2(), matching.getT1(), ctx));
-	}
+		if (decisions.length == 0 || decisions[0].getDecision() == NOT_APPLICABLE)
+			return AuthorizationDecision.NOT_APPLICABLE;
 
-	private Flux<AuthorizationDecision> doCombine(List<Policy> matches, boolean errorsInTarget, EvaluationContext ctx) {
-		if (errorsInTarget || matches.size() > 1) {
-			return Flux.just(AuthorizationDecision.INDETERMINATE);
-		}
-		if (matches.isEmpty()) {
-			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
-		}
-		return matches.get(0).evaluate(ctx);
+		return decisions[0];
 	}
 
 }

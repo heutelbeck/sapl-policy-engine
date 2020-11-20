@@ -17,8 +17,10 @@ package io.sapl.interpreter;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Optional;
 
@@ -80,6 +82,12 @@ public class DefaultSAPLInterpreterTest {
 	public void parseTest() {
 		final String policyDocument = "policy \"test\" permit";
 		INTERPRETER.parse(policyDocument);
+	}
+
+	@Test(expected = PolicyEvaluationException.class)
+	public void brokenInputStreamTest() {
+		var brokenInputStream = mock(InputStream.class);
+		INTERPRETER.parse(brokenInputStream);
 	}
 
 	@Test(expected = PolicyEvaluationException.class)
@@ -220,17 +228,11 @@ public class DefaultSAPLInterpreterTest {
 	public void attributeFinderInTarget() {
 		final String policyDefinition = "policy \"test\" permit \"test\".<sapl.pip.test.echo> == \"test\"";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		// StepVerifier.create(INTERPRETER.evaluate(authzSubscriptionObject,
-		// policyDefinition,
-		// attributeCtx, functionCtx, SYSTEM_VARIABLES))
-		// .expectNext(expected)
-		// .verifyComplete();
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
 		assertEquals("external attribute finder was allowed in target", expected, actual);
 	}
 
-	/// XXXXXXXXXXXXXXX
 	@Test
 	public void attributeFinderWithArgumentsTest() {
 		final String policyDefinition = "policy \"test\" permit where var variable = \"hello\"; variable.<sapl.pip.test.echoRepeat(2)> == (variable + variable);";

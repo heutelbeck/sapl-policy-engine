@@ -6,7 +6,9 @@ import static io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES;
 import static io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY;
 
 import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 public class DocumentsCombinatorFactory {
 
 	public static DocumentsCombinator getCombinator(PolicyDocumentCombiningAlgorithm algorithm) {

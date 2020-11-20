@@ -25,13 +25,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.combinators.DenyOverridesCombinator;
-import io.sapl.interpreter.combinators.DenyUnlessPermitCombinator;
-import io.sapl.interpreter.combinators.FirstApplicableCombinator;
-import io.sapl.interpreter.combinators.OnlyOneApplicableCombinator;
-import io.sapl.interpreter.combinators.PermitOverridesCombinator;
-import io.sapl.interpreter.combinators.PermitUnlessDenyCombinator;
-import io.sapl.interpreter.combinators.PolicyCombinator;
+import io.sapl.interpreter.combinators.PolicyCombinatorFactory;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
@@ -84,7 +78,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 					valueDefinitionSuccessAndScopedEvaluationContext.getT1().getMessage());
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
-		return combinatorFor(getAlgorithm()).combinePolicies(policies,
+		return PolicyCombinatorFactory.getCombinator(getAlgorithm()).combinePolicies(policies,
 				valueDefinitionSuccessAndScopedEvaluationContext.getT2());
 
 	}
@@ -128,20 +122,4 @@ public class PolicySetImplCustom extends PolicySetImpl {
 		};
 	}
 
-	private PolicyCombinator combinatorFor(String algorithm) {
-		switch (algorithm) {
-		case "deny-unless-permit":
-			return new DenyUnlessPermitCombinator();
-		case "permit-unless-deny":
-			return new PermitUnlessDenyCombinator();
-		case "deny-overrides":
-			return new DenyOverridesCombinator();
-		case "permit-overrides":
-			return new PermitOverridesCombinator();
-		case "only-one-applicable":
-			return new OnlyOneApplicableCombinator();
-		default: // "first-applicable":
-			return new FirstApplicableCombinator();
-		}
-	}
 }

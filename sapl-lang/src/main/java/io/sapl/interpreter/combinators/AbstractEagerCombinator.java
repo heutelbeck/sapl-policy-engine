@@ -16,19 +16,23 @@
 package io.sapl.interpreter.combinators;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.prp.PolicyRetrievalResult;
+import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.Policy;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 @Slf4j
-public abstract class AbstractEagerCombinator implements DocumentsCombinator, PolicyCombinator {
+public abstract class AbstractEagerCombinator implements DocumentsCombinator {
+
 
 	@Override
 	public Flux<AuthorizationDecision> combineMatchingDocuments(PolicyRetrievalResult policyRetrievalResult,
@@ -36,43 +40,41 @@ public abstract class AbstractEagerCombinator implements DocumentsCombinator, Po
 		log.debug("|-- Combining matching documents");
 		var matchingSaplDocuments = policyRetrievalResult.getMatchingDocuments();
 		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingSaplDocuments.size());
-		for (SAPL document : matchingSaplDocuments) {
-			log.debug("| |-- Evaluate: {} ({})", document.getPolicyElement().getSaplName(),
-					document.getPolicyElement().getClass().getName());
+		for (AuthorizationDecisionEvaluable document : matchingSaplDocuments) {
+			log.debug("| |-- Evaluate: {} ", document);
 			authzDecisionFluxes.add(document.evaluate(evaluationCtx));
 		}
 		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
 			return Flux.just(combineDecisions(new AuthorizationDecision[0], policyRetrievalResult.isErrorsInTarget()));
 		}
-		return Flux.combineLatest(authzDecisionFluxes,
-				decisions -> combineDecisions(decisions, policyRetrievalResult.isErrorsInTarget()));
+		return Flux
+				.combineLatest(authzDecisionFluxes,
+						decisions -> Arrays.copyOf(decisions, decisions.length, AuthorizationDecision[].class))
+				.map(decisions -> combineDecisions(decisions, policyRetrievalResult.isErrorsInTarget()));
 	}
 
-	@Override
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		return Flux.fromIterable(policies)
-				.concatMap(policy -> policy.matches(ctx).map(match -> Tuples.of(match, policy)))
-				.reduce(Tuples.of(Boolean.FALSE, new ArrayList<Policy>(policies.size())), (state, match) -> {
-					var newState = new ArrayList<>(state.getT2());
-					if (match.getT1().isBoolean() && match.getT1().getBoolean()) {
-						newState.add(match.getT2());
-					}
-					return Tuples.of(state.getT1() || match.getT1().isError(), newState);
-				}).flux().concatMap(matching -> doCombine(matching.getT2(), matching.getT1(), ctx));
+				.concatMap(policy -> policy.matches(ctx).map(matches -> Tuples.of(matches, policy)))
+				.reduce(new PolicyRetrievalResult(), (state, matchAndDocument) -> {
+					PolicyRetrievalResult newState = state;
+					if (isMatch(matchAndDocument))
+						newState = state.withMatch(matchAndDocument.getT2());
+					if (isError(matchAndDocument))
+						newState = state.withError();
+					return newState;
+				}).flux().flatMap(policyRetrievalResult -> combineMatchingDocuments(policyRetrievalResult, ctx));
 	}
 
-	private Flux<AuthorizationDecision> doCombine(List<Policy> matchingPolicies, boolean errorsInTarget,
-			EvaluationContext ctx) {
-		log.debug("| |-- Combining {} policies", matchingPolicies.size());
-		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingPolicies.size());
-		for (Policy policy : matchingPolicies) {
-			authzDecisionFluxes.add(policy.evaluate(ctx));
-		}
-		if (matchingPolicies == null || matchingPolicies.isEmpty()) {
-			return Flux.just(combineDecisions(new AuthorizationDecision[0], errorsInTarget));
-		}
-		return Flux.combineLatest(authzDecisionFluxes, decisions -> combineDecisions(decisions, errorsInTarget));
+	private boolean isMatch(Tuple2<Val, Policy> matchAndDocument) {
+		return matchAndDocument.getT1().isBoolean() && matchAndDocument.getT1().getBoolean();
 	}
 
-	protected abstract AuthorizationDecision combineDecisions(Object[] decisions, boolean errorsInTarget);
+	private boolean isError(Tuple2<Val, Policy> matchAndDocument) {
+		return matchAndDocument.getT1().isError();
+	}
+
+	protected abstract AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions,
+			boolean errorsInTarget);
+	
 }
