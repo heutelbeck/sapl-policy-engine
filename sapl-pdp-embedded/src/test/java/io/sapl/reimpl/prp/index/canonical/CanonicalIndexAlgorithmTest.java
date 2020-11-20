@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.assertj.core.api.Assertions;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.sapl.prp.inmemory.indexed.Bitmask;
@@ -20,7 +19,7 @@ import io.sapl.prp.inmemory.indexed.Literal;
 import io.sapl.prp.inmemory.indexed.improved.CTuple;
 import io.sapl.prp.inmemory.indexed.improved.Predicate;
 
-@Ignore
+
 public class CanonicalIndexAlgorithmTest {
 
     @Test

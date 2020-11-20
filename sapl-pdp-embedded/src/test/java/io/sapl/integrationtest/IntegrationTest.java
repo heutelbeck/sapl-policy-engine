@@ -25,12 +25,12 @@ import io.sapl.reimpl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 public class IntegrationTest {
 
 	@Rule
-	public Timeout globalTimeout = Timeout.seconds(60);
+	public Timeout globalTimeout = Timeout.seconds(10);
 
 	private SAPLInterpreter interpreter;
 	private ImmutableParsedDocumentIndex seedIndex;
-	private static final EvaluationContext PDP_SCOPED_EVALUATION_CONTEXT = new EvaluationContext(new AnnotationAttributeContext(),
-			new AnnotationFunctionContext(), new HashMap<>());
+	private static final EvaluationContext PDP_SCOPED_EVALUATION_CONTEXT = new EvaluationContext(
+			new AnnotationAttributeContext(), new AnnotationFunctionContext(), new HashMap<>());
 	private static final AuthorizationSubscription EMPTY_SUBSCRIPTION = AuthorizationSubscription.of(null, null, null);
 
 	@Before
@@ -42,6 +42,7 @@ public class IntegrationTest {
 	@Test
 	public void return_empty_result_when_no_documents_are_published() {
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty", interpreter);
+		source.getUpdates().log().blockFirst();
 		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
 				new HashMap<>());
@@ -66,11 +67,10 @@ public class IntegrationTest {
 	@Test
 	public void return_error_flag_when_evaluation_throws_exception() {
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/error", interpreter);
-		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);		
 		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
 				new HashMap<>());
 		evaluationCtx = evaluationCtx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
-
 		PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
 
 		Assertions.assertThat(result).isNotNull();

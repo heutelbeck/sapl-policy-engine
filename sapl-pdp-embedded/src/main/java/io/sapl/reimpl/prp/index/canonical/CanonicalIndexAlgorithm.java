@@ -21,8 +21,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
@@ -47,24 +49,33 @@ public class CanonicalIndexAlgorithm {
 			contextMono = contextMono.flatMap(matchingCtx -> accumulate(matchingCtx, predicate, dataContainer));
 		}
 
-		return contextMono.map(CanonicalIndexMatchingContext::getClauseCandidatesMask)
-				.map(satisfied -> fetchFormulas(satisfied, dataContainer.getRelatedFormulas()))
-				.map(formulas -> fetchPolicies(formulas, dataContainer.getFormulaToDocuments()))
-				.map(policies -> new PolicyRetrievalResult(policies, false))
-				// if any error occurs in the chain, return an empty result with the error flag
-				// set to true
-				.onErrorReturn(new PolicyRetrievalResult(Collections.emptyList(), true));
+		return contextMono.map(matchingCtx -> {
+			var satisfied = matchingCtx.getClauseCandidatesMask();
+			var formulas = fetchFormulas(satisfied, dataContainer.getRelatedFormulas());
+			var policies = fetchPolicies(formulas, dataContainer.getFormulaToDocuments());
+			return new PolicyRetrievalResult(policies, matchingCtx.isErrorsInTargets());
+		}).onErrorReturn(new PolicyRetrievalResult(Collections.emptyList(), true));
 	}
 
 	private static Mono<CanonicalIndexMatchingContext> accumulate(CanonicalIndexMatchingContext matchingCtx,
 			Predicate predicate, CanonicalIndexDataContainer dataContainer) {
 		if (!isReferenced(predicate, matchingCtx.getClauseCandidatesMask()))
 			return Mono.just(matchingCtx);
+		return predicate.evaluate(matchingCtx.getSubscriptionScopedEvaluationContext())
+				.map(handleEvaluationResult(matchingCtx, predicate, dataContainer));
+	}
 
-		return predicate.evaluate(matchingCtx.getSubscriptionScopedEvaluationContext()).map(evaluationResult -> {
-			updateMatchingContext(predicate, evaluationResult, matchingCtx, dataContainer);
+	private static Function<Val, CanonicalIndexMatchingContext> handleEvaluationResult(
+			CanonicalIndexMatchingContext matchingCtx, Predicate predicate, CanonicalIndexDataContainer dataContainer) {
+		return evaluationResult -> {
+			if (evaluationResult.isError()) {
+				matchingCtx.setErrorsInTargets(true);
+				removeCandidatesRelatedToPredicate(predicate, matchingCtx.getClauseCandidatesMask());
+			} else {
+				updateMatchingContext(predicate, evaluationResult.getBoolean(), matchingCtx, dataContainer);
+			}
 			return matchingCtx;
-		});
+		};
 	}
 
 	Bitmask orBitMask(@NonNull Bitmask b1, @NonNull Bitmask b2) {

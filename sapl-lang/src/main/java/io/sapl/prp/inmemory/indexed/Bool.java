@@ -18,7 +18,6 @@ package io.sapl.prp.inmemory.indexed;
 import java.util.Map;
 import java.util.Objects;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Preconditions;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -62,11 +61,12 @@ public class Bool {
 		throw new IllegalStateException(BOOL_NOT_IMMUTABLE);
 	}
 
-	public Mono<Boolean> evaluate(EvaluationContext evaluationContext) {
-		EvaluationContext ctx = evaluationContext.withImports(imports);
-		Flux<Val> resultFlux = !isConstantExpression ? expression.evaluate(ctx, Val.UNDEFINED)
-				: Flux.just(constant ? Val.TRUE : Val.FALSE);
-		return resultFlux.filter(Val::isDefined).map(Val::get).filter(JsonNode::isBoolean).map(JsonNode::asBoolean)
+	public Mono<Val> evaluate(EvaluationContext subscriptionScopedEvaluationContext) {
+		EvaluationContext documentScopedEvaluationContext = subscriptionScopedEvaluationContext.withImports(imports);
+		Flux<Val> resultFlux = isConstantExpression ? Flux.just(Val.of(constant))
+				: expression.evaluate(documentScopedEvaluationContext, Val.UNDEFINED);
+		return resultFlux.log()
+				.map(result -> result.isError() || result.isBoolean() ? result : Val.error("expression not boolean"))
 				.next();
 	}
 

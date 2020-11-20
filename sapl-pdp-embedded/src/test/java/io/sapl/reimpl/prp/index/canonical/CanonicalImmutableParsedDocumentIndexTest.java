@@ -12,9 +12,7 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.Timeout;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -34,14 +32,16 @@ import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.PrpUpdateEvent;
 import io.sapl.reimpl.prp.PrpUpdateEvent.Type;
 import io.sapl.reimpl.prp.PrpUpdateEvent.Update;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Ignore
 public class CanonicalImmutableParsedDocumentIndexTest {
 	private static final EvaluationContext PDP_SCOPED_EVALUATION_CONTEXT = new EvaluationContext(
 			new AnnotationAttributeContext(), new AnnotationFunctionContext(), new HashMap<>());
 
-	@Rule
-	public Timeout globalTimeout = Timeout.seconds(60);
+//	@Rule
+//	public Timeout globalTimeout = Timeout.seconds(5);
 
 	private Map<String, Boolean> bindings;
 
@@ -150,11 +150,10 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 		bindings.put("x0", false);
 		bindings.put("x1", false);
 		AuthorizationSubscription authzSubscription = createRequestObject();
+		log.info("->{}", authzSubscription);
 		var subscriptionScopedEvaluationCtx = new EvaluationContext(new AnnotationAttributeContext(),
-				new AnnotationFunctionContext(), variables);
-		subscriptionScopedEvaluationCtx = subscriptionScopedEvaluationCtx
-				.forAuthorizationSubscription(authzSubscription);
-
+				new AnnotationFunctionContext(), variables).forAuthorizationSubscription(authzSubscription);
+		
 		// when
 		PolicyRetrievalResult result = updatedIndex.retrievePolicies(subscriptionScopedEvaluationCtx).block();
 

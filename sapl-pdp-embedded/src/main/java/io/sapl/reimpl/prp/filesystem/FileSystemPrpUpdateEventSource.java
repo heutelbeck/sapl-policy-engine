@@ -96,7 +96,7 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 				updates.add(new Update(Type.PUBLISH, saplDocument, rawDocument));
 			}
 		} catch (IOException | PolicyEvaluationException e) {
-			throw new RuntimeException("FATAL ERROR: building initial PrpUpdateEvent: " + e.getMessage());
+			throw new RuntimeException("FATAL ERROR: building initial PrpUpdateEvent: " + e.getMessage(), e);
 		}
 
 		var seedIndex = new ImmutableFileIndex(files);
@@ -107,7 +107,8 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
 	private Flux<PrpUpdateEvent> directoryMonitor(ImmutableFileIndex seedIndex) {
 		return Flux.from(dirWatcherFlux).scan(Tuples.of(Optional.empty(), seedIndex), this::processWatcherEvent)
-				.filter(tuple -> tuple.getT1().isPresent()).map(Tuple2::getT1).map(Optional::get).distinctUntilChanged();
+				.filter(tuple -> tuple.getT1().isPresent()).map(Tuple2::getT1).map(Optional::get)
+				.distinctUntilChanged();
 	}
 
 	private Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> processWatcherEvent(
@@ -165,11 +166,11 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 			var newIndex = index.put(absoluteFileName, saplDocument);
 			return Tuples.of(Optional.of(new PrpUpdateEvent(update1, update2)), newIndex);
 		} else {
-			log.debug("the file is not yet indexed. Treat this as a file creation.");			
+			log.debug("the file is not yet indexed. Treat this as a file creation.");
 			log.info("loading new SAPL document: {}", fileName);
 			var update = new Update(Type.PUBLISH, saplDocument, rawDocument);
 			var newIndex = index.put(absoluteFileName, saplDocument);
-			return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);	
+			return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);
 		}
 	}
 
