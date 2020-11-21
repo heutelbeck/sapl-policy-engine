@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.OperatorUtil.booleanOperator;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
@@ -30,15 +32,11 @@ public class EagerAndImplCustom extends EagerAndImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		var leftFlux = getLeft().evaluate(ctx, relativeNode).map(Val::requireBoolean);
-		var rightFlux = getRight().evaluate(ctx, relativeNode).map(Val::requireBoolean);
-		return Flux.combineLatest(leftFlux, rightFlux, (left, right) -> {
-			if (left.isError())
-				return left;
-			if (right.isError())
-				return right;
-			return Val.of(left.getBoolean() && right.getBoolean());
-		});
+		return booleanOperator(this, this::and, ctx, relativeNode);
+	}
+
+	private Val and(Val left, Val right) {
+		return Val.of(left.getBoolean() && right.getBoolean());
 	}
 
 }

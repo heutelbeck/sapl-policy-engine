@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
+
 import java.math.BigDecimal;
 
 import io.sapl.api.interpreter.Val;
@@ -33,17 +35,13 @@ public class DivImplCustom extends DivImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		var dividentFlux = getLeft().evaluate(ctx, relativeNode).map(Val::requireBigDecimal);
-		var divisorFlux = getRight().evaluate(ctx, relativeNode).map(Val::requireBigDecimal);
-		return Flux.combineLatest(dividentFlux, divisorFlux, (divident, divisor) -> {
-			if (divident.isError())
-				return divident;
-			if (divisor.isError())
-				return divisor;
-			if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
-				return Val.error("Division by zero");
-			return Val.of(divident.decimalValue().divide(divisor.decimalValue()));
-		});
+		return arithmeticOperator(this, this::divide, ctx, relativeNode);
+	}
+
+	private Val divide(Val divident, Val divisor) {
+		if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
+			return Val.error("Division by zero");
+		return Val.of(divident.decimalValue().divide(divisor.decimalValue()));
 	}
 
 }

@@ -49,13 +49,13 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 	private Function<? super Val, Publisher<? extends Val>> resolveSteps(EList<Step> steps, int stepId,
 			EvaluationContext ctx, Val relativeNode) {
 		if (steps == null || stepId == steps.size()) {
-			return value -> resolveFilterOrSubtemplate(value, ctx, relativeNode);
+			return value -> resolveFilterOrSubtemplate(value, ctx);
 		}
 		return value -> steps.get(stepId).apply(value, ctx, relativeNode)
 				.switchMap(resolveSteps(steps, stepId + 1, ctx, relativeNode));
 	}
 
-	private Flux<Val> resolveFilterOrSubtemplate(Val value, EvaluationContext ctx, Val relativeNode) {
+	private Flux<Val> resolveFilterOrSubtemplate(Val value, EvaluationContext ctx) {
 		if (filter != null) {
 			return filter.apply(value, ctx, value);
 		}

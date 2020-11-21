@@ -15,6 +15,10 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
+
+import com.fasterxml.jackson.databind.node.TextNode;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
@@ -22,29 +26,19 @@ import reactor.core.publisher.Flux;
 
 public class PlusImplCustom extends PlusImpl {
 
-	private static final String UNDEFINED = "undefined";
+	private static final TextNode UNDEFINED = Val.JSON.textNode("undefined");
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
-		final Flux<Val> right = getRight().evaluate(ctx, relativeNode);
-		return Flux.combineLatest(left, right, this::plus);
+		return operator(this, this::plus, ctx, relativeNode);
 	}
 
 	private Val plus(Val left, Val right) {
-		if (left.isError()) {
-			return left;
-		}
-		if (right.isError()) {
-			return right;
-		}
-		if (left.isDefined() && right.isDefined() && left.isNumber() && right.isNumber()) {
+		if (left.isNumber() && right.isNumber())
 			return Val.of(left.get().decimalValue().add(right.get().decimalValue()));
-		}
-		// The left or right value (or both) is/are not numeric. The plus operator is
-		// therefore interpreted as a string concatenation operator.
-		String lStr = left.orElse(Val.JSON.textNode(UNDEFINED)).asText();
-		String rStr = right.orElse(Val.JSON.textNode(UNDEFINED)).asText();
+
+		var lStr = left.orElse(UNDEFINED).asText();
+		var rStr = right.orElse(UNDEFINED).asText();
 		return Val.of(lStr.concat(rStr));
 	}
 

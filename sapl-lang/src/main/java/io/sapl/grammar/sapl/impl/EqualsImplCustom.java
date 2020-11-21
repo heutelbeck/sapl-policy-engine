@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
@@ -30,33 +32,28 @@ public class EqualsImplCustom extends EqualsImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
-		final Flux<Val> right = getRight().evaluate(ctx, relativeNode);
-		return Flux.combineLatest(left, right, this::equals);
+		return operator(this, this::equals, ctx, relativeNode);
 	}
 
 	private Val equals(Val left, Val right) {
-		if (left.isError()) {
-			return left;
-		}
-		if (right.isError()) {
-			return right;
-		}
-		if (left.isUndefined() && right.isUndefined()) {
+		if (left.isUndefined() && right.isUndefined())
 			return Val.TRUE;
-		}
-		if (left.isUndefined() || right.isUndefined()) {
-			return Val.FALSE;
-		}
 
-		// if both values are numbers do a numerical comparison, as they may be
-		// represented differently in JSON
-		if (left.isNumber() && right.isNumber()) {
-			return Val.of(left.decimalValue().compareTo(right.decimalValue()) == 0);
-		} else {
-			// else do a deep comparison
-			return Val.of(left.get().equals(right.get()));
-		}
+		if (left.isUndefined() || right.isUndefined())
+			return Val.FALSE;
+
+		if (bothValuesAreNumbers(left, right))
+			return Val.of(bothNumbersAreEqual(left, right));
+
+		return Val.of(left.get().equals(right.get()));
+	}
+
+	private boolean bothNumbersAreEqual(Val left, Val right) {
+		return left.decimalValue().compareTo(right.decimalValue()) == 0;
+	}
+
+	private boolean bothValuesAreNumbers(Val left, Val right) {
+		return left.isNumber() && right.isNumber();
 	}
 
 }

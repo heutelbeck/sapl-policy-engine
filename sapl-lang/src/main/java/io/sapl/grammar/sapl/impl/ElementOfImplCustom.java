@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
@@ -34,38 +36,31 @@ public class ElementOfImplCustom extends ElementOfImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		final Flux<Val> value = getLeft().evaluate(ctx, relativeNode);
-		final Flux<Val> array = getRight().evaluate(ctx, relativeNode);
-		return Flux.combineLatest(value, array, this::elementOf);
+		return operator(this, this::elementOf, ctx, relativeNode);
 	}
 
-	/**
-	 * Checks if the value is contained in the array. 'undefined' is never contained
-	 * in any array.
-	 */
 	private Val elementOf(Val needle, Val haystack) {
-		if (needle.isError()) {
-			return needle;
-		}
-		if (haystack.isError()) {
-			return haystack;
-		}
-		if (needle.isUndefined() || haystack.isUndefined() || !haystack.isArray()) {
+		if (needle.isUndefined() || haystack.isUndefined() || !haystack.isArray())
 			return Val.FALSE;
-		}
-		ArrayNode array = (ArrayNode) haystack.get();
-		for (JsonNode arrayItem : array) {
-			// numerically equivalent numbers may be noted differently in JSON.
-			// This equality is checked for here as well.
-			if (needle.isNumber() && arrayItem.isNumber()
-					&& needle.get().decimalValue().compareTo(arrayItem.decimalValue()) == 0) {
-				return Val.TRUE;
-			}
-			if (needle.get().equals(arrayItem))
+
+		for (JsonNode arrayItem : (ArrayNode) haystack.get())
+			if (needleAndArrayElementAreEquivalent(needle, arrayItem))
 				return Val.TRUE;
 
-		}
 		return Val.FALSE;
+	}
+
+	private boolean needleAndArrayElementAreEquivalent(Val needle, JsonNode arrayItem) {
+		return (bothValuesAreNumbers(needle, arrayItem) && bothNumbersAreEqual(needle, arrayItem))
+				|| needle.get().equals(arrayItem);
+	}
+
+	private boolean bothValuesAreNumbers(Val needle, JsonNode arrayItem) {
+		return needle.isNumber() && arrayItem.isNumber();
+	}
+
+	private boolean bothNumbersAreEqual(Val needle, JsonNode arrayItem) {
+		return needle.get().decimalValue().compareTo(arrayItem.decimalValue()) == 0;
 	}
 
 }

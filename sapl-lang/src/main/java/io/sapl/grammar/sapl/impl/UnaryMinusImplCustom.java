@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
@@ -24,12 +26,11 @@ public class UnaryMinusImplCustom extends UnaryMinusImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return getExpression().evaluate(ctx, relativeNode).map(Val::requireBigDecimal).map(value -> {
-			if (value.isError()) {
-				return value;
-			}
-			return Val.of(value.decimalValue().negate());
-		});
+		return arithmeticOperator(this, this::negate, ctx, relativeNode);
+	}
+
+	private Val negate(Val value) {
+		return Val.of(value.decimalValue().negate());
 	}
 
 }

@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
@@ -30,18 +32,10 @@ public class NotEqualsImplCustom extends NotEqualsImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		final Flux<Val> left = getLeft().evaluate(ctx, relativeNode);
-		final Flux<Val> right = getRight().evaluate(ctx, relativeNode);
-		return Flux.combineLatest(left, right, this::notEqual);
+		return operator(this, this::notEqual, ctx, relativeNode);
 	}
 
 	private Val notEqual(Val left, Val right) {
-		if (left.isError()) {
-			return left;
-		}
-		if (right.isError()) {
-			return right;
-		}
 		if (left.isUndefined() && right.isUndefined()) {
 			return Val.FALSE;
 		}

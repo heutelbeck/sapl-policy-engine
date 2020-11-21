@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
@@ -24,18 +26,10 @@ public class MultiImplCustom extends MultiImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		var leftFlux = getLeft().evaluate(ctx, relativeNode).map(Val::requireBigDecimal);
-		var rightFlux = getRight().evaluate(ctx, relativeNode).map(Val::requireBigDecimal);
-		return Flux.combineLatest(leftFlux, rightFlux, this::multiply);
+		return arithmeticOperator(this, this::multiply, ctx, relativeNode);
 	}
 
 	private Val multiply(Val left, Val right) {
-		if (left.isError()) {
-			return left;
-		}
-		if (right.isError()) {
-			return right;
-		}
 		return Val.of(left.decimalValue().multiply(right.decimalValue()));
 	}
 

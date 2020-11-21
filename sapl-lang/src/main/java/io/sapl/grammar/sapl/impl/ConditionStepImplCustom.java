@@ -66,15 +66,15 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 			return Flux.just(parentValue);
 		}
 		if (parentValue.isArray()) {
-			return applyToArray(parentValue.getArrayNode(), ctx, relativeNode);
+			return applyToArray(parentValue.getArrayNode(), ctx);
 		}
 		if (parentValue.isObject()) {
-			return applyToObject(parentValue.getObjectNode(), ctx, relativeNode);
+			return applyToObject(parentValue.getObjectNode(), ctx);
 		}
 		return Val.errorFlux(CONDITION_ACCESS_TYPE_MISMATCH, parentValue);
 	}
 
-	private Flux<Val> applyToObject(ObjectNode object, EvaluationContext ctx, Val relativeNode) {
+	private Flux<Val> applyToObject(ObjectNode object, EvaluationContext ctx) {
 		// handle the empty object
 		if (object.isEmpty()) {
 			return Flux.just(Val.ofEmptyArray());
@@ -91,7 +91,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		return packageResultsInArray(itemFluxes);
 	}
 
-	private Flux<Val> applyToArray(ArrayNode arrayNode, EvaluationContext ctx, Val relativeNode) {
+	private Flux<Val> applyToArray(ArrayNode arrayNode, EvaluationContext ctx) {
 		// handle the empty array
 		if (arrayNode.isEmpty()) {
 			return Flux.just(Val.ofEmptyArray());
@@ -106,7 +106,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		return packageResultsInArray(itemFluxes);
 	}
 
-	private Flux<Val> packageResultsInArray(List<Flux<Tuple2<JsonNode, Val>>> itemFluxes) {
+	private Flux<Val> packageResultsInArray(Iterable<Flux<Tuple2<JsonNode, Val>>> itemFluxes) {
 		return Flux.combineLatest(itemFluxes, Functions.identity()).map(itemResults -> {
 			var resultArray = Val.JSON.arrayNode();
 			for (var itemResultObject : itemResults) {

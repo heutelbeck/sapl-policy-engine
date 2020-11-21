@@ -15,6 +15,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.grammar.sapl.impl.OperatorUtil.operator;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.NonNull;
@@ -24,12 +26,7 @@ public class NotImplCustom extends NotImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return expression.evaluate(ctx, relativeNode).map(Val::requireBoolean).map(bool -> {
-			if (bool.isError()) {
-				return bool;
-			}
-			return Val.of(!bool.getBoolean());
-		});
+		return operator(this, Val::requireBoolean, x -> Val.of(!x.get().asBoolean()), ctx, relativeNode);
 	}
 
 }
