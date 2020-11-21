@@ -24,9 +24,9 @@ public class FilterFunctionLibrary {
 
 	public static final String NAME = "filter";
 	public static final String DESCRIPTION = "Essential functions for content filtering.";
-	private static final String BLACKEN_DEFAULT_REPLACEMENT = "X";
-	private static final int BLACKEN_DEFAULT_SHOW_LEFT = 0;
-	private static final int BLACKEN_DEFAULT_SHOW_RIGHT = 0;
+	private static final String DEFAULT_REPLACEMENT = "X";
+	private static final int DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_LEFT = 0;
+	private static final int DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_RIGHT = 0;
 
 	private static final String BLACKEN_DOC = "blacken(STRING, DISCLOSE_LEFT, DISCLOSE_RIGHT, REPLACEMENT): Assumes that DISCLOSE_LEFT and DISCLOSE_RIGHT are positive integers and STRING and REPLACEMENT are strings."
 			+ " Replaces each character in STRING by REPLACEMENT, leaving DISCLOSE_LEFT characters from the beginning and DISCLOSE_RIGHT characters from the end unchanged."
@@ -41,69 +41,86 @@ public class FilterFunctionLibrary {
 	private static final String ILLEGAL_PARAMETER_REPLACEMENT = "Illegal parameter for REPLACEMENT. Expecting a string.";
 	private static final String ILLEGAL_PARAMETER_STRING = "Illegal parameter for STRING. Expecting a string.";
 
-	private static final int ZERO = 0;
-	private static final int ONE = 1;
-	private static final int TWO = 2;
-	private static final int THREE = 3;
-	private static final int PARAMETERS_MAX = 4;
+	private static final int ORIGINAL_STRING_INDEX = 0;
+	private static final int DISCLOSE_LEFT_INDEX = 1;
+	private static final int DISCLOSE_RIGHT_INDEX = 2;
+	private static final int REPLACEMENT_INDEX = 3;
+	private static final int MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN = 4;
 
 	@Function(docs = BLACKEN_DOC)
 	public static Val blacken(Val... parameters) {
-		if (parameters.length > PARAMETERS_MAX) {
-			return Val.error(ILLEGAL_PARAMETERS_COUNT);
-		}
-		if (parameters[0].isUndefined() || !parameters[0].isTextual()) {
-			return Val.error(ILLEGAL_PARAMETER_STRING);
-		}
+		validateNumberOfParametersIsAtMostFour(parameters);
+		var originalString = extractOriginalTextFromParameters(parameters);
+		var replacement = extractReplacementStringFromParametersOrUseDefault(parameters);
+		var discloseRight = extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(parameters);
+		int discloseLeft = extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(parameters);
+		return blacken(originalString, replacement, discloseRight, discloseLeft);
+	}
 
-		String replacement;
-		if (parameters.length == PARAMETERS_MAX) {
-			if (parameters[THREE].isUndefined() || !parameters[THREE].isTextual()) {
-				return Val.error(ILLEGAL_PARAMETER_REPLACEMENT);
-			}
-			replacement = parameters[THREE].get().asText();
-		} else {
-			replacement = BLACKEN_DEFAULT_REPLACEMENT;
-		}
+	private static Val blacken(String originalString, String replacement, int discloseRight, int discloseLeft) {
+		if (discloseLeft + discloseRight >= originalString.length())
+			return Val.of(originalString);
 
-		int discloseRight;
-		if (parameters.length >= THREE) {
-			if (parameters[TWO].isUndefined() || !parameters[TWO].isNumber() || parameters[TWO].get().asInt() < 0) {
-				return Val.error(ILLEGAL_PARAMETER_DISCLOSE_RIGHT);
-			}
-			discloseRight = parameters[TWO].get().asInt();
-		} else {
-			discloseRight = BLACKEN_DEFAULT_SHOW_RIGHT;
-		}
-
-		int discloseLeft;
-		if (parameters.length >= TWO) {
-			if (parameters[ONE].isUndefined() || !parameters[ONE].isNumber() || parameters[ONE].get().asInt() < 0) {
-				return Val.error(ILLEGAL_PARAMETER_DISCLOSE_LEFT);
-			}
-			discloseLeft = parameters[ONE].get().asInt();
-		} else {
-			discloseLeft = BLACKEN_DEFAULT_SHOW_LEFT;
-		}
-
-		String string = parameters[ZERO].get().asText();
 		StringBuilder result = new StringBuilder();
-		if (discloseLeft + discloseRight < string.length()) {
-			if (discloseLeft > 0) {
-				result.append(string.substring(0, discloseLeft));
-			}
-			int replacedChars = string.length() - discloseLeft - discloseRight;
-			for (int i = 0; i < replacedChars; i++) {
-				result.append(replacement);
-			}
-			if (discloseRight > 0) {
-				result.append(string.substring(discloseLeft + replacedChars));
-			}
-		} else {
-			result.append(string);
+		if (discloseLeft > 0) {
+			result.append(originalString.substring(0, discloseLeft));
 		}
-
+		int replacedChars = originalString.length() - discloseLeft - discloseRight;
+		for (int i = 0; i < replacedChars; i++) {
+			result.append(replacement);
+		}
+		if (discloseRight > 0) {
+			result.append(originalString.substring(discloseLeft + replacedChars));
+		}
 		return Val.of(result.toString());
+	}
+
+	private static int extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(Val... parameters) {
+		int discloseLeft = DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_LEFT;
+		if (parameters.length >= DISCLOSE_RIGHT_INDEX) {
+			if (parameters[DISCLOSE_LEFT_INDEX].isUndefined() || !parameters[DISCLOSE_LEFT_INDEX].isNumber()
+					|| parameters[DISCLOSE_LEFT_INDEX].get().asInt() < 0) {
+				throw new IllegalArgumentException(ILLEGAL_PARAMETER_DISCLOSE_LEFT);
+			}
+			discloseLeft = parameters[DISCLOSE_LEFT_INDEX].get().asInt();
+		}
+		return discloseLeft;
+	}
+
+	private static int extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(Val... parameters) {
+		int discloseRight = DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_RIGHT;
+		if (parameters.length >= REPLACEMENT_INDEX) {
+			if (parameters[DISCLOSE_RIGHT_INDEX].isUndefined() || !parameters[DISCLOSE_RIGHT_INDEX].isNumber()
+					|| parameters[DISCLOSE_RIGHT_INDEX].get().asInt() < 0) {
+				throw new IllegalArgumentException(ILLEGAL_PARAMETER_DISCLOSE_RIGHT);
+			}
+			discloseRight = parameters[DISCLOSE_RIGHT_INDEX].get().asInt();
+		}
+		return discloseRight;
+	}
+
+	private static String extractReplacementStringFromParametersOrUseDefault(Val... parameters) {
+		String replacement = DEFAULT_REPLACEMENT;
+		if (parameters.length == MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN) {
+			if (parameters[REPLACEMENT_INDEX].isUndefined() || !parameters[REPLACEMENT_INDEX].isTextual()) {
+				throw new IllegalArgumentException(ILLEGAL_PARAMETER_REPLACEMENT);
+			}
+			replacement = parameters[REPLACEMENT_INDEX].get().asText();
+		}
+		return replacement;
+	}
+
+	private static String extractOriginalTextFromParameters(Val... parameters) {
+		if (parameters[0].isUndefined() || !parameters[0].isTextual()) {
+			throw new IllegalArgumentException(ILLEGAL_PARAMETER_STRING);
+		}
+		return parameters[ORIGINAL_STRING_INDEX].get().asText();
+	}
+
+	private static void validateNumberOfParametersIsAtMostFour(Val... parameters) {
+		if (parameters.length > MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN) {
+			throw new IllegalArgumentException(ILLEGAL_PARAMETERS_COUNT);
+		}
 	}
 
 	@Function(docs = REPLACE_DOC)
@@ -115,4 +132,5 @@ public class FilterFunctionLibrary {
 	public static Val remove(Val original) {
 		return Val.UNDEFINED;
 	}
+
 }
