@@ -58,12 +58,12 @@ public class PolicySetImplCustom extends PolicySetImpl {
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
 		return Flux.just(Tuples.of(Val.TRUE, ctx)).switchMap(evaluateValueDefinitions(0)).switchMap(this::evalPolicies)
-				.doOnNext(authzDecision -> log.debug("| |- Policy Set '{}' evaluates to: {}", authzDecision));
+				.doOnNext(authzDecision -> log.debug("| |- Policy Set '{}' evaluates to: {}", saplName, authzDecision));
 	}
 
 	// TODO: move into validation at parse time, remove from evaluation
 	private boolean policyNamesAreUnique() {
-		var policyNames = new HashSet<String>(policies.size());
+		var policyNames = new HashSet<String>(policies.size(), 1.0F);
 		for (var policy : policies) {
 			if (!policyNames.add(policy.getSaplName()))
 				return false;

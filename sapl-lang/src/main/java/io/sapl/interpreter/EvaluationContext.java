@@ -20,7 +20,6 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
@@ -49,18 +48,7 @@ public class EvaluationContext {
 		this.imports = new HashMap<>(imports);
 	}
 
-	/**
-	 * Creates a copy of this evaluation context. The copy references the same
-	 * instance of the attribute context and function context, but deep copies of
-	 * the variable context and imports. The attribute context and function context
-	 * are created once during startup, but the variable context and imports may be
-	 * specific to a certain scope. Before passing the evaluation context to a
-	 * narrower scope, it should be copied to make sure, the current context is not
-	 * polluted by elements of the narrower scope when after the narrower scope has
-	 * been processed.
-	 */
-	public EvaluationContext withEnvironmentVariable(String identifier, JsonNode value)
-			throws PolicyEvaluationException {
+	public EvaluationContext withEnvironmentVariable(String identifier, JsonNode value) {
 		return new EvaluationContext(attributeCtx, functionCtx, variableCtx.withEnvironmentVariable(identifier, value),
 				imports);
 	}

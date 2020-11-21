@@ -63,8 +63,7 @@ public class SAPLImplCustom extends SAPLImpl {
 	}
 
 	@Override
-	public EvaluationContext documentScopedEvaluationContext(EvaluationContext subscriptionScopedEvaluationContext)
-			throws PolicyEvaluationException {
+	public EvaluationContext documentScopedEvaluationContext(EvaluationContext subscriptionScopedEvaluationContext) {
 		return subscriptionScopedEvaluationContext.withImports(fetchImports(subscriptionScopedEvaluationContext));
 	}
 
@@ -111,7 +110,7 @@ public class SAPLImplCustom extends SAPLImpl {
 	}
 
 	private void addWildcardImports(Map<String, String> imports, String library,
-			LibraryFunctionProvider functionProvider) throws PolicyEvaluationException {
+			LibraryFunctionProvider functionProvider) {
 		for (var name : functionProvider.providedFunctionsOfLibrary(library)) {
 			if (imports.put(name, String.join(".", library, name)) != null)
 				throw new PolicyEvaluationException(WILDCARD_IMPORT_EXISTS, library, name);

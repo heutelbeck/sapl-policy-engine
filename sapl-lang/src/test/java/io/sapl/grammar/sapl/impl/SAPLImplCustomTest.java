@@ -32,7 +32,7 @@ import reactor.test.StepVerifier;
 
 public class SAPLImplCustomTest {
 
-	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
+	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 	private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	@Test

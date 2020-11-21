@@ -28,7 +28,7 @@ public class UnaryMinusImplCustom extends UnaryMinusImpl {
 			if (value.isError()) {
 				return value;
 			}
-			return Val.of(value.getBigDecimal().negate());
+			return Val.of(value.decimalValue().negate());
 		});
 	}
 

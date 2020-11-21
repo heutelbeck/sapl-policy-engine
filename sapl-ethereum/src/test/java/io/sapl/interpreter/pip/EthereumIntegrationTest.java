@@ -173,7 +173,7 @@ public class EthereumIntegrationTest {
 					.waitingFor(Wait.forHttp("/liveness").forStatusCode(200).forPort(8545));
 
 	@BeforeClass
-	public static void init() throws InterruptedException, TransactionException, Exception {
+	public static void onlyOnce() throws InterruptedException, TransactionException, Exception {
 		final Integer port = besuContainer.getMappedPort(8545);
 		web3j = Web3j.build(new HttpService(HTTP_LOCALHOST + port), 500, Async.defaultExecutorService());
 		ethPip = new EthereumPolicyInformationPoint(web3j);

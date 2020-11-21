@@ -17,13 +17,13 @@ package io.sapl.interpreter.functions;
 
 import org.junit.Test;
 
-import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.Val;
 
 public class AnnotationFunctionContextTest {
 
 	@Test
-	public void testAutoconfigure() throws FunctionException {
+	public void testAutoconfigure() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		context.evaluate(MockLibrary.NAME + ".helloTest", new Val[0]);
 	}

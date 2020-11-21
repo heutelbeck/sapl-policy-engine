@@ -18,6 +18,7 @@ package io.sapl.interpreter
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
+import io.sapl.api.functions.FunctionException
 import io.sapl.api.interpreter.PolicyEvaluationException
 import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
@@ -52,7 +53,7 @@ class SampleOurPuppetTest {
 		SYSTEM_VARIABLES);
 
 	@Before
-	def void init() {
+	def void setUp() throws FunctionException {
 		FUNCTION_CTX.loadLibrary(new SimpleFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new SimpleFilterFunctionLibrary(
@@ -385,7 +386,7 @@ class SampleOurPuppetTest {
 					@.detected_situations.sensordata : filter.remove,
 					@.detected_situations.puppetaction : filter.remove
 				}
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -488,7 +489,7 @@ class SampleOurPuppetTest {
 							"status" : @.status
 						}
 					}
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{

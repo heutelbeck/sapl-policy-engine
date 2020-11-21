@@ -36,7 +36,7 @@ public class MultiImplCustom extends MultiImpl {
 		if (right.isError()) {
 			return right;
 		}
-		return Val.of(left.getBigDecimal().multiply(right.getBigDecimal()));
+		return Val.of(left.decimalValue().multiply(right.decimalValue()));
 	}
 
 }

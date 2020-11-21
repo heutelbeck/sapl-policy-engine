@@ -57,7 +57,7 @@ public class GeoFunctionsTest {
 	private JsonNode jsonGeometryCollection;
 
 	@Before
-	public void init() throws FunctionException {
+	public void setUp() throws FunctionException {
 		jsonGeometryCollection = mock(JsonNode.class);
 		when(jsonGeometryCollection.toString()).thenReturn(SAMPLE_GEOCOLLECTION);
 

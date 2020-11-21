@@ -1,5 +1,7 @@
 package io.sapl.grammar.sapl.impl.util;
 
+import static org.junit.Assert.fail;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -9,6 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -24,9 +27,6 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Flux;
 
-/**
- * Some helper methods for unit tests.
- */
 public class MockUtil {
 	private static SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
 
@@ -42,16 +42,18 @@ public class MockUtil {
 		policySet.eSet(targetExpressionFeature, expression);
 	}
 
-	public static EvaluationContext constructTestEnvironmentEvaluationContext() {
+	public static EvaluationContext constructTestEnvironmentPdpScopedEvaluationContext() {
 
 		var attributeCtx = new AnnotationAttributeContext();
-		attributeCtx.loadPolicyInformationPoint(new TestPolicyInformationPoint());
-
 		var functionCtx = new AnnotationFunctionContext();
-		functionCtx.loadLibrary(new SimpleFunctionLibrary());
-		functionCtx.loadLibrary(new FilterFunctionLibrary());
-		functionCtx.loadLibrary(new TestFunctionLibrary());
-
+		try {
+			attributeCtx.loadPolicyInformationPoint(new TestPolicyInformationPoint());
+			functionCtx.loadLibrary(new SimpleFunctionLibrary());
+			functionCtx.loadLibrary(new FilterFunctionLibrary());
+			functionCtx.loadLibrary(new TestFunctionLibrary());
+		} catch (InitializationException e) {
+			fail("The loading of function libraries for the test environemnt failed: " + e.getMessage());
+		}
 		var variables = new HashMap<String, JsonNode>(1);
 		variables.put("nullVariable", Val.JSON.nullNode());
 

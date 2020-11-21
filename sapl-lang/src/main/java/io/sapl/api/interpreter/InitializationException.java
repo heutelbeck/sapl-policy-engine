@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.functions;
+package io.sapl.api.interpreter;
 
 /**
  * Indicates an error during function context setup or function evaluation.
  */
-public class FunctionException extends Exception {
+public class InitializationException extends Exception {
 
 	/**
 	 * Create a new FunctionException
 	 */
-	public FunctionException() {
+	public InitializationException() {
 		super();
 	}
 
@@ -32,7 +32,7 @@ public class FunctionException extends Exception {
 	 * 
 	 * @param message a message
 	 */
-	public FunctionException(String message) {
+	public InitializationException(String message) {
 		super(message);
 	}
 
@@ -42,7 +42,7 @@ public class FunctionException extends Exception {
 	 * @param format format string
 	 * @param args   arguments for format string
 	 */
-	public FunctionException(String format, Object... args) {
+	public InitializationException(String format, Object... args) {
 		super(String.format(format, args));
 	}
 
@@ -53,7 +53,7 @@ public class FunctionException extends Exception {
 	 * @param cause  causing Throwable
 	 * @param args   arguments for format string
 	 */
-	public FunctionException(Throwable cause, String format, Object... args) {
+	public InitializationException(Throwable cause, String format, Object... args) {
 		super(String.format(format, args), cause);
 	}
 
@@ -63,7 +63,7 @@ public class FunctionException extends Exception {
 	 * @param message a message
 	 * @param cause   causing Throwable
 	 */
-	public FunctionException(String message, Throwable cause) {
+	public InitializationException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
@@ -72,7 +72,7 @@ public class FunctionException extends Exception {
 	 * 
 	 * @param cause causing Throwable
 	 */
-	public FunctionException(Throwable cause) {
+	public InitializationException(Throwable cause) {
 		super(cause);
 	}
 

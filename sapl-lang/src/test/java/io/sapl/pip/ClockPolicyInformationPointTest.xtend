@@ -59,7 +59,7 @@ class ClockPolicyInformationPointTest {
 	static AuthorizationSubscription authzSubscriptionObj
 
 	@Before
-	def void init() {
+	def void setUp() {
 		FUNCTION_CTX.loadLibrary(new StandardFunctionLibrary())
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(PIP)
 		authzSubscriptionObj = MAPPER.readValue(authzSubscription, AuthorizationSubscription)

@@ -38,8 +38,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.net.HttpHeaders;
 
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
@@ -59,7 +59,7 @@ public class HttpPolicyInformationPointTest {
 	private WebClientRequestExecutor requestExecutor;
 
 	@Before
-	public void init() throws IOException {
+	public void setUp() throws IOException {
 		final String request = "{ " + "\"url\": \"http://jsonplaceholder.typicode.com/posts\", " + "\"headers\": { "
 				+ "\"" + HttpHeaders.ACCEPT + "\" : \"application/stream+json\", " + "\"" + HttpHeaders.ACCEPT_CHARSET
 				+ "\" : \"" + StandardCharsets.UTF_8 + "\" " + "}, " + "\"rawBody\" : \"hello world\" " + "}";
@@ -81,7 +81,7 @@ public class HttpPolicyInformationPointTest {
 	}
 
 	@Test
-	public void postRequest() throws AttributeException, IOException {
+	public void postRequest() throws IOException, InitializationException {
 		var pip = new HttpPolicyInformationPoint(requestExecutor);
 		var attributeCtx = new AnnotationAttributeContext();
 		attributeCtx.loadPolicyInformationPoint(pip);

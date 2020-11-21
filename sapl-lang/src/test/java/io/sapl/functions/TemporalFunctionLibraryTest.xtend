@@ -62,7 +62,7 @@ class TemporalFunctionLibraryTest {
 	static AuthorizationSubscription authzSubscriptionObj
 
 	@Before
-	def void init() {
+	def void setUp() {
 		FUNCTION_CTX.loadLibrary(new StandardFunctionLibrary())
 		FUNCTION_CTX.loadLibrary(new TemporalFunctionLibrary())
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(new ClockPolicyInformationPoint())

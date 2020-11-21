@@ -17,8 +17,8 @@ package io.sapl.interpreter.pip;
 
 import java.util.Collection;
 
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.AttributeException;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
@@ -27,7 +27,7 @@ public interface AttributeContext extends LibraryFunctionProvider {
 
 	Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments);
 
-	void loadPolicyInformationPoint(Object pip) throws AttributeException;
+	void loadPolicyInformationPoint(Object pip) throws InitializationException;
 
 	Collection<PolicyInformationPointDocumentation> getDocumentation();
 

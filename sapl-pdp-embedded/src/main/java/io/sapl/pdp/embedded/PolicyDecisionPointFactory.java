@@ -5,6 +5,7 @@ import java.util.Collection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
@@ -31,21 +32,23 @@ public class PolicyDecisionPointFactory {
 	private static final String DEFAILT_FILE_LOCATION = "~/sapl/policies";
 	private static final String DEFAULT_RESOURCES_LOCATION = "/policies";
 
-	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint() {
+	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint() throws InitializationException {
 		return filesystemPolicyDecisionPoint(DEFAILT_FILE_LOCATION);
 	}
 
-	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(String path) {
+	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(String path)
+			throws InitializationException {
 		return filesystemPolicyDecisionPoint(path, new ArrayList<Object>(1), new ArrayList<Object>(1));
 	}
 
 	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(Collection<Object> policyInformationPoints,
-			Collection<Object> functionLibraries) {
+			Collection<Object> functionLibraries) throws InitializationException {
 		return filesystemPolicyDecisionPoint(DEFAILT_FILE_LOCATION, policyInformationPoints, functionLibraries);
 	}
 
 	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(String path,
-			Collection<Object> policyInformationPoints, Collection<Object> functionLibraries) {
+			Collection<Object> policyInformationPoints, Collection<Object> functionLibraries)
+			throws InitializationException {
 		var fileSource = new FileSystemVariablesAndCombinatorSource(path);
 		var configurationProvider = constructConfigurationProvider(fileSource, policyInformationPoints,
 				functionLibraries);
@@ -53,21 +56,22 @@ public class PolicyDecisionPointFactory {
 		return new EmbeddedPolicyDecisionPoint(configurationProvider, policyRetrievalPoint);
 	}
 
-	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint() {
+	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint() throws InitializationException {
 		return resourcesPolicyDecisionPoint(DEFAULT_RESOURCES_LOCATION);
 	}
 
 	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(Collection<Object> policyInformationPoints,
-			Collection<Object> functionLibraries) {
+			Collection<Object> functionLibraries) throws InitializationException {
 		return resourcesPolicyDecisionPoint(DEFAULT_RESOURCES_LOCATION, policyInformationPoints, functionLibraries);
 	}
 
-	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(String path) {
+	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(String path) throws InitializationException {
 		return resourcesPolicyDecisionPoint(path, new ArrayList<Object>(1), new ArrayList<Object>(1));
 	}
 
 	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(String path,
-			Collection<Object> policyInformationPoints, Collection<Object> functionLibraries) {
+			Collection<Object> policyInformationPoints, Collection<Object> functionLibraries)
+			throws InitializationException {
 		var resourcesSource = new ResourcesVariablesAndCombinatorSource(EmbeddedPolicyDecisionPoint.class, path,
 				new ObjectMapper());
 		var configurationProvider = constructConfigurationProvider(resourcesSource, policyInformationPoints,
@@ -78,13 +82,14 @@ public class PolicyDecisionPointFactory {
 
 	private static PDPConfigurationProvider constructConfigurationProvider(
 			VariablesAndCombinatorSource combinatorProvider, Collection<Object> policyInformationPoints,
-			Collection<Object> functionLibraries) {
+			Collection<Object> functionLibraries) throws InitializationException {
 		var functionCtx = constructFunctionContext(functionLibraries);
 		var attributeCtx = constructAttributeContext(policyInformationPoints);
 		return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider);
 	}
 
-	private static FunctionContext constructFunctionContext(Collection<Object> functionLibraries) {
+	private static FunctionContext constructFunctionContext(Collection<Object> functionLibraries)
+			throws InitializationException {
 		var functionCtx = new AnnotationFunctionContext();
 		functionCtx.loadLibrary(new FilterFunctionLibrary());
 		functionCtx.loadLibrary(new StandardFunctionLibrary());
@@ -94,7 +99,8 @@ public class PolicyDecisionPointFactory {
 		return functionCtx;
 	}
 
-	private static AttributeContext constructAttributeContext(Collection<Object> policyInformationPoints) {
+	private static AttributeContext constructAttributeContext(Collection<Object> policyInformationPoints)
+			throws InitializationException {
 		var attributeCtx = new AnnotationAttributeContext();
 		attributeCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
 		for (var pip : policyInformationPoints)

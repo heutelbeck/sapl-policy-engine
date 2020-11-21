@@ -48,8 +48,8 @@ public class NotEqualsImplCustom extends NotEqualsImpl {
 		if (left.isUndefined() || right.isUndefined()) {
 			return Val.TRUE;
 		}
-		if (left.get().isNumber() && right.get().isNumber()) {
-			return Val.of(left.get().decimalValue().compareTo(right.get().decimalValue()) != 0);
+		if (left.isNumber() && right.isNumber()) {
+			return Val.of(left.decimalValue().compareTo(right.decimalValue()) != 0);
 		} else {
 			return Val.of(!left.get().equals(right.get()));
 		}

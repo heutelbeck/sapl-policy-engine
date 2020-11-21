@@ -27,7 +27,7 @@ import reactor.test.StepVerifier;
 
 public class EvaluateBasicExpressionsTest {
 
-	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
+	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
 	public void evaluateBasicValue() {

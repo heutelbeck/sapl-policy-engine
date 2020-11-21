@@ -35,13 +35,6 @@ public class EqualsImplCustom extends EqualsImpl {
 		return Flux.combineLatest(left, right, this::equals);
 	}
 
-	/**
-	 * Compares two values
-	 * 
-	 * @param left  a value
-	 * @param right a value
-	 * @return true if both values are equal
-	 */
 	private Val equals(Val left, Val right) {
 		if (left.isError()) {
 			return left;
@@ -49,18 +42,17 @@ public class EqualsImplCustom extends EqualsImpl {
 		if (right.isError()) {
 			return right;
 		}
-		// if both values are undefined, they are equal
 		if (left.isUndefined() && right.isUndefined()) {
 			return Val.TRUE;
 		}
-		// only one value is undefined the two values are not equal
 		if (left.isUndefined() || right.isUndefined()) {
 			return Val.FALSE;
 		}
+
 		// if both values are numbers do a numerical comparison, as they may be
 		// represented differently in JSON
-		if (left.get().isNumber() && right.get().isNumber()) {
-			return Val.of(left.get().decimalValue().compareTo(right.get().decimalValue()) == 0);
+		if (left.isNumber() && right.isNumber()) {
+			return Val.of(left.decimalValue().compareTo(right.decimalValue()) == 0);
 		} else {
 			// else do a deep comparison
 			return Val.of(left.get().equals(right.get()));

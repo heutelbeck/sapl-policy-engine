@@ -18,6 +18,7 @@ package io.sapl.functions
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
+import io.sapl.api.functions.FunctionException
 import io.sapl.api.interpreter.Val
 import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
@@ -51,7 +52,7 @@ class FilterFunctionLibraryTest {
 		SYSTEM_VARIABLES);
 
 	@Before
-	def void init() {
+	def void setUp() throws FunctionException {
 		FUNCTION_CTX.loadLibrary(LIBRARY);
 	}
 

@@ -25,7 +25,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class ApplyStepsRecursiveKeyTest {
 
-	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
+	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
 	public void recursiveKeyStepPropagatesErrors() {

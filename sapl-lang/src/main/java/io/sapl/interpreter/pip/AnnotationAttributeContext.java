@@ -29,6 +29,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.AttributeException;
@@ -76,7 +77,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	 * @param policyInformationPoints a list of PIPs
 	 * @throws AttributeException when loading the PIPs fails
 	 */
-	public AnnotationAttributeContext(Object... policyInformationPoints) throws AttributeException {
+	public AnnotationAttributeContext(Object... policyInformationPoints) throws InitializationException {
 		for (Object pip : policyInformationPoints) {
 			loadPolicyInformationPoint(pip);
 		}
@@ -114,13 +115,13 @@ public class AnnotationAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public final void loadPolicyInformationPoint(Object pip) throws AttributeException {
+	public final void loadPolicyInformationPoint(Object pip) throws InitializationException {
 		final Class<?> clazz = pip.getClass();
 
 		final PolicyInformationPoint pipAnnotation = clazz.getAnnotation(PolicyInformationPoint.class);
 
 		if (pipAnnotation == null) {
-			throw new AttributeException(CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION);
+			throw new InitializationException(CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION);
 		}
 
 		String pipName = pipAnnotation.name();
@@ -142,7 +143,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	}
 
 	private void importAttribute(Object policyInformationPoint, String pipName,
-			PolicyInformationPointDocumentation pipDocs, Method method) throws AttributeException {
+			PolicyInformationPointDocumentation pipDocs, Method method) throws InitializationException {
 
 		final Attribute attAnnotation = method.getAnnotation(Attribute.class);
 
@@ -153,41 +154,41 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		int parameters = method.getParameterCount();
 		if (parameters < REQUIRED_NUMBER_OF_PARAMETERS) {
-			throw new AttributeException(BAD_NUMBER_OF_PARAMETERS, parameters);
+			throw new InitializationException(BAD_NUMBER_OF_PARAMETERS, parameters);
 		}
 		final Class<?>[] parameterTypes = method.getParameterTypes();
 		if (!Val.class.isAssignableFrom(parameterTypes[0])) {
-			throw new AttributeException(FIRST_PARAMETER_OF_METHOD_MUST_BE_A_VALUE, parameterTypes[0].getName());
+			throw new InitializationException(FIRST_PARAMETER_OF_METHOD_MUST_BE_A_VALUE, parameterTypes[0].getName());
 		}
 		if (!Map.class.isAssignableFrom(parameterTypes[1])) {
-			throw new AttributeException(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName());
+			throw new InitializationException(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName());
 		}
 
 		final Type[] genericTypes = method.getGenericParameterTypes();
 
 		if (!(genericTypes[1] instanceof ParameterizedType
 				|| !(((ParameterizedType) genericTypes[1]).getActualTypeArguments().length == 2))) {
-			throw new AttributeException(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName());
+			throw new InitializationException(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName());
 		}
 		final Class<?> firstTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1]).getActualTypeArguments()[0];
 		final Class<?> secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1])
 				.getActualTypeArguments()[1];
 		if (!String.class.isAssignableFrom(firstTypeArgument) || !JsonNode.class.isAssignableFrom(secondTypeArgument)) {
-			throw new AttributeException(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName() + "<"
-					+ firstTypeArgument.getName() + "," + secondTypeArgument.getName() + ">");
+			throw new InitializationException(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName()
+					+ "<" + firstTypeArgument.getName() + "," + secondTypeArgument.getName() + ">");
 		}
 
 		if (method.getParameterCount() > REQUIRED_NUMBER_OF_PARAMETERS) {
 			for (int i = REQUIRED_NUMBER_OF_PARAMETERS; i < parameterTypes.length; i++) {
 				if (!Flux.class.isAssignableFrom(parameterTypes[i])
 						|| !(genericTypes[i] instanceof ParameterizedType)) {
-					throw new AttributeException(ADDITIONAL_PARAMETER_OF_METHOD_MUST_BE_A_FLUX_OF_VALUES,
+					throw new InitializationException(ADDITIONAL_PARAMETER_OF_METHOD_MUST_BE_A_FLUX_OF_VALUES,
 							parameterTypes[i]);
 				}
 				final Type fluxContentType = ((ParameterizedType) genericTypes[i]).getActualTypeArguments()[0];
 				if (fluxContentType instanceof ParameterizedType
 						|| !Val.class.isAssignableFrom((Class<?>) fluxContentType)) {
-					throw new AttributeException(ADDITIONAL_PARAMETER_OF_METHOD_MUST_BE_A_FLUX_OF_VALUES,
+					throw new InitializationException(ADDITIONAL_PARAMETER_OF_METHOD_MUST_BE_A_FLUX_OF_VALUES,
 							genericTypes[i]);
 				}
 			}
@@ -196,19 +197,19 @@ public class AnnotationAttributeContext implements AttributeContext {
 		final Class<?> returnType = method.getReturnType();
 		final Type genericReturnType = method.getGenericReturnType();
 		if (!(genericReturnType instanceof ParameterizedType)) {
-			throw new AttributeException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES, returnType.getName());
+			throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES, returnType.getName());
 		}
 
 		final Class<?> returnTypeArgument = (Class<?>) ((ParameterizedType) genericReturnType)
 				.getActualTypeArguments()[0];
 		if (!Flux.class.isAssignableFrom(returnType) || !Val.class.isAssignableFrom(returnTypeArgument)) {
-			throw new AttributeException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES,
+			throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES,
 					returnType.getName() + "<" + returnTypeArgument.getName() + ">");
 		}
 
 		if (pipDocs.documentation.containsKey(attName)) {
-			throw new AttributeException(ATTRIBUTE_NAME_COLLISION_PIP_CONTAINS_MULTIPLE_ATTRIBUTE_METHODS_WITH_NAME,
-					attName);
+			throw new InitializationException(
+					ATTRIBUTE_NAME_COLLISION_PIP_CONTAINS_MULTIPLE_ATTRIBUTE_METHODS_WITH_NAME, attName);
 		}
 
 		pipDocs.documentation.put(attName, attAnnotation.docs());

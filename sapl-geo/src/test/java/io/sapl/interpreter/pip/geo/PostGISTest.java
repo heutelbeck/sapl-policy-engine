@@ -70,7 +70,7 @@ public class PostGISTest {
 	private JsonNode jsonConf;
 
 	@Before
-	public void init() throws IOException {
+	public void setUp() throws IOException {
 		jsonConf = MAPPER.readValue(String.format(JSON_CONF, PROJECTION_CONFIG), JsonNode.class);
 		pgProjectionConfFromJson = MAPPER.convertValue(jsonConf, PostGISConfig.class);
 

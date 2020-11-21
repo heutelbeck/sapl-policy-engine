@@ -40,9 +40,9 @@ public class DivImplCustom extends DivImpl {
 				return divident;
 			if (divisor.isError())
 				return divisor;
-			if (divisor.getBigDecimal().equals(BigDecimal.ZERO))
+			if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
 				return Val.error("Division by zero");
-			return Val.of(divident.getBigDecimal().divide(divisor.getBigDecimal()));
+			return Val.of(divident.decimalValue().divide(divisor.decimalValue()));
 		});
 	}
 

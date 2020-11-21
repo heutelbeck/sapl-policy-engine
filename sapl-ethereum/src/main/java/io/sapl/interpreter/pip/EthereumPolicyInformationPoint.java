@@ -159,15 +159,15 @@ public class EthereumPolicyInformationPoint {
 	private Callable<Val> withVerifiedTransaction(Val saplObject) {
 		return () -> {
 			try {
+				var object = saplObject.get();
 				web3j.ethAccounts().flowable();
 				Optional<Transaction> optionalTransaction = web3j
-						.ethGetTransactionByHash(getStringFrom(saplObject.get(), TRANSACTION_HASH)).send()
-						.getTransaction();
+						.ethGetTransactionByHash(getStringFrom(object, TRANSACTION_HASH)).send().getTransaction();
 				if (optionalTransaction.isPresent()) {
 					Transaction transaction = optionalTransaction.get();
-					if (transaction.getFrom().equalsIgnoreCase(getStringFrom(saplObject.get(), FROM_ACCOUNT))
-							&& transaction.getTo().equalsIgnoreCase(getStringFrom(saplObject.get(), TO_ACCOUNT))
-							&& transaction.getValue().equals(getBigIntFrom(saplObject.get(), TRANSACTION_VALUE))) {
+					if (transaction.getFrom().equalsIgnoreCase(getStringFrom(object, FROM_ACCOUNT))
+							&& transaction.getTo().equalsIgnoreCase(getStringFrom(object, TO_ACCOUNT))
+							&& transaction.getValue().equals(getBigIntFrom(object, TRANSACTION_VALUE))) {
 						return Val.TRUE;
 					}
 				}
@@ -506,9 +506,9 @@ public class EthereumPolicyInformationPoint {
 	}
 
 	private Callable<Val> withAccountBalance(Val saplObject) {
-		return () -> toVal(web3j
-				.ethGetBalance(getStringFrom(saplObject.get(), ADDRESS), getDefaultBlockParameter(saplObject.get()))
-				.send().getBalance());
+		var object = saplObject.get();
+		return () -> toVal(web3j.ethGetBalance(getStringFrom(object, ADDRESS), getDefaultBlockParameter(object)).send()
+				.getBalance());
 	}
 
 	/**
@@ -539,10 +539,9 @@ public class EthereumPolicyInformationPoint {
 	}
 
 	private Callable<Val> withStorageAt(Val saplObject) {
-		return () -> toVal(web3j
-				.ethGetStorageAt(getStringFrom(saplObject.get(), ADDRESS),
-						saplObject.get().get(POSITION).bigIntegerValue(), getDefaultBlockParameter(saplObject.get()))
-				.send().getData());
+		var object = saplObject.get();
+		return () -> toVal(web3j.ethGetStorageAt(getStringFrom(object, ADDRESS), object.get(POSITION).bigIntegerValue(),
+				getDefaultBlockParameter(object)).send().getData());
 	}
 
 	/**
@@ -571,8 +570,10 @@ public class EthereumPolicyInformationPoint {
 	}
 
 	private Callable<Val> withTransactionCount(Val saplObject) {
-		return () -> toVal(web3j.ethGetTransactionCount(getStringFrom(saplObject.get(), ADDRESS),
-				getDefaultBlockParameter(saplObject.get())).send().getTransactionCount());
+		var object = saplObject.get();
+		return () -> toVal(
+				web3j.ethGetTransactionCount(getStringFrom(object, ADDRESS), getDefaultBlockParameter(object)).send()
+						.getTransactionCount());
 	}
 
 	/**
@@ -691,9 +692,9 @@ public class EthereumPolicyInformationPoint {
 	}
 
 	private Callable<Val> withCode(Val saplObject) {
+		var object = saplObject.get();
 		return () -> toVal(
-				web3j.ethGetCode(getStringFrom(saplObject.get(), ADDRESS), getDefaultBlockParameter(saplObject.get()))
-						.send().getCode());
+				web3j.ethGetCode(getStringFrom(object, ADDRESS), getDefaultBlockParameter(object)).send().getCode());
 	}
 
 	/**
@@ -715,8 +716,10 @@ public class EthereumPolicyInformationPoint {
 	}
 
 	private Callable<Val> withSignature(Val saplObject) {
-		return () -> toVal(web3j.ethSign(getStringFrom(saplObject.get(), ADDRESS),
-				getStringFrom(saplObject.get(), SHA3_HASH_OF_DATA_TO_SIGN)).send().getSignature());
+		var object = saplObject.get();
+		return () -> toVal(
+				web3j.ethSign(getStringFrom(object, ADDRESS), getStringFrom(object, SHA3_HASH_OF_DATA_TO_SIGN)).send()
+						.getSignature());
 	}
 
 	/**
@@ -744,8 +747,10 @@ public class EthereumPolicyInformationPoint {
 	}
 
 	private Callable<Val> withCallResult(Val saplObject) {
-		return () -> toVal(web3j.ethCall(getTransactionFromJson(saplObject.get().get(TRANSACTION)),
-				getDefaultBlockParameter(saplObject.get())).send().getValue());
+		var object = saplObject.get();
+		return () -> toVal(
+				web3j.ethCall(getTransactionFromJson(object.get(TRANSACTION)), getDefaultBlockParameter(object)).send()
+						.getValue());
 	}
 
 	/**

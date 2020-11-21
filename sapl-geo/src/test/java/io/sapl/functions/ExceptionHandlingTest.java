@@ -47,7 +47,7 @@ public class ExceptionHandlingTest {
 	private Geometry sampleGeometry;
 
 	@Before
-	public void init() throws FunctionException {
+	public void setUp() throws FunctionException {
 		mockStatic(CRS.class);
 		mockStatic(JTS.class);
 		sampleGeometry = mock(Geometry.class);

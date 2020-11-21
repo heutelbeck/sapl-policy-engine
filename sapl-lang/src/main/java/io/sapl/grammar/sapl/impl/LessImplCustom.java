@@ -42,7 +42,7 @@ public class LessImplCustom extends LessImpl {
 		if (right.isError()) {
 			return right;
 		}
-		return Val.of(left.getBigDecimal().compareTo(right.getBigDecimal()) < 0);
+		return Val.of(left.decimalValue().compareTo(right.decimalValue()) < 0);
 	}
 
 }

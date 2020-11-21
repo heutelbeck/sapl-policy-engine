@@ -24,8 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.api.functions.FunctionException;
-import io.sapl.api.pip.AttributeException;
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.LibraryFunctionProvider;
@@ -45,15 +44,11 @@ public class AttributeContextAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public LibraryFunctionProvider attributeContext() throws AttributeException {
+	public LibraryFunctionProvider attributeContext() throws InitializationException {
 		var ctx = new AnnotationAttributeContext();
 		for (var entry : policyInformationPoints) {
 			log.debug("loading Policy Information Point: {}", entry.getClass().getSimpleName());
-			try {
-				ctx.loadPolicyInformationPoint(entry);
-			} catch (SecurityException | IllegalArgumentException | FunctionException e) {
-				throw new AttributeException(e);
-			}
+			ctx.loadPolicyInformationPoint(entry);
 		}
 		return ctx;
 	}

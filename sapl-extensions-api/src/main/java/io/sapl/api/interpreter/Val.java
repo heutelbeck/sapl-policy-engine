@@ -423,7 +423,7 @@ public class Val {
 		throw new PolicyEvaluationException(ARRAY_OPERATION_TYPE_MISMATCH_S, typeOf(this));
 	}
 
-	public BigDecimal getBigDecimal() {
+	public BigDecimal decimalValue() {
 		if (isDefined() && value.isNumber()) {
 			return value.decimalValue();
 		}

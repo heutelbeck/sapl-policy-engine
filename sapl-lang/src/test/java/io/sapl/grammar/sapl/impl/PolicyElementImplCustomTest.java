@@ -27,7 +27,7 @@ import reactor.test.StepVerifier;
 
 public class PolicyElementImplCustomTest {
 
-	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
+	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 	private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	@Test

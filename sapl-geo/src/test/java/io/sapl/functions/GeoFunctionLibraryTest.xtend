@@ -48,7 +48,7 @@ class GeoFunctionLibraryTest {
 	static JsonNode resource;
 
 	@Before
-	def void init() {
+	def void setUp() {
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(new GeoPolicyInformationPoint());
 		FUNCTION_CTX.loadLibrary(new GeoFunctionLibrary());
 		subject = MAPPER.readValue('''

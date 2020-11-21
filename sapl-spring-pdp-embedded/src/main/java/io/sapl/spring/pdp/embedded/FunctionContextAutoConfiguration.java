@@ -24,8 +24,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -51,7 +51,7 @@ public class FunctionContextAutoConfiguration {
 			log.debug("loading FunctionLibrary: {}", entry.getClass().getSimpleName());
 			try {
 				ctx.loadLibrary(entry);
-			} catch (SecurityException | IllegalArgumentException | FunctionException e) {
+			} catch (SecurityException | IllegalArgumentException | InitializationException e) {
 				throw new AttributeException(e);
 			}
 		}

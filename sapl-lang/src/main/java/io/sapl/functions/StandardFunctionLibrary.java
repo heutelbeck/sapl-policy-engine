@@ -45,8 +45,8 @@ public class StandardFunctionLibrary {
 
 	@Function(docs = LENGTH_DOC)
 	public static Val length(@Array @Text @JsonObject Val parameter) {
-		if (parameter.get().isTextual()) {
-			return Val.of(parameter.get().textValue().length());
+		if (parameter.isTextual()) {
+			return Val.of(parameter.getText().length());
 		} else {
 			return Val.of(parameter.get().size());
 		}

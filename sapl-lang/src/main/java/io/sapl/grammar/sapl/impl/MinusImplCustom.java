@@ -36,6 +36,6 @@ public class MinusImplCustom extends MinusImpl {
 		if (right.isError()) {
 			return right;
 		}
-		return Val.of(left.getBigDecimal().subtract(right.getBigDecimal()));
+		return Val.of(left.decimalValue().subtract(right.decimalValue()));
 	}
 }

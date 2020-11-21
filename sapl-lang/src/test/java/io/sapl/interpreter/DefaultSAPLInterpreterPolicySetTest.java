@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -45,7 +45,7 @@ public class DefaultSAPLInterpreterPolicySetTest {
 	private AuthorizationSubscription authzSubscription;
 
 	@Before
-	public void init() throws FunctionException {
+	public void setUp() throws InitializationException {
 		Hooks.onOperatorDebug();
 		authzSubscription = new AuthorizationSubscription(null, null, null, null);
 		var attributeCtx = new AnnotationAttributeContext();

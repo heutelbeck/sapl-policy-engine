@@ -21,6 +21,7 @@ import java.net.URISyntaxException;
 import org.junit.Test;
 
 import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.pdp.embedded.PolicyDecisionPointFactory;
@@ -28,8 +29,8 @@ import io.sapl.pdp.embedded.PolicyDecisionPointFactory;
 public class ResourcesPolicyRetrievalPointTest {
 
 	@Test
-	public void loadPolicies()
-			throws IOException, URISyntaxException, FunctionException, AttributeException, PolicyEvaluationException {
+	public void loadPolicies() throws IOException, URISyntaxException, FunctionException, AttributeException,
+			PolicyEvaluationException, InitializationException {
 		PolicyDecisionPointFactory.resourcesPolicyDecisionPoint();
 	}
 

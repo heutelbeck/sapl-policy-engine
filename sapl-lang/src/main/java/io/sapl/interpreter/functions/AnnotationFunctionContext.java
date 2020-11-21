@@ -28,6 +28,7 @@ import java.util.Map;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.validation.IllegalParameterType;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
@@ -57,8 +58,10 @@ public class AnnotationFunctionContext implements FunctionContext {
 	 * Create context from a list of function libraries.
 	 * 
 	 * @param libraries list of function libraries @ if loading libraries fails
+	 * @throws FunctionException
+	 * @throws InitializationException
 	 */
-	public AnnotationFunctionContext(Object... libraries) {
+	public AnnotationFunctionContext(Object... libraries) throws InitializationException {
 		for (Object library : libraries) {
 			loadLibrary(library);
 		}
@@ -101,13 +104,13 @@ public class AnnotationFunctionContext implements FunctionContext {
 	}
 
 	@Override
-	public final void loadLibrary(Object library) {
+	public final void loadLibrary(Object library) throws InitializationException {
 		Class<?> clazz = library.getClass();
 
 		FunctionLibrary libAnnotation = clazz.getAnnotation(FunctionLibrary.class);
 
 		if (libAnnotation == null) {
-			throw new FunctionException(CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION);
+			throw new InitializationException(CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION);
 		}
 
 		String libName = libAnnotation.name();
@@ -128,7 +131,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	}
 
-	private final void importFunction(Object library, String libName, LibraryDocumentation libMeta, Method method) {
+	private final void importFunction(Object library, String libName, LibraryDocumentation libMeta, Method method)
+			throws InitializationException {
 		Function funAnnotation = method.getAnnotation(Function.class);
 		String funName = funAnnotation.name();
 		if (funName.isEmpty()) {
@@ -141,7 +145,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 				// functions with a variable number of arguments
 				parameters = -1;
 			} else if (!Val.class.isAssignableFrom(parameterType)) {
-				throw new FunctionException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
+				throw new InitializationException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
 			}
 		}
 		libMeta.documentation.put(funName, funAnnotation.docs());

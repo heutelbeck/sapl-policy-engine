@@ -51,7 +51,7 @@ public class PermitOverridesTest {
 	private EvaluationContext evaluationCtx;
 
 	@Before
-	public void init() {
+	public void setUp() {
 		var attributeCtx = new AnnotationAttributeContext();
 		var functionCtx = new AnnotationFunctionContext();
 		evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, new HashMap<>());

@@ -18,6 +18,7 @@ package io.sapl.interpreter
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
+import io.sapl.api.functions.FunctionException
 import io.sapl.api.interpreter.PolicyEvaluationException
 import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
@@ -49,7 +50,7 @@ class DefaultSAPLInterpreterTransformationTest {
 		SYSTEM_VARIABLES);
 
 	@Before
-	def void init() {
+	def void setUp() throws FunctionException {
 		FUNCTION_CTX.loadLibrary(new SimpleFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new SimpleFilterFunctionLibrary(Clock.systemUTC()));
@@ -85,7 +86,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			permit 
 			transform
 				resource |- filter.blacken
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			"XXXXXXXXXX"
@@ -111,7 +112,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			permit
 			transform
 				resource[?(@>2 || @<2)]
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			[1,3,4,5]
@@ -154,7 +155,7 @@ class DefaultSAPLInterpreterTransformationTest {
 				{
 					"array": resource.array[?(@.key1 > 2)]
 				}
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -210,7 +211,7 @@ class DefaultSAPLInterpreterTransformationTest {
 						"key20": @.key2
 					}
 				}
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -264,7 +265,7 @@ class DefaultSAPLInterpreterTransformationTest {
 						@.key2 : filter.blacken
 					}
 				}
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -311,7 +312,7 @@ class DefaultSAPLInterpreterTransformationTest {
 				{
 					"last": resource.array[-1]
 				}
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -349,7 +350,7 @@ class DefaultSAPLInterpreterTransformationTest {
 				{
 					"array": resource.array[2:]
 				}
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -391,7 +392,7 @@ class DefaultSAPLInterpreterTransformationTest {
 				{
 					"array": resource.array[1:-1:2]
 				}
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -433,7 +434,7 @@ class DefaultSAPLInterpreterTransformationTest {
 				{
 					"array": resource.array[2,4]
 				}
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -470,7 +471,7 @@ class DefaultSAPLInterpreterTransformationTest {
 				resource |- {
 					each @.array : filter.blacken
 				}
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -508,7 +509,7 @@ class DefaultSAPLInterpreterTransformationTest {
 				resource  |- {
 					@.array[1:].value : filter.blacken
 				}
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{
@@ -546,7 +547,7 @@ class DefaultSAPLInterpreterTransformationTest {
 			permit 
 			transform
 				resource..value
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			["1","2","3"]
@@ -581,7 +582,7 @@ class DefaultSAPLInterpreterTransformationTest {
 				resource |- {
 					@..value : filter.remove
 				}
-			''';
+		''';
 
 		val expectedResource = MAPPER.readValue('''
 			{

@@ -9,7 +9,7 @@ import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
 
 public class BasicFunctionImplTest {
-	private static EvaluationContext CTX = MockUtil.constructTestEnvironmentEvaluationContext();
+	private static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
 	public void basicSuccessfullEvaluationNull() {

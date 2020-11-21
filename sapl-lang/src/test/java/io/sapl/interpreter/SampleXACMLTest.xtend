@@ -53,7 +53,7 @@ class SampleXACMLTest {
 	static AuthorizationSubscription authzSubscription_example_two;
 
 	@Before
-	def void init() {
+	def void setUp() {
 		FUNCTION_CTX.loadLibrary(new MockXACMLStringFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new MockXACMLDateFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());

@@ -20,6 +20,7 @@ import java.util.HashMap;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
@@ -36,7 +37,7 @@ public class PolicyBodyImplCustomTest {
 	private EvaluationContext ctx;
 
 	@Before
-	public void before() {
+	public void setUp() throws InitializationException {
 		Hooks.onOperatorDebug();
 		var attributeCtx = new AnnotationAttributeContext();
 		var functionCtx = new AnnotationFunctionContext();

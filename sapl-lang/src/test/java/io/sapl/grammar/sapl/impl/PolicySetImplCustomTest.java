@@ -25,6 +25,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -45,7 +46,7 @@ public class PolicySetImplCustomTest {
 	private EvaluationContext ctx;
 
 	@Before
-	public void before() throws JsonMappingException, JsonProcessingException {
+	public void setUp() throws JsonMappingException, JsonProcessingException, InitializationException {
 		Hooks.onOperatorDebug();
 		var attributeCtx = new AnnotationAttributeContext();
 		var functionCtx = new AnnotationFunctionContext();

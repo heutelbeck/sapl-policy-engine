@@ -202,7 +202,7 @@ public class EthereumModuleTest {
 	public MockitoRule mockitoRule = MockitoJUnit.rule();
 
 	@Before
-	public void init() throws IOException {
+	public void setUp() throws IOException {
 		mockStatic(Web3j.class);
 		ethPip = new EthereumPolicyInformationPoint(web3j);
 	}

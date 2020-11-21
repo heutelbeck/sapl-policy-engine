@@ -85,7 +85,7 @@ public class TraccarTest {
 	private WebClientRequestExecutor requestExecutor;
 
 	@Before
-	public void init() throws IOException {
+	public void setUp() throws IOException {
 		requestExecutor = mock(WebClientRequestExecutor.class);
 		trConn = new TraccarConnection(MAPPER.readValue(configJson, TraccarConfig.class), requestExecutor);
 		trDevice = MAPPER.readValue(devicesJson, TraccarDevice[].class)[0];
