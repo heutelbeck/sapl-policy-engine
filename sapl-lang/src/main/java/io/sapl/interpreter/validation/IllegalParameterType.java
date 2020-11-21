@@ -17,22 +17,8 @@ package io.sapl.interpreter.validation;
 
 public class IllegalParameterType extends Exception {
 
-	private static final long serialVersionUID = 1L;
-
-	public IllegalParameterType() {
-		super();
-	}
-
 	public IllegalParameterType(String message) {
 		super(message);
-	}
-
-	public IllegalParameterType(String message, Throwable cause) {
-		super(message, cause);
-	}
-
-	public IllegalParameterType(Throwable cause) {
-		super(cause);
 	}
 
 }

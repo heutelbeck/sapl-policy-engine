@@ -17,6 +17,7 @@ package io.sapl.interpreter.validation;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Parameter;
+import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -33,35 +34,64 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ParameterTypeValidator {
 
-	private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type. Was: %s";
+	private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type. Got: %s Expected: %s";
+	private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
+			Text.class, Array.class, JsonObject.class);
 
-	public static void validateType(Val val, Parameter type) throws IllegalParameterType {
-		if (val.isUndefined()) {
-			throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, "undefined"));
-		}
-		validateType(val.get(), type);
+	public static void validateType(Val parameterValue, Parameter parameterType) throws IllegalParameterType {
+		if (!hasValidationAnnotations(parameterType))
+			return;
+
+		if (parameterValue.isUndefined())
+			throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, "undefined",
+					listAllowedTypes(parameterType.getAnnotations())));
+
+		validateJsonNodeType(parameterValue.get(), parameterType);
 	}
 
-	public static void validateType(JsonNode node, Parameter type) throws IllegalParameterType {
-		Annotation[] annotations = type.getAnnotations();
-		boolean valid = annotations.length == 0;
-		for (Annotation annotation : annotations) {
-			// valid if any annotation matches
-			if ((Number.class.isAssignableFrom(annotation.getClass()) && node.isNumber())
-					|| (Int.class.isAssignableFrom(annotation.getClass()) && node.isNumber() && node.canConvertToInt())
-					|| (Long.class.isAssignableFrom(annotation.getClass()) && node.isNumber()
-							&& node.canConvertToLong())
-					|| (Bool.class.isAssignableFrom(annotation.getClass()) && node.isBoolean()
-							&& node.canConvertToInt())
-					|| (Text.class.isAssignableFrom(annotation.getClass()) && node.isTextual())
-					|| (Array.class.isAssignableFrom(annotation.getClass()) && node.isArray())
-					|| (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject())) {
-				valid = true;
-			}
+	private static void validateJsonNodeType(JsonNode node, Parameter parameterType) throws IllegalParameterType {
+		Annotation[] annotations = parameterType.getAnnotations();
+		for (Annotation annotation : annotations)
+			if (nodeContentsMatchesTypeGivenByAnnotation(node, annotation))
+				return;
+
+		throw new IllegalParameterType(
+				String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString(), listAllowedTypes(annotations)));
+	}
+
+	private static boolean nodeContentsMatchesTypeGivenByAnnotation(JsonNode node, Annotation annotation) {
+		return (Number.class.isAssignableFrom(annotation.getClass()) && node.isNumber())
+				|| (Int.class.isAssignableFrom(annotation.getClass()) && node.isNumber() && node.canConvertToInt())
+				|| (Long.class.isAssignableFrom(annotation.getClass()) && node.isNumber() && node.canConvertToLong())
+				|| (Bool.class.isAssignableFrom(annotation.getClass()) && node.isBoolean())
+				|| (Text.class.isAssignableFrom(annotation.getClass()) && node.isTextual())
+				|| (Array.class.isAssignableFrom(annotation.getClass()) && node.isArray())
+				|| (JsonObject.class.isAssignableFrom(annotation.getClass()) && node.isObject());
+	}
+
+	private static boolean hasValidationAnnotations(Parameter parameterType) {
+		for (var annotation : parameterType.getAnnotations())
+			if (isTypeValidationAnnotation(annotation))
+				return true;
+
+		return false;
+	}
+
+	private static boolean isTypeValidationAnnotation(Annotation annotation) {
+		for (var validator : VALIDATION_ANNOTATIONS)
+			if (validator.isAssignableFrom(annotation.getClass()))
+				return true;
+
+		return false;
+	}
+
+	private static String listAllowedTypes(Annotation[] annotations) {
+		var builder = new StringBuilder();
+		for (var annotation : annotations) {
+			if (isTypeValidationAnnotation(annotation))
+				builder.append(annotation.getClass().getSimpleName()).append(' ');
 		}
-		if (!valid) {
-			throw new IllegalParameterType(String.format(ILLEGAL_PARAMETER_TYPE, node.getNodeType().toString()));
-		}
+		return builder.toString();
 	}
 
 }

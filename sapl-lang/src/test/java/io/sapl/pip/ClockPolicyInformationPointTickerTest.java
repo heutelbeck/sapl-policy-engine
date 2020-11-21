@@ -15,8 +15,8 @@
  */
 package io.sapl.pip;
 
+import static org.assertj.core.api.Assertions.fail;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -29,7 +29,6 @@ import org.junit.Test;
 
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.TemporalFunctionLibrary;
 import reactor.test.StepVerifier;
 
@@ -38,15 +37,9 @@ public class ClockPolicyInformationPointTickerTest {
 	@Test
 	public void ticker() {
 		final ClockPolicyInformationPoint clockPip = new ClockPolicyInformationPoint();
-		StepVerifier.withVirtualTime(() -> {
-			try {
-				return clockPip.ticker(Val.of(30L), Collections.emptyMap());
-			} catch (AttributeException e) {
-				fail(e.getMessage());
-				return null;
-			}
-		}).expectSubscription().expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
-			/* the first node is provided some nano seconds after its creation */ })
+		StepVerifier.withVirtualTime(() -> clockPip.ticker(Val.of(30L), Collections.emptyMap())).expectSubscription()
+				.expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
+					/* the first node is provided some nano seconds after its creation */ })
 				.expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					try {
 						final LocalDateTime localDateTime = LocalDateTime.now();
