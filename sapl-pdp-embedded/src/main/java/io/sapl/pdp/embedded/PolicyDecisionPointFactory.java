@@ -5,7 +5,6 @@ import java.util.Collection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
@@ -32,20 +31,20 @@ public class PolicyDecisionPointFactory {
 	private static final String DEFAILT_FILE_LOCATION = "~/sapl/policies";
 	private static final String DEFAULT_RESOURCES_LOCATION = "/policies";
 
-	public static PolicyDecisionPoint filesystemPolicyDecisionPoint() {
+	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint() {
 		return filesystemPolicyDecisionPoint(DEFAILT_FILE_LOCATION);
 	}
 
-	public static PolicyDecisionPoint filesystemPolicyDecisionPoint(String path) {
+	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(String path) {
 		return filesystemPolicyDecisionPoint(path, new ArrayList<Object>(1), new ArrayList<Object>(1));
 	}
 
-	public static PolicyDecisionPoint filesystemPolicyDecisionPoint(Collection<Object> policyInformationPoints,
+	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(Collection<Object> policyInformationPoints,
 			Collection<Object> functionLibraries) {
 		return filesystemPolicyDecisionPoint(DEFAILT_FILE_LOCATION, policyInformationPoints, functionLibraries);
 	}
 
-	public static PolicyDecisionPoint filesystemPolicyDecisionPoint(String path,
+	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(String path,
 			Collection<Object> policyInformationPoints, Collection<Object> functionLibraries) {
 		var fileSource = new FileSystemVariablesAndCombinatorSource(path);
 		var configurationProvider = constructConfigurationProvider(fileSource, policyInformationPoints,
@@ -54,20 +53,20 @@ public class PolicyDecisionPointFactory {
 		return new EmbeddedPolicyDecisionPoint(configurationProvider, policyRetrievalPoint);
 	}
 
-	public static PolicyDecisionPoint resourcesPolicyDecisionPoint() {
+	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint() {
 		return resourcesPolicyDecisionPoint(DEFAULT_RESOURCES_LOCATION);
 	}
 
-	public static PolicyDecisionPoint resourcesPolicyDecisionPoint(Collection<Object> policyInformationPoints,
+	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(Collection<Object> policyInformationPoints,
 			Collection<Object> functionLibraries) {
 		return resourcesPolicyDecisionPoint(DEFAULT_RESOURCES_LOCATION, policyInformationPoints, functionLibraries);
 	}
 
-	public static PolicyDecisionPoint resourcesPolicyDecisionPoint(String path) {
+	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(String path) {
 		return resourcesPolicyDecisionPoint(path, new ArrayList<Object>(1), new ArrayList<Object>(1));
 	}
 
-	public static PolicyDecisionPoint resourcesPolicyDecisionPoint(String path,
+	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(String path,
 			Collection<Object> policyInformationPoints, Collection<Object> functionLibraries) {
 		var resourcesSource = new ResourcesVariablesAndCombinatorSource(EmbeddedPolicyDecisionPoint.class, path,
 				new ObjectMapper());
