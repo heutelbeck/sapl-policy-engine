@@ -49,11 +49,11 @@ public class PolicyBasedPreInvocationEnforcementAdvice extends AbstractPolicyBas
 			PolicyBasedPreInvocationEnforcementAttribute attr) {
 		// Lazy loading to decouple infrastructure initialization from domain
 		// initialization. Else, beans may become non eligible for BeanPostProcessors
-		lazyLoadDepdendencies();
+		lazyLoadDependencies();
 
 		EvaluationContext ctx = expressionHandler.createEvaluationContext(authentication, mi);
 
-		Object subject = retrieveSubjet(authentication, attr, ctx);
+		Object subject = retrieveSubject(authentication, attr, ctx);
 		Object action = retrieveAction(mi, attr, ctx);
 		Object resource = retrieveResource(mi, attr, ctx);
 		Object environment = retrieveEnvironment(attr, ctx);

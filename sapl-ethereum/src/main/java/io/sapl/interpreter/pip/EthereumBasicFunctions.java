@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class EthereumBasicFunctions {
 
-	private static final String INPUT_WARNING = "The input JsonNode for the policy didn't contain a field of type {}, altough this was expected. Ignore this message if the field was optional.";
+	private static final String INPUT_WARNING = "The input JsonNode for the policy didn't contain a field of type {}, although this was expected. Ignore this message if the field was optional.";
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 

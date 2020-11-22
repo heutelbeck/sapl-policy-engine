@@ -45,9 +45,9 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class ExpressionStepImplCustom extends ExpressionStepImpl {
 
-	private static final String OBJECT_ACCESSS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S = "Object accesss type mismatch. Expect a string, was: %s ";
+	private static final String OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S = "Object access type mismatch. Expect a string, was: %s ";
 	private static final String INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D = "Index out of bounds. Index must be between 0 and %d, was: %d ";
-	private static final String ARRAY_ACCESSS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S = "Array accesss type mismatch. Expect an integer, was: %s ";
+	private static final String ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S = "Array access type mismatch. Expect an integer, was: %s ";
 	private static final String EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S = "Expressions step only applicable to Array or Object. was: %s";
 
 	@Override
@@ -98,7 +98,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 			return index;
 		}
 		if (!index.isNumber()) {
-			return Val.error(ARRAY_ACCESSS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S, index);
+			return Val.error(ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S, index);
 		}
 		var idx = index.get().asInt();
 		if (idx < 0 || idx > array.size()) {
@@ -112,7 +112,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 			return key;
 		}
 		if (!key.isTextual()) {
-			return Val.error(OBJECT_ACCESSS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S, key);
+			return Val.error(OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S, key);
 		}
 		var fieldName = key.get().asText();
 		if (!object.has(fieldName)) {

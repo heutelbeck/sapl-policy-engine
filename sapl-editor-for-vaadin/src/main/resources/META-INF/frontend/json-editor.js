@@ -555,7 +555,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {
 	display: inline;
 }
 </style>
-<div id="xtext-editor" data-editor-xtext-lang="${this.xtextLang}"/>
+<div id="xtext-editor" data-editor-xtext-lang="${this.xtextLang}"></div>
 		      `;
   }
 }

@@ -80,7 +80,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 	 * logic in initialization. This avoids beans to become not eligible for Bean
 	 * post processing.
 	 */
-	protected void lazyLoadDepdendencies() {
+	protected void lazyLoadDependencies() {
 		if (pdp == null) {
 			pdp = pdpFactory.getObject();
 		}
@@ -92,8 +92,8 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		}
 	}
 
-	protected Object retrieveSubjet(Authentication authentication, AbstractPolicyBasedEnforcementAttribute attr,
-			EvaluationContext ctx) {
+	protected Object retrieveSubject(Authentication authentication, AbstractPolicyBasedEnforcementAttribute attr,
+									 EvaluationContext ctx) {
 		if (attr.getSubjectExpression() == null) {
 			// no explicit subject declared => use the authentication object to indicate
 			// the
@@ -113,7 +113,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		}
 	}
 
-	protected JsonNode serizalizeMethod(Method m) {
+	protected JsonNode serializeMethod(Method m) {
 		ObjectNode result = JSON.objectNode();
 		result.set("name", JSON.textNode(m.getName()));
 		result.set("returnType", JSON.textNode(m.getReturnType().getName()));

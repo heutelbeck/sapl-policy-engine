@@ -222,7 +222,7 @@ public class EthereumPipFunctions {
 			}
 			return outputParameters;
 		}
-		log.warn("The JsonNode containing the ouput parameters wasn't an array as expected. "
+		log.warn("The JsonNode containing the output parameters wasn't an array as expected. "
 				+ "An empty list is being returned.");
 		return outputParameters;
 	}
@@ -471,7 +471,7 @@ public class EthereumPipFunctions {
 			}
 			catch (IOException | StringIndexOutOfBoundsException e) {
 				log.warn(
-						"The type {} with value {} coudn't be generated. Please make sure that you used correct spelling and the "
+						"The type {} with value {} couldn't be generated. Please make sure that you used correct spelling and the "
 								+ "value is correctly provided for this type. " + DEFAULT_RETURN_WARNING,
 						solidityType, value);
 				return DEFAULT_RETURN_TYPE;

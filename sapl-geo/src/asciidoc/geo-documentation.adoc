@@ -36,7 +36,7 @@ To put an authorization control in this form into practice, the concept of *loca
 == User guidelines
 === Geometries
 ==== Supported types
-As SAPL is loosely based on the patterns and structure of http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html[XACML] it is the obvious choice to make use of the http://www.opengeospatial.org/standards/geoxacml[GeoXACML standard] for implementing a LBA approach. GeoXACML is a geo-specific extension of the XAMCL standard that has its main strength in  declaring and enforcing access rights for geospatial data (e.g. in geographic information system, etc.) in a flexible way. This is clearly not the exact purpose of the SAPL-Geo extension, however, as the two domains are quite similar all of these functions and operations become useful in the environment of LBA as well.
+As SAPL is loosely based on the patterns and structure of http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html[XACML] it is the obvious choice to make use of the http://www.opengeospatial.org/standards/geoxacml[GeoXACML standard] for implementing a LBA approach. GeoXACML is a geo-specific extension of the XACML standard that has its main strength in  declaring and enforcing access rights for geospatial data (e.g. in geographic information system, etc.) in a flexible way. This is clearly not the exact purpose of the SAPL-Geo extension, however, as the two domains are quite similar all of these functions and operations become useful in the environment of LBA as well.
 
 In accordance with this standard the following geometries are available in SAPL-Geo. Additionally, one or more of these geometries can be grouped together in a common `GeometryCollection` object.
 
@@ -145,7 +145,7 @@ A PostGIS database can be connected via the AttributeFinder `io.sapl.pip.geo.pos
 [source,java]
 ----
 public class PostGISConfig {
-    private String serverAdress; <1>
+    private String serverAddress; <1>
     private String port; <2>
     private String db; <3>
     private String table; <4>

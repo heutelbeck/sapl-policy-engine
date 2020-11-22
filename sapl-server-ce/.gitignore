@@ -33,7 +33,6 @@ build/
 ### VS Code ###
 .vscode/
 
-webpack.generated.js
 *.db
 package.json
 package-lock.json

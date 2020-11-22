@@ -77,20 +77,20 @@ public class AnnotationFunctionContext implements FunctionContext {
 		}
 		final Parameter[] funParams = metadata.getFunction().getParameters();
 		try {
-			if (metadata.getPararmeterCardinality() == -1) {
+			if (metadata.getParameterCardinality() == -1) {
 				// function is a varargs function
 				// all args are validated against the same annotation if present
 				for (Val parameter : parameters) {
 					ParameterTypeValidator.validateType(parameter, funParams[0]);
 				}
 				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), new Object[] { parameters });
-			} else if (metadata.getPararmeterCardinality() == parameters.length) {
+			} else if (metadata.getParameterCardinality() == parameters.length) {
 				for (int i = 0; i < parameters.length; i++) {
 					ParameterTypeValidator.validateType(parameters[i], funParams[i]);
 				}
 				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), (Object[]) parameters);
 			} else {
-				return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getPararmeterCardinality(), parameters.length);
+				return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getParameterCardinality(), parameters.length);
 			}
 		} catch (RuntimeException | IllegalParameterType | IllegalAccessException | InvocationTargetException e) {
 			var params = new StringBuilder();
@@ -190,7 +190,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 		@NonNull
 		Object library;
 
-		int pararmeterCardinality;
+		int parameterCardinality;
 
 		@NonNull
 		Method function;

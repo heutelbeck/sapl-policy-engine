@@ -120,7 +120,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 		}
 
 		if (kind == ENTRY_DELETE) {
-			log.info("config deleted. revertig to default config.");
+			log.info("config deleted. reverting to default config.");
 			return new PolicyDecisionPointConfiguration();
 		}
 		var absoluteFilePath = Paths.get(path, CONFIG_FILE_GLOB_PATTERN);

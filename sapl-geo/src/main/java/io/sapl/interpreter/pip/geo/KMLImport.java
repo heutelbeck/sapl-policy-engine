@@ -110,10 +110,10 @@ public class KMLImport {
 		return (SimpleFeature) parser.parse(inputStream);
 	}
 
-	protected static ObjectNode formatCollection(Collection<?> placemarks)
-			throws FunctionException, AttributeException {
+	protected static ObjectNode formatCollection(Collection<?> placeMarks)
+			throws FunctionException {
 		ObjectNode geometries = JSON.objectNode();
-		for (Object obj : placemarks) {
+		for (Object obj : placeMarks) {
 
 			if (!(obj instanceof SimpleFeature)) {
 				throw new AttributeException(UNABLE_TO_PARSE_KML);

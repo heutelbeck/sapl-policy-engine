@@ -54,7 +54,7 @@ public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBa
 		// Lazy loading to decouple infrastructure initialization from domain
 		// initialization.
 		// Else, beans may become not eligible for BeanPostProcessors
-		lazyLoadDepdendencies();
+		lazyLoadDependencies();
 		EvaluationContext ctx = expressionHandler.createEvaluationContext(authentication, mi);
 
 		boolean returnOptional = false;
@@ -68,7 +68,7 @@ public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBa
 			expressionHandler.setReturnObject(returnedObject, ctx);
 		}
 
-		Object subject = retrieveSubjet(authentication, pia, ctx);
+		Object subject = retrieveSubject(authentication, pia, ctx);
 		Object action = retrieveAction(mi, pia, ctx);
 		Object resource = retrieveResource(mi, pia, ctx);
 		Object environment = retrieveEnvironment(pia, ctx);

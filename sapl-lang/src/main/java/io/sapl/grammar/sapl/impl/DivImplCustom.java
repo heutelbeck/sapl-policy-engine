@@ -38,10 +38,10 @@ public class DivImplCustom extends DivImpl {
 		return arithmeticOperator(this, this::divide, ctx, relativeNode);
 	}
 
-	private Val divide(Val divident, Val divisor) {
+	private Val divide(Val dividend, Val divisor) {
 		if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
 			return Val.error("Division by zero");
-		return Val.of(divident.decimalValue().divide(divisor.decimalValue()));
+		return Val.of(dividend.decimalValue().divide(divisor.decimalValue()));
 	}
 
 }

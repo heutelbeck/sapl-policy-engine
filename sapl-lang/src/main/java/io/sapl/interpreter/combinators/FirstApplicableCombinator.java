@@ -65,7 +65,7 @@ public class FirstApplicableCombinator implements PolicyCombinator {
 		if (policyId == policies.size()) {
 			return Flux::just;
 		}
-		return decicion -> evaluatePolicy(policies.get(policyId), ctx).switchMap(newDecision -> {
+		return decision -> evaluatePolicy(policies.get(policyId), ctx).switchMap(newDecision -> {
 			if (newDecision.getDecision() != NOT_APPLICABLE) {
 				return Flux.just(newDecision);
 			}

@@ -94,13 +94,13 @@ public class EquivalenceAndHashUtil {
 		}
 		EList<EStructuralFeature> features = thiz.eClass().getEAllStructuralFeatures();
 		for (EStructuralFeature feature : features) {
-			var thizFeatureInstance = thiz.eGet(feature);
+			var thisFeatureInstance = thiz.eGet(feature);
 			var thatFeatureInstance = that.eGet(feature, true);
 			if ("fsteps".equals(feature.getName())) {
-				return fStepsAreEquivalentWithRegardsToImports(thizFeatureInstance, thizImports, thatFeatureInstance,
+				return fStepsAreEquivalentWithRegardsToImports(thisFeatureInstance, thizImports, thatFeatureInstance,
 						thatImports);
 			}
-			if (!featuresAreEquivalent(thizFeatureInstance, thizImports, thatFeatureInstance, thatImports)) {
+			if (!featuresAreEquivalent(thisFeatureInstance, thizImports, thatFeatureInstance, thatImports)) {
 				return false;
 			}
 		}
@@ -108,12 +108,12 @@ public class EquivalenceAndHashUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	private boolean fStepsAreEquivalentWithRegardsToImports(Object thizFeatureInstance,
-			@NonNull Map<String, String> thizImports, Object thatFeatureInstance,
+	private boolean fStepsAreEquivalentWithRegardsToImports(Object thisFeatureInstance,
+			@NonNull Map<String, String> thisImports, Object thatFeatureInstance,
 			@NonNull Map<String, String> thatImports) {
-		var thizFull = resolveStepsToFullyQualifiedName((EList<Object>) thizFeatureInstance, thizImports);
+		var thisFull = resolveStepsToFullyQualifiedName((EList<Object>) thisFeatureInstance, thisImports);
 		var thatFull = resolveStepsToFullyQualifiedName((EList<Object>) thatFeatureInstance, thatImports);
-		return Objects.equal(thizFull, thatFull);
+		return Objects.equal(thisFull, thatFull);
 	}
 
 	private String resolveStepsToFullyQualifiedName(EList<Object> steps, @NonNull Map<String, String> imports) {
@@ -125,16 +125,16 @@ public class EquivalenceAndHashUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static boolean featuresAreEquivalent(Object thizFeatureInstance, Map<String, String> thizImports,
+	private static boolean featuresAreEquivalent(Object thisFeatureInstance, Map<String, String> thisImports,
 			Object thatFeatureInstance, Map<String, String> thatImports) {
-		if (thizFeatureInstance == thatFeatureInstance) {
+		if (thisFeatureInstance == thatFeatureInstance) {
 			return true;
 		}
 		if (thatFeatureInstance == null) {
 			return false;
 		}
-		if (thizFeatureInstance instanceof EList) {
-			EList<EObject> thizList = (EList<EObject>) thizFeatureInstance;
+		if (thisFeatureInstance instanceof EList) {
+			EList<EObject> thizList = (EList<EObject>) thisFeatureInstance;
 			EList<EObject> thatList = (EList<EObject>) thatFeatureInstance;
 			if (thizList.size() != thatList.size()) {
 				return false;
@@ -145,17 +145,17 @@ public class EquivalenceAndHashUtil {
 				// While this is Iterator<EObject>, it may return String
 				Object thizElement = thizIterator.next();
 				Object thatElement = thatIterator.next();
-				if (!featuresAreEquivalent(thizElement, thizImports, thatElement, thatImports)) {
+				if (!featuresAreEquivalent(thizElement, thisImports, thatElement, thatImports)) {
 					return false;
 				}
 			}
 			return true;
 		}
-		if (thizFeatureInstance instanceof EObject) {
-			return areEquivalent((EObject) thizFeatureInstance, thizImports, (EObject) thatFeatureInstance,
+		if (thisFeatureInstance instanceof EObject) {
+			return areEquivalent((EObject) thisFeatureInstance, thisImports, (EObject) thatFeatureInstance,
 					thatImports);
 		} else {
-			return thizFeatureInstance.equals(thatFeatureInstance);
+			return thisFeatureInstance.equals(thatFeatureInstance);
 		}
 	}
 }

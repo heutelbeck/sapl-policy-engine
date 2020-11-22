@@ -2,26 +2,26 @@
   {
     "name": "io.sapl.server-lt.secret",
     "type": "java.lang.String",
-    "description": "BCrypt encoded client secret (password)"
+    "description": "BCrypt encoded client secret (password)."
   },
   {
     "name": "io.sapl.server-lt.key",
     "type": "java.lang.String",
-    "description": "Client key (user name)"
+    "description": "Client key (user name)."
   },
   {
     "name": "io.sapl.pdp.embedded.policies-path",
     "type": "java.lang.String",
-    "description": "Path to policies"
+    "description": "Path to policies."
   },
   {
     "name": "io.sapl.pdp.embedded.pdp-config-type",
     "type": "java.lang.String",
-    "description": "Select file system or bundled resources"
+    "description": "Select file system or bundled resources."
   },
   {
     "name": "io.sapl.pdp.embedded.config-path",
     "type": "java.lang.String",
-    "description": "Path to folder containing pdp.json"
+    "description": "Path to folder containing pdp.json."
   }
 ]}

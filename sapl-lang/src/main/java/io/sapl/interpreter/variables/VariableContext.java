@@ -22,6 +22,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import com.google.common.collect.Maps;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -37,7 +38,7 @@ public class VariableContext {
 	private final Map<String, JsonNode> variables;
 
 	public VariableContext(Map<String, JsonNode> environmentVariables) {
-		variables = new HashMap<>(environmentVariables.size());
+		variables = Maps.newHashMapWithExpectedSize(environmentVariables.size());
 		environmentVariables.forEach((key, value) -> variables.put(key, value.deepCopy()));
 	}
 

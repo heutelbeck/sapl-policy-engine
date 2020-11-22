@@ -124,7 +124,7 @@ public class CanonicalIndexAlgorithm {
 
 				eliminatedFormulasWithConjunction[cTuple.getCI()] += cTuple.getN();
 
-				// if all formular of conjunction have been eliminated
+				// if all formulas of conjunction have been eliminated
 				if (eliminatedFormulasWithConjunction[cTuple.getCI()] == numberOfFormulasWithConjunction[cTuple
 						.getCI()]) {
 					result.set(cTuple.getCI());
