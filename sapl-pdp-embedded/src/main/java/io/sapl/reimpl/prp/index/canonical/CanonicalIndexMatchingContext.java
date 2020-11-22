@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 public class CanonicalIndexMatchingContext {
-    private final Bitmask clauseCandidatesMask;
+    private final Bitmask candidatesMask;
     private final Bitmask matchingCandidatesMask;
 
     private final int[] trueLiteralsOfConjunction;
@@ -22,8 +22,8 @@ public class CanonicalIndexMatchingContext {
                                          EvaluationContext subscriptionScopedEvaluationContext) {
         int arrayLength = dataContainer.getNumberOfLiteralsInConjunction().length;
 
-        clauseCandidatesMask = new Bitmask();
-        clauseCandidatesMask.set(0, arrayLength);
+        candidatesMask = new Bitmask();
+        candidatesMask.set(0, arrayLength);
 
         matchingCandidatesMask = new Bitmask();
 

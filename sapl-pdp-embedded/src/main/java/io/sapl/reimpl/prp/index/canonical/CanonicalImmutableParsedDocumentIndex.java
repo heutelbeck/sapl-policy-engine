@@ -2,7 +2,6 @@ package io.sapl.reimpl.prp.index.canonical;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.prp.PolicyRetrievalResult;
-import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.inmemory.indexed.Bool;
@@ -74,7 +73,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 
     private DisjunctiveFormula retainTarget(SAPL sapl, EvaluationContext pdpScopedEvaluationContext) {
         try {
-            Expression targetExpression = sapl.getPolicyElement().getTargetExpression();
+            var targetExpression = sapl.getPolicyElement().getTargetExpression();
             DisjunctiveFormula targetFormula;
             if (targetExpression == null) {
                 targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));

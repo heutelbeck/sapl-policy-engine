@@ -8,6 +8,7 @@ import io.sapl.prp.inmemory.indexed.improved.CTuple;
 import io.sapl.prp.inmemory.indexed.improved.Predicate;
 import lombok.Value;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,5 +39,11 @@ public class CanonicalIndexDataContainer {
 
     public int[] getNumberOfFormulasWithConjunction() {
         return numberOfFormulasWithConjunction.clone();
+    }
+
+
+    public static CanonicalIndexDataContainer createEmptyContainer() {
+        return new CanonicalIndexDataContainer(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), new int[0], new int[0]);
     }
 }
