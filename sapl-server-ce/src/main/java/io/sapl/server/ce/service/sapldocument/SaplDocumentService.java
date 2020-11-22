@@ -20,15 +20,19 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
 import io.sapl.api.interpreter.DocumentAnalysisResult;
 import io.sapl.api.interpreter.DocumentType;
 import io.sapl.api.interpreter.SAPLInterpreter;
+import io.sapl.grammar.sapl.SAPL;
 import io.sapl.reimpl.prp.PrpUpdateEvent;
+import io.sapl.reimpl.prp.PrpUpdateEvent.Update;
 import io.sapl.reimpl.prp.PrpUpdateEventSource;
 import io.sapl.server.ce.model.sapldocument.SaplDocument;
 import io.sapl.server.ce.model.sapldocument.SaplDocumentVersion;
@@ -37,7 +41,11 @@ import io.sapl.server.ce.persistence.SaplDocumentsVersionRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.ReplayProcessor;
 
 /**
  * Service for reading and managing {@link SaplDocument} instances.
@@ -55,11 +63,23 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 	private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
 			.withLocale(Locale.GERMANY).withZone(ZoneId.systemDefault());
 
+	private FluxSink<PrpUpdateEvent> prpUpdateEventUpdateFluxSink;
+	private Disposable prpUpdateEventUpdateMonitor;
+
 	@Override
 	public Flux<PrpUpdateEvent> getUpdates() {
+		PrpUpdateEvent initialEvent = generateInitialPrpUpdateEvent();
 
-		// TODO Auto-generated method stub
-		return Flux.empty();
+		// @formatter:off
+		ReplayProcessor<PrpUpdateEvent> prpUpdateEventUpdateProcessor = ReplayProcessor
+				.<PrpUpdateEvent>create();
+		prpUpdateEventUpdateFluxSink = prpUpdateEventUpdateProcessor.sink();
+		Flux<PrpUpdateEvent> flux = prpUpdateEventUpdateProcessor.cache();
+		prpUpdateEventUpdateMonitor = flux.subscribe();
+		// @formatter:on
+
+		log.debug("initial event: {}", initialEvent);
+		return Mono.just(initialEvent).concatWith(flux);
 	}
 
 	/**
@@ -182,7 +202,7 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 				saplDocumentVersionToPublish.getVersionNumber(), saplDocumentId,
 				saplDocumentVersionToPublish.getName()));
 
-		// this.saplDocumentPublisher.publishSaplDocument(saplDocument);
+		notifyAboutChangedPublicationOfSaplDocument(saplDocumentVersionToPublish, PrpUpdateEvent.Type.PUBLISH);
 	}
 
 	/**
@@ -204,7 +224,14 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 		log.info(String.format("unpublish version %d of SAPL document with id %d (name: %s)",
 				publishedVersion.getVersionNumber(), saplDocumentId, saplDocumentToUnpublish.getName()));
 
-		// this.saplDocumentPublisher.unpublishSaplDocument(saplDocumentToUnpublish);
+		notifyAboutChangedPublicationOfSaplDocument(publishedVersion, PrpUpdateEvent.Type.UNPUBLISH);
+	}
+
+	@Override
+	public void dispose() {
+		if (prpUpdateEventUpdateMonitor != null) {
+			prpUpdateEventUpdateMonitor.dispose();
+		}
 	}
 
 	private String getCurrentTimestampAsString() {
@@ -223,10 +250,28 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 		}
 	}
 
-	@Override
-	public void dispose() {
-		// TODO Auto-generated method stub
-
+	private PrpUpdateEvent generateInitialPrpUpdateEvent() {
+		// @formatter:off
+		List<PrpUpdateEvent.Update> updates = this.saplDocumentRepository.findAll()
+				.stream()
+				.filter(saplDocument -> saplDocument.getPublishedVersion() != null)
+				.map(publishedSaplDocument -> convertSaplDocumentToUpdateOfPrpUpdateEvent(publishedSaplDocument.getPublishedVersion(), PrpUpdateEvent.Type.PUBLISH))
+				.collect(Collectors.toList());
+		// @formatter:on
+		return new PrpUpdateEvent(updates);
 	}
 
+	private PrpUpdateEvent.Update convertSaplDocumentToUpdateOfPrpUpdateEvent(
+			@NonNull SaplDocumentVersion publishedVersionOfSaplDocument,
+			@NonNull PrpUpdateEvent.Type prpUpdateEventType) {
+		SAPL sapl = saplInterpreter.parse(publishedVersionOfSaplDocument.getValue());
+		return new Update(prpUpdateEventType, sapl, publishedVersionOfSaplDocument.getValue());
+	}
+
+	private void notifyAboutChangedPublicationOfSaplDocument(@NonNull SaplDocumentVersion saplDocumentVersion,
+			PrpUpdateEvent.Type prpUpdateEventType) {
+		PrpUpdateEvent.Update updateEvent = convertSaplDocumentToUpdateOfPrpUpdateEvent(saplDocumentVersion,
+				prpUpdateEventType);
+		prpUpdateEventUpdateFluxSink.next(new PrpUpdateEvent(updateEvent));
+	}
 }
