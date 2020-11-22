@@ -1,5 +1,5 @@
-/**
- * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,51 +78,28 @@ import reactor.core.publisher.Mono;
 public class EthereumPolicyInformationPoint {
 
 	private static final String ETH_PIP_CONFIG = "ethPipConfig";
-
 	private static final long DEFAULT_ETH_POLLING_INTERVAL = 5000L;
-
 	private static final String ADDRESS = "address";
-
 	private static final String CONTRACT_ADDRESS = "contractAddress";
-
 	private static final String TRANSACTION_HASH = "transactionHash";
-
 	private static final String FROM_ACCOUNT = "fromAccount";
-
 	private static final String TO_ACCOUNT = "toAccount";
-
 	private static final String TRANSACTION_VALUE = "transactionValue";
-
 	private static final String INPUT_PARAMS = "inputParams";
-
 	private static final String OUTPUT_PARAMS = "outputParams";
-
 	private static final String FUNCTION_NAME = "functionName";
-
 	private static final String POSITION = "position";
-
 	private static final String BLOCK_HASH = "blockHash";
-
 	private static final String SHA3_HASH_OF_DATA_TO_SIGN = "sha3HashOfDataToSign";
-
 	private static final String TRANSACTION = "transaction";
-
 	private static final String RETURN_FULL_TRANSACTION_OBJECTS = "returnFullTransactionObjects";
-
 	private static final String TRANSACTION_INDEX = "transactionIndex";
-
 	private static final String UNCLE_INDEX = "uncleIndex";
-
 	private static final String FILTER_ID = "filterId";
-
 	private static final String DEFAULT_BLOCK_PARAMETER = "defaultBlockParameter";
-
 	private static final String VERIFY_TRANSACTION_WARNING = "There was an error during verifyTransaction. By default false is returned but the transaction could have taken place.";
-
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-
 	private static final String ETH_POLLING_INTERVAL = "ethPollingInterval";
-
 	private Web3j web3j;
 
 	public EthereumPolicyInformationPoint() {

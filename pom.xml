@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com) Licensed 
-	under the Apache License, Version 2.0 (the "License"); you may not use this 
-	file except in compliance with the License. You may obtain a copy of the 
-	License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by 
-	applicable law or agreed to in writing, software distributed under the License 
-	is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
-	KIND, either express or implied. See the License for the specific language 
-	governing permissions and limitations under the License. -->
-<!-- Update all child project versions to the actual parent pom version: 
+<!--
+
+    Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<!-- Update all child project versions to the actual parent pom version:
 	mvn versions:update-child-modules -N -->
 <!-- correct the license headers of all source files mvn license:format -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -33,7 +42,7 @@
         </developer>
     </developers>
 
-    <inceptionYear>2020</inceptionYear>
+    <inceptionYear>2017-2021</inceptionYear>
 
     <licenses>
         <license>
@@ -264,6 +273,11 @@
                         <useSystemClassLoader>false</useSystemClassLoader>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>com.mycila</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>${license-maven-plugin.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -279,6 +293,7 @@
                     </properties>
                     <excludes>
                         <exclude>**/README</exclude>
+                        <exclude>node_modules/**</exclude>
                         <exclude>src/test/resources/**</exclude>
                         <exclude>src/test/xtend-gen/**</exclude>
                         <exclude>src/test/xtext-gen/**</exclude>
@@ -292,10 +307,12 @@
                         <exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
                     </excludes>
                     <mapping>
+                        <md>XML_STYLE</md>
+                        <java>SLASHSTAR_STYLE</java>
                         <adoc>DOUBLESLASH_STYLE</adoc>
                         <ad>DOUBLESLASH_STYLE</ad>
-                        <xtend>JAVADOC_STYLE</xtend>
-                        <mwe2>JAVADOC_STYLE</mwe2>
+                        <xtend>SLASHSTAR_STYLE</xtend>
+                        <mwe2>SLASHSTAR_STYLE</mwe2>
                         <ecore>XML_STYLE</ecore>
                         <genmodel>XML_STYLE</genmodel>
                         <xtext>JAVADOC_STYLE</xtext>
