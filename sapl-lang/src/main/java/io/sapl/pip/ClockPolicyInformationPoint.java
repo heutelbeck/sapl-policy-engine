@@ -17,6 +17,7 @@ package io.sapl.pip;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Map;
 
@@ -35,17 +36,18 @@ import reactor.core.publisher.Flux;
 public class ClockPolicyInformationPoint {
 
 	public static final String NAME = "clock";
+
 	public static final String DESCRIPTION = "Policy Information Point and attributes for retrieving current date and time information";
 
 	@Attribute(docs = "Returns the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with time offset.")
 	public Flux<Val> now(@Text Val value, Map<String, JsonNode> variables) {
-		var zoneId = convertToZoneId(value.get());
-		var now = Instant.now().atZone(zoneId);
+		final ZoneId zoneId = convertToZoneId(value.get());
+		final OffsetDateTime now = Instant.now().atZone(zoneId).toOffsetDateTime();
 		return Val.fluxOf(now.toString());
 	}
 
 	private ZoneId convertToZoneId(JsonNode value) {
-		final String text = value.asText().trim();
+		final String text = value.asText() == null ? "" : value.asText().trim();
 		final String zoneIdStr = text.length() == 0 ? "system" : text;
 		if ("system".equals(zoneIdStr)) {
 			return ZoneId.systemDefault();
