@@ -50,9 +50,6 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 	private Flux<WatchEvent<Path>> dirWatcherFlux;
 
 	public FileSystemPrpUpdateEventSource(String policyPath, SAPLInterpreter interpreter) {
-		log.info("update event source for path: {}", policyPath);
-		System.exit(-1);
-
 		this.interpreter = interpreter;
 
 		watchDir = fileSystemPath(policyPath);
