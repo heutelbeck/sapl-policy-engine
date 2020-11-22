@@ -17,7 +17,35 @@
 
     <properties>
         <graalvm.version>20.1.0</graalvm.version>
+        <version.lombok>1.18.16</version.lombok>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Streaming Attribute Authorization Engine Bill of Materials -->
+            <!-- This is a 'Bill of Materials' dependency. It does not directly introduce
+                additional dependencies. This is a utility dependency, making it easier to
+                use SAPL dependencies. Once this BOM has been imported in the <dependencyManagement>
+                section of the POM all SAPL dependencies can be used without explicitly declaring
+                a version. This ensures that when multiple SAPL dependencies are used, the
+                versions of them are consistent. -->
+            <dependency>
+                <groupId>io.sapl</groupId>
+                <artifactId>sapl-bom</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Project Lombok -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${version.lombok}</version>
+                <scope>provided</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -40,11 +68,21 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>sapl-pdp-embedded</artifactId>
-            <version>${project.version}</version>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-spring-security</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-spring-pdp-embedded</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-pip-http</artifactId>
+        </dependency>
+
+
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>

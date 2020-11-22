@@ -1,11 +1,11 @@
 package io.sapl.benchmark;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
-
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class TestSuiteGenerator {

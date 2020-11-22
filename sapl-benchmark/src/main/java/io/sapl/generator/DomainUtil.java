@@ -47,7 +47,6 @@ public class DomainUtil {
         log.debug("after clean fileCount:{}", policyDir.listFiles().length);
 
 
-
         for (DomainPolicy domainPolicy : domainPolicies) {
             writePolicyToFile(domainPolicy, policyPath);
         }

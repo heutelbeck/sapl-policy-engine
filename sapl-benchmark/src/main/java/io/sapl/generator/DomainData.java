@@ -182,17 +182,17 @@ public class DomainData {
     private List<DomainSubject> generateSubjects(List<DomainRole> allRoles) {
         List<DomainSubject> subjects = new ArrayList<>();
 
-        for (int i = 0; i < this.getNumberOfSubjects(); i++) {
-            DomainSubject domainSubject = new DomainSubject(String.format("subject.%03d", i));
-
-            //assign subject random roles
-            for (int j = 0; j < this.dice.nextInt(this.getLimitOfSubjectRoles()) + 1; j++) {
-                DomainRole randomRole = getRandomElement(allRoles);
-                domainSubject.getSubjectAuthorities().add(randomRole.getRoleName());
-            }
-
-            subjects.add(domainSubject);
-        }
+//        for (int i = 0; i < this.getNumberOfSubjects(); i++) {
+//            DomainSubject domainSubject = new DomainSubject(String.format("subject.%03d", i));
+//
+//            //assign subject random roles
+//            for (int j = 0; j < this.dice.nextInt(this.getLimitOfSubjectRoles()) + 1; j++) {
+//                DomainRole randomRole = getRandomElement(allRoles);
+//                domainSubject.getSubjectAuthorities().add(randomRole.getRoleName());
+//            }
+//
+//            subjects.add(domainSubject);
+//        }
 
         return subjects;
     }

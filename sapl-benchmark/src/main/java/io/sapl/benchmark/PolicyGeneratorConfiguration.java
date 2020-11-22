@@ -24,34 +24,34 @@ import lombok.Data;
 @AllArgsConstructor
 public class PolicyGeneratorConfiguration {
 
-	@Builder.Default
+    @Builder.Default
     private String name = "";
 
-	@Builder.Default
+    @Builder.Default
     private long seed = 0L;
 
-	@Builder.Default
+    @Builder.Default
     private int policyCount = 0;
 
-	@Builder.Default
+    @Builder.Default
     private int logicalVariableCount = 0;
 
-	@Builder.Default
+    @Builder.Default
     private int variablePoolCount = 0;
 
-	@Builder.Default
+    @Builder.Default
     private double bracketProbability = 0D;
 
-	@Builder.Default
+    @Builder.Default
     private double conjunctionProbability = 0D;
 
-	@Builder.Default
+    @Builder.Default
     private double negationProbability = 0D;
 
-	@Builder.Default
+    @Builder.Default
     private double falseProbability = 0D;
 
-	@Builder.Default
+    @Builder.Default
     private String path = "";
 
     public void updateName() {

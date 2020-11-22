@@ -1,10 +1,13 @@
 package io.sapl.benchmark;
 
-import static io.sapl.benchmark.BenchmarkConstants.DEFAULT_HEIGHT;
-import static io.sapl.benchmark.BenchmarkConstants.DEFAULT_WIDTH;
-import static io.sapl.benchmark.BenchmarkConstants.ERROR_WRITING_BITMAP;
-import static io.sapl.benchmark.BenchmarkConstants.EXPORT_PROPERTIES;
-import static io.sapl.benchmark.BenchmarkConstants.EXPORT_PROPERTIES_AGGREGATES;
+import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.IndexType;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.jxls.template.SimpleExporter;
+import org.knowm.xchart.BitmapEncoder;
+import org.knowm.xchart.BitmapEncoder.BitmapFormat;
+import org.knowm.xchart.CategoryChart;
+import org.knowm.xchart.XYChart;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -16,18 +19,13 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
-import org.jxls.template.SimpleExporter;
-import org.knowm.xchart.BitmapEncoder;
-import org.knowm.xchart.BitmapEncoder.BitmapFormat;
-import org.knowm.xchart.CategoryChart;
-import org.knowm.xchart.XYChart;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static io.sapl.benchmark.BenchmarkConstants.*;
 
 @Slf4j
 @RequiredArgsConstructor
 public class ResultWriter {
+
 
     private static final String SUMMARY_CSV_PATH = Benchmark.DEFAULT_PATH + "benchmark_summary.csv";
 

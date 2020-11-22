@@ -11,499 +11,499 @@
 	mvn versions:update-child-modules -N -->
 <!-- correct the license headers of all source files mvn license:format -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-	<groupId>io.sapl</groupId>
-	<artifactId>sapl-policy-engine</artifactId>
-	<version>2.0.0-SNAPSHOT</version>
+    <groupId>io.sapl</groupId>
+    <artifactId>sapl-policy-engine</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
 
-	<packaging>pom</packaging>
+    <packaging>pom</packaging>
 
-	<name>Streaming Attribute Authorization Engine</name>
+    <name>Streaming Attribute Authorization Engine</name>
 
-	<developers>
-		<developer>
-			<name>Dominic Heutelbeck</name>
-			<email>dominic@heutelbeck.com</email>
-			<roles>
-				<role>Project Owner</role>
-			</roles>
-		</developer>
-	</developers>
+    <developers>
+        <developer>
+            <name>Dominic Heutelbeck</name>
+            <email>dominic@heutelbeck.com</email>
+            <roles>
+                <role>Project Owner</role>
+            </roles>
+        </developer>
+    </developers>
 
-	<inceptionYear>2020</inceptionYear>
+    <inceptionYear>2020</inceptionYear>
 
-	<licenses>
-		<license>
-			<name>Apache 2.0</name>
-			<url>http://www.apache.org/licenses/LICENSE-2.0</url>
-		</license>
-	</licenses>
+    <licenses>
+        <license>
+            <name>Apache 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
 
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<java.version>11</java.version>
-		<xtext.version>2.23.0</xtext.version>
-		<license-maven-plugin.version>3.0</license-maven-plugin.version>
-		<maven-javadoc-plugin.version>3.1.0</maven-javadoc-plugin.version>
-		<junit.version>4.13.1</junit.version>
-		<lombok.version>1.18.16</lombok.version>
-		<springboot.version>2.3.4.RELEASE</springboot.version>
-		<powermock.version>2.0.7</powermock.version>
-		<mockito.version>3.6.0</mockito.version>
-		<vaadin.version>14.4.2</vaadin.version>
-		<maven.compiler.source>${java.version}</maven.compiler.source>
-		<maven.compiler.target>${java.version}</maven.compiler.target>
-	</properties>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>11</java.version>
+        <xtext.version>2.23.0</xtext.version>
+        <license-maven-plugin.version>3.0</license-maven-plugin.version>
+        <maven-javadoc-plugin.version>3.1.0</maven-javadoc-plugin.version>
+        <junit.version>4.13.1</junit.version>
+        <lombok.version>1.18.16</lombok.version>
+        <springboot.version>2.3.4.RELEASE</springboot.version>
+        <powermock.version>2.0.7</powermock.version>
+        <mockito.version>3.6.0</mockito.version>
+        <vaadin.version>14.4.2</vaadin.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+    </properties>
 
-	<modules>
-		<module>sapl-pdp-api</module>
-		<module>sapl-extensions-api</module>
-		<module>sapl-lang</module>
-		<module>sapl-ide</module>
-		<module>sapl-web</module>
-		<module>sapl-editor-for-vaadin</module>
-		<module>sapl-pdp-embedded</module>
-		<module>sapl-pdp-remote</module>
-		<module>sapl-spring-pdp-embedded</module>
-		<module>sapl-spring-pdp-remote</module>
-		<module>sapl-spring-security</module>
-		<module>sapl-webflux-endpoint</module>
-		<!-- <module>sapl-benchmark</module> -->
-		<module>sapl-pip-http</module>
-		<module>sapl-documentation</module>
-		<module>sapl-geo</module>
-		<module>sapl-ethereum</module>
-		<module>sapl-server-lt</module>
-		<module>sapl-server-ce</module>
-		<module>sapl-bom</module>
-	</modules>
+    <modules>
+        <module>sapl-pdp-api</module>
+        <module>sapl-extensions-api</module>
+        <module>sapl-lang</module>
+        <module>sapl-ide</module>
+        <module>sapl-web</module>
+        <module>sapl-editor-for-vaadin</module>
+        <module>sapl-pdp-embedded</module>
+        <module>sapl-pdp-remote</module>
+        <module>sapl-spring-pdp-embedded</module>
+        <module>sapl-spring-pdp-remote</module>
+        <module>sapl-spring-security</module>
+        <module>sapl-webflux-endpoint</module>
+        <module>sapl-benchmark</module>
+        <module>sapl-pip-http</module>
+        <module>sapl-documentation</module>
+        <module>sapl-geo</module>
+        <module>sapl-ethereum</module>
+        <module>sapl-server-lt</module>
+        <module>sapl-server-ce</module>
+        <module>sapl-bom</module>
+    </modules>
 
-	<dependencyManagement>
-		<dependencies>
+    <dependencyManagement>
+        <dependencies>
 
-			<!-- XText -->
-			<dependency>
-				<groupId>org.eclipse.xtext</groupId>
-				<artifactId>xtext-dev-bom</artifactId>
-				<version>${xtext.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
+            <!-- XText -->
+            <dependency>
+                <groupId>org.eclipse.xtext</groupId>
+                <artifactId>xtext-dev-bom</artifactId>
+                <version>${xtext.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
-			<!-- Testing Scope Dependencies -->
-			<dependency>
-				<groupId>junit</groupId>
-				<artifactId>junit</artifactId>
-				<version>${junit.version}</version>
-				<scope>test</scope>
-			</dependency>
-			<dependency>
-				<groupId>org.powermock</groupId>
-				<artifactId>powermock-module-junit4</artifactId>
-				<version>${powermock.version}</version>
-				<scope>test</scope>
-			</dependency>
-			<dependency>
-				<groupId>org.powermock</groupId>
-				<artifactId>powermock-api-mockito2</artifactId>
-				<version>${powermock.version}</version>
-				<scope>test</scope>
-			</dependency>
-			<dependency>
-				<groupId>org.mockito</groupId>
-				<artifactId>mockito-core</artifactId>
-				<version>${mockito.version}</version>
-				<scope>test</scope>
-			</dependency>
-			<dependency>
-				<groupId>org.mockito</groupId>
-				<artifactId>mockito-inline</artifactId>
-				<version>${mockito.version}</version>
-				<scope>test</scope>
-			</dependency>
+            <!-- Testing Scope Dependencies -->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.powermock</groupId>
+                <artifactId>powermock-module-junit4</artifactId>
+                <version>${powermock.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.powermock</groupId>
+                <artifactId>powermock-api-mockito2</artifactId>
+                <version>${powermock.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
 
-			<!-- Spring-Boot -->
-			<dependency>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-dependencies</artifactId>
-				<version>${springboot.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
+            <!-- Spring-Boot -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${springboot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
-			<!-- Project Reactor -->
-			<dependency>
-				<groupId>io.projectreactor</groupId>
-				<artifactId>reactor-bom</artifactId>
-				<version>Californium-RELEASE</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
+            <!-- Project Reactor -->
+            <dependency>
+                <groupId>io.projectreactor</groupId>
+                <artifactId>reactor-bom</artifactId>
+                <version>Californium-RELEASE</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
-			<!-- Project Lombok -->
-			<dependency>
-				<groupId>org.projectlombok</groupId>
-				<artifactId>lombok</artifactId>
-				<version>${lombok.version}</version>
-			</dependency>
+            <!-- Project Lombok -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
 
-			<!-- Vaadin -->
-			<!-- https://mvnrepository.com/artifact/com.vaadin/vaadin-bom -->
-			<dependency>
-				<groupId>com.vaadin</groupId>
-				<artifactId>vaadin-bom</artifactId>
-				<version>${vaadin.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
+            <!-- Vaadin -->
+            <!-- https://mvnrepository.com/artifact/com.vaadin/vaadin-bom -->
+            <dependency>
+                <groupId>com.vaadin</groupId>
+                <artifactId>vaadin-bom</artifactId>
+                <version>${vaadin.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
-		</dependencies>
-	</dependencyManagement>
+        </dependencies>
+    </dependencyManagement>
 
-	<build>
-		<pluginManagement>
-			<plugins>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.8.1</version>
-					<configuration>
-						<source>${java.version}</source>
-						<target>${java.version}</target>
-						<annotationProcessorPaths>
-							<path>
-								<groupId>org.projectlombok</groupId>
-								<artifactId>lombok</artifactId>
-								<version>${lombok.version}</version>
-							</path>
-						</annotationProcessorPaths>
-					</configuration>
-				</plugin>
-				<plugin>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-maven-plugin</artifactId>
-					<version>${springboot.version}</version>
-				</plugin>
-				<plugin>
-					<groupId>com.vaadin</groupId>
-					<artifactId>vaadin-maven-plugin</artifactId>
-					<version>${vaadin.version}</version>
-				</plugin>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-jar-plugin</artifactId>
-					<version>3.2.0</version>
-				</plugin>
-				<plugin>
-					<groupId>org.eclipse.xtend</groupId>
-					<artifactId>xtend-maven-plugin</artifactId>
-					<version>${xtext.version}</version>
-					<executions>
-						<execution>
-							<goals>
-								<goal>compile</goal>
-								<goal>xtend-install-debug-info</goal>
-								<goal>testCompile</goal>
-								<goal>xtend-test-install-debug-info</goal>
-							</goals>
-						</execution>
-					</executions>
-					<configuration>
-						<outputDirectory>${basedir}/src/main/xtend-gen</outputDirectory>
-						<testOutputDirectory>${basedir}/src/test/xtend-gen</testOutputDirectory>
-					</configuration>
-				</plugin>
-				<plugin>
-					<groupId>io.spring.javaformat</groupId>
-					<artifactId>spring-javaformat-maven-plugin</artifactId>
-					<version>0.0.15</version>
-				</plugin>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-clean-plugin</artifactId>
-					<version>3.1.0</version>
-					<configuration>
-						<filesets>
-							<fileset>
-								<directory>${basedir}/src/main/xtend-gen</directory>
-								<includes>
-									<include>**/*</include>
-								</includes>
-							</fileset>
-							<fileset>
-								<directory>${basedir}/src/test/xtend-gen</directory>
-								<includes>
-									<include>**/*</include>
-								</includes>
-							</fileset>
-						</filesets>
-					</configuration>
-				</plugin>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-source-plugin</artifactId>
-					<executions>
-						<execution>
-							<id>attach-sources</id>
-							<goals>
-								<goal>jar</goal>
-							</goals>
-						</execution>
-					</executions>
-				</plugin>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.22.1</version>
-					<configuration>
-						<!-- workaround for https://issues.apache.org/jira/browse/SUREFIRE-1588 -->
-						<useSystemClassLoader>false</useSystemClassLoader>
-					</configuration>
-				</plugin>
-			</plugins>
-		</pluginManagement>
-		<plugins>
-			<plugin>
-				<groupId>com.mycila</groupId>
-				<artifactId>license-maven-plugin</artifactId>
-				<version>${license-maven-plugin.version}</version>
-				<configuration>
-					<header>APACHE-2.txt</header>
-					<properties>
-						<owner>Dominic Heutelbeck</owner>
-						<email>dominic@heutelbeck.com</email>
-					</properties>
-					<excludes>
-						<exclude>**/README</exclude>
-						<exclude>src/test/resources/**</exclude>
-						<exclude>src/test/xtend-gen/**</exclude>
-						<exclude>src/test/xtext-gen/**</exclude>
-						<exclude>src/main/xtend-gen/**</exclude>
-						<exclude>src/main/xtext-gen/**</exclude>
-						<exclude>src/main/emf-gen/**</exclude>
-						<exclude>src/main/resources/**</exclude>
-						<exclude>.gitattributes</exclude>
-						<exclude>src/main/java/io/sapl/grammar/web/SAPLWebSetup.xtend</exclude>
-						<exclude>src/main/java/io/sapl/grammar/web/SAPLWebModule.xtend</exclude>
-						<exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
-					</excludes>
-					<mapping>
-						<adoc>DOUBLESLASH_STYLE</adoc>
-						<ad>DOUBLESLASH_STYLE</ad>
-						<xtend>JAVADOC_STYLE</xtend>
-						<mwe2>JAVADOC_STYLE</mwe2>
-						<ecore>XML_STYLE</ecore>
-						<genmodel>XML_STYLE</genmodel>
-						<xtext>JAVADOC_STYLE</xtext>
-						<config>SCRIPT_STYLE</config>
-					</mapping>
-				</configuration>
-				<!-- Uncomment if check shall be done every build <executions> <execution> 
-					<goals> <goal>check</goal> </goals> </execution> </executions> -->
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>3.2.0</version>
-				<executions>
-					<execution>
-						<id>attach-sources</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.2.0</version>
-				<executions>
-					<execution>
-						<id>attach-javadoc</id>
-						<phase>deploy</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<source>11</source>
-					<doclint>none</doclint>
-					<sourceFileExcludes>
-						<sourceFileExclude>**/emf-gen/*.java</sourceFileExclude>
-					</sourceFileExcludes>
-					<tags>
-						<tag>
-							<name>returns</name>
-							<placement>X</placement>
-						</tag>
-						<tag>
-							<name>ordered</name>
-							<placement>X</placement>
-						</tag>
-						<tag>
-							<name>generated</name>
-							<placement>X</placement>
-						</tag>
-						<tag>
-							<name>model</name>
-							<placement>X</placement>
-						</tag>
-					</tags>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.commonjava.maven.plugins</groupId>
-				<artifactId>directory-maven-plugin</artifactId>
-				<version>0.3.1</version>
-				<executions>
-					<execution>
-						<id>directories</id>
-						<goals>
-							<goal>directory-of</goal>
-						</goals>
-						<phase>check</phase>
-						<configuration>
-							<property>sapl.basedir</property>
-							<project>
-								<groupId>io.sapl</groupId>
-								<artifactId>sapl-policy-engine</artifactId>
-							</project>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-deploy-plugin</artifactId>
-				<version>2.8.2</version>
-			</plugin>
-		</plugins>
-	</build>
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.8.1</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${springboot.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.vaadin</groupId>
+                    <artifactId>vaadin-maven-plugin</artifactId>
+                    <version>${vaadin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.2.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.eclipse.xtend</groupId>
+                    <artifactId>xtend-maven-plugin</artifactId>
+                    <version>${xtext.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>compile</goal>
+                                <goal>xtend-install-debug-info</goal>
+                                <goal>testCompile</goal>
+                                <goal>xtend-test-install-debug-info</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <outputDirectory>${basedir}/src/main/xtend-gen</outputDirectory>
+                        <testOutputDirectory>${basedir}/src/test/xtend-gen</testOutputDirectory>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>io.spring.javaformat</groupId>
+                    <artifactId>spring-javaformat-maven-plugin</artifactId>
+                    <version>0.0.15</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.1.0</version>
+                    <configuration>
+                        <filesets>
+                            <fileset>
+                                <directory>${basedir}/src/main/xtend-gen</directory>
+                                <includes>
+                                    <include>**/*</include>
+                                </includes>
+                            </fileset>
+                            <fileset>
+                                <directory>${basedir}/src/test/xtend-gen</directory>
+                                <includes>
+                                    <include>**/*</include>
+                                </includes>
+                            </fileset>
+                        </filesets>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>2.22.1</version>
+                    <configuration>
+                        <!-- workaround for https://issues.apache.org/jira/browse/SUREFIRE-1588 -->
+                        <useSystemClassLoader>false</useSystemClassLoader>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>${license-maven-plugin.version}</version>
+                <configuration>
+                    <header>APACHE-2.txt</header>
+                    <properties>
+                        <owner>Dominic Heutelbeck</owner>
+                        <email>dominic@heutelbeck.com</email>
+                    </properties>
+                    <excludes>
+                        <exclude>**/README</exclude>
+                        <exclude>src/test/resources/**</exclude>
+                        <exclude>src/test/xtend-gen/**</exclude>
+                        <exclude>src/test/xtext-gen/**</exclude>
+                        <exclude>src/main/xtend-gen/**</exclude>
+                        <exclude>src/main/xtext-gen/**</exclude>
+                        <exclude>src/main/emf-gen/**</exclude>
+                        <exclude>src/main/resources/**</exclude>
+                        <exclude>.gitattributes</exclude>
+                        <exclude>src/main/java/io/sapl/grammar/web/SAPLWebSetup.xtend</exclude>
+                        <exclude>src/main/java/io/sapl/grammar/web/SAPLWebModule.xtend</exclude>
+                        <exclude>src/asciidoc/sapl-grammar.ebnf</exclude>
+                    </excludes>
+                    <mapping>
+                        <adoc>DOUBLESLASH_STYLE</adoc>
+                        <ad>DOUBLESLASH_STYLE</ad>
+                        <xtend>JAVADOC_STYLE</xtend>
+                        <mwe2>JAVADOC_STYLE</mwe2>
+                        <ecore>XML_STYLE</ecore>
+                        <genmodel>XML_STYLE</genmodel>
+                        <xtext>JAVADOC_STYLE</xtext>
+                        <config>SCRIPT_STYLE</config>
+                    </mapping>
+                </configuration>
+                <!-- Uncomment if check shall be done every build <executions> <execution>
+                    <goals> <goal>check</goal> </goals> </execution> </executions> -->
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadoc</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <source>11</source>
+                    <doclint>none</doclint>
+                    <sourceFileExcludes>
+                        <sourceFileExclude>**/emf-gen/*.java</sourceFileExclude>
+                    </sourceFileExcludes>
+                    <tags>
+                        <tag>
+                            <name>returns</name>
+                            <placement>X</placement>
+                        </tag>
+                        <tag>
+                            <name>ordered</name>
+                            <placement>X</placement>
+                        </tag>
+                        <tag>
+                            <name>generated</name>
+                            <placement>X</placement>
+                        </tag>
+                        <tag>
+                            <name>model</name>
+                            <placement>X</placement>
+                        </tag>
+                    </tags>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.commonjava.maven.plugins</groupId>
+                <artifactId>directory-maven-plugin</artifactId>
+                <version>0.3.1</version>
+                <executions>
+                    <execution>
+                        <id>directories</id>
+                        <goals>
+                            <goal>directory-of</goal>
+                        </goals>
+                        <phase>check</phase>
+                        <configuration>
+                            <property>sapl.basedir</property>
+                            <project>
+                                <groupId>io.sapl</groupId>
+                                <artifactId>sapl-policy-engine</artifactId>
+                            </project>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>2.8.2</version>
+            </plugin>
+        </plugins>
+    </build>
 
-	<repositories>
-		<!-- Order here defines priority in lookup -->
+    <repositories>
+        <!-- Order here defines priority in lookup -->
 
-		<!-- Main Maven repository -->
-		<repository>
-			<id>central</id>
-			<url>https://repo.maven.apache.org/maven2</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
+        <!-- Main Maven repository -->
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
 
-		<!-- Repository used by many Vaadin add-ons -->
-		<repository>
-			<id>Vaadin Directory</id>
-			<url>https://maven.vaadin.com/vaadin-addons</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<!-- Repository needed for prerelease versions of Vaadin -->
-		<repository>
-			<id>Vaadin prereleases</id>
-			<url>https://maven.vaadin.com/vaadin-prereleases</url>
-		</repository>
-		<!-- Repository needed for the snapshot versions of Vaadin -->
-		<repository>
-			<id>vaadin-snapshots</id>
-			<url>https://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
-		</repository>
+        <!-- Repository used by many Vaadin add-ons -->
+        <repository>
+            <id>Vaadin Directory</id>
+            <url>https://maven.vaadin.com/vaadin-addons</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <!-- Repository needed for prerelease versions of Vaadin -->
+        <repository>
+            <id>Vaadin prereleases</id>
+            <url>https://maven.vaadin.com/vaadin-prereleases</url>
+        </repository>
+        <!-- Repository needed for the snapshot versions of Vaadin -->
+        <repository>
+            <id>vaadin-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
+        </repository>
 
-		<!-- Openconjurer -->
-		<repository>
-			<id>openconjurer-public</id>
-			<name>OpenConjurer Nexus Maven Release Repository</name>
-			<url>https://nexus.openconjurer.org/repository/releases/</url>
-		</repository>
-		<repository>
-			<id>openconjurer-public-snapshots</id>
-			<name>OpenConjurer Nexus Maven Snapshot Repository</name>
-			<url>https://nexus.openconjurer.org/repository/snapshots/</url>
-		</repository>
+        <!-- Openconjurer -->
+        <repository>
+            <id>openconjurer-public</id>
+            <name>OpenConjurer Nexus Maven Release Repository</name>
+            <url>https://nexus.openconjurer.org/repository/releases/</url>
+        </repository>
+        <repository>
+            <id>openconjurer-public-snapshots</id>
+            <name>OpenConjurer Nexus Maven Snapshot Repository</name>
+            <url>https://nexus.openconjurer.org/repository/snapshots/</url>
+        </repository>
 
-		<repository>
-			<id>codehaus-snapshots</id>
-			<name>disable dead 'Codehaus Snapshots' repository, see
+        <repository>
+            <id>codehaus-snapshots</id>
+            <name>disable dead 'Codehaus Snapshots' repository, see
                 https://bugs.eclipse.org/bugs/show_bug.cgi?id=481478
             </name>
-			<url>http://nexus.codehaus.org/snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-	</repositories>
+            <url>http://nexus.codehaus.org/snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
 
-	<pluginRepositories>
-		<!-- Main Maven repository -->
-		<pluginRepository>
-			<id>central</id>
-			<url>https://repo.maven.apache.org/maven2</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-		<!-- Repository needed for prerelease versions of Vaadin -->
-		<pluginRepository>
-			<id>Vaadin prereleases</id>
-			<url>https://maven.vaadin.com/vaadin-prereleases</url>
-		</pluginRepository>
-		<pluginRepository>
-			<id>vaadin-snapshots</id>
-			<url>https://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-		</pluginRepository>
-		<pluginRepository>
-			<id>codehaus-snapshots</id>
-			<name>disable dead 'Codehaus Snapshots' repository, see
+    <pluginRepositories>
+        <!-- Main Maven repository -->
+        <pluginRepository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+        <!-- Repository needed for prerelease versions of Vaadin -->
+        <pluginRepository>
+            <id>Vaadin prereleases</id>
+            <url>https://maven.vaadin.com/vaadin-prereleases</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>vaadin-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </pluginRepository>
+        <pluginRepository>
+            <id>codehaus-snapshots</id>
+            <name>disable dead 'Codehaus Snapshots' repository, see
                 https://bugs.eclipse.org/bugs/show_bug.cgi?id=481478
             </name>
-			<url>http://nexus.codehaus.org/snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-	</pluginRepositories>
+            <url>http://nexus.codehaus.org/snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 
-	<profiles>
-		<profile>
-			<id>jdk9-or-newer</id>
-			<activation>
-				<jdk>[9,)</jdk>
-			</activation>
-			<properties>
-				<moduleProperties>--add-modules=ALL-SYSTEM</moduleProperties>
-			</properties>
-		</profile>
-	</profiles>
+    <profiles>
+        <profile>
+            <id>jdk9-or-newer</id>
+            <activation>
+                <jdk>[9,)</jdk>
+            </activation>
+            <properties>
+                <moduleProperties>--add-modules=ALL-SYSTEM</moduleProperties>
+            </properties>
+        </profile>
+    </profiles>
 
-	<distributionManagement>
-		<repository>
-			<id>openconjurer-public</id>
-			<name>OpenConjurer Nexus Maven Release Repository</name>
-			<url>https://nexus.openconjurer.org/repository/releases/</url>
-		</repository>
-		<snapshotRepository>
-			<id>openconjurer-public-snapshots</id>
-			<name>OpenConjurer Nexus Maven Snapshot Repository</name>
-			<url>https://nexus.openconjurer.org/repository/snapshots/</url>
-		</snapshotRepository>
-	</distributionManagement>
+    <distributionManagement>
+        <repository>
+            <id>openconjurer-public</id>
+            <name>OpenConjurer Nexus Maven Release Repository</name>
+            <url>https://nexus.openconjurer.org/repository/releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>openconjurer-public-snapshots</id>
+            <name>OpenConjurer Nexus Maven Snapshot Repository</name>
+            <url>https://nexus.openconjurer.org/repository/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
 
 </project>
