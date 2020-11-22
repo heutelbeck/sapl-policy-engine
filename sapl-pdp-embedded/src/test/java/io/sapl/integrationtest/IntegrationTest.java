@@ -22,17 +22,19 @@ import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.reimpl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 
-@Ignore
+import static org.assertj.core.api.Assertions.*;
+
 public class IntegrationTest {
 
 	@Rule
-	public Timeout globalTimeout = Timeout.seconds(10);
+	public Timeout globalTimeout = Timeout.seconds(3);
 
 	private SAPLInterpreter interpreter;
 	private ImmutableParsedDocumentIndex seedIndex;
 	private static final EvaluationContext PDP_SCOPED_EVALUATION_CONTEXT = new EvaluationContext(
 			new AnnotationAttributeContext(), new AnnotationFunctionContext(), new HashMap<>());
-	private static final AuthorizationSubscription EMPTY_SUBSCRIPTION = AuthorizationSubscription.of(null, null, null);
+	private static final AuthorizationSubscription EMPTY_SUBSCRIPTION =
+			AuthorizationSubscription.of(null, null, null);
 
 	@Before
 	public void setUp() {
@@ -43,7 +45,6 @@ public class IntegrationTest {
 	@Test
 	public void return_empty_result_when_no_documents_are_published() {
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty", interpreter);
-		source.getUpdates().log().blockFirst();
 		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
 				new HashMap<>());
@@ -51,16 +52,16 @@ public class IntegrationTest {
 
 		PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
 
-		Assertions.assertThat(result).isNotNull();
-		Assertions.assertThat(result.getMatchingDocuments()).isEmpty();
-		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
+		assertThat(result).isNotNull();
+		assertThat(result.getMatchingDocuments()).isEmpty();
+		assertThat(result.isErrorsInTarget()).isFalse();
 	}
 
 	@Test
 	public void throw_exception_for_invalid_document() {
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/invalid", interpreter);
 
-		Assertions.assertThatExceptionOfType(RuntimeException.class)
+		assertThatExceptionOfType(RuntimeException.class)
 				.isThrownBy(() -> new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source));
 
 	}
@@ -74,9 +75,9 @@ public class IntegrationTest {
 		evaluationCtx = evaluationCtx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
 		PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
 
-		Assertions.assertThat(result).isNotNull();
-		Assertions.assertThat(result.getMatchingDocuments()).isEmpty();
-		Assertions.assertThat(result.isErrorsInTarget()).isTrue();
+		assertThat(result).isNotNull();
+		assertThat(result.getMatchingDocuments()).isEmpty();
+		assertThat(result.isErrorsInTarget()).isTrue();
 	}
 
 	@Test
@@ -90,11 +91,11 @@ public class IntegrationTest {
 		evaluationCtx1 = evaluationCtx1.forAuthorizationSubscription(authzSubscription);
 		PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx1).blockFirst();
 
-		Assertions.assertThat(result).isNotNull();
-		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1);
-		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
+		assertThat(result).isNotNull();
+		assertThat(result.getMatchingDocuments()).hasSize(1);
+		assertThat(result.isErrorsInTarget()).isFalse();
 
-		Assertions.assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get()
+		assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get()
 				.getPolicyElement().getSaplName()).isEqualTo("policy read");
 
 		authzSubscription = AuthorizationSubscription.of("Willi", "eat", "icecream");
@@ -105,11 +106,11 @@ public class IntegrationTest {
 
 		result = prp.retrievePolicies(evaluationCtx2).blockFirst();
 
-		Assertions.assertThat(result).isNotNull();
-		Assertions.assertThat(result.getMatchingDocuments()).hasSize(1);
-		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
+		assertThat(result).isNotNull();
+		assertThat(result.getMatchingDocuments()).hasSize(1);
+		assertThat(result.isErrorsInTarget()).isFalse();
 
-		Assertions.assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get()
+		assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get()
 				.getPolicyElement().getSaplName()).isEqualTo("policy eat icecream");
 	}
 
@@ -123,9 +124,9 @@ public class IntegrationTest {
 
 		PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
 
-		Assertions.assertThat(result).isNotNull();
-		Assertions.assertThat(result.getMatchingDocuments()).isEmpty();
-		Assertions.assertThat(result.isErrorsInTarget()).isFalse();
+		assertThat(result).isNotNull();
+		assertThat(result.getMatchingDocuments()).isEmpty();
+		assertThat(result.isErrorsInTarget()).isFalse();
 	}
 
 }

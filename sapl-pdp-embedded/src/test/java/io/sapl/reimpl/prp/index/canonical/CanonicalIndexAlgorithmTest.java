@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.sapl.prp.inmemory.indexed.Bitmask;
@@ -18,6 +17,8 @@ import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
 import io.sapl.prp.inmemory.indexed.Literal;
 import io.sapl.prp.inmemory.indexed.improved.CTuple;
 import io.sapl.prp.inmemory.indexed.improved.Predicate;
+
+import static org.assertj.core.api.Assertions.*;
 
 public class CanonicalIndexAlgorithmTest {
 
@@ -31,15 +32,15 @@ public class CanonicalIndexAlgorithmTest {
 
         Bitmask b3 = CanonicalIndexAlgorithm.orBitMask(b1, b2);
 
-        Assertions.assertThat(b3).isNotNull();
-        Assertions.assertThat(b3.isSet(0)).isTrue();
-        Assertions.assertThat(b3.isSet(2)).isTrue();
-        Assertions.assertThat(b3.isSet(4)).isTrue();
+        assertThat(b3).isNotNull();
+        assertThat(b3.isSet(0)).isTrue();
+        assertThat(b3.isSet(2)).isTrue();
+        assertThat(b3.isSet(4)).isTrue();
 
 
-        Assertions.assertThatNullPointerException().isThrownBy(() -> CanonicalIndexAlgorithm.orBitMask(null, b2));
-        Assertions.assertThatNullPointerException().isThrownBy(() -> CanonicalIndexAlgorithm.orBitMask(b1, null));
-        Assertions.assertThatNullPointerException().isThrownBy(() -> CanonicalIndexAlgorithm.orBitMask(null, null));
+        assertThatNullPointerException().isThrownBy(() -> CanonicalIndexAlgorithm.orBitMask(null, b2));
+        assertThatNullPointerException().isThrownBy(() -> CanonicalIndexAlgorithm.orBitMask(b1, null));
+        assertThatNullPointerException().isThrownBy(() -> CanonicalIndexAlgorithm.orBitMask(null, null));
     }
 
     @Test
@@ -47,13 +48,13 @@ public class CanonicalIndexAlgorithmTest {
         Bitmask candidates = new Bitmask();
         Predicate predicate = new Predicate(new Bool(true));
 
-        Assertions.assertThat(CanonicalIndexAlgorithm.isReferenced(predicate, candidates)).isFalse();
+        assertThat(CanonicalIndexAlgorithm.isReferenced(predicate, candidates)).isFalse();
 
         predicate.getConjunctions().set(5);
-        Assertions.assertThat(CanonicalIndexAlgorithm.isReferenced(predicate, candidates)).isFalse();
+        assertThat(CanonicalIndexAlgorithm.isReferenced(predicate, candidates)).isFalse();
 
         candidates.set(5);
-        Assertions.assertThat(CanonicalIndexAlgorithm.isReferenced(predicate, candidates)).isTrue();
+        assertThat(CanonicalIndexAlgorithm.isReferenced(predicate, candidates)).isTrue();
     }
 
     @Test
@@ -61,32 +62,32 @@ public class CanonicalIndexAlgorithmTest {
         Predicate predicate = new Predicate(new Bool(true));
         Bitmask candidates = new Bitmask();
 
-        Assertions.assertThat(CanonicalIndexAlgorithm
+        assertThat(CanonicalIndexAlgorithm
                 .findUnsatisfiableCandidates(candidates, predicate, true).numberOfBitsSet()).isEqualTo(0);
-        Assertions.assertThat(CanonicalIndexAlgorithm
+        assertThat(CanonicalIndexAlgorithm
                 .findUnsatisfiableCandidates(candidates, predicate, false).numberOfBitsSet()).isEqualTo(0);
 
         predicate.getFalseForTruePredicate().set(0, 3);
         predicate.getFalseForFalsePredicate().set(3, 7);
 
-        Assertions.assertThat(CanonicalIndexAlgorithm
+        assertThat(CanonicalIndexAlgorithm
                 .findUnsatisfiableCandidates(candidates, predicate, true).numberOfBitsSet()).isEqualTo(0);
-        Assertions.assertThat(CanonicalIndexAlgorithm
+        assertThat(CanonicalIndexAlgorithm
                 .findUnsatisfiableCandidates(candidates, predicate, false).numberOfBitsSet()).isEqualTo(0);
 
         candidates.set(0, 7);
 
         Bitmask uc1 = CanonicalIndexAlgorithm
                 .findUnsatisfiableCandidates(candidates, predicate, true);
-        Assertions.assertThat(uc1.numberOfBitsSet()).isEqualTo(3);
-        Assertions.assertThat(uc1.isSet(2)).isTrue();
-        Assertions.assertThat(uc1.isSet(3)).isFalse();
+        assertThat(uc1.numberOfBitsSet()).isEqualTo(3);
+        assertThat(uc1.isSet(2)).isTrue();
+        assertThat(uc1.isSet(3)).isFalse();
 
         Bitmask uc2 = CanonicalIndexAlgorithm
                 .findUnsatisfiableCandidates(candidates, predicate, false);
-        Assertions.assertThat(uc2.numberOfBitsSet()).isEqualTo(4);
-        Assertions.assertThat(uc2.isSet(3)).isTrue();
-        Assertions.assertThat(uc2.isSet(2)).isFalse();
+        assertThat(uc2.numberOfBitsSet()).isEqualTo(4);
+        assertThat(uc2.isSet(3)).isTrue();
+        assertThat(uc2.isSet(2)).isFalse();
     }
 
     @Test
@@ -97,34 +98,34 @@ public class CanonicalIndexAlgorithmTest {
         Bitmask orphanedCandidates = new Bitmask();
 
         CanonicalIndexAlgorithm
-                .eliminateCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
-        Assertions.assertThat(candidates.numberOfBitsSet()).isEqualTo(0);
+                .reduceCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
+        assertThat(candidates.numberOfBitsSet()).isEqualTo(0);
 
         candidates.set(0, 5);
 
         CanonicalIndexAlgorithm
-                .eliminateCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
-        Assertions.assertThat(candidates.numberOfBitsSet()).isEqualTo(5);
+                .reduceCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
+        assertThat(candidates.numberOfBitsSet()).isEqualTo(5);
 
         satisfiableCandidates.set(4);
         CanonicalIndexAlgorithm
-                .eliminateCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
-        Assertions.assertThat(candidates.numberOfBitsSet()).isEqualTo(4);
-        Assertions.assertThat(candidates.isSet(4)).isFalse();
+                .reduceCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
+        assertThat(candidates.numberOfBitsSet()).isEqualTo(4);
+        assertThat(candidates.isSet(4)).isFalse();
 
         unsatisfiableCandidates.set(3);
         CanonicalIndexAlgorithm
-                .eliminateCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
-        Assertions.assertThat(candidates.numberOfBitsSet()).isEqualTo(3);
-        Assertions.assertThat(candidates.isSet(3)).isFalse();
+                .reduceCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
+        assertThat(candidates.numberOfBitsSet()).isEqualTo(3);
+        assertThat(candidates.isSet(3)).isFalse();
 
         orphanedCandidates.set(0);
         CanonicalIndexAlgorithm
-                .eliminateCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
-        Assertions.assertThat(candidates.numberOfBitsSet()).isEqualTo(2);
-        Assertions.assertThat(candidates.isSet(0)).isFalse();
+                .reduceCandidates(candidates, unsatisfiableCandidates, satisfiableCandidates, orphanedCandidates);
+        assertThat(candidates.numberOfBitsSet()).isEqualTo(2);
+        assertThat(candidates.isSet(0)).isFalse();
 
-        Assertions.assertThat(candidates.isSet(1)).isTrue();
+        assertThat(candidates.isSet(1)).isTrue();
     }
 
     @Test
@@ -134,12 +135,12 @@ public class CanonicalIndexAlgorithmTest {
 
         candidates.set(0, 5);
         CanonicalIndexAlgorithm.removeCandidatesRelatedToPredicate(predicate, candidates);
-        Assertions.assertThat(candidates.numberOfBitsSet()).isEqualTo(5);
+        assertThat(candidates.numberOfBitsSet()).isEqualTo(5);
 
         predicate.getConjunctions().set(3);
         CanonicalIndexAlgorithm.removeCandidatesRelatedToPredicate(predicate, candidates);
-        Assertions.assertThat(candidates.numberOfBitsSet()).isEqualTo(4);
-        Assertions.assertThat(candidates.isSet(3)).isFalse();
+        assertThat(candidates.numberOfBitsSet()).isEqualTo(4);
+        assertThat(candidates.isSet(3)).isFalse();
     }
 
     @Test
@@ -147,11 +148,11 @@ public class CanonicalIndexAlgorithmTest {
         final Bitmask satisfiableCandidates = new Bitmask();
         List<Set<DisjunctiveFormula>> relatedFormulas = new ArrayList<>();
 
-        Assertions.assertThat(CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, relatedFormulas)).isEmpty();
+        assertThat(CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, relatedFormulas)).isEmpty();
 
         satisfiableCandidates.set(1);
         satisfiableCandidates.set(2);
-        Assertions.assertThatExceptionOfType(IndexOutOfBoundsException.class)
+        assertThatExceptionOfType(IndexOutOfBoundsException.class)
                 .isThrownBy(() -> CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, relatedFormulas));
 
 
@@ -172,11 +173,11 @@ public class CanonicalIndexAlgorithmTest {
 
         Set<DisjunctiveFormula> formulas = CanonicalIndexAlgorithm
                 .fetchFormulas(satisfiableCandidates, relatedFormulas);
-        Assertions.assertThat(formulas).isNotEmpty();
-        Assertions.assertThat(formulas.size()).isEqualTo(5);
+        assertThat(formulas).isNotEmpty();
+        assertThat(formulas.size()).isEqualTo(5);
 
         Bitmask satisfiableCandidates2 = new Bitmask();
-        Assertions.assertThat(CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates2, relatedFormulas)).isEmpty();
+        assertThat(CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates2, relatedFormulas)).isEmpty();
     }
 
     @Test
@@ -186,7 +187,7 @@ public class CanonicalIndexAlgorithmTest {
         int[] trueLiteralsOfConjunction = new int[]{0, 0, 0};
         int[] numberOfLiteralsInConjunction = new int[]{1, 1, 2};
 
-        Assertions.assertThat(CanonicalIndexAlgorithm.findSatisfiableCandidates(candidates, predicate, false,
+        assertThat(CanonicalIndexAlgorithm.findSatisfiableCandidates(candidates, predicate, false,
                 trueLiteralsOfConjunction, numberOfLiteralsInConjunction).numberOfBitsSet()).isEqualTo(0);
 
         candidates.set(0, 3);
@@ -196,23 +197,23 @@ public class CanonicalIndexAlgorithmTest {
         //true -> {1} satisfiableCandidates
         Bitmask satisfiableCandidates = CanonicalIndexAlgorithm.findSatisfiableCandidates(candidates, predicate, true,
                 trueLiteralsOfConjunction, numberOfLiteralsInConjunction);
-        Assertions.assertThat(satisfiableCandidates.isSet(0)).isFalse();
-        Assertions.assertThat(satisfiableCandidates.isSet(1)).isTrue();
-        Assertions.assertThat(satisfiableCandidates.isSet(2)).isFalse();
+        assertThat(satisfiableCandidates.isSet(0)).isFalse();
+        assertThat(satisfiableCandidates.isSet(1)).isTrue();
+        assertThat(satisfiableCandidates.isSet(2)).isFalse();
 
         //calling the method again without clearing the array trueLiteralsOfConjunction, so number of true literals
         // is "2" for the third candidate (all literals are true)
         satisfiableCandidates = CanonicalIndexAlgorithm.findSatisfiableCandidates(candidates, predicate, true,
                 trueLiteralsOfConjunction, numberOfLiteralsInConjunction);
-        Assertions.assertThat(satisfiableCandidates.isSet(2)).isTrue();
+        assertThat(satisfiableCandidates.isSet(2)).isTrue();
 
 
         trueLiteralsOfConjunction = new int[]{0, 0, 0};
         satisfiableCandidates = CanonicalIndexAlgorithm.findSatisfiableCandidates(candidates, predicate, false,
                 trueLiteralsOfConjunction, numberOfLiteralsInConjunction);
-        Assertions.assertThat(satisfiableCandidates.isSet(0)).isTrue();
-        Assertions.assertThat(satisfiableCandidates.isSet(1)).isFalse();
-        Assertions.assertThat(satisfiableCandidates.isSet(2)).isFalse();
+        assertThat(satisfiableCandidates.isSet(0)).isTrue();
+        assertThat(satisfiableCandidates.isSet(1)).isFalse();
+        assertThat(satisfiableCandidates.isSet(2)).isFalse();
     }
 
     @Test
@@ -223,7 +224,7 @@ public class CanonicalIndexAlgorithmTest {
         int[] numberOfFormulasWithConjunction = new int[]{};
         Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction = new HashMap<>();
 
-        Assertions.assertThat(CanonicalIndexAlgorithm.findOrphanedCandidates(candidates, satisfiableCandidates,
+        assertThat(CanonicalIndexAlgorithm.findOrphanedCandidates(candidates, satisfiableCandidates,
                 eliminatedFormulasWithConjunction, conjunctionsInFormulasReferencingConjunction,
                 numberOfFormulasWithConjunction).numberOfBitsSet()).isEqualTo(0);
     }

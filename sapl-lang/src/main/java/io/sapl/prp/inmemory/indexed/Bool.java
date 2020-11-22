@@ -15,11 +15,7 @@
  */
 package io.sapl.prp.inmemory.indexed;
 
-import java.util.Map;
-import java.util.Objects;
-
 import com.google.common.base.Preconditions;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
@@ -27,104 +23,94 @@ import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+import java.util.Objects;
+
 public class Bool {
 
-	static final String BOOL_NOT_IMMUTABLE = "Unable to evaluate volatile Bool in static context.";
-	static final String CONDITION_NOT_BOOLEAN = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
+    static final String BOOL_NOT_IMMUTABLE = "Unable to evaluate volatile Bool in static context.";
 
-	private boolean constant;
+    private boolean constant;
 
-	private Expression expression;
+    private Expression expression;
 
-	private int hash;
+    private int hash;
 
-	private boolean hasHashCode;
+    private boolean hasHashCode;
 
-	private Map<String, String> imports;
+    private Map<String, String> imports;
 
-	private boolean isConstantExpression;
+    private boolean isConstantExpression;
 
-	public Bool(boolean value) {
-		isConstantExpression = true;
-		constant = value;
-	}
+    public Bool(boolean value) {
+        isConstantExpression = true;
+        constant = value;
+    }
 
-	public Bool(final Expression expression, final Map<String, String> imports) {
-		this.expression = Preconditions.checkNotNull(expression);
-		this.imports = imports;
-	}
+    public Bool(final Expression expression, final Map<String, String> imports) {
+        this.expression = Preconditions.checkNotNull(expression);
+        this.imports = imports;
+    }
 
-	public boolean evaluate() {
-		if (isConstantExpression) {
-			return constant;
-		}
-		throw new IllegalStateException(BOOL_NOT_IMMUTABLE);
-	}
+    public boolean evaluate() {
+        if (isConstantExpression) {
+            return constant;
+        }
+        throw new IllegalStateException(BOOL_NOT_IMMUTABLE);
+    }
 
-	public Mono<Val> evaluate(EvaluationContext subscriptionScopedEvaluationContext) {
-		EvaluationContext documentScopedEvaluationContext = subscriptionScopedEvaluationContext.withImports(imports);
-		Flux<Val> resultFlux = isConstantExpression ? Flux.just(Val.of(constant))
-				: expression.evaluate(documentScopedEvaluationContext, Val.UNDEFINED);
-		return resultFlux.log()
-				.map(result -> result.isError() || result.isBoolean() ? result : Val.error("expression not boolean"))
-				.next();
-	}
+    public Mono<Val> evaluate(EvaluationContext subscriptionScopedEvaluationContext) {
+        EvaluationContext documentScopedEvaluationContext = subscriptionScopedEvaluationContext.withImports(imports);
+        Flux<Val> resultFlux = isConstantExpression ? Flux.just(Val.of(constant))
+                : expression.evaluate(documentScopedEvaluationContext, Val.UNDEFINED);
+        return resultFlux.map(result ->
+                result.isError() || result.isBoolean() ? result : Val.error("expression not boolean"))
+                .next();
+    }
 
-	public boolean evaluateBlocking(EvaluationContext evaluationContext) {
-		if (!isConstantExpression) {
-			EvaluationContext ctx = evaluationContext.withImports(imports);
-			Val result = expression.evaluate(ctx, Val.UNDEFINED).blockFirst();
-			if (Objects.nonNull(result) && result.isDefined() && result.get().isBoolean()) {
-				return result.get().asBoolean();
-			}
-			throw new PolicyEvaluationException(CONDITION_NOT_BOOLEAN, result);
-		}
-		return constant;
-	}
+    public boolean isImmutable() {
+        return isConstantExpression;
+    }
 
-	public boolean isImmutable() {
-		return isConstantExpression;
-	}
+    @Override
+    public int hashCode() {
+        if (!hasHashCode) {
+            int h = 7;
+            h = 59 * h + Objects.hashCode(isConstantExpression);
+            if (isConstantExpression) {
+                h = 59 * h + Objects.hashCode(constant);
+            } else {
+                h = 59 * h + EquivalenceAndHashUtil.semanticHash(expression, imports);
+            }
+            hash = h;
+            hasHashCode = true;
+        }
+        return hash;
+    }
 
-	@Override
-	public int hashCode() {
-		if (!hasHashCode) {
-			int h = 7;
-			h = 59 * h + Objects.hashCode(isConstantExpression);
-			if (isConstantExpression) {
-				h = 59 * h + Objects.hashCode(constant);
-			} else {
-				h = 59 * h + EquivalenceAndHashUtil.semanticHash(expression, imports);
-			}
-			hash = h;
-			hasHashCode = true;
-		}
-		return hash;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		final Bool other = (Bool) obj;
-		if (hashCode() != other.hashCode()) {
-			return false;
-		}
-		if (!Objects.equals(isConstantExpression, other.isConstantExpression)) {
-			return false;
-		}
-		if (isConstantExpression) {
-			return Objects.equals(constant, other.constant);
-		} else {
-			return EquivalenceAndHashUtil.areEquivalent(expression, imports, other.expression, other.imports);
-		}
-	}
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Bool other = (Bool) obj;
+        if (hashCode() != other.hashCode()) {
+            return false;
+        }
+        if (!Objects.equals(isConstantExpression, other.isConstantExpression)) {
+            return false;
+        }
+        if (isConstantExpression) {
+            return Objects.equals(constant, other.constant);
+        } else {
+            return EquivalenceAndHashUtil.areEquivalent(expression, imports, other.expression, other.imports);
+        }
+    }
 
 }

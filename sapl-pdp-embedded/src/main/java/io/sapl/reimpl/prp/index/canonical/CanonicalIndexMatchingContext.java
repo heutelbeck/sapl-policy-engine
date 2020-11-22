@@ -7,24 +7,29 @@ import lombok.Setter;
 
 @Getter
 public class CanonicalIndexMatchingContext {
-	private final Bitmask clauseCandidatesMask;
-	private final int[] trueLiteralsOfConjunction;
-	private final int[] eliminatedFormulasWithConjunction;
-	private final EvaluationContext subscriptionScopedEvaluationContext;
-	
-	@Setter
-	private boolean errorsInTargets = false;
-	
-	public CanonicalIndexMatchingContext(CanonicalIndexDataContainer dataContainer,
-			EvaluationContext subscriptionScopedEvaluationContext) {
-		int arrayLength = dataContainer.getNumberOfLiteralsInConjunction().length;
+    private final Bitmask clauseCandidatesMask;
+    private final Bitmask matchingCandidatesMask;
 
-		clauseCandidatesMask = new Bitmask();
-		clauseCandidatesMask.set(0, arrayLength);
+    private final int[] trueLiteralsOfConjunction;
+    private final int[] eliminatedFormulasWithConjunction;
 
-		trueLiteralsOfConjunction = new int[arrayLength];
-		eliminatedFormulasWithConjunction = new int[arrayLength];
+    private final EvaluationContext subscriptionScopedEvaluationContext;
 
-		this.subscriptionScopedEvaluationContext = subscriptionScopedEvaluationContext;
-	}
+    @Setter
+    private boolean errorsInTargets = false;
+
+    public CanonicalIndexMatchingContext(CanonicalIndexDataContainer dataContainer,
+                                         EvaluationContext subscriptionScopedEvaluationContext) {
+        int arrayLength = dataContainer.getNumberOfLiteralsInConjunction().length;
+
+        clauseCandidatesMask = new Bitmask();
+        clauseCandidatesMask.set(0, arrayLength);
+
+        matchingCandidatesMask = new Bitmask();
+
+        trueLiteralsOfConjunction = new int[arrayLength];
+        eliminatedFormulasWithConjunction = new int[arrayLength];
+
+        this.subscriptionScopedEvaluationContext = subscriptionScopedEvaluationContext;
+    }
 }
