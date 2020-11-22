@@ -102,6 +102,7 @@ public class Benchmark implements CommandLineRunner {
     public void run(String... args) throws Exception {
         log.info("command line runner started");
 
+        domainGenerator.getDomainUtil().cleanPolicyDirectory(domainGenerator.getDomainData().getPolicyDirectoryPath());
         parseCommandLineArguments(args);
 
         init();
@@ -111,6 +112,8 @@ public class Benchmark implements CommandLineRunner {
     }
 
     private void init() {
+
+
         filePrefix = String.format("%s_%s_%s%s", LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), indexType,
                 performFullyRandomBenchmark ? "RANDOM" : "STRUCTURED", File.separator).replace(':', '-');
 

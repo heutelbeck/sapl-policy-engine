@@ -69,18 +69,18 @@
             </exclusions>
         </dependency>
 
-        <dependency>
-            <groupId>io.sapl</groupId>
-            <artifactId>sapl-spring-security</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.sapl</groupId>-->
+<!--            <artifactId>sapl-spring-security</artifactId>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-spring-pdp-embedded</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.sapl</groupId>
-            <artifactId>sapl-pip-http</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.sapl</groupId>-->
+<!--            <artifactId>sapl-pip-http</artifactId>-->
+<!--        </dependency>-->
 
 
         <dependency>

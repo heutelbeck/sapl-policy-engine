@@ -302,55 +302,68 @@ public class DomainGenerator {
     }
 
     private void handleReadAccessRoles(List<DomainPolicy> policies, DomainResource resource) {
-//        String policyName = resource.getResourceName() + "_read_roles";
-//        StringBuilder policyBuilder = generateBasePolicyWithActions(policyName, Collections
-//                .singletonList(resource), DomainActions.READ_ONLY.getActionList(), resource.getReadAccessRoles());
-//
-//        List<DomainRole> extendedRoles = resource.getReadAccessRoles().stream()
-//                .filter(DomainRole::isExtensionRequired).collect(Collectors.toList());
-//        if (resource.isExtensionRequired()) {
-//            policyName += "_extended";
-//            addObligationToPolicy(policyBuilder, DomainUtil.LOG_OBLIGATION);
-//
-//            policies.add(new DomainPolicy(policyName, policyBuilder.toString(), policyName));
-//        } else if (!extendedRoles.isEmpty()) {
-//            for (DomainRole extendedRole : extendedRoles) {
-//
-//                StringBuilder rolePolicyBuilder = new StringBuilder(policyBuilder.toString());
-//                addObligationToPolicy(rolePolicyBuilder, DomainUtil.LOG_OBLIGATION);
-//
-//                String rolePolicyName = resource.getResourceName() + "_read_" + extendedRole
-//                        .getRoleName() + "_extended";
-//
-//                policies.add(new DomainPolicy(rolePolicyName, rolePolicyBuilder.toString(), rolePolicyName));
-//            }
-//        }
+        //        String policyName = resource.getResourceName() + "_read_roles";
+        //        StringBuilder policyBuilder = generateBasePolicyWithActions(policyName, Collections
+        //                .singletonList(resource), DomainActions.READ_ONLY.getActionList(), resource.getReadAccessRoles());
+        //
+        //        List<DomainRole> extendedRoles = resource.getReadAccessRoles().stream()
+        //                .filter(DomainRole::isExtensionRequired).collect(Collectors.toList());
+        //        if (resource.isExtensionRequired()) {
+        //            policyName += "_extended";
+        //            addObligationToPolicy(policyBuilder, DomainUtil.LOG_OBLIGATION);
+        //
+        //            policies.add(new DomainPolicy(policyName, policyBuilder.toString(), policyName));
+        //        } else if (!extendedRoles.isEmpty()) {
+        //            for (DomainRole extendedRole : extendedRoles) {
+        //
+        //                StringBuilder rolePolicyBuilder = new StringBuilder(policyBuilder.toString());
+        //                addObligationToPolicy(rolePolicyBuilder, DomainUtil.LOG_OBLIGATION);
+        //
+        //                String rolePolicyName = resource.getResourceName() + "_read_" + extendedRole
+        //                        .getRoleName() + "_extended";
+        //
+        //                policies.add(new DomainPolicy(rolePolicyName, rolePolicyBuilder.toString(), rolePolicyName));
+        //            }
+        //        }
 
 
     }
 
     private void handleFullAccessRoles(List<DomainPolicy> policies, DomainResource resource) {
         String policyName = resource.getResourceName() + "_unrestricted-roles";
-        StringBuilder policyBuilder = generateBasePolicy(policyName, Collections.singletonList(resource));
-        addRolesToPolicy(policyBuilder, resource.getFullAccessRoles(), false);
 
-        List<DomainRole> extendedRoles = resource.getFullAccessRoles().stream()
+        List<DomainRole> fullAccessRoles = resource.getFullAccessRoles();
+        List<DomainRole> extendedFullAccessRoles = fullAccessRoles.stream()
                 .filter(DomainRole::isExtensionRequired).collect(Collectors.toList());
+
         if (resource.isExtensionRequired()) {
             policyName += "_extended";
-            addObligationToPolicy(policyBuilder, DomainUtil.LOG_OBLIGATION);
-        } else if (!extendedRoles.isEmpty()) {
-            for (DomainRole extendedRole : extendedRoles) {
-                StringBuilder rolePolicyBuilder = new StringBuilder(policyBuilder.toString());
-                addObligationToPolicy(rolePolicyBuilder, DomainUtil.LOG_OBLIGATION);
-                String rolePolicyName = resource.getResourceName() + "_unrestricted_" + extendedRole
-                        .getRoleName();
+            StringBuilder extendedPolicyBuilder = generateBasePolicy(policyName, Collections.singletonList(resource));
+            addRolesToPolicy(extendedPolicyBuilder, fullAccessRoles, false);
+            addObligationToPolicy(extendedPolicyBuilder, DomainUtil.LOG_OBLIGATION);
+            policies.add(new DomainPolicy(policyName, extendedPolicyBuilder.toString(), policyName));
+        } else {
+            //handle extended roles
+            if (!extendedFullAccessRoles.isEmpty()) {
+                for (DomainRole extendedRole : extendedFullAccessRoles) {
+                    String rolePolicyName = resource.getResourceName() + "_unrestricted_" + extendedRole
+                            .getRoleName();
+                    StringBuilder rolePolicyBuilder = generateBasePolicy(rolePolicyName, Collections.singletonList(resource));
+                    addRolesToPolicy(rolePolicyBuilder, Collections.singletonList(extendedRole), false);
+                    addObligationToPolicy(rolePolicyBuilder, DomainUtil.LOG_OBLIGATION);
 
-                policies.add(new DomainPolicy(rolePolicyName, rolePolicyBuilder.toString(), rolePolicyName));
+                    policies.add(new DomainPolicy(rolePolicyName, rolePolicyBuilder.toString(), rolePolicyName));
+                }
+                //prevent double handling of extended roles for resource
+                fullAccessRoles.removeAll(extendedFullAccessRoles);
+            }
+            //handle roles without extension
+            if (!fullAccessRoles.isEmpty()) {
+                StringBuilder policyBuilder = generateBasePolicy(policyName, Collections.singletonList(resource));
+                addRolesToPolicy(policyBuilder, fullAccessRoles, false);
+                policies.add(new DomainPolicy(policyName, policyBuilder.toString(), policyName));
             }
         }
-
-        policies.add(new DomainPolicy(policyName, policyBuilder.toString(), policyName));
     }
 
     private void collectAccessingRoles(List<DomainRole> rolesWithRestrictedAccess, DomainResource resource) {
@@ -372,6 +385,8 @@ public class DomainGenerator {
     }
 
     private List<DomainPolicy> generatePoliciesForUnrestrictedResources(List<DomainResource> unrestrictedResources) {
+        if (unrestrictedResources.isEmpty()) return Collections.emptyList();
+
         List<DomainPolicy> policies = new ArrayList<>();
 
         policies.add(new DomainPolicy("unrestricted-resources",
@@ -404,7 +419,7 @@ public class DomainGenerator {
                 .collect(Collectors.toList());
         readRoles.removeAll(readExtensionRoles);
 
-//        if (!readRoles.isEmpty())
+        //        if (!readRoles.isEmpty())
         //            policies.add(new DomainPolicy("general read roles",
         //                    generateGeneralBasePolicyWithActions("general_read_roles", DomainActions.READ_ONLY
         //                            .getActionList(), readRoles).toString(), "general_read_roles"

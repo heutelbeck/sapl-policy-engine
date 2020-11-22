@@ -3,7 +3,7 @@ package io.sapl.benchmark;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(scanBasePackages = {"io.sapl"})
+@SpringBootApplication()
 public class SaplBenchmarkSpringbootApplication {
 
     public static void main(String[] args) {

@@ -1,11 +1,16 @@
 package io.sapl.generator;
 
+import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.reimpl.prp.PrpUpdateEvent;
+import io.sapl.reimpl.prp.PrpUpdateEventSource;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -107,6 +112,25 @@ public class DomainData {
         return List.copyOf(domainActions);
     }
 
+    @Bean
+    public PrpUpdateEventSource prpUpdateEventSource() {
+        return new PrpUpdateEventSource() {
+            @Override
+            public Flux<PrpUpdateEvent> getUpdates() {
+                return Flux.empty();
+            }
+
+            @Override
+            public void dispose() {
+
+            }
+        };
+    }
+
+    @Bean
+    public AttributeContext attributeContext() {
+        return new AnnotationAttributeContext();
+    }
 
     @Bean
     public Random dice() {
@@ -141,6 +165,11 @@ public class DomainData {
         this.domainResources = generateResources();
         this.domainSubjects = generateSubjects(this.domainRoles);
         this.domainActions = DomainActions.generateActionListByCount(this.getNumberOfActions());
+
+        if (domainRoles.isEmpty()) throw new RuntimeException("no roles were generated");
+        if (domainResources.isEmpty()) throw new RuntimeException("no resources were generated");
+        if (domainSubjects.isEmpty()) throw new RuntimeException("no subjects were generated");
+        if (domainActions.isEmpty()) throw new RuntimeException("no actions were generated");
 
         log.debug("generated {} roles", this.domainRoles.size());
         log.debug("generated {} resources", this.domainResources.size());
@@ -182,17 +211,17 @@ public class DomainData {
     private List<DomainSubject> generateSubjects(List<DomainRole> allRoles) {
         List<DomainSubject> subjects = new ArrayList<>();
 
-//        for (int i = 0; i < this.getNumberOfSubjects(); i++) {
-//            DomainSubject domainSubject = new DomainSubject(String.format("subject.%03d", i));
-//
-//            //assign subject random roles
-//            for (int j = 0; j < this.dice.nextInt(this.getLimitOfSubjectRoles()) + 1; j++) {
-//                DomainRole randomRole = getRandomElement(allRoles);
-//                domainSubject.getSubjectAuthorities().add(randomRole.getRoleName());
-//            }
-//
-//            subjects.add(domainSubject);
-//        }
+        for (int i = 0; i < this.getNumberOfSubjects(); i++) {
+            DomainSubject domainSubject = new DomainSubject(String.format("subject.%03d", i));
+
+            //assign subject random roles
+            for (int j = 0; j < this.dice.nextInt(this.getLimitOfSubjectRoles()) + 1; j++) {
+                DomainRole randomRole = getRandomElement(allRoles);
+                domainSubject.getSubjectAuthorities().add(randomRole.getRoleName());
+            }
+
+            subjects.add(domainSubject);
+        }
 
         return subjects;
     }
