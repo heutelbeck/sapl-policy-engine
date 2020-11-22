@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
 import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.LibraryFunctionProvider;
+import io.sapl.interpreter.pip.AttributeContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -44,7 +44,7 @@ public class AttributeContextAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public LibraryFunctionProvider attributeContext() throws InitializationException {
+	public AttributeContext attributeContext() throws InitializationException {
 		var ctx = new AnnotationAttributeContext();
 		for (var entry : policyInformationPoints) {
 			log.debug("loading Policy Information Point: {}", entry.getClass().getSimpleName());
