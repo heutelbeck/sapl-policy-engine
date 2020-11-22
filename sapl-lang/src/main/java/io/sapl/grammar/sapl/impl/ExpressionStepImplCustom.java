@@ -87,7 +87,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 		}
 		if (key.isNumber() && parentValue.isArray()) {
 			// This is an IndexStep equivalent
-			return IndexStepImplCustom.applyFilterStatement(key.decimalValue(), parentValue, ctx, relativeNode, stepId,
+			return IndexStepImplCustom.doApplyFilterStatement(key.decimalValue(), parentValue, ctx, relativeNode, stepId,
 					statement);
 		}
 		return Val.errorFlux("Type mismatch. Tried to access {} with {}", parentValue.getValType(), key.getValType());

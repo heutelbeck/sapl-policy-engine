@@ -89,7 +89,7 @@ public class SAPLImplCustom extends SAPLImpl {
 			addBasicImport(anImport, library, imports, subscriptionScopedEvaluationContext);
 	}
 
-	private void addBasicImport(Import anImport, String library, HashMap<String, String> imports,
+	private void addBasicImport(Import anImport, String library, Map<String, String> imports,
 			EvaluationContext subscriptionScopedEvaluationContext) {
 		var functionName = anImport.getFunctionName();
 		var fullyQualifiedFunctionName = String.join(".", library, functionName);

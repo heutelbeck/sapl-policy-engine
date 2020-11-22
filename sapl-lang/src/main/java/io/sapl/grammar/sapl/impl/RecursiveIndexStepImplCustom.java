@@ -77,11 +77,11 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 	@Override
 	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
 			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
-		return applyFilterStatement(index.intValue(), parentValue, ctx, relativeNode, stepId, statement);
+		return doApplyFilterStatement(index.intValue(), parentValue, ctx, relativeNode, stepId, statement);
 	}
 
-	private static Flux<Val> applyFilterStatement(int index, Val parentValue, EvaluationContext ctx, Val relativeNode,
-			int stepId, FilterStatement statement) {
+	private static Flux<Val> doApplyFilterStatement(int index, Val parentValue, EvaluationContext ctx, Val relativeNode,
+													int stepId, FilterStatement statement) {
 		log.trace("apply index step [{}] to: {}", index, parentValue);
 		if (parentValue.isObject()) {
 			return applyFilterStatementToObject(index, parentValue.getObjectNode(), ctx, relativeNode, stepId,
@@ -114,7 +114,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 				}
 			} else {
 				log.trace("array element not an object. Do recusive search for first match.");
-				elementFluxes.add(applyFilterStatement(index, Val.of(element), ctx, relativeNode, stepId, statement));
+				elementFluxes.add(doApplyFilterStatement(index, Val.of(element), ctx, relativeNode, stepId, statement));
 			}
 		}
 		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
@@ -127,7 +127,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 		while (fields.hasNext()) {
 			var field = fields.next();
 			log.trace("recusion for field {}", field);
-			fieldFluxes.add(applyFilterStatement(idx, Val.of(field.getValue()), ctx, relativeNode, stepId, statement)
+			fieldFluxes.add(doApplyFilterStatement(idx, Val.of(field.getValue()), ctx, relativeNode, stepId, statement)
 					.map(val -> Tuples.of(field.getKey(), val)));
 		}
 		return Flux.combineLatest(fieldFluxes, RepackageUtil::recombineObject);

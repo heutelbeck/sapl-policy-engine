@@ -18,7 +18,7 @@ package io.sapl.grammar.sapl.impl;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.core.TreeNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
@@ -57,7 +57,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 		return Flux.just(Val.of(array.get(idx)));
 	}
 
-	private static int normalizeIndex(BigDecimal index, ArrayNode array) {
+	private static int normalizeIndex(BigDecimal index, TreeNode array) {
 		// handle negative index values
 		var idx = index.intValue();
 		if (idx < 0) {
@@ -69,11 +69,11 @@ public class IndexStepImplCustom extends IndexStepImpl {
 	@Override
 	public Flux<Val> applyFilterStatement(@NonNull Val parentValue, @NonNull EvaluationContext ctx,
 			@NonNull Val relativeNode, int stepId, @NonNull FilterStatement statement) {
-		return applyFilterStatement(index, parentValue, ctx, relativeNode, stepId, statement);
+		return doApplyFilterStatement(index, parentValue, ctx, relativeNode, stepId, statement);
 	}
 
-	public static Flux<Val> applyFilterStatement(BigDecimal index, Val parentValue, EvaluationContext ctx,
-			Val relativeNode, int stepId, FilterStatement statement) {
+	public static Flux<Val> doApplyFilterStatement(BigDecimal index, Val parentValue, EvaluationContext ctx,
+												   Val relativeNode, int stepId, FilterStatement statement) {
 		log.trace("apply index step [{}] to: {}", index, parentValue);
 		if (!parentValue.isArray()) {
 			// this means the element does not get selected does not get filtered
