@@ -53,7 +53,7 @@ public class PolicyDecisionPointFactory {
 
 	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(String path)
 			throws InitializationException {
-		return filesystemPolicyDecisionPoint(path, new ArrayList<Object>(1), new ArrayList<Object>(1));
+		return filesystemPolicyDecisionPoint(path, new ArrayList<>(1), new ArrayList<>(1));
 	}
 
 	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(Collection<Object> policyInformationPoints,
@@ -81,7 +81,7 @@ public class PolicyDecisionPointFactory {
 	}
 
 	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(String path) throws InitializationException {
-		return resourcesPolicyDecisionPoint(path, new ArrayList<Object>(1), new ArrayList<Object>(1));
+		return resourcesPolicyDecisionPoint(path, new ArrayList<>(1), new ArrayList<>(1));
 	}
 
 	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(String path,

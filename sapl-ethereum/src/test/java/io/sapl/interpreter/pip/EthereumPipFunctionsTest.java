@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Test;
@@ -326,7 +327,7 @@ public class EthereumPipFunctionsTest {
 		inputParam.put(VALUE, Long.valueOf(9786135));
 		String encodedFunction = createFunctionFromApi(inputParam);
 		String encodedTestFunction = createEncodedTestFunction(
-				new org.web3j.abi.datatypes.primitive.Long(Long.valueOf(9786135)));
+				new org.web3j.abi.datatypes.primitive.Long(9786135L));
 		assertEquals("ConvertToType didn't return the Long correctly.", encodedTestFunction, encodedFunction);
 	}
 
@@ -338,7 +339,7 @@ public class EthereumPipFunctionsTest {
 		inputParam.put(VALUE, Short.valueOf("111"));
 		String encodedFunction = createFunctionFromApi(inputParam);
 		String encodedTestFunction = createEncodedTestFunction(
-				new org.web3j.abi.datatypes.primitive.Short(Short.valueOf("111")));
+				new org.web3j.abi.datatypes.primitive.Short(Short.parseShort("111")));
 		assertEquals("ConvertToType didn't return the Short correctly.", encodedTestFunction, encodedFunction);
 	}
 
@@ -1356,14 +1357,14 @@ public class EthereumPipFunctionsTest {
 		saplObject.put(TO_BLOCK, TEST_TO_BLOCK);
 		saplObject.set(ADDRESS, JSON.arrayNode().add(TEST_ADDRESS));
 		EthFilter filter = getEthFilterFrom(saplObject);
-		EthFilter testFilter = getTestEthFilter(TEST_FROM_BLOCK, TEST_TO_BLOCK, Arrays.asList(TEST_ADDRESS));
+		EthFilter testFilter = getTestEthFilter(TEST_FROM_BLOCK, TEST_TO_BLOCK, Collections.singletonList(TEST_ADDRESS));
 		assertTrue("The getEthFilterFrom method didn't return the correct filter.",
 				filtersAreEqual(testFilter, filter));
 	}
 
 	@Test
 	public void getEthFilterFromCanBeUsedWithMappedFilter() {
-		EthFilter testFilter = getTestEthFilter(TEST_FROM_BLOCK, TEST_TO_BLOCK, Arrays.asList(TEST_ADDRESS));
+		EthFilter testFilter = getTestEthFilter(TEST_FROM_BLOCK, TEST_TO_BLOCK, Collections.singletonList(TEST_ADDRESS));
 		JsonNode saplObject = mapper.convertValue(testFilter, JsonNode.class);
 		EthFilter filter = getEthFilterFrom(saplObject);
 		assertTrue("The getEthFilterFrom method didn't return the correct filter.",
@@ -1419,8 +1420,8 @@ public class EthereumPipFunctionsTest {
 	}
 
 	private static String createEncodedTestFunction(Type<?> inputParam) throws ClassNotFoundException {
-		Function testFunction = new Function(TEST_FUNCTION_NAME, Arrays.asList(inputParam),
-				Arrays.asList(TypeReference.makeTypeReference(BOOL)));
+		Function testFunction = new Function(TEST_FUNCTION_NAME, Collections.singletonList(inputParam),
+				Collections.singletonList(TypeReference.makeTypeReference(BOOL)));
 		return createEncodedFunction(testFunction);
 	}
 

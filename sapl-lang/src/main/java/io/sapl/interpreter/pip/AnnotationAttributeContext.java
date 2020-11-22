@@ -65,11 +65,9 @@ public class AnnotationAttributeContext implements AttributeContext {
 	private static final String SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP = "Second parameter of method must be a Map<String, JsonNode>. Was: %s";
 	private static final String RETURN_TYPE_MUST_BE_FLUX_OF_VALUES = "The return type of an attribute finder must be Flux<Val>. Was: %s";
 
-	private Map<String, Collection<String>> attributeNamesByPipName = new HashMap<>();
-
-	private Map<String, AttributeFinderMetadata> attributeMetadataByAttributeName = new HashMap<>();
-
-	private Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
+	private final Map<String, Collection<String>> attributeNamesByPipName = new HashMap<>();
+	private final Map<String, AttributeFinderMetadata> attributeMetadataByAttributeName = new HashMap<>();
+	private final Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
 
 	/**
 	 * Create the attribute context from a list of PIPs

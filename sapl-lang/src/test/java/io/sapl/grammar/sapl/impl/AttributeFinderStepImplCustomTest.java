@@ -39,9 +39,9 @@ import reactor.test.StepVerifier;
 
 public class AttributeFinderStepImplCustomTest {
 
-	private static SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
-	private static String ATTRIBUTE = "attribute";
-	private static String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
+	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+	private static final String ATTRIBUTE = "attribute";
+	private static final String FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
 
 	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 

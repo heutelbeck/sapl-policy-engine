@@ -50,7 +50,7 @@ import reactor.core.publisher.ReplayProcessor;
 @Component
 @RequiredArgsConstructor
 public class CEServerPDPConfigurationProvider implements PDPConfigurationProvider, PDPConfigurationPublisher {
-	private static JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Autowired
 	private AttributeContext attributeCtx;
@@ -103,9 +103,9 @@ public class CEServerPDPConfigurationProvider implements PDPConfigurationProvide
 	}
 
 	private static Map<String, JsonNode> generateVariablesAsMap(@NonNull Collection<Variable> variables) {
-		Map<String, JsonNode> variablesAsMap = new HashMap<String, JsonNode>();
+		Map<String, JsonNode> variablesAsMap = new HashMap<>();
 		for (Variable variable : variables) {
-			variablesAsMap.put(variable.getName(), jsonNodeFactory.textNode(variable.getJsonValue()));
+			variablesAsMap.put(variable.getName(), JSON.textNode(variable.getJsonValue()));
 		}
 
 		return variablesAsMap;
@@ -117,13 +117,13 @@ public class CEServerPDPConfigurationProvider implements PDPConfigurationProvide
 				.<PolicyDocumentCombiningAlgorithm>create();
 		this.documentCombiningAlgorithmFluxSink = combiningAlgorithmProcessor.sink();
 		this.documentsCombinator = combiningAlgorithmProcessor.map(
-				(PolicyDocumentCombiningAlgorithm algorithm) -> DocumentsCombinatorFactory.getCombinator(algorithm))
+				DocumentsCombinatorFactory::getCombinator)
 				.share().cache();
 		this.monitorAlgorithm = this.documentsCombinator.subscribe();
 
 		ReplayProcessor<Collection<Variable>> variablesProcessor = ReplayProcessor.<Collection<Variable>>create();
 		this.variableFluxSink = variablesProcessor.sink();
-		this.variables = variablesProcessor.map((Collection<Variable> variables) -> generateVariablesAsMap(variables))
+		this.variables = variablesProcessor.map(CEServerPDPConfigurationProvider::generateVariablesAsMap)
 				.share().cache();
 		this.monitorVariables = this.variables.subscribe();
 		// @formatter:on

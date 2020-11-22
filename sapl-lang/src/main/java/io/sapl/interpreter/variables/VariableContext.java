@@ -34,7 +34,7 @@ public class VariableContext {
 	private static final String ENVIRONMENT = "environment";
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private Map<String, JsonNode> variables;
+	private final Map<String, JsonNode> variables;
 
 	public VariableContext(Map<String, JsonNode> environmentVariables) {
 		variables = new HashMap<>(environmentVariables.size());

@@ -36,12 +36,9 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 public class DenyUnlessPermitTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-
-	private static JsonNodeFactory JSON = JsonNodeFactory.instance;
-
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthorizationSubscription(null, null,
 			null, null);
-
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
 			null, null, JSON.booleanNode(true), null);
 

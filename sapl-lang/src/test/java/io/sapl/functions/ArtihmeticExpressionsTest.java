@@ -44,7 +44,7 @@ public class ArtihmeticExpressionsTest {
 	}
 
 	@Test
-	@Ignore
+	@Ignore /* This test highlights a problem to be solved */
 	public void oneMinusOne_IsNull() throws IOException {
 		// Parser   : BasicsValue -> value 1
 		// Expected : ( 1 - 1 )
@@ -52,7 +52,7 @@ public class ArtihmeticExpressionsTest {
 
 	}
 	@Test
-	@Ignore
+	@Ignore  /* This test highlights a problem to be solved */
 	public void unaryPlus_IsImplemented() throws IOException {
 		// Parser   : ( (1 + nullPointer) + ((2)) )
 		// Expected : ( 1 + (UNARY_PLUS ((2))) )
@@ -60,7 +60,7 @@ public class ArtihmeticExpressionsTest {
 	}
 
 	@Test
-	@Ignore
+	@Ignore  /* This test highlights a problem to be solved */
 	public void noSpacesPlusAndMinusEvaluates() throws IOException {
 		// Parser   :  ( 5 + 5 )
 		// Expected : ( (5+5) - 3 )

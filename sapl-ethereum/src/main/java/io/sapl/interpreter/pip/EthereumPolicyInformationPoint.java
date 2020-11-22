@@ -100,7 +100,7 @@ public class EthereumPolicyInformationPoint {
 	private static final String VERIFY_TRANSACTION_WARNING = "There was an error during verifyTransaction. By default false is returned but the transaction could have taken place.";
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final String ETH_POLLING_INTERVAL = "ethPollingInterval";
-	private Web3j web3j;
+	private final Web3j web3j;
 
 	public EthereumPolicyInformationPoint() {
 		this(Web3j.build(new HttpService()));

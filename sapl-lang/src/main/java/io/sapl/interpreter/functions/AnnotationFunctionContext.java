@@ -50,9 +50,10 @@ public class AnnotationFunctionContext implements FunctionContext {
 	private static final String ILLEGAL_NUMBER_OF_PARAMETERS = "Illegal number of parameters. Function expected %d but got %d";
 	private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION = "Provided class has no @FunctionLibrary annotation.";
 	private static final String ILLEGAL_PARAMETER_FOR_IMPORT = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
-	private Collection<LibraryDocumentation> documentation = new LinkedList<>();
-	private Map<String, FunctionMetadata> functions = new HashMap<>();
-	private Map<String, Collection<String>> libraries = new HashMap<>();
+
+	private final Collection<LibraryDocumentation> documentation = new LinkedList<>();
+	private final Map<String, FunctionMetadata> functions = new HashMap<>();
+	private final Map<String, Collection<String>> libraries = new HashMap<>();
 
 	/**
 	 * Create context from a list of function libraries.
@@ -79,8 +80,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (metadata.getPararmeterCardinality() == -1) {
 				// function is a varargs function
 				// all args are validated against the same annotation if present
-				for (int i = 0; i < parameters.length; i++) {
-					ParameterTypeValidator.validateType(parameters[i], funParams[0]);
+				for (Val parameter : parameters) {
+					ParameterTypeValidator.validateType(parameter, funParams[0]);
 				}
 				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), new Object[] { parameters });
 			} else if (metadata.getPararmeterCardinality() == parameters.length) {

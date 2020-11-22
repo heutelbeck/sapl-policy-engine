@@ -452,9 +452,9 @@ public class EthereumIntegrationTest {
 	@Test
 	public void ethAccountsShouldReturnTheCorrectValue() throws IOException {
 
-		List<JsonNode> result = new ArrayList<JsonNode>();
+		List<JsonNode> result = new ArrayList<>();
 		ethPip.ethAccounts(null, null).blockFirst().get().elements().forEachRemaining(result::add);
-		List<String> pipResult = result.stream().map(s -> s.toString()).collect(Collectors.toList());
+		List<String> pipResult = result.stream().map(JsonNode::toString).collect(Collectors.toList());
 		List<String> web3jResult = web3j.ethAccounts().send().getAccounts();
 		assertEquals("The accounts method did not return the correct accounts.", web3jResult, pipResult);
 	}

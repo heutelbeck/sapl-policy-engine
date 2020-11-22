@@ -54,9 +54,7 @@ public class FunctionUtil {
 			Val leftHandArgument, Val... parameters) {
 		Val[] mergedParameters = new Val[parameters.length + 1];
 		mergedParameters[0] = leftHandArgument;
-		for (int i = 0; i < parameters.length; i++) {
-			mergedParameters[i + 1] = parameters[i];
-		}
+        System.arraycopy(parameters, 0, mergedParameters, 1, parameters.length);
 		return evaluateFunctionMono(functionName, ctx, mergedParameters);
 	}
 

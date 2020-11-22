@@ -49,8 +49,9 @@ public class OnlyOneApplicableTest {
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
 			null, null, JSON.booleanNode(true), null);
 
+	private final OnlyOneApplicableCombinator combinator = new OnlyOneApplicableCombinator();
+
 	private EvaluationContext evaluationCtx;
-	private OnlyOneApplicableCombinator combinator = new OnlyOneApplicableCombinator();
 
 	@Before
 	public void setUp() {
@@ -61,14 +62,14 @@ public class OnlyOneApplicableTest {
 
 	@Test
 	public void combineDocumentsOneDeny() {
-		var given = mockPolicyRetrievalResult(false, new AuthorizationDecision[] { AuthorizationDecision.DENY });
+		var given = mockPolicyRetrievalResult(false, AuthorizationDecision.DENY);
 		var expected = AuthorizationDecision.DENY;
 		verifyDocumentsCombinator(given, expected);
 	}
 
 	@Test
 	public void combineDocumentsOnePermit() {
-		var given = mockPolicyRetrievalResult(false, new AuthorizationDecision[] { AuthorizationDecision.PERMIT });
+		var given = mockPolicyRetrievalResult(false, AuthorizationDecision.PERMIT);
 		var expected = AuthorizationDecision.PERMIT;
 		verifyDocumentsCombinator(given, expected);
 	}
@@ -76,7 +77,7 @@ public class OnlyOneApplicableTest {
 	@Test
 	public void combineDocumentsOneIndeterminate() {
 		var given = mockPolicyRetrievalResult(false,
-				new AuthorizationDecision[] { AuthorizationDecision.INDETERMINATE });
+				AuthorizationDecision.INDETERMINATE);
 		var expected = AuthorizationDecision.INDETERMINATE;
 		verifyDocumentsCombinator(given, expected);
 	}
@@ -84,37 +85,37 @@ public class OnlyOneApplicableTest {
 	@Test
 	public void combineDocumentsOneNotApplicable() {
 		var given = mockPolicyRetrievalResult(false,
-				new AuthorizationDecision[] { AuthorizationDecision.NOT_APPLICABLE });
+				AuthorizationDecision.NOT_APPLICABLE);
 		var expected = AuthorizationDecision.NOT_APPLICABLE;
 		verifyDocumentsCombinator(given, expected);
 	}
 
 	@Test
 	public void combineDocumentsNoDocs() {
-		var given = mockPolicyRetrievalResult(false, new AuthorizationDecision[] {});
+		var given = mockPolicyRetrievalResult(false);
 		var expected = AuthorizationDecision.NOT_APPLICABLE;
 		verifyDocumentsCombinator(given, expected);
 	}
 
 	@Test
 	public void combineDocumentsNoDocsButError() {
-		var given = mockPolicyRetrievalResult(true, new AuthorizationDecision[] {});
+		var given = mockPolicyRetrievalResult(true);
 		var expected = AuthorizationDecision.INDETERMINATE;
 		verifyDocumentsCombinator(given, expected);
 	}
 
 	@Test
 	public void combineDocumentsMoreDocsWithError() {
-		var given = mockPolicyRetrievalResult(true, new AuthorizationDecision[] { AuthorizationDecision.DENY,
-				AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.PERMIT });
+		var given = mockPolicyRetrievalResult(true, AuthorizationDecision.DENY,
+				AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.PERMIT);
 		var expected = AuthorizationDecision.INDETERMINATE;
 		verifyDocumentsCombinator(given, expected);
 	}
 
 	@Test
 	public void combineDocumentsMoreDocs() {
-		var given = mockPolicyRetrievalResult(false, new AuthorizationDecision[] { AuthorizationDecision.DENY,
-				AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.PERMIT });
+		var given = mockPolicyRetrievalResult(false, AuthorizationDecision.DENY,
+				AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.PERMIT);
 		var expected = AuthorizationDecision.INDETERMINATE;
 		verifyDocumentsCombinator(given, expected);
 	}

@@ -37,7 +37,7 @@ public class EvaluableEvaluateNullCheckTest {
 
 	private final static EvaluationContext CTX = mock(EvaluationContext.class);
 
-	private Evaluable evaluable;
+	private final Evaluable evaluable;
 
 	public EvaluableEvaluateNullCheckTest(Evaluable evaluable) {
 		this.evaluable = evaluable;
@@ -48,7 +48,7 @@ public class EvaluableEvaluateNullCheckTest {
 			IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		var reflections = new Reflections("io.sapl.grammar.sapl.impl");
 		var classes = reflections.getSubTypesOf(Evaluable.class);
-		List<Object> instances = new ArrayList<Object>(classes.size());
+		List<Object> instances = new ArrayList<>(classes.size());
 		for (var clazz : classes) {
 			if (clazz.getSimpleName().endsWith("ImplCustom")
 					&& !clazz.getSimpleName().equals("BasicExpressionImplCustom")) {

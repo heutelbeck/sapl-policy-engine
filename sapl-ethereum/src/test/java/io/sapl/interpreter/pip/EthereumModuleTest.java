@@ -23,11 +23,7 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.junit.Before;
@@ -448,9 +444,9 @@ public class EthereumModuleTest {
 		List<String> accountList = Arrays.asList(USER1_ADDRESS, USER2_ADDRESS, USER3_ADDRESS);
 		when(web3j.ethAccounts().send().getAccounts()).thenReturn(accountList);
 
-		List<JsonNode> result = new ArrayList<JsonNode>();
+		List<JsonNode> result = new ArrayList<>();
 		ethPip.ethAccounts(null, null).blockFirst().get().elements().forEachRemaining(result::add);
-		List<String> pipResult = result.stream().map(s -> s.textValue()).collect(Collectors.toList());
+		List<String> pipResult = result.stream().map(JsonNode::textValue).collect(Collectors.toList());
 
 		assertEquals("The accounts method did not return the correct accounts.", accountList, pipResult);
 	}
@@ -783,7 +779,7 @@ public class EthereumModuleTest {
 	public void ethGetFilterChangesShouldReturnTheCorrectValue() throws IOException {
 
 		BigInteger filterId = BigInteger.valueOf(15L);
-		when(web3j.ethGetFilterChanges(filterId).send().getLogs()).thenReturn(Arrays.asList(createLogObject()));
+		when(web3j.ethGetFilterChanges(filterId).send().getLogs()).thenReturn(Collections.singletonList(createLogObject()));
 
 		ObjectNode saplObject = JSON.objectNode();
 		saplObject.put(FILTER_ID, filterId);
@@ -793,7 +789,7 @@ public class EthereumModuleTest {
 			pipResult.add(json.toString());
 		}
 
-		List<String> logStringList = Arrays.asList(mapper.convertValue(createLogObject(), JsonNode.class).toString());
+		List<String> logStringList = Collections.singletonList(mapper.convertValue(createLogObject(), JsonNode.class).toString());
 
 		assertEquals("The ethGetFilterChanges method did not return the correct value.", logStringList, pipResult);
 	}
@@ -806,7 +802,7 @@ public class EthereumModuleTest {
 		ObjectNode saplObject = JSON.objectNode();
 		saplObject.put(FILTER_ID, filterId);
 
-		when(web3j.ethGetFilterLogs(filterId).send().getLogs()).thenReturn(Arrays.asList(createLogObject()));
+		when(web3j.ethGetFilterLogs(filterId).send().getLogs()).thenReturn(Collections.singletonList(createLogObject()));
 
 		JsonNode pipList = ethPip.ethGetFilterLogs(Val.of(saplObject), null).blockFirst().get();
 		List<String> pipResult = new ArrayList<>();
@@ -814,7 +810,7 @@ public class EthereumModuleTest {
 			pipResult.add(json.toString());
 		}
 
-		List<String> logStringList = Arrays.asList(mapper.convertValue(createLogObject(), JsonNode.class).toString());
+		List<String> logStringList = Collections.singletonList(mapper.convertValue(createLogObject(), JsonNode.class).toString());
 
 		assertEquals("The ethGetFilterLogs method did not return the correct value.", logStringList, pipResult);
 	}
@@ -827,7 +823,7 @@ public class EthereumModuleTest {
 
 		mockStatic(EthereumPipFunctions.class);
 		when(EthereumPipFunctions.getEthFilterFrom(saplObject)).thenReturn(filter);
-		when(web3j.ethGetLogs(filter).send().getLogs()).thenReturn(Arrays.asList(createLogObject()));
+		when(web3j.ethGetLogs(filter).send().getLogs()).thenReturn(Collections.singletonList(createLogObject()));
 
 		JsonNode pipList = ethPip.ethGetLogs(Val.of(saplObject), null).blockFirst().get();
 		List<String> pipResult = new ArrayList<>();
@@ -835,7 +831,7 @@ public class EthereumModuleTest {
 			pipResult.add(json.toString());
 		}
 
-		List<String> logStringList = Arrays.asList(mapper.convertValue(createLogObject(), JsonNode.class).toString());
+		List<String> logStringList = Collections.singletonList(mapper.convertValue(createLogObject(), JsonNode.class).toString());
 
 		assertEquals("The ethGetFilterLogs method did not return the correct value.", logStringList, pipResult);
 	}
@@ -944,7 +940,7 @@ public class EthereumModuleTest {
 		return new SshMessage("0x33eb2da77bf3527e28f8bf493650b1879b08c4f2a362beae4ba2f71bafcd91f9",
 				"0xc931d93e97ab07fe42d923478ba2465f283f440fd6cabea4dd7a2c807108f651b7135d1d6ca9007d5b68aa497e4619ac10aa3b27726e1863c1fd9b570d99bbaf",
 				"0x04f96a5e25610293e42a73908e93ccc8c4d4dc0edcfa9fa872f50cb214e08ebf61a03e245533f97284d442460f2998cd41858798ddfd4d661997d3940272b717b1",
-				"0x54caa50a", "0x64", "0x54ca9ea2", Arrays.asList("0x6578616d"), "0x12345678", "0x0");
+				"0x54caa50a", "0x64", "0x54ca9ea2", Collections.singletonList("0x6578616d"), "0x12345678", "0x0");
 	}
 
 	private static LogObject createLogObject() {
@@ -952,7 +948,7 @@ public class EthereumModuleTest {
 				"0x8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcfdf829c5a142f1fccd7d", "0x1b4",
 				"0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d",
 				"0x0000000000000000000000000000000000000000000000000000000000000000", "0x0",
-				Arrays.asList("0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5"));
+				Collections.singletonList("0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5"));
 	}
 
 	private static List<String> getEthWorkList() {
@@ -962,7 +958,7 @@ public class EthereumModuleTest {
 	}
 
 	private static Block createTestBlock() {
-		List<String> stringList = new ArrayList<String>();
+		List<String> stringList = new ArrayList<>();
 		return new Block("0x512349", TEST_DATA_BLOCKHASH,
 				"0x752f55ad698ae0c96f5d0d78038e755c5d2c45668c5b54289e4d317a80ab8e2b", "0x14359298949513203460",
 				"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -972,7 +968,7 @@ public class EthereumModuleTest {
 				"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421", null,
 				"0xfe3b557e8fb62b89f4916b721be55ceb828dbd73", null, "0x100", "0x128536", "0x", "0x514",
 				"0x9007199254740991", "0x0", "0x1578657799",
-				Arrays.asList(createTransactionObject()).stream().collect(Collectors.toList()), stringList, null);
+				Collections.singletonList(createTransactionObject()).stream().collect(Collectors.toList()), stringList, null);
 	}
 
 	private static TransactionObject createTransactionObject() {
@@ -1008,7 +1004,7 @@ public class EthereumModuleTest {
 		return new TransactionReceipt(TEST_DATA_RECEIPT_TRANSACTION_HASH, "0x0",
 				"0x6c544c576658b51a738245a3a006eca1614336e2cd6c5214da6597a609e1925e", "0x10", "0x21000", "0x21000",
 				null, null, "0x1", "0xfe3b557e8fb62b89f4916b721be55ceb828dbd73",
-				"0x627306090abab3a6e1400e9345bc60c78a8bef57", Arrays.asList(createLogObject()),
+				"0x627306090abab3a6e1400e9345bc60c78a8bef57", Collections.singletonList(createLogObject()),
 				"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
 	}
 

@@ -42,16 +42,13 @@ public class ConfirmUtils {
 		confirmDialog.setCloseOnEsc(false);
 		confirmDialog.setCloseOnOutsideClick(false);
 
-		dialogContent.setUserConfirmedListener(new UserConfirmedListener() {
-			@Override
-			public void onConfirmationSet(boolean isConfirmed) {
-				Runnable relevantRunnable = isConfirmed ? confirmedHandler : cancelledHandler;
-				if (relevantRunnable != null) {
-					relevantRunnable.run();
-				}
-
-				confirmDialog.close();
+		dialogContent.setUserConfirmedListener(isConfirmed -> {
+			Runnable relevantRunnable = isConfirmed ? confirmedHandler : cancelledHandler;
+			if (relevantRunnable != null) {
+				relevantRunnable.run();
 			}
+
+			confirmDialog.close();
 		});
 
 		confirmDialog.open();

@@ -39,7 +39,7 @@ public class StepApplyNullCheckAndErrorPropoagationTest {
 
 	private final static EvaluationContext CTX = mock(EvaluationContext.class);
 
-	private Step step;
+	private final Step step;
 
 	public StepApplyNullCheckAndErrorPropoagationTest(Step step) {
 		this.step = step;

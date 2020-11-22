@@ -51,34 +51,34 @@ public class PolicyDirectoryWatcherTest {
 		log.info("watchDir: {}", watchDir);
 		final DirectoryWatcher watcher = new DirectoryWatcher(watchDir);
 		final CountDownLatch cdl = new CountDownLatch(1);
-		watcher.watch(new DirectoryWatchEventConsumer<Path>() {
+		watcher.watch(new DirectoryWatchEventConsumer<>() {
 
-			private boolean isCanceled;
+            private boolean isCanceled;
 
-			@Override
-			public void onEvent(WatchEvent<Path> event) {
-				log.info("watch event of kind {} for path {}", event.kind().name(), event.context().toString());
-				Path filename = event.context();
-				if (filename.toString().equals("stop.sapl")) {
-					cancel();
-				}
-			}
+            @Override
+            public void onEvent(WatchEvent<Path> event) {
+                log.info("watch event of kind {} for path {}", event.kind().name(), event.context().toString());
+                Path filename = event.context();
+                if (filename.toString().equals("stop.sapl")) {
+                    cancel();
+                }
+            }
 
-			@Override
-			public void onComplete() {
-				cdl.countDown();
-			}
+            @Override
+            public void onComplete() {
+                cdl.countDown();
+            }
 
-			@Override
-			public void cancel() {
-				isCanceled = true;
-			}
+            @Override
+            public void cancel() {
+                isCanceled = true;
+            }
 
-			@Override
-			public boolean isCanceled() {
-				return isCanceled;
-			}
-		});
+            @Override
+            public boolean isCanceled() {
+                return isCanceled;
+            }
+        });
 		cdl.await();
 	}
 

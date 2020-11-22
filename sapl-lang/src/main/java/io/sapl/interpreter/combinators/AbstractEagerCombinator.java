@@ -44,7 +44,7 @@ public abstract class AbstractEagerCombinator implements DocumentsCombinator {
 			log.debug("| |-- Evaluate: {} ", document);
 			authzDecisionFluxes.add(document.evaluate(evaluationCtx));
 		}
-		if (matchingSaplDocuments == null || matchingSaplDocuments.isEmpty()) {
+		if (matchingSaplDocuments.isEmpty()) {
 			return Flux.just(combineDecisions(new AuthorizationDecision[0], policyRetrievalResult.isErrorsInTarget()));
 		}
 		return Flux

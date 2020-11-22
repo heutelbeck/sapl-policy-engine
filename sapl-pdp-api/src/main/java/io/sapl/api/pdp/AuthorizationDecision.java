@@ -106,10 +106,7 @@ public class AuthorizationDecision {
 		if (!thisOptional.isPresent()) {
 			return !otherOptional.isPresent();
 		}
-		if (!otherOptional.isPresent()) {
-			return false;
-		}
-		return thisOptional.get().equals(otherOptional.get());
+		return otherOptional.filter(o -> thisOptional.get().equals(o)).isPresent();
 	}
 
 	public AuthorizationDecision withObligations(ArrayNode newObligations) {
@@ -131,11 +128,11 @@ public class AuthorizationDecision {
 		final Object thisDecision = getDecision();
 		result = result * PRIME + (thisDecision == null ? 43 : thisDecision.hashCode());
 		final Optional<JsonNode> thisResource = getResource();
-		result = result * PRIME + thisResource.map(Object::hashCode).orElseGet(() -> 43);
+		result = result * PRIME + thisResource.map(Object::hashCode).orElse(43);
 		final Optional<ArrayNode> thisObligation = getObligations();
-		result = result * PRIME + thisObligation.map(Object::hashCode).orElseGet(() -> 43);
+		result = result * PRIME + thisObligation.map(Object::hashCode).orElse(43);
 		final Optional<ArrayNode> thisAdvice = getAdvices();
-		result = result * PRIME + thisAdvice.map(Object::hashCode).orElseGet(() -> 43);
+		result = result * PRIME + thisAdvice.map(Object::hashCode).orElse(43);
 		return result;
 	}
 

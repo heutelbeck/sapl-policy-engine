@@ -25,7 +25,7 @@ public class AnnotationFunctionContextTest {
 	@Test
 	public void testAutoconfigure() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
-		context.evaluate(MockLibrary.NAME + ".helloTest", new Val[0]);
+		context.evaluate(MockLibrary.NAME + ".helloTest");
 	}
 
 }

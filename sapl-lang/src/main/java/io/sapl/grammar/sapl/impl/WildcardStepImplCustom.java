@@ -85,7 +85,7 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 		var fields = object.fields();
 		while (fields.hasNext()) {
 			var field = fields.next();
-			log.trace("field matches .*: ", field);
+			log.trace("field matches .*: {}", field);
 			if (stepId == statement.getTarget().getSteps().size() - 1) {
 				// this was the final step. apply filter
 				log.trace("final step. select and filter!");
@@ -109,7 +109,7 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 		var elements = array.elements();
 		while (elements.hasNext()) {
 			var element = elements.next();
-			log.trace("element matches .*: ", element);
+			log.trace("element matches .*: {}", element);
 			if (stepId == statement.getTarget().getSteps().size() - 1) {
 				// this was the final step. apply filter
 				log.trace("final step. select and filter!");

@@ -84,9 +84,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		var iter = object.fields();
 		while (iter.hasNext()) {
 			var field = iter.next();
-			itemFluxes.add(getExpression().evaluate(ctx, Val.of(field.getValue())).map(expressionResult -> {
-				return Tuples.of(field.getValue(), expressionResult);
-			}));
+			itemFluxes.add(getExpression().evaluate(ctx, Val.of(field.getValue())).map(expressionResult -> Tuples.of(field.getValue(), expressionResult)));
 		}
 		return packageResultsInArray(itemFluxes);
 	}
@@ -99,9 +97,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<Tuple2<JsonNode, Val>>> itemFluxes = new ArrayList<>(arrayNode.size());
 		for (var value : arrayNode) {
-			itemFluxes.add(getExpression().evaluate(ctx, Val.of(value)).map(expressionResult -> {
-				return Tuples.of(value, expressionResult);
-			}));
+			itemFluxes.add(getExpression().evaluate(ctx, Val.of(value)).map(expressionResult -> Tuples.of(value, expressionResult)));
 		}
 		return packageResultsInArray(itemFluxes);
 	}
@@ -174,9 +170,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 				} else {
 					return Flux.just(Val.of(field.getValue()));
 				}
-			}).map(expressionResult -> {
-				return Tuples.of(field.getKey(), expressionResult);
-			}));
+			}).map(expressionResult -> Tuples.of(field.getKey(), expressionResult)));
 		}
 		return Flux.combineLatest(fieldFluxes, RepackageUtil::recombineObject);
 	}

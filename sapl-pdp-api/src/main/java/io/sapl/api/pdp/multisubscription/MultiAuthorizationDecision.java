@@ -46,7 +46,7 @@ import lombok.Value;
 public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthorizationDecision> {
 
 	@JsonInclude(NON_EMPTY)
-	private Map<String, AuthorizationDecision> authorizationDecisions = new HashMap<>();
+	Map<String, AuthorizationDecision> authorizationDecisions = new HashMap<>();
 
 	public static MultiAuthorizationDecision indeterminate() {
 		final MultiAuthorizationDecision multiAuthzDecision = new MultiAuthorizationDecision();

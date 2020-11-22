@@ -24,7 +24,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class BasicExpressionImplCustomTest {
 
-	private static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
+	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
 	public void basicExpressionWithStep() {

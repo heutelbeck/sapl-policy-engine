@@ -63,12 +63,10 @@ public class FilterFunctionLibrary {
 
 		StringBuilder result = new StringBuilder();
 		if (discloseLeft > 0) {
-			result.append(originalString.substring(0, discloseLeft));
+			result.append(originalString, 0, discloseLeft);
 		}
 		int replacedChars = originalString.length() - discloseLeft - discloseRight;
-		for (int i = 0; i < replacedChars; i++) {
-			result.append(replacement);
-		}
+		result.append(String.valueOf(replacement).repeat(Math.max(0, replacedChars)));
 		if (discloseRight > 0) {
 			result.append(originalString.substring(discloseLeft + replacedChars));
 		}

@@ -54,7 +54,7 @@ public class TemporalFunctionLibraryTest {
 	static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
 	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
-	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>());
+	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES);
 

@@ -259,6 +259,6 @@ public class CanonicalIndexAlgorithmTest {
             literals.add(new Literal(new Bool(false)));
         }
 
-        return Arrays.asList(new ConjunctiveClause(literals));
+        return Collections.singletonList(new ConjunctiveClause(literals));
     }
 }

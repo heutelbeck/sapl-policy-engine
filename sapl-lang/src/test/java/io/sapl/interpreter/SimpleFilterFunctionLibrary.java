@@ -31,7 +31,7 @@ import io.sapl.api.validation.Text;
 @FunctionLibrary(name = "simplefilter", description = "some simple filter functions")
 public class SimpleFilterFunctionLibrary {
 
-	private Clock clock;
+	private final Clock clock;
 
 	public SimpleFilterFunctionLibrary(Clock clock) {
 		this.clock = clock;

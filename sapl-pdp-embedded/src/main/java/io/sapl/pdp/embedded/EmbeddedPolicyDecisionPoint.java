@@ -54,19 +54,15 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private Function<? super PDPConfiguration, Publisher<? extends AuthorizationDecision>> decideSubscription(
 			AuthorizationSubscription authzSubscription) {
-		return pdpConfiguration -> {
-			return Flux.just(pdpConfiguration.getPdpScopedEvaluationContext())
-					.map(createSubsctiptionScope(authzSubscription))
-					.switchMap(retrieveAndCombineDocuments(pdpConfiguration));
-		};
+		return pdpConfiguration -> Flux.just(pdpConfiguration.getPdpScopedEvaluationContext())
+				.map(createSubsctiptionScope(authzSubscription))
+				.switchMap(retrieveAndCombineDocuments(pdpConfiguration));
 	}
 
 	private Function<EvaluationContext, Publisher<? extends AuthorizationDecision>> retrieveAndCombineDocuments(
 			PDPConfiguration pdpConfiguration) {
-		return subscriptionScopedEvaluationContext -> {
-			return policyRetrievalPoint.retrievePolicies(subscriptionScopedEvaluationContext)
-					.switchMap(combineDocuments(pdpConfiguration, subscriptionScopedEvaluationContext));
-		};
+		return subscriptionScopedEvaluationContext -> policyRetrievalPoint.retrievePolicies(subscriptionScopedEvaluationContext)
+				.switchMap(combineDocuments(pdpConfiguration, subscriptionScopedEvaluationContext));
 	}
 
 	private Function<? super PolicyRetrievalResult, Publisher<? extends AuthorizationDecision>> combineDocuments(

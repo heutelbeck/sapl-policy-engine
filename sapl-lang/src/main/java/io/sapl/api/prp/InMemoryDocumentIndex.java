@@ -29,7 +29,7 @@ public interface InMemoryDocumentIndex {
 
 	void publish(String documentKey);
 
-	void unpublish(String documentKey);
+	void withdraw(String documentKey);
 
 	void updateFunctionContext(FunctionContext functionCtx);
 

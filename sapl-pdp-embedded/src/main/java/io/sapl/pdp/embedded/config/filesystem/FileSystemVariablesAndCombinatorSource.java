@@ -89,7 +89,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 	private PolicyDecisionPointConfiguration loadConfig() {
 		Path configurationFile = Paths.get(path, CONFIG_FILE_GLOB_PATTERN);
 		log.info("loading config from: {}", configurationFile.toAbsolutePath());
-		if (Files.notExists(configurationFile, new LinkOption[] { LinkOption.NOFOLLOW_LINKS })) {
+		if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
 			// If file does not exist, return default configuration
 			return new PolicyDecisionPointConfiguration();
 		}

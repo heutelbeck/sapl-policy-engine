@@ -49,21 +49,19 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 	public Mono<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext) {
 		var retrieval = Mono.just(new PolicyRetrievalResult());
 		for (SAPL document : documents.values()) {
-			retrieval = retrieval.flatMap(decision -> {
-				return document.matches(subscriptionScopedEvaluationContext).map(match -> {
-					if (match.isError()) {
-						return decision.withError();
-					}
-					if (!match.isBoolean()) {
-						log.error("matching returned error. (Should never happen): {}", match.getMessage());
-						return decision.withError();
-					}
-					if (match.getBoolean()) {
-						return decision.withMatch(document);
-					}
-					return decision;
-				});
-			});
+			retrieval = retrieval.flatMap(decision -> document.matches(subscriptionScopedEvaluationContext).map(match -> {
+				if (match.isError()) {
+					return decision.withError();
+				}
+				if (!match.isBoolean()) {
+					log.error("matching returned error. (Should never happen): {}", match.getMessage());
+					return decision.withError();
+				}
+				if (match.getBoolean()) {
+					return decision.withMatch(document);
+				}
+				return decision;
+			}));
 		}
 		return retrieval;
 	}

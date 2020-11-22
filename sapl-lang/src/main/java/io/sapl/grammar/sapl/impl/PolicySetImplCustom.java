@@ -88,11 +88,9 @@ public class PolicySetImplCustom extends PolicySetImpl {
 		if (valueDefinitions == null || valueDefinitionId == valueDefinitions.size()) {
 			return Flux::just;
 		}
-		return valueDefinitionSuccessAndScopedEvaluationContext -> {
-			return evaluateValueDefinition(valueDefinitionSuccessAndScopedEvaluationContext.getT1(),
-					valueDefinitions.get(valueDefinitionId), valueDefinitionSuccessAndScopedEvaluationContext.getT2())
-							.switchMap(evaluateValueDefinitions(valueDefinitionId + 1));
-		};
+		return valueDefinitionSuccessAndScopedEvaluationContext -> evaluateValueDefinition(valueDefinitionSuccessAndScopedEvaluationContext.getT1(),
+				valueDefinitions.get(valueDefinitionId), valueDefinitionSuccessAndScopedEvaluationContext.getT2())
+						.switchMap(evaluateValueDefinitions(valueDefinitionId + 1));
 	}
 
 	private Flux<Tuple2<Val, EvaluationContext>> evaluateValueDefinition(Val previousResult,

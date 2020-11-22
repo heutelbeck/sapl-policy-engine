@@ -43,7 +43,7 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Flux;
 
 public class MockUtil {
-	private static SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
+	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
 
 	public static void mockPolicyTargetExpressionContainerExpression(Expression expression) {
 		var policy = FACTORY.createPolicy();

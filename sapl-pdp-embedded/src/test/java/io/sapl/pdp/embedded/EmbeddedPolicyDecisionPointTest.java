@@ -40,7 +40,7 @@ public class EmbeddedPolicyDecisionPointTest {
 
 	@Before
 	public void setUp() throws Exception {
-		pdp = PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(List.of(new TestPIP()), new ArrayList<Object>());
+		pdp = PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(List.of(new TestPIP()), new ArrayList<>());
 	}
 
 	@Test

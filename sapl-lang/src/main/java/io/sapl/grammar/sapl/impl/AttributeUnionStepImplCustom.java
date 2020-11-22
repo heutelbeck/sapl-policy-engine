@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.interpreter.EvaluationContext;
@@ -51,24 +53,23 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 			return Val.errorFlux(UNION_TYPE_MISMATCH, parentValue);
 		}
 
-		var uniqueAttributes = uniqueAttributes();
+		var uniqueAttributes = removeDuplicates();
 		var parentObject = parentValue.get();
 		var result = Val.JSON.arrayNode();
 		for (var attribute : uniqueAttributes) {
-			if (parentObject.has(attribute)) {
-				result.add(parentObject.get(attribute));
-			}
+			addAttributeToResultIfPresent(attribute, parentObject, result);
 		}
 		return Flux.just(Val.of(result));
 	}
 
-	private Set<String> uniqueAttributes() {
-		// remove duplicates
-		var uniqueAttributes = new HashSet<String>();
-		for (var attribute : attributes) {
-			uniqueAttributes.add(attribute);
+	private static void addAttributeToResultIfPresent(String attribute, JsonNode parentObject, ArrayNode result) {
+		if (parentObject.has(attribute)) {
+			result.add(parentObject.get(attribute));
 		}
-		return uniqueAttributes;
+	}
+
+	private Set<String> removeDuplicates() {
+		return new HashSet<>(attributes);
 	}
 
 	@Override
@@ -79,7 +80,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 			// this means the element does not get selected does not get filtered
 			return Flux.just(parentValue);
 		}
-		var uniqueAttributes = uniqueAttributes();
+		var uniqueAttributes = removeDuplicates();
 		var object = parentValue.getObjectNode();
 		var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
 		var fields = object.fields();

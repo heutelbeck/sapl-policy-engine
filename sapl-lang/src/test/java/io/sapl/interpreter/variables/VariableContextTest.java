@@ -19,8 +19,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -86,7 +85,7 @@ public class VariableContextTest {
 		VariableContext ctx = new VariableContext(EMPTY_MAP);
 		ctx = ctx.forAuthorizationSubscription(AUTH_SUBSCRIPTION);
 		ctx = ctx.withEnvironmentVariable(VAR_ID, VAR_NODE.get());
-		assertTrue("var should be existing in freshly created context", ctx.get(VAR_ID).equals(VAR_NODE));
+		assertEquals("var should be existing in freshly created context", ctx.get(VAR_ID), VAR_NODE);
 	}
 
 	@Test
@@ -95,7 +94,7 @@ public class VariableContextTest {
 		ctx = ctx.forAuthorizationSubscription(AUTH_SUBSCRIPTION);
 		ctx = ctx.withEnvironmentVariable(VAR_ID, VAR_NODE.get());
 		ctx = ctx.withEnvironmentVariable(VAR_ID, VAR_NODE_NEW.get());
-		assertTrue("overwrites variables", ctx.get(VAR_ID).equals(VAR_NODE_NEW));
+		assertEquals("overwrites variables", ctx.get(VAR_ID), VAR_NODE_NEW);
 	}
 
 	@Test

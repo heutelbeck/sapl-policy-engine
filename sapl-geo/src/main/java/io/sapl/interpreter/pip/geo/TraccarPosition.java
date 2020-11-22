@@ -62,23 +62,11 @@ public class TraccarPosition {
 	private Object network;
 
 	public static int compareAscending(TraccarPosition a, TraccarPosition b) {
-		if (a.getId() > b.getId()) {
-			return +1;
-		} else if (a.getId() < b.getId()) {
-			return -1;
-		} else {
-			return 0;
-		}
+        return Integer.compare(a.getId(), b.getId());
 	}
 
 	public static int compareDescending(TraccarPosition a, TraccarPosition b) {
-		if (a.getId() > b.getId()) {
-			return -1;
-		} else if (a.getId() < b.getId()) {
-			return +1;
-		} else {
-			return 0;
-		}
+		return Integer.compare(b.getId(), a.getId());
 	}
 
 }

@@ -47,7 +47,7 @@ public class WebClientRequestExecutor {
 	private static final String NO_URL_PROVIDED = "No URL provided.";
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	private HttpClient httpClient;
+	private final HttpClient httpClient;
 
 	public WebClientRequestExecutor(HttpClient httpClient) {
 		this.httpClient = httpClient;

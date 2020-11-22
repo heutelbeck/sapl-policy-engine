@@ -31,7 +31,7 @@ import reactor.test.StepVerifier;
 
 public class ApplyStepsRecursiveWildcardTest {
 
-	private static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
+	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
 	public void stepPropagatesErrors() {

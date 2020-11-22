@@ -34,7 +34,7 @@ public class GenericInMemoryIndexedPolicyRetrievalPoint implements PolicyRetriev
 	public GenericInMemoryIndexedPolicyRetrievalPoint(ImmutableParsedDocumentIndex seedIndex,
 			PrpUpdateEventSource eventSource) {
 		this.eventSource = eventSource;
-		index = Flux.from(eventSource.getUpdates()).scan(seedIndex, (index, event) -> index.apply(event)).skip(1L)
+		index = Flux.from(eventSource.getUpdates()).scan(seedIndex, ImmutableParsedDocumentIndex::apply).skip(1L)
 				.share().cache();
 		// initial subscription, so that the index starts building upon startup
 		indexSubscription = index.subscribe();
