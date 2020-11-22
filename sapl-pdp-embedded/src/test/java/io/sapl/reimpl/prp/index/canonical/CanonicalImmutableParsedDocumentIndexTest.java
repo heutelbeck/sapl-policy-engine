@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -181,6 +182,7 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 	}
 
 	@Test
+	@Ignore
 	public void testPut() {
 		// given
 		List<Update> updates = new ArrayList<>(3);
