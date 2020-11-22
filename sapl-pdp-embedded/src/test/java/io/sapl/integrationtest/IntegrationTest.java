@@ -1,10 +1,11 @@
 package io.sapl.integrationtest;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
 import java.util.HashMap;
 
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -21,8 +22,6 @@ import io.sapl.reimpl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
 import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.reimpl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
-
-import static org.assertj.core.api.Assertions.*;
 
 public class IntegrationTest {
 
