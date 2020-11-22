@@ -27,9 +27,9 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class GenericInMemoryIndexedPolicyRetrievalPoint implements PolicyRetrievalPoint, Disposable {
 
-	private Flux<ImmutableParsedDocumentIndex> index;
-	private Disposable indexSubscription;
-	private PrpUpdateEventSource eventSource;
+	private final Flux<ImmutableParsedDocumentIndex> index;
+	private final Disposable indexSubscription;
+	private final PrpUpdateEventSource eventSource;
 
 	public GenericInMemoryIndexedPolicyRetrievalPoint(ImmutableParsedDocumentIndex seedIndex,
 			PrpUpdateEventSource eventSource) {

@@ -205,7 +205,7 @@ public class PolicyGenerator {
 	public AuthorizationSubscription createFullyRandomSubscription() {
 		ObjectNode resource = JsonNodeFactory.instance.objectNode();
 		for (String var : getVariables()) {
-			resource = resource.put(var, roll() < config.getFalseProbability() ? false : true);
+			resource = resource.put(var, !(roll() < config.getFalseProbability()));
 		}
 		return new AuthorizationSubscription(NullNode.getInstance(), NullNode.getInstance(), resource,
 				NullNode.getInstance());

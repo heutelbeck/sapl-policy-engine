@@ -68,7 +68,7 @@ public class DefaultSAPLInterpreterTest {
 	private AuthorizationSubscription authzSubscription;
 
 	@Before
-	public void setUp() throws JsonMappingException, JsonProcessingException, InitializationException {
+	public void setUp() throws JsonProcessingException, InitializationException {
 		Hooks.onOperatorDebug();
 		authzSubscription = MAPPER.readValue(AUTHZ_SUBSCRIPTION_JSON, AuthorizationSubscription.class);
 		var attributeCtx = new AnnotationAttributeContext();

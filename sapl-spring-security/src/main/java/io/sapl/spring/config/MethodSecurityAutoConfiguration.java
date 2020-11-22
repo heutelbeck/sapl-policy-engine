@@ -57,7 +57,7 @@ public class MethodSecurityAutoConfiguration extends GlobalMethodSecurityConfigu
 
 	@Override
 	protected AccessDecisionManager accessDecisionManager() {
-		List<AccessDecisionVoter<? extends Object>> decisionVoters = new ArrayList<>();
+		List<AccessDecisionVoter<?>> decisionVoters = new ArrayList<>();
 		PolicyBasedPreInvocationEnforcementAdvice policyAdvice = new PolicyBasedPreInvocationEnforcementAdvice(
 				pdpFactory, constraintHandlerFactory, objectMapperFactory);
 		policyAdvice.setExpressionHandler(getExpressionHandler());

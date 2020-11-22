@@ -101,8 +101,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 			return authentication;
 		} else {
 			// subject declared by expression
-			JsonNode exprResult = evaluateToJson(attr.getSubjectExpression(), ctx);
-			return exprResult;
+			return evaluateToJson(attr.getSubjectExpression(), ctx);
 		}
 	}
 
@@ -146,17 +145,14 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 			return retrieveAction(mi);
 		} else {
 			// action declared by expression
-			JsonNode exprResult = evaluateToJson(attr.getActionExpression(), ctx);
-			return exprResult;
+			return evaluateToJson(attr.getActionExpression(), ctx);
 		}
 	}
 
 	protected Object retrieveAction(MethodInvocation mi) {
 		ObjectNode actionNode = mapper.createObjectNode();
 		Optional<HttpServletRequest> httpServletRequest = retrieveRequestObject();
-		if (httpServletRequest.isPresent()) {
-			actionNode.set("http", mapper.valueToTree(httpServletRequest.get()));
-		}
+		httpServletRequest.ifPresent(servletRequest -> actionNode.set("http", mapper.valueToTree(servletRequest)));
 		actionNode.set("java", mapper.valueToTree(mi));
 
 		// Collect call arguments. not serializable => null
@@ -180,8 +176,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 			return retrieveResource(mi);
 		} else {
 			// declared by expression
-			JsonNode exprResult = evaluateToJson(attr.getResourceExpression(), ctx);
-			return exprResult;
+			return evaluateToJson(attr.getResourceExpression(), ctx);
 		}
 	}
 
@@ -190,10 +185,8 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		// runtime context
 		ObjectNode resourceNode = mapper.createObjectNode();
 		Optional<HttpServletRequest> httpServletRequest = retrieveRequestObject();
-		if (httpServletRequest.isPresent()) {
-			// The action is in the context of a HTTP request. Adding it to the resource.
-			resourceNode.set("http", mapper.valueToTree(httpServletRequest.get()));
-		}
+		// The action is in the context of a HTTP request. Adding it to the resource.
+		httpServletRequest.ifPresent(servletRequest -> resourceNode.set("http", mapper.valueToTree(servletRequest)));
 		JsonNode target = serializeTargetClassDescription(mi.getThis().getClass());
 		resourceNode.set("targetClass", target);
 		return resourceNode;

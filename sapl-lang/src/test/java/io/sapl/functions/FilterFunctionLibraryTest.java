@@ -149,7 +149,7 @@ public class FilterFunctionLibraryTest {
 	}
 
 	@Test
-	public void blackenInPolicy() throws JsonMappingException, JsonProcessingException {
+	public void blackenInPolicy() throws JsonProcessingException {
 		var authzSubscription = MAPPER.readValue("{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
 				AuthorizationSubscription.class);
 		var policyDefinition = "policy \"test\"	permit transform resource |- { @.key1 : filter.blacken(1) }";
@@ -168,7 +168,7 @@ public class FilterFunctionLibraryTest {
 	}
 
 	@Test
-	public void replaceInPolicy() throws JsonMappingException, JsonProcessingException {
+	public void replaceInPolicy() throws JsonProcessingException {
 		var authzSubscription = MAPPER.readValue("{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
 				AuthorizationSubscription.class);
 		var policyDefinition = "policy \"test\" permit transform resource |- { @.array[1] : filter.replace(\"***\"), @.key1 : filter.replace(null) }";

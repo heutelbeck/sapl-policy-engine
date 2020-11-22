@@ -46,7 +46,7 @@ public class PolicyImplCustomTest {
 	private EvaluationContext ctx;
 
 	@Before
-	public void setUp() throws JsonMappingException, JsonProcessingException, InitializationException {
+	public void setUp() throws JsonProcessingException, InitializationException {
 		Hooks.onOperatorDebug();
 		var attributeCtx = new AnnotationAttributeContext();
 		var functionCtx = new AnnotationFunctionContext();

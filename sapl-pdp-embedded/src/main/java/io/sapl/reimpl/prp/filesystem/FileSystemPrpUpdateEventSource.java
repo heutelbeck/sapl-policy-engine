@@ -61,8 +61,8 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
 	private final SAPLInterpreter interpreter;
 	private final Path watchDir;
-	private Scheduler dirWatcherScheduler;
-	private Flux<WatchEvent<Path>> dirWatcherFlux;
+	private final Scheduler dirWatcherScheduler;
+	private final Flux<WatchEvent<Path>> dirWatcherFlux;
 
 	public FileSystemPrpUpdateEventSource(String policyPath, SAPLInterpreter interpreter) {
 		this.interpreter = interpreter;

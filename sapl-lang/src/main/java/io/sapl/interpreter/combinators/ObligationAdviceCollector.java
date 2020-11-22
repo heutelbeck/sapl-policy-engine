@@ -29,8 +29,8 @@ public class ObligationAdviceCollector {
 
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	Map<Decision, ArrayNode> obligations = new EnumMap<>(Decision.class);
-	Map<Decision, ArrayNode> advices = new EnumMap<>(Decision.class);
+	final Map<Decision, ArrayNode> obligations = new EnumMap<>(Decision.class);
+	final Map<Decision, ArrayNode> advices = new EnumMap<>(Decision.class);
 
 	public ObligationAdviceCollector() {
 		obligations.put(Decision.DENY, JSON.arrayNode());

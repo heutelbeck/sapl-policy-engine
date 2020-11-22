@@ -17,7 +17,6 @@ package io.sapl.server.ce.views.utils.confirm;
 
 import com.vaadin.flow.component.dialog.Dialog;
 
-import io.sapl.server.ce.views.utils.confirm.CustomConfirmDialogContent.UserConfirmedListener;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 

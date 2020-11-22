@@ -16,7 +16,7 @@
 package io.sapl.vaadin;
 
 public class DocumentChangedEvent {
-	private String newValue;
+	private final String newValue;
 	
 	public DocumentChangedEvent(String newValue) {
 		this.newValue = newValue;

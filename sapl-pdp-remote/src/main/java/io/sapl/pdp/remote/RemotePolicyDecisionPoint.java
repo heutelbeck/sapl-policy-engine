@@ -39,7 +39,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	private static final String MULTI_DECIDE = "/api/pdp/multi-decide";
 	private static final String MULTI_DECIDE_ALL = "/api/pdp/multi-decide-all";
 
-	private WebClient client;
+	private final WebClient client;
 
 	public RemotePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret, SslContext sslContext)
 			throws SSLException {

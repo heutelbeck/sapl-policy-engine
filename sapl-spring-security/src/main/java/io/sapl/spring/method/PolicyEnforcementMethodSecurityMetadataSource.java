@@ -110,11 +110,7 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		// actually implement the method)
 		annotation = AnnotationUtils.findAnnotation(specificMethod.getDeclaringClass(), annotationClass);
 
-		if (annotation != null) {
-			return annotation;
-		}
-
-		return null;
+		return annotation;
 	}
 
 }

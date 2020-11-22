@@ -103,10 +103,7 @@ public class AuthorizationDecision {
 	}
 
 	private static boolean areEqual(Optional<?> thisOptional, Optional<?> otherOptional) {
-		if (!thisOptional.isPresent()) {
-			return !otherOptional.isPresent();
-		}
-		return otherOptional.filter(o -> thisOptional.get().equals(o)).isPresent();
+		return thisOptional.map(value -> otherOptional.filter(value::equals).isPresent()).orElseGet(otherOptional::isEmpty);
 	}
 
 	public AuthorizationDecision withObligations(ArrayNode newObligations) {

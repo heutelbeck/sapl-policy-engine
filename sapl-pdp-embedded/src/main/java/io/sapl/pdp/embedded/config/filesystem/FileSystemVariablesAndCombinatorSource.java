@@ -53,10 +53,9 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	private final String path;
-	private final Path watchDir;
-	private Scheduler dirWatcherScheduler;
-	private Flux<PolicyDecisionPointConfiguration> configFlux;
-	private Disposable monitorSubscription;
+	private final Scheduler dirWatcherScheduler;
+	private final Flux<PolicyDecisionPointConfiguration> configFlux;
+	private final Disposable monitorSubscription;
 
 	public FileSystemVariablesAndCombinatorSource(String configurationPath) {
 
@@ -69,7 +68,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 		} else {
 			path = configurationPath;
 		}
-		watchDir = Paths.get(path);
+		Path watchDir = Paths.get(path);
 
 		// Set up directory watcher
 		log.info("Monitor folder for config: {}", watchDir.toAbsolutePath());

@@ -28,7 +28,7 @@ import io.sapl.interpreter.EvaluationContext;
 
 public class EagerOperatorsTest {
 
-	EvaluationContext CTX = mock(EvaluationContext.class);
+	final EvaluationContext CTX = mock(EvaluationContext.class);
 
 	@Test
 	public void evaluateEagerAndFalseFalse() {

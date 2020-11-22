@@ -60,7 +60,7 @@ public class PrpUpdateEvent {
 
 	}
 
-	public static enum Type {
+	public enum Type {
 		PUBLISH, UNPUBLISH
 	}
 

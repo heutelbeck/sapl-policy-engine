@@ -63,7 +63,7 @@ public class TemporalFunctionLibraryTest {
 	static AuthorizationSubscription authzSubscriptionObj;
 
 	@BeforeClass
-	public static void beforeClass() throws InitializationException, JsonMappingException, JsonProcessingException {
+	public static void beforeClass() throws InitializationException, JsonProcessingException {
 		FUNCTION_CTX.loadLibrary(new StandardFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new TemporalFunctionLibrary());
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(new ClockPolicyInformationPoint());

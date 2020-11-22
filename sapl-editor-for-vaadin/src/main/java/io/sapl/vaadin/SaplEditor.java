@@ -34,7 +34,7 @@ import elemental.json.JsonObject;
 @NpmPackage(value = "codemirror", version = "5.51.0")
 public class SaplEditor extends BaseEditor {
 
-	private List<ValidationFinishedListener> validationFinishedListeners;
+	private final List<ValidationFinishedListener> validationFinishedListeners;
 	
 	public SaplEditor(SaplEditorConfiguration config) {
 		this.validationFinishedListeners = new ArrayList<>();

@@ -61,11 +61,11 @@ public class PermitOverridesTest {
 	public void permit() {
 		String policySet = "set \"tests\" permit-overrides" + " policy \"testp\" permit";
 		StepVerifier.create(INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx))
-				.expectNextMatches(isDecision(Decision.PERMIT)).verifyComplete();
+				.expectNextMatches(isDecision()).verifyComplete();
 	}
 
-	private Predicate<AuthorizationDecision> isDecision(Decision d) {
-		return ad -> ad.getDecision() == d;
+	private Predicate<AuthorizationDecision> isDecision() {
+		return ad -> ad.getDecision() == Decision.PERMIT;
 	}
 
 	@Test
