@@ -47,105 +47,105 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 
-	private static final String DEFAULT_CONFIG_PATH = "/policies";
-	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
+    private static final String DEFAULT_CONFIG_PATH = "/policies";
+    private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
-	private final ObjectMapper mapper;
-	private final PolicyDecisionPointConfiguration config;
+    private final ObjectMapper mapper;
+    private final PolicyDecisionPointConfiguration config;
 
-	public ResourcesVariablesAndCombinatorSource() {
-		this(DEFAULT_CONFIG_PATH);
-	}
+    public ResourcesVariablesAndCombinatorSource() {
+        this(DEFAULT_CONFIG_PATH);
+    }
 
-	public ResourcesVariablesAndCombinatorSource(String configPath) {
-		this(configPath, new ObjectMapper());
-	}
+    public ResourcesVariablesAndCombinatorSource(String configPath) {
+        this(configPath, new ObjectMapper());
+    }
 
-	public ResourcesVariablesAndCombinatorSource(@NonNull String configPath, @NonNull ObjectMapper mapper) {
-		this(ResourcesVariablesAndCombinatorSource.class, configPath, mapper);
-	}
+    public ResourcesVariablesAndCombinatorSource(@NonNull String configPath, @NonNull ObjectMapper mapper) {
+        this(ResourcesVariablesAndCombinatorSource.class, configPath, mapper);
+    }
 
-	public ResourcesVariablesAndCombinatorSource(@NonNull Class<?> clazz, @NonNull String configPath,
-			@NonNull ObjectMapper mapper) {
-		log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
-		this.mapper = mapper;
-		URL configFolderUrl = clazz.getResource(configPath);
-		if (configFolderUrl == null) {
-			throw new RuntimeException("Config folder not found. Path:" + configPath + " - URL: null");
-		}
+    public ResourcesVariablesAndCombinatorSource(@NonNull Class<?> clazz, @NonNull String configPath,
+                                                 @NonNull ObjectMapper mapper) {
+        log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
+        this.mapper = mapper;
+        URL configFolderUrl = clazz.getResource(configPath);
+        if (configFolderUrl == null) {
+            throw new RuntimeException("Config folder not found. Path:" + configPath + " - URL: null");
+        }
 
-		if ("jar".equals(configFolderUrl.getProtocol())) {
-			config = readConfigFromJar(configFolderUrl);
-		} else {
-			config = readConfigFromDirectory(configFolderUrl);
-		}
-	}
+        if ("jar".equals(configFolderUrl.getProtocol())) {
+            config = readConfigFromJar(configFolderUrl);
+        } else {
+            config = readConfigFromDirectory(configFolderUrl);
+        }
+    }
 
-	private PolicyDecisionPointConfiguration readConfigFromJar(URL configFolderUrl) {
-		log.debug("reading config from jar {}", configFolderUrl);
-		final String[] jarPathElements = configFolderUrl.toString().split("!");
-		final String jarFilePath = jarPathElements[0].substring("jar:file:".length());
-		final StringBuilder dirPath = new StringBuilder();
-		for (int i = 1; i < jarPathElements.length; i++) {
-			dirPath.append(jarPathElements[i]);
-		}
-		if (dirPath.charAt(0) == File.separatorChar) {
-			dirPath.deleteCharAt(0);
-		}
-		final String configFilePath = dirPath.append(File.separatorChar).append(CONFIG_FILE_GLOB_PATTERN).toString();
+    private PolicyDecisionPointConfiguration readConfigFromJar(URL configFolderUrl) {
+        log.debug("reading config from jar {}", configFolderUrl);
+        final String[] jarPathElements = configFolderUrl.toString().split("!");
+        final String jarFilePath = jarPathElements[0].substring("jar:file:".length());
+        final StringBuilder dirPath = new StringBuilder();
+        for (int i = 1; i < jarPathElements.length; i++) {
+            dirPath.append(jarPathElements[i]);
+        }
+        if (dirPath.charAt(0) == File.separatorChar) {
+            dirPath.deleteCharAt(0);
+        }
+        final String configFilePath = dirPath.append(File.separatorChar).append(CONFIG_FILE_GLOB_PATTERN).toString();
 
-		try (ZipFile zipFile = new ZipFile(jarFilePath)) {
-			Enumeration<? extends ZipEntry> e = zipFile.entries();
+        try (ZipFile zipFile = new ZipFile(jarFilePath)) {
+            Enumeration<? extends ZipEntry> e = zipFile.entries();
 
-			while (e.hasMoreElements()) {
-				ZipEntry entry = e.nextElement();
-				if (!entry.isDirectory() && entry.getName().equals(configFilePath)) {
-					log.info("loading PDP configuration: {}", entry.getName());
-					BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
-					String fileContentsStr = IOUtils.toString(bis, StandardCharsets.UTF_8);
-					bis.close();
-					return mapper.readValue(fileContentsStr, PolicyDecisionPointConfiguration.class);
-				}
-			}
-		} catch (IOException e) {
-			throw new RuntimeException("Error loading PDP configuration from resources: " + configFolderUrl);
-		}
-		log.info("No PDP configuration found in resources. Using defaults.");
-		return new PolicyDecisionPointConfiguration();
-	}
+            while (e.hasMoreElements()) {
+                ZipEntry entry = e.nextElement();
+                if (!entry.isDirectory() && entry.getName().equals(configFilePath)) {
+                    log.info("loading PDP configuration: {}", entry.getName());
+                    BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(entry));
+                    String fileContentsStr = IOUtils.toString(bis, StandardCharsets.UTF_8);
+                    bis.close();
+                    return mapper.readValue(fileContentsStr, PolicyDecisionPointConfiguration.class);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error loading PDP configuration from resources: " + configFolderUrl, e);
+        }
+        log.info("No PDP configuration found in resources. Using defaults.");
+        return new PolicyDecisionPointConfiguration();
+    }
 
-	private PolicyDecisionPointConfiguration readConfigFromDirectory(URL configFolderUrl) {
-		log.debug("reading config from directory {}", configFolderUrl);
-		Path configDirectoryPath;
-		try {
-			configDirectoryPath = Paths.get(configFolderUrl.toURI());
-		} catch (URISyntaxException e) {
-			throw new RuntimeException("Error accessing PDP configuration: " + e.getMessage());
-		}
-		try (DirectoryStream<Path> stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE_GLOB_PATTERN)) {
-			for (Path filePath : stream) {
-				log.info("loading PDP configuration: {}", filePath.toAbsolutePath());
-				return mapper.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
-			}
-		} catch (IOException e) {
-			throw new RuntimeException("Error accessing PDP configuration: " + e.getMessage());
-		}
-		log.info("No PDP configuration found in resources. Using defaults.");
-		return new PolicyDecisionPointConfiguration();
-	}
+    private PolicyDecisionPointConfiguration readConfigFromDirectory(URL configFolderUrl) {
+        log.debug("reading config from directory {}", configFolderUrl);
+        Path configDirectoryPath;
+        try {
+            configDirectoryPath = Paths.get(configFolderUrl.toURI());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Error accessing PDP configuration: " + e.getMessage(), e);
+        }
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE_GLOB_PATTERN)) {
+            for (Path filePath : stream) {
+                log.info("loading PDP configuration: {}", filePath.toAbsolutePath());
+                return mapper.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error accessing PDP configuration: " + e.getMessage(), e);
+        }
+        log.info("No PDP configuration found in resources. Using defaults.");
+        return new PolicyDecisionPointConfiguration();
+    }
 
-	@Override
-	public Flux<DocumentsCombinator> getDocumentsCombinator() {
-		return Flux.just(config.getAlgorithm()).map(DocumentsCombinatorFactory::getCombinator);
-	}
+    @Override
+    public Flux<DocumentsCombinator> getDocumentsCombinator() {
+        return Flux.just(config.getAlgorithm()).map(DocumentsCombinatorFactory::getCombinator);
+    }
 
-	@Override
-	public Flux<Map<String, JsonNode>> getVariables() {
-		return Flux.just(config.getVariables()).map(HashMap::new);
-	}
+    @Override
+    public Flux<Map<String, JsonNode>> getVariables() {
+        return Flux.just(config.getVariables()).map(HashMap::new);
+    }
 
-	@Override
-	public void dispose() {
-		// NOP nothing to dispose
-	}
+    @Override
+    public void dispose() {
+        // NOP nothing to dispose
+    }
 }

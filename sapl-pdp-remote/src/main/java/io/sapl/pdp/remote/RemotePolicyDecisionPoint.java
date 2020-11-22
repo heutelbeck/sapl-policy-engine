@@ -41,8 +41,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private final WebClient client;
 
-	public RemotePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret, SslContext sslContext)
-			throws SSLException {
+	public RemotePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret, SslContext sslContext) {
 		this(baseUrl, clientKey, clientSecret, HttpClient.create().secure(spec -> spec.sslContext(sslContext)));
 	}
 

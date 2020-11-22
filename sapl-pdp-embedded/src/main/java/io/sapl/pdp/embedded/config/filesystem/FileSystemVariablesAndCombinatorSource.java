@@ -95,7 +95,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 		try {
 			return MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class);
 		} catch (IOException e) {
-			throw new RuntimeException("FATAL ERROR: Could not read configuration file: " + e.getMessage());
+			throw new RuntimeException("FATAL ERROR: Could not read configuration file: " + e.getMessage(), e);
 		}
 	}
 
