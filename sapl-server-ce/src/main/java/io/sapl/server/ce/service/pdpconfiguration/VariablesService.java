@@ -15,6 +15,7 @@
  */
 package io.sapl.server.ce.service.pdpconfiguration;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class VariablesService {
+public class VariablesService implements Serializable {
 	private static final ObjectMapper objectMapper = new ObjectMapper();
 	private static final String DEFAULT_JSON_VALUE = "{\n  \"property\" : \"value\"\n}";
 

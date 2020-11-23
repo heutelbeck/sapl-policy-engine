@@ -15,6 +15,7 @@
  */
 package io.sapl.server.ce.service;
 
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Optional;
@@ -34,7 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ClientCredentialsService {
+public class ClientCredentialsService implements Serializable {
 	private final ClientCredentialsRepository clientCredentialsRepository;
 
 	/**

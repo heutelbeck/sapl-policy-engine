@@ -15,6 +15,7 @@
  */
 package io.sapl.server.ce.service.pdpconfiguration;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 import org.springframework.stereotype.Service;
@@ -33,7 +34,7 @@ import lombok.RequiredArgsConstructor;
  */
 @Service
 @RequiredArgsConstructor
-public class CombiningAlgorithmService {
+public class CombiningAlgorithmService implements Serializable {
 	private static final PolicyDocumentCombiningAlgorithm DEFAULT = PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT;
 
 	private final SelectedCombiningAlgorithmRepository selectedCombiningAlgorithmRepository;

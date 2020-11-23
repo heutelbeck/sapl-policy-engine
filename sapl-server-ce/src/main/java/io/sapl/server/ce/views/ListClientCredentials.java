@@ -158,7 +158,7 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 
 				currentKeyTextField.setValue(clientCredentials.getKey());
 				currentSecretPasswordField.setValue("");
-				isChangingSecretCheckBox.setValue(false);
+				isChangingSecretCheckBox.setValue(Boolean.FALSE);
 				currentSecretPasswordField.setEnabled(false);
 			}, () -> {
 				editCurrentClientCredentialsLayout.setVisible(false);

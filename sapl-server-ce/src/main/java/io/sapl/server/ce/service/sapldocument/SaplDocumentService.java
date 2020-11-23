@@ -61,6 +61,7 @@ import reactor.core.publisher.ReplayProcessor;
 @RequiredArgsConstructor
 public class SaplDocumentService implements PrpUpdateEventSource {
 	private static final String DEFAULT_DOCUMENT_VALUE = "policy \"all deny\"\ndeny";
+	private static final Object locker = new Object();
 
 	private final SaplDocumentsRepository saplDocumentRepository;
 	private final SaplDocumentsVersionRepository saplDocumentVersionRepository;
@@ -77,13 +78,16 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 	public Flux<PrpUpdateEvent> getUpdates() {
 		PrpUpdateEvent initialEvent = generateInitialPrpUpdateEvent();
 
-		// @formatter:off
-		ReplayProcessor<PrpUpdateEvent> prpUpdateEventUpdateProcessor = ReplayProcessor
-				.<PrpUpdateEvent>create();
-		prpUpdateEventUpdateFluxSink = prpUpdateEventUpdateProcessor.sink();
-		Flux<PrpUpdateEvent> flux = prpUpdateEventUpdateProcessor.cache();
-		prpUpdateEventUpdateMonitor = flux.subscribe();
-		// @formatter:on
+		Flux<PrpUpdateEvent> flux;
+		synchronized (locker) {
+			// @formatter:off
+			ReplayProcessor<PrpUpdateEvent> prpUpdateEventUpdateProcessor = ReplayProcessor
+					.<PrpUpdateEvent>create();
+			prpUpdateEventUpdateFluxSink = prpUpdateEventUpdateProcessor.sink();
+			flux = prpUpdateEventUpdateProcessor.cache();
+			prpUpdateEventUpdateMonitor = flux.subscribe();
+			// @formatter:on			
+		}
 
 		log.debug("initial event: {}", initialEvent);
 		return Mono.just(initialEvent).concatWith(flux);
