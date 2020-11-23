@@ -141,6 +141,7 @@
   <eClassifiers xsi:type="ecore:EClass" name="Plus" eSuperTypes="#//BinaryOperator"/>
   <eClassifiers xsi:type="ecore:EClass" name="Minus" eSuperTypes="#//BinaryOperator"/>
   <eClassifiers xsi:type="ecore:EClass" name="Or" eSuperTypes="#//BinaryOperator"/>
+  <eClassifiers xsi:type="ecore:EClass" name="XOr" eSuperTypes="#//BinaryOperator"/>
   <eClassifiers xsi:type="ecore:EClass" name="EagerOr" eSuperTypes="#//BinaryOperator"/>
   <eClassifiers xsi:type="ecore:EClass" name="Multi" eSuperTypes="#//BinaryOperator"/>
   <eClassifiers xsi:type="ecore:EClass" name="Div" eSuperTypes="#//BinaryOperator"/>
@@ -156,6 +157,7 @@
   <eClassifiers xsi:type="ecore:EClass" name="ElementOf" eSuperTypes="#//BinaryOperator"/>
   <eClassifiers xsi:type="ecore:EClass" name="Not" eSuperTypes="#//UnaryOperator"/>
   <eClassifiers xsi:type="ecore:EClass" name="UnaryMinus" eSuperTypes="#//UnaryOperator"/>
+  <eClassifiers xsi:type="ecore:EClass" name="UnaryPlus" eSuperTypes="#//UnaryOperator"/>
   <eClassifiers xsi:type="ecore:EClass" name="BasicGroup" eSuperTypes="#//BasicExpression">
     <eStructuralFeatures xsi:type="ecore:EReference" name="expression" eType="#//Expression"
         containment="true"/>
@@ -277,8 +279,6 @@
       <eParameters name="ctx" eType="#//EvaluationContext"/>
     </eOperations>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="UnaryPlus" eSuperTypes="#//UnaryOperator"/>
-  <eClassifiers xsi:type="ecore:EClass" name="XOr" eSuperTypes="#//BinaryOperator"/>
   <eClassifiers xsi:type="ecore:EDataType" name="EvaluationContext" instanceClassName="io.sapl.interpreter.EvaluationContext"/>
   <eClassifiers xsi:type="ecore:EDataType" name="JsonNode" instanceClassName="com.fasterxml.jackson.databind.JsonNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="JsonNodeFlux" instanceTypeName="reactor.core.publisher.Flux&lt;com.fasterxml.jackson.databind.JsonNode>"

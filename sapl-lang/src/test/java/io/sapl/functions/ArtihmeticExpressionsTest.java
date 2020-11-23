@@ -24,52 +24,60 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.EObjectUtil;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class ArtihmeticExpressionsTest {
 
 	@Test
-	public void collectionOfPassingExpressions() throws IOException {
-		doTest("(1+2)*3.0", 9.00D, false);
-		doTest("1+-1", 0D, false);
-		doTest("1+ -1", 0D, false);
-		doTest("1 + -1", 0D, false);
-		doTest("1 + - 1", 0D, false);
-		doTest("--1", 1D, false);
+	public void parentPriority() throws IOException {
+		assertEvaluatesTo("(1+2)*3.0", 9.00D);
+	}
+
+	@Test
+	public void unaryMinusNoSpace() throws IOException {
+		assertEvaluatesTo("1+-1", 0D);
+	}
+
+	@Test
+	public void unaryMinusSpace() throws IOException {
+		assertEvaluatesTo("1+ -1", 0D);
+	}
+
+	@Test
+	public void twoSpacesUnaryMinus() throws IOException {
+		assertEvaluatesTo("1 + -1", 0D);
+	}
+
+	@Test
+	public void threeSpacesUnaryMinus() throws IOException {
+		assertEvaluatesTo("1 + - 1", 0D);
+	}
+
+	@Test
+	public void doubleNegation() throws IOException {
+		assertEvaluatesTo("--1", 1D);
 	}
 
 	@Test
 	public void oneMinusOne_IsNull() throws IOException {
-		doTest("1-1", 0D, false);
+		assertEvaluatesTo("1-1", 0D);
 	}
 
 	@Test
 	public void unaryPlus_IsImplemented() throws IOException {
-		doTest("1+ +(2)", 3D, false);
+		assertEvaluatesTo("1+ +(2)", 3D);
 	}
 
 	@Test
 	public void noSpacesPlusAndMinusEvaluates() throws IOException {
-		doTest("5+5-3", 7D, false);
+		assertEvaluatesTo("5+5-3", 7D);
 	}
 
-	private void doTest(String given, double expected, boolean logIt) throws IOException {
+	private void assertEvaluatesTo(String given, double expected) throws IOException {
 		var expression = ParserUtil.expression(given);
-
-		if (logIt)
-			EObjectUtil.dump(expression);
-
 		var actual = expression.evaluate(MockUtil.constructTestEnvironmentPdpScopedEvaluationContext(), Val.UNDEFINED)
 				.blockFirst();
-
-		if (logIt)
-			log.info("{}=={} -> {} - Actual: {}", given, expected,
-					actual.get().decimalValue().compareTo(BigDecimal.valueOf(expected)) == 0, actual);
-
 		assertThat(actual.decimalValue(), Matchers.comparesEqualTo(BigDecimal.valueOf(expected)));
 
 	}
