@@ -53,7 +53,7 @@ public abstract class AbstractEagerCombinator implements DocumentsCombinator {
 				.map(decisions -> combineDecisions(decisions, policyRetrievalResult.isErrorsInTarget()));
 	}
 
-	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
+	protected Flux<AuthorizationDecision> doCombinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		return Flux.fromIterable(policies)
 				.concatMap(policy -> policy.matches(ctx).map(matches -> Tuples.of(matches, policy)))
 				.reduce(new PolicyRetrievalResult(), (state, matchAndDocument) -> {
