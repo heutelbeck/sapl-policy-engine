@@ -80,7 +80,7 @@ public class Benchmark implements CommandLineRunner {
     /* COMMAND LINE ARGUMENTS */ // TODO: merge with application.properties
 
     // Switch between benchmark types
-    public static boolean performFullyRandomBenchmark = false;
+    protected static boolean performFullyRandomBenchmark = false;
 
     // Benchmark directory: Results will be written to this directory. Can be
     // overwritten by providing a command line argument.
@@ -125,9 +125,7 @@ public class Benchmark implements CommandLineRunner {
                 benchmarkConfigurationFile, filePrefix);
 
         try {
-
             final Path dir = Paths.get(path, filePrefix);
-
             Files.createDirectories(dir);
         } catch (IOException e) {
             log.error(ERROR_READING_TEST_CONFIGURATION, e);

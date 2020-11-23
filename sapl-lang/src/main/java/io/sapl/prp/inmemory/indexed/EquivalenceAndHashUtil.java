@@ -89,7 +89,7 @@ public class EquivalenceAndHashUtil {
 		if (thiz == that) {
 			return true;
 		}
-		if (that == null || thiz.eClass() != that.eClass()) {
+		if (thiz.eClass() != that.eClass()) {
 			return false;
 		}
 		EList<EStructuralFeature> features = thiz.eClass().getEAllStructuralFeatures();
@@ -118,8 +118,9 @@ public class EquivalenceAndHashUtil {
 
 	private String resolveStepsToFullyQualifiedName(EList<Object> steps, @NonNull Map<String, String> imports) {
 		var baseString = steps.stream().map(val -> (String) val).collect(Collectors.joining("."));
-		if (imports.containsKey(baseString)) {
-			return imports.get(baseString);
+		var importBase = imports.get(baseString);
+		if (importBase != null) {
+			return importBase;
 		}
 		return baseString;
 	}

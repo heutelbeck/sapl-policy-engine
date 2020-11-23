@@ -15,22 +15,9 @@
  */
 package io.sapl.reimpl.prp.filesystem;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.SAPLInterpreter;
-import io.sapl.directorywatcher.DirectoryWatchEventFluxSinkAdapter;
-import io.sapl.directorywatcher.DirectoryWatcher;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.reimpl.prp.PrpUpdateEvent;
-import io.sapl.reimpl.prp.PrpUpdateEvent.Type;
-import io.sapl.reimpl.prp.PrpUpdateEvent.Update;
-import io.sapl.reimpl.prp.PrpUpdateEventSource;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -49,9 +36,22 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import io.sapl.api.interpreter.SAPLInterpreter;
+import io.sapl.directorywatcher.DirectoryWatchEventFluxSinkAdapter;
+import io.sapl.directorywatcher.DirectoryWatcher;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.reimpl.prp.PrpUpdateEvent;
+import io.sapl.reimpl.prp.PrpUpdateEvent.Type;
+import io.sapl.reimpl.prp.PrpUpdateEvent.Update;
+import io.sapl.reimpl.prp.PrpUpdateEventSource;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 @Slf4j
 public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
@@ -111,7 +111,7 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
                 updates.add(new Update(Type.PUBLISH, saplDocument, rawDocument));
             }
         } catch (IOException e) {
-            throw new PolicyEvaluationException("FATAL ERROR: building initial PrpUpdateEvent: " + e.getMessage(), e);
+			throw Exceptions.propagate(e);
         }
 
         var seedIndex = new ImmutableFileIndex(files);
@@ -157,9 +157,7 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
             rawDocument = readFile(absoluteFilePath);
             saplDocument = interpreter.parse(rawDocument);
         } catch (IOException e) {
-            throw new PolicyEvaluationException(
-                    "FATAL ERROR: Attempt to publish invalid document. Application shutdown to avoid inconsistent decisions: "
-                            + e.getMessage(), e);
+			throw Exceptions.propagate(e);
         }
 
         // CREATE or MODIFY events

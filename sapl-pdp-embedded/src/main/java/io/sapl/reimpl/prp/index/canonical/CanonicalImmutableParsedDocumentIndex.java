@@ -15,6 +15,13 @@
  */
 package io.sapl.reimpl.prp.index.canonical;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
@@ -30,13 +37,6 @@ import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
 import io.sapl.reimpl.prp.PrpUpdateEvent;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {

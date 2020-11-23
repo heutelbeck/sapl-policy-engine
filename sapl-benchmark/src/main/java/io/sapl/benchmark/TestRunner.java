@@ -47,13 +47,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -118,7 +112,7 @@ public class TestRunner {
         benchmarkDataContainer.getConfigs().add(config);
     }
 
-    private double extractMin(List<XlsRecord> data) {
+    private double extractMin(Iterable<XlsRecord> data) {
         double min = Double.MAX_VALUE;
         for (XlsRecord item : data) {
             if (item.getTimeDuration() < min) {
@@ -128,7 +122,7 @@ public class TestRunner {
         return min;
     }
 
-    private double extractMax(List<XlsRecord> data) {
+    private double extractMax(Iterable<XlsRecord> data) {
         double max = Double.MIN_VALUE;
         for (XlsRecord item : data) {
             if (item.getTimeDuration() > max) {
@@ -138,7 +132,7 @@ public class TestRunner {
         return max;
     }
 
-    private double extractAvg(List<XlsRecord> data) {
+    private double extractAvg(Collection<XlsRecord> data) {
         double sum = 0;
         for (XlsRecord item : data) {
             sum += item.getTimeDuration();
@@ -146,7 +140,7 @@ public class TestRunner {
         return sum / data.size();
     }
 
-    private double extractMdn(List<XlsRecord> data) {
+    private double extractMdn(Collection<XlsRecord> data) {
         List<Double> list = data.stream().map(XlsRecord::getTimeDuration).sorted().collect(Collectors.toList());
         int index = list.size() / 2;
         if (list.size() % 2 == 0) {

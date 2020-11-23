@@ -75,7 +75,7 @@ public class SAPLImplCustom extends SAPLImpl {
 		return imports;
 	}
 
-	private void addImport(Import anImport, HashMap<String, String> imports,
+	private void addImport(Import anImport, Map<String, String> imports,
 			EvaluationContext subscriptionScopedEvaluationContext) {
 		var library = String.join(".", anImport.getLibSteps());
 		if (anImport instanceof WildcardImport) {

@@ -44,7 +44,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.functions.FunctionException;
-import io.sapl.api.pip.AttributeException;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
@@ -106,7 +105,7 @@ public class PostGISTest {
 	}
 
 	@Test
-	public void responseTest() throws IOException, FunctionException, AttributeException {
+	public void responseTest() throws IOException, FunctionException {
 		PostGISConfig configMock = mock(PostGISConfig.class);
 		when(configMock.getTable()).thenReturn("testTable");
 
@@ -125,7 +124,7 @@ public class PostGISTest {
 	}
 
 	@Test
-	public void dbConnection() throws SQLException, FunctionException, AttributeException {
+	public void dbConnection() throws SQLException, FunctionException {
 		PostGISConfig configMock = mock(PostGISConfig.class);
 		Connection connMock = mock(Connection.class);
 		Statement sMock = mock(Statement.class);
@@ -146,7 +145,7 @@ public class PostGISTest {
 	}
 
 	@Test
-	public void buildQuery() throws AttributeException {
+	public void buildQuery() throws FunctionException {
 		PostGISConfig pgConfSpy = spy(pgConfFromJson);
 		doReturn(true).when(pgConfSpy).verifySqlArguments();
 
@@ -155,8 +154,8 @@ public class PostGISTest {
 				pgConfSpy.buildQuery());
 	}
 
-	@Test(expected = AttributeException.class)
-	public void buildQueryException() throws AttributeException {
+	@Test(expected = FunctionException.class)
+	public void buildQueryException() throws FunctionException {
 		PostGISConfig pgConfSpy = spy(pgConfFromJson);
 		doReturn(false).when(pgConfSpy).verifySqlArguments();
 
@@ -165,7 +164,7 @@ public class PostGISTest {
 	}
 
 	@Test
-	public void buildProjectionQuery() throws AttributeException {
+	public void buildProjectionQuery() throws FunctionException {
 		PostGISConfig pgConfSpy = spy(pgProjectionConfFromJson);
 		doReturn(true).when(pgConfSpy).verifySqlArguments();
 		assertEquals("PostGIS SQL Query is not correctly build.",
@@ -173,8 +172,8 @@ public class PostGISTest {
 				pgConfSpy.buildQuery());
 	}
 
-	@Test(expected = AttributeException.class)
-	public void dbException() throws SQLException, FunctionException, AttributeException {
+	@Test(expected = FunctionException.class)
+	public void dbException() throws SQLException, FunctionException {
 		PostGISConfig configMock = mock(PostGISConfig.class);
 		when(configMock.getConnection()).thenThrow(new SQLException());
 
@@ -202,8 +201,8 @@ public class PostGISTest {
 				PostGISConfig.colsExist(rsMock, "test"));
 	}
 
-	@Test(expected = AttributeException.class)
-	public void sqlException() throws AttributeException, SQLException {
+	@Test(expected = FunctionException.class)
+	public void sqlException() throws SQLException, FunctionException {
 		PostGISConfig pgConfSpy = spy(pgProjectionConfFromJson);
 		doThrow(new SQLException()).when(pgConfSpy).getConnection();
 
@@ -211,7 +210,7 @@ public class PostGISTest {
 	}
 
 	@Test
-	public void verifySqlTrue() throws AttributeException, SQLException {
+	public void verifySqlTrue() throws SQLException, FunctionException {
 		PostGISConfig pgConfSpy = spy(pgConfFromJson);
 		Connection connMock = mock(Connection.class);
 		ResultSet rsMock = mock(ResultSet.class);
@@ -227,7 +226,7 @@ public class PostGISTest {
 	}
 
 	@Test
-	public void verifySqlFalse() throws AttributeException, SQLException {
+	public void verifySqlFalse() throws SQLException, FunctionException {
 		PostGISConfig pgConfSpy = spy(pgConfFromJson);
 		Connection connMock = mock(Connection.class);
 		ResultSet rsMock = mock(ResultSet.class);

@@ -535,8 +535,8 @@ public class EthereumPolicyInformationPoint {
 	 * @param variables  can optionally contain a key with value
 	 *                   "ethPollingInterval" that holds the time span in which the
 	 *                   blockchain should be polled in milliseconds
-	 * @return A Flux of JsonNodes that contain the transaction count as a BigInteger
-	 *         value.
+	 * @return A Flux of JsonNodes that contain the transaction count as a
+	 *         BigInteger value.
 	 * @see io.sapl.interpreter.pip.EthereumPipFunctions#getDefaultBlockParameter(JsonNode)
 	 *      getDefaultBlockParameter
 	 */
@@ -772,12 +772,12 @@ public class EthereumPolicyInformationPoint {
 	 */
 	@Attribute(name = "blockByHash", docs = "Returns information about a block by hash.")
 	public Flux<Val> ethGetBlockByHash(Val saplObject, Map<String, JsonNode> variables) {
-		return scheduledFlux(withBlockByHash(saplObject), variables);
+		return scheduledFlux(withBlockByHash(saplObject.get()), variables);
 	}
 
-	private Callable<Val> withBlockByHash(Val saplObject) {
-		return () -> toVal(web3j.ethGetBlockByHash(getStringFrom(saplObject.get(), BLOCK_HASH),
-				getBooleanFrom(saplObject.get(), RETURN_FULL_TRANSACTION_OBJECTS)).send().getBlock());
+	private Callable<Val> withBlockByHash(JsonNode saplObject) {
+		return () -> toVal(web3j.ethGetBlockByHash(getStringFrom(saplObject, BLOCK_HASH),
+				getBooleanFrom(saplObject, RETURN_FULL_TRANSACTION_OBJECTS)).send().getBlock());
 	}
 
 	/**
@@ -842,12 +842,12 @@ public class EthereumPolicyInformationPoint {
 	 */
 	@Attribute(name = "transactionByBlockHashAndIndex", docs = "Returns information about a transaction by block hash and transaction index position.")
 	public Flux<Val> ethGetTransactionByBlockHashAndIndex(Val saplObject, Map<String, JsonNode> variables) {
-		return scheduledFlux(withTransactionByBlockHashAndIndex(saplObject), variables);
+		return scheduledFlux(withTransactionByBlockHashAndIndex(saplObject.get()), variables);
 	}
 
-	private Callable<Val> withTransactionByBlockHashAndIndex(Val saplObject) {
-		return () -> toVal(web3j.ethGetTransactionByBlockHashAndIndex(getStringFrom(saplObject.get(), BLOCK_HASH),
-				getBigIntFrom(saplObject.get(), TRANSACTION_INDEX)).send().getResult());
+	private Callable<Val> withTransactionByBlockHashAndIndex(JsonNode saplObject) {
+		return () -> toVal(web3j.ethGetTransactionByBlockHashAndIndex(getStringFrom(saplObject, BLOCK_HASH),
+				getBigIntFrom(saplObject, TRANSACTION_INDEX)).send().getResult());
 	}
 
 	/**
@@ -951,8 +951,8 @@ public class EthereumPolicyInformationPoint {
 	}
 
 	/**
-	 * This method returns a list of filter logs that occurred since the last received
-	 * list.
+	 * This method returns a list of filter logs that occurred since the last
+	 * received list.
 	 * 
 	 * @param saplObject needs to hold the following values: <br>
 	 *                   "filterId": The identification number of the requested

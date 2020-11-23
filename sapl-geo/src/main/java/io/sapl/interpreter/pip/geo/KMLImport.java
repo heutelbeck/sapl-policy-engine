@@ -60,11 +60,11 @@ public class KMLImport {
 		kmlSource = source;
 	}
 
-	public KMLImport(JsonNode source) throws AttributeException {
+	public KMLImport(JsonNode source) throws FunctionException  {
 		if (source.isTextual()) {
 			kmlSource = source.asText();
 		} else {
-			throw new AttributeException(NO_VALID_FILENAME);
+			throw new FunctionException(NO_VALID_FILENAME);
 		}
 	}
 
@@ -84,23 +84,23 @@ public class KMLImport {
 		}
 	}
 
-	private SimpleFeature getKmlFromWeb() throws AttributeException {
+	private SimpleFeature getKmlFromWeb() throws FunctionException  {
 		try (InputStream inputStream = new URL(kmlSource).openStream()) {
 
 			return parse(inputStream);
 
 		} catch (IOException | SAXException | ParserConfigurationException e) {
-			throw new AttributeException(UNABLE_TO_PARSE_KML, e);
+			throw new FunctionException(UNABLE_TO_PARSE_KML, e);
 		}
 	}
 
-	private SimpleFeature getKmlFromFile() throws AttributeException {
+	private SimpleFeature getKmlFromFile() throws FunctionException  {
 		try (InputStream inputStream = getClass().getResourceAsStream(kmlSource)) {
 
 			return parse(inputStream);
 
 		} catch (IOException | ParserConfigurationException | SAXException e) {
-			throw new AttributeException(UNABLE_TO_PARSE_KML, e);
+			throw new FunctionException(UNABLE_TO_PARSE_KML, e);
 		}
 	}
 
@@ -116,7 +116,7 @@ public class KMLImport {
 		for (Object obj : placeMarks) {
 
 			if (!(obj instanceof SimpleFeature)) {
-				throw new AttributeException(UNABLE_TO_PARSE_KML);
+				throw new FunctionException(UNABLE_TO_PARSE_KML);
 			} else {
 				SimpleFeature feature = (SimpleFeature) obj;
 				Geometry geom = (Geometry) feature.getAttribute(ATT_GEOM);

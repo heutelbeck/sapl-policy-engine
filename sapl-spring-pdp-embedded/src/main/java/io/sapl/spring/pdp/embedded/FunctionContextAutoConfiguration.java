@@ -26,7 +26,6 @@ import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.InitializationException;
-import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import lombok.extern.slf4j.Slf4j;
@@ -45,15 +44,11 @@ public class FunctionContextAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public FunctionContext functionContext() throws AttributeException {
+	public FunctionContext functionContext() throws InitializationException {
 		var ctx = new AnnotationFunctionContext();
 		for (var entry : functionLibraries) {
 			log.debug("loading FunctionLibrary: {}", entry.getClass().getSimpleName());
-			try {
-				ctx.loadLibrary(entry);
-			} catch (SecurityException | IllegalArgumentException | InitializationException e) {
-				throw new AttributeException(e);
-			}
+			ctx.loadLibrary(entry);
 		}
 		return ctx;
 	}

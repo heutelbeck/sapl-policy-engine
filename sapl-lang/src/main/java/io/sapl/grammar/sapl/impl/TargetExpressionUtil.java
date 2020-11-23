@@ -24,6 +24,8 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class TargetExpressionUtil {
 
+	private static final String POLICY_SET = "PolicySet";
+	private static final String POLICY = "Policy";
 	/**
 	 * Used to check for illegal attributes or lazy operators in target expressions.
 	 * 
@@ -35,13 +37,13 @@ public class TargetExpressionUtil {
 		while (current.eContainer() != null) {
 			var container = current.eContainer();
 			var containerName = container.eClass().getName();
-			if (containerName.equals("Policy")) {
+			if (POLICY.equals(containerName)) {
 				var policy = (Policy) container;
 				var targetExpression = policy.getTargetExpression();
 				if (current == targetExpression) {
 					return true;
 				}
-			} else if (containerName.equals("PolicySet")) {
+			} else if (POLICY_SET.equals(containerName)) {
 				var policy = (PolicySet) container;
 				var targetExpression = policy.getTargetExpression();
 				if (current == targetExpression) {

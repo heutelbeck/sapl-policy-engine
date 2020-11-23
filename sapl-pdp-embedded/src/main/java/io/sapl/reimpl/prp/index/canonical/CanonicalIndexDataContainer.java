@@ -15,6 +15,11 @@
  */
 package io.sapl.reimpl.prp.index.canonical;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.prp.inmemory.indexed.Bitmask;
 import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
@@ -22,11 +27,6 @@ import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
 import io.sapl.prp.inmemory.indexed.improved.CTuple;
 import io.sapl.prp.inmemory.indexed.improved.Predicate;
 import lombok.Value;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @Value
 public class CanonicalIndexDataContainer {

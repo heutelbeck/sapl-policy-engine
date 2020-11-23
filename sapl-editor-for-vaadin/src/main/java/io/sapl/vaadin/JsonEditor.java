@@ -29,6 +29,6 @@ public class JsonEditor extends BaseEditor {
 
 	public JsonEditor(JsonEditorConfiguration config) {
 		Element element = getElement();
-		ApplyBaseConfiguration(element, config);
+		applyBaseConfiguration(element, config);
 	}
 }

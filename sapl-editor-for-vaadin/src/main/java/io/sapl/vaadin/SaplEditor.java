@@ -40,7 +40,7 @@ public class SaplEditor extends BaseEditor {
 		this.validationFinishedListeners = new ArrayList<>();
 		
 		Element element = getElement();
-		ApplyBaseConfiguration(element, config);
+		applyBaseConfiguration(element, config);
 	}
 	
 	@ClientCallable

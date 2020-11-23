@@ -44,6 +44,7 @@ import io.sapl.reimpl.prp.PrpUpdateEvent.Update;
 import io.sapl.reimpl.prp.PrpUpdateEventSource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 @Slf4j
@@ -104,7 +105,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 				}
 			}
 		} catch (IOException | PolicyEvaluationException e) {
-			throw new RuntimeException("Error loading policies from JAR file: " + e.getMessage(), e);
+			throw Exceptions.propagate(e);
 		}
 		return new PrpUpdateEvent(updates);
 	}
@@ -116,7 +117,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 		try {
 			policiesDirectoryPath = Paths.get(policiesFolderUrl.toURI());
 		} catch (URISyntaxException e) {
-			throw new RuntimeException("Error loading policies in ressources from filesystem: " + e.getMessage(), e);
+			throw Exceptions.propagate(e);
 
 		}
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(policiesDirectoryPath, POLICY_FILE_GLOB_PATTERN)) {
@@ -127,7 +128,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 				updates.add(new Update(Type.PUBLISH, saplDocument, rawDocument));
 			}
 		} catch (IOException | PolicyEvaluationException e) {
-			throw new RuntimeException("Error loading policies in ressources from filesystem: " + e.getMessage(), e);
+			throw Exceptions.propagate(e);
 		}
 		return new PrpUpdateEvent(updates);
 	}

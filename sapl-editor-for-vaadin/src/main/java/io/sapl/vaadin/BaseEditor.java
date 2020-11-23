@@ -25,13 +25,13 @@ import com.vaadin.flow.dom.Element;
 public class BaseEditor extends Component {
 
     private String document;
-    private List<DocumentChangedListener> documentChangedListeners;
+    private final List<DocumentChangedListener> documentChangedListeners;
 
     public BaseEditor() {
         this.documentChangedListeners = new ArrayList<>();
     }
     
-    protected static void ApplyBaseConfiguration(Element element, BaseEditorConfiguration config) {
+    protected static void applyBaseConfiguration(Element element, BaseEditorConfiguration config) {
     	element.setProperty("hasLineNumbers", config.isHasLineNumbers());
 		element.setProperty("autoCloseBrackets", config.isAutoCloseBrackets());
 		element.setProperty("matchBrackets", config.isMatchBrackets());

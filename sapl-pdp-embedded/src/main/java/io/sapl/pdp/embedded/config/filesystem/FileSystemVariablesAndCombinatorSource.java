@@ -41,6 +41,7 @@ import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
 import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
@@ -95,7 +96,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 		try {
 			return MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class);
 		} catch (IOException e) {
-			throw new RuntimeException("FATAL ERROR: Could not read configuration file: " + e.getMessage(), e);
+			throw Exceptions.propagate(e);
 		}
 	}
 

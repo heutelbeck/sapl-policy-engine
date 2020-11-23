@@ -51,7 +51,6 @@ public class HttpPolicyInformationPoint {
 	private static final String PUT_DOCS = "Sends an HTTP PUT request to the url provided in the value parameter and returns a flux of responses.";
 	private static final String PATCH_DOCS = "Sends an HTTP PATCH request to the url provided in the value parameter and returns a flux of responses.";
 	private static final String DELETE_DOCS = "Sends an HTTP DELETE request to the url provided in the value parameter and returns a flux of responses.";
-	private static final String OBJECT_NO_HTTP_REQUEST_OBJECT_SPECIFICATION = "Object no HTTP request object specification.";
 
 	private final WebClientRequestExecutor requestExecutor;
 
@@ -89,22 +88,18 @@ public class HttpPolicyInformationPoint {
 			final RequestSpecification saplRequest = getRequestSpecification(value.get());
 			return getRequestExecutor().executeReactiveRequest(saplRequest, httpMethod)
 					.onErrorMap(IOException.class, AttributeException::new).map(Val::of);
-		} catch (AttributeException e) {
+		} catch (JsonProcessingException e) {
 			return Flux.error(e);
 		}
 	}
 
-	private RequestSpecification getRequestSpecification(JsonNode value) throws AttributeException {
+	private RequestSpecification getRequestSpecification(JsonNode value) throws JsonProcessingException {
 		if (value.isTextual()) {
 			final RequestSpecification saplRequest = new RequestSpecification();
 			saplRequest.setUrl(value);
 			return saplRequest;
 		} else {
-			try {
-				return RequestSpecification.from(value);
-			} catch (JsonProcessingException e) {
-				throw new AttributeException(OBJECT_NO_HTTP_REQUEST_OBJECT_SPECIFICATION, e);
-			}
+			return RequestSpecification.from(value);
 		}
 	}
 

@@ -29,28 +29,19 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.functions.FunctionException;
-import io.sapl.api.pip.AttributeException;
 import io.sapl.functions.GeometryBuilder;
 import lombok.Getter;
 
 public class PostGISConnection {
 
 	private static final String NAME_REGEX = "[^a-zA-Z0-9]+";
-
 	private static final String EMPTY_STRING = "";
-
 	private static final int NAME_INDEX = 1;
-
 	private static final int GEOM_INDEX = 2;
-
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-
 	private static Pattern jsonNamePattern = Pattern.compile(NAME_REGEX);
-
 	protected static final String AF_TEST = "AF_TEST";
-
 	protected static final String TEST_OKAY = "ok";
 
 	@Getter
@@ -66,7 +57,7 @@ public class PostGISConnection {
 		}
 	}
 
-	public JsonNode toGeoPIPResponse() throws FunctionException, AttributeException {
+	public JsonNode toGeoPIPResponse() throws FunctionException {
 		if (config == null) {
 			return JSON.textNode(TEST_OKAY);
 		} else {
@@ -75,7 +66,7 @@ public class PostGISConnection {
 		}
 	}
 
-	public ObjectNode retrieveGeometries() throws FunctionException, AttributeException {
+	public ObjectNode retrieveGeometries() throws FunctionException {
 		try (Connection conn = config.getConnection()) {
 
 			try (Statement s = conn.createStatement()) {
@@ -85,7 +76,7 @@ public class PostGISConnection {
 				}
 			}
 		} catch (SQLException e) {
-			throw new AttributeException(e);
+			throw new FunctionException(e);
 		}
 	}
 

@@ -154,7 +154,7 @@ public class VariablesService {
 	}
 
 	private static void checkIsJsonValue(@NonNull String jsonValue) throws InvalidJsonException {
-		if (jsonValue.equals("")) {
+		if (jsonValue.isBlank()) {
 			throw new InvalidJsonException(jsonValue);
 		}
 
