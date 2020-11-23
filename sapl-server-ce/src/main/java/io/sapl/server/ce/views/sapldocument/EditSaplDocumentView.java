@@ -210,7 +210,7 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 		if (isPublishedVersionExisting) {
 			String publishedName = publishedVersion.getName();
 
-			publishedVersionAsString = Integer.valueOf(publishedVersion.getVersionNumber()).toString();
+			publishedVersionAsString = Integer.toString(publishedVersion.getVersionNumber());
 			publishedNameAsString = publishedName;
 
 			Optional<Integer> selectedVersionNumber = getSelectedVersionNumber();

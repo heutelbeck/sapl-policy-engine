@@ -130,7 +130,7 @@ public class VariablesService {
 
 		this.variableRepository.save(editedVariable);
 
-		log.info(String.format("edited variable: %s -> %s", oldVariable, editedVariable));
+		log.info("edited variable: {} -> {}", oldVariable, editedVariable);
 
 		this.publishVariables();
 

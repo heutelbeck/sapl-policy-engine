@@ -69,7 +69,7 @@ public class ClientCredentialsService {
 
 		ClientCredentials createdClientCredentials = clientCredentialsRepository.save(clientCredentialsToCreate);
 
-		log.info(String.format("created client credentials: key = %s", createdClientCredentials.getKey()));
+		log.info("created client credentials: key = {}", createdClientCredentials.getKey());
 
 		return createdClientCredentials;
 	}

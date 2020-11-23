@@ -209,9 +209,9 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 				.setLastModified(this.getCurrentTimestampAsString());
 		this.saplDocumentRepository.save(saplDocument);
 
-		log.info(String.format("publish version %d of SAPL document with id %d (name: %s)",
+		log.info("publish version {} of SAPL document with id {} (name: {})",
 				saplDocumentVersionToPublish.getVersionNumber(), saplDocumentId,
-				saplDocumentVersionToPublish.getName()));
+				saplDocumentVersionToPublish.getName());
 
 		notifyAboutChangedPublicationOfSaplDocument(PrpUpdateEvent.Type.PUBLISH, createdPublishedSaplDocument);
 	}
@@ -239,8 +239,8 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 		saplDocumentToUnpublish.setPublishedVersion(null);
 		this.saplDocumentRepository.save(saplDocumentToUnpublish);
 
-		log.info(String.format("unpublish version %d of SAPL document with id %d (name: %s)",
-				publishedVersion.getVersionNumber(), saplDocumentId, saplDocumentToUnpublish.getName()));
+		log.info("unpublish version {} of SAPL document with id {} (name: {})", publishedVersion.getVersionNumber(),
+				saplDocumentId, saplDocumentToUnpublish.getName());
 
 		notifyAboutChangedPublicationOfSaplDocument(PrpUpdateEvent.Type.UNPUBLISH, deletedPublishedSaplDocument);
 	}
