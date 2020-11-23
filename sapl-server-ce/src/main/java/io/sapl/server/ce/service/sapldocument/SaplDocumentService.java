@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.util.Streamable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.collect.Lists;
 
@@ -191,6 +192,7 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 	 *                                                 publish is not unique
 	 * 
 	 */
+	@Transactional
 	public void publishVersion(long saplDocumentId, int versionToPublish)
 			throws PublishedDocumentNameCollisionException {
 		SaplDocument saplDocument = this.getById(saplDocumentId);
@@ -201,8 +203,6 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 		}
 
 		SaplDocumentVersion saplDocumentVersionToPublish = saplDocument.getVersion(versionToPublish);
-
-		// TODO: use transaction
 
 		// update persisted published documents
 		PublishedSaplDocument createdPublishedSaplDocument = createPersistedPublishedSaplDocument(
@@ -225,6 +225,7 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 	 * 
 	 * @param saplDocumentId the id of the {@link SaplDocument}
 	 */
+	@Transactional
 	public void unpublishVersion(long saplDocumentId) {
 		SaplDocument saplDocumentToUnpublish = this.getById(saplDocumentId);
 
@@ -232,8 +233,6 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 		if (publishedVersion == null) {
 			return;
 		}
-
-		// TODO: use transaction
 
 		// update persisted published documents
 		Iterable<PublishedSaplDocument> deletedPublishedSaplDocument = deletePersistedPublishedSaplDocumentsByName(
