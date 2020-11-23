@@ -17,7 +17,12 @@ package io.sapl.interpreter.combinators;
 
 import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
 
+import java.util.List;
+
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.grammar.sapl.Policy;
+import io.sapl.interpreter.EvaluationContext;
+import reactor.core.publisher.Flux;
 
 /**
  * This algorithm is used if policy sets and policies are constructed in a way
@@ -52,5 +57,9 @@ public class OnlyOneApplicableCombinator extends AbstractEagerCombinator impleme
 
 		return decisions[0];
 	}
-
+	
+	@Override
+	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
+		return doCombinePolicies(policies, ctx);
+	}
 }

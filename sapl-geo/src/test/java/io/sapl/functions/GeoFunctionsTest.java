@@ -24,13 +24,13 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.functions.FunctionException;
 import nl.jqno.equalsverifier.EqualsVerifier;

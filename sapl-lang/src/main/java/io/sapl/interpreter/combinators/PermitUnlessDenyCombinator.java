@@ -18,12 +18,16 @@ package io.sapl.interpreter.combinators;
 import static io.sapl.api.pdp.Decision.DENY;
 import static io.sapl.api.pdp.Decision.PERMIT;
 
+import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.grammar.sapl.Policy;
+import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 /**
  * This generous algorithm is used if the decision should be PERMIT except for
@@ -71,4 +75,8 @@ public class PermitUnlessDenyCombinator extends AbstractEagerCombinator implemen
 		return finalDecision;
 	}
 
+	@Override
+	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
+		return doCombinePolicies(policies, ctx);
+	}
 }

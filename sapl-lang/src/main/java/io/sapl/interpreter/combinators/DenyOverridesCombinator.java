@@ -20,12 +20,16 @@ import static io.sapl.api.pdp.Decision.INDETERMINATE;
 import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
 import static io.sapl.api.pdp.Decision.PERMIT;
 
+import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.grammar.sapl.Policy;
+import io.sapl.interpreter.EvaluationContext;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 /**
  * This algorithm is used if a DENY decision should prevail a PERMIT without
@@ -91,6 +95,11 @@ public class DenyOverridesCombinator extends AbstractEagerCombinator implements 
 				collector.getAdvices(entitlement));
 		log.debug("| |-- {} Combined AuthorizationDecision: {}", finalDecision.getDecision(), finalDecision);
 		return finalDecision;
+	}
+
+	@Override
+	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
+		return doCombinePolicies(policies, ctx);
 	}
 
 }
