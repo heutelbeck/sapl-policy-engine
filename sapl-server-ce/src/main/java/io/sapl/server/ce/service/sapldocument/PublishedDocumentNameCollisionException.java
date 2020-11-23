@@ -16,6 +16,7 @@
 package io.sapl.server.ce.service.sapldocument;
 
 import io.sapl.server.ce.model.sapldocument.SaplDocument;
+import lombok.NonNull;
 
 /**
  * Exception thrown if the name of a {@link SaplDocument} to publish is not
@@ -23,16 +24,13 @@ import io.sapl.server.ce.model.sapldocument.SaplDocument;
  */
 public class PublishedDocumentNameCollisionException extends Exception {
 	/**
-	 * Creates a new instance of the
-	 * {@link PublishedDocumentNameCollisionException} class.
+	 * Creates a new instance of the {@link PublishedDocumentNameCollisionException}
+	 * class.
 	 * 
-	 * @param publishedSaplDocumentId the id of the {@link SaplDocument} with the
-	 *                                conflicting name
-	 * @param publishedVersion        the version of the {@link SaplDocument} with
-	 *                                the conflicting name
+	 * @param name    the name of the already published SAPL document
+	 * @param innerEx the inner exception
 	 */
-	public PublishedDocumentNameCollisionException(long publishedSaplDocumentId, int publishedVersion) {
-		super(String.format("Version %d of SAPL Document with identifier %d is already published with identical name.",
-				publishedVersion, publishedSaplDocumentId));
+	public PublishedDocumentNameCollisionException(@NonNull String name, @NonNull Throwable innerEx) {
+		super(String.format("Another SAPL document with name \"%s\" is already published.", name), innerEx);
 	}
 }

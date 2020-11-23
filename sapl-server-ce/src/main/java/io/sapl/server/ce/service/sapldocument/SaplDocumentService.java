@@ -25,7 +25,11 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.util.Streamable;
 import org.springframework.stereotype.Service;
+
+import com.google.common.collect.Lists;
 
 import io.sapl.api.interpreter.DocumentAnalysisResult;
 import io.sapl.api.interpreter.DocumentType;
@@ -34,8 +38,10 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.reimpl.prp.PrpUpdateEvent;
 import io.sapl.reimpl.prp.PrpUpdateEvent.Update;
 import io.sapl.reimpl.prp.PrpUpdateEventSource;
+import io.sapl.server.ce.model.sapldocument.PublishedSaplDocument;
 import io.sapl.server.ce.model.sapldocument.SaplDocument;
 import io.sapl.server.ce.model.sapldocument.SaplDocumentVersion;
+import io.sapl.server.ce.persistence.PublishedSaplDocumentRepository;
 import io.sapl.server.ce.persistence.SaplDocumentsRepository;
 import io.sapl.server.ce.persistence.SaplDocumentsVersionRepository;
 import lombok.NonNull;
@@ -58,6 +64,7 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 
 	private final SaplDocumentsRepository saplDocumentRepository;
 	private final SaplDocumentsVersionRepository saplDocumentVersionRepository;
+	private final PublishedSaplDocumentRepository publishedSaplDocumentRepository;
 	private final SAPLInterpreter saplInterpreter;
 
 	private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
@@ -191,9 +198,13 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 
 		SaplDocumentVersion saplDocumentVersionToPublish = saplDocument.getVersion(versionToPublish);
 
-		this.checkForUniqueNameOfSaplDocumentToPublish(saplDocumentVersionToPublish.getName());
+		// TODO: use transaction
 
-		// update document
+		// update persisted published documents
+		PublishedSaplDocument createdPublishedSaplDocument = createPersistedPublishedSaplDocument(
+				saplDocumentVersionToPublish);
+
+		// update persisted document
 		saplDocument.setPublishedVersion(saplDocumentVersionToPublish)
 				.setLastModified(this.getCurrentTimestampAsString());
 		this.saplDocumentRepository.save(saplDocument);
@@ -202,7 +213,7 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 				saplDocumentVersionToPublish.getVersionNumber(), saplDocumentId,
 				saplDocumentVersionToPublish.getName()));
 
-		notifyAboutChangedPublicationOfSaplDocument(saplDocumentVersionToPublish, PrpUpdateEvent.Type.PUBLISH);
+		notifyAboutChangedPublicationOfSaplDocument(PrpUpdateEvent.Type.PUBLISH, createdPublishedSaplDocument);
 	}
 
 	/**
@@ -218,13 +229,20 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 			return;
 		}
 
+		// TODO: use transaction
+
+		// update persisted published documents
+		Iterable<PublishedSaplDocument> deletedPublishedSaplDocument = deletePersistedPublishedSaplDocumentsByName(
+				saplDocumentToUnpublish.getName());
+
+		// update persisted document
 		saplDocumentToUnpublish.setPublishedVersion(null);
 		this.saplDocumentRepository.save(saplDocumentToUnpublish);
 
 		log.info(String.format("unpublish version %d of SAPL document with id %d (name: %s)",
 				publishedVersion.getVersionNumber(), saplDocumentId, saplDocumentToUnpublish.getName()));
 
-		notifyAboutChangedPublicationOfSaplDocument(publishedVersion, PrpUpdateEvent.Type.UNPUBLISH);
+		notifyAboutChangedPublicationOfSaplDocument(PrpUpdateEvent.Type.UNPUBLISH, deletedPublishedSaplDocument);
 	}
 
 	@Override
@@ -238,40 +256,71 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 		return this.dateFormatter.format(Instant.now());
 	}
 
-	private void checkForUniqueNameOfSaplDocumentToPublish(@NonNull String name)
-			throws PublishedDocumentNameCollisionException {
-		Collection<SaplDocument> saplDocumentsWithPublishedVersionWithEqualName = this.saplDocumentRepository
-				.getSaplDocumentsByNameOfPublishedVersion(name);
-
-		// throw appropriate exception for first conflicting SAPL document
-		for (SaplDocument saplDocument : saplDocumentsWithPublishedVersionWithEqualName) {
-			throw new PublishedDocumentNameCollisionException(saplDocument.getId(),
-					saplDocument.getPublishedVersion().getVersionNumber());
-		}
-	}
-
 	private PrpUpdateEvent generateInitialPrpUpdateEvent() {
 		// @formatter:off
-		List<PrpUpdateEvent.Update> updates = this.saplDocumentRepository.findAll()
+		List<PrpUpdateEvent.Update> updates = this.publishedSaplDocumentRepository.findAll()
 				.stream()
-				.filter(saplDocument -> saplDocument.getPublishedVersion() != null)
-				.map(publishedSaplDocument -> convertSaplDocumentToUpdateOfPrpUpdateEvent(publishedSaplDocument.getPublishedVersion(), PrpUpdateEvent.Type.PUBLISH))
+				.map(publishedSaplDocument -> convertSaplDocumentToUpdateOfPrpUpdateEvent(publishedSaplDocument, PrpUpdateEvent.Type.PUBLISH))
 				.collect(Collectors.toList());
 		// @formatter:on
 		return new PrpUpdateEvent(updates);
 	}
 
 	private PrpUpdateEvent.Update convertSaplDocumentToUpdateOfPrpUpdateEvent(
-			@NonNull SaplDocumentVersion publishedVersionOfSaplDocument,
-			@NonNull PrpUpdateEvent.Type prpUpdateEventType) {
-		SAPL sapl = saplInterpreter.parse(publishedVersionOfSaplDocument.getValue());
-		return new Update(prpUpdateEventType, sapl, publishedVersionOfSaplDocument.getValue());
+			@NonNull PublishedSaplDocument publishedSaplDocument, @NonNull PrpUpdateEvent.Type prpUpdateEventType) {
+		SAPL sapl = saplInterpreter.parse(publishedSaplDocument.getValue());
+		return new Update(prpUpdateEventType, sapl, publishedSaplDocument.getValue());
 	}
 
-	private void notifyAboutChangedPublicationOfSaplDocument(@NonNull SaplDocumentVersion saplDocumentVersion,
-			PrpUpdateEvent.Type prpUpdateEventType) {
-		PrpUpdateEvent.Update updateEvent = convertSaplDocumentToUpdateOfPrpUpdateEvent(saplDocumentVersion,
-				prpUpdateEventType);
-		prpUpdateEventUpdateFluxSink.next(new PrpUpdateEvent(updateEvent));
+	/**
+	 * Deletes all instances of {@link PublishedSaplDocument} with a specific name.
+	 * 
+	 * @param name the name
+	 * @return the deleted instances of {@link PublishedSaplDocument}
+	 */
+	private Iterable<PublishedSaplDocument> deletePersistedPublishedSaplDocumentsByName(@NonNull String name) {
+		Collection<PublishedSaplDocument> publishedDocumentsWithName = publishedSaplDocumentRepository.findByName(name);
+		publishedSaplDocumentRepository.deleteAll(publishedDocumentsWithName);
+
+		return publishedDocumentsWithName;
+	}
+
+	/**
+	 * Creates a {@link PublishedSaplDocument} based on a
+	 * {@link SaplDocumentVersion}.
+	 * 
+	 * @param saplDocumentVersion the {@link SaplDocumentVersion}
+	 * @return the created {@link PublishedSaplDocument}
+	 * @throws PublishedDocumentNameCollisionException thrown if the name collides
+	 *                                                 with another published
+	 *                                                 document
+	 */
+	private PublishedSaplDocument createPersistedPublishedSaplDocument(@NonNull SaplDocumentVersion saplDocumentVersion)
+			throws PublishedDocumentNameCollisionException {
+		PublishedSaplDocument publishedSaplDocument = new PublishedSaplDocument();
+		publishedSaplDocument.importSaplDocumentVersion(saplDocumentVersion);
+
+		try {
+			publishedSaplDocumentRepository.save(publishedSaplDocument);
+		} catch (DataIntegrityViolationException ex) {
+			throw new PublishedDocumentNameCollisionException(saplDocumentVersion.getName(), ex);
+		}
+
+		return publishedSaplDocument;
+	}
+
+	private void notifyAboutChangedPublicationOfSaplDocument(PrpUpdateEvent.Type prpUpdateEventType,
+			@NonNull PublishedSaplDocument... publishedSaplDocuments) {
+		notifyAboutChangedPublicationOfSaplDocument(prpUpdateEventType, Lists.newArrayList(publishedSaplDocuments));
+	}
+
+	private void notifyAboutChangedPublicationOfSaplDocument(PrpUpdateEvent.Type prpUpdateEventType,
+			@NonNull Iterable<PublishedSaplDocument> publishedSaplDocuments) {
+		// @formatter:off
+		List<PrpUpdateEvent.Update> updateEvents = Streamable.of(publishedSaplDocuments)
+				.map(publishedSaplDocument -> convertSaplDocumentToUpdateOfPrpUpdateEvent(publishedSaplDocument, prpUpdateEventType))
+				.toList();
+		// @formatter:on
+		prpUpdateEventUpdateFluxSink.next(new PrpUpdateEvent(updateEvents));
 	}
 }
