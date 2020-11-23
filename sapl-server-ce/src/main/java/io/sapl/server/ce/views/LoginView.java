@@ -25,15 +25,15 @@ import com.vaadin.flow.router.Route;
 public class LoginView extends VerticalLayout {
 	public static final String ROUTE = "login";
 
-	private final LoginOverlay loginOverlay = new LoginOverlay();
-
 	public LoginView() {
-		this.loginOverlay.setAction("login");
-		this.loginOverlay.setOpened(true);
-		this.loginOverlay.setTitle("SAPL PDP-Server CE");
-		this.loginOverlay.setDescription("");
-		this.loginOverlay.setForgotPasswordButtonVisible(false);
-		
-		this.getElement().appendChild(loginOverlay.getElement());
+		LoginOverlay loginOverlay = new LoginOverlay();
+
+		loginOverlay.setAction("login");
+		loginOverlay.setOpened(true);
+		loginOverlay.setTitle("SAPL PDP-Server CE");
+		loginOverlay.setDescription("");
+		loginOverlay.setForgotPasswordButtonVisible(false);
+
+		getElement().appendChild(loginOverlay.getElement());
 	}
 }

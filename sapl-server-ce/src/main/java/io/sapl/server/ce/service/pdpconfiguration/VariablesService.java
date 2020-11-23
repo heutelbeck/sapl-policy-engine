@@ -94,7 +94,7 @@ public class VariablesService implements Serializable {
 		Variable variable = new Variable(null, name, jsonValue);
 		this.variableRepository.save(variable);
 
-		log.info(String.format("created variable %s: %s", name, jsonValue));
+		log.info("created variable {}: {}", name, jsonValue);
 
 		this.publishVariables();
 
@@ -148,8 +148,7 @@ public class VariablesService implements Serializable {
 
 		this.variableRepository.deleteById(id);
 
-		log.info(String.format("deleted variable %s: %s", variableToDelete.get().getName(),
-				variableToDelete.get().getJsonValue()));
+		log.info("deleted variable {}: {}", variableToDelete.get().getName(), variableToDelete.get().getJsonValue());
 
 		this.publishVariables();
 	}
@@ -162,7 +161,7 @@ public class VariablesService implements Serializable {
 		try {
 			VariablesService.objectMapper.readTree(jsonValue);
 		} catch (JsonProcessingException ex) {
-			throw new InvalidJsonException(jsonValue);
+			throw new InvalidJsonException(jsonValue, ex);
 		}
 	}
 
@@ -178,7 +177,7 @@ public class VariablesService implements Serializable {
 		Collection<Variable> variablesWithName = this.variableRepository.findByName(name);
 
 		boolean isAnyVariableWithNameExisting = variablesWithName.stream()
-				.anyMatch(variable -> variable.getName().equals(name) && variable.getId() != id);
+				.anyMatch(variable -> variable.getName().equals(name) && !variable.getId().equals(id));
 
 		if (isAnyVariableWithNameExisting) {
 			throw new DuplicatedVariableNameException(name);

@@ -15,11 +15,17 @@
  */
 package io.sapl.server.ce.service.pdpconfiguration;
 
+import lombok.NonNull;
+
 /**
  * Exception thrown if a provided JSON value is invalid.
  */
 public class InvalidJsonException extends Exception {
-	public InvalidJsonException(String invalidJson) {
+	public InvalidJsonException(@NonNull String invalidJson) {
+		this(invalidJson, null);
+	}
+
+	public InvalidJsonException(@NonNull String invalidJson, @NonNull Throwable innerEx) {
 		super(String.format("the provided JSON is invalid: %s", invalidJson));
 	}
 }

@@ -99,7 +99,8 @@ public class SaplDocument {
 	public SaplDocumentVersion getCurrentVersion() {
 		Collection<SaplDocumentVersion> versions = this.getVersions();
 
-		Optional<SaplDocumentVersion> versionWithHighestVersion = versions.stream().max(Comparator.comparingInt(SaplDocumentVersion::getVersionNumber));
+		Optional<SaplDocumentVersion> versionWithHighestVersion = versions.stream()
+				.max(Comparator.comparingInt(SaplDocumentVersion::getVersionNumber));
 		return versionWithHighestVersion.orElse(null);
 	}
 
@@ -130,7 +131,7 @@ public class SaplDocument {
 	public String getPublishedVersionNumberAsString() {
 		SaplDocumentVersion publishedDocumentVersion = this.getPublishedVersion();
 		if (publishedDocumentVersion != null) {
-			return Integer.valueOf(publishedDocumentVersion.getVersionNumber()).toString();
+			return Integer.toString(publishedDocumentVersion.getVersionNumber());
 		} else {
 			return "-";
 		}

@@ -51,6 +51,7 @@ import reactor.core.publisher.ReplayProcessor;
 @RequiredArgsConstructor
 public class CEServerPDPConfigurationProvider implements PDPConfigurationProvider, PDPConfigurationPublisher {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private final Object locker = new Object();
 
 	@Autowired
 	private AttributeContext attributeCtx;
@@ -92,6 +93,7 @@ public class CEServerPDPConfigurationProvider implements PDPConfigurationProvide
 		this.documentCombiningAlgorithmFluxSink.next(algorithm);
 	}
 
+	@Override
 	public void publishVariables(@NonNull Collection<Variable> variables) {
 		this.variableFluxSink.next(variables);
 	}
@@ -103,7 +105,7 @@ public class CEServerPDPConfigurationProvider implements PDPConfigurationProvide
 	}
 
 	private static Map<String, JsonNode> generateVariablesAsMap(@NonNull Collection<Variable> variables) {
-		Map<String, JsonNode> variablesAsMap = new HashMap<>();
+		Map<String, JsonNode> variablesAsMap = new HashMap<>(variables.size());
 		for (Variable variable : variables) {
 			variablesAsMap.put(variable.getName(), JSON.textNode(variable.getJsonValue()));
 		}
@@ -112,21 +114,23 @@ public class CEServerPDPConfigurationProvider implements PDPConfigurationProvide
 	}
 
 	private void initFluxes() {
-		// @formatter:off
-		ReplayProcessor<PolicyDocumentCombiningAlgorithm> combiningAlgorithmProcessor = ReplayProcessor
-				.<PolicyDocumentCombiningAlgorithm>create();
-		this.documentCombiningAlgorithmFluxSink = combiningAlgorithmProcessor.sink();
-		this.documentsCombinator = combiningAlgorithmProcessor.map(
-				DocumentsCombinatorFactory::getCombinator)
-				.share().cache();
-		this.monitorAlgorithm = this.documentsCombinator.subscribe();
+		synchronized (locker) {
+			// @formatter:off
+			ReplayProcessor<PolicyDocumentCombiningAlgorithm> combiningAlgorithmProcessor = ReplayProcessor
+					.<PolicyDocumentCombiningAlgorithm>create();
+			documentCombiningAlgorithmFluxSink = combiningAlgorithmProcessor.sink();
+			documentsCombinator = combiningAlgorithmProcessor.map(
+					DocumentsCombinatorFactory::getCombinator)
+					.share().cache();
+			monitorAlgorithm = documentsCombinator.subscribe();
 
-		ReplayProcessor<Collection<Variable>> variablesProcessor = ReplayProcessor.<Collection<Variable>>create();
-		this.variableFluxSink = variablesProcessor.sink();
-		this.variables = variablesProcessor.map(CEServerPDPConfigurationProvider::generateVariablesAsMap)
-				.share().cache();
-		this.monitorVariables = this.variables.subscribe();
-		// @formatter:on
+			ReplayProcessor<Collection<Variable>> variablesProcessor = ReplayProcessor.<Collection<Variable>>create();
+			variableFluxSink = variablesProcessor.sink();
+			variables = variablesProcessor.map(CEServerPDPConfigurationProvider::generateVariablesAsMap)
+					.share().cache();
+			monitorVariables = variables.subscribe();
+			// @formatter:on			
+		}
 	}
 
 	private void sendCurrentConfiguration() {

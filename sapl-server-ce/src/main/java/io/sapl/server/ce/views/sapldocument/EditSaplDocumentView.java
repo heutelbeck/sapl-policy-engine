@@ -15,10 +15,9 @@
  */
 package io.sapl.server.ce.views.sapldocument;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -188,7 +187,7 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 	private void setUI() {
 		policyIdTextField.setValue(saplDocument.getId().toString());
 		lastModifiedTextField.setValue(saplDocument.getLastModified());
-		currentVersionTextField.setValue(Integer.valueOf(saplDocument.getCurrentVersionNumber()).toString());
+		currentVersionTextField.setValue(Integer.toString(saplDocument.getCurrentVersionNumber()));
 
 		Collection<String> availableVersions = getAvailableVersions();
 		versionSelectionComboBox.setItems(availableVersions);
@@ -235,13 +234,11 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 	}
 
 	private Collection<String> getAvailableVersions() {
-		List<String> result = new ArrayList<String>();
-		for (SaplDocumentVersion saplDocumentVersion : saplDocument.getVersions()) {
-			String versionAsString = Integer.valueOf(saplDocumentVersion.getVersionNumber()).toString();
-			result.add(versionAsString);
-		}
-
-		return result;
+		// @formatter:off
+		return saplDocument.getVersions().stream()
+				.map(saplDocumentVersion -> Integer.toString(saplDocumentVersion.getVersionNumber()))
+				.collect(Collectors.toList());
+		// @formatter:on
 	}
 
 	private void updateSaplEditorBasedOnVersionSelection() {
@@ -275,7 +272,7 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 			return Optional.empty();
 		}
 
-		return Optional.of(Integer.parseInt(selectedVersionAsString));
+		return Optional.of(Integer.valueOf(selectedVersionAsString));
 	}
 
 	/**
