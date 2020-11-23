@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 
 import org.hamcrest.Matchers;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.sapl.api.interpreter.Val;
@@ -44,26 +43,17 @@ public class ArtihmeticExpressionsTest {
 	}
 
 	@Test
-	@Ignore /* This test highlights a problem to be solved */
 	public void oneMinusOne_IsNull() throws IOException {
-		// Parser   : BasicsValue -> value 1
-		// Expected : ( 1 - 1 )
-		doTest("1-1", 0D, true);
-
+		doTest("1-1", 0D, false);
 	}
+
 	@Test
-	@Ignore  /* This test highlights a problem to be solved */
 	public void unaryPlus_IsImplemented() throws IOException {
-		// Parser   : ( (1 + nullPointer) + ((2)) )
-		// Expected : ( 1 + (UNARY_PLUS ((2))) )
-		doTest("1+ +(2)", 3D, true);
+		doTest("1+ +(2)", 3D, false);
 	}
 
 	@Test
-	@Ignore  /* This test highlights a problem to be solved */
 	public void noSpacesPlusAndMinusEvaluates() throws IOException {
-		// Parser   :  ( 5 + 5 )
-		// Expected : ( (5+5) - 3 )
 		doTest("5+5-3", 7D, false);
 	}
 

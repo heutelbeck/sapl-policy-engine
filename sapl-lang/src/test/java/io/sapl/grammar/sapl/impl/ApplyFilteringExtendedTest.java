@@ -24,7 +24,9 @@ import java.io.IOException;
 import org.junit.Test;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.EObjectUtil;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
+import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.test.StepVerifier;
 
@@ -114,7 +116,9 @@ public class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	public void emptyStringEachNoArray() {
+	public void emptyStringEachNoArray() throws IOException {
+		var expression = ParserUtil.expression("[ {}, true ] |- { each @[0] : mock.emptyString }");
+		EObjectUtil.dump(expression);
 		expressionErrors(CTX, "[ {}, true ] |- { each @[0] : mock.emptyString }");
 	}
 

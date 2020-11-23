@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -64,22 +64,41 @@ ValueDefinition:
 	'var' name=ID '=' eval=Expression ;
 
 Expression:
-	Addition ;
+	LazyOr ;
 
-Addition returns Expression:
-	Multiplication (({Plus.left=current} '+' | {Minus.left=current} '-' | {Or.left=current} '||' | '|' {EagerOr.left=current})
-	right=Multiplication)* ;
+LazyOr returns Expression:
+	LazyAnd ({Or.left=current} '||' right=LazyAnd)* ;
+	
+LazyAnd returns Expression:
+	EagerOr ({And.left=current} '&&' right=EagerOr)* ;
 
-Multiplication returns Expression:
-	Comparison (({Multi.left=current} '*' | {Div.left=current} '/' | {And.left=current} '&&' | '&' {EagerAnd.left=current})
-	right=Comparison)* ;
+EagerOr returns Expression:
+	ExclusiveOr ({EagerOr.left=current} '|' right=ExclusiveOr)* ;
+	
+ExclusiveOr returns Expression:
+	EagerAnd ({XOr.left=current} '^' right=EagerAnd)* ;
+
+EagerAnd returns Expression:
+	Equality ({EagerAnd.left=current} '&' right=Equality)* ;
+
+Equality returns Expression:
+	Comparison (({Equals.left=current} '==' | {NotEquals.left=current} '!=' | {Regex.left=current} '=~' ) right=Comparison)? ;
 
 Comparison returns Expression:
-	Prefixed (({Equals.left=current} '==' | {NotEquals.left=current} '!=' | {Regex.left=current} '=~' | {Less.left=current} '<' |
-	{LessEquals.left=current} '<=' | {More.left=current} '>' | {MoreEquals.left=current} '>=' | {ElementOf.left=current} 'in') right=Prefixed)? ;
+	Addition (({Less.left=current} '<' | {LessEquals.left=current} '<=' | {More.left=current} '>' 
+			 | {MoreEquals.left=current} '>=' | {ElementOf.left=current} 'in' ) right=Addition)? ;
 
-Prefixed returns Expression:
-	{Not} '!' expression=BasicExpression | {UnaryMinus} '-' expression=BasicExpression | BasicExpression;
+Addition returns Expression:
+	Multiplication (({Plus.left=current} '+' | {Minus.left=current} '-') right=Multiplication)* ;
+
+Multiplication returns Expression:
+	UnaryExpression (({Multi.left=current} '*' | {Div.left=current} '/') right=UnaryExpression)* ;
+
+UnaryExpression returns Expression:
+	{Not} '!' expression=UnaryExpression 
+	| {UnaryMinus} '-' expression=UnaryExpression 
+	| {UnaryPlus} '+' expression=UnaryExpression 
+	| BasicExpression;
 
 BasicExpression returns Expression:
 	Basic (FILTER filter=FilterComponent | SUBTEMPLATE subtemplate=BasicExpression)?;
@@ -103,17 +122,17 @@ Step:
 	'..' (
 		{RecursiveKeyStep} (id=ID | '[' id=STRING ']' ) | 
 		{RecursiveWildcardStep} ('*' | '[' '*' ']' ) |
-		{RecursiveIndexStep} '[' index=JSONNUMBER ']'
+		{RecursiveIndexStep} '[' index=SignedNumber ']'
 	) ;
 	
 Subscript returns Step:
 	{KeyStep} id=STRING |
 	{WildcardStep} '*' |
-	{IndexStep} index=JSONNUMBER |
-	{ArraySlicingStep} index=JSONNUMBER? ':' to=JSONNUMBER? (':' step=JSONNUMBER)? |
+	{IndexStep} index=SignedNumber |
+	{ArraySlicingStep} index=SignedNumber? ':' to=SignedNumber? (':' step=SignedNumber)? |
 	{ExpressionStep} '(' expression=Expression ')' |
 	{ConditionStep} '?' '(' expression=Expression ')' |
-	{IndexUnionStep} indices+=JSONNUMBER ',' indices+=JSONNUMBER (',' indices+=JSONNUMBER)* |
+	{IndexUnionStep} indices+=SignedNumber ',' indices+=SignedNumber (',' indices+=SignedNumber)* |
 	{AttributeUnionStep} attributes+=STRING ',' attributes+=STRING (',' attributes+=STRING)* ;
 
 Value:
@@ -151,6 +170,8 @@ FilterComponent:
 FilterStatement:
 	each?='each'? target=BasicRelative? ':' fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments? ;
 
+SignedNumber returns ecore::EBigDecimal: '-'? JSONNUMBER;
+
 @Override 
 terminal ID: 
 	'^'? ('a'..'z'|'A'..'Z'|'_'|'$') ('a'..'z'|'A'..'Z'|'_'|'$'|'0'..'9')*;
@@ -161,8 +182,8 @@ terminal FILTER:
 terminal SUBTEMPLATE:
 	'::' ;
 
-terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard
-	'-'? ('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)? ;
+terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard  Unary operator for negation/plus prefix
+	('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)? ;
 
 terminal fragment DIGIT:
 	('0'..'9') ;

@@ -31,6 +31,25 @@ public class EagerOperatorsTest {
 	final EvaluationContext CTX = mock(EvaluationContext.class);
 
 	@Test
+	public void evaluateXOrFalseFalse() {
+		expressionEvaluatesTo(CTX, "false ^ false", "false");
+	}
+
+	@Test
+	public void evaluateXOrTrueFalse() {
+		expressionEvaluatesTo(CTX, "true ^ false", "true");
+	}
+
+	@Test
+	public void evaluateXOrFalseTrue() {
+		expressionEvaluatesTo(CTX, "false ^ true", "true");
+	}
+
+	@Test
+	public void evaluateXOrTrueTrue() {
+		expressionEvaluatesTo(CTX, "true ^ true", "false");
+	}
+	@Test
 	public void evaluateEagerAndFalseFalse() {
 		expressionEvaluatesTo(CTX, "false & false", "false");
 	}
@@ -504,6 +523,11 @@ public class EagerOperatorsTest {
 	@Test
 	public void unaryMinus() {
 		expressionEvaluatesTo(CTX, "-(1)", "-1");
+	}	
+	
+	@Test
+	public void unaryPlus() {
+		expressionEvaluatesTo(CTX, "+(1)", "1");
 	}
 
 	@Test

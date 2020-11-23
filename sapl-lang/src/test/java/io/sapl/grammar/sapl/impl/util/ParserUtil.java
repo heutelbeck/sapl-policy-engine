@@ -29,6 +29,7 @@ import com.google.inject.Injector;
 import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.FilterComponent;
+import io.sapl.grammar.sapl.Statement;
 import io.sapl.grammar.services.SAPLGrammarAccess;
 
 public class ParserUtil {
@@ -50,5 +51,14 @@ public class ParserUtil {
 		InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
 		resource.load(in, resourceSet.getLoadOptions());
 		return (Expression) resource.getContents().get(0);
+	}
+	
+	public static Statement statement(String sapl) throws IOException {
+		XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
+		XtextResource resource = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
+		resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getStatementRule());
+		InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
+		resource.load(in, resourceSet.getLoadOptions());
+		return (Statement) resource.getContents().get(0);
 	}
 }

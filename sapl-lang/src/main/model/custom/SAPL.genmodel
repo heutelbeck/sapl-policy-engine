@@ -138,6 +138,7 @@
     <genClasses ecoreClass="SAPL.ecore#//Minus"/>
     <genClasses ecoreClass="SAPL.ecore#//Or"/>
     <genClasses ecoreClass="SAPL.ecore#//EagerOr"/>
+    <genClasses ecoreClass="SAPL.ecore#//XOr"/>
     <genClasses ecoreClass="SAPL.ecore#//Multi"/>
     <genClasses ecoreClass="SAPL.ecore#//Div"/>
     <genClasses ecoreClass="SAPL.ecore#//And"/>
@@ -152,6 +153,7 @@
     <genClasses ecoreClass="SAPL.ecore#//ElementOf"/>
     <genClasses ecoreClass="SAPL.ecore#//Not"/>
     <genClasses ecoreClass="SAPL.ecore#//UnaryMinus"/>
+    <genClasses ecoreClass="SAPL.ecore#//UnaryPlus"/>
     <genClasses ecoreClass="SAPL.ecore#//BasicGroup">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//BasicGroup/expression"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference SAPL.ecore#//BasicGroup/steps"/>
