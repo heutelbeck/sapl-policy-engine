@@ -305,7 +305,7 @@
 						<mwe2>SLASHSTAR_STYLE</mwe2>
 						<ecore>XML_STYLE</ecore>
 						<genmodel>XML_STYLE</genmodel>
-						<xtext>JAVADOC_STYLE</xtext>
+						<xtext>SLASHSTAR_STYLE</xtext>
 						<config>SCRIPT_STYLE</config>
 					</mapping>
 				</configuration>
