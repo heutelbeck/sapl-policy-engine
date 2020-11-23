@@ -15,8 +15,6 @@
  */
 package io.sapl.pdp.remote;
 
-import javax.net.ssl.SSLException;
-
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
