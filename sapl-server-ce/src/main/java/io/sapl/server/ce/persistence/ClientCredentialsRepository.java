@@ -17,10 +17,13 @@ package io.sapl.server.ce.persistence;
 
 import java.util.Collection;
 
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import io.sapl.server.ce.model.ClientCredentials;
+import io.sapl.server.ce.model.sapldocument.PublishedSaplDocument;
 
 @Repository
 public interface ClientCredentialsRepository extends CrudRepository<ClientCredentials, Long> {
@@ -31,4 +34,13 @@ public interface ClientCredentialsRepository extends CrudRepository<ClientCreden
 	 */
 	@Override
 	Collection<ClientCredentials> findAll();
+
+	/**
+	 * Gets the {@link PublishedSaplDocument}s with a specific name.
+	 * 
+	 * @param name the name
+	 * @return the {@link PublishedSaplDocument}s
+	 */
+	@Query(value = "SELECT c FROM ClientCredentials c WHERE c.key = :key")
+	Collection<ClientCredentials> findByKey(@Param(value = "key") String key);
 }

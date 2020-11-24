@@ -16,18 +16,22 @@
 package io.sapl.server.ce.service;
 
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.google.common.hash.Hashing;
+import com.google.common.collect.Iterables;
 
 import io.sapl.server.ce.model.ClientCredentials;
 import io.sapl.server.ce.persistence.ClientCredentialsRepository;
+import io.sapl.server.ce.security.SecurityConfiguration;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,8 +39,34 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ClientCredentialsService implements Serializable {
+public class ClientCredentialsService implements UserDetailsService, Serializable {
 	private final ClientCredentialsRepository clientCredentialsRepository;
+	private final PasswordEncoder passwordEncoder;
+
+	@Override
+	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+		Collection<ClientCredentials> clientCredentialsWithKey = this.clientCredentialsRepository.findByKey(username);
+		if (clientCredentialsWithKey.isEmpty()) {
+			throw new UsernameNotFoundException(
+					String.format("client credentials with key \"%s\" not found", username));
+		}
+
+		if (clientCredentialsWithKey.size() > 1) {
+			log.warn(String.format("more than one client credentials with key \"%s\" not existing", username));
+		}
+
+		ClientCredentials relevantClientCredentials = Iterables.get(clientCredentialsWithKey, 0);
+
+		String encodedPassword = relevantClientCredentials.getEncodedSecret();
+
+		// @formatter:off
+		return org.springframework.security.core.userdetails.User
+				.withUsername(relevantClientCredentials.getKey())
+				.password(encodedPassword)
+				.roles(SecurityConfiguration.PDP_CLIENT_ROLE)
+				.build();
+		// @formatter:on
+	}
 
 	/**
 	 * Gets all {@link ClientCredentials}s.
@@ -65,8 +95,7 @@ public class ClientCredentialsService implements Serializable {
 	public ClientCredentials createDefault() {
 		ClientCredentials clientCredentialsToCreate = new ClientCredentials();
 		clientCredentialsToCreate.setKey(UUID.randomUUID().toString());
-		clientCredentialsToCreate
-				.setHashedSecret(hashSecret(UUID.randomUUID().toString(), clientCredentialsToCreate.getKey()));
+		clientCredentialsToCreate.setEncodedSecret(encodeSecret(UUID.randomUUID().toString()));
 
 		ClientCredentials createdClientCredentials = clientCredentialsRepository.save(clientCredentialsToCreate);
 
@@ -92,7 +121,7 @@ public class ClientCredentialsService implements Serializable {
 		clientCredentialsToEdit.setKey(key);
 
 		if (secret != null) {
-			clientCredentialsToEdit.setHashedSecret(hashSecret(secret, key));
+			clientCredentialsToEdit.setEncodedSecret(encodeSecret(secret));
 		}
 
 		try {
@@ -112,14 +141,7 @@ public class ClientCredentialsService implements Serializable {
 		this.clientCredentialsRepository.deleteById(id);
 	}
 
-	/**
-	 * Generates a {@link String} representing a hash code for a specified secret
-	 * 
-	 * @param secret the secret to hash
-	 * @param key    the client key of the credentials as salt
-	 * @return the {@link String} representing the hash code
-	 */
-	private String hashSecret(@NonNull String secret, @NonNull String key) {
-		return Hashing.sha512().hashString(secret + key, StandardCharsets.UTF_8).toString();
+	private String encodeSecret(@NonNull String secret) {
+		return passwordEncoder.encode(secret);
 	}
 }

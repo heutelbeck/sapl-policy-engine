@@ -47,8 +47,8 @@ public class ClientCredentials {
 	private String key;
 
 	/**
-	 * The hashed secret (password).
+	 * The encoded secret (hashed / salted password).
 	 */
-	@Column(length = 250, name = "clientSecretHash")
-	private String hashedSecret;
+	@Column(length = 250, name = "clientEncodedSecret")
+	private String encodedSecret;
 }

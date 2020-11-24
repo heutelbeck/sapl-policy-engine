@@ -18,6 +18,7 @@ package io.sapl.server.ce.security;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
@@ -26,9 +27,15 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-@EnableWebSecurity
+import io.sapl.server.ce.service.ClientCredentialsService;
+import lombok.RequiredArgsConstructor;
+
 @Configuration
+@EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+	public static final String PDP_CLIENT_ROLE = "PDP_CLIENT";
+
 	private static final String LOGIN_PROCESSING_URL = "/login";
 	private static final String LOGIN_FAILURE_URL = "/login";
 	private static final String LOGIN_URL = "/login";
@@ -36,11 +43,18 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
 	private static final String API_PATHS = "/api/**";
 
+	private final ClientCredentialsService clientCredentialsService;
+
 	@Value("${io.sapl.server-ce.key}")
 	private String clientKey;
 
 	@Value("${io.sapl.server-ce.secret}")
 	private String clientSecret;
+
+	@Bean
+	public static PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 
 	/**
 	 * Require login to access internal pages and configure login form.
@@ -100,13 +114,18 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
 		// @formatter:off
 		auth.inMemoryAuthentication()
-				.withUser(clientKey).password(clientSecret)
-				.roles("PDP_CLIENT");
+			.withUser(clientKey).password(clientSecret)
+			.roles(PDP_CLIENT_ROLE);
 		// @formatter:on
+
+		auth.authenticationProvider(authProvider());
 	}
 
 	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
+	public DaoAuthenticationProvider authProvider() {
+		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+		authProvider.setUserDetailsService(clientCredentialsService);
+		authProvider.setPasswordEncoder(passwordEncoder());
+		return authProvider;
 	}
 }
