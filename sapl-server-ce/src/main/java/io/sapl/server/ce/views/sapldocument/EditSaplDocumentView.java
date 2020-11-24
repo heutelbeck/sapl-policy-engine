@@ -268,7 +268,7 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 	 */
 	private Optional<Integer> getSelectedVersionNumber() {
 		String selectedVersionAsString = versionSelectionComboBox.getValue();
-		if (selectedVersionAsString == null || selectedVersionAsString.equals(NEW_VERSION_SELECTION_ENTRY)) {
+		if (selectedVersionAsString == null || NEW_VERSION_SELECTION_ENTRY.equals(selectedVersionAsString)) {
 			return Optional.empty();
 		}
 

@@ -16,7 +16,6 @@
 package io.sapl.server.ce.pdp;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.PostConstruct;
@@ -27,6 +26,7 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.google.common.collect.Maps;
 
 import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.EvaluationContext;
@@ -105,7 +105,7 @@ public class CEServerPDPConfigurationProvider implements PDPConfigurationProvide
 	}
 
 	private static Map<String, JsonNode> generateVariablesAsMap(@NonNull Collection<Variable> variables) {
-		Map<String, JsonNode> variablesAsMap = new HashMap<>(variables.size());
+		Map<String, JsonNode> variablesAsMap = Maps.newHashMapWithExpectedSize(variables.size());
 		for (Variable variable : variables) {
 			variablesAsMap.put(variable.getName(), JSON.textNode(variable.getJsonValue()));
 		}

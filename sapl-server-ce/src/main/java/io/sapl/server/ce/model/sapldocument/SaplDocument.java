@@ -15,6 +15,7 @@
  */
 package io.sapl.server.ce.model.sapldocument;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -46,7 +47,7 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class SaplDocument {
+public class SaplDocument implements Serializable {
 	/**
 	 * The unique identifier of the SAPL document.
 	 */

@@ -15,6 +15,7 @@
  */
 package io.sapl.interpreter.pip;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,7 +23,7 @@ import lombok.Data;
 import lombok.NonNull;
 
 @Data
-public class PolicyInformationPointDocumentation {
+public class PolicyInformationPointDocumentation implements Serializable {
 
 	@NonNull
 	String name;

@@ -15,6 +15,7 @@
  */
 package io.sapl.server.ce.persistence;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 import org.springframework.data.repository.CrudRepository;
@@ -26,7 +27,7 @@ import io.sapl.server.ce.model.sapldocument.SaplDocument;
  * Interface for a repository for accessing persisted {@link SaplDocument}.
  */
 @Repository
-public interface SaplDocumentsRepository extends CrudRepository<SaplDocument, Long> {
+public interface SaplDocumentsRepository extends CrudRepository<SaplDocument, Long>, Serializable {
 	/**
 	 * Returns all instances of the {@link SaplDocument}s.
 	 * 

@@ -15,6 +15,7 @@
  */
 package io.sapl.server.ce.persistence;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 import org.springframework.data.repository.CrudRepository;
@@ -23,7 +24,7 @@ import org.springframework.stereotype.Repository;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
 
 @Repository
-public interface VariablesRepository extends CrudRepository<Variable, Long> {
+public interface VariablesRepository extends CrudRepository<Variable, Long>, Serializable {
 	/**
 	 * Returns all instances of the {@link Variable}s.
 	 * 

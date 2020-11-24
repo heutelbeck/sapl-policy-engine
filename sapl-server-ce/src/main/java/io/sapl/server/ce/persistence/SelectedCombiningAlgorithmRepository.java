@@ -15,6 +15,7 @@
  */
 package io.sapl.server.ce.persistence;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 import org.springframework.data.repository.CrudRepository;
@@ -28,7 +29,8 @@ import io.sapl.server.ce.model.pdpconfiguration.SelectedCombiningAlgorithm;
  * {@link PolicyDocumentCombiningAlgorithm}.
  */
 @Repository
-public interface SelectedCombiningAlgorithmRepository extends CrudRepository<SelectedCombiningAlgorithm, Long> {
+public interface SelectedCombiningAlgorithmRepository
+		extends CrudRepository<SelectedCombiningAlgorithm, Long>, Serializable {
 	/**
 	 * Returns all instances of the {@link SelectedCombiningAlgorithm}s.
 	 * 

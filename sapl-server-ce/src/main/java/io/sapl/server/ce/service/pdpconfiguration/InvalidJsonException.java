@@ -25,7 +25,7 @@ public class InvalidJsonException extends Exception {
 		this(invalidJson, null);
 	}
 
-	public InvalidJsonException(@NonNull String invalidJson, @NonNull Throwable innerEx) {
+	public InvalidJsonException(@NonNull String invalidJson, Throwable innerEx) {
 		super(String.format("the provided JSON is invalid: %s", invalidJson));
 	}
 }

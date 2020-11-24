@@ -15,6 +15,7 @@
  */
 package io.sapl.server.ce.persistence;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 import org.springframework.data.jpa.repository.Query;
@@ -26,7 +27,7 @@ import io.sapl.server.ce.model.ClientCredentials;
 import io.sapl.server.ce.model.sapldocument.PublishedSaplDocument;
 
 @Repository
-public interface ClientCredentialsRepository extends CrudRepository<ClientCredentials, Long> {
+public interface ClientCredentialsRepository extends CrudRepository<ClientCredentials, Long>, Serializable {
 	/**
 	 * Returns all instances of the {@link ClientCredentials}s.
 	 * 

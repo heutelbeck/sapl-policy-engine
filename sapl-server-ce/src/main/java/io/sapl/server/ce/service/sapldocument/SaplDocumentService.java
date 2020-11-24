@@ -192,7 +192,7 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 	 *                                                 publish is not unique
 	 * 
 	 */
-	@Transactional
+	@Transactional(rollbackFor = Throwable.class)
 	public void publishVersion(long saplDocumentId, int versionToPublish)
 			throws PublishedDocumentNameCollisionException {
 		SaplDocument saplDocument = this.getById(saplDocumentId);

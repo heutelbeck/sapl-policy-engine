@@ -15,6 +15,8 @@
  */
 package io.sapl.server.ce.model.pdpconfiguration;
 
+import java.io.Serializable;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -35,7 +37,7 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class Variable {
+public class Variable implements Serializable {
 	/**
 	 * The unique identifier of the variable.
 	 */

@@ -37,7 +37,7 @@ public class ErrorNotificationContent extends PolymerTemplate<ErrorNotificationC
 	 * Creates a new ErrorNotificationContent.
 	 */
 	public ErrorNotificationContent(@NonNull String errorMessage) {
-		this.errorMessageDiv.setText(errorMessage);
+		errorMessageDiv.setText(errorMessage);
 	}
 
 	/**

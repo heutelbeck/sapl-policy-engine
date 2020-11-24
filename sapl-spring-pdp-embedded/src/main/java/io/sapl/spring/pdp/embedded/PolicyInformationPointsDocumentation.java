@@ -15,12 +15,13 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import lombok.Value;
 
 @Value
-public class PolicyInformationPointsDocumentation {
+public class PolicyInformationPointsDocumentation implements Serializable {
 	Collection<PolicyInformationPointDocumentation> documentation;
 }

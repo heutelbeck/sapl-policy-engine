@@ -15,12 +15,13 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import lombok.Value;
 
 @Value
-public class FunctionLibrariesDocumentation {
+public class FunctionLibrariesDocumentation implements Serializable {
 	Collection<LibraryDocumentation> documentation;
 }
