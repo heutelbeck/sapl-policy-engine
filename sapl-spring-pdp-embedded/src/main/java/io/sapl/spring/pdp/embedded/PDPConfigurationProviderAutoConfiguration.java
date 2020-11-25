@@ -36,14 +36,16 @@ import lombok.extern.slf4j.Slf4j;
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class PDPConfigurationProviderAutoConfiguration {
 
-	private AttributeContext attributeCtx;
-	private FunctionContext functionCtx;
-	private VariablesAndCombinatorSource combinatorProvider;
+	private final AttributeContext attributeCtx;
+	private final FunctionContext functionCtx;
+	private final VariablesAndCombinatorSource combinatorProvider;
 
 	@Bean
 	@ConditionalOnMissingBean
 	public PDPConfigurationProvider pdpConfigurationProvider() {
-		log.info("Deploying PDP configuration provider.");
+		log.info(
+				"Deploying PDP configuration provider with AttributeContext: {} FunctionContext: {} VariablesAndCombinatorSource: {}",
+				attributeCtx, functionCtx, combinatorProvider);
 		return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider);
 	}
 }

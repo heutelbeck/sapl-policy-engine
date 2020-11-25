@@ -43,7 +43,8 @@ public class PDPAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public PolicyDecisionPoint policyDecisionPoint() {
-		log.info("Deploying embedded Policy Decision Point.");
+		log.info("Deploying embedded Policy Decision Point. ConfigProvider: {} PRP: {}",
+				configurationProvider.getClass().getSimpleName(), policyRetrievalPoint.getClass().getSimpleName());
 		return new EmbeddedPolicyDecisionPoint(configurationProvider, policyRetrievalPoint);
 	}
 
