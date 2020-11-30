@@ -23,11 +23,9 @@ SAPL:
 	imports+=Import* policyElement=PolicyElement ;
 
 Import:
-	'import' (
-		{WildcardImport} libSteps+=ID ('.' libSteps+=ID)* '.' '*' |
-		{LibraryImport} (libSteps+=ID '.')* libSteps+=ID 'as' libAlias=ID |
-		libSteps+=ID ('.' libSteps+=ID)* '.' functionName=ID
-	) ;
+	'import' ( {WildcardImport} libSteps+=ID ('.' libSteps+=ID)* '.' '*' 
+		     | {LibraryImport} (libSteps+=ID '.')* libSteps+=ID 'as' libAlias=ID 
+		     | libSteps+=ID ('.' libSteps+=ID)* '.' functionName=ID	) ;
 	
 PolicyElement:
 	PolicySet | Policy;
@@ -39,8 +37,12 @@ PolicySet:
 	policies+=Policy+ ;
 	
 CombiningAlgorithm:
-	'deny-overrides' | 'permit-overrides' | 'first-applicable' | 'only-one-applicable'
-	| 'deny-unless-permit' | 'permit-unless-deny' ;
+	  'deny-overrides' 
+	| 'permit-overrides' 
+	| 'first-applicable' 
+	| 'only-one-applicable'
+	| 'deny-unless-permit' 
+	| 'permit-unless-deny' ;
 
 Policy:
 	{Policy} 'policy' saplName=STRING
@@ -82,11 +84,16 @@ EagerAnd returns Expression:
 	Equality ({EagerAnd.left=current} '&' right=Equality)* ;
 
 Equality returns Expression:
-	Comparison (({Equals.left=current} '==' | {NotEquals.left=current} '!=' | {Regex.left=current} '=~' ) right=Comparison)? ;
+	Comparison (( {Equals.left=current} '==' 
+	            | {NotEquals.left=current} '!=' 
+	            | {Regex.left=current} '=~'	) right=Comparison)? ;
 
 Comparison returns Expression:
-	Addition (({Less.left=current} '<' | {LessEquals.left=current} '<=' | {More.left=current} '>' 
-			 | {MoreEquals.left=current} '>=' | {ElementOf.left=current} 'in' ) right=Addition)? ;
+	Addition (( {Less.left=current} '<' 
+		      | {LessEquals.left=current} '<=' 
+		      | {More.left=current} '>'
+		      | {MoreEquals.left=current} '>=' 
+		      | {ElementOf.left=current} 'in' ) right=Addition)? ;
 
 Addition returns Expression:
 	Multiplication (({Plus.left=current} '+' | {Minus.left=current} '-') right=Multiplication)* ;
@@ -95,7 +102,7 @@ Multiplication returns Expression:
 	UnaryExpression (({Multi.left=current} '*' | {Div.left=current} '/') right=UnaryExpression)* ;
 
 UnaryExpression returns Expression:
-	{Not} '!' expression=UnaryExpression 
+	  {Not} '!' expression=UnaryExpression 
 	| {UnaryMinus} '-' expression=UnaryExpression 
 	| {UnaryPlus} '+' expression=UnaryExpression 
 	| BasicExpression;
@@ -107,8 +114,8 @@ Basic returns BasicExpression:
 	  {BasicGroup} '(' expression=Expression ')' steps+=Step* 
 	| {BasicValue} value=Value steps+=Step*  
 	| {BasicFunction} fsteps+=ID ('.' fsteps+=ID)*  arguments=Arguments steps+=Step* 
-//	| {BasicEnvironmentAttribute} '<' idSteps+=ID ('.' idSteps+=ID)* arguments=Arguments? '>' steps+=Step* 
-//	| {BasicHeadEnvironmentAttribute} '|<' idSteps+=ID ('.' idSteps+=ID)* arguments=Arguments? '>' steps+=Step* 
+	| {BasicEnvironmentAttribute} '<' idSteps+=ID ('.' idSteps+=ID)* arguments=Arguments? '>' steps+=Step* 
+	| {BasicEnvironmentHeadAttribute} '|<' idSteps+=ID ('.' idSteps+=ID)* arguments=Arguments? '>' steps+=Step* 
 	| {BasicIdentifier} identifier=ID steps+=Step* 
 	| BasicRelative;
 
@@ -129,14 +136,14 @@ Step:
 		   | {RecursiveIndexStep} '[' index=SignedNumber ']' ) ;
 	
 Subscript returns Step:
-	{KeyStep} id=STRING |
-	{WildcardStep} '*' |
-	{IndexStep} index=SignedNumber |
-	{ArraySlicingStep} index=SignedNumber? ':' to=SignedNumber? (':' step=SignedNumber)? |
-	{ExpressionStep} '(' expression=Expression ')' |
-	{ConditionStep} '?' '(' expression=Expression ')' |
-	{IndexUnionStep} indices+=SignedNumber ',' indices+=SignedNumber (',' indices+=SignedNumber)* |
-	{AttributeUnionStep} attributes+=STRING ',' attributes+=STRING (',' attributes+=STRING)* ;
+	  {KeyStep} id=STRING 
+	| {WildcardStep} '*' 
+	| {IndexStep} index=SignedNumber 
+	| {ArraySlicingStep} index=SignedNumber? ':' to=SignedNumber? (':' step=SignedNumber)? 
+	| {ExpressionStep} '(' expression=Expression ')' 
+	| {ConditionStep} '?' '(' expression=Expression ')' 
+	| {IndexUnionStep} indices+=SignedNumber ',' indices+=SignedNumber (',' indices+=SignedNumber)* 
+	| {AttributeUnionStep} attributes+=STRING ',' attributes+=STRING (',' attributes+=STRING)* ;
 
 Value:
 	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral | UndefinedLiteral ;
@@ -151,8 +158,8 @@ Array returns Value:
 	{Array} '[' (items+=Expression (',' items+=Expression)*)? ']' ;
 
 BooleanLiteral returns Value:
-	{TrueLiteral} 'true' |
-	{FalseLiteral} 'false' ;
+	  {TrueLiteral} 'true' 
+	| {FalseLiteral} 'false' ;
 
 NullLiteral returns Value:
 	{NullLiteral} 'null' ;
@@ -167,8 +174,8 @@ NumberLiteral returns Value:
 	{NumberLiteral} number=JSONNUMBER ;
 
 FilterComponent: 
-	{FilterSimple} each?='each'? fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments? |
-	{FilterExtended} '{' statements+=FilterStatement (',' statements+=FilterStatement)* '}' ;
+	  {FilterSimple} each?='each'? fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments? 
+	| {FilterExtended} '{' statements+=FilterStatement (',' statements+=FilterStatement)* '}' ;
 
 FilterStatement:
 	each?='each'? target=BasicRelative? ':' fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments? ;
