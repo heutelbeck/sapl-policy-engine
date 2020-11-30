@@ -104,11 +104,13 @@ BasicExpression returns Expression:
 	Basic (FILTER filter=FilterComponent | SUBTEMPLATE subtemplate=BasicExpression)?;
 
 Basic returns BasicExpression:
-	{BasicGroup} '(' expression=Expression ')' steps+=Step* |
-	{BasicValue} value=Value steps+=Step*  |
-	{BasicFunction} fsteps+=ID ('.' fsteps+=ID)*  arguments=Arguments steps+=Step* |
-	{BasicIdentifier} identifier=ID steps+=Step* |
-	BasicRelative;
+	  {BasicGroup} '(' expression=Expression ')' steps+=Step* 
+	| {BasicValue} value=Value steps+=Step*  
+	| {BasicFunction} fsteps+=ID ('.' fsteps+=ID)*  arguments=Arguments steps+=Step* 
+//	| {BasicEnvironmentAttribute} '<' idSteps+=ID ('.' idSteps+=ID)* arguments=Arguments? '>' steps+=Step* 
+//	| {BasicHeadEnvironmentAttribute} '|<' idSteps+=ID ('.' idSteps+=ID)* arguments=Arguments? '>' steps+=Step* 
+	| {BasicIdentifier} identifier=ID steps+=Step* 
+	| BasicRelative;
 
 BasicRelative:
 	{BasicRelative} '@' steps+=Step* ;
@@ -117,13 +119,14 @@ Arguments:
 	{Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
 
 Step:
-	'.' ({KeyStep} id=ID | {WildcardStep} '*' | {AttributeFinderStep} '<' idSteps+=ID ('.' idSteps+=ID)* arguments=Arguments? '>') |
-	'[' Subscript ']' |
-	'..' (
-		{RecursiveKeyStep} (id=ID | '[' id=STRING ']' ) | 
-		{RecursiveWildcardStep} ('*' | '[' '*' ']' ) |
-		{RecursiveIndexStep} '[' index=SignedNumber ']'
-	) ;
+	'.' ( {KeyStep} id=ID 
+		| {WildcardStep} '*' 
+		| {AttributeFinderStep} '<' idSteps+=ID ('.' idSteps+=ID)* arguments=Arguments? '>'  
+		| {HeadAttributeFinderStep} '|<' idSteps+=ID ('.' idSteps+=ID)* arguments=Arguments? '>' ) 
+	| '[' Subscript ']' 
+	| '..' ( {RecursiveKeyStep} (id=ID | '[' id=STRING ']' ) 
+		   | {RecursiveWildcardStep} ('*' | '[' '*' ']' ) 
+		   | {RecursiveIndexStep} '[' index=SignedNumber ']' ) ;
 	
 Subscript returns Step:
 	{KeyStep} id=STRING |
