@@ -249,6 +249,10 @@ public class TestRunner {
 						FUNCTION_CONTEXT, VARIABLES).forAuthorizationSubscription(request);
 				PolicyRetrievalResult result = initializedIndex.retrievePolicies(subscriptionScopedEvaluationCtx)
 						.block();
+
+				if (result == null)
+					throw new IllegalStateException("Policy retrieval returned 'null' result.");
+
 				long end = System.nanoTime();
 
 				double timeRetrieve = nanoToMs(end - start);
@@ -259,7 +263,6 @@ public class TestRunner {
 				// .combineMatchingDocuments(result.getMatchingDocuments(), false,
 				// request, ATTRIBUTE_CONTEXT, FUNCTION_CONTEXT, VARIABLES).blockFirst();
 				// Objects.requireNonNull(decision);
-
 				results.add(new XlsRecord(j, config.getName(), timePreparation, timeRetrieve,
 						"AuthorizationSubscription", buildResponseStringForResult(result, decision)));
 
