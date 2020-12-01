@@ -13,20 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.embedded.config;
+package io.sapl.prp.index.canonical.ordering;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.sapl.interpreter.combinators.DocumentsCombinator;
-import reactor.core.publisher.Flux;
+import io.sapl.prp.index.canonical.Predicate;
+import io.sapl.prp.index.canonical.PredicateInfo;
 
-import java.util.Map;
+import java.util.Collection;
+import java.util.List;
 
-public interface VariablesAndCombinatorSource {
+public interface PredicateOrderStrategy {
 
-	Flux<DocumentsCombinator> getDocumentsCombinator();
-
-	Flux<Map<String, JsonNode>> getVariables();
-
-	void dispose();
+	List<Predicate> createPredicateOrder(final Collection<PredicateInfo> data);
 
 }

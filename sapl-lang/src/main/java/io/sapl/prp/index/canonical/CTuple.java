@@ -13,20 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.embedded.config;
+package io.sapl.prp.index.canonical;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.sapl.interpreter.combinators.DocumentsCombinator;
-import reactor.core.publisher.Flux;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-import java.util.Map;
+@Getter
+@RequiredArgsConstructor
+// tuple of a conjunction index number and the number of formulas in F(ci) containing ci .
+public class CTuple {
 
-public interface VariablesAndCombinatorSource {
+	// conjunction index number
+	private final int cI;
 
-	Flux<DocumentsCombinator> getDocumentsCombinator();
-
-	Flux<Map<String, JsonNode>> getVariables();
-
-	void dispose();
+	// number of formulas containing conjunction
+	private final long n;
 
 }

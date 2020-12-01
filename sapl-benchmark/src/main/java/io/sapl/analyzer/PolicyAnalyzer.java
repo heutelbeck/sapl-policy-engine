@@ -25,11 +25,11 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.prp.inmemory.indexed.Bool;
-import io.sapl.prp.inmemory.indexed.ConjunctiveClause;
-import io.sapl.prp.inmemory.indexed.DisjunctiveFormula;
-import io.sapl.prp.inmemory.indexed.Literal;
-import io.sapl.prp.inmemory.indexed.TreeWalker;
+import io.sapl.prp.index.canonical.Bool;
+import io.sapl.prp.index.canonical.ConjunctiveClause;
+import io.sapl.prp.index.canonical.DisjunctiveFormula;
+import io.sapl.prp.index.canonical.Literal;
+import io.sapl.prp.index.canonical.TreeWalker;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.IndexType;
 import lombok.extern.slf4j.Slf4j;
 

@@ -15,16 +15,15 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import io.sapl.api.interpreter.SAPLInterpreter;
+import io.sapl.prp.PrpUpdateEventSource;
+import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
+import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import io.sapl.api.interpreter.SAPLInterpreter;
-import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;
-import io.sapl.reimpl.prp.PrpUpdateEventSource;
-import io.sapl.reimpl.prp.filesystem.FileSystemPrpUpdateEventSource;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration

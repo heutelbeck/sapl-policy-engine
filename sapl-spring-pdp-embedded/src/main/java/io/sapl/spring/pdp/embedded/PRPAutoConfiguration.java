@@ -15,29 +15,28 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.HashMap;
-
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.prp.PolicyRetrievalPoint;
+import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
+import io.sapl.prp.PrpUpdateEventSource;
+import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
+import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
+import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.IndexType;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.prp.PolicyRetrievalPoint;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.reimpl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
-import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
-import io.sapl.reimpl.prp.PrpUpdateEventSource;
-import io.sapl.reimpl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
-import io.sapl.reimpl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
-import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.IndexType;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.HashMap;
 
 @Slf4j
 @Configuration

@@ -17,8 +17,8 @@ package io.sapl.generator;
 
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.reimpl.prp.PrpUpdateEvent;
-import io.sapl.reimpl.prp.PrpUpdateEventSource;
+import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEventSource;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

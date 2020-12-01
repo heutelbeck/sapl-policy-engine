@@ -13,24 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.prp.resources;
+package io.sapl.prp.filesystem;
 
-import io.sapl.api.functions.FunctionException;
-import io.sapl.api.interpreter.InitializationException;
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pip.AttributeException;
-import io.sapl.pdp.embedded.PolicyDecisionPointFactory;
+import io.sapl.pdp.embedded.config.resources.ResourcesVariablesAndCombinatorSource;
 import org.junit.Test;
+import reactor.core.publisher.SignalType;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
+import java.util.logging.Level;
 
-public class ResourcesPolicyRetrievalPointTest {
-
+public class ResourcesConfigTest {
 	@Test
-	public void loadPolicies() throws IOException, URISyntaxException, FunctionException, AttributeException,
-			PolicyEvaluationException, InitializationException {
-		PolicyDecisionPointFactory.resourcesPolicyDecisionPoint();
+	public void doTest() throws InterruptedException {
+		var configProvider = new ResourcesVariablesAndCombinatorSource("/policies");
+		configProvider.getDocumentsCombinator().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
+		configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
+		configProvider.dispose();
 	}
-
 }

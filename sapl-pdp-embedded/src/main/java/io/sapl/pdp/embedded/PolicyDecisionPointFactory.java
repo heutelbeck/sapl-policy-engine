@@ -15,11 +15,7 @@
  */
 package io.sapl.pdp.embedded;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.functions.FilterFunctionLibrary;
@@ -36,11 +32,14 @@ import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.embedded.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import io.sapl.pdp.embedded.config.resources.ResourcesVariablesAndCombinatorSource;
 import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
+import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
+import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;
-import io.sapl.reimpl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
-import io.sapl.reimpl.prp.ImmutableParsedDocumentIndex;
-import io.sapl.reimpl.prp.filesystem.FileSystemPrpUpdateEventSource;
-import io.sapl.reimpl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 public class PolicyDecisionPointFactory {
 

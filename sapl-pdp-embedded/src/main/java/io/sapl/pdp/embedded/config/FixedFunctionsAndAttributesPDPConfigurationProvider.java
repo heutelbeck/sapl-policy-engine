@@ -15,16 +15,15 @@
  */
 package io.sapl.pdp.embedded.config;
 
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
 
 @RequiredArgsConstructor
 public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPConfigurationProvider {
