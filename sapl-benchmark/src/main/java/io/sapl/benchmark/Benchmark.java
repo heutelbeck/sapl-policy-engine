@@ -70,14 +70,14 @@ import static io.sapl.benchmark.BenchmarkConstants.USAGE;
 public class Benchmark implements CommandLineRunner {
 
     // public static final String DEFAULT_PATH = "/tmp/sapl/benchmarks";
-    public static final String DEFAULT_PATH = "C:\\tmp\\sapl\\benchmarks\\";
+//    public static final String DEFAULT_PATH = "C:\\tmp\\sapl\\benchmarks\\";
 
     private final TestRunner TEST_RUNNER = new TestRunner();
     private final List<Long> seedList = new LinkedList<>();
     private final DomainGenerator domainGenerator;
 
     // Switch between benchmark types
-    protected static boolean performFullyRandomBenchmark = false;
+    static boolean performFullyRandomBenchmark = false;
 
 
     //    private String filePrefix;
@@ -196,8 +196,8 @@ public class Benchmark implements CommandLineRunner {
             suite = new Gson().fromJson(allLinesAsString, TestSuite.class);
         } else {
             suite = TestSuiteGenerator
-                    .generateN(benchmarkArguments.getPath(), benchmarkArguments.getNumberOfBenchmarkIterations(),
-                            domainGenerator.getDomainData().getDice());
+                    .generateN(benchmarkArguments.getPath(), benchmarkArguments.getNumberOfBenchmarkIterations()
+                    );
         }
 
         Objects.requireNonNull(suite, "test suite is null");

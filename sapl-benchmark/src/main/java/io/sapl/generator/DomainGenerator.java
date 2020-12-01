@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -151,7 +152,7 @@ public class DomainGenerator {
         return policyBuilder;
     }
 
-    public StringBuilder generateBasePolicy(String policyName, List<DomainResource> resources) {
+    public StringBuilder generateBasePolicy(String policyName, Iterable<DomainResource> resources) {
         StringBuilder policyBuilder = new StringBuilder().append("policy \"").append(policyName).append("\"")
                 .append(System.lineSeparator())
                 .append("permit ");
@@ -177,7 +178,7 @@ public class DomainGenerator {
         return policyBuilder;
     }
 
-    public void addRolesToPolicy(StringBuilder policyBuilder, List<DomainRole> roles, boolean emptyPermit) {
+    public void addRolesToPolicy(StringBuilder policyBuilder, Collection<DomainRole> roles, boolean emptyPermit) {
         if (roles.isEmpty()) return;
 
         policyBuilder.append(System.lineSeparator()).append(TAB_STRING);
@@ -193,7 +194,7 @@ public class DomainGenerator {
         policyBuilder.append(')');
     }
 
-    public void addActionsToPolicy(StringBuilder policyBuilder, List<String> actions) {
+    public void addActionsToPolicy(StringBuilder policyBuilder, Collection<String> actions) {
         if (actions.isEmpty()) return;
 
         policyBuilder.append(System.lineSeparator()).append(TAB_STRING).append(" & ").append('(');
@@ -272,7 +273,8 @@ public class DomainGenerator {
     }
 
 
-    private List<DomainPolicy> generatePoliciesForRestrictedResources(List<DomainResource> restrictedResources, List<DomainRole> allRoles) {
+    private List<DomainPolicy> generatePoliciesForRestrictedResources(Iterable<DomainResource> restrictedResources,
+                                                                      Collection<DomainRole> allRoles) {
         List<DomainPolicy> policies = new ArrayList<>();
 
         List<DomainRole> rolesWithRestrictedAccess = allRoles.stream()
@@ -317,29 +319,29 @@ public class DomainGenerator {
     }
 
     private void handleReadAccessRoles(List<DomainPolicy> policies, DomainResource resource) {
-        //        String policyName = resource.getResourceName() + "_read_roles";
-        //        StringBuilder policyBuilder = generateBasePolicyWithActions(policyName, Collections
-        //                .singletonList(resource), DomainActions.READ_ONLY.getActionList(), resource.getReadAccessRoles());
-        //
-        //        List<DomainRole> extendedRoles = resource.getReadAccessRoles().stream()
-        //                .filter(DomainRole::isExtensionRequired).collect(Collectors.toList());
-        //        if (resource.isExtensionRequired()) {
-        //            policyName += "_extended";
-        //            addObligationToPolicy(policyBuilder, DomainUtil.LOG_OBLIGATION);
-        //
-        //            policies.add(new DomainPolicy(policyName, policyBuilder.toString(), policyName));
-        //        } else if (!extendedRoles.isEmpty()) {
-        //            for (DomainRole extendedRole : extendedRoles) {
-        //
-        //                StringBuilder rolePolicyBuilder = new StringBuilder(policyBuilder.toString());
-        //                addObligationToPolicy(rolePolicyBuilder, DomainUtil.LOG_OBLIGATION);
-        //
-        //                String rolePolicyName = resource.getResourceName() + "_read_" + extendedRole
-        //                        .getRoleName() + "_extended";
-        //
-        //                policies.add(new DomainPolicy(rolePolicyName, rolePolicyBuilder.toString(), rolePolicyName));
-        //            }
-        //        }
+                String policyName = resource.getResourceName() + "_read_roles";
+        StringBuilder policyBuilder = generateBasePolicyWithActions(policyName, Collections
+                .singletonList(resource), DomainActions.READ_ONLY.getActionList(), resource.getReadAccessRoles());
+
+        List<DomainRole> extendedRoles = resource.getReadAccessRoles().stream()
+                .filter(DomainRole::isExtensionRequired).collect(Collectors.toList());
+        if (resource.isExtensionRequired()) {
+            policyName += "_extended";
+            addObligationToPolicy(policyBuilder, DomainUtil.LOG_OBLIGATION);
+
+            policies.add(new DomainPolicy(policyName, policyBuilder.toString(), policyName));
+        } else if (!extendedRoles.isEmpty()) {
+            for (DomainRole extendedRole : extendedRoles) {
+
+                StringBuilder rolePolicyBuilder = new StringBuilder(policyBuilder.toString());
+                addObligationToPolicy(rolePolicyBuilder, DomainUtil.LOG_OBLIGATION);
+
+                String rolePolicyName = resource.getResourceName() + "_read_" + extendedRole
+                        .getRoleName() + "_extended";
+
+                policies.add(new DomainPolicy(rolePolicyName, rolePolicyBuilder.toString(), rolePolicyName));
+            }
+        }
 
 
     }
@@ -363,7 +365,8 @@ public class DomainGenerator {
                 for (DomainRole extendedRole : extendedFullAccessRoles) {
                     String rolePolicyName = resource.getResourceName() + "_unrestricted_" + extendedRole
                             .getRoleName();
-                    StringBuilder rolePolicyBuilder = generateBasePolicy(rolePolicyName, Collections.singletonList(resource));
+                    StringBuilder rolePolicyBuilder = generateBasePolicy(rolePolicyName, Collections
+                            .singletonList(resource));
                     addRolesToPolicy(rolePolicyBuilder, Collections.singletonList(extendedRole), false);
                     addObligationToPolicy(rolePolicyBuilder, DomainUtil.LOG_OBLIGATION);
 
@@ -412,7 +415,7 @@ public class DomainGenerator {
         return policies;
     }
 
-    private List<DomainPolicy> generatePoliciesForGeneralAccessRoles(List<DomainRole> allRoles) {
+    private List<DomainPolicy> generatePoliciesForGeneralAccessRoles(Collection<DomainRole> allRoles) {
         List<DomainPolicy> policies = new ArrayList<>();
 
         List<DomainRole> unrestrictedRoles = allRoles.stream().filter(DomainRole::isGeneralUnrestrictedAccess)
@@ -461,7 +464,7 @@ public class DomainGenerator {
     }
 
 
-    private List<DomainPolicy> generateSubjectSpecificPolicies(List<DomainSubject> allSubjects) {
+    private List<DomainPolicy> generateSubjectSpecificPolicies(Iterable<DomainSubject> allSubjects) {
         List<DomainPolicy> policies = new ArrayList<>();
 
         for (DomainSubject subject : allSubjects) {

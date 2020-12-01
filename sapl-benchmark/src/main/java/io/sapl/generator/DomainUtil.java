@@ -17,7 +17,6 @@ package io.sapl.generator;
 
 import io.sapl.generator.DomainPolicy.DomainPolicyBody;
 import io.sapl.generator.DomainPolicy.DomainPolicyObligation;
-import io.sapl.generator.DomainRole.ExtendedDomainRole;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 
@@ -28,8 +27,8 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class DomainUtil {
@@ -55,18 +54,20 @@ public class DomainUtil {
         log.info("writing policies to folder: {}", policyPath);
 
         File policyDir = new File(policyPath);
-        policyDir.mkdir();
+        boolean directoryCreated = policyDir.mkdir();
+        if (!directoryCreated) throw new RuntimeException("policy directory could not be created");
 
-        log.debug("before clean fileCount:{}", policyDir.listFiles().length);
+
+        log.debug("before clean fileCount:{}", Objects.requireNonNull(policyDir.listFiles()).length);
         if (cleanDirectory) cleanPolicyDirectory(policyPath);
-        log.debug("after clean fileCount:{}", policyDir.listFiles().length);
+        log.debug("after clean fileCount:{}", Objects.requireNonNull(policyDir.listFiles()).length);
 
 
         for (DomainPolicy domainPolicy : domainPolicies) {
             writePolicyToFile(domainPolicy, policyPath);
         }
 
-        log.debug("after write policy fileCount:{}", policyDir.listFiles().length);
+        log.debug("after write policy fileCount:{}", Objects.requireNonNull( policyDir.listFiles()).length);
     }
 
     public void cleanPolicyDirectory(String policyPath) {
@@ -100,33 +101,33 @@ public class DomainUtil {
     }
 
 
-    public static List<String> getRoleNames(List<DomainRole> roles) {
-        return roles.stream().map(DomainRole::getRoleName).collect(Collectors.toList());
-    }
-
-    public static List<String> getResourceNames(List<DomainResource> resources) {
-        return resources.stream().map(DomainResource::getResourceName).collect(Collectors.toList());
-    }
-
-    public static String getResourcesStringForFileName(List<DomainResource> resources) {
-        String firstResourceName = resources.get(0).getResourceName();
-        if (resources.size() < 2) return firstResourceName;
-        if (!firstResourceName.contains(".")) return firstResourceName;
-
-        String[] split = firstResourceName.split("\\.");
-        return String.format("%ss.%s", split[0], split[1]);
-    }
-
-    public static List<String> getExtendedRoleNames(List<ExtendedDomainRole> roles) {
-        return roles.stream().map(ExtendedDomainRole::getRole).map(DomainRole::getRoleName)
-                .collect(Collectors.toList());
-    }
-
-    public static String getExtendedRoleIndicator(ExtendedDomainRole role) {
-        return String.format("b=%d,o=%d,a=%d,t=%d",
-                role.isBodyPresent() ? 1 : 0, role.isObligationPresent() ? 1 : 0, role.isAdvicePresent() ? 1 : 0, role
-                        .isTransformationPresent() ? 1 : 0);
-    }
+    //    public static List<String> getRoleNames(List<DomainRole> roles) {
+    //        return roles.stream().map(DomainRole::getRoleName).collect(Collectors.toList());
+    //    }
+    //
+    //    public static List<String> getResourceNames(List<DomainResource> resources) {
+    //        return resources.stream().map(DomainResource::getResourceName).collect(Collectors.toList());
+    //    }
+    //
+    //    public static String getResourcesStringForFileName(List<DomainResource> resources) {
+    //        String firstResourceName = resources.get(0).getResourceName();
+    //        if (resources.size() < 2) return firstResourceName;
+    //        if (!firstResourceName.contains(".")) return firstResourceName;
+    //
+    //        String[] split = firstResourceName.split("\\.");
+    //        return String.format("%ss.%s", split[0], split[1]);
+    //    }
+    //
+    //    public static List<String> getExtendedRoleNames(List<ExtendedDomainRole> roles) {
+    //        return roles.stream().map(ExtendedDomainRole::getRole).map(DomainRole::getRoleName)
+    //                .collect(Collectors.toList());
+    //    }
+    //
+    //    public static String getExtendedRoleIndicator(ExtendedDomainRole role) {
+    //        return String.format("b=%d,o=%d,a=%d,t=%d",
+    //                role.isBodyPresent() ? 1 : 0, role.isObligationPresent() ? 1 : 0, role.isAdvicePresent() ? 1 : 0, role
+    //                        .isTransformationPresent() ? 1 : 0);
+    //    }
 
 
     public static int getNextPolicyCount() {

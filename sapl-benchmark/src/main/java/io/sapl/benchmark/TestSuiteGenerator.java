@@ -19,13 +19,12 @@ import lombok.experimental.UtilityClass;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 @UtilityClass
 public class TestSuiteGenerator {
 
-    TestSuite generate(String path, Random dice) {
+    TestSuite generate(String path) {
         List<PolicyGeneratorConfiguration> configs = new LinkedList<>();
         configs.add(PolicyGeneratorConfiguration.builder()
                 .name("100p, 5v, 200vp")
@@ -165,14 +164,14 @@ public class TestSuiteGenerator {
                 .build();
     }
 
-    TestSuite generateN(String path, int numberOfTests, Random dice) {
-        List<PolicyGeneratorConfiguration> limitedConfigs = generate(path, dice).getCases().stream()
+    TestSuite generateN(String path, int numberOfTests) {
+        List<PolicyGeneratorConfiguration> limitedConfigs = generate(path).getCases().stream()
                 .limit(numberOfTests)
                 .collect(Collectors.toList());
 
         if (limitedConfigs.size() < numberOfTests) {
             int missingTestCount = numberOfTests - limitedConfigs.size();
-            limitedConfigs.addAll(generateN(path, missingTestCount, dice).getCases());
+            limitedConfigs.addAll(generateN(path, missingTestCount).getCases());
         }
 
         return TestSuite.builder()

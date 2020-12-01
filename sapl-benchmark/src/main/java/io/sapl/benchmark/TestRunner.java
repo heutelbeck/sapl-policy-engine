@@ -23,7 +23,6 @@ import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.prp.PolicyRetrievalResult;
-import io.sapl.generator.DomainData;
 import io.sapl.generator.DomainGenerator;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
@@ -55,6 +54,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -165,7 +165,7 @@ public class TestRunner {
         PolicyGenerator generator = new PolicyGenerator(config, domainGenerator.getDomainData());
         String subFolder = generateRandomPolicies(generator, path);
 
-        return run(config, path + "/" + subFolder, benchmarkDataContainer, domainGenerator.getDomainData(), generator);
+        return run(config, path + "/" + subFolder, benchmarkDataContainer, generator);
     }
 
     public List<XlsRecord> runTestNew(PolicyGeneratorConfiguration config, String policyFolder,
@@ -180,7 +180,7 @@ public class TestRunner {
                 .analyzeSaplDocuments(benchmarkDataContainer.getIndexType());
 
         log.info("{}", updatedConfig);
-        return run(updatedConfig, policyFolder, benchmarkDataContainer, domainGenerator.getDomainData(),
+        return run(updatedConfig, policyFolder, benchmarkDataContainer,
                 new PolicyGenerator(config, domainGenerator.getDomainData()));
     }
 
@@ -222,7 +222,7 @@ public class TestRunner {
     }
 
     private List<XlsRecord> run(PolicyGeneratorConfiguration config, String policyFolder,
-                                BenchmarkDataContainer benchmarkDataContainer, DomainData domainData, PolicyGenerator generator) {
+                                BenchmarkDataContainer benchmarkDataContainer, PolicyGenerator generator) {
 
         List<XlsRecord> results = new LinkedList<>();
         // PolicyGenerator generator = new PolicyGenerator(config, domainData);
@@ -265,7 +265,8 @@ public class TestRunner {
                 // Objects.requireNonNull(decision);
 
                 results.add(new XlsRecord(j, config.getName(), timePreparation, timeRetrieve,
-                        "AuthorizationSubscription", buildResponseStringForResult(result, decision)));
+                        "AuthorizationSubscription", buildResponseStringForResult(Objects
+                        .requireNonNull(result), decision)));
 
                 log.debug("Total : {}ms", timeRetrieve);
             }

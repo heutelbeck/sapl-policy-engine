@@ -29,20 +29,24 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
-
-import static io.sapl.benchmark.BenchmarkConstants.*;
+import static io.sapl.benchmark.BenchmarkConstants.DEFAULT_HEIGHT;
+import static io.sapl.benchmark.BenchmarkConstants.DEFAULT_WIDTH;
+import static io.sapl.benchmark.BenchmarkConstants.ERROR_WRITING_BITMAP;
+import static io.sapl.benchmark.BenchmarkConstants.EXPORT_PROPERTIES;
+import static io.sapl.benchmark.BenchmarkConstants.EXPORT_PROPERTIES_AGGREGATES;
 
 @Slf4j
 @RequiredArgsConstructor
 public class ResultWriter {
 
 
-    private static final String SUMMARY_CSV_PATH = Benchmark.DEFAULT_PATH + "benchmark_summary.csv";
+    //    private static final String SUMMARY_CSV_PATH = Benchmark.DEFAULT_PATH + "benchmark_summary.csv";
 
     private final String resultPath;
     private final IndexType indexType;
@@ -57,7 +61,7 @@ public class ResultWriter {
         buildAggregateData(benchmarkDataContainer);
         writeHistogramChart(benchmarkDataContainer);
         writeHistogramExcel(benchmarkDataContainer.getAggregateData());
-        appendHistogramToCSVFile(benchmarkDataContainer.getAggregateData());
+        appendHistogramToCSVFile(benchmarkDataContainer.getAggregateData(), resultPath);
     }
 
     public void writeDetailsChart(List<XlsRecord> results, double[] times, String configName) {
@@ -84,8 +88,8 @@ public class ResultWriter {
 
 
     // HOSPITAL(15932) p20115 v821735	25,62	63,89	28,86	27,17
-    private void appendHistogramToCSVFile(List<AggregateRecord> aggregateRecords) {
-        try (FileWriter fw = new FileWriter(SUMMARY_CSV_PATH, true);
+    private void appendHistogramToCSVFile(List<AggregateRecord> aggregateRecords, String path) {
+        try (FileWriter fw = new FileWriter(path + "benchmark_summary.csv", Charset.defaultCharset(), true);
              BufferedWriter bw = new BufferedWriter(fw);
              PrintWriter out = new PrintWriter(bw)) {
 

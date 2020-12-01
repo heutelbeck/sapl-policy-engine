@@ -22,6 +22,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Value;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,9 +52,10 @@ public class CanonicalIndexDataContainer {
     @Getter
     int numberOfConjunctions;
 
+    //TODO exposed internal representation (int arrays)
     public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
                                        Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas,
-                                       List<Predicate> predicateOrder, List<Set<DisjunctiveFormula>> relatedFormulas,
+                                       Collection<Predicate> predicateOrder, List<Set<DisjunctiveFormula>> relatedFormulas,
                                        Map<DisjunctiveFormula, Bitmask> relatedCandidates,
                                        Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction,
                                        int[] numberOfLiteralsInConjunction, int[] numberOfFormulasWithConjunction) {
