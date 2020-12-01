@@ -19,6 +19,7 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEventSource;
+import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.IndexType;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +37,27 @@ import java.util.Random;
 @Slf4j
 @Configuration
 public class DomainData {
+
+    @Data
+    public static class BenchmarkArguments {
+        /* COMMAND LINE ARGUMENTS */ // TODO: merge with application.properties
+
+        // Benchmark directory: Results will be written to this directory. Can be
+        // overwritten by providing a command line argument.
+        private String path;
+        private String filePrefix;
+        // If no index type is provided as an command line argument, use this to set the
+        // index for the benchmark
+        private IndexType indexType;
+        // If not provided as command line argument, use this to set the number of
+        // benchmark iterations
+        private int numberOfBenchmarkIterations;
+        // If not provided as command line argument, use this to set the benchmark
+        // configuration file for the fully random benchmark
+        private String benchmarkConfigurationFile;
+    }
+
+    private BenchmarkArguments benchmarkArguments;
 
     @Value("${sapl.policy-directory.path:#systemProperties['\"user.home']+'/policies'}")
     private String policyDirectoryPath;
@@ -196,7 +218,7 @@ public class DomainData {
 
     @DependsOn("generatorUtility")
     private List<DomainRole> generateRoles() {
-        List<DomainRole> roles = new ArrayList<>();
+        List<DomainRole> roles = new ArrayList<>(this.getNumberOfGeneralRoles());
 
         for (int i = 0; i < this.getNumberOfGeneralRoles(); i++) {
             roles.add(new DomainRole(String.format("role.%03d", DomainUtil.getNextRoleCount()),
@@ -211,7 +233,7 @@ public class DomainData {
 
     @DependsOn("generatorUtility")
     private List<DomainResource> generateResources() {
-        List<DomainResource> resources = new ArrayList<>();
+        List<DomainResource> resources = new ArrayList<>(this.getNumberOfGeneralResources());
 
         for (int i = 0; i < this.getNumberOfGeneralResources(); i++) {
             resources.add(new DomainResource(String.format("resource.%03d", DomainUtil.getNextResourceCount()),
@@ -224,7 +246,7 @@ public class DomainData {
 
     @DependsOn("generatorUtility")
     private List<DomainSubject> generateSubjects(List<DomainRole> allRoles) {
-        List<DomainSubject> subjects = new ArrayList<>();
+        List<DomainSubject> subjects = new ArrayList<>(this.getNumberOfSubjects());
 
         for (int i = 0; i < this.getNumberOfSubjects(); i++) {
             DomainSubject domainSubject = new DomainSubject(String.format("subject.%03d", i));

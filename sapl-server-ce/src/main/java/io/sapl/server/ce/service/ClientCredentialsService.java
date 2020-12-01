@@ -15,11 +15,13 @@
  */
 package io.sapl.server.ce.service;
 
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.UUID;
-
+import com.google.common.collect.Iterables;
+import io.sapl.server.ce.model.ClientCredentials;
+import io.sapl.server.ce.persistence.ClientCredentialsRepository;
+import io.sapl.server.ce.security.SecurityConfiguration;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -27,14 +29,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.Iterables;
-
-import io.sapl.server.ce.model.ClientCredentials;
-import io.sapl.server.ce.persistence.ClientCredentialsRepository;
-import io.sapl.server.ce.security.SecurityConfiguration;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -52,7 +50,7 @@ public class ClientCredentialsService implements UserDetailsService, Serializabl
 		}
 
 		if (clientCredentialsWithKey.size() > 1) {
-			log.warn(String.format("more than one client credentials with key \"%s\" not existing", username));
+			log.warn("more than one client credentials with key \"{}\" not existing", username);
 		}
 
 		ClientCredentials relevantClientCredentials = Iterables.get(clientCredentialsWithKey, 0);

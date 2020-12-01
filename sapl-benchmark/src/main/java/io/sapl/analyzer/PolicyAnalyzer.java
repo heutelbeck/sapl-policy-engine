@@ -58,7 +58,6 @@ public class PolicyAnalyzer {
     private final Map<String, SAPL> parsedDocuments = new HashMap<>();
     private final Map<String, SAPL> publishedDocuments = new HashMap<>();
     private final Map<String, DisjunctiveFormula> publishedTargets = new HashMap<>();
-    private final Map<String, SAPL> unusableDocuments = new HashMap<>();
 
     public PolicyAnalyzer(DomainData domainData) {
         this.domainData = domainData;
@@ -132,14 +131,12 @@ public class PolicyAnalyzer {
                 targetFormula = TreeWalker.walk(targetExpression, imports);
             }
             publishedTargets.put(documentKey, targetFormula);
-        } catch (PolicyEvaluationException e) {
-            unusableDocuments.put(documentKey, sapl);
+        } catch (PolicyEvaluationException ignored) {
         }
     }
 
     private void discard(String documentKey) {
         publishedDocuments.remove(documentKey);
         publishedTargets.remove(documentKey);
-        unusableDocuments.remove(documentKey);
     }
 }

@@ -18,6 +18,7 @@ package io.sapl.benchmark;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.generator.DomainData.BenchmarkArguments;
 import io.sapl.generator.DomainGenerator;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.IndexType;
 import lombok.RequiredArgsConstructor;
@@ -75,54 +76,44 @@ public class Benchmark implements CommandLineRunner {
     private final List<Long> seedList = new LinkedList<>();
     private final DomainGenerator domainGenerator;
 
-    private String filePrefix;
-
-    /* COMMAND LINE ARGUMENTS */ // TODO: merge with application.properties
-
     // Switch between benchmark types
     protected static boolean performFullyRandomBenchmark = false;
 
-    // Benchmark directory: Results will be written to this directory. Can be
-    // overwritten by providing a command line argument.
-    private String path = DEFAULT_PATH;
 
-    // If no index type is provided as an command line argument, use this to set the
-    // index for the benchmark
-    private IndexType indexType = IndexType.CANONICAL;
-
-    // If not provided as command line argument, use this to set the number of
-    // benchmark iterations
-    private int numberOfBenchmarkIterations = 1;
-
-    // If not provided as command line argument, use this to set the benchmark
-    // configuration file for the fully random benchmark
-    private String benchmarkConfigurationFile = DEFAULT_PATH + "\\tests\\tests.json";
+    //    private String filePrefix;
+    //    private final String path = DEFAULT_PATH;
+    //    private IndexType indexType = IndexType.CANONICAL;
+    //    private int numberOfBenchmarkIterations = 1;
+    //    private String benchmarkConfigurationFile = DEFAULT_PATH + "\\tests\\tests.json";
 
     @Override
     public void run(String... args) throws Exception {
         log.info("command line runner started");
 
-        domainGenerator.getDomainUtil().cleanPolicyDirectory(domainGenerator.getDomainData().getPolicyDirectoryPath());
-        parseCommandLineArguments(args);
+        //        BenchmarkArguments benchmarkArguments = domainGenerator.getDomainData().getBenchmarkArguments();
 
-        init();
-        runBenchmark(path);
+        domainGenerator.getDomainUtil().cleanPolicyDirectory(domainGenerator.getDomainData().getPolicyDirectoryPath());
+        BenchmarkArguments benchmarkArguments = parseCommandLineArguments(args);
+
+        String filePrefix = generateFilePrefix(benchmarkArguments.getIndexType());
+        benchmarkArguments.setFilePrefix(filePrefix);
+
+        init(benchmarkArguments);
+        runBenchmark(benchmarkArguments);
 
         System.exit(0);
     }
 
-    private void init() {
-
-
-        filePrefix = String.format("%s_%s_%s%s", LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), indexType,
-                performFullyRandomBenchmark ? "RANDOM" : "STRUCTURED", File.separator).replace(':', '-');
-
+    private void init(BenchmarkArguments benchmarkArguments) {
+        String path = benchmarkArguments.getPath();
+        String filePrefix = benchmarkArguments.getFilePrefix();
+        int numberOfBenchmarkIterations = benchmarkArguments.getNumberOfBenchmarkIterations();
         log.info(
                 "\n randomBenchmark={},\n numberOfBenchmarks={}," + "\n index={},\n initialSeed={},\n runs={},"
                         + "\n testfile={},\n filePrefix={}",
-                performFullyRandomBenchmark, numberOfBenchmarkIterations, indexType,
+                performFullyRandomBenchmark, numberOfBenchmarkIterations, benchmarkArguments.getIndexType(),
                 domainGenerator.getDomainData().getSeed(), domainGenerator.getDomainData().getNumberOfBenchmarkRuns(),
-                benchmarkConfigurationFile, filePrefix);
+                benchmarkArguments.getBenchmarkConfigurationFile(), filePrefix);
 
         try {
             final Path dir = Paths.get(path, filePrefix);
@@ -138,17 +129,26 @@ public class Benchmark implements CommandLineRunner {
         }
     }
 
-    public void runBenchmark(String path) throws Exception {
+    private String generateFilePrefix(IndexType indexType) {
+        return String.format("%s_%s_%s%s", LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), indexType,
+                performFullyRandomBenchmark ? "RANDOM" : "STRUCTURED", File.separator).replace(':', '-');
+    }
+
+    public void runBenchmark(BenchmarkArguments benchmarkArguments) throws Exception {
+        String path = benchmarkArguments.getPath();
+        String filePrefix = benchmarkArguments.getFilePrefix();
         String resultPath = path + filePrefix;
+
+        IndexType indexType = benchmarkArguments.getIndexType();
 
         XYChart overviewChart = new XYChart(DEFAULT_WIDTH, DEFAULT_HEIGHT);
         ResultWriter resultWriter = new ResultWriter(resultPath, indexType);
 
         BenchmarkDataContainer benchmarkDataContainer = new BenchmarkDataContainer(indexType,
                 domainGenerator.getDomainData(), domainGenerator.getDomainData().getNumberOfBenchmarkRuns(),
-                numberOfBenchmarkIterations);
+                benchmarkArguments.getNumberOfBenchmarkIterations());
 
-        List<PolicyGeneratorConfiguration> configs = generateConfigurations();
+        List<PolicyGeneratorConfiguration> configs = generateConfigurations(benchmarkArguments);
 
         for (PolicyGeneratorConfiguration config : configs) {
 
@@ -163,16 +163,17 @@ public class Benchmark implements CommandLineRunner {
         resultWriter.writeFinalResults(benchmarkDataContainer, overviewChart);
     }
 
-    private List<PolicyGeneratorConfiguration> generateConfigurations() {
+    private List<PolicyGeneratorConfiguration> generateConfigurations(BenchmarkArguments benchmarkArguments) {
         if (performFullyRandomBenchmark) {
-            return generateTestSuite(path).getCases();
+            return generateTestSuite(benchmarkArguments).getCases();
         } else {
             List<PolicyGeneratorConfiguration> configurations = new LinkedList<>();
 
             for (Long seed : seedList) {
 
                 configurations
-                        .add(PolicyGeneratorConfiguration.builder().name(String.format("Bench_%d_%s", seed, indexType))
+                        .add(PolicyGeneratorConfiguration.builder()
+                                .name(String.format("Bench_%d_%s", seed, benchmarkArguments.getIndexType()))
                                 .path(domainGenerator.getDomainData().getPolicyDirectoryPath()).seed(seed).build());
             }
 
@@ -182,7 +183,8 @@ public class Benchmark implements CommandLineRunner {
     }
 
     @SneakyThrows
-    private TestSuite generateTestSuite(String path) {
+    private TestSuite generateTestSuite(BenchmarkArguments benchmarkArguments) {
+        String benchmarkConfigurationFile = benchmarkArguments.getBenchmarkConfigurationFile();
         TestSuite suite;
         if (!Strings.isNullOrEmpty(benchmarkConfigurationFile)) {
             File testFile = new File(benchmarkConfigurationFile);
@@ -193,8 +195,9 @@ public class Benchmark implements CommandLineRunner {
 
             suite = new Gson().fromJson(allLinesAsString, TestSuite.class);
         } else {
-            suite = TestSuiteGenerator.generateN(path, numberOfBenchmarkIterations,
-                    domainGenerator.getDomainData().getDice());
+            suite = TestSuiteGenerator
+                    .generateN(benchmarkArguments.getPath(), benchmarkArguments.getNumberOfBenchmarkIterations(),
+                            domainGenerator.getDomainData().getDice());
         }
 
         Objects.requireNonNull(suite, "test suite is null");
@@ -222,7 +225,9 @@ public class Benchmark implements CommandLineRunner {
         return results;
     }
 
-    private void parseCommandLineArguments(String... args) {
+    private BenchmarkArguments parseCommandLineArguments(String... args) {
+        BenchmarkArguments benchmarkArguments = new BenchmarkArguments();
+
         Options options = new Options();
 
         options.addOption(PATH, true, PATH_DOC);
@@ -246,7 +251,7 @@ public class Benchmark implements CommandLineRunner {
                 if (!Files.exists(Paths.get(pathOption))) {
                     throw new IllegalArgumentException("path provided does not exists");
                 }
-                path = pathOption;
+                benchmarkArguments.setPath(pathOption);
             }
 
             String indexOption = cmd.getOptionValue(INDEX);
@@ -257,12 +262,12 @@ public class Benchmark implements CommandLineRunner {
                     case "CANONICAL":
                         //fall through
                     case "IMPROVED":
-                        indexType = IndexType.CANONICAL;
+                        benchmarkArguments.setIndexType(IndexType.CANONICAL);
                         break;
                     case "NAIVE":
                         //fall through
                     case "SIMPLE":
-                        indexType = IndexType.NAIVE;
+                        benchmarkArguments.setIndexType(IndexType.NAIVE);
                         break;
                     default:
                         HelpFormatter formatter = new HelpFormatter();
@@ -276,12 +281,12 @@ public class Benchmark implements CommandLineRunner {
                 if (!Files.exists(Paths.get(testOption))) {
                     throw new IllegalArgumentException("test file provided does not exists");
                 }
-                benchmarkConfigurationFile = testOption;
+                benchmarkArguments.setBenchmarkConfigurationFile(testOption);
             }
 
             String iterOption = cmd.getOptionValue(ITERATIONS);
             if (!Strings.isNullOrEmpty(iterOption)) {
-                this.numberOfBenchmarkIterations = Integer.parseInt(iterOption);
+                benchmarkArguments.setNumberOfBenchmarkIterations(Integer.parseInt(iterOption));
             }
 
             if (cmd.hasOption(FULLY_RANDOM)) {
@@ -294,6 +299,8 @@ public class Benchmark implements CommandLineRunner {
             System.exit(1);
         }
 
+
+        return benchmarkArguments;
     }
 
 }

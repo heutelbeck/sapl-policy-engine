@@ -44,9 +44,10 @@ public class DomainActions {
 
 
     public static List<String> generateCustomActionList(DomainData domainData) {
-        List<String> actionList = new ArrayList<>();
+        int numberOfActions = domainData.getDice().nextInt(domainData.getNumberOfActions()) + 1;
+        List<String> actionList = new ArrayList<>(numberOfActions);
 
-        for (int i = 0; i < domainData.getDice().nextInt(domainData.getNumberOfActions()) + 1; i++) {
+        for (int i = 0; i < numberOfActions; i++) {
             actionList.add(String.format("action.%03d", domainData.getDice().nextInt(1000) + 1));
         }
 
@@ -54,7 +55,7 @@ public class DomainActions {
     }
 
     public static List<String> generateActionListByCount(int actionCount) {
-        List<String> actionList = new ArrayList<>();
+        List<String> actionList = new ArrayList<>(actionCount);
 
         for (int i = 0; i < actionCount; i++) {
             actionList.add(String.format("action.%03d", i));
