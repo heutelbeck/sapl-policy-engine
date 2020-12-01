@@ -51,7 +51,8 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
     }
 
     private CanonicalImmutableParsedDocumentIndex(Map<String, SAPL> updatedDocuments,
-                                                  PredicateOrderStrategy predicateOrderStrategy, EvaluationContext pdpScopedEvaluationContext) {
+                                                  PredicateOrderStrategy predicateOrderStrategy,
+                                                  EvaluationContext pdpScopedEvaluationContext) {
         this.documents = updatedDocuments;
         this.predicateOrderStrategy = predicateOrderStrategy;
         this.pdpScopedEvaluationContext = pdpScopedEvaluationContext;

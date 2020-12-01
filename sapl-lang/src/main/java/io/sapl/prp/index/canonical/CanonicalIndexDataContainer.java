@@ -15,22 +15,28 @@
  */
 package io.sapl.prp.index.canonical;
 
+import com.google.common.collect.ImmutableList;
 import io.sapl.grammar.sapl.SAPL;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.Value;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 @Value
+@AllArgsConstructor
+@Getter(AccessLevel.NONE)
 public class CanonicalIndexDataContainer {
 
     Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments;
 
     Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas;
 
-    List<Predicate> predicateOrder;
+    @Getter
+    ImmutableList<Predicate> predicateOrder;
 
     List<Set<DisjunctiveFormula>> relatedFormulas;
 
@@ -42,18 +48,43 @@ public class CanonicalIndexDataContainer {
 
     int[] numberOfFormulasWithConjunction;
 
+    @Getter
+    int numberOfConjunctions;
 
-    public int[] getNumberOfLiteralsInConjunction() {
-        return numberOfLiteralsInConjunction.clone();
+    public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
+                                       Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas,
+                                       List<Predicate> predicateOrder, List<Set<DisjunctiveFormula>> relatedFormulas,
+                                       Map<DisjunctiveFormula, Bitmask> relatedCandidates,
+                                       Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction,
+                                       int[] numberOfLiteralsInConjunction, int[] numberOfFormulasWithConjunction) {
+
+        this(formulaToDocuments, clauseToFormulas, ImmutableList.copyOf(predicateOrder),
+                relatedFormulas, relatedCandidates, conjunctionsInFormulasReferencingConjunction,
+                numberOfLiteralsInConjunction, numberOfFormulasWithConjunction, numberOfLiteralsInConjunction.length);
     }
 
-    public int[] getNumberOfFormulasWithConjunction() {
-        return numberOfFormulasWithConjunction.clone();
+
+    public int getNumberOfLiteralsInConjunction(int conjunctionIndex) {
+        return numberOfLiteralsInConjunction[conjunctionIndex];
     }
 
 
-    public static CanonicalIndexDataContainer createEmptyContainer() {
-        return new CanonicalIndexDataContainer(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList(),
-                Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(), new int[0], new int[0]);
+    public int getNumberOfFormulasWithConjunction(int conjunctionIndex) {
+        return numberOfLiteralsInConjunction[conjunctionIndex];
     }
+
+
+    public Set<CTuple> getConjunctionsInFormulasReferencingConjunction(int conjunctionIndex) {
+        return conjunctionsInFormulasReferencingConjunction.get(conjunctionIndex);
+    }
+
+    Set<DisjunctiveFormula> getRelatedFormulas(int conjunctionIndex) {
+        return relatedFormulas.get(conjunctionIndex);
+    }
+
+    Set<SAPL> getPoliciesIncludingFormula(DisjunctiveFormula formula) {
+        return formulaToDocuments.get(formula);
+    }
+
+
 }
