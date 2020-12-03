@@ -123,7 +123,7 @@ public class MainView extends AppLayout {
 				Pair.of(new RouterLink("SAPL Documents", SaplDocumentsView.class), VaadinIcon.FILE),
 				Pair.of(new RouterLink("PDP Configuration", ConfigurePdp.class), VaadinIcon.COG),
 				Pair.of(new RouterLink("Functions & Attributes", ListFunctionsAndPipsView.class), VaadinIcon.BOOK),
-				Pair.of(new RouterLink("Client Credentials", ListClientCredentials.class), VaadinIcon.SIGN_IN));
+				Pair.of(new RouterLink("Client Credentials", ListClientCredentials.class), VaadinIcon.KEY));
 		//@formatter:on
 		return linksWithIcons.stream().map(this::createTab).toArray(Tab[]::new);
 	}
