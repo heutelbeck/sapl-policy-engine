@@ -131,6 +131,7 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 
 		clientCredentialsGrid.addComponentColumn(currentClientCredential -> {
 			Button deleteButton = new Button("Remove", VaadinIcon.FILE_REMOVE.create());
+			deleteButton.setThemeName("primary");
 			deleteButton.addClickListener(clickEvent -> {
 				//@formatter:off
 				ConfirmUtils.letConfirm(

@@ -86,8 +86,8 @@ public class ConfigurePdp extends PolymerTemplate<ConfigurePdp.ConfigurePdpModel
 
 	private void initUiForCombiningAlgorithm() {
 		PolicyDocumentCombiningAlgorithm[] availableCombiningAlgorithms = this.combiningAlgorithmService.getAvailable();
-		String[] availableCombiningAlgorithmsAsStrings = Stream.of(availableCombiningAlgorithms)
-				.map(Enum::toString).toArray(String[]::new);
+		String[] availableCombiningAlgorithmsAsStrings = Stream.of(availableCombiningAlgorithms).map(Enum::toString)
+				.toArray(String[]::new);
 		comboBoxCombAlgo.setItems(availableCombiningAlgorithmsAsStrings);
 
 		PolicyDocumentCombiningAlgorithm selectedCombiningAlgorithm = this.combiningAlgorithmService.getSelected();
@@ -143,6 +143,7 @@ public class ConfigurePdp extends PolymerTemplate<ConfigurePdp.ConfigurePdpModel
 				String uriToNavigateTo = String.format("%s/%d", EditVariableView.ROUTE, variable.getId());
 				editButton.getUI().ifPresent(ui -> ui.navigate(uriToNavigateTo));
 			});
+			editButton.setThemeName("primary");
 
 			Button deleteButton = new Button("Delete", VaadinIcon.FILE_REMOVE.create());
 			deleteButton.addClickListener(clickEvent -> {
@@ -151,6 +152,7 @@ public class ConfigurePdp extends PolymerTemplate<ConfigurePdp.ConfigurePdpModel
 				// trigger refreshing variable grid
 				variablesGrid.getDataProvider().refreshAll();
 			});
+			deleteButton.setThemeName("primary");
 
 			HorizontalLayout componentsForEntry = new HorizontalLayout();
 			componentsForEntry.add(editButton);

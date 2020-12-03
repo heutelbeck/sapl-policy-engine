@@ -83,6 +83,7 @@ public class SaplDocumentsView extends PolymerTemplate<SaplDocumentsView.ListSap
 				String uriToNavigateTo = String.format("%s/%d", EditSaplDocumentView.ROUTE, saplDocument.getId());
 				editButton.getUI().ifPresent(ui -> ui.navigate(uriToNavigateTo));
 			});
+			editButton.setThemeName("primary");
 
 			HorizontalLayout componentsForEntry = new HorizontalLayout();
 			componentsForEntry.add(editButton);
