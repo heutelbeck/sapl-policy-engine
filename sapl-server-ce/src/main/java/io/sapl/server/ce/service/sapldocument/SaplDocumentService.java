@@ -301,13 +301,17 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 		PublishedSaplDocument publishedSaplDocument = new PublishedSaplDocument();
 		publishedSaplDocument.importSaplDocumentVersion(saplDocumentVersion);
 
+		PublishedSaplDocument createdPublishedSaplDocument = publishedSaplDocumentRepository
+				.save(publishedSaplDocument);
+
+		// enforce checking constraints in transaction
 		try {
-			publishedSaplDocumentRepository.save(publishedSaplDocument);
+			publishedSaplDocumentRepository.findAll();
 		} catch (DataIntegrityViolationException ex) {
 			throw new PublishedDocumentNameCollisionException(saplDocumentVersion.getName(), ex);
 		}
 
-		return publishedSaplDocument;
+		return createdPublishedSaplDocument;
 	}
 
 	private void notifyAboutChangedPublicationOfSaplDocument(PrpUpdateEvent.Type prpUpdateEventType,
