@@ -24,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.userdetails.UserDetails;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -88,46 +90,21 @@ public class ClientCredentialsService implements UserDetailsService, Serializabl
 	 * Creates a new {@link ClientCredentials} with generated values for key and
 	 * secret.
 	 * 
-	 * @return the created {@link ClientCredentials}
+	 * @return a tuple containing the created {@link ClientCredentials} and the non
+	 *         encoded secret
 	 */
-	public ClientCredentials createDefault() {
+	public Tuple2<ClientCredentials, String> createDefault() {
+		String secret = generateFormattedUuid();
+
 		ClientCredentials clientCredentialsToCreate = new ClientCredentials();
-		clientCredentialsToCreate.setKey(UUID.randomUUID().toString());
-		clientCredentialsToCreate.setEncodedSecret(encodeSecret(UUID.randomUUID().toString()));
+		clientCredentialsToCreate.setKey(generateFormattedUuid());
+		clientCredentialsToCreate.setEncodedSecret(encodeSecret(secret));
 
 		ClientCredentials createdClientCredentials = clientCredentialsRepository.save(clientCredentialsToCreate);
 
 		log.info("created client credentials: key = {}", createdClientCredentials.getKey());
 
-		return createdClientCredentials;
-	}
-
-	/**
-	 * Edits a specific {@link ClientCredentials}.
-	 * 
-	 * @param id     the id of the {@link ClientCredentials} to edit
-	 * @param key    the client key to store
-	 * @param secret the secret to store (<b>null</b> if no edit is intended)
-	 */
-	public void edit(@NonNull Long id, @NonNull String key, String secret) {
-		Optional<ClientCredentials> optionalClientCredentials = clientCredentialsRepository.findById(id);
-		if (optionalClientCredentials.isEmpty()) {
-			throw new IllegalArgumentException(String.format("client credentials with id %d was not found", id));
-		}
-
-		ClientCredentials clientCredentialsToEdit = optionalClientCredentials.get();
-		clientCredentialsToEdit.setKey(key);
-
-		if (secret != null) {
-			clientCredentialsToEdit.setEncodedSecret(encodeSecret(secret));
-		}
-
-		try {
-			clientCredentialsRepository.save(clientCredentialsToEdit);
-		} catch (DataIntegrityViolationException ex) {
-			throw new IllegalArgumentException(
-					"The provided credentials are invalid (e.g. referenced already used key).", ex);
-		}
+		return Tuples.of(createdClientCredentials, secret);
 	}
 
 	/**
@@ -137,6 +114,10 @@ public class ClientCredentialsService implements UserDetailsService, Serializabl
 	 */
 	public void delete(@NonNull Long id) {
 		this.clientCredentialsRepository.deleteById(id);
+	}
+
+	private static String generateFormattedUuid() {
+		return UUID.randomUUID().toString().replace("-", "");
 	}
 
 	private String encodeSecret(@NonNull String secret) {
