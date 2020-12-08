@@ -21,7 +21,6 @@ import java.util.Map;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,9 +30,8 @@ import com.google.common.collect.Maps;
 import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
+import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
-import io.sapl.server.ce.service.pdpconfiguration.CombiningAlgorithmService;
-import io.sapl.server.ce.service.pdpconfiguration.VariablesService;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -45,67 +43,66 @@ import reactor.core.publisher.ReplayProcessor;
 @Component
 @RequiredArgsConstructor
 public class CEVariablesAndCombinatorSource implements VariablesAndCombinatorSource, PDPConfigurationPublisher {
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
+	@Getter
+	private Flux<DocumentsCombinator> documentsCombinator;
+	@Getter
+	private Flux<Map<String, JsonNode>> variables;
 
-    @Getter
-    private Flux<DocumentsCombinator> documentsCombinator;
-    @Getter
-    private Flux<Map<String, JsonNode>> variables;
+	private FluxSink<PolicyDocumentCombiningAlgorithm> documentCombiningAlgorithmFluxSink;
+	private FluxSink<Collection<Variable>> variableFluxSink;
 
-    private FluxSink<PolicyDocumentCombiningAlgorithm> documentCombiningAlgorithmFluxSink;
-    private FluxSink<Collection<Variable>> variableFluxSink;
+	private Disposable monitorAlgorithm;
+	private Disposable monitorVariables;
 
-    private Disposable monitorAlgorithm;
-    private Disposable monitorVariables;
+	@PostConstruct
+	public void init() {
+		initAlgorithmFlux();
+		initVariablesFlux();
+	}
 
-    @PostConstruct
-    public void init() {
-        initAlgorithmFlux();
-        initVariablesFlux();
-    }
+	private void initVariablesFlux() {
+		ReplayProcessor<Collection<Variable>> variablesProcessor = ReplayProcessor.<Collection<Variable>>create();
+		variableFluxSink = variablesProcessor.sink();
+		variables = variablesProcessor.map(CEVariablesAndCombinatorSource::variablesCollentionToMap).share().cache();
+		monitorVariables = variables.subscribe();
+	}
 
-    private void initVariablesFlux() {
-        ReplayProcessor<Collection<Variable>> variablesProcessor = ReplayProcessor.<Collection<Variable>>create();
-        variableFluxSink = variablesProcessor.sink();
-        variables = variablesProcessor.map(CEVariablesAndCombinatorSource::variablesCollentionToMap)
-                .share().cache();
-        monitorVariables = variables.subscribe();
-    }
+	private void initAlgorithmFlux() {
+		ReplayProcessor<PolicyDocumentCombiningAlgorithm> combiningAlgorithmProcessor = ReplayProcessor
+				.<PolicyDocumentCombiningAlgorithm>create();
+		documentCombiningAlgorithmFluxSink = combiningAlgorithmProcessor.sink();
+		documentsCombinator = combiningAlgorithmProcessor.map(DocumentsCombinatorFactory::getCombinator).share()
+				.cache();
+		monitorAlgorithm = documentsCombinator.subscribe();
+	}
 
-    private void initAlgorithmFlux() {
-        ReplayProcessor<PolicyDocumentCombiningAlgorithm> combiningAlgorithmProcessor = ReplayProcessor
-                .<PolicyDocumentCombiningAlgorithm>create();
-        documentCombiningAlgorithmFluxSink = combiningAlgorithmProcessor.sink();
-        documentsCombinator = combiningAlgorithmProcessor.map(
-                DocumentsCombinatorFactory::getCombinator)
-                .share().cache();
-        monitorAlgorithm = documentsCombinator.subscribe();
-    }
+	@Override
+	public void publishCombiningAlgorithm(@NonNull PolicyDocumentCombiningAlgorithm algorithm) {
+		documentCombiningAlgorithmFluxSink.next(algorithm);
+	}
 
-    public void publishCombiningAlgorithm(@NonNull PolicyDocumentCombiningAlgorithm algorithm) {
-        documentCombiningAlgorithmFluxSink.next(algorithm);
-    }
+	@Override
+	public void publishVariables(@NonNull Collection<Variable> variables) {
+		variableFluxSink.next(variables);
+	}
 
-    public void publishVariables(@NonNull Collection<Variable> variables) {
-        variableFluxSink.next(variables);
-    }
+	private static Map<String, JsonNode> variablesCollentionToMap(@NonNull Collection<Variable> variables) {
+		Map<String, JsonNode> variablesAsMap = Maps.newHashMapWithExpectedSize(variables.size());
+		for (Variable variable : variables) {
+			variablesAsMap.put(variable.getName(), JSON.textNode(variable.getJsonValue()));
+		}
+		return variablesAsMap;
+	}
 
-    private static Map<String, JsonNode> variablesCollentionToMap(@NonNull Collection<Variable> variables) {
-        Map<String, JsonNode> variablesAsMap = Maps.newHashMapWithExpectedSize(variables.size());
-        for (Variable variable : variables) {
-            variablesAsMap.put(variable.getName(), JSON.textNode(variable.getJsonValue()));
-        }
-        return variablesAsMap;
-    }
-
-    @Override
-    @PreDestroy
-    public void dispose() {
-        if (!monitorAlgorithm.isDisposed())
-            monitorAlgorithm.dispose();
-        if (!monitorVariables.isDisposed())
-            monitorVariables.dispose();
-    }
+	@Override
+	@PreDestroy
+	public void dispose() {
+		if (!monitorAlgorithm.isDisposed())
+			monitorAlgorithm.dispose();
+		if (!monitorVariables.isDisposed())
+			monitorVariables.dispose();
+	}
 
 }

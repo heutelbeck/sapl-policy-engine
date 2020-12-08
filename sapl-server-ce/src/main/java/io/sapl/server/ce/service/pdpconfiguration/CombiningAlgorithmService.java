@@ -15,8 +15,9 @@
  */
 package io.sapl.server.ce.service.pdpconfiguration;
 
-import java.io.Serializable;
 import java.util.Collection;
+
+import javax.annotation.PostConstruct;
 
 import org.springframework.stereotype.Service;
 
@@ -29,8 +30,6 @@ import io.sapl.server.ce.persistence.SelectedCombiningAlgorithmRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
-import javax.annotation.PostConstruct;
-
 /**
  * Service for managing the combining algorithm.
  */
@@ -41,7 +40,6 @@ public class CombiningAlgorithmService {
 
 	private final SelectedCombiningAlgorithmRepository selectedCombiningAlgorithmRepository;
 	private final PDPConfigurationPublisher pdpConfigurationPublisher;
-
 
 	@PostConstruct
 	public void init() {
@@ -54,9 +52,9 @@ public class CombiningAlgorithmService {
 	 * @return the selected combining algorithm
 	 */
 	public PolicyDocumentCombiningAlgorithm getSelected() {
-		Collection<SelectedCombiningAlgorithm> entities = this.selectedCombiningAlgorithmRepository.findAll();
+		Collection<SelectedCombiningAlgorithm> entities = selectedCombiningAlgorithmRepository.findAll();
 		if (entities.isEmpty()) {
-			this.selectedCombiningAlgorithmRepository
+			selectedCombiningAlgorithmRepository
 					.save(new SelectedCombiningAlgorithm(CombiningAlgorithmService.DEFAULT));
 			return CombiningAlgorithmService.DEFAULT;
 		}
