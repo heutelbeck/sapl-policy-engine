@@ -94,7 +94,7 @@ public class MainView extends AppLayout {
 		HorizontalLayout logoLayout = new HorizontalLayout();
 		logoLayout.setId("logo");
 		logoLayout.setAlignItems(FlexComponent.Alignment.CENTER);
-		logoLayout.add(new Image("images/logos/18.png", "SAPL Server CE logo"));
+		logoLayout.add(new Image("images/logos/logo-header.png", "SAPL Server CE logo"));
 		logoLayout.add(new H1("SAPL Server CE"));
 		layout.add(logoLayout, menu);
 		return layout;
