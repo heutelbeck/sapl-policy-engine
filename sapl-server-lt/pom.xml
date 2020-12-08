@@ -82,6 +82,9 @@
 					</execution>
 				</executions>
 				<configuration>
+					<image>
+						<name>${docker-registry-url}/${project.artifactId}:${project.version}</name>
+					</image>
 					<excludes>
 						<exclude>
 							<groupId>org.springframework.boot</groupId>

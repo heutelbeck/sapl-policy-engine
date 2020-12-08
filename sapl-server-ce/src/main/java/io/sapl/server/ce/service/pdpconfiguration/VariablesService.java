@@ -15,7 +15,6 @@
  */
 package io.sapl.server.ce.service.pdpconfiguration;
 
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,18 +31,25 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.annotation.PostConstruct;
+
 /**
  * Service for {@link Variable}.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class VariablesService implements Serializable {
+public class VariablesService {
 	private static final ObjectMapper objectMapper = new ObjectMapper();
 	private static final String DEFAULT_JSON_VALUE = "{\n  \"property\" : \"value\"\n}";
 
 	private final VariablesRepository variableRepository;
 	private final PDPConfigurationPublisher pdpConfigurationPublisher;
+
+	@PostConstruct
+	public void init() {
+		pdpConfigurationPublisher.publishVariables(getAll());
+	}
 
 	/**
 	 * Gets all available {@link Variable} instances.
@@ -71,7 +77,7 @@ public class VariablesService implements Serializable {
 	 */
 	public Variable getById(long id) {
 		Optional<Variable> optionalEntity = this.variableRepository.findById(id);
-		if (!optionalEntity.isPresent()) {
+		if (optionalEntity.isEmpty()) {
 			throw new IllegalArgumentException(String.format("entity with id %d is not existing", id));
 		}
 
@@ -118,7 +124,7 @@ public class VariablesService implements Serializable {
 		checkForDuplicatedName(name, id);
 
 		Optional<Variable> optionalEntity = this.variableRepository.findById(id);
-		if (!optionalEntity.isPresent()) {
+		if (optionalEntity.isEmpty()) {
 			throw new IllegalArgumentException(String.format("entity with id %d is not existing", id));
 		}
 
@@ -145,12 +151,9 @@ public class VariablesService implements Serializable {
 	 */
 	public void delete(Long id) {
 		Optional<Variable> variableToDelete = this.variableRepository.findById(id);
-
-		this.variableRepository.deleteById(id);
-
+		variableRepository.deleteById(id);
 		log.info("deleted variable {}: {}", variableToDelete.get().getName(), variableToDelete.get().getJsonValue());
-
-		this.publishVariables();
+		publishVariables();
 	}
 
 	private static void checkIsJsonValue(@NonNull String jsonValue) throws InvalidJsonException {

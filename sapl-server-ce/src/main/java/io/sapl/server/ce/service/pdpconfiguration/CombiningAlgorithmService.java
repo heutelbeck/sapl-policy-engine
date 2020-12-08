@@ -29,16 +29,24 @@ import io.sapl.server.ce.persistence.SelectedCombiningAlgorithmRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+import javax.annotation.PostConstruct;
+
 /**
  * Service for managing the combining algorithm.
  */
 @Service
 @RequiredArgsConstructor
-public class CombiningAlgorithmService implements Serializable {
+public class CombiningAlgorithmService {
 	private static final PolicyDocumentCombiningAlgorithm DEFAULT = PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT;
 
 	private final SelectedCombiningAlgorithmRepository selectedCombiningAlgorithmRepository;
 	private final PDPConfigurationPublisher pdpConfigurationPublisher;
+
+
+	@PostConstruct
+	public void init() {
+		pdpConfigurationPublisher.publishCombiningAlgorithm(getSelected());
+	}
 
 	/**
 	 * Gets the selected combining algorithm.
@@ -72,9 +80,8 @@ public class CombiningAlgorithmService implements Serializable {
 	 * @param algorithmType the combining algorithm to set
 	 */
 	public void setSelected(@NonNull PolicyDocumentCombiningAlgorithm algorithmType) {
-		this.selectedCombiningAlgorithmRepository.deleteAll();
-		this.selectedCombiningAlgorithmRepository.save(new SelectedCombiningAlgorithm(algorithmType));
-
-		this.pdpConfigurationPublisher.publishCombiningAlgorithm(algorithmType);
+		selectedCombiningAlgorithmRepository.deleteAll();
+		selectedCombiningAlgorithmRepository.save(new SelectedCombiningAlgorithm(algorithmType));
+		pdpConfigurationPublisher.publishCombiningAlgorithm(algorithmType);
 	}
 }

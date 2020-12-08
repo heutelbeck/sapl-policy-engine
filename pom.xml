@@ -46,7 +46,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>11</java.version>
-		<xtext.version>2.23.0</xtext.version>
+		<xtext.version>2.24.0</xtext.version>
 		<license-maven-plugin.version>3.0</license-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.1.0</maven-javadoc-plugin.version>
 		<junit.version>4.13.1</junit.version>
@@ -57,6 +57,7 @@
 		<vaadin.version>14.4.2</vaadin.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
+		<docker-registry-url>nexus.openconjurer.org:30200</docker-registry-url>
 	</properties>
 
 	<modules>

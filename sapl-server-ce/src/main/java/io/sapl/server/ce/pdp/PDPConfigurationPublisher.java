@@ -15,17 +15,16 @@
  */
 package io.sapl.server.ce.pdp;
 
-import java.io.Serializable;
-import java.util.Collection;
-
 import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import lombok.NonNull;
 
+import java.util.Collection;
+
 /**
  * Publisher for changed configuration of the PDP.
  */
-public interface PDPConfigurationPublisher extends Serializable {
+public interface PDPConfigurationPublisher {
 	/**
 	 * Publishes a changed {@link PolicyDocumentCombiningAlgorithm}.
 	 * 
