@@ -15,6 +15,8 @@
  */
 package io.sapl.server.ce.views;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,21 +45,29 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.router.RouteData;
 import com.vaadin.flow.router.RouterLink;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinServletRequest;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
 
+import antlr.StringUtils;
 import io.sapl.server.ce.views.documentation.ListFunctionsAndPipsView;
 import io.sapl.server.ce.views.pdpconfiguration.ConfigurePdp;
 import io.sapl.server.ce.views.sapldocument.SaplDocumentsView;
+import lombok.NonNull;
+import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The main view is a top-level placeholder for other views.
  */
 @Push
+@Slf4j
 @JsModule("./styles/shared-styles.js")
 @Theme(value = Lumo.class, variant = Lumo.DARK)
 @CssImport("styles/views/main/main-view.css")
 public class MainView extends AppLayout {
+	private static final List<MenuItem> menuItems = initMenuItems();
 
 	private final Tabs menu;
 	private final Map<Integer, RouterLink> routerLinksPerTabIndex = Maps.newTreeMap();
@@ -69,6 +79,16 @@ public class MainView extends AppLayout {
 		addToNavbar(true, createHeaderContent());
 		menu = createMenu();
 		addToDrawer(createDrawerContent(menu));
+	}
+
+	private static List<MenuItem> initMenuItems() {
+		return Lists.newArrayList(new MenuItem("Home", ShowHome.class, ShowHome.ROUTE, VaadinIcon.HOME),
+				new MenuItem("SAPL Documents", SaplDocumentsView.class, SaplDocumentsView.ROUTE, VaadinIcon.FILE),
+				new MenuItem("PDP Configuration", ConfigurePdp.class, ConfigurePdp.ROUTE, VaadinIcon.COG),
+				new MenuItem("Functions & Attributes", ListFunctionsAndPipsView.class, ListFunctionsAndPipsView.ROUTE,
+						VaadinIcon.BOOK),
+				new MenuItem("Client Credentials", ListClientCredentials.class, ListClientCredentials.ROUTE,
+						VaadinIcon.KEY));
 	}
 
 	private Component createHeaderContent() {
@@ -113,19 +133,50 @@ public class MainView extends AppLayout {
 			UI.getCurrent().navigate(relevantRouterLink.getHref());
 		});
 
+		selectTabBasedOnPathOfCurrentRequest(tabs);
+
 		return tabs;
+	}
+
+	private void selectTabBasedOnPathOfCurrentRequest(@NonNull Tabs tabs) {
+		VaadinServletRequest req = (VaadinServletRequest) VaadinService.getCurrentRequest();
+		StringBuffer uriAsString = req.getRequestURL();
+		URI uri;
+		try {
+			uri = new URI(uriAsString.toString());
+		} catch (URISyntaxException ex) {
+			log.warn("cannot parse URI from String: {}", uriAsString);
+			return;
+		}
+
+		String path = uri.getPath();
+
+		// remove leading slash for compatibility with Vaadin route syntax
+		final String adjustedPath = StringUtils.stripFront(path, '/');
+
+		//@formatter:off
+		menuItems.stream()
+			.filter(menuItem -> menuItem.getRoute().equals(adjustedPath))
+			.findFirst()
+			.ifPresentOrElse(
+				menuItem -> {
+					int index = menuItems.indexOf(menuItem);
+					tabs.setSelectedIndex(index);
+				}, () -> {
+					log.warn("cannot find menu item for current request (request URI: {})", uriAsString);
+				});
+		//@formatter:on
 	}
 
 	private Component[] createMenuItems() {
 		//@formatter:off
-		List<Pair<RouterLink, VaadinIcon>> linksWithIcons = Lists.newArrayList(
-				Pair.of(new RouterLink("Home", ShowHome.class), VaadinIcon.HOME),
-				Pair.of(new RouterLink("SAPL Documents", SaplDocumentsView.class), VaadinIcon.FILE),
-				Pair.of(new RouterLink("PDP Configuration", ConfigurePdp.class), VaadinIcon.COG),
-				Pair.of(new RouterLink("Functions & Attributes", ListFunctionsAndPipsView.class), VaadinIcon.BOOK),
-				Pair.of(new RouterLink("Client Credentials", ListClientCredentials.class), VaadinIcon.KEY));
+		return menuItems.stream()
+				.map(menuItem -> {
+					return Pair.of(new RouterLink(menuItem.getText(), menuItem.getRoutingClazz()), menuItem.getIcon());
+				})
+				.map(this::createTab)
+				.toArray(Tab[]::new);
 		//@formatter:on
-		return linksWithIcons.stream().map(this::createTab).toArray(Tab[]::new);
 	}
 
 	private Tab createTab(Pair<RouterLink, VaadinIcon> linkWithIcon) {
@@ -182,5 +233,13 @@ public class MainView extends AppLayout {
 
 	private String getCurrentPageTitle() {
 		return getContent().getClass().getAnnotation(PageTitle.class).value();
+	}
+
+	@Value
+	private static class MenuItem {
+		private String text;
+		private Class<? extends Component> routingClazz;
+		private String route;
+		private VaadinIcon icon;
 	}
 }
