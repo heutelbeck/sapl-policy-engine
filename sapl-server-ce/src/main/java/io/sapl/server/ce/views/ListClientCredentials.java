@@ -23,6 +23,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -66,11 +67,11 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 	@Id(value = "secretTextField")
 	private TextField secretTextField;
 
+	@Id(value = "secretHintDiv")
+	private Div secretHintDiv;
+
 	@Id(value = "showCurrentClientCredentialsLayout")
 	private VerticalLayout showCurrentClientCredentialsLayout;
-
-	@Id(value = "showSecretLayout")
-	private VerticalLayout showSecretLayout;
 
 	@Id(value = "createButton")
 	private Button createButton;
@@ -93,7 +94,7 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 
 			keyTextField.setValue(createdClientCredentials.getKey());
 			secretTextField.setValue(createdClientCredentialsWithNonEncodedSecret.getT2());
-			showSecretLayout.setVisible(true);
+			setVisibilityOfComponentsForSecret(true);
 		});
 
 		initClientCredentialsGrid();
@@ -129,7 +130,7 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 				showCurrentClientCredentialsLayout.setVisible(true);
 
 				keyTextField.setValue(clientCredentials.getKey());
-				showSecretLayout.setVisible(false);
+				setVisibilityOfComponentsForSecret(false);
 			}, () -> {
 				showCurrentClientCredentialsLayout.setVisible(false);
 			});
@@ -148,6 +149,11 @@ public class ListClientCredentials extends PolymerTemplate<ListClientCredentials
 	private void refreshClientCredentialsGrid() {
 		clientCredentialsGrid.getDataProvider().refreshAll();
 		showCurrentClientCredentialsLayout.setVisible(false);
+	}
+
+	private void setVisibilityOfComponentsForSecret(boolean isVisible) {
+		secretTextField.setVisible(isVisible);
+		secretHintDiv.setVisible(isVisible);
 	}
 
 	/**
