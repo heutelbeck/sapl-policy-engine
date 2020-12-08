@@ -15,6 +15,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import io.sapl.pip.ClockPolicyInformationPoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
@@ -77,4 +78,8 @@ public class PolicyInformationPointsAutoConfiguration {
 		}
 	}
 
+	@Bean
+	public ClockPolicyInformationPoint clockPolicyInformationPoint() {
+		return new ClockPolicyInformationPoint();
+	}
 }
