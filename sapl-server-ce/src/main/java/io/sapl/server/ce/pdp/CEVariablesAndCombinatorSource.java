@@ -68,8 +68,8 @@ public class CEVariablesAndCombinatorSource implements VariablesAndCombinatorSou
     private void initVariablesFlux() {
         ReplayProcessor<Collection<Variable>> variablesProcessor = ReplayProcessor.<Collection<Variable>>create();
         variableFluxSink = variablesProcessor.sink();
-        variables = variablesProcessor.map(CEVariablesAndCombinatorSource::variablesCollentionToMap).cache()
-                .share();
+        variables = variablesProcessor.map(CEVariablesAndCombinatorSource::variablesCollentionToMap)
+                .share().cache();
         monitorVariables = variables.subscribe();
     }
 
@@ -78,8 +78,8 @@ public class CEVariablesAndCombinatorSource implements VariablesAndCombinatorSou
                 .<PolicyDocumentCombiningAlgorithm>create();
         documentCombiningAlgorithmFluxSink = combiningAlgorithmProcessor.sink();
         documentsCombinator = combiningAlgorithmProcessor.map(
-                DocumentsCombinatorFactory::getCombinator).cache()
-                .share();
+                DocumentsCombinatorFactory::getCombinator)
+                .share().cache();
         monitorAlgorithm = documentsCombinator.subscribe();
     }
 
