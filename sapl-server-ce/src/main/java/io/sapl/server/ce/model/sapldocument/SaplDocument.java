@@ -98,7 +98,7 @@ public class SaplDocument implements Serializable {
 	 * @return the current version
 	 */
 	public SaplDocumentVersion getCurrentVersion() {
-		Collection<SaplDocumentVersion> versions = this.getVersions();
+		Collection<SaplDocumentVersion> versions = getVersions();
 
 		Optional<SaplDocumentVersion> versionWithHighestVersion = versions.stream()
 				.max(Comparator.comparingInt(SaplDocumentVersion::getVersionNumber));
@@ -113,7 +113,7 @@ public class SaplDocument implements Serializable {
 	 * @exception IllegalArgumentException the version was not found
 	 */
 	public SaplDocumentVersion getVersion(int version) {
-		Optional<SaplDocumentVersion> versionAsOptional = this.getVersions().stream()
+		Optional<SaplDocumentVersion> versionAsOptional = getVersions().stream()
 				.filter(currentSaplDocumentVersion -> currentSaplDocumentVersion.getVersionNumber() == version)
 				.findFirst();
 
@@ -130,7 +130,7 @@ public class SaplDocument implements Serializable {
 	 * @return the {@link String} representation
 	 */
 	public String getPublishedVersionNumberAsString() {
-		SaplDocumentVersion publishedDocumentVersion = this.getPublishedVersion();
+		SaplDocumentVersion publishedDocumentVersion = getPublishedVersion();
 		if (publishedDocumentVersion != null) {
 			return Integer.toString(publishedDocumentVersion.getVersionNumber());
 		} else {
@@ -144,7 +144,7 @@ public class SaplDocument implements Serializable {
 	 * @return the {@link String} representation
 	 */
 	public String getTypeAsString() {
-		DocumentType type = this.getType();
+		DocumentType type = getType();
 		switch (type) {
 		case POLICY:
 			return "Policy";

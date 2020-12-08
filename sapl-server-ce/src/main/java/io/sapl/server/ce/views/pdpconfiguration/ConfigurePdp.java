@@ -85,12 +85,12 @@ public class ConfigurePdp extends PolymerTemplate<ConfigurePdp.ConfigurePdpModel
 	}
 
 	private void initUiForCombiningAlgorithm() {
-		PolicyDocumentCombiningAlgorithm[] availableCombiningAlgorithms = this.combiningAlgorithmService.getAvailable();
+		PolicyDocumentCombiningAlgorithm[] availableCombiningAlgorithms = combiningAlgorithmService.getAvailable();
 		String[] availableCombiningAlgorithmsAsStrings = Stream.of(availableCombiningAlgorithms).map(Enum::toString)
 				.toArray(String[]::new);
 		comboBoxCombAlgo.setItems(availableCombiningAlgorithmsAsStrings);
 
-		PolicyDocumentCombiningAlgorithm selectedCombiningAlgorithm = this.combiningAlgorithmService.getSelected();
+		PolicyDocumentCombiningAlgorithm selectedCombiningAlgorithm = combiningAlgorithmService.getSelected();
 		comboBoxCombAlgo.setValue(selectedCombiningAlgorithm.toString());
 
 		comboBoxCombAlgo.addValueChangeListener(changedEvent -> {

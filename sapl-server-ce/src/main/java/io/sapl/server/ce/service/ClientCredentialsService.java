@@ -45,7 +45,7 @@ public class ClientCredentialsService implements UserDetailsService, Serializabl
 
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		Collection<ClientCredentials> clientCredentialsWithKey = this.clientCredentialsRepository.findByKey(username);
+		Collection<ClientCredentials> clientCredentialsWithKey = clientCredentialsRepository.findByKey(username);
 		if (clientCredentialsWithKey.isEmpty()) {
 			throw new UsernameNotFoundException(
 					String.format("client credentials with key \"%s\" not found", username));
@@ -113,7 +113,7 @@ public class ClientCredentialsService implements UserDetailsService, Serializabl
 	 * @param id the id of the {@link ClientCredentials} to delete
 	 */
 	public void delete(@NonNull Long id) {
-		this.clientCredentialsRepository.deleteById(id);
+		clientCredentialsRepository.deleteById(id);
 	}
 
 	private static String generateFormattedUuid() {

@@ -19,6 +19,8 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
+import javax.annotation.PostConstruct;
+
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -30,8 +32,6 @@ import io.sapl.server.ce.persistence.VariablesRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.PostConstruct;
 
 /**
  * Service for {@link Variable}.
@@ -57,7 +57,7 @@ public class VariablesService {
 	 * @return the available {@link Variable} instances
 	 */
 	public Collection<Variable> getAll() {
-		return this.variableRepository.findAll();
+		return variableRepository.findAll();
 	}
 
 	/**
@@ -66,7 +66,7 @@ public class VariablesService {
 	 * @return the amount
 	 */
 	public long getAmount() {
-		return this.variableRepository.count();
+		return variableRepository.count();
 	}
 
 	/**
@@ -76,7 +76,7 @@ public class VariablesService {
 	 * @return the {@link Variable}
 	 */
 	public Variable getById(long id) {
-		Optional<Variable> optionalEntity = this.variableRepository.findById(id);
+		Optional<Variable> optionalEntity = variableRepository.findById(id);
 		if (optionalEntity.isEmpty()) {
 			throw new IllegalArgumentException(String.format("entity with id %d is not existing", id));
 		}
@@ -95,14 +95,14 @@ public class VariablesService {
 		String name = UUID.randomUUID().toString().replace("-", "");
 		String jsonValue = DEFAULT_JSON_VALUE;
 
-		this.checkForDuplicatedName(name, null);
+		checkForDuplicatedName(name, null);
 
 		Variable variable = new Variable(null, name, jsonValue);
-		this.variableRepository.save(variable);
+		variableRepository.save(variable);
 
 		log.info("created variable {}: {}", name, jsonValue);
 
-		this.publishVariables();
+		publishVariables();
 
 		return variable;
 	}
@@ -123,7 +123,7 @@ public class VariablesService {
 		VariablesService.checkIsJsonValue(jsonValue);
 		checkForDuplicatedName(name, id);
 
-		Optional<Variable> optionalEntity = this.variableRepository.findById(id);
+		Optional<Variable> optionalEntity = variableRepository.findById(id);
 		if (optionalEntity.isEmpty()) {
 			throw new IllegalArgumentException(String.format("entity with id %d is not existing", id));
 		}
@@ -135,11 +135,11 @@ public class VariablesService {
 		editedVariable.setName(name);
 		editedVariable.setJsonValue(jsonValue);
 
-		this.variableRepository.save(editedVariable);
+		variableRepository.save(editedVariable);
 
 		log.info("edited variable: {} -> {}", oldVariable, editedVariable);
 
-		this.publishVariables();
+		publishVariables();
 
 		return oldVariable;
 	}
@@ -150,7 +150,7 @@ public class VariablesService {
 	 * @param id the id of the {@link Variable}
 	 */
 	public void delete(Long id) {
-		Optional<Variable> variableToDelete = this.variableRepository.findById(id);
+		Optional<Variable> variableToDelete = variableRepository.findById(id);
 		variableRepository.deleteById(id);
 		log.info("deleted variable {}: {}", variableToDelete.get().getName(), variableToDelete.get().getJsonValue());
 		publishVariables();
@@ -177,7 +177,7 @@ public class VariablesService {
 	 *                                         another variable
 	 */
 	private void checkForDuplicatedName(@NonNull String name, Long id) throws DuplicatedVariableNameException {
-		Collection<Variable> variablesWithName = this.variableRepository.findByName(name);
+		Collection<Variable> variablesWithName = variableRepository.findByName(name);
 
 		boolean isAnyVariableWithNameExisting = variablesWithName.stream()
 				.anyMatch(variable -> variable.getName().equals(name) && !variable.getId().equals(id));
@@ -188,7 +188,7 @@ public class VariablesService {
 	}
 
 	private void publishVariables() {
-		Collection<Variable> variables = this.getAll();
-		this.pdpConfigurationPublisher.publishVariables(variables);
+		Collection<Variable> variables = getAll();
+		pdpConfigurationPublisher.publishVariables(variables);
 	}
 }

@@ -55,13 +55,13 @@ public class SaplDocumentsView extends PolymerTemplate<SaplDocumentsView.ListSap
 	public SaplDocumentsView(SaplDocumentService saplDocumentService) {
 		this.saplDocumentService = saplDocumentService;
 
-		this.initUI();
+		initUI();
 	}
 
 	private void initUI() {
-		this.initSaplDocumentGrid();
+		initSaplDocumentGrid();
 
-		this.createButton.addClickListener(clickEvent -> {
+		createButton.addClickListener(clickEvent -> {
 			saplDocumentService.createDefault();
 
 			// reload grid
@@ -71,13 +71,13 @@ public class SaplDocumentsView extends PolymerTemplate<SaplDocumentsView.ListSap
 
 	private void initSaplDocumentGrid() {
 		// add columns
-		this.saplDocumentGrid.addColumn(SaplDocument::getName).setHeader("Name");
-		this.saplDocumentGrid.addColumn(SaplDocument::getCurrentVersionNumber).setHeader("Version");
-		this.saplDocumentGrid.addColumn(SaplDocument::getPublishedVersionNumberAsString).setHeader("Published Version");
-		this.saplDocumentGrid.addColumn(SaplDocument::getLastModified).setHeader("Last Modified");
-		this.saplDocumentGrid.addColumn(SaplDocument::getTypeAsString).setHeader("Type");
-		this.saplDocumentGrid.getColumns().forEach(col -> col.setAutoWidth(true));
-		this.saplDocumentGrid.addComponentColumn(saplDocument -> {
+		saplDocumentGrid.addColumn(SaplDocument::getName).setHeader("Name");
+		saplDocumentGrid.addColumn(SaplDocument::getCurrentVersionNumber).setHeader("Version");
+		saplDocumentGrid.addColumn(SaplDocument::getPublishedVersionNumberAsString).setHeader("Published Version");
+		saplDocumentGrid.addColumn(SaplDocument::getLastModified).setHeader("Last Modified");
+		saplDocumentGrid.addColumn(SaplDocument::getTypeAsString).setHeader("Type");
+		saplDocumentGrid.getColumns().forEach(col -> col.setAutoWidth(true));
+		saplDocumentGrid.addComponentColumn(saplDocument -> {
 			Button editButton = new Button("Edit", VaadinIcon.EDIT.create());
 			editButton.addClickListener(clickEvent -> {
 				String uriToNavigateTo = String.format("%s/%d", EditSaplDocumentView.ROUTE, saplDocument.getId());
@@ -97,11 +97,11 @@ public class SaplDocumentsView extends PolymerTemplate<SaplDocumentsView.ListSap
 			int offset = query.getOffset();
 			int limit = query.getLimit();
 
-			return this.saplDocumentService.getAll().stream().skip(offset).limit(limit);
-		}, query -> (int) this.saplDocumentService.getAmount());
-		this.saplDocumentGrid.setDataProvider(dataProvider);
+			return saplDocumentService.getAll().stream().skip(offset).limit(limit);
+		}, query -> (int) saplDocumentService.getAmount());
+		saplDocumentGrid.setDataProvider(dataProvider);
 
-		this.saplDocumentGrid.setHeightByRows(true);
+		saplDocumentGrid.setHeightByRows(true);
 	}
 
 	/**

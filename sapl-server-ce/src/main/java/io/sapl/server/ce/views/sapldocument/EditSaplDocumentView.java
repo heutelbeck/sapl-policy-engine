@@ -110,8 +110,7 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 	}
 
 	private void reloadSaplDocument() {
-
-		this.saplDocument = saplDocumentService.getById(saplDocumentId);
+		saplDocument = saplDocumentService.getById(saplDocumentId);
 		setUI();
 
 		saveVersionButton.setEnabled(false);

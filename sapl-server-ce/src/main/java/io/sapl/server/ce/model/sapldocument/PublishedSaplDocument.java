@@ -49,7 +49,7 @@ public class PublishedSaplDocument {
 	 * @param saplDocumentVersion the {@link SaplDocumentVersion} to import
 	 */
 	public void importSaplDocumentVersion(@NonNull SaplDocumentVersion saplDocumentVersion) {
-		this.setValue(saplDocumentVersion.getValue());
-		this.setName(saplDocumentVersion.getName());
+		setValue(saplDocumentVersion.getValue());
+		setName(saplDocumentVersion.getName());
 	}
 }
