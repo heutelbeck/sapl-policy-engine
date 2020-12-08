@@ -15,8 +15,6 @@
  */
 package io.sapl.server.ce.views.pdpconfiguration;
 
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.JsModule;
@@ -36,8 +34,7 @@ import io.sapl.server.ce.service.pdpconfiguration.VariablesService;
 import io.sapl.server.ce.views.MainView;
 import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
 import io.sapl.vaadin.JsonEditor;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -51,13 +48,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @JsModule("./edit-variable.js")
 @PageTitle("Edit Variable")
-@NoArgsConstructor
+@RequiredArgsConstructor
 public class EditVariableView extends PolymerTemplate<EditVariableView.EditVariableModel>
 		implements HasUrlParameter<Long> {
 	public static final String ROUTE = "pdp-config/edit-variable";
 
-	@Autowired
-	private VariablesService variableService;
+	private final VariablesService variableService;
 
 	private long variableId;
 
@@ -76,7 +72,6 @@ public class EditVariableView extends PolymerTemplate<EditVariableView.EditVaria
 	/**
 	 * The {@link Variable} to edit.
 	 */
-	@NonNull
 	private Variable variable;
 
 	@Override

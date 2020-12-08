@@ -19,8 +19,6 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.google.common.collect.Iterables;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.button.Button;
@@ -43,25 +41,23 @@ import io.sapl.server.ce.views.MainView;
 import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
 import io.sapl.vaadin.Issue;
 import io.sapl.vaadin.SaplEditor;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
 /**
  * View to edit a {@link SaplDocument}.
  */
-@NoArgsConstructor
 @Tag("edit-sapl-document")
 @Route(value = EditSaplDocumentView.ROUTE, layout = MainView.class)
 @JsModule("./edit-sapl-document.js")
 @PageTitle("Edit SAPL document")
+@RequiredArgsConstructor
 public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.EditSaplDocumentModel>
 		implements HasUrlParameter<Long> {
 	public static final String ROUTE = "documents";
 
 	private static final String NEW_VERSION_SELECTION_ENTRY = "New Version";
 
-	@Autowired
-	private SaplDocumentService saplDocumentService;
+	private final SaplDocumentService saplDocumentService;
 
 	@Id(value = "policyIdTextField")
 	private TextField policyIdTextField;
@@ -99,7 +95,6 @@ public class EditSaplDocumentView extends PolymerTemplate<EditSaplDocumentView.E
 	/**
 	 * The {@link SaplDocument} to edit.
 	 */
-	@NonNull
 	private SaplDocument saplDocument;
 
 	private long saplDocumentId;
