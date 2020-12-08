@@ -15,6 +15,9 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import io.sapl.functions.FilterFunctionLibrary;
+import io.sapl.functions.StandardFunctionLibrary;
+import io.sapl.functions.TemporalFunctionLibrary;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,4 +39,16 @@ public class FunctionLibrariesAutoConfiguration {
 		}
 	}
 
+	@Bean
+	public FilterFunctionLibrary filterFunctionLibrary() {
+		return new FilterFunctionLibrary();
+	}
+	@Bean
+	public StandardFunctionLibrary standardFunctionLibrary() {
+		return new StandardFunctionLibrary();
+	}
+	@Bean
+	public TemporalFunctionLibrary temporalFunctionLibrary() {
+		return new TemporalFunctionLibrary();
+	}
 }
