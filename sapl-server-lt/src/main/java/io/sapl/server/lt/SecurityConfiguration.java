@@ -17,6 +17,7 @@ package io.sapl.server.lt;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
@@ -29,6 +30,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import lombok.RequiredArgsConstructor;
 
 @Configuration
+@Profile("local")
 @EnableWebFluxSecurity
 @RequiredArgsConstructor
 public class SecurityConfiguration {

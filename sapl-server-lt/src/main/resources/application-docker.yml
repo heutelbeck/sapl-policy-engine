@@ -1,0 +1,9 @@
+# configure the PDP
+io.sapl:
+  pdp.embedded:
+    pdp-config-type: FILESYSTEM
+    config-path: /pdp/settings
+    policies-path: /pdp/policies
+
+# disable spring security. authentication and authorization delegated to k8s ingress
+spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration, org.springframework.boot.autoconfigure.security.reactive.ReactiveUserDetailsServiceAutoConfiguration

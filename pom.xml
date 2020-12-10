@@ -57,7 +57,8 @@
 		<vaadin.version>14.4.4</vaadin.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
-		<docker-registry-url>nexus.openconjurer.org:30200</docker-registry-url>
+		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
+		<docker-registry-url>nexus.openconjurer.org:30300</docker-registry-url>
 	</properties>
 
 	<modules>
@@ -269,6 +270,11 @@
 					<groupId>com.mycila</groupId>
 					<artifactId>license-maven-plugin</artifactId>
 					<version>${license-maven-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>com.spotify</groupId>
+					<artifactId>dockerfile-maven-plugin</artifactId>
+					<version>${dockerfile-maven-plugin.version}</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>
