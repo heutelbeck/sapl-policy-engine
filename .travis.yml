@@ -1,6 +1,10 @@
 # Prepare environment for building docker images
 sudo: required
 
+# Make use of docker in the build.
+services:
+  - docker
+
 # setup environment for java
 language: java
 

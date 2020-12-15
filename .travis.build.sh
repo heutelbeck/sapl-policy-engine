@@ -25,6 +25,9 @@ if [ "${TRAVIS_BRANCH}" == "master" ]; then
         echo "Building master"
         mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report sonar:sonar deploy -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/* --batch-mode
         mvn deploy -DskipTests=true -Dmaven.javadoc.skip=true --batch-mode
+        mvn dockerfile:build -pl sapl-server-lt
+        echo $NEXUS_PASSWORD | docker login --username $NEXUS_USERNAME --password-stdin nexus.openconjurer.org:30300 || exit 1
+        mvn dockerfile:push -pl sapl-server-lt || exit 1
     else
         echo "Building pull request"
         mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent verify --batch-mode

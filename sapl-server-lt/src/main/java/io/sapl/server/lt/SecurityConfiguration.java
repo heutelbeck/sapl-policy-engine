@@ -30,7 +30,6 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import lombok.RequiredArgsConstructor;
 
 @Configuration
-@Profile("local")
 @EnableWebFluxSecurity
 @RequiredArgsConstructor
 public class SecurityConfiguration {
@@ -38,13 +37,21 @@ public class SecurityConfiguration {
 	private final SAPLServerLTProperties pdpProperties;
 
 	@Bean
-	public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http) {
-		return http.csrf().disable().authorizeExchange().pathMatchers("/").permitAll().anyExchange().authenticated()
+	@Profile("local")
+	public SecurityWebFilterChain securityFilterChainLocal(ServerHttpSecurity http) {
+		return http.csrf().disable().authorizeExchange().pathMatchers("/**").permitAll().anyExchange().authenticated()
 				.and().httpBasic().and().formLogin().disable().build();
 	}
 
 	@Bean
-	public MapReactiveUserDetailsService userDetailsService() {
+	@Profile("docker")
+	public SecurityWebFilterChain securityFilterChainDocker(ServerHttpSecurity http) {
+		return http.csrf().disable().authorizeExchange().pathMatchers("/**").permitAll().and().build();
+	}
+
+	@Bean
+	@Profile("local")
+	public MapReactiveUserDetailsService userDetailsServiceLocal() {
 		UserDetails client = User.builder().username(pdpProperties.getKey()).password(pdpProperties.getSecret())
 				.roles("PDP_CLIENT").build();
 		return new MapReactiveUserDetailsService(client);
