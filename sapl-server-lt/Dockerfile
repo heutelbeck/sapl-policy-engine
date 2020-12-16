@@ -2,9 +2,7 @@ FROM adoptopenjdk/openjdk11:alpine
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 VOLUME /tmp
-VOLUME /pdp/settings
-VOLUME /pdp/policies
-VOLUME /pdp/pips
+VOLUME /pdp/data
 WORKDIR /pdp
 ENV spring_profiles_active=docker
 ARG JAR_FILE

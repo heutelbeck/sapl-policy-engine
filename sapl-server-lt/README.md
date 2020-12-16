@@ -83,7 +83,31 @@ keytool -genkeypair -keystore keystore.p12 -dname "CN=localhost, OU=Unknown, O=U
 ```shell
 mkcert -pkcs12 -p12-file self-signed-cert.p12 localhost 127.0.0.1 ::1
 ```
+## Containerized Cloud Deployment
 
-## Cloud deployment on Kubernetes
+The server application is available as container image. Here, the server is not configured with any TLS 
+security or authentication. It is expected that in deployment this responsibility is delegated to the 
+infrastructure, e.g., a matching Kubernetes Ingress.
+
+### Running directly as a Docker container
+
+In order to run the server locally for testing in an environment like Docker Desktop, you can run the current image as follows:
+
+```shell
+docker run -d --name sapl-server-lt -p 8080:8080 --mount source=sapl-server-lt,target=/pdp/data nexus.openconjurer.org:30300/sapl-server-lt:2.0.0-SNAPSHOT
+```
+
+Afterwards you can check if the service is online under: http://localhost:8080/actuator/health.
+
+Also, a volume is created for persisting the PDP configuration and policies.
+
+Depending on your host OS and virtualization environment, these volumes may be located at:
+
+* Docker Desktop on Windows WSL2: `\\wsl$\docker-desktop-data\version-pack-data\community\docker\volumes\sapl-server-lt\_data`
+* Docker Desktop on Windows Hyper-V: `C:\Users\Public\Documents\Hyper-V\Virtual hard disks\sapl-server-lt\_data`
+* Docker on Ubuntu: `/var/lib/docker/volumes/sapl-server-lt/_data`
+
+
+
 
 
