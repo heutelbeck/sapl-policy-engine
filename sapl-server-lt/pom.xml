@@ -129,8 +129,9 @@
 							</execution>
 						</executions>
 						<configuration>
-							<repository>${project.artifactId}</repository>
+							<repository>${docker-registry-url}/${project.artifactId}</repository>
 							<tag>${project.version}</tag>
+							<useMavenSettingsForAuth>true</useMavenSettingsForAuth>
 							<buildArgs>
 								<JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
 							</buildArgs>
