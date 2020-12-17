@@ -21,211 +21,134 @@ import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.prp.PrpUpdateEventSource;
-import io.sapl.prp.directorywatcher.DirectoryWatchEventFluxSinkAdapter;
-import io.sapl.prp.directorywatcher.DirectoryWatcher;
+import io.sapl.prp.filemonitoring.*;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.monitor.FileAlterationMonitor;
+import org.apache.commons.io.monitor.FileAlterationObserver;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.WatchEvent;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.regex.Pattern;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
 
-import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static io.sapl.prp.filemonitoring.FileUtil.readFile;
+import static io.sapl.prp.filemonitoring.FileUtil.resolveHomeFolderIfPresent;
 
 @Slf4j
 public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
-    private static final String POLICY_FILE_GLOB_PATTERN = "*.sapl";
-    private static final Pattern POLICY_FILE_REGEX_PATTERN = Pattern.compile(".+\\.sapl");
+    private static final long POLL_INTERVAL = 500; // ms
+    private static final String SAPL_SUFFIX = ".sapl";
+    private static final String SAPL_GLOB_PATTERN = "*" + SAPL_SUFFIX;
 
     private final SAPLInterpreter interpreter;
-    private final Path watchDir;
-    private final Scheduler dirWatcherScheduler;
-    private final Flux<WatchEvent<Path>> dirWatcherFlux;
+    private final String watchDir;
 
+    @SneakyThrows
     public FileSystemPrpUpdateEventSource(String policyPath, SAPLInterpreter interpreter) {
         this.interpreter = interpreter;
-
-        watchDir = fileSystemPath(policyPath);
-        // Set up directory watcher
-
-        final DirectoryWatcher directoryWatcher = new DirectoryWatcher(watchDir);
-        final DirectoryWatchEventFluxSinkAdapter adapter = new DirectoryWatchEventFluxSinkAdapter(
-                POLICY_FILE_REGEX_PATTERN);
-        dirWatcherScheduler = Schedulers.newElastic("policyWatcher");
-        dirWatcherFlux = Flux.<WatchEvent<Path>>push(sink -> {
-            adapter.setSink(sink);
-            directoryWatcher.watch(adapter);
-        }).doOnCancel(adapter::cancel).subscribeOn(dirWatcherScheduler).share();
-    }
-
-    private final Path fileSystemPath(String policyPath) {
-        String path = "";
-        // First resolve actual path
-        if (policyPath.startsWith("~" + File.separator) || policyPath.startsWith("~/")) {
-            path = System.getProperty("user.home") + policyPath.substring(1);
-        } else if (policyPath.startsWith("~")) {
-            throw new UnsupportedOperationException("Home dir expansion not implemented for explicit usernames");
-        } else {
-            path = policyPath;
-        }
-        return Paths.get(path);
+        watchDir = resolveHomeFolderIfPresent(policyPath);
+        log.info("Monitoring for SAPL documents: {}", watchDir);
     }
 
     @Override
     public void dispose() {
-        dirWatcherScheduler.dispose();
+        // NOOP
     }
 
     @Override
     public Flux<PrpUpdateEvent> getUpdates() {
         Map<String, SAPL> files = new HashMap<>();
         List<Update> updates = new LinkedList<>();
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(watchDir, POLICY_FILE_GLOB_PATTERN)) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(watchDir), SAPL_GLOB_PATTERN)) {
             for (var filePath : stream) {
                 log.info("loading SAPL document: {}", filePath);
-                var rawDocument = readFile(filePath);
+                var rawDocument = readFile(filePath.toFile());
                 var saplDocument = interpreter.parse(rawDocument);
                 files.put(filePath.toString(), saplDocument);
                 updates.add(new Update(Type.PUBLISH, saplDocument, rawDocument));
             }
         } catch (IOException e) {
-			throw Exceptions.propagate(e);
+            throw Exceptions.propagate(e);
         }
 
         var seedIndex = new ImmutableFileIndex(files);
         var initialEvent = new PrpUpdateEvent(updates);
+
+        var monitoringFlux = Flux.<FileEvent>push(emitter -> {
+            var adaptor = new FileEventAdaptor(emitter);
+            FileAlterationMonitor monitor = new FileAlterationMonitor(POLL_INTERVAL);
+            FileAlterationObserver observer = new FileAlterationObserver(watchDir, file -> file.getName().endsWith(SAPL_SUFFIX));
+            monitor.addObserver(observer);
+            observer.addListener(adaptor);
+            emitter.onCancel(() -> {
+                try {
+                    monitor.stop();
+                } catch (Exception e) {
+                    emitter.error(e);
+                }
+            });
+            try {
+                monitor.start();
+            } catch (Exception e) {
+                emitter.error(e);
+            }
+        });
+
+
         log.debug("initial event: {}", initialEvent);
-        return Mono.just(initialEvent).concatWith(directoryMonitor(seedIndex));
+        return Mono.just(initialEvent).concatWith(directoryMonitor(monitoringFlux, seedIndex));
     }
 
-    private Flux<PrpUpdateEvent> directoryMonitor(ImmutableFileIndex seedIndex) {
-        return Flux.from(dirWatcherFlux).scan(Tuples.of(Optional.empty(), seedIndex), this::processWatcherEvent)
-                .filter(tuple -> tuple.getT1().isPresent()).map(Tuple2::getT1).map(Optional::get)
-                .distinctUntilChanged();
+    private Flux<PrpUpdateEvent> directoryMonitor(Flux<FileEvent> fileEvents, ImmutableFileIndex seedIndex) {
+        return fileEvents.scan(Tuples.of(Optional.empty(), seedIndex), this::processFileEvent)
+                .filter(tuple -> tuple.getT1().isPresent()).map(Tuple2::getT1).map(Optional::get);
     }
 
-    private Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> processWatcherEvent(
-            Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> tuple, WatchEvent<Path> watchEvent) {
+    private Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> processFileEvent(
+            Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> tuple, FileEvent fileEvent) {
         var index = tuple.getT2();
-        var kind = watchEvent.kind();
-        var fileName = watchEvent.context();
-        var absoluteFilePath = Path.of(watchDir.toAbsolutePath().toString(), fileName.toString());
-        var absoluteFileName = absoluteFilePath.toString();
+        var fileName = fileEvent.getFile().getName();
+        var absoluteFileName = fileEvent.getFile().getAbsolutePath();
 
-        if (kind != ENTRY_DELETE && kind != ENTRY_CREATE && kind != ENTRY_MODIFY) {
-            log.debug("dropping unknown kind of directory watch event: {}", kind != null ? kind.name() : "null");
-            return Tuples.of(Optional.empty(), index);
-        }
+        log.debug("Processing file event: {} for {} - {}", fileEvent.getClass().getSimpleName(), fileName, absoluteFileName);
 
-        if (kind == ENTRY_DELETE) {
-            log.info("unloading deleted SAPL document: {}", fileName);
+        if (fileEvent instanceof FileDeletedEvent) {
+            log.info("unloading deleted SAPL document: {} {}", fileName, absoluteFileName);
             var update = new Update(Type.UNPUBLISH, index.get(absoluteFileName), "");
             var newIndex = index.remove(absoluteFileName);
             return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);
         }
-
-        if (absoluteFilePath.toFile().length() == 0) {
-            log.debug("dropping potential duplicate event. {}", kind);
-            return Tuples.of(Optional.empty(), index);
-        }
-
-        String rawDocument = "";
         SAPL saplDocument = null;
+        String rawDocument = "";
         try {
-            rawDocument = readFile(absoluteFilePath);
+            rawDocument = readFile(fileEvent.getFile());
             saplDocument = interpreter.parse(rawDocument);
         } catch (IOException e) {
-			throw Exceptions.propagate(e);
+            throw Exceptions.propagate(e);
         }
 
-        // CREATE or MODIFY events
-        // This is very system dependent. Different OS and tools modifying a file can
-        // result in different signals.
-        // e.g. modification of a file with one editor may result in MODIFY while the
-        // other editor results in
-        // CREATE without a matching DELETED first.
-        // So both signals have to be treated similarly and we have to determine
-        // ourselves what happened
-
-        log.debug("Processing directory watch event of kind: {} for {}", kind, absoluteFileName);
-        if (index.containsFile(absoluteFileName)) {
-            log.debug("the file is already indexed. Treat this as a modification");
-            log.info("loading updated SAPL document: {}", fileName);
-            var oldDocument = index.get(absoluteFileName);
-            var update1 = new Update(Type.UNPUBLISH, oldDocument, "");
-            var update2 = new Update(Type.PUBLISH, saplDocument, rawDocument);
-            var newIndex = index.put(absoluteFileName, saplDocument);
-            return Tuples.of(Optional.of(new PrpUpdateEvent(update1, update2)), newIndex);
-        } else {
-            log.debug("the file is not yet indexed. Treat this as a file creation.");
+        if (fileEvent instanceof FileCreatedEvent || !index.containsFile(absoluteFileName)) {
             log.info("loading new SAPL document: {}", fileName);
             var update = new Update(Type.PUBLISH, saplDocument, rawDocument);
             var newIndex = index.put(absoluteFileName, saplDocument);
             return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);
         }
+
+        // file changed
+
+        log.info("loading updated SAPL document: {}", fileName);
+        var oldDocument = index.get(absoluteFileName);
+        var update1 = new Update(Type.UNPUBLISH, oldDocument, "");
+        var update2 = new Update(Type.PUBLISH, saplDocument, rawDocument);
+        var newIndex = index.put(absoluteFileName, saplDocument);
+        return Tuples.of(Optional.of(new PrpUpdateEvent(update1, update2)), newIndex);
     }
 
-    public static String readFile(Path filePath) throws IOException {
-        var fis = Files.newInputStream(filePath);
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8))) {
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
-                sb.append('\n');
-            }
-            return sb.toString();
-        }
-    }
-
-    private static class ImmutableFileIndex {
-        final Map<String, SAPL> files;
-
-        private ImmutableFileIndex(Map<String, SAPL> newFiles) {
-            files = new HashMap<>(newFiles);
-        }
-
-        public ImmutableFileIndex put(String absoluteFileName, SAPL saplDocument) {
-            var newFiles = new HashMap<>(files);
-            newFiles.put(absoluteFileName, saplDocument);
-            return new ImmutableFileIndex(newFiles);
-        }
-
-        public ImmutableFileIndex remove(String absoluteFileName) {
-            var newFiles = new HashMap<>(files);
-            newFiles.remove(absoluteFileName);
-            return new ImmutableFileIndex(newFiles);
-        }
-
-        public SAPL get(String absoluteFileName) {
-            return files.get(absoluteFileName);
-        }
-
-        public boolean containsFile(String absoluteFileName) {
-            return files.containsKey(absoluteFileName);
-        }
-    }
 
 }

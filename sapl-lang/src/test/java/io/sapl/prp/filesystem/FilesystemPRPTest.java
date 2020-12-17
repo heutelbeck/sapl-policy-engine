@@ -31,7 +31,7 @@ import java.util.logging.Level;
 public class FilesystemPRPTest {
 
 	@Test
-	public void doTest() {
+	public void doTest() throws Exception {
 		var interpreter = new DefaultSAPLInterpreter();
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/policies", interpreter);
 		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(), source);
