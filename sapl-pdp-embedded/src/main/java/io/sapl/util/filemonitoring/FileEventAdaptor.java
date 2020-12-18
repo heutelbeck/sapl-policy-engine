@@ -1,4 +1,4 @@
-package io.sapl.prp.filemonitoring;
+package io.sapl.util.filemonitoring;
 
 import java.io.File;
 

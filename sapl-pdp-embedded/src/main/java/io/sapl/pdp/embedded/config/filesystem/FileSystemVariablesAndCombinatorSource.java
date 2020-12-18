@@ -21,12 +21,15 @@ import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
 import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
-import io.sapl.prp.filemonitoring.FileDeletedEvent;
-import io.sapl.prp.filemonitoring.FileEvent;
+import io.sapl.util.filemonitoring.FileDeletedEvent;
+import io.sapl.util.filemonitoring.FileEvent;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
+
+import static io.sapl.util.filemonitoring.FileMonitorUtil.monitorDirectory;
+import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -35,9 +38,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-
-import static io.sapl.prp.filemonitoring.FileMonitorUtil.monitorDirectory;
-import static io.sapl.prp.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
 
 @Slf4j
 public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombinatorSource {

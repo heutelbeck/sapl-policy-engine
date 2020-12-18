@@ -15,8 +15,8 @@
  */
 package io.sapl.prp.filesystem;
 
-import static io.sapl.prp.filemonitoring.FileMonitorUtil.readFile;
-import static io.sapl.prp.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
+import static io.sapl.util.filemonitoring.FileMonitorUtil.readFile;
+import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -34,11 +34,11 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
+import io.sapl.util.filemonitoring.FileCreatedEvent;
+import io.sapl.util.filemonitoring.FileDeletedEvent;
+import io.sapl.util.filemonitoring.FileEvent;
+import io.sapl.util.filemonitoring.FileMonitorUtil;
 import io.sapl.prp.PrpUpdateEventSource;
-import io.sapl.prp.filemonitoring.FileCreatedEvent;
-import io.sapl.prp.filemonitoring.FileDeletedEvent;
-import io.sapl.prp.filemonitoring.FileEvent;
-import io.sapl.prp.filemonitoring.FileMonitorUtil;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
