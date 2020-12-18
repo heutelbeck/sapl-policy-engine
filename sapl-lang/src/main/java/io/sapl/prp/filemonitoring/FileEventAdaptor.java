@@ -1,12 +1,11 @@
 package io.sapl.prp.filemonitoring;
 
-import io.sapl.prp.PrpUpdateEvent;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
-import reactor.core.publisher.FluxSink;
-
 import java.io.File;
+
+import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
+
+import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.FluxSink;
 
 @RequiredArgsConstructor
 public class FileEventAdaptor extends FileAlterationListenerAdaptor {

@@ -15,15 +15,16 @@
  */
 package io.sapl.prp.resources;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+
+import org.junit.Test;
+
 import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pip.AttributeException;
 import io.sapl.pdp.embedded.PolicyDecisionPointFactory;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
 
 public class ResourcesPolicyRetrievalPointTest {
 

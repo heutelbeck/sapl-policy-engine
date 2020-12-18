@@ -16,6 +16,7 @@
 package io.sapl.prp.index.canonical;
 
 import com.google.common.base.Preconditions;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
 import lombok.Getter;

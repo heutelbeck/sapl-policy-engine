@@ -15,11 +15,12 @@
  */
 package io.sapl.prp.filesystem;
 
-import io.sapl.pdp.embedded.config.resources.ResourcesVariablesAndCombinatorSource;
-import org.junit.Test;
-import reactor.core.publisher.SignalType;
-
 import java.util.logging.Level;
+
+import org.junit.Test;
+
+import io.sapl.pdp.embedded.config.resources.ResourcesVariablesAndCombinatorSource;
+import reactor.core.publisher.SignalType;
 
 public class ResourcesConfigTest {
 	@Test

@@ -1,9 +1,9 @@
 package io.sapl.prp.filesystem;
 
-import io.sapl.grammar.sapl.SAPL;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import io.sapl.grammar.sapl.SAPL;
 
 class ImmutableFileIndex {
     final Map<String, SAPL> files;

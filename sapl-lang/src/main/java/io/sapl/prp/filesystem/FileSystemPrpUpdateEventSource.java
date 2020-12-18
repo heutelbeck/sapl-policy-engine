@@ -15,29 +15,37 @@
  */
 package io.sapl.prp.filesystem;
 
+import static io.sapl.prp.filemonitoring.FileMonitorUtil.readFile;
+import static io.sapl.prp.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
+
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.prp.PrpUpdateEventSource;
-import io.sapl.prp.filemonitoring.*;
+import io.sapl.prp.filemonitoring.FileCreatedEvent;
+import io.sapl.prp.filemonitoring.FileDeletedEvent;
+import io.sapl.prp.filemonitoring.FileEvent;
+import io.sapl.prp.filemonitoring.FileMonitorUtil;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.monitor.FileAlterationMonitor;
-import org.apache.commons.io.monitor.FileAlterationObserver;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
-
-import java.io.*;
-import java.nio.file.*;
-import java.util.*;
-
-import static io.sapl.prp.filemonitoring.FileMonitorUtil.readFile;
-import static io.sapl.prp.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
 
 @Slf4j
 public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {

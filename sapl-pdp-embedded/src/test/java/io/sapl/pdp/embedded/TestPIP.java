@@ -15,14 +15,15 @@
  */
 package io.sapl.pdp.embedded;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.Text;
 import reactor.core.publisher.Flux;
-
-import java.util.Map;
 
 @PolicyInformationPoint(name = TestPIP.NAME, description = TestPIP.DESCRIPTION)
 public class TestPIP {

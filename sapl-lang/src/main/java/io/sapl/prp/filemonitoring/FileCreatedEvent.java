@@ -1,8 +1,8 @@
 package io.sapl.prp.filemonitoring;
 
-import lombok.Value;
-
 import java.io.File;
+
+import lombok.Value;
 
 @Value
 public class FileCreatedEvent implements FileEvent {

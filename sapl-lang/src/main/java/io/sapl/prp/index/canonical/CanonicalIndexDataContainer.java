@@ -15,17 +15,18 @@
  */
 package io.sapl.prp.index.canonical;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.common.collect.ImmutableList;
+
 import io.sapl.grammar.sapl.SAPL;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Value;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @Value
 @AllArgsConstructor

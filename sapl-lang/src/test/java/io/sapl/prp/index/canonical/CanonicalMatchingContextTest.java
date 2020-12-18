@@ -1,14 +1,15 @@
 package io.sapl.prp.index.canonical;
 
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import org.junit.Before;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import io.sapl.interpreter.pip.AnnotationAttributeContext;
 
 public class CanonicalMatchingContextTest {
 
