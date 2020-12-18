@@ -36,13 +36,12 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
-import static io.sapl.prp.filemonitoring.FileUtil.readFile;
-import static io.sapl.prp.filemonitoring.FileUtil.resolveHomeFolderIfPresent;
+import static io.sapl.prp.filemonitoring.FileMonitorUtil.readFile;
+import static io.sapl.prp.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
 
 @Slf4j
 public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
-    private static final long POLL_INTERVAL = 500; // ms
     private static final String SAPL_SUFFIX = ".sapl";
     private static final String SAPL_GLOB_PATTERN = "*" + SAPL_SUFFIX;
 
@@ -80,26 +79,7 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
         var seedIndex = new ImmutableFileIndex(files);
         var initialEvent = new PrpUpdateEvent(updates);
 
-        var monitoringFlux = Flux.<FileEvent>push(emitter -> {
-            var adaptor = new FileEventAdaptor(emitter);
-            FileAlterationMonitor monitor = new FileAlterationMonitor(POLL_INTERVAL);
-            FileAlterationObserver observer = new FileAlterationObserver(watchDir, file -> file.getName().endsWith(SAPL_SUFFIX));
-            monitor.addObserver(observer);
-            observer.addListener(adaptor);
-            emitter.onCancel(() -> {
-                try {
-                    monitor.stop();
-                } catch (Exception e) {
-                    emitter.error(e);
-                }
-            });
-            try {
-                monitor.start();
-            } catch (Exception e) {
-                emitter.error(e);
-            }
-        });
-
+        var monitoringFlux = FileMonitorUtil.monitorDirectory(watchDir, file -> file.getName().endsWith(SAPL_SUFFIX));
 
         log.debug("initial event: {}", initialEvent);
         return Mono.just(initialEvent).concatWith(directoryMonitor(monitoringFlux, seedIndex));

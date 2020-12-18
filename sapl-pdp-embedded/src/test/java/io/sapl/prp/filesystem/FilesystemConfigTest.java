@@ -16,10 +16,14 @@
 package io.sapl.prp.filesystem;
 
 import io.sapl.pdp.embedded.config.filesystem.FileSystemVariablesAndCombinatorSource;
+import io.sapl.prp.filemonitoring.FileEvent;
 import org.junit.Test;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
 
 import java.util.logging.Level;
+
+import static io.sapl.prp.filemonitoring.FileMonitorUtil.monitorDirectory;
 
 public class FilesystemConfigTest {
 	@Test
@@ -29,4 +33,5 @@ public class FilesystemConfigTest {
 		configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
 		configProvider.dispose();
 	}
+
 }
