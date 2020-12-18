@@ -33,7 +33,7 @@ public class CombinatorMockUtil {
 		for (var decision : authorizationDecisions) {
 			documents.add(mockDocumentEvaluatingTo(decision));
 		}
-		return new PolicyRetrievalResult(documents, errorsInTarget);
+		return new PolicyRetrievalResult(documents, errorsInTarget, true);
 	}
 
 	public static AuthorizationDecisionEvaluable mockDocumentEvaluatingTo(AuthorizationDecision authzDecison) {

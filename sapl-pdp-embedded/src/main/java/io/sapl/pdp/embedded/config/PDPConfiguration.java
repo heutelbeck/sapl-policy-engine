@@ -23,4 +23,8 @@ import lombok.Value;
 public class PDPConfiguration {
 	EvaluationContext pdpScopedEvaluationContext;
 	DocumentsCombinator documentsCombinator;
+
+	public boolean isValid() {
+		return pdpScopedEvaluationContext != null && documentsCombinator != null;
+	}
 }

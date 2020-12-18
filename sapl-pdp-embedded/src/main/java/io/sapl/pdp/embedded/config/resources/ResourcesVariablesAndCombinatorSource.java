@@ -15,18 +15,6 @@
  */
 package io.sapl.pdp.embedded.config.resources;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
-import io.sapl.interpreter.combinators.DocumentsCombinator;
-import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
-import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
-import reactor.core.Exceptions;
-import reactor.core.publisher.Flux;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -40,8 +28,23 @@ import java.nio.file.Paths;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import org.apache.commons.io.IOUtils;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
+import io.sapl.interpreter.combinators.DocumentsCombinator;
+import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
+import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
@@ -134,13 +137,13 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 	}
 
 	@Override
-	public Flux<DocumentsCombinator> getDocumentsCombinator() {
-		return Flux.just(config.getAlgorithm()).map(DocumentsCombinatorFactory::getCombinator);
+	public Flux<Optional<DocumentsCombinator>> getDocumentsCombinator() {
+		return Flux.just(config.getAlgorithm()).map(DocumentsCombinatorFactory::getCombinator).map(Optional::of);
 	}
 
 	@Override
-	public Flux<Map<String, JsonNode>> getVariables() {
-		return Flux.just(config.getVariables()).map(HashMap::new);
+	public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+		return Flux.just(config.getVariables()).map(HashMap::new).map(Optional::of);
 	}
 
 	@Override

@@ -15,19 +15,6 @@
  */
 package io.sapl.pdp.embedded.config.filesystem;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
-import io.sapl.interpreter.combinators.DocumentsCombinator;
-import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
-import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
-import io.sapl.util.filemonitoring.FileDeletedEvent;
-import io.sapl.util.filemonitoring.FileEvent;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.Disposable;
-import reactor.core.Exceptions;
-import reactor.core.publisher.Flux;
-
 import static io.sapl.util.filemonitoring.FileMonitorUtil.monitorDirectory;
 import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
 
@@ -36,8 +23,21 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
+import io.sapl.interpreter.combinators.DocumentsCombinator;
+import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
+import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
+import io.sapl.util.filemonitoring.FileDeletedEvent;
+import io.sapl.util.filemonitoring.FileEvent;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
@@ -46,49 +46,61 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	private final String watchDir;
-	private final Flux<PolicyDecisionPointConfiguration> configFlux;
+	private final Flux<Optional<PolicyDecisionPointConfiguration>> configFlux;
 	private final Disposable monitorSubscription;
 
 	public FileSystemVariablesAndCombinatorSource(String configurationPath) {
 		watchDir = resolveHomeFolderIfPresent(configurationPath);
 		log.info("Monitor folder for config: {}", watchDir);
-		Flux<FileEvent> monitoringFlux = monitorDirectory(watchDir, file -> file.getName().equals(CONFIG_FILE_GLOB_PATTERN));
-		configFlux = monitoringFlux.scan(loadConfig(), this::processWatcherEvent).distinctUntilChanged().share().cache();
+		Flux<FileEvent> monitoringFlux = monitorDirectory(watchDir,
+				file -> file.getName().equals(CONFIG_FILE_GLOB_PATTERN));
+		configFlux = monitoringFlux.scan(loadConfig(), this::processWatcherEvent).distinctUntilChanged().share()
+				.cache();
 		monitorSubscription = configFlux.subscribe();
 	}
 
-	private PolicyDecisionPointConfiguration loadConfig() {
+	private Optional<PolicyDecisionPointConfiguration> loadConfig() {
 		Path configurationFile = Paths.get(watchDir, CONFIG_FILE_GLOB_PATTERN);
 		log.info("loading config from: {}", configurationFile.toAbsolutePath());
 		if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
 			// If file does not exist, return default configuration
 			log.info("No config file present. Use default config.");
-			return new PolicyDecisionPointConfiguration();
+			return Optional.of(new PolicyDecisionPointConfiguration());
 		}
 		try {
-			return MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class);
+			return Optional.of(MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class));
 		} catch (IOException e) {
-			throw Exceptions.propagate(e);
+			return Optional.empty();
 		}
 	}
 
 	@Override
-	public Flux<DocumentsCombinator> getDocumentsCombinator() {
-		return Flux.from(configFlux).map(PolicyDecisionPointConfiguration::getAlgorithm).distinctUntilChanged()
-				.map(DocumentsCombinatorFactory::getCombinator).log();
+	public Flux<Optional<DocumentsCombinator>> getDocumentsCombinator() {
+		return Flux.from(configFlux).switchMap(config -> {
+			if (config.isPresent()) {
+				return Flux.just(Optional.of(DocumentsCombinatorFactory.getCombinator(config.get().getAlgorithm())));
+			} else {
+				return Flux.<Optional<DocumentsCombinator>>just(Optional.empty());
+			}
+		}).log();
 	}
 
 	@Override
-	public Flux<Map<String, JsonNode>> getVariables() {
-		return Flux.from(configFlux).map(PolicyDecisionPointConfiguration::getVariables).distinctUntilChanged().log()
-				.map(HashMap::new);
+	public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+		return Flux.from(configFlux).switchMap(config -> {
+			if (config.isPresent()) {
+				return Flux.just(Optional.of(config.get().getVariables()));
+			} else {
+				return Flux.<Optional<Map<String, JsonNode>>>just(Optional.empty());
+			}
+		}).log();
 	}
 
-	private PolicyDecisionPointConfiguration processWatcherEvent(PolicyDecisionPointConfiguration lastConfig,
-			FileEvent fileEvent) {
+	private Optional<PolicyDecisionPointConfiguration> processWatcherEvent(
+			Optional<PolicyDecisionPointConfiguration> lastConfig, FileEvent fileEvent) {
 		if (fileEvent instanceof FileDeletedEvent) {
 			log.info("config deleted. reverting to default config.");
-			return new PolicyDecisionPointConfiguration();
+			return Optional.of(new PolicyDecisionPointConfiguration());
 		}
 		// MODIFY or CREATED
 		return loadConfig();

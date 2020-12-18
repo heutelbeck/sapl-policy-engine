@@ -15,17 +15,19 @@
  */
 package io.sapl.pdp.embedded.config;
 
+import java.util.Map;
+import java.util.Optional;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.interpreter.combinators.DocumentsCombinator;
 import reactor.core.publisher.Flux;
 
-import java.util.Map;
-
 public interface VariablesAndCombinatorSource {
 
-	Flux<DocumentsCombinator> getDocumentsCombinator();
+	Flux<Optional<DocumentsCombinator>> getDocumentsCombinator();
 
-	Flux<Map<String, JsonNode>> getVariables();
+	Flux<Optional<Map<String, JsonNode>>> getVariables();
 
 	void dispose();
 

@@ -69,7 +69,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
             return CanonicalIndexAlgorithm.match(subscriptionScopedEvaluationContext, indexDataContainer);
         } catch (PolicyEvaluationException e) {
             log.error("error while retrieving policies", e);
-            return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true));
+            return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true, true));
         }
     }
 

@@ -23,6 +23,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
@@ -30,24 +31,23 @@ import lombok.NoArgsConstructor;
 public class PolicyRetrievalResult {
 
 	Collection<? extends AuthorizationDecisionEvaluable> matchingDocuments = new ArrayList<>();
+	@Getter
 	boolean errorsInTarget = false;
-
+	@Getter
+	boolean prpValidState = true;
+	
 	public Collection<? extends AuthorizationDecisionEvaluable> getMatchingDocuments() {
 		return this.matchingDocuments;
-	}
-
-	public boolean isErrorsInTarget() {
-		return this.errorsInTarget;
 	}
 
 	public PolicyRetrievalResult withMatch(AuthorizationDecisionEvaluable match) {
 		var matches = new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments);
 		matches.add(match);
-		return new PolicyRetrievalResult(matches, errorsInTarget);
+		return new PolicyRetrievalResult(matches, errorsInTarget, true);
 	}
 
 	public PolicyRetrievalResult withError() {
-		return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments), true);
+		return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments), true, true);
 	}
 
 	@Override

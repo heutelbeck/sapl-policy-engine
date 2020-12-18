@@ -17,6 +17,7 @@ package io.sapl.server.ce.pdp;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -46,9 +47,9 @@ public class CEVariablesAndCombinatorSource implements VariablesAndCombinatorSou
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Getter
-	private Flux<DocumentsCombinator> documentsCombinator;
+	private Flux<Optional<DocumentsCombinator>> documentsCombinator;
 	@Getter
-	private Flux<Map<String, JsonNode>> variables;
+	private Flux<Optional<Map<String, JsonNode>>> variables;
 
 	private FluxSink<PolicyDocumentCombiningAlgorithm> documentCombiningAlgorithmFluxSink;
 	private FluxSink<Collection<Variable>> variableFluxSink;
@@ -65,7 +66,8 @@ public class CEVariablesAndCombinatorSource implements VariablesAndCombinatorSou
 	private void initVariablesFlux() {
 		ReplayProcessor<Collection<Variable>> variablesProcessor = ReplayProcessor.<Collection<Variable>>create();
 		variableFluxSink = variablesProcessor.sink();
-		variables = variablesProcessor.map(CEVariablesAndCombinatorSource::variablesCollentionToMap).share().cache();
+		variables = variablesProcessor.map(CEVariablesAndCombinatorSource::variablesCollentionToMap).map(Optional::of)
+				.share().cache();
 		monitorVariables = variables.subscribe();
 	}
 
@@ -73,8 +75,8 @@ public class CEVariablesAndCombinatorSource implements VariablesAndCombinatorSou
 		ReplayProcessor<PolicyDocumentCombiningAlgorithm> combiningAlgorithmProcessor = ReplayProcessor
 				.<PolicyDocumentCombiningAlgorithm>create();
 		documentCombiningAlgorithmFluxSink = combiningAlgorithmProcessor.sink();
-		documentsCombinator = combiningAlgorithmProcessor.map(DocumentsCombinatorFactory::getCombinator).share()
-				.cache();
+		documentsCombinator = combiningAlgorithmProcessor.map(DocumentsCombinatorFactory::getCombinator)
+				.map(Optional::of).share().cache();
 		monitorAlgorithm = documentsCombinator.subscribe();
 	}
 

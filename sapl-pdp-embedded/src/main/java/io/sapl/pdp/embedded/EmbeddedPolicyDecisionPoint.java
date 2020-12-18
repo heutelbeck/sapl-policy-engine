@@ -53,21 +53,34 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private Function<? super PDPConfiguration, Publisher<? extends AuthorizationDecision>> decideSubscription(
 			AuthorizationSubscription authzSubscription) {
-		return pdpConfiguration -> Flux.just(pdpConfiguration.getPdpScopedEvaluationContext())
-				.map(createSubsctiptionScope(authzSubscription))
-				.switchMap(retrieveAndCombineDocuments(pdpConfiguration));
+		return pdpConfiguration -> {
+			if (pdpConfiguration.isValid()) {
+				return Flux.just(pdpConfiguration.getPdpScopedEvaluationContext())
+						.map(createSubsctiptionScope(authzSubscription))
+						.switchMap(retrieveAndCombineDocuments(pdpConfiguration));
+			} else {
+				return Flux.just(AuthorizationDecision.INDETERMINATE);
+			}
+		};
 	}
 
 	private Function<EvaluationContext, Publisher<? extends AuthorizationDecision>> retrieveAndCombineDocuments(
 			PDPConfiguration pdpConfiguration) {
-		return subscriptionScopedEvaluationContext -> policyRetrievalPoint.retrievePolicies(subscriptionScopedEvaluationContext)
+		return subscriptionScopedEvaluationContext -> policyRetrievalPoint
+				.retrievePolicies(subscriptionScopedEvaluationContext)
 				.switchMap(combineDocuments(pdpConfiguration, subscriptionScopedEvaluationContext));
 	}
 
 	private Function<? super PolicyRetrievalResult, Publisher<? extends AuthorizationDecision>> combineDocuments(
 			PDPConfiguration pdpConfiguration, EvaluationContext subscriptionScopedEvaluationContext) {
-		return policyRetrievalResult -> pdpConfiguration.getDocumentsCombinator()
-				.combineMatchingDocuments(policyRetrievalResult, subscriptionScopedEvaluationContext);
+		return policyRetrievalResult -> {
+			if (policyRetrievalResult.isPrpValidState()) {
+				return pdpConfiguration.getDocumentsCombinator().combineMatchingDocuments(policyRetrievalResult,
+						subscriptionScopedEvaluationContext);
+			} else {
+				return Flux.just(AuthorizationDecision.INDETERMINATE);
+			}
+		};
 	}
 
 	private Function<? super EvaluationContext, ? extends EvaluationContext> createSubsctiptionScope(
