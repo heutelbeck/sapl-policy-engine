@@ -51,17 +51,17 @@ public class PrpUpdateEvent {
 		@EqualsAndHashCode.Exclude
 		SAPL document;
 		String rawDocument;
-
+		
 		@Override
 		public String toString() {
 			return "Update(type=" + type + ", documentName="
-					+ (document != null ? "'" + document.getPolicyElement().getSaplName() + "'" : "NULL PPOLICY") + ")";
+					+ (document != null ? "'" + document.getPolicyElement().getSaplName() + "'" : "NULL POLICY") + ")";
 		}
 
 	}
 
 	public enum Type {
-		PUBLISH, UNPUBLISH
+		PUBLISH, UNPUBLISH, INCONSISTENT, CONSISTENT
 	}
 
 }

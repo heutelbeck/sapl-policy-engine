@@ -43,11 +43,15 @@ public class PolicyRetrievalResult {
 	public PolicyRetrievalResult withMatch(AuthorizationDecisionEvaluable match) {
 		var matches = new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments);
 		matches.add(match);
-		return new PolicyRetrievalResult(matches, errorsInTarget, true);
+		return new PolicyRetrievalResult(matches, errorsInTarget, prpValidState);
 	}
 
 	public PolicyRetrievalResult withError() {
-		return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments), true, true);
+		return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments), true, prpValidState);
+	}
+
+	public PolicyRetrievalResult withInvalidState() {
+		return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments), errorsInTarget, false);
 	}
 
 	@Override

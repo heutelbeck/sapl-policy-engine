@@ -22,6 +22,7 @@ import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -36,31 +37,37 @@ import reactor.core.publisher.Mono;
 public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
 	// Mapping of Document Name to the parsed Document
 	private final Map<String, SAPL> documents;
+	private final boolean consistent;
 
 	public NaiveImmutableParsedDocumentIndex() {
 		documents = new HashMap<>();
+		consistent = true;
 	}
 
-	private NaiveImmutableParsedDocumentIndex(Map<String, SAPL> documents) {
+	private NaiveImmutableParsedDocumentIndex(Map<String, SAPL> documents, boolean consistent) {
 		this.documents = documents;
+		this.consistent = consistent;
 	}
 
 	@Override
 	public Mono<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext) {
 		var retrieval = Mono.just(new PolicyRetrievalResult());
+		if(!consistent) {
+			return retrieval.map(PolicyRetrievalResult::withInvalidState);
+		}
 		for (SAPL document : documents.values()) {
-			retrieval = retrieval.flatMap(decision -> document.matches(subscriptionScopedEvaluationContext).map(match -> {
+			retrieval = retrieval.flatMap(retrievalResult -> document.matches(subscriptionScopedEvaluationContext).map(match -> {
 				if (match.isError()) {
-					return decision.withError();
+					return retrievalResult.withError();
 				}
 				if (!match.isBoolean()) {
 					log.error("matching returned error. (Should never happen): {}", match.getMessage());
-					return decision.withError();
+					return retrievalResult.withError();
 				}
 				if (match.getBoolean()) {
-					return decision.withMatch(document);
+					return retrievalResult.withMatch(document);
 				}
-				return decision;
+				return retrievalResult;
 			}));
 		}
 		return retrieval;
@@ -70,8 +77,25 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 	public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
 		// Do a shallow copy. String is immutable, and SAPL is assumed to be too.
 		var newDocuments = new HashMap<>(documents);
-		applyEvent(newDocuments, event);
-		return new NaiveImmutableParsedDocumentIndex(newDocuments);
+		var newConsistencyState = consistent;
+		for (var update : event.getUpdates()) {
+			if(update.getType() == Type.CONSISTENT) {
+				newConsistencyState = true;
+			} else if(update.getType() == Type.INCONSISTENT) {
+				newConsistencyState = false;
+			} else {
+				applyUpdate(newDocuments, update);
+			}
+		}
+		return new NaiveImmutableParsedDocumentIndex(newDocuments, newConsistencyState);
+	}
+	private void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
+		var name = update.getDocument().getPolicyElement().getSaplName();
+		if (update.getType() == Type.UNPUBLISH) {
+			newDocuments.remove(name);
+		} else if (update.getType() == Type.PUBLISH) {
+			newDocuments.put(name, update.getDocument());
+		}
 	}
 
 }

@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-
+import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
@@ -40,22 +40,24 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
     private final Map<String, SAPL> documents;
     private final PredicateOrderStrategy predicateOrderStrategy;
     private final EvaluationContext pdpScopedEvaluationContext;
+    private final boolean consistent;
 
     public CanonicalImmutableParsedDocumentIndex(PredicateOrderStrategy predicateOrderStrategy,
                                                  EvaluationContext pdpScopedEvaluationContext) {
-        this(Collections.emptyMap(), predicateOrderStrategy, pdpScopedEvaluationContext);
+        this(Collections.emptyMap(), predicateOrderStrategy, pdpScopedEvaluationContext, true);
     }
 
     public CanonicalImmutableParsedDocumentIndex(EvaluationContext pdpScopedEvaluationContext) {
-        this(Collections.emptyMap(), new DefaultPredicateOrderStrategy(), pdpScopedEvaluationContext);
+        this(Collections.emptyMap(), new DefaultPredicateOrderStrategy(), pdpScopedEvaluationContext, true);
     }
 
     private CanonicalImmutableParsedDocumentIndex(Map<String, SAPL> updatedDocuments,
                                                   PredicateOrderStrategy predicateOrderStrategy,
-                                                  EvaluationContext pdpScopedEvaluationContext) {
+                                                  EvaluationContext pdpScopedEvaluationContext, boolean consistent) {
         this.documents = updatedDocuments;
         this.predicateOrderStrategy = predicateOrderStrategy;
         this.pdpScopedEvaluationContext = pdpScopedEvaluationContext;
+        this.consistent = consistent;
         Map<String, DisjunctiveFormula> targets = this.documents.entrySet().stream().collect(
                 Collectors.toMap(Entry::getKey, entry -> retainTarget(entry.getValue(), pdpScopedEvaluationContext)));
 
@@ -65,6 +67,9 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 
     @Override
     public Mono<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext) {
+        if(!consistent) {
+            return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true, false));
+        }
         try {
             return CanonicalIndexAlgorithm.match(subscriptionScopedEvaluationContext, indexDataContainer);
         } catch (PolicyEvaluationException e) {
@@ -76,10 +81,32 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
     @Override
     public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
         var newDocuments = new HashMap<>(documents);
-        applyEvent(newDocuments, event);
+        var newConsistencyState = consistent;
+        for (var update : event.getUpdates()) {
+            if(update.getType() == Type.CONSISTENT) {
+                newConsistencyState = true;
+            } else if(update.getType() == Type.INCONSISTENT) {
+                newConsistencyState = false;
+            } else {
+                applyUpdate(newDocuments, update);
+            }
+        }
         log.debug("returning updated index containing {} documents", newDocuments.size());
         return new CanonicalImmutableParsedDocumentIndex(newDocuments, predicateOrderStrategy,
-                pdpScopedEvaluationContext);
+                pdpScopedEvaluationContext, newConsistencyState);
+    }
+
+    private void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
+        var name = update.getDocument().getPolicyElement().getSaplName();
+        if (update.getType() == Type.UNPUBLISH) {
+            newDocuments.remove(name);
+        } else if (update.getType() == Type.PUBLISH) {
+            if (newDocuments.containsKey(name)) {
+                throw new RuntimeException("Fatal error. Policy name collision. A document with a name ('" + name
+                        + "') identical to an existing document was published to the PRP.");
+            }
+            newDocuments.put(name, update.getDocument());
+        }
     }
 
     private DisjunctiveFormula retainTarget(SAPL sapl, EvaluationContext pdpScopedEvaluationContext) {
