@@ -23,8 +23,13 @@ import java.util.function.Function;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.common.util.WrappedException;
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.util.EcoreUtil;
+import org.eclipse.xtext.linking.lazy.LazyLinkingResource;
+import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
+import org.eclipse.xtext.util.CancelIndicator;
 import org.reactivestreams.Publisher;
 
 import com.google.inject.Injector;
@@ -48,6 +53,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
+	private static final String EXPECTED_TO_PARSE_TO_A_SAPL_DOCUMENT_BUT_GOT_S = "Expected to parse to a SAPL document, but got: %s";
 	private static final String DUMMY_RESOURCE_URI = "policy:/apolicy.sapl";
 	private static final String PARSING_ERRORS = "Parsing errors: %s";
 
@@ -113,6 +119,11 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 		try {
 			resource.load(policyInputStream, resourceSet.getLoadOptions());
+			if (resource instanceof LazyLinkingResource) {
+				((LazyLinkingResource) resource).resolveLazyCrossReferences(CancelIndicator.NullImpl);
+			} else {
+				EcoreUtil.resolveAll(resource);
+			}
 		} catch (IOException | WrappedException e) {
 			throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
 		}
@@ -120,7 +131,12 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		if (!resource.getErrors().isEmpty()) {
 			throw new PolicyEvaluationException(PARSING_ERRORS, resource.getErrors());
 		}
-		return (SAPL) resource.getContents().get(0);
+		EObject document = resource.getContents().get(0);
+		if (!(document instanceof SAPL)) {
+			throw new PolicyEvaluationException(EXPECTED_TO_PARSE_TO_A_SAPL_DOCUMENT_BUT_GOT_S,
+					document.getClass().getSimpleName());
+		}
+		return (SAPL) document;
 	}
 
 }

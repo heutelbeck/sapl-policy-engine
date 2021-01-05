@@ -55,13 +55,13 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 		Flux<FileEvent> monitoringFlux = monitorDirectory(watchDir,
 				file -> file.getName().equals(CONFIG_FILE_GLOB_PATTERN));
 		configFlux = monitoringFlux.scan(loadConfig(), this::processWatcherEvent).distinctUntilChanged().share()
-				.cache();
-		monitorSubscription = configFlux.subscribe();
+				.cache(1);
+		monitorSubscription = Flux.from(configFlux).subscribe();
 	}
 
 	private Optional<PolicyDecisionPointConfiguration> loadConfig() {
 		Path configurationFile = Paths.get(watchDir, CONFIG_FILE_GLOB_PATTERN);
-		log.info("loading config from: {}", configurationFile.toAbsolutePath());
+		log.info("Loading config from: {}", configurationFile.toAbsolutePath());
 		if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
 			// If file does not exist, return default configuration
 			log.info("No config file present. Use default config.");
@@ -82,7 +82,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 			} else {
 				return Flux.<Optional<DocumentsCombinator>>just(Optional.empty());
 			}
-		}).log();
+		});
 	}
 
 	@Override
@@ -93,13 +93,13 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 			} else {
 				return Flux.<Optional<Map<String, JsonNode>>>just(Optional.empty());
 			}
-		}).log();
+		});
 	}
 
 	private Optional<PolicyDecisionPointConfiguration> processWatcherEvent(
 			Optional<PolicyDecisionPointConfiguration> lastConfig, FileEvent fileEvent) {
 		if (fileEvent instanceof FileDeletedEvent) {
-			log.info("config deleted. reverting to default config.");
+			log.info("Configuration file deleted. Reverting to default config.");
 			return Optional.of(new PolicyDecisionPointConfiguration());
 		}
 		// MODIFY or CREATED

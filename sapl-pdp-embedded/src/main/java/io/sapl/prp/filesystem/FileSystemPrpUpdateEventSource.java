@@ -41,7 +41,6 @@ import io.sapl.util.filemonitoring.FileDeletedEvent;
 import io.sapl.util.filemonitoring.FileEvent;
 import io.sapl.util.filemonitoring.FileMonitorUtil;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
@@ -98,7 +97,7 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
 		var monitoringFlux = FileMonitorUtil.monitorDirectory(watchDir, file -> file.getName().endsWith(SAPL_SUFFIX));
 
-		log.debug("initial event: {}", initialEvent);
+		log.debug("Initial event: {}", initialEvent);
 		return Mono.just(initialEvent).concatWith(directoryMonitor(monitoringFlux, seedIndex));
 	}
 
@@ -117,7 +116,7 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 				absoluteFileName);
 
 		if (fileEvent instanceof FileDeletedEvent) {
-			log.info("unloading deleted SAPL document: {} {}", fileName, absoluteFileName);
+			log.info("Unloading deleted SAPL document: {} {}", fileName, absoluteFileName);
 			var document = index.get(absoluteFileName);
 			if(document.isEmpty()) {
 				return Tuples.of(Optional.empty(), index);
@@ -136,19 +135,19 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 		}
 
 		if (fileEvent instanceof FileCreatedEvent || !index.containsFile(absoluteFileName)) {
-			log.info("loading new SAPL document: {}", fileName);
+			log.info("Loading new SAPL document: {}", fileName);
 			var newIndex = index.put(absoluteFileName, saplDocument);
 			var updates = new LinkedList<Update>();
 			if(saplDocument.isPresent()) {
-				log.debug("the document has been parsed successfully. publish it to the index.");
+				log.debug("The document has been parsed successfully. It will be published to the index.");
 				updates.add(new Update(Type.PUBLISH, saplDocument.get(), rawDocument));
 			}
 			if(newIndex.becameConsistentComparedTo(index)) {
-				log.debug("the set of documents was previously INCONSISTENT and is now CONSISTENT again.");
+				log.debug("The set of documents was previously INCONSISTENT and is now CONSISTENT again.");
 				updates.add(new Update(Type.CONSISTENT, null, null));
 			}
 			if(newIndex.becameInconsistentComparedTo(index)) {
-				log.debug("the set of documents was previously CONSISTENT and is now INCONSISTENT.");
+				log.debug("The set of documents was previously CONSISTENT and is now INCONSISTENT.");
 				updates.add(new Update(Type.INCONSISTENT, null, null));
 			}
 			return Tuples.of(Optional.of(new PrpUpdateEvent(updates)), newIndex);
@@ -156,7 +155,7 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
 		// file changed
 
-		log.info("loading updated SAPL document: {}", fileName);
+		log.info("Loading updated SAPL document: {}", fileName);
 		var oldDocument = index.get(absoluteFileName);
 		var newIndex = index.put(absoluteFileName, saplDocument);
 		var updates = new LinkedList<Update>();
@@ -166,15 +165,15 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 			updates.add(new Update(Type.UNPUBLISH, oldDocument.get(), ""));
 		}
 		if(saplDocument.isPresent()) {
-			log.debug("the document has been parsed successfully. publish the changed document.");
+			log.debug("The document has been parsed successfully. It will be published to the index.");
 			updates.add(new Update(Type.PUBLISH, saplDocument.get(), rawDocument));
 		}
 		if(newIndex.becameConsistentComparedTo(index)) {
-			log.debug("the set of documents was previously INCONSISTENT and is now CONSISTENT again.");
+			log.debug("The set of documents was previously INCONSISTENT and is now CONSISTENT again.");
 			updates.add(new Update(Type.CONSISTENT, null, null));
 		}
 		if(newIndex.becameInconsistentComparedTo(index)) {
-			log.debug("the set of documents was previously CONSISTENT and is now INCONSISTENT.");
+			log.debug("The set of documents was previously CONSISTENT and is now INCONSISTENT.");
 			updates.add(new Update(Type.INCONSISTENT, null, null));
 		}
 
