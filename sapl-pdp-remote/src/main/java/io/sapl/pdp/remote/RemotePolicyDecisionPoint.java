@@ -71,7 +71,7 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	}
 
 	private <T> Flux<T> decide(String path, Class<T> valueType, Object authzSubscription) {
-		return client.post().uri(path).accept(MediaType.APPLICATION_STREAM_JSON).contentType(MediaType.APPLICATION_JSON)
+		return client.post().uri(path).accept(MediaType.APPLICATION_NDJSON).contentType(MediaType.APPLICATION_JSON)
 				.bodyValue(authzSubscription).retrieve().bodyToFlux(valueType)
 				.doOnError(error -> log.error("Error : {}", error.getMessage()));
 	}

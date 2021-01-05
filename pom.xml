@@ -51,10 +51,10 @@
 		<maven-javadoc-plugin.version>3.1.0</maven-javadoc-plugin.version>
 		<junit.version>4.13.1</junit.version>
 		<lombok.version>1.18.16</lombok.version>
-		<springboot.version>2.3.4.RELEASE</springboot.version>
+		<springboot.version>2.4.1</springboot.version>
 		<powermock.version>2.0.7</powermock.version>
 		<mockito.version>3.6.0</mockito.version>
-		<vaadin.version>14.4.4</vaadin.version>
+		<vaadin.version>14.4.5</vaadin.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>

@@ -68,26 +68,26 @@ public class WebClientRequestExecutor {
 			final WebClient webClient = createWebClient(urlSpec.baseUrl());
 			// @formatter:off
 			if (httpMethod == GET) {
-				return webClient.get().uri(urlSpec.pathAndQueryString()).accept(MediaType.APPLICATION_STREAM_JSON)
+				return webClient.get().uri(urlSpec.pathAndQueryString()).accept(MediaType.APPLICATION_NDJSON)
 						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).retrieve()
 						.bodyToFlux(JsonNode.class);
 			} else if (httpMethod == POST) {
 				return webClient.post().uri(urlSpec.pathAndQueryString()).contentType(MediaType.APPLICATION_JSON)
-						.accept(MediaType.APPLICATION_STREAM_JSON)
+						.accept(MediaType.APPLICATION_NDJSON)
 						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).bodyValue(getBody(requestSpec))
 						.retrieve().bodyToFlux(JsonNode.class);
 			} else if (httpMethod == PUT) {
 				return webClient.put().uri(urlSpec.pathAndQueryString()).contentType(MediaType.APPLICATION_JSON)
-						.accept(MediaType.APPLICATION_STREAM_JSON)
+						.accept(MediaType.APPLICATION_NDJSON)
 						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).bodyValue(getBody(requestSpec))
 						.retrieve().bodyToFlux(JsonNode.class);
 			} else if (httpMethod == DELETE) {
-				return webClient.delete().uri(urlSpec.pathAndQueryString()).accept(MediaType.APPLICATION_STREAM_JSON)
+				return webClient.delete().uri(urlSpec.pathAndQueryString()).accept(MediaType.APPLICATION_NDJSON)
 						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).retrieve()
 						.bodyToFlux(JsonNode.class);
 			} else if (httpMethod == PATCH) {
 				return webClient.patch().uri(urlSpec.pathAndQueryString()).contentType(MediaType.APPLICATION_JSON)
-						.accept(MediaType.APPLICATION_STREAM_JSON)
+						.accept(MediaType.APPLICATION_NDJSON)
 						.headers(httpHeaders -> addHeaders(httpHeaders, requestSpec)).bodyValue(getBody(requestSpec))
 						.retrieve().bodyToFlux(JsonNode.class);
 			}
