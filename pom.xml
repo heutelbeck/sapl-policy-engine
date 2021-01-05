@@ -59,6 +59,7 @@
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
 		<docker-registry-url>nexus.openconjurer.org:30300</docker-registry-url>
+		<guice.version>5.0.0-BETA-1</guice.version>		
 	</properties>
 
 	<modules>
@@ -163,6 +164,11 @@
 				<scope>import</scope>
 			</dependency>
 
+			<dependency>
+    			<groupId>com.google.inject</groupId>
+    			<artifactId>guice</artifactId>
+				<version>${guice.version}</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
