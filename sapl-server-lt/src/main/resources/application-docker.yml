@@ -7,3 +7,8 @@ io.sapl:
 
 # disable spring security. authentication and authorization delegated to k8s ingress
 spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration, org.springframework.boot.autoconfigure.security.reactive.ReactiveUserDetailsServiceAutoConfiguration
+
+logging.level:
+  # set to TRACE to see how the PDP is coming to its decisions
+  io.sapl: TRACE
+  
