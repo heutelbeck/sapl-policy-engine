@@ -131,8 +131,6 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 			throw new PolicyEvaluationException(PARSING_ERRORS, resource.getErrors());
 		}
 		EObject document = resource.getContents().get(0);
-		log.info("resource      : {}", document);
-		log.info("resource class: {}", document.getClass().getSimpleName());
 		if (!(document instanceof SAPL)) {
 			throw new PolicyEvaluationException(EXPECTED_TO_PARSE_TO_A_SAPL_DOCUMENT_BUT_GOT_S,
 					document.getClass().getSimpleName());
