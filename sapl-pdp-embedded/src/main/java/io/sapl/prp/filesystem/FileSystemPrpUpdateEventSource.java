@@ -15,29 +15,13 @@
  */
 package io.sapl.prp.filesystem;
 
-import static io.sapl.util.filemonitoring.FileMonitorUtil.readFile;
 import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
 
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.prp.PrpUpdateEvent;
-import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.prp.PrpUpdateEventSource;
-import io.sapl.util.filemonitoring.FileCreatedEvent;
-import io.sapl.util.filemonitoring.FileDeletedEvent;
 import io.sapl.util.filemonitoring.FileEvent;
 import io.sapl.util.filemonitoring.FileMonitorUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +34,6 @@ import reactor.util.function.Tuples;
 public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
 	private static final String SAPL_SUFFIX = ".sapl";
-	private static final String SAPL_GLOB_PATTERN = "*" + SAPL_SUFFIX;
 
 	private final SAPLInterpreter interpreter;
 	private final String watchDir;
@@ -68,35 +51,9 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
 	@Override
 	public Flux<PrpUpdateEvent> getUpdates() {
-		Map<String, Optional<SAPL>> files = new HashMap<>();
-		List<Update> updates = new LinkedList<>();
-		try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(watchDir), SAPL_GLOB_PATTERN)) {
-			for (var filePath : stream) {
-				try {
-					log.info("loading SAPL document: {}", filePath);
-					var rawDocument = readFile(filePath.toFile());
-					var saplDocument = interpreter.parse(rawDocument);
-					files.put(filePath.toString(), Optional.of(saplDocument));
-					updates.add(new Update(Type.PUBLISH, saplDocument, rawDocument));
-				} catch (PolicyEvaluationException e) {
-					files.put(filePath.toString(), Optional.empty());
-				}
-			}
-		} catch (IOException e) {
-			log.error("Unable to open directory configured to contain policies: {}", watchDir);
-			return Flux.error(e);
-		}
-
-		var seedIndex = new ImmutableFileIndex(files);
-
-		if (seedIndex.isInconsistent()) {
-			updates.add(new Update(Type.INCONSISTENT, null, null));
-		}
-
-		var initialEvent = new PrpUpdateEvent(updates);
-
+		var seedIndex = new ImmutableFileIndex(this.watchDir, interpreter);
+		var initialEvent = seedIndex.getUpdateEvent();
 		var monitoringFlux = FileMonitorUtil.monitorDirectory(watchDir, file -> file.getName().endsWith(SAPL_SUFFIX));
-
 		log.debug("Initial event: {}", initialEvent);
 		return Mono.just(initialEvent).concatWith(directoryMonitor(monitoringFlux, seedIndex));
 	}
@@ -109,75 +66,9 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 	private Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> processFileEvent(
 			Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> tuple, FileEvent fileEvent) {
 		var index = tuple.getT2();
-		var fileName = fileEvent.getFile().getName();
-		var absoluteFileName = fileEvent.getFile().getAbsolutePath();
-
-		log.debug("Processing file event: {} for {} - {}", fileEvent.getClass().getSimpleName(), fileName,
-				absoluteFileName);
-
-		if (fileEvent instanceof FileDeletedEvent) {
-			log.info("Unloading deleted SAPL document: {} {}", fileName, absoluteFileName);
-			var document = index.get(absoluteFileName);
-			if(document.isEmpty()) {
-				return Tuples.of(Optional.empty(), index);
-			}
-			var update = new Update(Type.UNPUBLISH, document.get(), "");
-			var newIndex = index.remove(absoluteFileName);
-			return Tuples.of(Optional.of(new PrpUpdateEvent(update)), newIndex);
-		}
-		Optional<SAPL> saplDocument = Optional.empty();
-		String rawDocument = "";
-		try {
-			rawDocument = readFile(fileEvent.getFile());
-			saplDocument = Optional.of(interpreter.parse(rawDocument));
-		} catch (PolicyEvaluationException | IOException e) {
-			log.debug("Error reading file: {}. Will lead to inconsistent index.",e.getMessage());
-		}
-
-		if (fileEvent instanceof FileCreatedEvent || !index.containsFile(absoluteFileName)) {
-			log.info("Loading new SAPL document: {}", fileName);
-			var newIndex = index.put(absoluteFileName, saplDocument);
-			var updates = new LinkedList<Update>();
-			if(saplDocument.isPresent()) {
-				log.debug("The document has been parsed successfully. It will be published to the index.");
-				updates.add(new Update(Type.PUBLISH, saplDocument.get(), rawDocument));
-			}
-			if(newIndex.becameConsistentComparedTo(index)) {
-				log.debug("The set of documents was previously INCONSISTENT and is now CONSISTENT again.");
-				updates.add(new Update(Type.CONSISTENT, null, null));
-			}
-			if(newIndex.becameInconsistentComparedTo(index)) {
-				log.debug("The set of documents was previously CONSISTENT and is now INCONSISTENT.");
-				updates.add(new Update(Type.INCONSISTENT, null, null));
-			}
-			return Tuples.of(Optional.of(new PrpUpdateEvent(updates)), newIndex);
-		}
-
-		// file changed
-
-		log.info("Loading updated SAPL document: {}", fileName);
-		var oldDocument = index.get(absoluteFileName);
-		var newIndex = index.put(absoluteFileName, saplDocument);
-		var updates = new LinkedList<Update>();
-
-		if(oldDocument.isPresent()) {
-			log.debug("UNPUBLISH the old document.");
-			updates.add(new Update(Type.UNPUBLISH, oldDocument.get(), ""));
-		}
-		if(saplDocument.isPresent()) {
-			log.debug("The document has been parsed successfully. It will be published to the index.");
-			updates.add(new Update(Type.PUBLISH, saplDocument.get(), rawDocument));
-		}
-		if(newIndex.becameConsistentComparedTo(index)) {
-			log.debug("The set of documents was previously INCONSISTENT and is now CONSISTENT again.");
-			updates.add(new Update(Type.CONSISTENT, null, null));
-		}
-		if(newIndex.becameInconsistentComparedTo(index)) {
-			log.debug("The set of documents was previously CONSISTENT and is now INCONSISTENT.");
-			updates.add(new Update(Type.INCONSISTENT, null, null));
-		}
-
-		return Tuples.of(Optional.of(new PrpUpdateEvent(updates)), newIndex);
+		var newIndex = index.afterFileEvent(fileEvent);
+		log.debug("Update event: {}", newIndex.getUpdateEvent());
+		return Tuples.of(Optional.of(newIndex.getUpdateEvent()), newIndex);
 	}
 
 }
