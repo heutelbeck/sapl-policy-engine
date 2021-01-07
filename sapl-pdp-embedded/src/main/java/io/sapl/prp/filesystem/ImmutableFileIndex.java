@@ -40,12 +40,15 @@ class ImmutableFileIndex {
 	@Getter
 	private PrpUpdateEvent updateEvent;
 
-	private final Map<String, Document> pathToDocuments = new HashMap<>();
-	private final Map<String, List<Document>> namesToDocuments = new HashMap<>();
+	private final Map<String, Document> pathToDocuments;
+	private final Map<String, List<Document>> namesToDocuments;
 
 	public ImmutableFileIndex(String watchDir, SAPLInterpreter interpreter) {
 		log.info("Initializing file index for {}", watchDir);
+
 		this.interpreter = interpreter;
+		this.pathToDocuments = new HashMap<>();
+		this.namesToDocuments = new HashMap<>();
 
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(watchDir), SAPL_GLOB_PATTERN)) {
 			for (var filePath : stream) {
@@ -68,6 +71,8 @@ class ImmutableFileIndex {
 	}
 
 	private ImmutableFileIndex(ImmutableFileIndex oldIndex) {
+		this.pathToDocuments = new HashMap<>(oldIndex.pathToDocuments.size());
+		this.namesToDocuments = new HashMap<>(oldIndex.namesToDocuments.size());
 		this.interpreter = oldIndex.interpreter;
 		this.invalidDocuments = oldIndex.invalidDocuments;
 		this.nameCollisions = oldIndex.nameCollisions;
@@ -80,10 +85,8 @@ class ImmutableFileIndex {
 
 	private void addDocumentToNameIndex(Document document) {
 		var documentName = document.getDocumentName();
-		List<Document> documentsWithName;
-		if (namesToDocuments.containsKey(documentName)) {
-			documentsWithName = namesToDocuments.get(documentName);
-		} else {
+		var documentsWithName = namesToDocuments.get(documentName);
+		if (documentsWithName == null) {
 			documentsWithName = new LinkedList<>();
 			namesToDocuments.put(documentName, documentsWithName);
 		}
@@ -200,7 +203,8 @@ class ImmutableFileIndex {
 	}
 
 	@Data
-	private class Document {
+	@Slf4j
+	private static class Document {
 		Path path;
 		String rawDocument;
 		SAPL parsedDocument;
