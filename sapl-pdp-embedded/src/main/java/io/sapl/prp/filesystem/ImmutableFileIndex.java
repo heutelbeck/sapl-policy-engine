@@ -12,6 +12,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.grammar.sapl.SAPL;
@@ -71,8 +73,8 @@ class ImmutableFileIndex {
 	}
 
 	private ImmutableFileIndex(ImmutableFileIndex oldIndex) {
-		this.pathToDocuments = new HashMap<>(oldIndex.pathToDocuments.size());
-		this.namesToDocuments = new HashMap<>(oldIndex.namesToDocuments.size());
+		this.pathToDocuments = Maps.newHashMapWithExpectedSize(oldIndex.pathToDocuments.size());
+		this.namesToDocuments = Maps.newHashMapWithExpectedSize(oldIndex.namesToDocuments.size());
 		this.interpreter = oldIndex.interpreter;
 		this.invalidDocuments = oldIndex.invalidDocuments;
 		this.nameCollisions = oldIndex.nameCollisions;
