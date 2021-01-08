@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.embedded;
+package io.sapl.pdp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.InitializationException;
@@ -26,11 +26,11 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pdp.embedded.config.FixedFunctionsAndAttributesPDPConfigurationProvider;
-import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
-import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
-import io.sapl.pdp.embedded.config.filesystem.FileSystemVariablesAndCombinatorSource;
-import io.sapl.pdp.embedded.config.resources.ResourcesVariablesAndCombinatorSource;
+import io.sapl.pdp.config.FixedFunctionsAndAttributesPDPConfigurationProvider;
+import io.sapl.pdp.config.PDPConfigurationProvider;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
+import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
 import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
@@ -43,11 +43,11 @@ import java.util.Collection;
 
 public class PolicyDecisionPointFactory {
 
-	private static final String DEFAILT_FILE_LOCATION = "~/sapl/policies";
+	private static final String DEFAULT_FILE_LOCATION = "~/sapl/policies";
 	private static final String DEFAULT_RESOURCES_LOCATION = "/policies";
 
 	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint() throws InitializationException {
-		return filesystemPolicyDecisionPoint(DEFAILT_FILE_LOCATION);
+		return filesystemPolicyDecisionPoint(DEFAULT_FILE_LOCATION);
 	}
 
 	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(String path)
@@ -57,7 +57,7 @@ public class PolicyDecisionPointFactory {
 
 	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(Collection<Object> policyInformationPoints,
 			Collection<Object> functionLibraries) throws InitializationException {
-		return filesystemPolicyDecisionPoint(DEFAILT_FILE_LOCATION, policyInformationPoints, functionLibraries);
+		return filesystemPolicyDecisionPoint(DEFAULT_FILE_LOCATION, policyInformationPoints, functionLibraries);
 	}
 
 	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(String path,

@@ -19,7 +19,7 @@ import java.util.logging.Level;
 
 import org.junit.Test;
 
-import io.sapl.pdp.embedded.config.resources.ResourcesVariablesAndCombinatorSource;
+import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
 import reactor.core.publisher.SignalType;
 
 public class ResourcesConfigTest {

@@ -24,8 +24,8 @@ import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.prp.PolicyRetrievalPoint;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
+import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
+import io.sapl.pdp.config.PDPConfigurationProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

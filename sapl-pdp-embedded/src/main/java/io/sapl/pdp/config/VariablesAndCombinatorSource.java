@@ -13,18 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.embedded.config;
+package io.sapl.pdp.config;
 
-import io.sapl.interpreter.EvaluationContext;
+import java.util.Map;
+import java.util.Optional;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.interpreter.combinators.DocumentsCombinator;
-import lombok.Value;
+import reactor.core.publisher.Flux;
 
-@Value
-public class PDPConfiguration {
-	EvaluationContext pdpScopedEvaluationContext;
-	DocumentsCombinator documentsCombinator;
+public interface VariablesAndCombinatorSource {
 
-	public boolean isValid() {
-		return pdpScopedEvaluationContext != null && documentsCombinator != null;
-	}
+	Flux<Optional<DocumentsCombinator>> getDocumentsCombinator();
+
+	Flux<Optional<Map<String, JsonNode>>> getVariables();
+
+	void dispose();
+
 }

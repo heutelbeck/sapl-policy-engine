@@ -61,7 +61,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.interpreter.pip.contracts.Authorization;
-import io.sapl.pdp.embedded.PolicyDecisionPointFactory;
+import io.sapl.pdp.PolicyDecisionPointFactory;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 

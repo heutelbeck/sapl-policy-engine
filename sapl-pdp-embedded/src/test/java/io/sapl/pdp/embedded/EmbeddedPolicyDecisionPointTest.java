@@ -29,6 +29,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
+import io.sapl.pdp.PolicyDecisionPointFactory;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 

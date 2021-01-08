@@ -13,21 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.embedded.config;
+package io.sapl.pdp.config;
 
-import java.util.Map;
-import java.util.Optional;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.sapl.interpreter.combinators.DocumentsCombinator;
 import reactor.core.publisher.Flux;
 
-public interface VariablesAndCombinatorSource {
+public interface PDPConfigurationProvider {
 
-	Flux<Optional<DocumentsCombinator>> getDocumentsCombinator();
-
-	Flux<Optional<Map<String, JsonNode>>> getVariables();
+	Flux<PDPConfiguration> pdpConfiguration();
 
 	void dispose();
 

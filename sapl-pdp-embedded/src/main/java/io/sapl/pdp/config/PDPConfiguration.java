@@ -13,14 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.embedded.config;
+package io.sapl.pdp.config;
 
-import reactor.core.publisher.Flux;
+import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.combinators.DocumentsCombinator;
+import lombok.Value;
 
-public interface PDPConfigurationProvider {
+@Value
+public class PDPConfiguration {
+	EvaluationContext pdpScopedEvaluationContext;
+	DocumentsCombinator documentsCombinator;
 
-	Flux<PDPConfiguration> pdpConfiguration();
-
-	void dispose();
-
+	public boolean isValid() {
+		return pdpScopedEvaluationContext != null && documentsCombinator != null;
+	}
 }

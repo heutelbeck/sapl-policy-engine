@@ -31,7 +31,7 @@ import com.google.common.collect.Maps;
 import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
-import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import lombok.Getter;
 import lombok.NonNull;

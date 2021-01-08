@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.embedded.config.resources;
+package io.sapl.pdp.config.resources;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -40,7 +40,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
-import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;

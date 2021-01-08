@@ -21,9 +21,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
-import io.sapl.pdp.embedded.config.filesystem.FileSystemVariablesAndCombinatorSource;
-import io.sapl.pdp.embedded.config.resources.ResourcesVariablesAndCombinatorSource;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
+import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

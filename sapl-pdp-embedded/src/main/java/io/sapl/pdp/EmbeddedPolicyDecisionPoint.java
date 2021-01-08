@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.embedded;
+package io.sapl.pdp;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -25,8 +25,8 @@ import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.pdp.embedded.config.PDPConfiguration;
-import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
+import io.sapl.pdp.config.PDPConfiguration;
+import io.sapl.pdp.config.PDPConfigurationProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;

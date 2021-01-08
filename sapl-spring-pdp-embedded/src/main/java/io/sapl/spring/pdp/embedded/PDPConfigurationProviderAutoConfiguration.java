@@ -23,9 +23,9 @@ import org.springframework.context.annotation.Configuration;
 
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pdp.embedded.config.FixedFunctionsAndAttributesPDPConfigurationProvider;
-import io.sapl.pdp.embedded.config.PDPConfigurationProvider;
-import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
+import io.sapl.pdp.config.FixedFunctionsAndAttributesPDPConfigurationProvider;
+import io.sapl.pdp.config.PDPConfigurationProvider;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

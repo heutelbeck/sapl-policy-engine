@@ -19,7 +19,7 @@ import java.util.logging.Level;
 
 import org.junit.Test;
 
-import io.sapl.pdp.embedded.config.filesystem.FileSystemVariablesAndCombinatorSource;
+import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import reactor.core.publisher.SignalType;
 
 public class FilesystemConfigTest {

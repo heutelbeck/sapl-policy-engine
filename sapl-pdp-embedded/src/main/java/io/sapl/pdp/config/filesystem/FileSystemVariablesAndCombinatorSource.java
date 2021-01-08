@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp.embedded.config.filesystem;
+package io.sapl.pdp.config.filesystem;
 
 import static io.sapl.util.filemonitoring.FileMonitorUtil.monitorDirectory;
 import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
@@ -32,7 +32,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
 import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
-import io.sapl.pdp.embedded.config.VariablesAndCombinatorSource;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
 import io.sapl.util.filemonitoring.FileEvent;
 import lombok.extern.slf4j.Slf4j;
