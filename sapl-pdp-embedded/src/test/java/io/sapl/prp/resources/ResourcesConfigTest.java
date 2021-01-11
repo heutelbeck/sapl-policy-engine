@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.prp.filesystem;
-
-import java.util.logging.Level;
-
-import org.junit.Test;
+package io.sapl.prp.resources;
 
 import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
+import org.junit.Test;
 import reactor.core.publisher.SignalType;
+
+import java.util.logging.Level;
 
 public class ResourcesConfigTest {
 	@Test

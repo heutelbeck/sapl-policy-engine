@@ -15,11 +15,6 @@
  */
 package io.sapl.prp.filesystem;
 
-import java.util.HashMap;
-import java.util.logging.Level;
-
-import org.junit.Test;
-
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
@@ -27,21 +22,28 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
+import org.junit.Test;
 import reactor.core.publisher.SignalType;
+
+import java.util.HashMap;
+import java.util.logging.Level;
 
 public class FilesystemPRPTest {
 
-	@Test
-	public void doTest() throws Exception {
-		var interpreter = new DefaultSAPLInterpreter();
-		var source = new FileSystemPrpUpdateEventSource("src/test/resources/policies", interpreter);
-		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(), source);
-//		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new CanonicalImmutableParsedDocumentIndex(), source);
-		var authzSubscription = AuthorizationSubscription.of("Willi", "eat", "icecream");
-		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
-				new HashMap<>());
-		evaluationCtx = evaluationCtx.forAuthorizationSubscription(authzSubscription);
-		prp.retrievePolicies(evaluationCtx).log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
-		prp.dispose();
-	}
+
+
+    @Test
+    public void doTest() throws Exception {
+        var interpreter = new DefaultSAPLInterpreter();
+        var source = new FileSystemPrpUpdateEventSource("src/test/resources/policies", interpreter);
+        var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(), source);
+        //		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new CanonicalImmutableParsedDocumentIndex(), source);
+        var authzSubscription = AuthorizationSubscription.of("Willi", "eat", "icecream");
+        var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
+                new HashMap<>());
+        evaluationCtx = evaluationCtx.forAuthorizationSubscription(authzSubscription);
+        prp.retrievePolicies(evaluationCtx).log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
+        prp.dispose();
+    }
+
 }

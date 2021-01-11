@@ -15,17 +15,6 @@
  */
 package io.sapl.integrationtest;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-
-import java.util.HashMap;
-
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
-
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.prp.PolicyRetrievalResult;
@@ -38,6 +27,14 @@ import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
+import java.util.HashMap;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class IntegrationTest {
 
@@ -70,15 +67,23 @@ public class IntegrationTest {
 		assertThat(result).isNotNull();
 		assertThat(result.getMatchingDocuments()).isEmpty();
 		assertThat(result.isErrorsInTarget()).isFalse();
+		assertThat(result.isPrpValidState()).isTrue();
 	}
 
-	@Ignore // FIXME: adjust tests to robust indexing approach
 	@Test
-	public void throw_exception_for_invalid_document() {
+	public void return_invalid_prp_state_for_invalid_document() {
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/invalid", interpreter);
+		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
+				new HashMap<>());
+		evaluationCtx = evaluationCtx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
 
-		assertThatExceptionOfType(RuntimeException.class)
-				.isThrownBy(() -> new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source));
+		PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
+
+		assertThat(result).isNotNull();
+		assertThat(result.getMatchingDocuments()).isEmpty();
+		assertThat(result.isErrorsInTarget()).isTrue();
+		assertThat(result.isPrpValidState()).isFalse();
 
 	}
 
@@ -94,6 +99,7 @@ public class IntegrationTest {
 		assertThat(result).isNotNull();
 		assertThat(result.getMatchingDocuments()).isEmpty();
 		assertThat(result.isErrorsInTarget()).isTrue();
+		assertThat(result.isPrpValidState()).isTrue();
 	}
 
 	@Test
@@ -125,6 +131,7 @@ public class IntegrationTest {
 		assertThat(result).isNotNull();
 		assertThat(result.getMatchingDocuments()).hasSize(1);
 		assertThat(result.isErrorsInTarget()).isFalse();
+		assertThat(result.isPrpValidState()).isTrue();
 
 		assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get()
 				.getPolicyElement().getSaplName()).isEqualTo("policy eat icecream");
@@ -143,6 +150,7 @@ public class IntegrationTest {
 		assertThat(result).isNotNull();
 		assertThat(result.getMatchingDocuments()).isEmpty();
 		assertThat(result.isErrorsInTarget()).isFalse();
+		assertThat(result.isPrpValidState()).isTrue();
 	}
 
 }
