@@ -15,6 +15,8 @@
  */
 package io.sapl.pdp.remote;
 
+import java.time.Duration;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -26,9 +28,12 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
 import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.netty.http.client.HttpClient;
+import reactor.retry.Backoff;
+import reactor.retry.Repeat;
 
 @Slf4j
 public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
@@ -38,6 +43,13 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	private static final String MULTI_DECIDE_ALL = "/api/pdp/multi-decide-all";
 
 	private final WebClient client;
+
+	@Setter
+	private int firstBackoffMillis = 500;
+	@Setter
+	private int maxBackOffMillis = 5000;
+	@Setter
+	private int backoffFactor = 2;
 
 	public RemotePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret, SslContext sslContext) {
 		this(baseUrl, clientKey, clientSecret, HttpClient.create().secure(spec -> spec.sslContext(sslContext)));
@@ -52,22 +64,30 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 				.defaultHeaders(header -> header.setBasicAuth(clientKey, clientSecret)).build();
 	}
 
+	private Repeat<?> repeat() {
+		return Repeat.onlyIf(repeatContext -> true)
+				.backoff(Backoff.exponential(Duration.ofMillis(firstBackoffMillis), Duration.ofMillis(maxBackOffMillis),
+						backoffFactor, false))
+				.doOnRepeat(o -> log.debug("No connection to remote PDP. Reconnect: {}", o));
+	}
+
 	@Override
 	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
 		return decide(DECIDE, AuthorizationDecision.class, authzSubscription)
-				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE));
+				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat());
 	}
 
 	@Override
 	public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
 		return decide(MULTI_DECIDE, IdentifiableAuthorizationDecision.class, multiAuthzSubscription)
-				.onErrorResume(__ -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE));
+				.onErrorResume(__ -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat());
 	}
 
 	@Override
 	public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
 		return decide(MULTI_DECIDE_ALL, MultiAuthorizationDecision.class, multiAuthzSubscription)
-				.onErrorResume(__ -> Flux.just(MultiAuthorizationDecision.indeterminate()));
+				.onErrorResume(__ -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat());
+
 	}
 
 	private <T> Flux<T> decide(String path, Class<T> valueType, Object authzSubscription) {
