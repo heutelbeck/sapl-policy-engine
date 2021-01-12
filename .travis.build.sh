@@ -25,6 +25,7 @@ if [ "${TRAVIS_BRANCH}" == "master" ]; then
         echo "Building master"
         mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report sonar:sonar deploy -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/* --batch-mode
         mvn deploy -DskipTests=true -Dmaven.javadoc.skip=true --batch-mode
+        echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
         mvn dockerfile:build -pl sapl-server-lt -Pdocker || exit 1
         mvn dockerfile:push -pl sapl-server-lt -Pdocker || exit 1
     else
