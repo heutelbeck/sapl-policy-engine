@@ -97,6 +97,12 @@ In order to run the server locally for testing in an environment like Docker Des
 docker run -d --name sapl-server-lt -p 8080:8080 --mount source=sapl-server-lt,target=/pdp/data nexus.openconjurer.org:30300/sapl-server-lt:2.0.0-SNAPSHOT
 ```
 
+Alternatively the container can be run without Docker Volume which gives you easier access to the folder although Docker Desktop may warn you that this may not be as performative (Of course you can change the path):
+
+```shell
+docker run -d --name sapl-server-lt -p 8080:8080 -v c:\sapl\policies:/pdp/data nexus.openconjurer.org:30300/sapl-server-lt:2.0.0-SNAPSHOT
+```
+
 Afterwards you can check if the service is online under: http://localhost:8080/actuator/health.
 
 Also, a volume is created for persisting the PDP configuration and policies.
@@ -106,8 +112,109 @@ Depending on your host OS and virtualization environment, these volumes may be l
 * Docker Desktop on Windows WSL2: `\\wsl$\docker-desktop-data\version-pack-data\community\docker\volumes\sapl-server-lt\_data`
 * Docker Desktop on Windows Hyper-V: `C:\Users\Public\Documents\Hyper-V\Virtual hard disks\sapl-server-lt\_data`
 * Docker on Ubuntu: `/var/lib/docker/volumes/sapl-server-lt/_data`
+* Docker Desktop on Windows with shared folder: `c:\sapl\policies` (or as changed)
 
+### Running on Kubernetes
 
+This section will describe the deployment on a baremetal Kubernetes installation which has Port 80 and 443 exposed to the Internet 
+as well as Desktop Docker on Windows and will use the Kubernetes nginx-ingress-controller as well as cert-manager to manage the Let's Encrypt certificates (Only if Ports are exposed to the Internet so Let's Encrypt can access the URL)
 
+#### Prerequisites
 
+Installed Kubernetes v1.18+ 
+Install NGINX Ingress Controller according to https://kubernetes.github.io/ingress-nginx/deploy/
+```shell
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm install ingress-nginx ingress-nginx/ingress-nginx
+```
+Install Cert-Manager according to https://cert-manager.io/docs/installation/kubernetes/ (Only for Use with exposed Ports and matching DNS Entries)
+```shell
+kubectl create namespace cert-manager
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.2.0-alpha.0/cert-manager.crds.yaml
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+helm install   cert-manager jetstack/cert-manager   --namespace cert-manager   --version v1.1.0
+```
+Change the Email address in the Clusterissuer.yaml (Line email: user@email.com)
+```shell
+wget https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-server-lt/kubernetes/clusterissuer.yml
+kubectl apply -f clusterissuer.yml -n your-namespace
+```
+
+#### Baremetal Kubernetes
+
+This section assumes that the Kubernetes is installed on a Linux OS i.e. Ubuntu
+
+First apply the Persistent Volume yaml 
+```shell
+kubectl create namespace sapl-server-lt
+kubectl apply -f https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-server-lt/kubernetes/clusterissuer.yml  -n sapl-server-lt
+```
+
+Then download the Baremetal yaml file 
+
+```shell
+wget https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-server-lt/kubernetes/sapl-server-lt-baremetal.yml
+```
+
+change the URL in the Ingress section 
+
+```
+  tls:
+    - hosts:
+        - sapl.exampleurl.com
+      secretName: sapl.lt.local-tls
+  rules:
+    - host: sapl.exampleurl.com
+```
+
+then apply the yaml file
+
+```shell
+kubectl apply -f sapl-server-lt-baremetal.yml -n sapl-server-lt
+```
+
+Create the Secret with htpasswd, you will be asked to enter the password
+
+```shell
+htpasswd -c auth Username
+kubectl create secret generic basic-auth --from-file=auth -n sapl-server-lt
+```
+
+The Service should be reachable under the URL defined in the Ingress section of the sapl-server-lt-baremetal.yml https://sapl.exampleurl.com/actuator/health.
+
+#### Docker Desktop Kubernetes
+
+We are still working on the persistent volume solution for the Docker Desktop Kubernetes installation with WSL2 on Windows. 
+
+Apply the sapl.server-lt.yml file 
+
+```shell
+kubectl create namespace sapl-server-lt
+kubectl apply -f https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-server-lt/kubernetes/sapl-server-lt.yml -n sapl-server-lt
+```
+
+The URL is sapl.lt.local and has to be added to the hosts file (which is located in %windir%\system32\drivers\etc) add the Line 
+
+```
+127.0.0.1       sapltest.local
+```
+
+Create the Secret with htpasswd, you will be asked to enter the password
+
+```shell
+htpasswd -c auth Username
+kubectl create secret generic basic-auth --from-file=auth -n sapl-server-lt
+```
+
+#### Kubernetes Troubleshooting
+
+The service is defined as ClusterIP but can be changed to use NodePort for testing purposes (Line   type: ClusterIP to type: NodePort)
+
+```shell
+kubectl edit service sapl-server-lt -n sapl-server-lt
+```
+ 
+If the Website can't be reached try installing the NGINX Ingress Controller using helm with the flag --set controller.hostNetwork=true,controller.kind=DaemonSet
 

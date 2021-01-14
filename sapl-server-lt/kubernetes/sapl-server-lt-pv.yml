@@ -1,0 +1,27 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: sapl-server-lt-pv
+  labels:
+    type: local
+spec:
+  storageClassName: sapllt
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /sapl
+    type: DirectoryOrCreate
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: sapl-server-lt-pv-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: sapllt

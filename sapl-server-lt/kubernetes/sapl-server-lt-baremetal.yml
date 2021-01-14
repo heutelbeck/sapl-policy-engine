@@ -30,9 +30,16 @@ spec:
       labels:
         app: sapl-server-lt
     spec:
+      volumes:
+      - name: sapl-server-lt-pv-storage
+        persistentVolumeClaim:
+          claimName: sapl-server-lt-pv-claim
       containers:
         - name: sapl-server-lt
           image: nexus.openconjurer.org:30300/sapl-server-lt:2.0.0-SNAPSHOT
+          volumeMounts:
+            - name: sapl-server-lt-pv-storage
+              mountPath: /data
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -52,13 +59,15 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: '2147483647'
     nginx.ingress.kubernetes.io/proxy-send-timeout: '2147483647'
     kubernetes.io/ingress.class: nginx
+    cert-manager.io/issuer: letsencrypt-prod
+    kubernetes.io/tls-acme: 'true'
 spec:
   tls:
     - hosts:
-        - sapl.lt.local
+        - sapl.exampleurl.com
       secretName: sapl.lt.local-tls
   rules:
-    - host: sapl.lt.local
+    - host: sapl.exampleurl.com
       http:
         paths:
           - path: /
