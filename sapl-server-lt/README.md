@@ -208,6 +208,18 @@ htpasswd -c auth Username
 kubectl create secret generic basic-auth --from-file=auth -n sapl-server-lt
 ```
 
+In the meantime the files can are volatile but can be accessed with
+
+```shell
+kubectl exec sapl-server-lt-d5d65dd6b-fz29g --stdin --tty -- /bin/sh -n sapl-server-lt
+```
+
+You have to use the actual podname which can be listed with the command:
+
+```shell
+kubectl get pods -n sapl-server-lt
+```
+
 #### Kubernetes Troubleshooting
 
 The service is defined as ClusterIP but can be changed to use NodePort for testing purposes (Line   type: ClusterIP to type: NodePort)
