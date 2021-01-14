@@ -198,7 +198,7 @@ kubectl apply -f https://github.com/heutelbeck/sapl-policy-engine/blob/master/sa
 The URL is sapl.lt.local and has to be added to the hosts file (which is located in %windir%\system32\drivers\etc) add the Line 
 
 ```
-127.0.0.1       sapltest.local
+127.0.0.1       sapl.lt.local
 ```
 
 Create the Secret with htpasswd, you will be asked to enter the password
