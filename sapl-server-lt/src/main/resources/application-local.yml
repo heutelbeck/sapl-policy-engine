@@ -11,6 +11,8 @@ io.sapl:
     # BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh)
     secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO
 
+loader.path: /pdp/data/lib
+
 # configure the server
 server:
   port: 8443

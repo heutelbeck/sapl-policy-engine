@@ -1,5 +1,9 @@
-spring.profiles.active: local
+spring:
+  profiles.active: local
+  application.name: sapl-server-lt
 management:
   endpoint:
     health:
       show-details: always
+loader.path: /pdp/data/lib
+      

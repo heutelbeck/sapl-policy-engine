@@ -1,0 +1,2 @@
+Main-Class: org.springframework.boot.loader.PropertiesLauncherx
+Start-Class: io.sapl.server.lt.SAPLServerLTApplication
