@@ -56,7 +56,7 @@ If the default configuration has not been changed, the server will inspect and m
 in the current users home directory for the PDP configuration `pdp.json` and SAPL documents ending with `*.sapl`. 
 Changes will be directly reflected at runtime and for ongoing subscriptions.
 
-> #### Note: Building a docker image
+> #### Note: Building a Docker Image
 > 
 > To build the docker image of the server application locally, you need to have docker installed on the build machine.
 > The image build is triggered by activating the docker maven profile of the project. This should result with the image installed in your local docker repository. Example:
@@ -65,7 +65,7 @@ Changes will be directly reflected at runtime and for ongoing subscriptions.
 > mvn clean install -Pdocker
 > ```
 
-### Configuration of locally running server
+### Configuration of Locally Running Server
 
 By default, the server will use a self-signed certificate and expose the PDP API under <https://localhost:8443/api/pdp>
 To override this certificate, use the matching Spring Boot settings, e.g.:
@@ -94,7 +94,7 @@ The server is implemented using Spring Boot. Thus, there are a number of ways to
 application. 
 Please consult the matching chapter of the [Spring Boot documentation](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#boot-features-external-config).
 
-## Testing the server
+## Testing the Server
 
 A sample application that can be configured to use this PDP server (remote PDP) can be found
 in the [demo-applications](https://github.com/heutelbeck/sapl-demos) project for the SAPL
@@ -116,7 +116,7 @@ The server application is available as container image. Here, the server is not 
 security or authentication. It is expected that in deployment this responsibility is delegated to the 
 infrastructure, e.g., a matching Kubernetes Ingress.
 
-### Running directly as a Docker container
+### Running Directly as a Docker Container
 
 In order to run the server locally for testing in an environment like Docker Desktop, you can run the current image as follows:
 
@@ -265,7 +265,7 @@ kubectl edit service sapl-server-lt -n sapl-server-lt
  
 If the Website can't be reached try installing the NGINX Ingress Controller using helm with the flag ```--set controller.hostNetwork=true,controller.kind=DaemonSet```
 
-## Deploying with custom policy information points (PIPs) or function libraries
+## Custom Policy Information Points (PIPs) or Function Libraries
 
 To support new attributes and functions, the matching libraries have to be deployed alongside the server application. One way to do so is to create your own server project and add the libraries to the dependencies of the application via maven dependencies and to add the matching packages to the component scanning of Spring Boot and/or to provide matching configurations. Alternatively the SAPL Server LT supports side-loading of external JARs. 
 
