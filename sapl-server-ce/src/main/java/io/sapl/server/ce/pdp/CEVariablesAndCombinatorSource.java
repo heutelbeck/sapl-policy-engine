@@ -33,61 +33,58 @@ import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
-import reactor.core.publisher.ReplayProcessor;
+import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.EmitFailureHandler;
+import reactor.core.publisher.Sinks.Many;
 
 @Component
 @RequiredArgsConstructor
 public class CEVariablesAndCombinatorSource implements VariablesAndCombinatorSource, PDPConfigurationPublisher {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	@Getter
-	private Flux<Optional<DocumentsCombinator>> documentsCombinator;
-	@Getter
-	private Flux<Optional<Map<String, JsonNode>>> variables;
-
-	private FluxSink<PolicyDocumentCombiningAlgorithm> documentCombiningAlgorithmFluxSink;
-	private FluxSink<Collection<Variable>> variableFluxSink;
-
-	private Disposable monitorAlgorithm;
-	private Disposable monitorVariables;
+	private Many<Collection<Variable>> variablesProcessorSink;
+	private Many<PolicyDocumentCombiningAlgorithm> combiningAlgorithmSink;
 
 	@PostConstruct
 	public void init() {
-		initAlgorithmFlux();
-		initVariablesFlux();
+		variablesProcessorSink = Sinks.many().replay().all();
+		combiningAlgorithmSink = Sinks.many().replay().all();
 	}
 
-	private void initVariablesFlux() {
-		ReplayProcessor<Collection<Variable>> variablesProcessor = ReplayProcessor.<Collection<Variable>>create();
-		variableFluxSink = variablesProcessor.sink();
-		variables = variablesProcessor.map(CEVariablesAndCombinatorSource::variablesCollentionToMap).map(Optional::of)
-				.share().cache();
-		monitorVariables = variables.subscribe();
+	@Override
+	public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+		//@formatter:off
+		return variablesProcessorSink.asFlux()
+				.map(CEVariablesAndCombinatorSource::variablesCollentionToMap)
+				.map(Optional::of);
+		//@formatter:on
 	}
 
-	private void initAlgorithmFlux() {
-		ReplayProcessor<PolicyDocumentCombiningAlgorithm> combiningAlgorithmProcessor = ReplayProcessor
-				.<PolicyDocumentCombiningAlgorithm>create();
-		documentCombiningAlgorithmFluxSink = combiningAlgorithmProcessor.sink();
-		documentsCombinator = combiningAlgorithmProcessor.map(DocumentsCombinatorFactory::getCombinator)
-				.map(Optional::of).share().cache();
-		monitorAlgorithm = documentsCombinator.subscribe();
+	@Override
+	public Flux<Optional<DocumentsCombinator>> getDocumentsCombinator() {
+		//@formatter:off
+		return combiningAlgorithmSink.asFlux()
+				.map(DocumentsCombinatorFactory::getCombinator)
+				.map(Optional::of);
+		//@formatter:on
 	}
 
 	@Override
 	public void publishCombiningAlgorithm(@NonNull PolicyDocumentCombiningAlgorithm algorithm) {
-		documentCombiningAlgorithmFluxSink.next(algorithm);
+		combiningAlgorithmSink.emitNext(algorithm, EmitFailureHandler.FAIL_FAST);
 	}
 
 	@Override
 	public void publishVariables(@NonNull Collection<Variable> variables) {
-		variableFluxSink.next(variables);
+		variablesProcessorSink.emitNext(variables, EmitFailureHandler.FAIL_FAST);
+	}
+
+	@Override
+	@PreDestroy
+	public void dispose() {
 	}
 
 	private static Map<String, JsonNode> variablesCollentionToMap(@NonNull Collection<Variable> variables) {
@@ -95,16 +92,7 @@ public class CEVariablesAndCombinatorSource implements VariablesAndCombinatorSou
 		for (Variable variable : variables) {
 			variablesAsMap.put(variable.getName(), JSON.textNode(variable.getJsonValue()));
 		}
+
 		return variablesAsMap;
 	}
-
-	@Override
-	@PreDestroy
-	public void dispose() {
-		if (!monitorAlgorithm.isDisposed())
-			monitorAlgorithm.dispose();
-		if (!monitorVariables.isDisposed())
-			monitorVariables.dispose();
-	}
-
 }
