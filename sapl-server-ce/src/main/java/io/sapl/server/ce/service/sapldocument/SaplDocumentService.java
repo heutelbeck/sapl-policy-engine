@@ -25,6 +25,8 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.util.Streamable;
 import org.springframework.stereotype.Service;
@@ -48,11 +50,10 @@ import io.sapl.server.ce.persistence.SaplDocumentsVersionRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.ReplayProcessor;
+import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.EmitFailureHandler;
+import reactor.core.publisher.Sinks.Many;
 
 /**
  * Service for reading and managing {@link SaplDocument} instances.
@@ -62,7 +63,6 @@ import reactor.core.publisher.ReplayProcessor;
 @RequiredArgsConstructor
 public class SaplDocumentService implements PrpUpdateEventSource {
 	private static final String DEFAULT_DOCUMENT_VALUE = "policy \"all deny\"\ndeny";
-	private static final Object locker = new Object();
 
 	private final SaplDocumentsRepository saplDocumentRepository;
 	private final SaplDocumentsVersionRepository saplDocumentVersionRepository;
@@ -72,26 +72,24 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 	private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
 			.withLocale(Locale.GERMANY).withZone(ZoneId.systemDefault());
 
-	private FluxSink<PrpUpdateEvent> prpUpdateEventUpdateFluxSink;
-	private Disposable prpUpdateEventUpdateMonitor;
+	private Many<PrpUpdateEvent> prpUpdateEventSink;
+
+	@PostConstruct
+	public void postConstruct() {
+		prpUpdateEventSink = Sinks.many().replay().all();
+
+		// emit initial event
+		PrpUpdateEvent initialEvent = generateInitialPrpUpdateEvent();
+		prpUpdateEventSink.emitNext(initialEvent, EmitFailureHandler.FAIL_FAST);
+	}
 
 	@Override
 	public Flux<PrpUpdateEvent> getUpdates() {
-		PrpUpdateEvent initialEvent = generateInitialPrpUpdateEvent();
+		return prpUpdateEventSink.asFlux();
+	}
 
-		Flux<PrpUpdateEvent> flux;
-		synchronized (locker) {
-			// @formatter:off
-			ReplayProcessor<PrpUpdateEvent> prpUpdateEventUpdateProcessor = ReplayProcessor
-					.<PrpUpdateEvent>create();
-			prpUpdateEventUpdateFluxSink = prpUpdateEventUpdateProcessor.sink();
-			flux = prpUpdateEventUpdateProcessor.cache();
-			prpUpdateEventUpdateMonitor = flux.subscribe();
-			// @formatter:on			
-		}
-
-		log.debug("initial event: {}", initialEvent);
-		return Mono.just(initialEvent).concatWith(flux);
+	@Override
+	public void dispose() {
 	}
 
 	/**
@@ -247,13 +245,6 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 		notifyAboutChangedPublicationOfSaplDocument(PrpUpdateEvent.Type.UNPUBLISH, deletedPublishedSaplDocument);
 	}
 
-	@Override
-	public void dispose() {
-		if (prpUpdateEventUpdateMonitor != null) {
-			prpUpdateEventUpdateMonitor.dispose();
-		}
-	}
-
 	private String getCurrentTimestampAsString() {
 		return dateFormatter.format(Instant.now());
 	}
@@ -327,6 +318,8 @@ public class SaplDocumentService implements PrpUpdateEventSource {
 				.map(publishedSaplDocument -> convertSaplDocumentToUpdateOfPrpUpdateEvent(publishedSaplDocument, prpUpdateEventType))
 				.toList();
 		// @formatter:on
-		prpUpdateEventUpdateFluxSink.next(new PrpUpdateEvent(updateEvents));
+
+		PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updateEvents);
+		prpUpdateEventSink.emitNext(prpUpdateEvent, EmitFailureHandler.FAIL_FAST);
 	}
 }
