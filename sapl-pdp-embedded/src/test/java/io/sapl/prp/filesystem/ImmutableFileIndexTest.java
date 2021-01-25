@@ -6,6 +6,7 @@ import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.util.filemonitoring.FileChangedEvent;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
+import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -14,6 +15,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.File;
+import java.nio.charset.Charset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +25,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
+import static org.powermock.api.mockito.PowerMockito.doCallRealMethod;
 import static org.powermock.api.mockito.PowerMockito.verifyNew;
 import static org.powermock.api.mockito.PowerMockito.whenNew;
 
@@ -51,6 +54,7 @@ public class ImmutableFileIndexTest {
         //WHEN
         doNothing().when(indexMock).load(any());
         doNothing().when(indexMock).unload(any());
+        doCallRealMethod().when(indexMock).change(any());
 
         when(indexMock.afterFileEvent(any())).thenCallRealMethod();
         when(indexMock.getUpdateEvent()).thenCallRealMethod();
@@ -68,8 +72,8 @@ public class ImmutableFileIndexTest {
         }
 
         //THEN
-        verify(indexMock, times(5)).load(any());
-        verify(indexMock, times(5)).unload(any());
+        verify(indexMock, times(10)).load(any());
+        verify(indexMock, times(10)).unload(any());
         verify(indexMock, times(5)).change(any());
         verifyNew(ImmutableFileIndex.class, times(15))
                 .withArguments(any(ImmutableFileIndex.class));
@@ -77,11 +81,60 @@ public class ImmutableFileIndexTest {
         assertThat(indexMock.getUpdateEvent().getUpdates()).anyMatch(update -> update.getType() == Type.INCONSISTENT);
     }
 
+    @Test
+    public void test_internal_copy_constructor() throws Exception {
+        var p1 = folder.newFile("policy1.sapl");
+        FileUtils.writeStringToFile(p1, String.format("policy \"%s\"\n" +
+                "permit\n" +
+                "    action == \"read\"\n" +
+                "\n" +
+                "\n" +
+                "\n", "policy1"), Charset.defaultCharset());
+
+        var p2 = folder.newFile("policy2.sapl");
+        FileUtils.writeStringToFile(p2, String.format("policy \"%s\"\n" +
+                "permit\n" +
+                "    action == \"read\"\n" +
+                "\n" +
+                "\n" +
+                "\n", "policy1"), Charset.defaultCharset());
+
+
+        var fileIndex = new ImmutableFileIndex(folder.getRoot().getPath(), interpreter);
+
+        assertThat(fileIndex).isNotNull();
+        assertThat(fileIndex.getUpdateEvent().getUpdates())
+                .anyMatch(update -> update.getType() == Type.PUBLISH);
+
+
+        var newIndex = fileIndex.afterFileEvent(new FileCreatedEvent(new File("NOTFOUND")));
+        newIndex = fileIndex.afterFileEvent(new FileDeletedEvent(p1));
+
+        assertThat(newIndex).isNotNull();
+        assertThat(newIndex.getUpdateEvent().getUpdates())
+                .anyMatch(update -> update.getType() == Type.UNPUBLISH);
+    }
+
     private void toggleInconsistent(boolean[] inconsistent, ImmutableFileIndex indexMock) {
         when(indexMock.becameConsistentComparedTo(any())).thenReturn(!inconsistent[0]);
         when(indexMock.becameInconsistentComparedTo(any())).thenReturn(inconsistent[0]);
 
         inconsistent[0] = (!inconsistent[0]);
+    }
+
+    @Test
+    public void should_not_throw_exception_when_watchdir_can_not_be_opened() throws Exception {
+        File notADirectoryFile = folder.newFile("not_a_directory_file");
+
+        var fileIndex = new ImmutableFileIndex(notADirectoryFile.getPath(), interpreter);
+        var updateEvent = fileIndex.getUpdateEvent();
+
+        assertThat(updateEvent).isNotNull();
+        assertThat(updateEvent.getUpdates()).isNotEmpty();
+
+        assertThat(updateEvent.getUpdates()).anySatisfy(update ->
+                assertThat(update.getType()).isEqualTo(Type.INCONSISTENT));
+
     }
 
     @Test

@@ -218,9 +218,10 @@ class ImmutableFileIndex {
                         e.getMessage());
             }
             try {
-                if (rawDocument != null)
+                if (rawDocument != null){
                     parsedDocument = interpreter.parse(rawDocument);
-                documentName = parsedDocument.getPolicyElement().getSaplName();
+                    documentName = parsedDocument.getPolicyElement().getSaplName();
+                }
             } catch (PolicyEvaluationException e) {
                 log.debug("Error in document '{}': {}. Will lead to inconsistent index.", getAbsolutePath(),
                         e.getMessage());
