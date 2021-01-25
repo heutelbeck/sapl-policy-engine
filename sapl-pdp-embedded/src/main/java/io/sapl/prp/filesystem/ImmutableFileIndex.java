@@ -86,11 +86,8 @@ class ImmutableFileIndex {
 
     private void addDocumentToNameIndex(Document document) {
         var documentName = document.getDocumentName();
-        var documentsWithName = namesToDocuments.get(documentName);
-        if (documentsWithName == null) {
-            documentsWithName = new LinkedList<>();
-            namesToDocuments.put(documentName, documentsWithName);
-        }
+        var documentsWithName =
+                namesToDocuments.computeIfAbsent(documentName, k -> new LinkedList<>());
         documentsWithName.add(document);
     }
 
@@ -139,7 +136,7 @@ class ImmutableFileIndex {
         return idx.isConsistent() && isInconsistent();
     }
 
-    void load(Path filePath) {
+    final void load(Path filePath) {
         var newDocument = new Document(filePath, interpreter);
         pathToDocuments.put(newDocument.getAbsolutePath(), newDocument);
         if (!newDocument.isValid()) {

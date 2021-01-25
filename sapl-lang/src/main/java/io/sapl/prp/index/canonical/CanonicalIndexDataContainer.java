@@ -15,45 +15,43 @@
  */
 package io.sapl.prp.index.canonical;
 
+import com.google.common.collect.ImmutableList;
+import io.sapl.grammar.sapl.SAPL;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.experimental.FieldDefaults;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
-
-import io.sapl.grammar.sapl.SAPL;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Value;
-
-@Value
-@AllArgsConstructor
-@Getter(AccessLevel.NONE)
+@EqualsAndHashCode
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class CanonicalIndexDataContainer {
 
-    Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments;
+    private final Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments;
 
-    Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas;
-
-    @Getter
-    ImmutableList<Predicate> predicateOrder;
-
-    List<Set<DisjunctiveFormula>> relatedFormulas;
-
-    Map<DisjunctiveFormula, Bitmask> relatedCandidates;
-
-    Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction;
-
-    int[] numberOfLiteralsInConjunction;
-
-    int[] numberOfFormulasWithConjunction;
+    private final Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas;
 
     @Getter
-    int numberOfConjunctions;
+    private final ImmutableList<Predicate> predicateOrder;
 
-    //TODO exposed internal representation (int arrays)
+    private final List<Set<DisjunctiveFormula>> relatedFormulas;
+
+    private final Map<DisjunctiveFormula, Bitmask> relatedCandidates;
+
+    private final Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction;
+
+    private final int[] numberOfLiteralsInConjunction;
+
+    private final int[] numberOfFormulasWithConjunction;
+
+    @Getter
+    private final int numberOfConjunctions;
+
+
     public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
                                        Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas,
                                        Collection<Predicate> predicateOrder, List<Set<DisjunctiveFormula>> relatedFormulas,
@@ -64,6 +62,25 @@ public class CanonicalIndexDataContainer {
         this(formulaToDocuments, clauseToFormulas, ImmutableList.copyOf(predicateOrder),
                 relatedFormulas, relatedCandidates, conjunctionsInFormulasReferencingConjunction,
                 numberOfLiteralsInConjunction, numberOfFormulasWithConjunction, numberOfLiteralsInConjunction.length);
+    }
+
+    public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
+                                       Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas,
+                                       ImmutableList<Predicate> predicateOrder,
+                                       List<Set<DisjunctiveFormula>> relatedFormulas,
+                                       Map<DisjunctiveFormula, Bitmask> relatedCandidates,
+                                       Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction,
+                                       int[] numberOfLiteralsInConjunction, int[] numberOfFormulasWithConjunction,
+                                       int numberOfConjunctions) {
+        this.formulaToDocuments = formulaToDocuments;
+        this.clauseToFormulas = clauseToFormulas;
+        this.predicateOrder = predicateOrder;
+        this.relatedFormulas = relatedFormulas;
+        this.relatedCandidates = relatedCandidates;
+        this.conjunctionsInFormulasReferencingConjunction = conjunctionsInFormulasReferencingConjunction;
+        this.numberOfLiteralsInConjunction = numberOfLiteralsInConjunction.clone();
+        this.numberOfFormulasWithConjunction = numberOfFormulasWithConjunction.clone();
+        this.numberOfConjunctions = numberOfConjunctions;
     }
 
 

@@ -15,7 +15,6 @@
  */
 package io.sapl.prp.resources;
 
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
@@ -27,9 +26,7 @@ import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
 
@@ -45,57 +42,50 @@ import static org.mockito.Mockito.when;
 
 public class ResourcesPRPTest {
 
-	@Rule
-	public TemporaryFolder folder = new TemporaryFolder();
 
-	private static SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
-	private static EvaluationContext evaluationContext = new EvaluationContext(new AnnotationAttributeContext(),
-			new AnnotationFunctionContext(), new HashMap<>());
-	;
+    @Test
+    public void call_index_apply_method_for_each_prp_update_event() {
+        var mockSource = mock(ResourcesPrpUpdateEventSource.class);
+        var mockIndex = mock(CanonicalImmutableParsedDocumentIndex.class);
 
-	@Test
-	public void call_index_apply_method_for_each_prp_update_event() throws Exception {
-		var mockSource = mock(ResourcesPrpUpdateEventSource.class);
-		var mockIndex = mock(CanonicalImmutableParsedDocumentIndex.class);
+        var updateEventFlux = Flux.just(
+                event(Type.PUBLISH),
+                event(Type.UNPUBLISH),
+                event(Type.PUBLISH),
+                event(Type.UNPUBLISH),
+                event(Type.PUBLISH)
 
-		var updateEventFlux = Flux.just(
-				event(Type.PUBLISH),
-				event(Type.UNPUBLISH),
-				event(Type.PUBLISH),
-				event(Type.UNPUBLISH),
-				event(Type.PUBLISH)
+        );
 
-		);
+        //WHEN
+        when(mockSource.getUpdates()).thenReturn(updateEventFlux);
+        when(mockIndex.apply(any())).thenReturn(mockIndex);
 
-		//WHEN
-		when(mockSource.getUpdates()).thenReturn(updateEventFlux);
-		when(mockIndex.apply(any())).thenReturn(mockIndex);
+        //DO
+        new GenericInMemoryIndexedPolicyRetrievalPoint(mockIndex, mockSource);
 
-		//DO
-		new GenericInMemoryIndexedPolicyRetrievalPoint(mockIndex, mockSource);
+        //THEN
+        verify(mockSource, times(1)).getUpdates();
+        verify(mockIndex, times(3))
+                .apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.PUBLISH));
+        verify(mockIndex, times(2))
+                .apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.UNPUBLISH));
+    }
 
-		//THEN
-		verify(mockSource, times(1)).getUpdates();
-		verify(mockIndex, times(3))
-				.apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.PUBLISH));
-		verify(mockIndex, times(2))
-				.apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.UNPUBLISH));
-	}
+    private PrpUpdateEvent event(Type type) {
+        return new PrpUpdateEvent(new Update(type, null, null));
+    }
 
-	private PrpUpdateEvent event(Type type) {
-		return new PrpUpdateEvent(new Update(type, null, null));
-	}
-
-	@Test
-	public void doTest() {
-		var interpreter = new DefaultSAPLInterpreter();
-		var source = new ResourcesPrpUpdateEventSource("/policies", interpreter);
-		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(), source);
-		var authzSubscription = AuthorizationSubscription.of("Willi", "write", "icecream");
-		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
-				new HashMap<>());
-		evaluationCtx = evaluationCtx.forAuthorizationSubscription(authzSubscription);
-		prp.retrievePolicies(evaluationCtx).log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
-		prp.dispose();
-	}
+    @Test
+    public void doTest() {
+        var interpreter = new DefaultSAPLInterpreter();
+        var source = new ResourcesPrpUpdateEventSource("/policies", interpreter);
+        var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(), source);
+        var authzSubscription = AuthorizationSubscription.of("Willi", "write", "icecream");
+        var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
+                new HashMap<>());
+        evaluationCtx = evaluationCtx.forAuthorizationSubscription(authzSubscription);
+        prp.retrievePolicies(evaluationCtx).log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
+        prp.dispose();
+    }
 }

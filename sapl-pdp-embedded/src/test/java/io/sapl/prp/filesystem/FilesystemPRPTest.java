@@ -15,7 +15,6 @@
  */
 package io.sapl.prp.filesystem;
 
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
@@ -27,9 +26,7 @@ import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
 
@@ -45,16 +42,8 @@ import static org.mockito.Mockito.when;
 
 public class FilesystemPRPTest {
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
-
-    private static SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
-    private static EvaluationContext evaluationContext = new EvaluationContext(new AnnotationAttributeContext(),
-            new AnnotationFunctionContext(), new HashMap<>());
-    ;
-
     @Test
-    public void call_index_apply_method_for_each_prp_update_event() throws Exception {
+    public void call_index_apply_method_for_each_prp_update_event() {
         var mockSource = mock(FileSystemPrpUpdateEventSource.class);
         var mockIndex = mock(CanonicalImmutableParsedDocumentIndex.class);
 
@@ -88,7 +77,7 @@ public class FilesystemPRPTest {
 
 
     @Test
-    public void doTest() throws Exception {
+    public void doTest() {
         var interpreter = new DefaultSAPLInterpreter();
         var source = new FileSystemPrpUpdateEventSource("src/test/resources/policies", interpreter);
         var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(), source);
