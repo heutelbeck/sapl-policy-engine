@@ -6,11 +6,9 @@ import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.util.filemonitoring.FileChangedEvent;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
@@ -33,18 +31,9 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
 public class ImmutableFileIndexTest {
 
     @Rule
-    public Timeout globalTimeout = Timeout.seconds(3);
-
-    @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    private SAPLInterpreter interpreter;
-
-
-    @Before
-    public void before() {
-        interpreter = new DefaultSAPLInterpreter();
-    }
+    private static SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
 
     @Test
@@ -82,7 +71,8 @@ public class ImmutableFileIndexTest {
         verify(indexMock, times(5)).load(any());
         verify(indexMock, times(5)).unload(any());
         verify(indexMock, times(5)).change(any());
-        verifyNew(ImmutableFileIndex.class, times(5));
+        verifyNew(ImmutableFileIndex.class, times(15))
+                .withArguments(any(ImmutableFileIndex.class));
         assertThat(indexMock.getUpdateEvent().getUpdates()).anyMatch(update -> update.getType() == Type.CONSISTENT);
         assertThat(indexMock.getUpdateEvent().getUpdates()).anyMatch(update -> update.getType() == Type.INCONSISTENT);
     }
@@ -105,7 +95,8 @@ public class ImmutableFileIndexTest {
 
     @Test
     public void return_inconsistent_event_for_name_collision() {
-        var fileIndex = new ImmutableFileIndex("src/test/resources/filemonitoring/namecollision", interpreter);
+        var fileIndex = new ImmutableFileIndex("src/test/resources/filemonitoring/namecollision",
+                interpreter);
         var updateEvent = fileIndex.getUpdateEvent();
 
         assertThat(updateEvent).isNotNull();
@@ -118,7 +109,8 @@ public class ImmutableFileIndexTest {
 
     @Test
     public void return_inconsistent_event_for_invalid_document() {
-        var fileIndex = new ImmutableFileIndex("src/test/resources/filemonitoring/invalid", interpreter);
+        var fileIndex = new ImmutableFileIndex("src/test/resources/filemonitoring/invalid",
+                interpreter);
         var updateEvent = fileIndex.getUpdateEvent();
 
         assertThat(updateEvent).isNotNull();

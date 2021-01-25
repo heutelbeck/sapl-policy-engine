@@ -27,7 +27,6 @@ import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -49,17 +48,10 @@ public class FilesystemPRPTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    private SAPLInterpreter interpreter;
-    private EvaluationContext evaluationContext;
-
-
-    @Before
-    public void before() {
-        interpreter = new DefaultSAPLInterpreter();
-        evaluationContext = new EvaluationContext(
-                new AnnotationAttributeContext(), new AnnotationFunctionContext(), new HashMap<>());
-    }
-
+    private static SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
+    private static EvaluationContext evaluationContext = new EvaluationContext(new AnnotationAttributeContext(),
+            new AnnotationFunctionContext(), new HashMap<>());
+    ;
 
     @Test
     public void call_index_apply_method_for_each_prp_update_event() throws Exception {
