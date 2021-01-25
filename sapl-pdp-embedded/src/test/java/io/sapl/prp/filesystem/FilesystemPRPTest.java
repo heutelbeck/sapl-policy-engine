@@ -15,21 +15,84 @@
  */
 package io.sapl.prp.filesystem;
 
+import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
+import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEvent.Type;
+import io.sapl.prp.PrpUpdateEvent.Update;
+import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
 
 import java.util.HashMap;
 import java.util.logging.Level;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 public class FilesystemPRPTest {
 
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
+    private SAPLInterpreter interpreter;
+    private EvaluationContext evaluationContext;
+
+
+    @Before
+    public void before() {
+        interpreter = new DefaultSAPLInterpreter();
+        evaluationContext = new EvaluationContext(
+                new AnnotationAttributeContext(), new AnnotationFunctionContext(), new HashMap<>());
+    }
+
+
+    @Test
+    public void call_index_apply_method_for_each_prp_update_event() throws Exception {
+        var mockSource = mock(FileSystemPrpUpdateEventSource.class);
+        var mockIndex = mock(CanonicalImmutableParsedDocumentIndex.class);
+
+        var updateEventFlux = Flux.just(
+                event(Type.PUBLISH),
+                event(Type.UNPUBLISH),
+                event(Type.PUBLISH),
+                event(Type.UNPUBLISH),
+                event(Type.PUBLISH)
+
+        );
+
+        //WHEN
+        when(mockSource.getUpdates()).thenReturn(updateEventFlux);
+        when(mockIndex.apply(any())).thenReturn(mockIndex);
+
+        //DO
+        new GenericInMemoryIndexedPolicyRetrievalPoint(mockIndex, mockSource);
+
+        //THEN
+        verify(mockSource, times(1)).getUpdates();
+        verify(mockIndex, times(3))
+                .apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.PUBLISH));
+        verify(mockIndex, times(2))
+                .apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.UNPUBLISH));
+    }
+
+    private PrpUpdateEvent event(Type type) {
+        return new PrpUpdateEvent(new Update(type, null, null));
+    }
 
 
     @Test

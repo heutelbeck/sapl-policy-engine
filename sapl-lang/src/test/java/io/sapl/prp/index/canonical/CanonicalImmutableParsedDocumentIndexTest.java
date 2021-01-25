@@ -15,28 +15,10 @@
  */
 package io.sapl.prp.index.canonical;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
-
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.prp.PolicyRetrievalResult;
@@ -50,6 +32,31 @@ import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import io.sapl.prp.index.canonical.ordering.NoPredicateOrderStrategy;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class CanonicalImmutableParsedDocumentIndexTest {
 
@@ -66,6 +73,8 @@ public class CanonicalImmutableParsedDocumentIndexTest {
 
     private Map<String, JsonNode> variables;
 
+    private EvaluationContext evaluationContext;
+
     @BeforeClass
     public static void beforeClass() {
         interpreter = new DefaultSAPLInterpreter();
@@ -79,17 +88,54 @@ public class CanonicalImmutableParsedDocumentIndexTest {
             bindings.put(variable, null);
         }
 
-        EvaluationContext evaluationContext = new EvaluationContext(
+        evaluationContext = new EvaluationContext(
                 new AnnotationAttributeContext(), new AnnotationFunctionContext(), new HashMap<>());
         emptyIndex = new CanonicalImmutableParsedDocumentIndex(evaluationContext);
         variables = new HashMap<>();
     }
 
 
-
     @Test
-    public void do_nothing() {
+    public void test_apply_update_events() {
+        var spyIndex = spy(emptyIndex);
 
+        /* PUBLISH + CONSISTENT */
+        var prpUpdateEvent = new PrpUpdateEvent(
+                update(Type.PUBLISH, "p1"),
+                update(Type.PUBLISH, "p2"),
+                update(Type.CONSISTENT, null)
+        );
+
+        var updatedIndex = spyIndex.apply(prpUpdateEvent);
+        verify(spyIndex, times(2)).applyUpdate(any(), argThat(e -> e.getType() == Type.PUBLISH));
+        verify(spyIndex, times(1)).recreateIndex(argThat(map -> map.size() == 2), eq(true));
+        spyIndex = (CanonicalImmutableParsedDocumentIndex) spy(updatedIndex);
+
+        /* UNPUBLISH + INCONSISTENT */
+        prpUpdateEvent = new PrpUpdateEvent(
+                update(Type.UNPUBLISH, "p1"),
+                update(Type.UNPUBLISH, "p2"),
+                update(Type.INCONSISTENT, null)
+        );
+        updatedIndex = spyIndex.apply(prpUpdateEvent);
+        verify(spyIndex, times(2)).applyUpdate(any(), argThat(e -> e.getType() == Type.UNPUBLISH));
+        verify(spyIndex, times(1)).recreateIndex(argThat(Map::isEmpty), eq(false));
+        spyIndex = (CanonicalImmutableParsedDocumentIndex) spy(updatedIndex);
+
+        assertThat(updatedIndex.retrievePolicies(evaluationContext).block().isPrpValidState()).isFalse();
+
+        /* EMPTY */
+        prpUpdateEvent = new PrpUpdateEvent();
+        updatedIndex = spyIndex.apply(prpUpdateEvent);
+        verify(spyIndex, times(0)).applyUpdate(any(), any());
+        verify(spyIndex, times(1)).recreateIndex(argThat(Map::isEmpty), eq(false));
+    }
+
+
+    private Update update(Type type, String name) {
+        var mockSapl = mock(SAPL.class, RETURNS_DEEP_STUBS);
+        when(mockSapl.getPolicyElement().getSaplName()).thenReturn(name);
+        return new Update(type, mockSapl, null);
     }
 
     @Test

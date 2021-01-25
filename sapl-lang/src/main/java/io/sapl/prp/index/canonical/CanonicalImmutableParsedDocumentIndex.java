@@ -15,23 +15,24 @@
  */
 package io.sapl.prp.index.canonical;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.prp.PolicyRetrievalResult;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.EvaluationContext;
+import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEvent.Type;
+import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.prp.index.canonical.ordering.DefaultPredicateOrderStrategy;
+import io.sapl.prp.index.canonical.ordering.PredicateOrderStrategy;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.prp.PolicyRetrievalResult;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.prp.PrpUpdateEvent;
-import io.sapl.prp.index.ImmutableParsedDocumentIndex;
-import io.sapl.prp.index.canonical.ordering.DefaultPredicateOrderStrategy;
-import io.sapl.prp.index.canonical.ordering.PredicateOrderStrategy;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
 
 @Slf4j
 public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
@@ -65,9 +66,14 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
                 targets);
     }
 
+    CanonicalImmutableParsedDocumentIndex recreateIndex(Map<String, SAPL> updatedDocuments, boolean consistent) {
+        return new CanonicalImmutableParsedDocumentIndex(updatedDocuments, predicateOrderStrategy,
+                pdpScopedEvaluationContext, consistent);
+    }
+
     @Override
     public Mono<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext) {
-        if(!consistent) {
+        if (!consistent) {
             return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true, false));
         }
         try {
@@ -83,20 +89,21 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
         var newDocuments = new HashMap<>(documents);
         var newConsistencyState = consistent;
         for (var update : event.getUpdates()) {
-            if(update.getType() == Type.CONSISTENT) {
+            if (update.getType() == Type.CONSISTENT) {
                 newConsistencyState = true;
-            } else if(update.getType() == Type.INCONSISTENT) {
+            } else if (update.getType() == Type.INCONSISTENT) {
                 newConsistencyState = false;
             } else {
                 applyUpdate(newDocuments, update);
             }
         }
         log.debug("returning updated index containing {} documents", newDocuments.size());
-        return new CanonicalImmutableParsedDocumentIndex(newDocuments, predicateOrderStrategy,
-                pdpScopedEvaluationContext, newConsistencyState);
+        return recreateIndex(newDocuments, newConsistencyState);
+        //        return new CanonicalImmutableParsedDocumentIndex(newDocuments, predicateOrderStrategy,
+        //                pdpScopedEvaluationContext, newConsistencyState);
     }
 
-    private void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
+    void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
         var name = update.getDocument().getPolicyElement().getSaplName();
         if (update.getType() == Type.UNPUBLISH) {
             newDocuments.remove(name);
