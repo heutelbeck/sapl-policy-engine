@@ -35,10 +35,7 @@ class SAPLEditor extends LitElement {
     widget_container.style.height = '1px';
 
     require(["./xtext-codemirror.min",
-      "codemirror/addon/edit/matchbrackets",
-      "codemirror/addon/edit/closebrackets",
-      "codemirror/addon/hint/show-hint",
-      "./sapl-mode"], function (xtext, addon1, addon2, showHint, mode) {
+      "./sapl-mode"], function (xtext, mode) {
         self.editor = xtext.createEditor({
           document: shadowRoot,
           xtextLang: self.xtextLang,
@@ -46,8 +43,6 @@ class SAPLEditor extends LitElement {
           syntaxDefinition: mode,
           lineNumbers: self.hasLineNumbers,
           showCursorWhenSelecting: true,
-          autoCloseBrackets: self.autoCloseBrackets,
-          matchBrackets: self.matchBrackets,
           enableValidationService: true,
           textUpdateDelay: self.textUpdateDelay,
           extraKeys: {"Ctrl-Space": "autocomplete"},
