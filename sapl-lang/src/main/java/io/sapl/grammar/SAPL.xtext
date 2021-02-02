@@ -32,17 +32,17 @@ PolicyElement:
 	
 PolicySet:
 	{PolicySet} 'set' saplName=STRING
-	algorithm=CombiningAlgorithm ('for' targetExpression=Expression)?
+    algorithm=CombiningAlgorithm ('for' targetExpression=Expression)?
 	(valueDefinitions+=ValueDefinition ';')*
 	policies+=Policy+ ;
 	
 CombiningAlgorithm:
-	  'deny-overrides' 
-	| 'permit-overrides' 
-	| 'first-applicable' 
-	| 'only-one-applicable'
-	| 'deny-unless-permit' 
-	| 'permit-unless-deny' ;
+	  {DenyOverridesCombiningAlgorithm}     'deny-overrides' 
+	| {PermitOverridesCombiningAlgorithm}   'permit-overrides' 
+	| {FirstApplicableCombiningAlgorithm}   'first-applicable' 
+	| {OnlyOneApplicableCombiningAlgorithm} 'only-one-applicable'
+	| {DenyUnlessPermitCombiningAlgorithm}  'deny-unless-permit' 
+	| {PermitUnlessDenyCombiningAlgorithm}  'permit-unless-deny' ;
 
 Policy:
 	{Policy} 'policy' saplName=STRING

@@ -25,7 +25,7 @@
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="PolicySet" eSuperTypes="#//PolicyElement">
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="algorithm" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="algorithm" eType="#//CombiningAlgorithm" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="valueDefinitions" upperBound="-1"
         eType="#//ValueDefinition" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="policies" upperBound="-1"
@@ -322,4 +322,15 @@
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Decision" instanceClassName="io.sapl.api.pdp.Decision"/>
   <eClassifiers xsi:type="ecore:EDataType" name="ValMono" instanceTypeName="reactor.core.publisher.Mono&lt;io.sapl.api.interpreter.Val>"/>
+  <eClassifiers xsi:type="ecore:EClass" name="CombiningAlgorithm" abstract="true"
+      interface="true"/>
+  <eClassifiers xsi:type="ecore:EClass" name="DenyOverridesCombiningAlgorithm" eSuperTypes="#//CombiningAlgorithm"/>
+  <eClassifiers xsi:type="ecore:EClass" name="PermitOverridesCombiningAlgorithm" eSuperTypes="#//CombiningAlgorithm"/>
+  <eClassifiers xsi:type="ecore:EClass" name="FirstApplicableCombiningAlgorithm" eSuperTypes="#//CombiningAlgorithm"/>
+  <eClassifiers xsi:type="ecore:EClass" name="OnlyOneApplicableCombiningAlgorithm"
+      eSuperTypes="#//CombiningAlgorithm"/>
+  <eClassifiers xsi:type="ecore:EClass" name="DenyUnlessPermitCombiningAlgorithm"
+      eSuperTypes="#//CombiningAlgorithm"/>
+  <eClassifiers xsi:type="ecore:EClass" name="PermitUnlessDenyCombiningAlgorithm"
+      eSuperTypes="#//CombiningAlgorithm"/>
 </ecore:EPackage>

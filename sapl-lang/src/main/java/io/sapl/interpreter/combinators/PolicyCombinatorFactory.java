@@ -15,24 +15,29 @@
  */
 package io.sapl.interpreter.combinators;
 
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.grammar.sapl.DenyOverridesCombiningAlgorithm;
+import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
+import io.sapl.grammar.sapl.OnlyOneApplicableCombiningAlgorithm;
+import io.sapl.grammar.sapl.PermitOverridesCombiningAlgorithm;
+import io.sapl.grammar.sapl.PermitUnlessDenyCombiningAlgorithm;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class PolicyCombinatorFactory {
 
-	public static PolicyCombinator getCombinator(String algorithm) {
-		switch (algorithm) {
-		case "deny-unless-permit":
+	public static PolicyCombinator getCombinator(CombiningAlgorithm algorithm) {
+		if (algorithm instanceof DenyUnlessPermitCombiningAlgorithm) {
 			return new DenyUnlessPermitCombinator();
-		case "permit-unless-deny":
+		} else if (algorithm instanceof PermitUnlessDenyCombiningAlgorithm) {
 			return new PermitUnlessDenyCombinator();
-		case "deny-overrides":
+		} else if (algorithm instanceof DenyOverridesCombiningAlgorithm) {
 			return new DenyOverridesCombinator();
-		case "permit-overrides":
+		} else if (algorithm instanceof PermitOverridesCombiningAlgorithm) {
 			return new PermitOverridesCombinator();
-		case "only-one-applicable":
+		} else if (algorithm instanceof OnlyOneApplicableCombiningAlgorithm) {
 			return new OnlyOneApplicableCombinator();
-		default: // "first-applicable":
+		} else { // "first-applicable":
 			return new FirstApplicableCombinator();
 		}
 	}
