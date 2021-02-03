@@ -18,9 +18,15 @@
  */
 package io.sapl.grammar.ide
 
+import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider
 
 /**
  * Use this class to register ide components.
  */
 class SAPLIdeModule extends AbstractSAPLIdeModule {
+
+	def Class<? extends IdeContentProposalProvider> bindIdeContentProposalProvider() {
+		SAPLContentProposalProvider
+	}
+
 }
