@@ -46,14 +46,15 @@ CombiningAlgorithm:
 
 Policy:
 	{Policy} 'policy' saplName=STRING
-	entitlement=Entitlement (targetExpression=Expression)?
+	entitlement=Entitlement
 	(body=PolicyBody)?
 	('obligation' obligation=Expression)?
 	('advice' advice=Expression)?
 	('transform' transformation=Expression)? ;
 
-Entitlement:
-	'permit' | 'deny' ;
+Entitlement:	
+	{Entitlement} ('permit' | 'deny')
+	(targetExpression=Expression)? ;
 
 PolicyBody:
 	'where' (statements+=Statement ';')+ ;
