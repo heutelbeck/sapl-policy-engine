@@ -15,8 +15,6 @@
  */
 package io.sapl.server.ce.views.pdpconfiguration;
 
-import java.util.stream.Stream;
-
 import javax.annotation.PostConstruct;
 
 import com.vaadin.flow.component.Tag;
@@ -86,12 +84,13 @@ public class ConfigurePdp extends PolymerTemplate<ConfigurePdp.ConfigurePdpModel
 
 	private void initUiForCombiningAlgorithm() {
 		PolicyDocumentCombiningAlgorithm[] availableCombiningAlgorithms = combiningAlgorithmService.getAvailable();
-		String[] availableCombiningAlgorithmsAsStrings = Stream.of(availableCombiningAlgorithms).map(Enum::toString)
-				.toArray(String[]::new);
+		String[] availableCombiningAlgorithmsAsStrings = PolicyDocumentCombiningAlgorithmEncoding
+				.encode(availableCombiningAlgorithms);
+
 		comboBoxCombAlgo.setItems(availableCombiningAlgorithmsAsStrings);
 
 		PolicyDocumentCombiningAlgorithm selectedCombiningAlgorithm = combiningAlgorithmService.getSelected();
-		comboBoxCombAlgo.setValue(selectedCombiningAlgorithm.toString());
+		comboBoxCombAlgo.setValue(PolicyDocumentCombiningAlgorithmEncoding.encode(selectedCombiningAlgorithm));
 
 		comboBoxCombAlgo.addValueChangeListener(changedEvent -> {
 			if (isIgnoringNextCombiningAlgorithmComboBoxChange) {
@@ -99,9 +98,9 @@ public class ConfigurePdp extends PolymerTemplate<ConfigurePdp.ConfigurePdpModel
 				return;
 			}
 
-			String newCombiningAlgorithmAsString = changedEvent.getValue();
-			PolicyDocumentCombiningAlgorithm newCombiningAlgorithm = PolicyDocumentCombiningAlgorithm
-					.valueOf(newCombiningAlgorithmAsString);
+			String encodedEntry = changedEvent.getValue();
+			PolicyDocumentCombiningAlgorithm newCombiningAlgorithm = PolicyDocumentCombiningAlgorithmEncoding
+					.decode(encodedEntry);
 
 			ConfirmUtils.letConfirm(
 					"The combining algorithm describes how to come to the final decision while evaluating all published policies.\n\nPlease consider the consequences and confirm the action.",

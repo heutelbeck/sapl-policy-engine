@@ -29,10 +29,12 @@ import io.sapl.server.ce.pdp.PDPConfigurationPublisher;
 import io.sapl.server.ce.persistence.SelectedCombiningAlgorithmRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Service for managing the combining algorithm.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CombiningAlgorithmService {
@@ -75,11 +77,13 @@ public class CombiningAlgorithmService {
 	/**
 	 * Sets the combining algorithm.
 	 * 
-	 * @param algorithmType the combining algorithm to set
+	 * @param combiningAlgorithm the combining algorithm to set
 	 */
-	public void setSelected(@NonNull PolicyDocumentCombiningAlgorithm algorithmType) {
+	public void setSelected(@NonNull PolicyDocumentCombiningAlgorithm combiningAlgorithm) {
 		selectedCombiningAlgorithmRepository.deleteAll();
-		selectedCombiningAlgorithmRepository.save(new SelectedCombiningAlgorithm(algorithmType));
-		pdpConfigurationPublisher.publishCombiningAlgorithm(algorithmType);
+		selectedCombiningAlgorithmRepository.save(new SelectedCombiningAlgorithm(combiningAlgorithm));
+		pdpConfigurationPublisher.publishCombiningAlgorithm(combiningAlgorithm);
+
+		log.info("set policy document combining algorithm: {}", combiningAlgorithm);
 	}
 }
