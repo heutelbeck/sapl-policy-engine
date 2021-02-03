@@ -17,13 +17,13 @@ package io.sapl.server.ce.service.pdpconfiguration;
 
 import java.util.Collection;
 import java.util.Optional;
-import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
@@ -40,8 +40,13 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class VariablesService {
-	private static final ObjectMapper objectMapper = new ObjectMapper();
-	private static final String DEFAULT_JSON_VALUE = "{\n  \"property\" : \"value\"\n}";
+	public static int MIN_NAME_LENGTH = 1;
+	public static int MAX_NAME_LENGTH = 100;
+
+	private static final ObjectMapper objectMapper = new ObjectMapper()
+			.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+			.enable(DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY);
+	private static final String DEFAULT_JSON_VALUE = "{}";
 
 	private final VariablesRepository variableRepository;
 	private final PDPConfigurationPublisher pdpConfigurationPublisher;
@@ -87,14 +92,16 @@ public class VariablesService {
 	/**
 	 * Creates a {@link Variable} with default values.
 	 * 
+	 * @param name the name of the variable to create
 	 * @return the created {@link Variable}
+	 * @throws InvalidVariableNameException    thrown if the name is invalid
 	 * @throws DuplicatedVariableNameException thrown if the name is already used by
 	 *                                         another variable
 	 */
-	public Variable createDefault() throws DuplicatedVariableNameException {
-		String name = UUID.randomUUID().toString().replace("-", "");
+	public Variable create(@NonNull String name) throws InvalidVariableNameException, DuplicatedVariableNameException {
 		String jsonValue = DEFAULT_JSON_VALUE;
 
+		checkForInvalidName(name);
 		checkForDuplicatedName(name, null);
 
 		Variable variable = new Variable(null, name, jsonValue);
@@ -107,6 +114,13 @@ public class VariablesService {
 		return variable;
 	}
 
+	private void checkForInvalidName(@NonNull String name) throws InvalidVariableNameException {
+		int nameLength = name.length();
+		if (nameLength < MIN_NAME_LENGTH || nameLength > MAX_NAME_LENGTH) {
+			throw new InvalidVariableNameException(name);
+		}
+	}
+
 	/**
 	 * Creates a {@link Variable}.
 	 * 
@@ -115,12 +129,14 @@ public class VariablesService {
 	 * @return the created {@link Variable}
 	 * @throws InvalidJsonException            thrown if the provided JSON value is
 	 *                                         invalid
+	 * @throws InvalidVariableNameException    thrown if the name is invalid
 	 * @throws DuplicatedVariableNameException thrown if the name is used by another
 	 *                                         variable
 	 */
 	public Variable edit(long id, @NonNull String name, @NonNull String jsonValue)
-			throws InvalidJsonException, DuplicatedVariableNameException {
+			throws InvalidJsonException, InvalidVariableNameException, DuplicatedVariableNameException {
 		VariablesService.checkIsJsonValue(jsonValue);
+		checkForInvalidName(name);
 		checkForDuplicatedName(name, id);
 
 		Optional<Variable> optionalEntity = variableRepository.findById(id);

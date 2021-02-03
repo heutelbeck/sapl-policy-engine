@@ -29,7 +29,7 @@ public class ConfirmUtils {
 	 * Lets the user confirm a specific message.
 	 * 
 	 * @param message          the message to confirm
-	 * @param confirmedHandler the handler for a confirmation
+	 * @param confirmedHandler the handler for confirmation
 	 * @param cancelledHandler the handler for cancellation
 	 */
 	public static void letConfirm(@NonNull String message, Runnable confirmedHandler, Runnable cancelledHandler) {

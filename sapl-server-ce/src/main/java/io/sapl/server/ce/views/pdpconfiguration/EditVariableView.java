@@ -30,6 +30,7 @@ import com.vaadin.flow.templatemodel.TemplateModel;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import io.sapl.server.ce.service.pdpconfiguration.DuplicatedVariableNameException;
 import io.sapl.server.ce.service.pdpconfiguration.InvalidJsonException;
+import io.sapl.server.ce.service.pdpconfiguration.InvalidVariableNameException;
 import io.sapl.server.ce.service.pdpconfiguration.VariablesService;
 import io.sapl.server.ce.views.MainView;
 import io.sapl.server.ce.views.utils.error.ErrorNotificationUtils;
@@ -105,11 +106,16 @@ public class EditVariableView extends PolymerTemplate<EditVariableView.EditVaria
 				variableService.edit(variableId, name, jsonValue);
 			} catch (InvalidJsonException ex) {
 				log.error("cannot edit variable due to invalid json", ex);
-				ErrorNotificationUtils.show("Value contains invalid JSON");
+				ErrorNotificationUtils.show("The value of the variable contains invalid JSON.");
+				return;
+			} catch (InvalidVariableNameException ex) {
+				log.error("cannot create variable due to invalid name", ex);
+				ErrorNotificationUtils.show(String.format("The name is invalid (min length: %d, max length: %d).",
+						VariablesService.MIN_NAME_LENGTH, VariablesService.MAX_NAME_LENGTH));
 				return;
 			} catch (DuplicatedVariableNameException ex) {
 				log.error("cannot edit variable due to duplicated name", ex);
-				ErrorNotificationUtils.show("Name is already used by another name");
+				ErrorNotificationUtils.show("The name is already used by another variable.");
 				return;
 			}
 

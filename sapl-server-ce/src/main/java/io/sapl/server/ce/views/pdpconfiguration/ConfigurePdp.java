@@ -21,6 +21,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.JsModule;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -36,6 +37,7 @@ import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import io.sapl.server.ce.service.pdpconfiguration.CombiningAlgorithmService;
 import io.sapl.server.ce.service.pdpconfiguration.DuplicatedVariableNameException;
+import io.sapl.server.ce.service.pdpconfiguration.InvalidVariableNameException;
 import io.sapl.server.ce.service.pdpconfiguration.VariablesService;
 import io.sapl.server.ce.views.MainView;
 import io.sapl.server.ce.views.utils.confirm.ConfirmUtils;
@@ -117,19 +119,45 @@ public class ConfigurePdp extends PolymerTemplate<ConfigurePdp.ConfigurePdpModel
 
 	private void initUiForVariables() {
 		createVariableButton.addClickListener(clickEvent -> {
-			try {
-				variablesService.createDefault();
-			} catch (DuplicatedVariableNameException ex) {
-				log.error("cannot create variable due to duplicated name", ex);
-				ErrorNotificationUtils.show("Name is already used by another name");
-				return;
-			}
-
-			// reload grid after creation
-			variablesGrid.getDataProvider().refreshAll();
+			showDialogForVariableCreation();
 		});
 
 		initVariablesGrid();
+	}
+
+	private void showDialogForVariableCreation() {
+		CreateVariable dialogContent = new CreateVariable();
+
+		Dialog createDialog = new Dialog(dialogContent);
+		createDialog.setWidth("600px");
+		createDialog.setModal(true);
+		createDialog.setCloseOnEsc(false);
+		createDialog.setCloseOnOutsideClick(false);
+
+		dialogContent.setUserConfirmedListener(isConfirmed -> {
+			if (isConfirmed) {
+				String name = dialogContent.getNameOfVariableToCreate();
+				try {
+					variablesService.create(name);
+				} catch (InvalidVariableNameException ex) {
+					log.error("cannot create variable due to invalid name", ex);
+					ErrorNotificationUtils.show(String.format("The name is invalid (min length: %d, max length: %d).",
+							VariablesService.MIN_NAME_LENGTH, VariablesService.MAX_NAME_LENGTH));
+					return;
+				} catch (DuplicatedVariableNameException ex) {
+					log.error("cannot create variable due to duplicated name", ex);
+					ErrorNotificationUtils.show("The name is already used by another variable.");
+					return;
+				}
+
+				// reload grid after creation
+				variablesGrid.getDataProvider().refreshAll();
+			}
+
+			createDialog.close();
+		});
+
+		createDialog.open();
 	}
 
 	private void initVariablesGrid() {
