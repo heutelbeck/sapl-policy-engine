@@ -25,14 +25,16 @@
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="PolicySet" eSuperTypes="#//PolicyElement">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="algorithm" eType="#//CombiningAlgorithm" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="algorithm" eType="#//CombiningAlgorithm"
+        containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="valueDefinitions" upperBound="-1"
         eType="#//ValueDefinition" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="policies" upperBound="-1"
         eType="#//Policy" containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Policy" eSuperTypes="#//PolicyElement">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="entitlement" eType="#//Entitlement" containment="true" />
+    <eStructuralFeatures xsi:type="ecore:EReference" name="entitlement" eType="#//Entitlement"
+        containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="body" eType="#//PolicyBody"
         containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="obligation" eType="#//Expression"
@@ -42,9 +44,15 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="transformation" eType="#//Expression"
         containment="true"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="Entitlement">
-	  <eStructuralFeatures xsi:type="ecore:EReference" name="targetExpression" eType="#//Expression" containment="true"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Entitlement" abstract="true" interface="true">
+    <eOperations name="getDecision" lowerBound="1" eType="#//Decision">
+      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+        <details key="documentation" value="The method returns a Flux of JsonNodes for the evaluation of the expression within a given evaluation context.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;a Flux of JsonNode results of evaluating the expression"/>
+      </eAnnotations>
+    </eOperations>
   </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Permit" eSuperTypes="#//Entitlement"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Deny" eSuperTypes="#//Entitlement"/>
   <eClassifiers xsi:type="ecore:EClass" name="PolicyBody">
     <eOperations name="evaluate" eType="#//DecisionFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">

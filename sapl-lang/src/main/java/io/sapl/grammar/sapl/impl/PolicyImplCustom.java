@@ -29,8 +29,6 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class PolicyImplCustom extends PolicyImpl {
 
-	private static final String PERMIT = "permit";
-
 	/**
 	 * Evaluates the body of the policy within the given evaluation context and
 	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
@@ -51,8 +49,7 @@ public class PolicyImplCustom extends PolicyImpl {
 	 */
 	@Override
 	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
-		var decision = PERMIT.equals(getEntitlement()) ? Decision.PERMIT : Decision.DENY;
-		return Flux.just(decision).concatMap(evaluateBody(ctx)).map(AuthorizationDecision::new)
+		return Flux.just(getEntitlement().getDecision()).concatMap(evaluateBody(ctx)).map(AuthorizationDecision::new)
 				.concatMap(addObligation(ctx)).concatMap(addAdvice(ctx)).concatMap(addResource(ctx))
 				.doOnNext(authzDecision -> log.debug("| |- Decision of '{}': {}", saplName, authzDecision));
 	}

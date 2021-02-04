@@ -32,7 +32,7 @@ PolicyElement:
 	
 PolicySet:
 	{PolicySet} 'set' saplName=STRING
-    algorithm=CombiningAlgorithm ('for' targetExpression=Expression)?
+	algorithm=CombiningAlgorithm ('for' targetExpression=Expression)?
 	(valueDefinitions+=ValueDefinition ';')*
 	policies+=Policy+ ;
 	
@@ -46,15 +46,15 @@ CombiningAlgorithm:
 
 Policy:
 	{Policy} 'policy' saplName=STRING
-	entitlement=Entitlement
+	entitlement=Entitlement (targetExpression=Expression)?
 	(body=PolicyBody)?
 	('obligation' obligation=Expression)?
 	('advice' advice=Expression)?
-	('transform' transformation=Expression)? ;
+	('transform' transformation=Expression)?;
 
 Entitlement:	
-	{Entitlement} ('permit' | 'deny')
-	(targetExpression=Expression)? ;
+	  {Permit} 'permit' 
+	| {Deny}   'deny';
 
 PolicyBody:
 	'where' (statements+=Statement ';')+ ;

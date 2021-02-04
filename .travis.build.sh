@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+set -e
 if [ -z "${TRAVIS}" ]; then
     echo "Local build - set TRAVIS=true for testing travis' behavior"
     TRAVIS_BRANCH="local"

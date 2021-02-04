@@ -65,7 +65,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @JsModule("./styles/shared-styles.js")
 @Theme(value = Lumo.class, variant = Lumo.DARK)
-@CssImport("styles/views/main/main-view.css")
+@CssImport("./styles/views/main/main-view.css")
 public class MainView extends AppLayout {
 	private static final List<MenuItem> menuItems = initMenuItems();
 
