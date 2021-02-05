@@ -35,12 +35,12 @@ jobs:
           ${{ runner.os }}-maven-
           
     - name: Build with Maven (JUnit, JaCoCo, Sonar) 
-      run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent package org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*
+      run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
      
     - name: On success, deploy with Maven artefacts
-      run: mvn -B deploy -DskipTests
+      run: mvn -B deploy -DskipTests -Dmaven.install.skip=true
       env:
         MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
@@ -53,7 +53,9 @@ jobs:
       env:
         DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-              
+        MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        
     - name: Clean up local repository before caching
       run: rm -rf /.m2/repository/io/sapl
       
