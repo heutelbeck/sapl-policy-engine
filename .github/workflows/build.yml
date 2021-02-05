@@ -38,7 +38,7 @@ jobs:
       run: mvn -B package
 
     - name: Deploy on FTK Nexus server
-      run: mvn -B deploy
+      run: mvn -B deploy -DskipTests
       env:
         MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
