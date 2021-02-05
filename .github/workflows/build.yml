@@ -56,8 +56,8 @@ jobs:
     - name: Build and push SAPL Server LT Docker image
       run: |
         echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
-        mvn dockerfile:build -pl sapl-server-lt -Pdocker || exit 1
-        mvn dockerfile:push -pl sapl-server-lt -Pdocker
+        mvn -B dockerfile:build -pl sapl-server-lt -Pdocker || exit 1
+        mvn -B dockerfile:push -pl sapl-server-lt -Pdocker
       env:
         DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
