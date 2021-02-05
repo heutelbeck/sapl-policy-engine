@@ -48,6 +48,7 @@ jobs:
     - name: Set up Docker repository
       uses: actions/setup-java@v1
       with:
+        java-version: 11
         server-id: nexus.openconjurer.org:30300
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
