@@ -39,7 +39,7 @@ jobs:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
      
-    - name: On success, deploy with Maven artefacts
+    - name: On success, deploy Maven artefacts
       run: mvn -B deploy -DskipTests
       env:
         MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
@@ -48,7 +48,6 @@ jobs:
     - name: Set up Docker repository
       uses: actions/setup-java@v1
       with:
-        java-version: 11
         server-id: nexus.openconjurer.org:30300
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
