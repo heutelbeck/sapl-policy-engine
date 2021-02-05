@@ -53,10 +53,10 @@ jobs:
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
             
-    - name: Build and Push SAPL Server LT Docker image
+    - name: Build and push SAPL Server LT Docker image
       run: |
         echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
-        mvn dockerfile:build -pl sapl-server-lt -Pdocker
+        mvn dockerfile:build -pl sapl-server-lt -Pdocker || exit 1
         mvn dockerfile:push -pl sapl-server-lt -Pdocker
       env:
         DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
