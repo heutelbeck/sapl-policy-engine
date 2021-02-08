@@ -49,7 +49,7 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 11
-        server-id: docker.pkg.github.com
+        server-id: ghcr.io # docker.pkg.github.com
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
             
