@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
         - name: sapl-server-lt
-          image: nexus.openconjurer.org:30300/sapl-server-lt:2.0.0-SNAPSHOT
+          image: ghcr.io/heutelbeck/sapl-server-lt:2.0.0-snapshot
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
