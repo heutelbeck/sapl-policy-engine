@@ -1,4 +1,5 @@
 FROM adoptopenjdk/openjdk11:alpine
+LABEL org.opencontainers.image.source https://github.com/heutelbeck/sapl-policy-engine
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 VOLUME /tmp
