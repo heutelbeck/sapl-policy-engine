@@ -49,18 +49,15 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 11
-        server-id: docker.pkg.github.com/heutelbeck/packages/
+        server-id: docker.pkg.github.com
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
             
     - name: Build and push SAPL Server LT Docker image
       run: |
-        echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
         mvn -B dockerfile:build -pl sapl-server-lt -Pdocker || exit 1
         mvn -B dockerfile:push -pl sapl-server-lt -Pdocker
       env:
-        DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
-        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         MAVEN_USERNAME: ${{ secrets.GHUB_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.GHUB_ACCESS_TOKEN }}
        
