@@ -73,7 +73,7 @@
 				</executions>
 				<configuration>
 					<image>
-						<name>${docker-registry-url}/${project.artifactId}:${project.version}</name>
+						<name>${docker-registry-url}${project.artifactId}:${project.version}</name>
 					</image>
 					<layout>ZIP</layout>
 					<excludes>
