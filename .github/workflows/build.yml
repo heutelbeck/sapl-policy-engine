@@ -17,7 +17,7 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 11
-        server-id: openconjurer-public-snapshots
+        server-id: github
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
     
@@ -42,8 +42,8 @@ jobs:
     - name: On success, deploy Maven artefacts
       run: mvn -B deploy -DskipTests
       env:
-        MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        MAVEN_USERNAME: ${{ secrets.GHUB_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.GHUB_ACCESS_TOKEN }}
 
     - name: Set up Docker repository
       uses: actions/setup-java@v1

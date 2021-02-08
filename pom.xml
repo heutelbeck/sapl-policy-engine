@@ -515,15 +515,10 @@
 
 	<distributionManagement>
 		<repository>
-			<id>openconjurer-public</id>
-			<name>OpenConjurer Nexus Maven Release Repository</name>
-			<url>https://nexus.openconjurer.org/repository/releases/</url>
+			<id>github</id>
+			<name>Heutelbeck GitHub Maven Repository</name>
+    		<url>https://maven.pkg.github.com/heutelbeck/packages</url>		
 		</repository>
-		<snapshotRepository>
-			<id>openconjurer-public-snapshots</id>
-			<name>OpenConjurer Nexus Maven Snapshot Repository</name>
-			<url>https://nexus.openconjurer.org/repository/snapshots/</url>
-		</snapshotRepository>
 	</distributionManagement>
 
 </project>

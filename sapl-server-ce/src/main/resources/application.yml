@@ -1,8 +1,5 @@
-# Security (BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh))
-io.sapl:
-  server-ce:
-    key: user
-    secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO
+spring:
+  profiles.active: h2, ssl
 
 logging.level:
   org.atmosphere: WARN
@@ -11,38 +8,8 @@ logging.level:
 vaadin:
   blacklisted-packages: org/eclipse
 
-# SSL
-server:
-  port: 8443
-  ssl:
-    enabled: true
-    key-store-type: PKCS12
-    key-store: classpath:keystore.p12
-    key-store-password: changeme
-    key-password: changeme
-    key-alias: netty
-
-# H2
-spring:
-  h2:
-    console.enabled: false
-  datasource:
-    url: jdbc:h2:mem:pdp-server-ce.db
-    driverClassName: org.h2.Driver
-    username: sa
-    password:
-  jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    hibernate.ddl-auto: create
-    open-in-view: false
-
-# MariaDB
-#spring:
-#  datasource:
-#    url: jdbc:mariadb://localhost:3306/sapl
-#    driver-class-name: org.mariadb.jdbc.Driver
-#    username: root
-#    password: testdb
-#  jpa:
-#    hibernate.ddl-auto: update
-#    database-platform: org.hibernate.dialect.MariaDB53Dialect
+# Security (BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh))
+io.sapl:
+  server-ce:
+    key: user
+    secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO
