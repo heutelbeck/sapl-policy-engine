@@ -49,7 +49,6 @@ jobs:
 
     - name: Build and push SAPL Server LT Docker image
       run: |
-        echo $GHUB_ACCESS_TOKEN | docker login ghcr.io -u GHUB_USERNAME --password-stdin
         mvn -B dockerfile:build -pl sapl-server-lt -Pdocker || exit 1
         mvn -B dockerfile:push -pl sapl-server-lt -Pdocker
        
