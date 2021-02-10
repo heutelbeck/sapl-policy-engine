@@ -24,15 +24,15 @@ jobs:
         githubServer: false
         servers: |
           [{
-              "id": "sapl", # GitHub packages for maven artifacts
+              "id": "sapl", 
               "username": "${{ secrets.GHUB_USERNAME }}",
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            },{
-              "id": "ghcr.io", # GitHub packages for docker images
+              "id": "ghcr.io",
               "username": "${{ secrets.GHUB_USERNAME }}", 
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            },{
-              "id": "github", # replace default github credentials with personal access token for dockerfile maven plugin
+              "id": "github", 
               "username": "${{ secrets.GHUB_USERNAME }}",
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            }]
@@ -54,8 +54,7 @@ jobs:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*
-  
-     
+       
     - name: Deploy Maven artefacts
       run: mvn -B deploy -DskipTests
 
