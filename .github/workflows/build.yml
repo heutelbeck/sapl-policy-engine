@@ -8,7 +8,12 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
+ 
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      GHUB_USERNAME: ${{ secrets.GHUB_USERNAME }}
+      GHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
+ 
     steps:
     - name: Check out
       uses: actions/checkout@v2
@@ -17,9 +22,11 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 11
-        server-id: github
-        server-username: MAVEN_USERNAME
-        server-password: MAVEN_PASSWORD
+
+    - name: Configure servers
+      uses: s4u/maven-settings-action@v2.3.0
+      with:
+        servers: '[{"id": "sapl", "username": "${env.GHUB_USERNAME}", "password": "${env.GHUB_ACCESS_TOKEN}"},{"id": "ghcr.io", "username": "${env.GHUB_USERNAME}", "password": "${env.GHUB_ACCESS_TOKEN}"}]'
     
     - name: Set up Node.js
       uses: actions/setup-node@v2
@@ -36,30 +43,15 @@ jobs:
           
     - name: Build with Maven (JUnit, JaCoCo, Sonar) 
       run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
      
-    - name: On success, deploy Maven artefacts
+    - name: Deploy Maven artefacts
       run: mvn -B deploy -DskipTests
-      env:
-        MAVEN_USERNAME: ${{ secrets.GHUB_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.GHUB_ACCESS_TOKEN }}
 
-    - name: Set up Docker repository
-      uses: actions/setup-java@v1
-      with:
-        java-version: 11
-        server-id: ghcr.io
-        server-username: MAVEN_USERNAME
-        server-password: MAVEN_PASSWORD
-            
     - name: Build and push SAPL Server LT Docker image
       run: |
+        echo $GHUB_ACCESS_TOKEN | docker login ghcr.io -u GHUB_USERNAME --password-stdin
         mvn -B dockerfile:build -pl sapl-server-lt -Pdocker || exit 1
         mvn -B dockerfile:push -pl sapl-server-lt -Pdocker
-      env:
-        MAVEN_USERNAME: ${{ secrets.GHUB_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.GHUB_ACCESS_TOKEN }}
        
     - name: Clean up local repository before caching
       run: rm -rf /.m2/repository/io/sapl
