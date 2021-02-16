@@ -41,6 +41,6 @@ jobs:
         SRC_FOLDER: sapl-documentation/target/generated-docs
         DEST_OWNER: heutelbeck
         DEST_REPO: sapl-pages
-        DEST_BRANCH: main
+        DEST_BRANCH: master
         DEST_FOLDER: docs
         DEST_PREDEPLOY_CLEANUP: "rm -rf docs/*"        
