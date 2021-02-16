@@ -34,13 +34,13 @@ jobs:
         rm sapl-documentation/target/generated-docs/*.pdf
         rm sapl-documentation/target/generated-docs/*.ebnf
 
-    - name: Push Documnetation to Website
+    - name: Push Documentation to Website
       uses: hpcodecraft/action-deploy-workspace-to-repo@v2.2
       env:
         GITHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
         SRC_FOLDER: sapl-documentation/target/generated-docs
         DEST_OWNER: heutelbeck
-        DEST_REPO: temporary-test
+        DEST_REPO: sapl-pages
         DEST_BRANCH: main
         DEST_FOLDER: docs
         DEST_PREDEPLOY_CLEANUP: "rm -rf docs/*"        
