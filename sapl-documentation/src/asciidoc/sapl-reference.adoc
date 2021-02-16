@@ -18,7 +18,7 @@
 
 = SAPL - Structure and Agency Policy Language
 Dominic Heutelbeck
-v2.0-SNAPSHOT, 2020-08-31
+v2.0.0-SNAPSHOT
 
 :toclevels: 4
 
@@ -144,114 +144,123 @@ This should give you a basic understanding of the operation principles applied i
 
 === Getting Started
 
-SAPL provides an embedded PDP including an embedded PRP with a file system policy store which can be easily integrated in a Java application:
+SAPL provides an embedded PDP including an embedded PRP with a file system policy store which can be easily integrated in a Java applications. Besides this guide, the quickest way to start is to build upon the demo projects hosted on https://github.com/heutelbeck/sapl-demos[GitHub] some good demos to start from are the simple no-framework https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-embedded[Embedded PDP Demo] or the full-stack https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-mvc-app[Spring MVC Project] or the https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-reactive[Reactive Vaadin Application].
 
-. Add SAPL to your application. When using Maven you can add the following dependencies to your project's `pom.xml`:
-+
+==== Maven Dependencies
+
+Currently, all SAPL artifacts are hosted on GitHub. To load these as dependencies into your Java project, you need to generate aGitHub personal access token (https://github.com/settings/tokens), as GitHub does currently not allow unauthenticated access to Maven repositories.
+On availability, the 2.0.0 release will be pushed to the central repository, eliminating this step.
+
+* Add your GitHub personal access token to your `settings.xml` file, usually located at: `~/.m2/settings.xml`.
+
 [source,XML]
-.pom.xml
-<dependency>
-	<groupId>io.sapl</groupId>
-	<artifactId>sapl-pdp-embedded</artifactId>
-	<version>2.0.0-SNAPSHOT</version>
-</dependency>
+----
+   </servers>
+      <server>
+         <id>sapl</id>
+         <username>USERNAME</username>
+         <password>TOKEN</password>
+      </server>
+   </servers>
+----
 
-. Add the SAPL Maven repositories. Currently SAPL is not yet hosted on the central repositories:
-+
+* SAPL requires Java 11 or later
+
 [source,XML]
-.pom.xml
-<repositories>
-	<repository>
-		<id>openconjurer-public</id>
-		<name>OpenConjurer Nexus Maven Release Repository</name>
-		<url>https://nexus.openconjurer.org/repository/releases/</url>
-		<snapshots>
-			<enabled>false</enabled>
-		</snapshots>
-	</repository>
-	<repository>
-		<id>openconjurer-public-snapshots</id>
-		<name>OpenConjurer Nexus Maven Snapshot Repository</name>
-		<url>https://nexus.openconjurer.org/repository/snapshots/</url>
-		<snapshots>
-			<enabled>true</enabled>
-			<updatePolicy>always</updatePolicy>
-		</snapshots>
-	</repository>
-</repositories>
+----
+   <properties>
+      <java.version>11</java.version>
+      <maven.compiler.source>${java.version}</maven.compiler.source>
+      <maven.compiler.target>${java.version}</maven.compiler.target>
+   </properties>
+----
 
+* Add a SAPL dependency to your application. When using Maven you can add the following dependencies to your project's `pom.xml`:
 
-. In your application, create a new `EmbeddedPolicyDecisionPoint` (the builder methods declare multiple Exceptions which must be handled). The arguments `"C:/path/to/config"` and `"C:/path/to/policies"` are strings specifying the directories which contain the configuration file `pdp.json` and all policies respectively.
+[source,XML]
+----
+   <dependency>
+      <groupId>io.sapl</groupId>
+      <artifactId>sapl-pdp-embedded</artifactId>
+      <version>2.0.0-SNAPSHOT</version>
+   </dependency>
+----
+
+* Add the SAPL Maven repository to your `pom.xml`:
+
+[source,XML]
+----
+	<repositories>
+		<!-- The SAPL dependencies are hosted in this repository. A matching server 
+			entry has to be set in the settings.xml using a GitHub personal access token -->
+		<repository>
+			<id>sapl</id>
+			<name>SAPL Maven Repository</name>
+			<url>https://maven.pkg.github.com/heutelbeck/packages</url>
+			<snapshots>
+				<enabled>true</enabled>
+				<updatePolicy>always</updatePolicy>
+			</snapshots>
+		</repository>
+	</repositories>
+----
+
+* If you plan to use more SAPL dependencies, a useful bill of materials POM is offered, centralizing the dependency management for SAPL artifacts:
+
+[source,XML]
+----
+   <dependencyManagement>
+      <dependencies>
+         <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-bom</artifactId>
+            <version>${sapl.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+         </dependency>
+      </dependencies>
+   </dependencyManagement>
+----
+
+==== Coding
+
+. In your application, create a new `EmbeddedPolicyDecisionPoint`. The argument `"~/sapl"` specifies directory which contain the configuration file `pdp.json` and all policies.
 +
 [source,Java,linenums]
 ----
-EmbeddedPolicyDecisionPoint pdp = EmbeddedPolicyDecisionPoint.builder()
-    .withFilesystemPDPConfigurationProvider("C:/path/to/config")
-    .withFilesystemPolicyRetrievalPoint("C:/path/to/policies", IndexType.FAST)
-    .build();
+EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("~/sapl");
 ----
 
-. Add a `pdp.json` with the following content to the directory `C:/path/to/config`:
+. Add a `pdp.json` with the following content to the directory "~/sapl":
 +
 [source,linenums]
 ----
 {
 	"algorithm": "DENY_UNLESS_PERMIT",
-	"variables": {},
-	"attributeFinders": [],
-	"libraries": []
+	"variables": {}
 }
 ----
 
-. Add some policy sets or policies to `C:/path/to/policies`. Both policy sets and policies are files with the extension `.sapl`. E.g., you could add the following policy:
-+
+. Add some policy sets or policies to `"~/sapl"`. Both policy sets and policies are files with the extension `.sapl`. E.g., you could add the following policy:
+
 [source]
-.test.sapl
+----
 policy "test_policy"
 permit subject == "admin"
+----
 
 . Obtain a decision using the PDP's `decide` method.
-+
-The whole source code to make use of the `test.sapl` policy could look as follows:
-+
+
 [source,Java,linenums]
 ----
-import java.io.IOException;
-import java.net.URISyntaxException;
-
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
-import io.sapl.api.functions.FunctionException;
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.PDPConfigurationException;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pip.AttributeException;
-import io.sapl.pdp.embedded.EmbeddedPolicyDecisionPoint.Builder.IndexType;
-import reactor.core.publisher.Flux;
-
-PolicyDecisionPoint pdp = null;
-try {
-    pdp = EmbeddedPolicyDecisionPoint.builder()
-            .withFilesystemPDPConfigurationProvider("C:/path/to/config")
-            .withFilesystemPolicyRetrievalPoint("C:/path/to/policies", IndexType.FAST)
-            .build();
-}
-catch (IOException | URISyntaxException | PolicyEvaluationException |
-       PDPConfigurationException | FunctionException | AttributeException e) {
-    e.printStackTrace();
-}
-
-JsonNodeFactory JSON = JsonNodeFactory.instance;
-AuthorizationSubscription authzSubscription = new AuthorizationSubscription(JSON.textNode("admin"),
-    JSON.textNode("an_action"), JSON.textNode("a_resource"), null);
-
+var subscription = AuthorizationSubscription.of("admin", "an_action", "a_resource");
 Flux<AuthorizationDecision> authzDecisions = pdp.decide(authzSubscription);
 authzDecisions.subscribe(authzDecision -> System.out.println(authzDecision.getDecision()));
 ----
+
 The console output should be `PERMIT`. With subject set to `"alice"` instead of `"admin"`, the output should be `DENY`.
 
+Not at runtime you can modify the policy, add or remove polices and observe how the decision change.
 
 == Reference Architecture
 
@@ -1129,9 +1138,25 @@ Applied to an object
 
 ====== Attribute Finder `.<finder.name>`
 
-In SAPL it is possible to receive attributes which are not contained in the authorization subscription. Those attributes can be provided by external PIPs and obtained through attribute finders. An attribute finder is called via the selection step `.<finder.name>`. `finder.name` either is a fully qualified attribute finder name or can be a shorter name if imports are used (the finder name or the library alias followed by a period `.` and the finder name).
+In SAPL it is possible to receive attributes which are not contained in the authorization subscription. Those attributes can be provided by external PIPs and obtained through attribute finders. 
 
-The attribute finder receives the result of the previous selection as an argument and returns a JSON value.  Optionally, an attribute finder may be supplied with a list of parameters: `.<finder.name(p1,p2,...)>`.
+The standard attributes in SAPL are indented to gather more information with regards to a given JSON value, i.e., the subject, action, resource, environment objects in the subscription or any other JSON value.
+
+A standard attribute finder is called via the selection step `.<finder.name>`. Where `finder.name` either is a fully qualified attribute finder name or can be a shorter name if imports are used (the finder name or the library alias followed by a period `.` and the finder name). this step may follow any number of selection steps.
+
+An attribute accessed this way is treated as a subscription. I.e., the PDP will subscribe to the data source and whenever a new value is returned the policy is reevaluated and a new decision is calculated.
+
+The attribute finder receives the result of the previous selection as an argument and returns a JSON value. Optionally, an attribute finder may be supplied with a list of parameters: `.<finder.name(p1,p2,...)>`. 
+
+Attribute finders may be nested: `subject.<finder.name2>.<finder.name(p1,action.<finder.name3>,...)>`. Here, whenever the attributes with `name2` and  `name3` all have a first result and whenever one of the results change, the attribute with name `name` is re-subscribed with the new input parameters.
+
+An environment attribute finder is an attribute finder intended for accessing information possibly independent of subscription data, e.g., current time or an organization wide emergency level. These environment attributes are not to be confused with the data which is contained in the environment object in the subscription. The data contained there is environment data provided by the PEP from its application context at subscription time and may not be accessible from the PDP otherwise. Environment attributes do not require a left hand input and can be accessed without a leading value, variable, or sequence of selection steps: `<organization.emergencyLevel>` may refer to a stream indicating an emergency level in an organization. Analogous, to standard attributes, these attributes may be parameterized and nested.
+
+All attribute finders may be followed by arbitrary selection steps.
+
+In some scenarios it may not be the right thing to subscribe to attributes, but to just retrieve the data once on subscription time. 
+For this, SAPL offers the head operator for both standard and environment attributes. Prepending the pipe symbol `|` in front of an attribute finder step will only return the first value returned by the attribute finder. E.g.: `subject.id.|<geo.location>`. However such an attribute may still return a stream, if used with nested attributes which do not employ the head operator.
+
 
 [NOTE]
 ========
