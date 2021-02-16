@@ -37,7 +37,7 @@ jobs:
     - name: Push Documnetation to Website
       uses: hpcodecraft/action-deploy-workspace-to-repo@v2.2
       env:
-        GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_ACCESS_TOKEN }}
+        GITHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
         SRC_FOLDER: sapl-documentation/target/generated-docs
         DEST_OWNER: heutelbeck
         DEST_REPO: temporary-test
