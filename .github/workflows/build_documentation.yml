@@ -18,21 +18,6 @@ jobs:
       with:
         java-version: 11
 
-    - name: Configure servers
-      uses: s4u/maven-settings-action@v2.3.0
-      with:
-        githubServer: false
-        servers: |
-          [{
-              "id": "sapl", 
-              "username": "${{ secrets.GHUB_USERNAME }}",
-              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
-           },{
-              "id": "github", 
-              "username": "${{ secrets.GHUB_USERNAME }}",
-              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
-           }]
-    
     - name: Cache Maven dependencies
       uses: actions/cache@v2      
       with:
