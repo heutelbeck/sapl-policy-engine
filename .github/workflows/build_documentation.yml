@@ -52,7 +52,7 @@ jobs:
           
     - name: Build and push SAPL Server LT Docker image
       run: |
-        mvn -B build -pl sapl-documentation || exit 1
+        mvn -B generate-resources -pl sapl-documentation || exit 1
     - name: Deploy Documnetation
       uses: hpcodecraft/action-deploy-workspace-to-repo@v2.2
       env:
