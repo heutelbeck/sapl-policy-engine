@@ -42,7 +42,7 @@ jobs:
           ${{ runner.os }}-maven-
           
     - name: Build Documentation
-      run: mvn -B build -pl sapl-documentation
+      run: mvn -B generate-resources -pl sapl-documentation
 
     - name: Remove Files not to push
       run: |
