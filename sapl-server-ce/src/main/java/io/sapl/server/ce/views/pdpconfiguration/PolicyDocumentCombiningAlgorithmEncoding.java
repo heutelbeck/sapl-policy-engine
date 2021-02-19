@@ -1,9 +1,8 @@
 package io.sapl.server.ce.views.pdpconfiguration;
 
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.stream.Stream;
-
-import com.google.common.collect.Maps;
 
 import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
 import lombok.NonNull;
@@ -32,11 +31,11 @@ class PolicyDocumentCombiningAlgorithmEncoding {
 	}
 
 	public static PolicyDocumentCombiningAlgorithm decode(@NonNull String encodedEntry) {
-		for (PolicyDocumentCombiningAlgorithm entry : mapping.keySet()) {
-			String currentEncodedEntry = mapping.get(entry);
+		for (Map.Entry<PolicyDocumentCombiningAlgorithm, String> entry : mapping.entrySet()) {
+			String currentEncodedEntry = entry.getValue();
 
 			if (currentEncodedEntry.equals(encodedEntry)) {
-				return entry;
+				return entry.getKey();
 			}
 		}
 
@@ -44,11 +43,13 @@ class PolicyDocumentCombiningAlgorithmEncoding {
 	}
 
 	private static Map<PolicyDocumentCombiningAlgorithm, String> generateMapping() {
-		Map<PolicyDocumentCombiningAlgorithm, String> mapping = Maps.newHashMap();
+		PolicyDocumentCombiningAlgorithm[] combiningAlgorithms = PolicyDocumentCombiningAlgorithm.values();
 
-		for (PolicyDocumentCombiningAlgorithm entry : PolicyDocumentCombiningAlgorithm.values()) {
+		EnumMap<PolicyDocumentCombiningAlgorithm, String> mapping = new EnumMap<>(
+				PolicyDocumentCombiningAlgorithm.class);
+		for (PolicyDocumentCombiningAlgorithm combiningAlgorithm : combiningAlgorithms) {
 			String encoded;
-			switch (entry) {
+			switch (combiningAlgorithm) {
 			case DENY_UNLESS_PERMIT:
 				encoded = "deny-unless-permit";
 				break;
@@ -66,12 +67,12 @@ class PolicyDocumentCombiningAlgorithmEncoding {
 				break;
 
 			default:
-				encoded = entry.toString();
-				log.warn("cannot encode entry of {}: {}", PolicyDocumentCombiningAlgorithm.class.toString(), encoded);
+				encoded = combiningAlgorithm.toString();
+				log.warn("cannot encode entry of {}: {}", PolicyDocumentCombiningAlgorithm.class, encoded);
 				break;
 			}
 
-			mapping.put(entry, encoded);
+			mapping.put(combiningAlgorithm, encoded);
 		}
 
 		return mapping;
