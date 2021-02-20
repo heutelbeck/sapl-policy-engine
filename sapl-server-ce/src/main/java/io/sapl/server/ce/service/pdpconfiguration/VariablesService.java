@@ -40,8 +40,8 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class VariablesService {
-	public static int MIN_NAME_LENGTH = 1;
-	public static int MAX_NAME_LENGTH = 100;
+	public static final int MIN_NAME_LENGTH = 1;
+	public static final int MAX_NAME_LENGTH = 100;
 
 	private static final ObjectMapper objectMapper = new ObjectMapper()
 			.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
