@@ -64,7 +64,8 @@ jobs:
         mvn -B dockerfile:push -pl sapl-server-lt -Pdocker
        
     - name: Trigger CI build of downstream repositories
-      run: curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
+      run: |
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
       
     - name: Clean up local repository before caching
       run: rm -rf /.m2/repository/io/sapl
