@@ -17,8 +17,10 @@ package io.sapl.pdp.remote;
 
 import java.time.Duration;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import io.netty.handler.ssl.SslContext;
@@ -73,26 +75,29 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-		return decide(DECIDE, AuthorizationDecision.class, authzSubscription)
+		var type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
+		return decide(DECIDE, type, authzSubscription)
 				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat());
 	}
 
 	@Override
 	public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
-		return decide(MULTI_DECIDE, IdentifiableAuthorizationDecision.class, multiAuthzSubscription)
+		var type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
+		return decide(MULTI_DECIDE, type, multiAuthzSubscription)
 				.onErrorResume(__ -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat());
 	}
 
 	@Override
 	public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
-		return decide(MULTI_DECIDE_ALL, MultiAuthorizationDecision.class, multiAuthzSubscription)
+		var type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
+		return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
 				.onErrorResume(__ -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat());
 
 	}
 
-	private <T> Flux<T> decide(String path, Class<T> valueType, Object authzSubscription) {
-		return client.post().uri(path).accept(MediaType.APPLICATION_STREAM_JSON, MediaType.APPLICATION_NDJSON)
-				.contentType(MediaType.APPLICATION_JSON).bodyValue(authzSubscription).retrieve().bodyToFlux(valueType)
+	private <T> Flux<T> decide(String path, ParameterizedTypeReference<ServerSentEvent<T>> type, Object authzSubscription) {
+		return client.post().uri(path).accept(MediaType.APPLICATION_NDJSON).contentType(MediaType.APPLICATION_JSON)
+				.bodyValue(authzSubscription).retrieve().bodyToFlux(type).map(event -> event.data())
 				.doOnError(error -> log.error("Error : {}", error.getMessage()));
 	}
 
