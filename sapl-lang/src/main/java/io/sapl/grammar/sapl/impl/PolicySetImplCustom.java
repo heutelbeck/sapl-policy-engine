@@ -65,8 +65,10 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	private boolean policyNamesAreUnique() {
 		var policyNames = new HashSet<String>(policies.size(), 1.0F);
 		for (var policy : policies) {
-			if (!policyNames.add(policy.getSaplName()))
+			if (!policyNames.add(policy.getSaplName())) {
+				log.warn("Policy name collision in policy set: \"{}\"", policy.getSaplName());
 				return false;
+			}
 		}
 		return true;
 	}
@@ -88,8 +90,9 @@ public class PolicySetImplCustom extends PolicySetImpl {
 		if (valueDefinitions == null || valueDefinitionId == valueDefinitions.size()) {
 			return Flux::just;
 		}
-		return valueDefinitionSuccessAndScopedEvaluationContext -> evaluateValueDefinition(valueDefinitionSuccessAndScopedEvaluationContext.getT1(),
-				valueDefinitions.get(valueDefinitionId), valueDefinitionSuccessAndScopedEvaluationContext.getT2())
+		return valueDefinitionSuccessAndScopedEvaluationContext -> evaluateValueDefinition(
+				valueDefinitionSuccessAndScopedEvaluationContext.getT1(), valueDefinitions.get(valueDefinitionId),
+				valueDefinitionSuccessAndScopedEvaluationContext.getT2())
 						.switchMap(evaluateValueDefinitions(valueDefinitionId + 1));
 	}
 
