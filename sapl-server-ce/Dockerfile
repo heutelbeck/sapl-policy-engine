@@ -3,6 +3,7 @@ RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 VOLUME /tmp
 VOLUME /pdp/lib
+VOLUME /etc/config
 WORKDIR /pdp
 ARG JAR_FILE
 ADD ${JAR_FILE} /pdp/pdp.jar
