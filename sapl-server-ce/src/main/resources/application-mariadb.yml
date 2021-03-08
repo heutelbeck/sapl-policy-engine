@@ -1,8 +1,8 @@
-# Security (BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh))
+# Security (BCrypt encoded client-secret (raw secret: demo))
 io.sapl:
   server:
-    admin-username: user
-    encoded-admin-password: "{bcrypt}$2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO"
+    admin-username: demo
+    encoded-admin-password: "{bcrypt}$2y$12$1yBhnA.SfCzTfNrChI/HNuoqz3k/RCG9iXCbQMRje96hnx1DsfPeq"
 # MariaDB
 spring:
   datasource:

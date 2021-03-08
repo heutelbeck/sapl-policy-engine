@@ -1,20 +1,21 @@
-# Security (BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh))
+# Security (BCrypt encoded client-secret (raw secret: demo))
 io.sapl:
   server:
-    admin-username: user
-    encoded-admin-password: "{bcrypt}$2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO"
+    admin-username: demo
+    encoded-admin-password: "{bcrypt}$2y$12$1yBhnA.SfCzTfNrChI/HNuoqz3k/RCG9iXCbQMRje96hnx1DsfPeq"
 # H2
 spring:
   h2:
     console.enabled: false
   datasource:
-    url: jdbc:h2:mem:pdp-server-ce.db
+#    url: jdbc:h2:mem:pdp-server-ce.db
+    url: jdbc:h2:file:~/sapl/db
     driverClassName: org.h2.Driver
     username: sa
-    password:
+    password: password
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
-    hibernate.ddl-auto: create
+    hibernate.ddl-auto: update
     open-in-view: false
 # SSL
 server:

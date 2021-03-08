@@ -53,7 +53,7 @@ jobs:
     - name: Build with Maven (JUnit, JaCoCo, Sonar) 
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/* -P production
+      run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/* -P production,h2,mariadb
        
     - name: Deploy Maven artefacts
       run: mvn -B deploy -DskipTests -P production
@@ -65,8 +65,8 @@ jobs:
        
     - name: Build and push SAPL Server CE Docker image
       run: |
-        mvn -B clean package dockerfile:build -pl sapl-server-ce -P docker,production,!h2 || exit 1
-        mvn -B dockerfile:push -pl sapl-server-ce -P docker,production,!h2
+        mvn -B clean package dockerfile:build -pl sapl-server-ce -P docker,production,mariadb,!h2 || exit 1
+        mvn -B dockerfile:push -pl sapl-server-ce -P docker,production,mariadb,!h2
            
     - name: Trigger CI build of downstream repositories
       run: |
