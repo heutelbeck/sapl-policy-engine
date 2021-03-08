@@ -1,0 +1,25 @@
+# Security (BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh))
+io.sapl:
+  server:
+    admin-username: user
+    encoded-admin-password: "{bcrypt}$2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO"
+# MariaDB
+spring:
+  datasource:
+    url: jdbc:mariadb://localhost:3306/sapl
+    driver-class-name: org.mariadb.jdbc.Driver
+    username: root
+    password: testdb
+  jpa:
+    hibernate.ddl-auto: update
+    database-platform: org.hibernate.dialect.MariaDB53Dialect
+# SSL
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    key-store-type: PKCS12
+    key-store: classpath:keystore.p12
+    key-store-password: changeme
+    key-password: changeme
+    key-alias: netty

@@ -1,5 +1,5 @@
 spring:
-  profiles.active: h2, ssl
+  profiles.active: demo
 
 logging.level:
   org.atmosphere: WARN
@@ -7,9 +7,3 @@ logging.level:
 
 vaadin:
   blacklisted-packages: org/eclipse
-
-# Security (BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh))
-io.sapl:
-  server-ce:
-    key: user
-    secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO

@@ -53,16 +53,21 @@ jobs:
     - name: Build with Maven (JUnit, JaCoCo, Sonar) 
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*
+      run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/* -P production
        
     - name: Deploy Maven artefacts
-      run: mvn -B deploy -DskipTests
+      run: mvn -B deploy -DskipTests -P production
 
     - name: Build and push SAPL Server LT Docker image
       run: |
-        mvn -B dockerfile:build -pl sapl-server-lt -Pdocker || exit 1
-        mvn -B dockerfile:push -pl sapl-server-lt -Pdocker
+        mvn -B dockerfile:build -pl sapl-server-lt -P docker || exit 1
+        mvn -B dockerfile:push -pl sapl-server-lt -P docker
        
+    - name: Build and push SAPL Server CE Docker image
+      run: |
+        mvn -B clean package dockerfile:build -pl sapl-server-ce -P docker,production,!h2 || exit 1
+        mvn -B dockerfile:push -pl sapl-server-ce -P docker,production,!h2
+           
     - name: Trigger CI build of downstream repositories
       run: |
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'

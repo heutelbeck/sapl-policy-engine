@@ -30,9 +30,9 @@ import lombok.NonNull;
  * The selected combining algorithm.
  */
 @Data
-@Table(name = "SelectedCombiningAlgorithm")
 @Entity
 @NoArgsConstructor
+@Table(name = "SelectedCombiningAlgorithm")
 public class SelectedCombiningAlgorithm {
 	public SelectedCombiningAlgorithm(@NonNull PolicyDocumentCombiningAlgorithm selection) {
 		this.selection = selection;

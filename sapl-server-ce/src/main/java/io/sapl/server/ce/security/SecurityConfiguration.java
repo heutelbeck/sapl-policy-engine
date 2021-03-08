@@ -24,7 +24,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import io.sapl.server.ce.service.ClientCredentialsService;
@@ -34,27 +33,23 @@ import lombok.RequiredArgsConstructor;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+
 	public static final String PDP_CLIENT_ROLE = "PDP_CLIENT";
 
 	private static final String LOGIN_PROCESSING_URL = "/login";
 	private static final String LOGIN_FAILURE_URL = "/login";
 	private static final String LOGIN_URL = "/login";
 	private static final String LOGOUT_SUCCESS_URL = "/login";
-
 	private static final String API_PATHS = "/api/**";
 
 	private final ClientCredentialsService clientCredentialsService;
+	private final PasswordEncoder passwordEncoder;
 
-	@Value("${io.sapl.server-ce.key}")
-	private String clientKey;
+	@Value("${io.sapl.server.admin-username}")
+	private String adminUsername;
 
-	@Value("${io.sapl.server-ce.secret}")
-	private String clientSecret;
-
-	@Bean
-	public static PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
+	@Value("${io.sapl.server.encoded-admin-password}")
+	private String encodedAdminPassword;
 
 	/**
 	 * Require login to access internal pages and configure login form.
@@ -114,7 +109,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
 		// @formatter:off
 		auth.inMemoryAuthentication()
-			.withUser(clientKey).password(clientSecret)
+			.withUser(adminUsername).password(encodedAdminPassword)
 			.roles(PDP_CLIENT_ROLE);
 		// @formatter:on
 
@@ -125,7 +120,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 	public DaoAuthenticationProvider authProvider() {
 		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
 		authProvider.setUserDetailsService(clientCredentialsService);
-		authProvider.setPasswordEncoder(passwordEncoder());
+		authProvider.setPasswordEncoder(passwordEncoder);
 		return authProvider;
 	}
 }

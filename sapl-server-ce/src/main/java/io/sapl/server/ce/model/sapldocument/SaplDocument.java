@@ -42,11 +42,11 @@ import lombok.experimental.Accessors;
  * A SAPL document.
  */
 @Data
-@Table(name = "SaplDocument")
 @Entity
-@Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
+@Accessors(chain = true)
+@Table(name = "SaplDocument")
 public class SaplDocument implements Serializable {
 	/**
 	 * The unique identifier of the SAPL document.

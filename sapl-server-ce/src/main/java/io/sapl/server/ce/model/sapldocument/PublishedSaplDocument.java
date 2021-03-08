@@ -16,11 +16,11 @@ import lombok.experimental.Accessors;
  * A published SAPL document.
  */
 @Data
-@Table(name = "PublishedSaplDocument")
 @Entity
-@Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
+@Accessors(chain = true)
+@Table(name = "PublishedSaplDocument")
 public class PublishedSaplDocument {
 	/**
 	 * The unique identifier of the SAPL document.

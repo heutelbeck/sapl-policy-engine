@@ -75,27 +75,30 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-		var type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
+		var type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {
+		};
 		return decide(DECIDE, type, authzSubscription)
 				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat());
 	}
 
 	@Override
 	public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
-		var type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
+		var type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {
+		};
 		return decide(MULTI_DECIDE, type, multiAuthzSubscription)
 				.onErrorResume(__ -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat());
 	}
 
 	@Override
 	public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
-		var type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
+		var type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {
+		};
 		return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
 				.onErrorResume(__ -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat());
-
 	}
 
-	private <T> Flux<T> decide(String path, ParameterizedTypeReference<ServerSentEvent<T>> type, Object authzSubscription) {
+	private <T> Flux<T> decide(String path, ParameterizedTypeReference<ServerSentEvent<T>> type,
+			Object authzSubscription) {
 		return client.post().uri(path).accept(MediaType.APPLICATION_NDJSON).contentType(MediaType.APPLICATION_JSON)
 				.bodyValue(authzSubscription).retrieve().bodyToFlux(type).map(event -> event.data())
 				.doOnError(error -> log.error("Error : {}", error.getMessage()));

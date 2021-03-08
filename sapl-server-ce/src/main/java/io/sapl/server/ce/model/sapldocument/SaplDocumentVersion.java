@@ -35,11 +35,11 @@ import lombok.experimental.Accessors;
  * Entity for a version of a SAPL document.
  */
 @Data
-@Table(name = "SaplDocumentVersion")
 @Entity
-@Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
+@Accessors(chain = true)
+@Table(name = "SaplDocumentVersion")
 public class SaplDocumentVersion {
 	/**
 	 * The unique identifier of the SAPL document version.

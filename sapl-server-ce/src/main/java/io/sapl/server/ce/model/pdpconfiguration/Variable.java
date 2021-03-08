@@ -32,11 +32,11 @@ import lombok.experimental.Accessors;
  * A variable.
  */
 @Data
-@Table(name = "Variable")
 @Entity
-@Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
+@Accessors(chain = true)
+@Table(name = "Variable")
 public class Variable implements Serializable {
 	/**
 	 * The unique identifier of the variable.

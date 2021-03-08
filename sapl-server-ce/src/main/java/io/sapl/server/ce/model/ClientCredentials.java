@@ -28,9 +28,9 @@ import lombok.NoArgsConstructor;
  * Model for a set of credentials of a single client.
  */
 @Data
-@Table(name = "ClientCredentials")
 @Entity
 @NoArgsConstructor
+@Table(name = "ClientCredentials")
 public class ClientCredentials {
 	/**
 	 * The unique identifier.
