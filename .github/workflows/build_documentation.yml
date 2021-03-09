@@ -3,8 +3,8 @@ name: build_documentation
 on:
   push:
     branches: [master]
-  paths: ['sapl-documentation/**']
-  
+    paths: ['sapl-documentation/**']
+    
 jobs:
   build:
 
