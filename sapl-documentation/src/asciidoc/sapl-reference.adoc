@@ -443,7 +443,8 @@ The SAPL Policy engine comes with two implementations ready for deployment in an
 * SAPL Server CE: This community edition (CE) PDP server implementation uses a relational database (MariaDB) for persistence configuration and offers a convenient graphical Web interface to manage policies, configuration and clients. The UI includes SAPL specific text editors with syntax highlighting and auto-completion features. The server is available as  docker container. Documentation: https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-server-ce
 
 === Java API
-IThe Java API is based on the reactive libraries of Project Reactor (https://projectreactor.io/). The API is defined in the `sapl-pdp-api` module:
+
+The Java API is based on the reactive libraries of Project Reactor (https://projectreactor.io/). The API is defined in the `sapl-pdp-api` module:
 
 [source,XML]
 ----

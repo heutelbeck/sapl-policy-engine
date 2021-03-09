@@ -63,7 +63,7 @@ public class KMLTest {
 		EqualsVerifier.forClass(KMLImport.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS).verify();
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = FunctionException.class)
 	public void httpIllegalArgTest() throws FunctionException {
 		assertNull("Empty HTTP-address leads to valid response.", new KMLImport("https://").toGeoPIPResponse());
 	}

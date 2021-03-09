@@ -60,7 +60,7 @@ public class KMLImport {
 		kmlSource = source;
 	}
 
-	public KMLImport(JsonNode source) throws FunctionException  {
+	public KMLImport(JsonNode source) throws FunctionException {
 		if (source.isTextual()) {
 			kmlSource = source.asText();
 		} else {
@@ -84,17 +84,17 @@ public class KMLImport {
 		}
 	}
 
-	private SimpleFeature getKmlFromWeb() throws FunctionException  {
+	private SimpleFeature getKmlFromWeb() throws FunctionException {
 		try (InputStream inputStream = new URL(kmlSource).openStream()) {
 
 			return parse(inputStream);
 
-		} catch (IOException | SAXException | ParserConfigurationException e) {
+		} catch (IllegalArgumentException | IOException | SAXException | ParserConfigurationException e) {
 			throw new FunctionException(UNABLE_TO_PARSE_KML, e);
 		}
 	}
 
-	private SimpleFeature getKmlFromFile() throws FunctionException  {
+	private SimpleFeature getKmlFromFile() throws FunctionException {
 		try (InputStream inputStream = getClass().getResourceAsStream(kmlSource)) {
 
 			return parse(inputStream);
@@ -110,8 +110,7 @@ public class KMLImport {
 		return (SimpleFeature) parser.parse(inputStream);
 	}
 
-	protected static ObjectNode formatCollection(Collection<?> placeMarks)
-			throws FunctionException {
+	protected static ObjectNode formatCollection(Collection<?> placeMarks) throws FunctionException {
 		ObjectNode geometries = JSON.objectNode();
 		for (Object obj : placeMarks) {
 
