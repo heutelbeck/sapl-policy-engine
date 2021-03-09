@@ -56,7 +56,7 @@ jobs:
       run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/* -P production,h2,mariadb
        
     - name: Deploy Maven artefacts
-      run: mvn -B deploy -DskipTests -P production
+      run: mvn -B deploy -DskipTests -P production,h2,mariadb      
 
     - name: Build and push SAPL Server LT Docker image
       run: |
