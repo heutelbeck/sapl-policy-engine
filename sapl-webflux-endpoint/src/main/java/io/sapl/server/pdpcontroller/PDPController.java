@@ -53,7 +53,7 @@ public class PDPController {
 	 * @return a flux emitting the current authorization decisions.
 	 * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
 	 */
-	@PostMapping(value = "/decide", produces = MediaType.APPLICATION_NDJSON_VALUE)
+	@PostMapping(value = "/decide", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	public Flux<ServerSentEvent<AuthorizationDecision>> decide(
 			@RequestBody AuthorizationSubscription authzSubscription) {
 		return pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE))
@@ -71,7 +71,7 @@ public class PDPController {
 	 *         as soon as they are available.
 	 * @see PolicyDecisionPoint#decide(MultiAuthorizationSubscription)
 	 */
-	@PostMapping(value = "/multi-decide", produces = MediaType.APPLICATION_NDJSON_VALUE)
+	@PostMapping(value = "/multi-decide", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	public Flux<ServerSentEvent<IdentifiableAuthorizationDecision>> decide(
 			@RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
 		return pdp.decide(multiAuthzSubscription)
@@ -90,7 +90,7 @@ public class PDPController {
 	 *         given {@code multiAuthzSubscription}.
 	 * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
 	 */
-	@PostMapping(value = "/multi-decide-all", produces = MediaType.APPLICATION_NDJSON_VALUE)
+	@PostMapping(value = "/multi-decide-all", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	public Flux<ServerSentEvent<MultiAuthorizationDecision>> decideAll(
 			@RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
 		return pdp.decideAll(multiAuthzSubscription)

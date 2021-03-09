@@ -343,7 +343,7 @@ The algorithm `first-applicable` is not available for the PDP since the PDP's co
 The combining algorithms are described in more detail <<combining-algorithms,later>>.
 
 
-== Multi-Subscriptions
+=== Multi-Subscriptions
 
 SAPL allows for bundling multiple authorization subscriptions into one multi-subscription. A multi-subscription is a JSON object with the following structure:
 
@@ -398,10 +398,178 @@ The SAPL PDP processes all individual authorization subscriptions contained in t
 }
 ----
 
+== PDP APIs
+
+A SAPL PDP must expose a publish-subscribe API for subscribing via the subscription objects laid out above. SAPL defines two specific APIs for that. One is a HTTP Server Sent Events (SSE) API for deploying a dedicated PDP Server, the other for using a PDP in reactive Java applications. The Java API may be implemented by an embedded PDP or by using the SSE API of a remote server.
+
+=== HTTP Server Sent Events API
+
+A PDP to be used as a network service has to implement a number of HTTP end points. 
+All of them accept `POST` requests and `application/json` and they produce `application/x-ndjson` as https://www.w3.org/TR/eventsource/[Server Sent Events (SSE)]. A PDP server must me accessed over encrypted TLS connections. All connections should be authenticated. The means of authentications are left open for the organization deploying the PDP to decide, or do be defined by a specific server implementation. All end points should be located under a shared base URL, e.g., `https://pdp.sapl.io/api/pdp/`.
+
+A PEP which is a client to the SSE PDP API encountering connectivity issues or errors must interpret this as an INDETERMINATE decision and thus deny access during this time of uncertainty and take appropriate steps to reconnect with the PDP, using a matching back-off strategy to not overload the PDP. 
+
+A PEP must determine if it can enforce obligations before granting access. It must enforce obligation upon granting access at the point in time (e.g., before or after granting access) implied by the semantics of the obligation, and it should enforce advices at their appropriate point in time when possible.
+
+Upon subscription the PDP server will respond with an unbound stream of decisions. The client must close the connection to stop receiving decision events. A connection termination by the server is a error state and must be handled as discussed.
+
+==== Decide
+
+* URL:  `{baseURL}/decide`
+* Method: `POST`
+* Body: A valid JSON authorization subscription 
+* Produces: A SSE stream of authorization decisions
+
+==== Multi Decide
+
+* URL:  `{baseURL}/multi-decide`
+* Method: `POST`
+* Body: A valid JSON multi subscription 
+* Produces: A SSE stream of Single Authorization Decisions with Associated Subscription ID JSON Objects
+
+==== Multi Decide All
+
+* URL:  `{baseURL}/multi-decide-all`
+* Method: `POST`
+* Body: A valid JSON multi subscription 
+* Produces: A SSE stream of Multi Decision JSON Objects
+
+==== Implementations
+
+The SAPL Policy engine comes with two implementations ready for deployment in an organization:
+
+* SAPL Server LT: This light (LT) PDP server implementation uses a configuration and policies stored on a file system. The server is available as  docker container. Documentation: https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-server-lt
+
+* SAPL Server CE: This community edition (CE) PDP server implementation uses a relational database (MariaDB) for persistence configuration and offers a convenient graphical Web interface to manage policies, configuration and clients. The UI includes SAPL specific text editors with syntax highlighting and auto-completion features. The server is available as  docker container. Documentation: https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-server-ce
+
+=== Java API
+IThe Java API is based on the reactive libraries of Project Reactor (https://projectreactor.io/). The API is defined in the `sapl-pdp-api` module:
+
+[source,XML]
+----
+   <dependency>
+      <groupId>io.sapl</groupId>
+      <artifactId>sapl-pdp-api</artifactId>
+      <version>2.0.0-SNAPSHOT</version>
+   </dependency>
+----
+
+The key interface is the `PolicyDecisionPoint` exposing methods matching the PDP server HTTP SSE API:
+
+[source,java]
+----
+/**
+ * The policy decision point is the component in the system, which will take an
+ * authorization subscription, retrieve matching policies from the policy retrieval point,
+ * evaluate the policies, while potentially consulting external resources (e.g., through
+ * attribute finders), and return a {@link Flux} of authorization decision objects.
+ *
+ * This interface offers a number of convenience methods to hand over an authorization
+ * subscription to the policy decision point, which only differ in the construction of the
+ * underlying authorization subscription object.
+ */
+public interface PolicyDecisionPoint {
+
+	/**
+	 * Takes an authorization subscription object and returns a {@link Flux} emitting
+	 * matching authorization decisions.
+	 * @param authzSubscription the SAPL authorization subscription object
+	 * @return a {@link Flux} emitting the authorization decisions for the given
+	 * authorization subscription. New authorization decisions are only added to the
+	 * stream if they are different from the preceding authorization decision.
+	 */
+	Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription);
+
+	/**
+	 * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
+	 * @param multiAuthzSubscription the multi-subscription object containing the
+	 * subjects, actions, resources and environments of the authorization subscriptions to
+	 * be evaluated by the PDP.
+	 * @return a {@link Flux} emitting authorization decisions for the given authorization
+	 * subscriptions as soon as they are available. Related authorization decisions and
+	 * authorization subscriptions have the same id.
+	 */
+	Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription);
+
+	/**
+	 * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
+	 * @param multiAuthzSubscription the multi-subscription object containing the
+	 * subjects, actions, resources and environments of the authorization subscriptions to
+	 * be evaluated by the PDP.
+	 * @return a {@link Flux} emitting authorization decisions for the given authorization
+	 * subscriptions as soon as at least one authorization decision for each authorization
+	 * subscription is available.
+	 */
+	Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription);
+
+}
+----
+
+===== Embedded PDP
+
+To use a PDP two implementations of the API are supplied. First, a completely embedded PDP can be used to be deployed with an application. (See: https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-pdp-embedded)
+
+[source,XML]
+----
+   <dependency>
+      <groupId>io.sapl</groupId>
+      <artifactId>sapl-pdp-embedded</artifactId>
+      <version>2.0.0-SNAPSHOT</version>
+   </dependency>
+----
+
+The library with Spring auto configuration support:
+
+[source,XML]
+----
+   <dependency>
+      <groupId>io.sapl</groupId>
+      <artifactId>sapl-spring-pdp-embedded</artifactId>
+      <version>2.0.0-SNAPSHOT</version>
+   </dependency>
+----
+
+===== Remote PDP
+
+Alternatively a remote PDP server can be used by via the same interface by using the client implementation. (See: https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-pdp-remote)
+
+[source,XML]
+----
+   <dependency>
+      <groupId>io.sapl</groupId>
+      <artifactId>sapl-pdp-remote</artifactId>
+      <version>2.0.0-SNAPSHOT</version>
+   </dependency>
+----
+
+
+The library with Spring auto configuration support:
+
+[source,XML]
+----
+   <dependency>
+      <groupId>io.sapl</groupId>
+      <artifactId>sapl-spring-pdp-remote</artifactId>
+      <version>2.0.0-SNAPSHOT</version>
+   </dependency>
+----
+
+===== Spring Security Integration and PEP Implementation
+
+For Spring Security (https://spring.io/projects/spring-security) a full PEP implementation is available. A matching Spring PDP implementation also must be declared to use the integration (see above).
+
+[source,XML]
+----
+   <dependency>
+      <groupId>io.sapl</groupId>
+      <artifactId>sapl-spring-security</artifactId>
+      <version>2.0.0-SNAPSHOT</version>
+   </dependency>
+----
+
 == The SAPL Policy Language
 
 SAPL defines a feature-rich domain specific language (DSL) for creating access policies. 
-
 Those access policies describe when access requests will be granted and when access will be denied. The underlying concept to describe these permissions is an attribute-based access control model (ABAC): A SAPL authorization subscription is a JSON object with the attributes `subject`, `action`, `resource` and `environment` each with an assigned JSON value. Each of these values may be a JSON object itself containing multiple attributes. Policies can make use of boolean conditions referring to those attributes (e.g., `subject.username == "admin"`).
 
 However a role based access control (RBAC) system in which permissions are assigned to a certain role and roles can be assigned to users can be created with SAPL as well. 
