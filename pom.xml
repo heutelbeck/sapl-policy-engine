@@ -30,6 +30,8 @@
 			<roles>
 				<role>Project Owner</role>
 			</roles>
+			<url>https://github.com/heutelbeck</url>
+			<id>heutelbeck</id>
 		</developer>
 	</developers>
 
@@ -42,6 +44,12 @@
 		</license>
 	</licenses>
 
+	<scm>
+		<connection>scm:git:git://github.com/heutelbeck/sapl-policy-engine.git</connection>
+		<developerConnection>scm:git:ssh://github.com/heutelbeck/sapl-policy-engine.git</developerConnection>
+		<url>https://github.com/heutelbeck/sapl-policy-engine</url>
+	</scm>
+	
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -59,7 +67,7 @@
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
 		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
-		<guice.version>5.0.0-BETA-1</guice.version>		
+		<guice.version>5.0.0-BETA-1</guice.version>
 	</properties>
 
 	<modules>
@@ -165,8 +173,8 @@
 			</dependency>
 
 			<dependency>
-    			<groupId>com.google.inject</groupId>
-    			<artifactId>guice</artifactId>
+				<groupId>com.google.inject</groupId>
+				<artifactId>guice</artifactId>
 				<version>${guice.version}</version>
 			</dependency>
 		</dependencies>
@@ -437,18 +445,6 @@
 			<url>https://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
 		</repository>
 
-		<!-- Openconjurer -->
-		<repository>
-			<id>openconjurer-public</id>
-			<name>OpenConjurer Nexus Maven Release Repository</name>
-			<url>https://nexus.openconjurer.org/repository/releases/</url>
-		</repository>
-		<repository>
-			<id>openconjurer-public-snapshots</id>
-			<name>OpenConjurer Nexus Maven Snapshot Repository</name>
-			<url>https://nexus.openconjurer.org/repository/snapshots/</url>
-		</repository>
-
 		<repository>
 			<id>codehaus-snapshots</id>
 			<name>disable dead 'Codehaus Snapshots' repository, see
@@ -517,7 +513,7 @@
 		<repository>
 			<id>sapl</id>
 			<name>Heutelbeck GitHub Maven Repository</name>
-    		<url>https://maven.pkg.github.com/heutelbeck/packages</url>		
+			<url>https://maven.pkg.github.com/heutelbeck/packages</url>
 		</repository>
 	</distributionManagement>
 
