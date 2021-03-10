@@ -202,5 +202,38 @@ Example POM for a SAPL extension:
 			</snapshots>
 		</repository>
 	</repositories>
+	
+	<!-- 
+	
+		In case the resulting JAR should not be used as a dependency, but as a fat 
+		JAR to be deployed with a PDP Server, the maven-assembly-plugin can be used 
+		to package all dependencies into a single JAR.
+		It is recommended to declare all dependencies expected to be already present 
+		with the Server as <scope>provided</scope>.
+	
+	-->
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>3.3.0</version>
+				<configuration>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 </project>
 ```
