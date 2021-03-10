@@ -127,3 +127,15 @@ mkcert -pkcs12 -p12-file self-signed-cert.p12 localhost 127.0.0.1 ::1
 ## Containerized Cloud Deployment
 
 TBD
+
+
+## Custom Policy Information Points (PIPs) or Function Libraries
+
+To support new attributes and functions, the matching libraries have to be deployed alongside the server application. One way to do so is to create your own server project and add the libraries to the dependencies of the application via maven dependencies and to add the matching packages to the component scanning of Spring Boot and/or to provide matching configurations. Alternatively the SAPL Server LT supports side-loading of external JARs. 
+
+To load a custom PIP, the PIP has to be built as a JAR and all dependencies not already provided by the server have to be provided as JARs as well. Alternatively the PIP can be packaged as a so-called "fat JAR" including all dependencies. This can be achieved using the (Maven Dependency Plugin)[https://maven.apache.org/plugins/maven-dependency-plugin/] and an example for this approach can be found here: <https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-pip-http>.
+
+The SAPL Server LT will scan all packages below ```io.sapl.server``` for Spring beans or configurations providing PIPs or Function libraries at startup and load them automatically. Thus, the custom libraries must provide at least a matching spring configuration under this package.
+
+The JAR files are to be put into the folder `/pdp/data/lib` in the directory where policies are stored. Changes only take effect upon restart of the server application. To change the folder, overwrite the property `loader.path`.
+
