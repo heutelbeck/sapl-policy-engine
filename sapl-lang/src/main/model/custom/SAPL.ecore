@@ -47,7 +47,7 @@
   <eClassifiers xsi:type="ecore:EClass" name="Entitlement" abstract="true" interface="true">
     <eOperations name="getDecision" lowerBound="1" eType="#//Decision">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method returns a Flux of JsonNodes for the evaluation of the expression within a given evaluation context.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;a Flux of JsonNode results of evaluating the expression"/>
+        <details key="documentation" value=""/>
       </eAnnotations>
     </eOperations>
   </eClassifiers>
@@ -88,7 +88,7 @@
   <eClassifiers xsi:type="ecore:EClass" name="Step">
     <eOperations name="apply" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method performs the selection step on a result tree to arrive at a new result tree.&#xA;The new result trees are provided by the returned Flux.&#xA;&#xA;@param previousResult &#xA;&#x9;&#x9;the root node of the previous result tree&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the new result tree"/>
+        <details key="documentation" value=""/>
       </eAnnotations>
       <eParameters name="parentValue" eType="#//Val"/>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
@@ -115,7 +115,7 @@
   <eClassifiers xsi:type="ecore:EClass" name="FilterComponent">
     <eOperations name="apply" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method applies the filter to a JSON tree and returns a Flux providing the filtered trees.&#xA;&#xA;@param unfilteredRootNode &#xA;&#x9;&#x9;the root node of the tree to be filtered&#xA;@param ctx&#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;the root node of the filtered tree"/>
+        <details key="documentation" value=""/>
       </eAnnotations>
       <eParameters name="unfilteredRootNode" eType="#//Val"/>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
@@ -289,7 +289,7 @@
   <eClassifiers xsi:type="ecore:EClass" name="Evaluable" abstract="true" interface="true">
     <eOperations name="evaluate" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method returns a Flux of JsonNodes for the evaluation of the expression within a given evaluation context.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@param relativeNode &#xA;&#x9;&#x9;the JsonNode a relative expression without selection steps would evaluate to&#xA;@returns &#xA;&#x9;&#x9;a Flux of JsonNode results of evaluating the expression"/>
+        <details key="documentation" value=""/>
       </eAnnotations>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
       <eParameters name="relativeNode" eType="#//Val"/>
@@ -298,7 +298,7 @@
   <eClassifiers xsi:type="ecore:EClass" name="Matchable" abstract="true" interface="true">
     <eOperations name="matches" eType="#//ValMono">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method returns a flag indicating whether the object it is called on matches the current authorization subscription within the given evaluation context.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@returns &#xA;&#x9;&#x9;true if the object this method is called on matches the current authorization subscription within the given evaluation context, false otherwise.&#xA;@throws PolicyEvaluationException if an error occurs while evaluating the target expression"/>
+        <details key="documentation" value=""/>
       </eAnnotations>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
     </eOperations>
@@ -307,7 +307,7 @@
       interface="true">
     <eOperations name="evaluate" lowerBound="1" eType="#//AuthorizationDecisionFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="The method returns a Flux of AuthorizationDecisions for the object that can be evaluated to a SAPL authorization decision.&#xA;&#xA;@param ctx &#xA;&#x9;&#x9;the evaluation context&#xA;@returns&#xA;&#x9;&#x9;a Flux of SAPL authorization decisions"/>
+        <details key="documentation" value=""/>
       </eAnnotations>
       <eParameters name="ctx" eType="#//EvaluationContext"/>
     </eOperations>

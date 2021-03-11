@@ -91,12 +91,12 @@
     </genClasses>
     <genClasses ecoreClass="SAPL.ecore#//Step">
       <genOperations ecoreOperation="SAPL.ecore#//Step/apply">
-        <genParameters ecoreParameter="SAPL.ecore#//Step/apply/previousResult"/>
+        <genParameters ecoreParameter="SAPL.ecore#//Step/apply/parentValue"/>
         <genParameters ecoreParameter="SAPL.ecore#//Step/apply/ctx"/>
         <genParameters ecoreParameter="SAPL.ecore#//Step/apply/relativeNode"/>
       </genOperations>
       <genOperations ecoreOperation="SAPL.ecore#//Step/apply.1">
-        <genParameters ecoreParameter="SAPL.ecore#//Step/apply.1/previousResult"/>
+        <genParameters ecoreParameter="SAPL.ecore#//Step/apply.1/parentValue"/>
         <genParameters ecoreParameter="SAPL.ecore#//Step/apply.1/ctx"/>
         <genParameters ecoreParameter="SAPL.ecore#//Step/apply.1/relativeNode"/>
       </genOperations>

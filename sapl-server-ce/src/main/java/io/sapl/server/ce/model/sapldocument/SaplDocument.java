@@ -139,7 +139,7 @@ public class SaplDocument implements Serializable {
 	}
 
 	/**
-	 * Gets a {@link String} representation of the {@link SaplDocumentType}.
+	 * Gets a {@link String} representation of the {@link DocumentType}.
 	 * 
 	 * @return the {@link String} representation
 	 */

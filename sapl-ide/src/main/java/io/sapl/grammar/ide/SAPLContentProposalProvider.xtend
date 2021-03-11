@@ -3,7 +3,6 @@ package io.sapl.grammar.ide
 import java.util.ArrayList
 import java.util.Arrays
 import java.util.List
-
 import org.eclipse.xtext.Assignment
 import org.eclipse.xtext.Keyword
 import org.eclipse.xtext.RuleCall

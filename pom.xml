@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com) Licensed 
-	under the Apache License, Version 2.0 (the "License"); you may not use this 
-	file except in compliance with the License. You may obtain a copy of the 
-	License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by 
-	applicable law or agreed to in writing, software distributed under the License 
-	is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
-	KIND, either express or implied. See the License for the specific language 
-	governing permissions and limitations under the License. -->
+<!--
+
+    Copyright © 2020-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+    
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    
+        http://www.apache.org/licenses/LICENSE-2.0
+    
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
 <!-- Update all child project versions to the actual parent pom version: 
 	mvn versions:update-child-modules -N -->
 <!-- correct the license headers of all source files mvn license:format -->
@@ -22,6 +31,10 @@
 	<packaging>pom</packaging>
 
 	<name>Streaming Attribute Authorization Engine</name>
+
+	<description>Auhtorization engine for Attribute Stream </description>
+
+	<url>https://sapl.io</url>
 
 	<developers>
 		<developer>
@@ -46,10 +59,10 @@
 
 	<scm>
 		<connection>scm:git:git://github.com/heutelbeck/sapl-policy-engine.git</connection>
-		<developerConnection>scm:git:ssh://github.com/heutelbeck/sapl-policy-engine.git</developerConnection>
+		<developerConnection>scm:git:git@github.com:heutelbeck/sapl-policy-engine.git</developerConnection>
 		<url>https://github.com/heutelbeck/sapl-policy-engine</url>
 	</scm>
-	
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -58,7 +71,7 @@
 		<license-maven-plugin.version>3.0</license-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.1.0</maven-javadoc-plugin.version>
 		<junit.version>4.13.1</junit.version>
-		<lombok.version>1.18.16</lombok.version>
+		<lombok.version>1.18.18</lombok.version>
 		<springboot.version>2.4.1</springboot.version>
 		<powermock.version>2.0.7</powermock.version>
 		<mockito.version>3.6.0</mockito.version>
@@ -330,60 +343,13 @@
 						<config>SCRIPT_STYLE</config>
 					</mapping>
 				</configuration>
-				<!-- Uncomment if check shall be done every build <executions> <execution> 
-					<goals> <goal>check</goal> </goals> </execution> </executions> -->
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>3.2.0</version>
-				<executions>
-					<execution>
-						<id>attach-sources</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.2.0</version>
-				<executions>
-					<execution>
-						<id>attach-javadoc</id>
-						<phase>deploy</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<source>11</source>
-					<doclint>none</doclint>
-					<sourceFileExcludes>
-						<sourceFileExclude>**/emf-gen/*.java</sourceFileExclude>
-					</sourceFileExcludes>
-					<tags>
-						<tag>
-							<name>returns</name>
-							<placement>X</placement>
-						</tag>
-						<tag>
-							<name>ordered</name>
-							<placement>X</placement>
-						</tag>
-						<tag>
-							<name>generated</name>
-							<placement>X</placement>
-						</tag>
-						<tag>
-							<name>model</name>
-							<placement>X</placement>
-						</tag>
-					</tags>
-				</configuration>
+				<!-- To check every build:
+			   	<executions>
+			     	<execution> 
+			     		<goals> <goal>check</goal> </goals> 
+			        </execution> 
+			   	</executions> 
+				 -->
 			</plugin>
 			<plugin>
 				<groupId>org.commonjava.maven.plugins</groupId>
@@ -406,18 +372,13 @@
 					</execution>
 				</executions>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-deploy-plugin</artifactId>
-				<version>2.8.2</version>
-			</plugin>
 		</plugins>
 	</build>
 
 	<repositories>
 		<!-- Order here defines priority in lookup -->
 
-		<!-- Main Maven repository -->
+		<!-- Maven Central repository -->
 		<repository>
 			<id>central</id>
 			<url>https://repo.maven.apache.org/maven2</url>
@@ -425,7 +386,14 @@
 				<enabled>false</enabled>
 			</snapshots>
 		</repository>
-
+		<!-- Maven Central snapshots -->
+		<repository>
+			<id>ossrh</id>
+			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
 		<!-- Repository used by many Vaadin add-ons -->
 		<repository>
 			<id>Vaadin Directory</id>
@@ -507,14 +475,103 @@
 				<moduleProperties>--add-modules=ALL-SYSTEM</moduleProperties>
 			</properties>
 		</profile>
+
+		<profile>
+			<id>publish</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<version>3.2.0</version>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<version>3.2.0</version>
+						<executions>
+							<execution>
+								<id>attach-javadocs</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<tags>
+								<tag>
+									<name>generated</name>
+									<placement>a</placement>
+									<head>Generated Code</head>
+								</tag>
+								<tag>
+									<name>ordered</name>
+									<placement>a</placement>
+									<head>EMF Ordered</head>
+								</tag>
+								<tag>
+									<name>model</name>
+									<placement>a</placement>
+									<head>EMF Model</head>
+								</tag>
+								<tag>
+									<name>returns</name>
+									<placement>a</placement>
+									<head>EMF Returns:</head>
+								</tag>
+							</tags>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.sonatype.plugins</groupId>
+						<artifactId>nexus-staging-maven-plugin</artifactId>
+						<version>1.6.8</version>
+						<extensions>true</extensions>
+						<configuration>
+							<serverId>ossrh</serverId>
+							<nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+							<autoReleaseAfterClose>true</autoReleaseAfterClose>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.6</version>
+						<configuration>
+							<!-- prevent gpg from using PIN entry programs -->
+							<gpgArguments>
+								<arg>--pinentry-mode</arg>
+								<arg>loopback</arg>
+							</gpgArguments>
+						</configuration>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 	</profiles>
 
 	<distributionManagement>
-		<repository>
-			<id>sapl</id>
-			<name>Heutelbeck GitHub Maven Repository</name>
-			<url>https://maven.pkg.github.com/heutelbeck/packages</url>
-		</repository>
+		<snapshotRepository>
+			<id>ossrh</id>
+			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
 	</distributionManagement>
 
 </project>

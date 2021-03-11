@@ -25,9 +25,9 @@ jobs:
         githubServer: false
         servers: |
           [{
-              "id": "sapl", 
-              "username": "${{ secrets.GHUB_USERNAME }}",
-              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+              "id": "ossrh", 
+              "username": "${{ secrets.OSSRH_USERNAME }}",
+              "password": "${{ secrets.OSSRH_PASSWORD }}"
            },{
               "id": "ghcr.io",
               "username": "${{ secrets.GHUB_USERNAME }}", 
@@ -55,9 +55,14 @@ jobs:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/* -P production,h2,mariadb
-       
+
+    - name: Install GPG Code Signing Key
+      run: |
+        cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+        gpg --list-secret-keys --keyid-format LONG
+
     - name: Deploy Maven artefacts
-      run: mvn -B deploy -DskipTests -P production,h2,mariadb      
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -DskipTests -P publish,production,h2,mariadb clean deploy      
 
     - name: Build and push SAPL Server LT Docker image
       run: |

@@ -33,8 +33,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * REST controller providing endpoints for a policy decision point. The
- * endpoints can be connected using the client
- * {@link io.sapl.pdp.remote.RemotePolicyDecisionPoint} in the module
+ * endpoints can be connected using the client in the module
  * sapl-pdp-client.
  */
 

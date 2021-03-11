@@ -59,7 +59,6 @@ public class AnnotationFunctionContext implements FunctionContext {
 	 * Create context from a list of function libraries.
 	 * 
 	 * @param libraries list of function libraries @ if loading libraries fails
-	 * @throws FunctionException
 	 * @throws InitializationException
 	 */
 	public AnnotationFunctionContext(Object... libraries) throws InitializationException {
