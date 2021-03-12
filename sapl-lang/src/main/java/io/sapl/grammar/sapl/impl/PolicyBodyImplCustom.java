@@ -71,7 +71,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 		});
 	}
 
-	private Function<? super Tuple2<Val, EvaluationContext>, Publisher<? extends Tuple2<Val, EvaluationContext>>> evaluateStatements(
+	protected Function<? super Tuple2<Val, EvaluationContext>, Publisher<? extends Tuple2<Val, EvaluationContext>>> evaluateStatements(
 			int statementId) {
 		if (statementId == statements.size()) {
 			return Flux::just;
@@ -116,7 +116,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 		};
 	}
 
-	private Flux<Tuple2<Val, EvaluationContext>> evaluateCondition(Val previousResult, Condition condition,
+	protected Flux<Tuple2<Val, EvaluationContext>> evaluateCondition(Val previousResult, Condition condition,
 			EvaluationContext ctx) {
 		if (previousResult.isError() || !previousResult.getBoolean()) {
 			return Flux.just(Tuples.of(previousResult, ctx));
