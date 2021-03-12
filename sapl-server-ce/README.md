@@ -10,7 +10,7 @@ on Docker and/or Kubernetes is available.
 
 ### Running from Pre-Build JAR
 
-Download the latest build from [here](https://github.com/heutelbeck/packages/packages/612742).
+Download the latest build from [here](https://s01.oss.sonatype.org/content/repositories/snapshots/io/sapl/sapl-server-ce/).
 To run the server, you need JRE 11 or later installed. 
 
 #### Pre-Configured Demo Server
