@@ -90,8 +90,8 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 		web.ignoring().antMatchers(
 				// Vaadin Flow static resources //
 				"/VAADIN/**",
-				// the standard favicon URI
-				"/favicon.ico",
+				// resources
+				"/icons/**", "/images/**",
 				// the robots exclusion standard
 				"/robots.txt",
 				// web application manifest //

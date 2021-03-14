@@ -15,14 +15,7 @@
  */
 package io.sapl.server.ce.views;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.apache.commons.lang3.tuple.Pair;
-
+import antlr.StringUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.vaadin.flow.component.Component;
@@ -45,22 +38,29 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.router.RouteData;
 import com.vaadin.flow.router.RouterLink;
+import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinServletRequest;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
-
-import antlr.StringUtils;
 import io.sapl.server.ce.views.documentation.ListFunctionsAndPipsView;
 import io.sapl.server.ce.views.pdpconfiguration.ConfigurePdp;
 import io.sapl.server.ce.views.sapldocument.SaplDocumentsView;
 import lombok.NonNull;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * The main view is a top-level placeholder for other views.
  */
+@PWA(name = "SAPL PDP Server CE", shortName = "CE")
 @Push
 @Slf4j
 @JsModule("./styles/shared-styles.js")
@@ -114,7 +114,7 @@ public class MainView extends AppLayout {
 		HorizontalLayout logoLayout = new HorizontalLayout();
 		logoLayout.setId("logo");
 		logoLayout.setAlignItems(FlexComponent.Alignment.CENTER);
-		logoLayout.add(new Image("images/logos/logo-header.png", "SAPL Server CE logo"));
+		logoLayout.add(new Image("icons/icon.png", "SAPL Server CE logo"));
 		logoLayout.add(new H1("SAPL Server CE"));
 		layout.add(logoLayout, menu);
 		return layout;
@@ -158,12 +158,10 @@ public class MainView extends AppLayout {
 		menuItems.stream()
 			.filter(menuItem -> menuItem.getRoute().equals(adjustedPath))
 			.findFirst()
-			.ifPresentOrElse(
+			.ifPresent(
 				menuItem -> {
 					int index = menuItems.indexOf(menuItem);
 					tabs.setSelectedIndex(index);
-				}, () -> {
-					log.warn("cannot find menu item for current request (request URI: {})", uriAsString);
 				});
 		//@formatter:on
 	}

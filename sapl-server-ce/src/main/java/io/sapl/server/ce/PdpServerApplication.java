@@ -15,12 +15,12 @@
  */
 package io.sapl.server.ce;
 
+import com.vaadin.flow.server.PWA;
+import com.vaadin.flow.spring.annotation.EnableVaadin;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
-
-import com.vaadin.flow.spring.annotation.EnableVaadin;
 
 /**
  * The Spring Boot application of SAPL PDP Server CE.
