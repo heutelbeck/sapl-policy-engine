@@ -38,9 +38,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.router.RouteData;
 import com.vaadin.flow.router.RouterLink;
-import com.vaadin.flow.server.PWA;
-import com.vaadin.flow.server.VaadinService;
-import com.vaadin.flow.server.VaadinServletRequest;
+import com.vaadin.flow.server.*;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
 import io.sapl.server.ce.views.documentation.ListFunctionsAndPipsView;
@@ -114,7 +112,12 @@ public class MainView extends AppLayout {
 		HorizontalLayout logoLayout = new HorizontalLayout();
 		logoLayout.setId("logo");
 		logoLayout.setAlignItems(FlexComponent.Alignment.CENTER);
-		logoLayout.add(new Image("icons/icon.png", "SAPL Server CE logo"));
+
+		String resolvedSaplLogoPath = VaadinServletService.getCurrent()
+				.resolveResource("images/SAPL-Logo.png",
+						VaadinSession.getCurrent().getBrowser());
+		logoLayout.add(new Image(resolvedSaplLogoPath, "SAPL Server CE logo"));
+
 		logoLayout.add(new H1("SAPL Server CE"));
 		layout.add(logoLayout, menu);
 		return layout;
