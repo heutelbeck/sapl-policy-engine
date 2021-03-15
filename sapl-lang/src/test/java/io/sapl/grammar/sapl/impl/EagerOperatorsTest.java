@@ -21,7 +21,6 @@ import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.sapl.interpreter.EvaluationContext;
@@ -49,6 +48,7 @@ public class EagerOperatorsTest {
 	public void evaluateXOrTrueTrue() {
 		expressionEvaluatesTo(CTX, "true ^ true", "false");
 	}
+
 	@Test
 	public void evaluateEagerAndFalseFalse() {
 		expressionEvaluatesTo(CTX, "false & false", "false");
@@ -452,15 +452,11 @@ public class EagerOperatorsTest {
 	}
 
 	@Test
-	@Ignore
-	// FIXME: needs spaces
 	public void evaluate1Minus1BAD() {
 		expressionEvaluatesTo(CTX, "1-1", "0");
 	}
 
 	@Test
-	@Ignore
-	// FIXME: needs spaces
 	public void evaluateBAD() {
 		expressionEvaluatesTo(CTX, "5+5-3", "7");
 	}
@@ -523,8 +519,8 @@ public class EagerOperatorsTest {
 	@Test
 	public void unaryMinus() {
 		expressionEvaluatesTo(CTX, "-(1)", "-1");
-	}	
-	
+	}
+
 	@Test
 	public void unaryPlus() {
 		expressionEvaluatesTo(CTX, "+(1)", "1");
