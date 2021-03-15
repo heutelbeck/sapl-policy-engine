@@ -29,6 +29,8 @@
 	<artifactId>sapl-lang</artifactId>
 	<packaging>jar</packaging>
 	<dependencies>
+	
+		<!-- SAPL APIs implemented or used by the SAPL language core -->
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-pdp-api</artifactId>
@@ -39,18 +41,8 @@
 			<artifactId>sapl-extensions-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>org.eclipse.xtext</groupId>
-			<artifactId>org.eclipse.xtext.testing</artifactId>
-			<version>${xtext.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.eclipse.xtext</groupId>
-			<artifactId>org.eclipse.xtext.xbase.testing</artifactId>
-			<version>${xtext.version}</version>
-			<scope>test</scope>
-		</dependency>
+		
+		<!-- XText -->
 		<dependency>
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext</artifactId>
@@ -77,18 +69,36 @@
 			<artifactId>xtext-antlr-generator</artifactId>
 			<optional>true</optional>
 		</dependency>
+
+		<!-- Logging -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+
+		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
+
+		<!-- Testing -->
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
+			<groupId>org.eclipse.xtext</groupId>
+			<artifactId>org.eclipse.xtext.testing</artifactId>
+			<version>${xtext.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.xtext</groupId>
+			<artifactId>org.eclipse.xtext.xbase.testing</artifactId>
+			<version>${xtext.version}</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-simple</artifactId>
+			<artifactId>slf4j-nop</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -155,7 +165,15 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
-				<version>1.4.0</version>
+				<version>3.0.0</version>
+				<dependencies>
+					<!-- Harmonize SLF4J dependencies during build -->
+					<dependency>
+						<groupId>org.slf4j</groupId>
+						<artifactId>slf4j-api</artifactId>
+						<version>1.7.30</version>
+					</dependency>
+				</dependencies>
 				<executions>
 					<execution>
 						<?m2e ignore?>
@@ -298,6 +316,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
+				<version>3.3.0</version>
 				<configuration>
 					<descriptors>
 						<descriptor>jar-with-ecore-model.xml</descriptor>

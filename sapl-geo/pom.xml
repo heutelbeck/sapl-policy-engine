@@ -31,7 +31,7 @@
 	<properties>
 		<geotools.version>20.2</geotools.version>
 		<geojson-jackson.version>1.8</geojson-jackson.version>
-		<asciidoc.version>1.6.0</asciidoc.version>
+		<asciidoc.version>2.1.0</asciidoc.version>
 		<version.powermock>2.0.0</version.powermock>
 	</properties>
 
@@ -82,6 +82,12 @@
 			<groupId>net.postgis</groupId>
 			<artifactId>postgis-jdbc</artifactId>
 			<version>2.1.7.2</version>
+			<exclusions>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
@@ -102,7 +108,11 @@
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
-
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-nop</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.hamcrest</groupId>
 			<artifactId>hamcrest-library</artifactId>
@@ -151,7 +161,6 @@
 						</goals>
 						<configuration>
 							<backend>html5</backend>
-							<sourceHighlighter>coderay</sourceHighlighter>
 							<attributes>
 								<imagesdir>./images</imagesdir>
 								<toc>left</toc>

@@ -486,7 +486,7 @@ public interface PolicyDecisionPoint {
 }
 ----
 
-===== Embedded PDP
+==== Embedded PDP
 
 To use a PDP two implementations of the API are supplied. First, a completely embedded PDP can be used to be deployed with an application. (See: https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-pdp-embedded)
 
@@ -510,7 +510,7 @@ The library with Spring auto configuration support:
    </dependency>
 ----
 
-===== Remote PDP
+==== Remote PDP
 
 Alternatively a remote PDP server can be used by via the same interface by using the client implementation. (See: https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-pdp-remote)
 
@@ -535,7 +535,7 @@ The library with Spring auto configuration support:
    </dependency>
 ----
 
-===== Spring Security Integration and PEP Implementation
+==== Spring Security Integration and PEP Implementation
 
 For Spring Security (https://spring.io/projects/spring-security) a full PEP implementation is available. A matching Spring PDP implementation also must be declared to use the integration (see above).
 
@@ -625,8 +625,6 @@ var dbUser = "admin";<5>
 
 
 === Imports
-
-[[imports]]
 
 SAPL provides access to functions or attribute finders stored in libraries. The names of those libraries usually consist of different parts separated by periods (e.g. `sapl.pip.http` - a library containing functions to obtain attributes through HTTP requests). In policy documents, the functions and finders can be accessed by their fully qualified name, i.e. the name of the library followed by a period (`.`) and the function or finder name, e.g. `sapl.pip.http.get`.
 
@@ -816,8 +814,6 @@ In each policy, functions and attribute finders imported at the beginning of the
 The descriptions of the policy and policy set structure sometimes refers to language elements like identifiers and strings. These elements are explained in this section.
 
 ==== Identifiers
-
-[[identifiers]]
 
 Multiple elements in policies or policy sets require identifiers. E.g. a variable assignments expects an identifier after the keyword `var` - the name under which the assigned value will be available.
 
@@ -1319,8 +1315,6 @@ Attribute finders are described in greater detail <<attribute-finders,below>>.
 
 ==== Filtering
 
-[[filtering]]
-
 SAPL provides syntax elements for having a value pass specified *filters* and thereby modifying it. 
 
 Filters can only be applied to basic expressions (remember that an expression in parentheses is a basic expression). Filtering is denoted by the `|-` operator after the expression. Which *filter function* is applied in what way can be defined by a *simple filtering component* or by an *extended filtering component*, which consists of several filter statements.
@@ -1544,8 +1538,6 @@ Evaluating a policy against an authorization subscription means assigning a valu
 
 === Policy Set
 
-[[policy-set]]
-
 A decision value (`NOT_APPLICABLE`, `INDETERMINATE`, `PERMIT` or `DENY`) can also be assigned to a policy set. This value depends on the result of evaluating the policy set's target expression and the policies contained in the policy set:
 
 [cols="a,a,a"]
@@ -1727,8 +1719,6 @@ public static JsonNode length(
 Each parameter can be annotated with any number of `@Array`, `@Bool`, `@Int`, `@JsonObject`, `@Long`, `@Number` and `@Text`. The annotations describe which types are allowed for the parameter (in case of multiple annotations, each of these types is allowed).
 
 == Attribute Finders
-
-[[attribute-finders]]
 
 Attribute finders are used to receive attributes which are not included in the authorization subscription context from external PIPs. Just like in `subject.age`, the selection step `.age` selects the attribute ``age``s value, `subject.<user.age>` could be used to fetch an `age` attribute which is not included in `subject` but can be obtained from a PIP named `user`.
 
