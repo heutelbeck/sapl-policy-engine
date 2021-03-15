@@ -15,12 +15,15 @@
  */
 package io.sapl.server.ce.security;
 
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
-
-public class CustomRequestCache extends HttpSessionRequestCache {
+/**
+ * HttpSessionRequestCache that avoids saving internal framework requests.
+ */
+class CustomRequestCache extends HttpSessionRequestCache {
 	/**
 	 * {@inheritDoc}
 	 *
@@ -35,4 +38,5 @@ public class CustomRequestCache extends HttpSessionRequestCache {
 			super.saveRequest(request, response);
 		}
 	}
+
 }

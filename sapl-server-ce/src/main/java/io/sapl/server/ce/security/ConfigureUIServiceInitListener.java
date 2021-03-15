@@ -38,10 +38,12 @@ public class ConfigureUIServiceInitListener implements VaadinServiceInitListener
 	/**
 	 * Reroutes the user if (s)he is not authorized to access the view.
 	 *
-	 * @param event before navigation event with event details
+	 * @param event
+	 *            before navigation event with event details
 	 */
 	private void beforeEnter(BeforeEnterEvent event) {
-		if (!LoginView.class.equals(event.getNavigationTarget()) && !SecurityUtils.isUserLoggedIn()) {
+		if (!LoginView.class.equals(event.getNavigationTarget())
+				&& !SecurityUtils.isUserLoggedIn()) {
 			event.rerouteTo(LoginView.class);
 		}
 	}
