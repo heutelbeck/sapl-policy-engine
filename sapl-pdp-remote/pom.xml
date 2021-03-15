@@ -24,27 +24,33 @@
 	<description>Client for remote Policy Decision Points</description>
 
 	<dependencies>
+		<!-- APIs to be implemented by this module -->
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-pdp-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<!-- Dependency for the WebClient -->
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-webflux</artifactId>
 		</dependency>
+		<!-- Dependency for the Repeat and Back-Off -->
 		<dependency>
 			<groupId>io.projectreactor.addons</groupId>
 			<artifactId>reactor-extra</artifactId>
 		</dependency>
+		<!-- Dependency for SSL Handling -->
 		<dependency>
 			<groupId>io.projectreactor.netty</groupId>
 			<artifactId>reactor-netty</artifactId>
 		</dependency>
+		<!-- Logging -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
+		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>

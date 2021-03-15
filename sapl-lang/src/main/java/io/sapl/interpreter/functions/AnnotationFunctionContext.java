@@ -26,7 +26,6 @@ import java.util.LinkedList;
 import java.util.Map;
 
 import io.sapl.api.functions.Function;
-import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.Val;

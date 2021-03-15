@@ -12,7 +12,7 @@ import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider
 
 class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
-	private List<String> unwantedProposals = new ArrayList<String>(
+	List<String> unwantedProposals = new ArrayList<String>(
 			Arrays.asList("@", "!", "(", ")", "[", "]", "{", "}", "null", "undefined", "&", "&&", 
 					"*", "+", "-", ".", "..", "/", "|", "||"))
 

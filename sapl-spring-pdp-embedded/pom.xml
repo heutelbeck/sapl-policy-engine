@@ -33,15 +33,28 @@
 	<name>SAPL Spring Embedded PDP</name>
 
 	<dependencies>
+		<!-- Spring Auto Configuration -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-autoconfigure</artifactId>
 		</dependency>
+		
+		<!-- The embedded PDP implementation -->
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-pdp-embedded</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		
+		<!-- 
+		     The following PIPs are compile scoped but optional. 
+		     
+		     This means that an application using this embedded PDP 
+		     does not automatically get them as a transitive dependency.
+		     However, the auto configuration can check for their presence 
+		     and instantiate them if the application explicitly declares 
+		     them as a dependency.
+		-->
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-pip-http</artifactId>
@@ -63,11 +76,15 @@
 			<scope>compile</scope>
 			<optional>true</optional>
 		</dependency>
+		
+		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
+		
+		<!-- Spring configuration handling -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-configuration-processor</artifactId>
