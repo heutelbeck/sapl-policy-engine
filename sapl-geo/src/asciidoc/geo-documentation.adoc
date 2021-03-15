@@ -915,7 +915,7 @@ a mathematical conversion decoded in the WKT format to be further used in the `p
 ***************
 
 ***************
-[[project]]
+
 `*project(Geometry geom, Projection mathTransform)*`
 
 ---

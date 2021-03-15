@@ -243,6 +243,7 @@
 						</execution>
 					</executions>
 					<configuration>
+						<showEmptyDirWarning>false</showEmptyDirWarning>
 						<outputDirectory>${basedir}/src/main/xtend-gen</outputDirectory>
 						<testOutputDirectory>${basedir}/src/test/xtend-gen</testOutputDirectory>
 					</configuration>
