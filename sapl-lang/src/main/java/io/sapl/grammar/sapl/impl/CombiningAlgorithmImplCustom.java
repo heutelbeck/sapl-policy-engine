@@ -37,7 +37,7 @@ public class CombiningAlgorithmImplCustom extends CombiningAlgorithmImpl {
 				.map(decisions -> combineDecisions(decisions, policyRetrievalResult.isErrorsInTarget()));
 	}
 
-	protected Flux<AuthorizationDecision> doCombinePolicies(List<Policy> policies, EvaluationContext ctx) {
+	protected Flux<AuthorizationDecision> doCombinePolicies(Iterable<Policy> policies, EvaluationContext ctx) {
 		return Flux.fromIterable(policies)
 				.concatMap(policy -> policy.matches(ctx).map(matches -> Tuples.of(matches, policy)))
 				.reduce(new PolicyRetrievalResult(), (state, matchAndDocument) -> {
