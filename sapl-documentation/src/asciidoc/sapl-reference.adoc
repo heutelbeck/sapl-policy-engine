@@ -16,7 +16,7 @@
 
 :tabsize: 4
 
-= SAPL - Structure and Agency Policy Language
+= SAPL - Streaming Attribute Policy Language
 Dominic Heutelbeck
 v2.0.0-SNAPSHOT
 
@@ -24,7 +24,7 @@ v2.0.0-SNAPSHOT
 
 == Introduction
 
-SAPL (Streaming Attribute or Structure and Agency Policy Language) describes both a *domain specific language (DSL)* for expressing access control policies and a *publish/subscribe protocol* based on http://json.org/[JSON].
+SAPL (Streaming Attribute Policy Language) describes both a *domain specific language (DSL)* for expressing access control policies and a *publish/subscribe protocol* based on http://json.org/[JSON].
 Policies expressed in SAPL describe conditions for access control in applications and distributed systems. The underlying policy engine implements a variant of Attribute-based Access control (ABAC) which is enables processing of data streams and follows reactive programming patterns. Namely, the SAPL policy engine implements Attribute Stream-based Access Control (ASBAC).
 
 A typical scenario for the application of SAPL would be a subject (e.g., a user or system) attempting to take an action (e.g., read or cancel an order) on a protected resource (e.g., a domain object of an application or a file). The subject makes a subscription request to the system (e.g., an application) for executing the action on the resource. The system implements a *policy enforcement point (PEP)* protecting the resources. The PEP collects information about the subject, action, resource, and potential other relevant data in an authorization subscription request and sends it to a *policy decision point (PDP)* which checks SAPL policies in order to decide whether access to the resource should be permitted as requested. This decision is packed in an authorization decision object and sent back to the PEP which accordingly either grants access according to the decision or prevents access to the resource. All data sources for the decision are subscribed to by the PDP and new decisions are sent to the PEP whenever indicated by the policies and data sources.
