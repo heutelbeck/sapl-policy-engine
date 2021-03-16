@@ -67,11 +67,12 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>11</java.version>
-		<xtext.version>2.24.0</xtext.version>
+		<xtext.version>2.25.0</xtext.version>
 		<license-maven-plugin.version>3.0</license-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
 		<junit.version>5.7.1</junit.version>
 		<lombok.version>1.18.18</lombok.version>
+		<hamcrest.version>2.2</hamcrest.version>
 		<springboot.version>2.4.3</springboot.version>
 		<powermock.version>2.0.9</powermock.version>
 		<mockito.version>3.8.0</mockito.version>
@@ -116,6 +117,16 @@
 				<version>${xtext.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
+				<exclusions>
+					<exclusion>
+						<groupId>org.hamcrest</groupId>
+						<artifactId>hamcrest-library</artifactId>
+					</exclusion>
+					<exclusion>
+						<groupId>org.hamcrest</groupId>
+						<artifactId>hamcrest-core</artifactId>
+					</exclusion>
+				</exclusions>
 			</dependency>
 
 			<!-- Testing Scope Dependencies -->
@@ -150,7 +161,18 @@
 				<version>${mockito.version}</version>
 				<scope>test</scope>
 			</dependency>
-
+			<dependency>
+				<groupId>org.hamcrest</groupId>
+				<artifactId>hamcrest-library</artifactId>
+				<version>${hamcrest.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.hamcrest</groupId>
+				<artifactId>hamcrest-core</artifactId>
+				<version>${hamcrest.version}</version>
+				<scope>test</scope>
+			</dependency>
 			<!-- Spring-Boot -->
 			<dependency>
 				<groupId>org.springframework.boot</groupId>
@@ -249,12 +271,12 @@
 					</configuration>
 					<dependencies>
 					<!-- Prevent illegal access with newer JKSs -->
-					<dependency>
-						<groupId>com.google.inject</groupId>
-						<artifactId>guice</artifactId>
-						<version>${guice.version}</version>
-					</dependency>
-				</dependencies>
+						<dependency>
+							<groupId>com.google.inject</groupId>
+							<artifactId>guice</artifactId>
+							<version>${guice.version}</version>
+						</dependency>
+					</dependencies>
 				</plugin>
 				<plugin>
 					<groupId>io.spring.javaformat</groupId>
