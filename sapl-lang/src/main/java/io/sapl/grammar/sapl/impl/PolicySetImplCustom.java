@@ -25,7 +25,6 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.combinators.PolicyCombinatorFactory;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
@@ -80,8 +79,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 					valueDefinitionSuccessAndScopedEvaluationContext.getT1().getMessage());
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
-		return PolicyCombinatorFactory.getCombinator(getAlgorithm()).combinePolicies(policies,
-				valueDefinitionSuccessAndScopedEvaluationContext.getT2());
+		return getAlgorithm().combinePolicies(policies, valueDefinitionSuccessAndScopedEvaluationContext.getT2());
 
 	}
 

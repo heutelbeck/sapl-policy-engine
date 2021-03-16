@@ -1,19 +1,4 @@
-/*
- * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-package io.sapl.interpreter.combinators;
+package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.api.pdp.Decision.DENY;
 import static io.sapl.api.pdp.Decision.INDETERMINATE;
@@ -28,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.combinators.ObligationAdviceCollector;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -54,8 +40,7 @@ import reactor.core.publisher.Flux;
  * ii) Otherwise the decision is NOT_APPLICABLE.
  */
 @Slf4j
-public class PermitOverridesCombinator extends AbstractEagerCombinator implements PolicyCombinator {
-
+public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverridesCombiningAlgorithmImpl {
 	@Override
 	protected AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions, boolean errorsInTarget) {
 		if ((decisions == null || decisions.length == 0) && !errorsInTarget) {
@@ -97,7 +82,7 @@ public class PermitOverridesCombinator extends AbstractEagerCombinator implement
 		log.debug("| |-- {} Combined AuthorizationDecision: {}", finalDecision.getDecision(), finalDecision);
 		return finalDecision;
 	}
-	
+
 	@Override
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		return doCombinePolicies(policies, ctx);

@@ -24,35 +24,41 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
+import io.sapl.grammar.sapl.impl.DenyOverridesCombiningAlgorithmImplCustom;
+import io.sapl.grammar.sapl.impl.DenyUnlessPermitCombiningAlgorithmImplCustom;
+import io.sapl.grammar.sapl.impl.OnlyOneApplicableCombiningAlgorithmImplCustom;
+import io.sapl.grammar.sapl.impl.PermitOverridesCombiningAlgorithmImplCustom;
+import io.sapl.grammar.sapl.impl.PermitUnlessDenyCombiningAlgorithmImplCustom;
+
 public class DocumentsCombinatorFactoryTest {
 
 	@Test
 	public void permitUnlessDeny() {
-		assertThat(DocumentsCombinatorFactory.getCombinator(PERMIT_UNLESS_DENY))
-				.isInstanceOf(PermitUnlessDenyCombinator.class);
+		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(PERMIT_UNLESS_DENY))
+				.isInstanceOf(PermitUnlessDenyCombiningAlgorithmImplCustom.class);
 	}
 
 	@Test
 	public void permitOverrides() {
-		assertThat(DocumentsCombinatorFactory.getCombinator(PERMIT_OVERRIDES))
-				.isInstanceOf(PermitOverridesCombinator.class);
+		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(PERMIT_OVERRIDES))
+				.isInstanceOf(PermitOverridesCombiningAlgorithmImplCustom.class);
 	}
 
 	@Test
 	public void denyOverrides() {
-		assertThat(DocumentsCombinatorFactory.getCombinator(DENY_OVERRIDES))
-				.isInstanceOf(DenyOverridesCombinator.class);
+		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_OVERRIDES))
+				.isInstanceOf(DenyOverridesCombiningAlgorithmImplCustom.class);
 	}
 
 	@Test
 	public void oneApplicable() {
-		assertThat(DocumentsCombinatorFactory.getCombinator(ONLY_ONE_APPLICABLE))
-				.isInstanceOf(OnlyOneApplicableCombinator.class);
+		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(ONLY_ONE_APPLICABLE))
+				.isInstanceOf(OnlyOneApplicableCombiningAlgorithmImplCustom.class);
 	}
 
 	@Test
 	public void dynyUnlessPErmit() {
-		assertThat(DocumentsCombinatorFactory.getCombinator(DENY_UNLESS_PERMIT))
-				.isInstanceOf(DenyUnlessPermitCombinator.class);
+		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_UNLESS_PERMIT))
+				.isInstanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class);
 	}
 }

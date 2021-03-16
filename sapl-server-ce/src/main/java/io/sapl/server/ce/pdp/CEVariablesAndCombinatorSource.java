@@ -29,8 +29,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.collect.Maps;
 
 import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
-import io.sapl.interpreter.combinators.DocumentsCombinator;
-import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import lombok.NonNull;
@@ -64,10 +64,10 @@ public class CEVariablesAndCombinatorSource implements VariablesAndCombinatorSou
 	}
 
 	@Override
-	public Flux<Optional<DocumentsCombinator>> getDocumentsCombinator() {
+	public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
 		//@formatter:off
 		return combiningAlgorithmSink.asFlux()
-				.map(DocumentsCombinatorFactory::getCombinator)
+				.map(CombiningAlgorithmFactory::getCombiningAlgorithm)
 				.map(Optional::of);
 		//@formatter:on
 	}

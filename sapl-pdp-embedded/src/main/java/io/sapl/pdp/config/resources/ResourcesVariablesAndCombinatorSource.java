@@ -38,8 +38,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPointConfiguration;
-import io.sapl.interpreter.combinators.DocumentsCombinator;
-import io.sapl.interpreter.combinators.DocumentsCombinatorFactory;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -137,8 +137,8 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 	}
 
 	@Override
-	public Flux<Optional<DocumentsCombinator>> getDocumentsCombinator() {
-		return Flux.just(config.getAlgorithm()).map(DocumentsCombinatorFactory::getCombinator).map(Optional::of);
+	public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
+		return Flux.just(config.getAlgorithm()).map(CombiningAlgorithmFactory::getCombiningAlgorithm).map(Optional::of);
 	}
 
 	@Override

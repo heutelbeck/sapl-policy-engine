@@ -26,7 +26,7 @@ public class FilesystemConfigTest {
 	@Test
 	public void doTest() throws InterruptedException {
 		var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
-		configProvider.getDocumentsCombinator().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
+		configProvider.getCombiningAlgorithm().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
 		configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
 		configProvider.dispose();
 	}

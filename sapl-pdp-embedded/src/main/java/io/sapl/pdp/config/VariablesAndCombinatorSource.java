@@ -20,12 +20,12 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.interpreter.combinators.DocumentsCombinator;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import reactor.core.publisher.Flux;
 
 public interface VariablesAndCombinatorSource {
 
-	Flux<Optional<DocumentsCombinator>> getDocumentsCombinator();
+	Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm();
 
 	Flux<Optional<Map<String, JsonNode>>> getVariables();
 

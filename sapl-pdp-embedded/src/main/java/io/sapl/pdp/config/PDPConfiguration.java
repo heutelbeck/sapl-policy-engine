@@ -15,14 +15,14 @@
  */
 package io.sapl.pdp.config;
 
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.combinators.DocumentsCombinator;
 import lombok.Value;
 
 @Value
 public class PDPConfiguration {
 	EvaluationContext pdpScopedEvaluationContext;
-	DocumentsCombinator documentsCombinator;
+	CombiningAlgorithm documentsCombinator;
 
 	public boolean isValid() {
 		return pdpScopedEvaluationContext != null && documentsCombinator != null;

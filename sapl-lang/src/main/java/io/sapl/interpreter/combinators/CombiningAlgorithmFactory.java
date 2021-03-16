@@ -21,21 +21,27 @@ import static io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES;
 import static io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY;
 
 import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.grammar.sapl.impl.DenyOverridesCombiningAlgorithmImplCustom;
+import io.sapl.grammar.sapl.impl.DenyUnlessPermitCombiningAlgorithmImplCustom;
+import io.sapl.grammar.sapl.impl.OnlyOneApplicableCombiningAlgorithmImplCustom;
+import io.sapl.grammar.sapl.impl.PermitOverridesCombiningAlgorithmImplCustom;
+import io.sapl.grammar.sapl.impl.PermitUnlessDenyCombiningAlgorithmImplCustom;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class DocumentsCombinatorFactory {
+public class CombiningAlgorithmFactory {
 
-	public static DocumentsCombinator getCombinator(PolicyDocumentCombiningAlgorithm algorithm) {
+	public static CombiningAlgorithm getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {
 		if (algorithm == PERMIT_UNLESS_DENY)
-			return new PermitUnlessDenyCombinator();
+			return new PermitUnlessDenyCombiningAlgorithmImplCustom();
 		if (algorithm == PERMIT_OVERRIDES)
-			return new PermitOverridesCombinator();
+			return new PermitOverridesCombiningAlgorithmImplCustom();
 		if (algorithm == DENY_OVERRIDES)
-			return new DenyOverridesCombinator();
+			return new DenyOverridesCombiningAlgorithmImplCustom();
 		if (algorithm == ONLY_ONE_APPLICABLE)
-			return new OnlyOneApplicableCombinator();
+			return new OnlyOneApplicableCombiningAlgorithmImplCustom();
 
-		return new DenyUnlessPermitCombinator();
+		return new DenyUnlessPermitCombiningAlgorithmImplCustom();
 	}
 }

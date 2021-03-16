@@ -15,16 +15,17 @@
  */
 package io.sapl.pdp.config;
 
+import java.util.Map;
+import java.util.Optional;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.combinators.DocumentsCombinator;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
-
-import java.util.Map;
-import java.util.Optional;
 
 @RequiredArgsConstructor
 public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPConfigurationProvider {
@@ -35,11 +36,11 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 
 	@Override
 	public Flux<PDPConfiguration> pdpConfiguration() {
-		return Flux.combineLatest(variablesAndCombinatorSource.getDocumentsCombinator(),
+		return Flux.combineLatest(variablesAndCombinatorSource.getCombiningAlgorithm(),
 				variablesAndCombinatorSource.getVariables(), this::createConfiguration);
 	}
 
-	private PDPConfiguration createConfiguration(Optional<DocumentsCombinator> combinator,
+	private PDPConfiguration createConfiguration(Optional<CombiningAlgorithm> combinator,
 			Optional<Map<String, JsonNode>> variables) {
 		return new PDPConfiguration(
 				variables.map(stringJsonNodeMap -> new EvaluationContext(attributeCtx, functionCtx, stringJsonNodeMap))
