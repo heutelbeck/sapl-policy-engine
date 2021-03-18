@@ -192,6 +192,12 @@
 							<classpathScope>compile</classpathScope>
 							<includePluginDependencies>true</includePluginDependencies>
 							<cleanupDaemonThreads>false</cleanupDaemonThreads><!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
+							<systemProperties>
+								<systemProperty>
+									<key>log4j.configuration</key>
+									<value>file:./plugin-log4j.properties</value>
+								</systemProperty>
+							</systemProperties>
 						</configuration>
 					</execution>
 					<execution>
