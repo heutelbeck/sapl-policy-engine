@@ -59,12 +59,12 @@ public class AuthorizationDecision {
 	 */
 	public static final AuthorizationDecision NOT_APPLICABLE = new AuthorizationDecision(Decision.NOT_APPLICABLE);
 
-	Decision decision;
+	Decision decision = Decision.INDETERMINATE;
 
 	// Optional fields initialized as Optional.empty to allow comparing with JSON
-	// marshalling/unmarshalling
+	// marshaling/unmarshaling
 	// Without initialization, fields would be null after JSON
-	// marshalling/unmarshalling
+	// marshaling/unmarshaling
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<JsonNode> resource = Optional.empty();
 
