@@ -375,13 +375,7 @@
 						<config>SCRIPT_STYLE</config>
 					</mapping>
 				</configuration>
-				<!-- To check every build:
-			   	<executions>
-			     	<execution> 
-			     		<goals> <goal>check</goal> </goals> 
-			        </execution> 
-			   	</executions> 
-				 -->
+				<!-- To check every build: <executions><execution><goals><goal>check</goal></goals></execution></executions> -->
 			</plugin>
 			<plugin>
 				<groupId>org.commonjava.maven.plugins</groupId>
@@ -406,96 +400,6 @@
 			</plugin>
 		</plugins>
 	</build>
-
-	<repositories>
-		<!-- Order here defines priority in lookup -->
-
-		<!-- Maven Central repository -->
-		<repository>
-			<id>central</id>
-			<url>https://repo.maven.apache.org/maven2</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<!-- Maven Central snapshots -->
-		<repository>
-			<id>ossrh</id>
-			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-		<!-- Repository used by many Vaadin add-ons -->
-		<repository>
-			<id>Vaadin Directory</id>
-			<url>https://maven.vaadin.com/vaadin-addons</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<!-- Repository needed for prerelease versions of Vaadin -->
-		<repository>
-			<id>Vaadin prereleases</id>
-			<url>https://maven.vaadin.com/vaadin-prereleases</url>
-		</repository>
-		<!-- Repository needed for the snapshot versions of Vaadin -->
-		<repository>
-			<id>vaadin-snapshots</id>
-			<url>https://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
-		</repository>
-
-		<repository>
-			<id>codehaus-snapshots</id>
-			<name>disable dead 'Codehaus Snapshots' repository, see
-                https://bugs.eclipse.org/bugs/show_bug.cgi?id=481478
-            </name>
-			<url>http://nexus.codehaus.org/snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-	</repositories>
-
-
-	<pluginRepositories>
-		<!-- Main Maven repository -->
-		<pluginRepository>
-			<id>central</id>
-			<url>https://repo.maven.apache.org/maven2</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-		<!-- Repository needed for prerelease versions of Vaadin -->
-		<pluginRepository>
-			<id>Vaadin prereleases</id>
-			<url>https://maven.vaadin.com/vaadin-prereleases</url>
-		</pluginRepository>
-		<pluginRepository>
-			<id>vaadin-snapshots</id>
-			<url>https://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-		</pluginRepository>
-		<pluginRepository>
-			<id>codehaus-snapshots</id>
-			<name>disable dead 'Codehaus Snapshots' repository, see
-                https://bugs.eclipse.org/bugs/show_bug.cgi?id=481478
-            </name>
-			<url>http://nexus.codehaus.org/snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-	</pluginRepositories>
 
 	<profiles>
 		<profile>
