@@ -18,7 +18,6 @@ package io.sapl.interpreter
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
-import io.sapl.api.interpreter.PolicyEvaluationException
 import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.functions.FilterFunctionLibrary
@@ -58,7 +57,7 @@ class DemoDomainTest {
 	}
 
 	@Test
-	def void recursiveDescendTest() throws PolicyEvaluationException {
+	def void recursiveDescendTest() {
 		val authzSubscription = '''
 		{   
 			"subject"		:	{

@@ -1,12 +1,12 @@
 /*
  * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,7 +18,6 @@ package io.sapl.functions
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
-import io.sapl.api.interpreter.PolicyEvaluationException
 import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.Decision
 import io.sapl.interpreter.DefaultSAPLInterpreter
@@ -198,7 +197,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void equalsTest() throws PolicyEvaluationException {
+	def void equalsTest() {
 		val policyDefinition = '''
 			policy "equalsTest" 
 			permit
@@ -210,7 +209,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void crossesTouchesTest() throws PolicyEvaluationException {
+	def void crossesTouchesTest() {
 		val policyDefinition = '''
 			policy "equalsTest" 
 			permit
@@ -222,7 +221,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void disjointIntersectsTest() throws PolicyEvaluationException {
+	def void disjointIntersectsTest() {
 		val policyDefinition = '''
 			policy "disjointIntersectsTest" 
 			permit
@@ -235,7 +234,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void containsWithinTest() throws PolicyEvaluationException {
+	def void containsWithinTest() {
 		val policyDefinition = '''
 			policy "containsWithinTest" 
 			permit
@@ -248,7 +247,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void resourceToGeometryBagTest() throws PolicyEvaluationException {
+	def void resourceToGeometryBagTest() {
 		val policyDefinition = '''
 			policy "resourceToGeometryBag" 
 			permit
@@ -263,7 +262,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void overlapsTest() throws PolicyEvaluationException {
+	def void overlapsTest() {
 		val policyDefinition = '''
 			policy "overlapsTest" 
 			permit
@@ -274,7 +273,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void bufferTest() throws PolicyEvaluationException {
+	def void bufferTest() {
 		val policyDefinition = '''
 			policy "bufferTest" 
 			permit
@@ -285,7 +284,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void centroidTest() throws PolicyEvaluationException {
+	def void centroidTest() {
 		val policyDefinition = '''
 			policy "centroidTest" 
 			permit
@@ -300,7 +299,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void boundaryConvexhullTest() throws PolicyEvaluationException {
+	def void boundaryConvexhullTest() {
 		val policyDefinition = '''
 			policy "boundaryConvexhullTest" 
 			permit
@@ -313,7 +312,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void unionTest() throws PolicyEvaluationException {
+	def void unionTest() {
 		val policyDefinition = '''
 			policy "unionTest" 
 			permit
@@ -325,7 +324,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void intersectionTest() throws PolicyEvaluationException {
+	def void intersectionTest() {
 		val policyDefinition = '''
 			policy "intersectionTest" 
 			permit
@@ -337,7 +336,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void differenceTest() throws PolicyEvaluationException {
+	def void differenceTest() {
 		val policyDefinition = '''
 			policy "differenceTest" 
 			permit
@@ -351,7 +350,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void areaLengthTest() throws PolicyEvaluationException {
+	def void areaLengthTest() {
 		val policyDefinition = '''
 			policy "areaLengthTest" 
 			permit
@@ -364,7 +363,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void geoDistanceTest() throws PolicyEvaluationException {
+	def void geoDistanceTest() {
 		val policyDefinition = '''
 			policy "geoDistanceTest" 
 			permit
@@ -378,7 +377,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void distanceTest() throws PolicyEvaluationException {
+	def void distanceTest() {
 		val policyDefinition = '''
 			policy "distanceTest" 
 			permit
@@ -389,7 +388,7 @@ class GeoFunctionLibraryTest {
 	}
 
 //	@Test
-//	def void unitConversionTest() throws PolicyEvaluationException {
+//	def void unitConversionTest()  {
 //		val policyDefinition = '''
 //			policy "unitConversionTest" 
 //			permit
@@ -403,7 +402,7 @@ class GeoFunctionLibraryTest {
 //			getDecision(policyDefinition), Decision.PERMIT);
 //	}
 	@Test
-	def void conversionFromWrongUnitsTest() throws PolicyEvaluationException {
+	def void conversionFromWrongUnitsTest() {
 		val policyDefinition = '''
 			policy "conversionFromWrongUnitsTest" 
 			permit
@@ -414,7 +413,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void conversionFromWrongUnits2Test() throws PolicyEvaluationException {
+	def void conversionFromWrongUnits2Test() {
 		val policyDefinition = '''
 			policy "conversionFromWrongUnits2Test" 
 			permit
@@ -425,7 +424,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void simpleValidTest() throws PolicyEvaluationException {
+	def void simpleValidTest() {
 		val policyDefinition = '''
 			policy "simpleValidTest" 
 			permit
@@ -438,7 +437,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void isClosedTest() throws PolicyEvaluationException {
+	def void isClosedTest() {
 		val policyDefinition = '''
 			policy "isClosedTest" 
 			permit
@@ -454,7 +453,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void geomCollectionTest() throws PolicyEvaluationException {
+	def void geomCollectionTest() {
 		val policyDefinition = '''
 			policy "geomCollectionTest" 
 			permit
@@ -475,7 +474,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void geomCollection2Test() throws PolicyEvaluationException {
+	def void geomCollection2Test() {
 		val policyDefinition = '''
 			policy "geomCollection2Test" 
 			permit
@@ -487,7 +486,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void oneAndOnlyTest() throws PolicyEvaluationException {
+	def void oneAndOnlyTest() {
 		val policyDefinition = '''
 			policy "geomCollection3Test" 
 			permit
@@ -500,7 +499,7 @@ class GeoFunctionLibraryTest {
 	}
 
 	@Test
-	def void projectionTest() throws PolicyEvaluationException {
+	def void projectionTest() {
 		val policyDefinition = '''
 			policy "enableProjectionTest" 
 			permit

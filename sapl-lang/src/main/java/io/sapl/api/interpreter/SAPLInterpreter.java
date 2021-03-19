@@ -32,7 +32,6 @@ public interface SAPLInterpreter {
 	 * @param saplDefinition a String containing a SAPL document
 	 * @return A parse tree of the document @ in case an error occurs during
 	 *         parsing. This may be either a syntax error or an IO error.
-	 * @throws PolicyEvaluationException
 	 */
 	SAPL parse(String saplDefinition);
 
@@ -43,7 +42,6 @@ public interface SAPLInterpreter {
 	 * @param saplInputStream an InputStream containing a SAPL document
 	 * @return A parse tree of the document @ in case an error occurs during
 	 *         parsing. This may be either a syntax error or an IO error.
-	 * @throws PolicyEvaluationException
 	 */
 	SAPL parse(InputStream saplInputStream);
 

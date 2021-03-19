@@ -18,7 +18,6 @@ package io.sapl.interpreter
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
-import io.sapl.api.interpreter.PolicyEvaluationException
 import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.Decision
@@ -56,7 +55,7 @@ class DefaultSAPLInterpreterTransformationTest {
 	}
 
 	@Test
-	def void simpleTransformationWithComment() throws PolicyEvaluationException {
+	def void simpleTransformationWithComment() {
 		assertThat("simple transformation with comment not working as expected", INTERPRETER.evaluate(
 			new AuthorizationSubscription(null, null, null, null),
 			'''
@@ -73,7 +72,7 @@ class DefaultSAPLInterpreterTransformationTest {
 	}
 
 	@Test
-	def void simpleFiltering() throws PolicyEvaluationException {
+	def void simpleFiltering() {
 		val authzSubscription = MAPPER.readValue('''
 			{
 				"resource":"teststring"
@@ -99,7 +98,7 @@ class DefaultSAPLInterpreterTransformationTest {
 	}
 
 	@Test
-	def void simpleArrayCondition() throws PolicyEvaluationException {
+	def void simpleArrayCondition() {
 		val authzSubscription = MAPPER.readValue('''
 			{
 				"resource":[1,2,3,4,5]
@@ -125,7 +124,7 @@ class DefaultSAPLInterpreterTransformationTest {
 	}
 
 	@Test
-	def void conditionTransformation() throws PolicyEvaluationException {
+	def void conditionTransformation() {
 		val authzSubscription = MAPPER.readValue('''
 			{
 				"resource":{

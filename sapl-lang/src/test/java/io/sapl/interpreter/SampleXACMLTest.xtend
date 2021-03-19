@@ -1,12 +1,12 @@
 /*
  * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.node.ArrayNode
-import io.sapl.api.interpreter.PolicyEvaluationException
 import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.Decision
@@ -98,7 +97,7 @@ class SampleXACMLTest {
 	}
 
 	@Test
-	def void exampleOne() throws PolicyEvaluationException {
+	def void exampleOne() {
 		val authzSubscription_object = MAPPER.readValue('''
 			{
 				"subject": "bs@simpsons.com",
@@ -115,7 +114,7 @@ class SampleXACMLTest {
 	}
 
 	@Test
-	def void exampleOnePermit() throws PolicyEvaluationException {
+	def void exampleOnePermit() {
 		val authzSubscription_object = MAPPER.readValue('''
 			{
 				"subject": "abc@Med.example.com",
@@ -157,7 +156,7 @@ class SampleXACMLTest {
 	}
 
 	@Test
-	def void exampleTwoRule1() throws PolicyEvaluationException {
+	def void exampleTwoRule1() {
 		val expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 1 not working as expected",
@@ -166,7 +165,7 @@ class SampleXACMLTest {
 	}
 
 	@Test
-	def void exampleTwoRule1Permit() throws PolicyEvaluationException {
+	def void exampleTwoRule1Permit() {
 		val authzSubscription = MAPPER.readValue('''
 			{
 				"subject": {
@@ -221,7 +220,7 @@ class SampleXACMLTest {
 	}
 
 	@Test
-	def void exampleTwoRule2() throws PolicyEvaluationException {
+	def void exampleTwoRule2() {
 		val expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 2 not working as expected",
@@ -230,7 +229,7 @@ class SampleXACMLTest {
 	}
 
 	@Test
-	def void exampleTwoRule2Permit() throws PolicyEvaluationException {
+	def void exampleTwoRule2Permit() {
 		val authzSubscription = MAPPER.readValue('''
 			{
 				"subject": {
@@ -288,7 +287,7 @@ class SampleXACMLTest {
 	}
 
 	@Test
-	def void exampleTwoRule3() throws PolicyEvaluationException {
+	def void exampleTwoRule3() {
 		val expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE
 
 		assertThat("XACML example two rule 3 not working as expected",
@@ -297,7 +296,7 @@ class SampleXACMLTest {
 	}
 
 	@Test
-	def void exampleTwoRule3Permit() throws PolicyEvaluationException {
+	def void exampleTwoRule3Permit() {
 		val authzSubscription = MAPPER.readValue('''
 			{
 				"subject": {

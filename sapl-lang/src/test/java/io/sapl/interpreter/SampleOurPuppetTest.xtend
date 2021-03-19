@@ -18,7 +18,6 @@ package io.sapl.interpreter
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
-import io.sapl.api.interpreter.PolicyEvaluationException
 import io.sapl.api.pdp.AuthorizationDecision
 import io.sapl.api.pdp.AuthorizationSubscription
 import io.sapl.api.pdp.Decision
@@ -61,7 +60,7 @@ class SampleOurPuppetTest {
 	}
 
 	@Test
-	def void patientdataAnnotator() throws PolicyEvaluationException {
+	def void patientdataAnnotator() {
 		// Annotators have to assign a context to given sensordata. It might be neccessary for them to get some information
 		// about the patient for this task (e.g. skin resistance might vary depending on age and gender).
 		// In the personal data section, age will be rounded to step of 5 and only the first digit of zip code is shown.
@@ -139,7 +138,7 @@ class SampleOurPuppetTest {
 	}
 
 	@Test
-	def void patientdataDoctor() throws PolicyEvaluationException {
+	def void patientdataDoctor() {
 
 		val authzSubscription = '''
 		{  
@@ -207,7 +206,7 @@ class SampleOurPuppetTest {
 	}
 
 	@Test
-	def void situationsFamilymember() throws PolicyEvaluationException {
+	def void situationsFamilymember() {
 		// There is a history of annotated contexts with sensordata, status, puppetreaction etc. for a patient.
 		// This data might be used by a doctor in a consultation. However, a family member shall only have access
 		// to the status of the latest entry.
@@ -316,7 +315,7 @@ class SampleOurPuppetTest {
 	}
 
 	@Test
-	def void situationsCaregiver() throws PolicyEvaluationException {
+	def void situationsCaregiver() {
 		val authzSubscription = '''
 		{  
 		    "subject":{  
@@ -415,7 +414,7 @@ class SampleOurPuppetTest {
 	}
 
 	@Test
-	def void situationsPuppetIntroducer() throws PolicyEvaluationException {
+	def void situationsPuppetIntroducer() {
 		val authzSubscription = '''
 		{  
 		    "subject":{  

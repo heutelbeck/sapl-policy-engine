@@ -2,8 +2,7 @@
 <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="sapl" nsURI="http://sapl.io/sapl/SAPL" nsPrefix="sapl">
   <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable #//AuthorizationDecisionEvaluable">
-    <eOperations name="documentScopedEvaluationContext" eType="#//EvaluationContext"
-        eExceptions="#//PolicyEvaluationException">
+    <eOperations name="documentScopedEvaluationContext" eType="#//EvaluationContext">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value="The method returns a map of full qualified function names by their short names (or library alias plus short name) for all function imports of the SAPL document depending on the functions available in the given function context.&#xA;&#xA;@param functionCtx &#xA;&#x9;&#x9;the function context&#xA;@returns &#xA;&#x9;&#x9;a map of full qualified function names by their short names for all function imports of the SAPL document.&#xA;@throws PolicyEvaluationException in case an error occurs while evaluating the import statements and creating the map"/>
       </eAnnotations>
