@@ -38,7 +38,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ ObjectMapper.class, CRS.class, JTS.class })
@@ -47,7 +47,7 @@ public class ExceptionHandlingTest {
 	private Geometry sampleGeometry;
 
 	@Before
-	public void setUp() throws FunctionException {
+	public void setUp() {
 		mockStatic(CRS.class);
 		mockStatic(JTS.class);
 		sampleGeometry = mock(Geometry.class);
@@ -60,8 +60,7 @@ public class ExceptionHandlingTest {
 		try {
 			new GeoProjection();
 			fail("Exception in transform method was expected but not thrown.");
-		}
-		catch (FunctionException e) {
+		} catch (PolicyEvaluationException e) {
 			assertEquals("Handling of FactoryException in GeoProjection works not as expected.",
 					GeoProjection.CRS_COULD_NOT_INITIALIZE, e.getMessage());
 		}
@@ -75,8 +74,7 @@ public class ExceptionHandlingTest {
 			GeoProjection sampleProjection = new GeoProjection();
 			sampleProjection.project(sampleGeometry);
 			fail("Exception in transform method was expected but not thrown.");
-		}
-		catch (FunctionException e) {
+		} catch (PolicyEvaluationException e) {
 			assertEquals("Handling of FactoryException in GeoProjection works not as expected.",
 					GeoProjection.UNABLE_TO_TRANSFORM, e.getMessage());
 		}
@@ -90,15 +88,14 @@ public class ExceptionHandlingTest {
 			GeoProjection sampleProjection = new GeoProjection();
 			sampleProjection.project(sampleGeometry);
 			fail("Exception in transform method was expected but not thrown.");
-		}
-		catch (FunctionException e) {
+		} catch (PolicyEvaluationException e) {
 			assertEquals("Handling of FactoryException in GeoProjection works not as expected.",
 					GeoProjection.UNABLE_TO_TRANSFORM, e.getMessage());
 		}
 	}
 
 	@Test
-	public void factoryExceptionInGeodesicCalculation() throws FactoryException, FunctionException {
+	public void factoryExceptionInGeodesicCalculation() throws FactoryException, PolicyEvaluationException {
 		when(CRS.decode(anyString())).thenThrow(new FactoryException());
 
 		Geometry geometryOne = GeometryBuilder.fromWkt("POINT (10 10)");
@@ -107,8 +104,7 @@ public class ExceptionHandlingTest {
 		try {
 			GeometryBuilder.geodesicDistance(geometryOne, geometryTwo);
 			fail("Exception in geodesic calculations was expected but not thrown.");
-		}
-		catch (FunctionException e) {
+		} catch (PolicyEvaluationException e) {
 			assertEquals("Handling of FactoryException in geodesic calculations works not as expected.",
 					GeoProjection.CRS_COULD_NOT_INITIALIZE, e.getMessage());
 		}

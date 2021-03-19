@@ -32,8 +32,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.sapl.api.functions.FunctionException;
-import io.sapl.api.pip.AttributeException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.functions.GeometryBuilder;
 import lombok.EqualsAndHashCode;
 
@@ -60,15 +59,15 @@ public class KMLImport {
 		kmlSource = source;
 	}
 
-	public KMLImport(JsonNode source) throws FunctionException {
+	public KMLImport(JsonNode source) {
 		if (source.isTextual()) {
 			kmlSource = source.asText();
 		} else {
-			throw new FunctionException(NO_VALID_FILENAME);
+			throw new PolicyEvaluationException(NO_VALID_FILENAME);
 		}
 	}
 
-	public JsonNode toGeoPIPResponse() throws FunctionException, AttributeException {
+	public JsonNode toGeoPIPResponse() {
 		if (kmlSource.isEmpty()) {
 			return JSON.textNode(TEST_OKAY);
 		} else {
@@ -76,7 +75,7 @@ public class KMLImport {
 		}
 	}
 
-	private ObjectNode retrieveGeometries() throws FunctionException, AttributeException {
+	private ObjectNode retrieveGeometries() {
 		if (kmlSource.contains("http://") || kmlSource.contains("https://") || kmlSource.contains("file://")) {
 			return formatCollection((Collection<?>) getKmlFromWeb().getAttribute(ATT_FEATURE));
 		} else {
@@ -84,23 +83,23 @@ public class KMLImport {
 		}
 	}
 
-	private SimpleFeature getKmlFromWeb() throws FunctionException {
+	private SimpleFeature getKmlFromWeb() {
 		try (InputStream inputStream = new URL(kmlSource).openStream()) {
 
 			return parse(inputStream);
 
 		} catch (IllegalArgumentException | IOException | SAXException | ParserConfigurationException e) {
-			throw new FunctionException(UNABLE_TO_PARSE_KML, e);
+			throw new PolicyEvaluationException(UNABLE_TO_PARSE_KML, e);
 		}
 	}
 
-	private SimpleFeature getKmlFromFile() throws FunctionException {
+	private SimpleFeature getKmlFromFile() {
 		try (InputStream inputStream = getClass().getResourceAsStream(kmlSource)) {
 
 			return parse(inputStream);
 
 		} catch (IOException | ParserConfigurationException | SAXException e) {
-			throw new FunctionException(UNABLE_TO_PARSE_KML, e);
+			throw new PolicyEvaluationException(UNABLE_TO_PARSE_KML, e);
 		}
 	}
 
@@ -110,12 +109,12 @@ public class KMLImport {
 		return (SimpleFeature) parser.parse(inputStream);
 	}
 
-	protected static ObjectNode formatCollection(Collection<?> placeMarks) throws FunctionException {
+	protected static ObjectNode formatCollection(Collection<?> placeMarks) {
 		ObjectNode geometries = JSON.objectNode();
 		for (Object obj : placeMarks) {
 
 			if (!(obj instanceof SimpleFeature)) {
-				throw new FunctionException(UNABLE_TO_PARSE_KML);
+				throw new PolicyEvaluationException(UNABLE_TO_PARSE_KML);
 			} else {
 				SimpleFeature feature = (SimpleFeature) obj;
 				Geometry geom = (Geometry) feature.getAttribute(ATT_GEOM);

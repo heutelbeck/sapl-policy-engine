@@ -22,7 +22,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
-import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
@@ -68,11 +68,11 @@ public class PostGISConfig {
 		return DriverManager.getConnection(buildUrl(), getUsername(), getPassword());
 	}
 
-	public String buildQuery() throws FunctionException {
+	public String buildQuery() {
 		if (verifySqlArguments()) {
 			return String.format(SQL_QUERY, getIdColName(), buildGeometryExpression(), getTable(), buildConditions());
 		} else {
-			throw new FunctionException(ARG_NOT_EXISTING);
+			throw new PolicyEvaluationException(ARG_NOT_EXISTING);
 		}
 	}
 
@@ -91,7 +91,7 @@ public class PostGISConfig {
 		return url.toString();
 	}
 
-	protected boolean verifySqlArguments() throws FunctionException {
+	protected boolean verifySqlArguments() {
 		try (Connection conn = getConnection()) {
 
 			DatabaseMetaData dbm = conn.getMetaData();
@@ -99,7 +99,7 @@ public class PostGISConfig {
 
 			return colsExist(cols, getIdColName(), getGeometryColName(), getPkColName());
 		} catch (SQLException e) {
-			throw new FunctionException(e);
+			throw new PolicyEvaluationException(e);
 		}
 	}
 

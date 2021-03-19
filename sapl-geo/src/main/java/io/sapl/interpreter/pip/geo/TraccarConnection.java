@@ -35,8 +35,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.sapl.api.functions.FunctionException;
-import io.sapl.api.pip.AttributeException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.functions.GeometryBuilder;
 import io.sapl.pip.http.RequestSpecification;
 import io.sapl.pip.http.WebClientRequestExecutor;
@@ -94,7 +93,7 @@ public class TraccarConnection {
 		this.requestExecutor = requestExecutor;
 	}
 
-	public Mono<JsonNode> toGeoPIPResponse() throws AttributeException, FunctionException {
+	public Mono<JsonNode> toGeoPIPResponse() {
 		if (config == null) {
 			return Mono.just(JSON.textNode(TEST_OKAY));
 		} else {
@@ -102,7 +101,7 @@ public class TraccarConnection {
 					.combineLatest(getTraccarPosition(device), getTraccarGeofences(device), (position, geofences) -> {
 						try {
 							return buildGeoPIPesponse(device, position, geofences).toJsonNode();
-						} catch (FunctionException e) {
+						} catch (PolicyEvaluationException e) {
 							return Mono.error(e);
 						}
 					}).next().cast(JsonNode.class));
@@ -115,7 +114,7 @@ public class TraccarConnection {
 				.map(response -> MAPPER.convertValue(response, TraccarDevice[].class)).flatMap(devices -> {
 					try {
 						return Flux.just(findDevice(devices, uniqueID));
-					} catch (AttributeException e) {
+					} catch (PolicyEvaluationException e) {
 						return Flux.error(e);
 					}
 				}).next();
@@ -136,7 +135,7 @@ public class TraccarConnection {
 
 	private Flux<TraccarPosition> getCurrentPosition(TraccarPosition[] traccarPositions) {
 		if (traccarPositions.length == 0) {
-			return Flux.error(new AttributeException(UNABLE_TO_READ_FROM_SERVER));
+			return Flux.error(new PolicyEvaluationException(UNABLE_TO_READ_FROM_SERVER));
 		}
 		Arrays.sort(traccarPositions, TraccarPosition::compareDescending);
 		// Highest ID is most current position
@@ -154,13 +153,13 @@ public class TraccarConnection {
 	}
 
 	protected static GeoPIPResponse buildGeoPIPesponse(TraccarDevice device, TraccarPosition position,
-			TraccarGeofence... geofences) throws FunctionException {
+			TraccarGeofence... geofences) {
 		return GeoPIPResponse.builder().identifier(device.getName()).position(formatPositionForPIPResponse(position))
 				.altitude(position.getAltitude()).geofences(formatGeofencesForPIPResponse(geofences))
 				.lastUpdate(device.getLastUpdate()).accuracy(position.getAccuracy()).build();
 	}
 
-	private static ObjectNode formatGeofencesForPIPResponse(TraccarGeofence... geofences) throws FunctionException {
+	private static ObjectNode formatGeofencesForPIPResponse(TraccarGeofence... geofences) {
 		ObjectNode returnGeofences = JSON.objectNode();
 		for (TraccarGeofence fence : geofences) {
 			returnGeofences.set(fence.getName(), GeometryBuilder.wktToJsonNode(fence.getArea()));
@@ -168,7 +167,7 @@ public class TraccarConnection {
 		return returnGeofences;
 	}
 
-	private static JsonNode formatPositionForPIPResponse(TraccarPosition position) throws FunctionException {
+	private static JsonNode formatPositionForPIPResponse(TraccarPosition position) {
 		GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
 		Point jtsPosition = geometryFactory
 				.createPoint(new Coordinate(position.getLatitude(), position.getLongitude()));
@@ -208,9 +207,9 @@ public class TraccarConnection {
 		return params.toString();
 	}
 
-	private static TraccarDevice findDevice(TraccarDevice[] devices, String uniqueID) throws AttributeException {
+	private static TraccarDevice findDevice(TraccarDevice[] devices, String uniqueID) {
 		if (devices == null) {
-			throw new AttributeException(NO_SUCH_DEVICE_FOUND, uniqueID);
+			throw new PolicyEvaluationException(NO_SUCH_DEVICE_FOUND, uniqueID);
 		}
 
 		TraccarDevice returnDevice = null;
@@ -222,7 +221,7 @@ public class TraccarConnection {
 		}
 
 		if (returnDevice == null) {
-			throw new AttributeException(NO_SUCH_DEVICE_FOUND, uniqueID);
+			throw new PolicyEvaluationException(NO_SUCH_DEVICE_FOUND, uniqueID);
 		}
 		return returnDevice;
 	}

@@ -19,9 +19,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.AttributeException;
 import io.sapl.interpreter.pip.GeoPolicyInformationPoint;
 
 public class GeoPIPTest {
@@ -29,21 +27,21 @@ public class GeoPIPTest {
 	private static final GeoPolicyInformationPoint AF = new GeoPolicyInformationPoint();
 
 	@Test
-	public void postgisTest() throws AttributeException, FunctionException {
+	public void postgisTest() {
 		assertEquals("GeoAttributeFinder does not call the correct methods when accessing PostGIS.",
 				PostGISConnection.TEST_OKAY,
 				AF.postgis(Val.of(PostGISConnection.AF_TEST), null).blockFirst().get().asText());
 	}
 
 	@Test
-	public void traccarTest() throws AttributeException, FunctionException {
+	public void traccarTest() {
 		assertEquals("GeoAttributeFinder does not call the correct methods when accessing Traccar.",
 				TraccarConnection.TEST_OKAY,
 				AF.traccar(Val.of(TraccarConnection.AF_TEST), null).blockFirst().get().asText());
 	}
 
 	@Test
-	public void kmlTest() throws AttributeException, FunctionException {
+	public void kmlTest() {
 		assertEquals("GeoAttributeFinder does not call the correct methods when accessing KML.", KMLImport.TEST_OKAY,
 				AF.kml(Val.of(""), null).blockFirst().get().asText());
 	}

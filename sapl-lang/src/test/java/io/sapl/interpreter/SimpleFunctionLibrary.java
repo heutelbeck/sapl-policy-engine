@@ -16,8 +16,8 @@
 package io.sapl.interpreter;
 
 import io.sapl.api.functions.Function;
-import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
@@ -26,20 +26,21 @@ import io.sapl.api.validation.Text;
 public class SimpleFunctionLibrary {
 
 	@Function
-	public Val length(Val parameter) throws FunctionException {
+	public Val length(Val parameter) {
 		Val result = Val.UNDEFINED;
 		if (parameter.isArray()) {
 			result = Val.of(parameter.get().size());
 		} else if (parameter.isTextual()) {
 			result = Val.of(parameter.get().asText().length());
 		} else {
-			throw new FunctionException("length() parameter must be a string or an array, found " + parameter + ".");
+			throw new PolicyEvaluationException(
+					"length() parameter must be a string or an array, found " + parameter + ".");
 		}
 		return result;
 	}
 
 	@Function
-	public Val append(@Text @Number Val... parameters) throws FunctionException {
+	public Val append(@Text @Number Val... parameters) {
 		StringBuilder builder = new StringBuilder();
 		for (Val parameter : parameters) {
 			if (parameter.isTextual()) {

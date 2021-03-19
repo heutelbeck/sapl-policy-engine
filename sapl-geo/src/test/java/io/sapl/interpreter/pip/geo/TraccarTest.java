@@ -36,7 +36,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.pip.AttributeException;
 import io.sapl.pip.http.WebClientRequestExecutor;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
@@ -102,7 +101,7 @@ public class TraccarTest {
 	}
 
 	@Test
-	public void getDeviceTest() throws AttributeException, IOException {
+	public void getDeviceTest() throws IOException {
 		when(requestExecutor.executeReactiveRequest(any(), eq(GET)))
 				.thenReturn(Flux.just(MAPPER.readTree(devicesJson)));
 
@@ -111,7 +110,7 @@ public class TraccarTest {
 	}
 
 	@Test
-	public void getPositionTest() throws AttributeException, IOException {
+	public void getPositionTest() throws IOException {
 		when(requestExecutor.executeReactiveRequest(any(), eq(GET)))
 				.thenReturn(Flux.just(MAPPER.readTree(positionsJson)));
 
@@ -121,7 +120,7 @@ public class TraccarTest {
 	}
 
 	@Test
-	public void getGeofencesTest() throws AttributeException, IOException {
+	public void getGeofencesTest() throws IOException {
 		when(requestExecutor.executeReactiveRequest(any(), eq(GET)))
 				.thenReturn(Flux.just(MAPPER.convertValue(trFences, JsonNode.class)));
 

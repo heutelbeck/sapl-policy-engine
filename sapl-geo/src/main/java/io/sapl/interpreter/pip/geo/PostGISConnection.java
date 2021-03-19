@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.functions.GeometryBuilder;
 import lombok.Getter;
 
@@ -57,7 +57,7 @@ public class PostGISConnection {
 		}
 	}
 
-	public JsonNode toGeoPIPResponse() throws FunctionException {
+	public JsonNode toGeoPIPResponse() {
 		if (config == null) {
 			return JSON.textNode(TEST_OKAY);
 		} else {
@@ -66,7 +66,7 @@ public class PostGISConnection {
 		}
 	}
 
-	public ObjectNode retrieveGeometries() throws FunctionException {
+	public ObjectNode retrieveGeometries() {
 		try (Connection conn = config.getConnection()) {
 
 			try (Statement s = conn.createStatement()) {
@@ -76,11 +76,11 @@ public class PostGISConnection {
 				}
 			}
 		} catch (SQLException e) {
-			throw new FunctionException(e);
+			throw new PolicyEvaluationException(e);
 		}
 	}
 
-	private static ObjectNode formatResultSet(ResultSet rs) throws SQLException, FunctionException {
+	private static ObjectNode formatResultSet(ResultSet rs) throws SQLException {
 		ObjectNode geometries = JSON.objectNode();
 		while (rs.next()) {
 			String name = jsonNamePattern.matcher(rs.getString(NAME_INDEX)).replaceAll(EMPTY_STRING);

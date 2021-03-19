@@ -35,7 +35,7 @@ import org.opengis.referencing.operation.TransformException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
 
@@ -48,27 +48,27 @@ public final class GeometryBuilder {
 
 	private static final String UNABLE_TO_PARSE_GEOMETRY = "Unable to parse geometry to JsonNode.";
 
-	public static Geometry fromJsonNode(JsonNode jsonGeometry) throws FunctionException {
+	public static Geometry fromJsonNode(JsonNode jsonGeometry) {
 		GeometryJSON geoJsonReader = new GeometryJSON();
 		Reader stringReader = new StringReader(jsonGeometry.toString());
 
 		try {
 			return geoJsonReader.read(stringReader);
 		} catch (IOException e) {
-			throw new FunctionException(UNABLE_TO_PARSE_GEOJSON, e);
+			throw new PolicyEvaluationException(UNABLE_TO_PARSE_GEOJSON, e);
 		}
 	}
 
-	public static Geometry geoOf(Val jsonGeometry) throws FunctionException {
+	public static Geometry geoOf(Val jsonGeometry) {
 		return fromJsonNode(jsonGeometry.get());
 	}
 
-	public static Geometry fromWkt(String wktGeometry) throws FunctionException {
+	public static Geometry fromWkt(String wktGeometry) {
 		try {
 			WKTReader wkt = new WKTReader();
 			return wkt.read(wktGeometry);
 		} catch (ParseException e) {
-			throw new FunctionException(UNABLE_TO_PARSE_WKT, e);
+			throw new PolicyEvaluationException(UNABLE_TO_PARSE_WKT, e);
 		}
 	}
 
@@ -77,30 +77,30 @@ public final class GeometryBuilder {
 		return wkt.write(geometry);
 	}
 
-	public static JsonNode toJsonNode(Geometry geometry) throws FunctionException {
+	public static JsonNode toJsonNode(Geometry geometry) {
 		ObjectMapper mapper = new ObjectMapper();
 		GeometryJSON geoJsonWriter = new GeometryJSON();
 
 		try {
 			return mapper.readTree(geoJsonWriter.toString(geometry));
 		} catch (IOException e) {
-			throw new FunctionException(UNABLE_TO_PARSE_GEOMETRY, e);
+			throw new PolicyEvaluationException(UNABLE_TO_PARSE_GEOMETRY, e);
 		}
 	}
 
-	public static Val toVal(Geometry geometry) throws FunctionException {
+	public static Val toVal(Geometry geometry) {
 		return Val.of(toJsonNode(geometry));
 	}
 
-	public static JsonNode wktToJsonNode(String wktGeometry) throws FunctionException {
+	public static JsonNode wktToJsonNode(String wktGeometry) {
 		return toJsonNode(fromWkt(wktGeometry));
 	}
 
-	public static String jsonNodeToWkt(JsonNode jsonGeometry) throws FunctionException {
+	public static String jsonNodeToWkt(JsonNode jsonGeometry) {
 		return toWkt(fromJsonNode(jsonGeometry));
 	}
 
-	public static double geodesicDistance(Geometry geometryOne, Geometry geometryTwo) throws FunctionException {
+	public static double geodesicDistance(Geometry geometryOne, Geometry geometryTwo) {
 		try {
 			int startingPointIndex = 0;
 			int destinationPointIndex = 1;
@@ -113,9 +113,9 @@ public final class GeometryBuilder {
 			gc.setDestinationPosition(JTS.toDirectPosition(distOp.nearestPoints()[destinationPointIndex], crs));
 			return gc.getOrthodromicDistance();
 		} catch (TransformException e) {
-			throw new FunctionException(GeoProjection.UNABLE_TO_TRANSFORM, e);
+			throw new PolicyEvaluationException(GeoProjection.UNABLE_TO_TRANSFORM, e);
 		} catch (FactoryException e) {
-			throw new FunctionException(GeoProjection.CRS_COULD_NOT_INITIALIZE, e);
+			throw new PolicyEvaluationException(GeoProjection.CRS_COULD_NOT_INITIALIZE, e);
 		}
 	}
 

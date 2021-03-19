@@ -31,8 +31,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.functions.Function;
-import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Array;
 import io.sapl.api.validation.JsonObject;
@@ -98,28 +98,27 @@ public class GeoFunctionLibrary {
 	// convertible to '%s'.";
 
 	@Function(name = "equals", docs = EQUALS_DOC)
-	public Val geometryEquals(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo)
-			throws FunctionException {
+	public Val geometryEquals(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		return Val.of(geoOf(jsonGeometryOne).equals(geoOf(jsonGeometryTwo)));
 	}
 
 	@Function(docs = DISJOINT_DOC)
-	public Val disjoint(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) throws FunctionException {
+	public Val disjoint(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		return Val.of(geoOf(jsonGeometryOne).disjoint(geoOf(jsonGeometryTwo)));
 	}
 
 	@Function(docs = TOUCHES_DOC)
-	public Val touches(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) throws FunctionException {
+	public Val touches(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		return Val.of(geoOf(jsonGeometryOne).touches(geoOf(jsonGeometryTwo)));
 	}
 
 	@Function(docs = CROSSES_DOC)
-	public Val crosses(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) throws FunctionException {
+	public Val crosses(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		return Val.of(geoOf(jsonGeometryOne).crosses(geoOf(jsonGeometryTwo)));
 	}
 
 	@Function(docs = WITHIN_DOC)
-	public Val within(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) throws FunctionException {
+	public Val within(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		Geometry geometryOne = geoOf(jsonGeometryOne);
 		Geometry geometryTwo = geoOf(jsonGeometryTwo);
 		if (geometryTwo instanceof GeometryCollection) {
@@ -130,7 +129,7 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = CONTAINS_DOC)
-	public Val contains(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) throws FunctionException {
+	public Val contains(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		Geometry geometryOne = geoOf(jsonGeometryOne);
 		Geometry geometryTwo = geoOf(jsonGeometryTwo);
 		if (geometryOne instanceof GeometryCollection) {
@@ -141,37 +140,37 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = OVERLAPS_DOC)
-	public Val overlaps(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) throws FunctionException {
+	public Val overlaps(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		return Val.of(geoOf(jsonGeometryOne).overlaps(geoOf(jsonGeometryTwo)));
 	}
 
 	@Function(docs = INTERSECTS_DOC)
-	public Val intersects(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) throws FunctionException {
+	public Val intersects(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		return Val.of(geoOf(jsonGeometryOne).intersects(geoOf(jsonGeometryTwo)));
 	}
 
 	@Function(docs = BUFFER_DOC)
-	public Val buffer(@JsonObject Val jsonGeometry, @Number Val buffer) throws FunctionException {
+	public Val buffer(@JsonObject Val jsonGeometry, @Number Val buffer) {
 		return toVal(geoOf(jsonGeometry).buffer(buffer.get().asDouble()));
 	}
 
 	@Function(docs = BOUNDARY_DOC)
-	public Val boundary(@JsonObject Val jsonGeometry) throws FunctionException {
+	public Val boundary(@JsonObject Val jsonGeometry) {
 		return toVal(geoOf(jsonGeometry).getBoundary());
 	}
 
 	@Function(docs = CENTROID_DOC)
-	public Val centroid(@JsonObject Val jsonGeometry) throws FunctionException {
+	public Val centroid(@JsonObject Val jsonGeometry) {
 		return toVal(geoOf(jsonGeometry).getCentroid());
 	}
 
 	@Function(docs = CONVEX_HULL_GEOMETRY_RETURNS_THE_CONVEX_HULL_SMALLEST_CONVEX_POLYGON_THAT_CONTAINS_ALL_POINTS_OF_THE_GEOMETRY_OF_THE_GEOMETRY)
-	public Val convexHull(@JsonObject Val jsonGeometry) throws FunctionException {
+	public Val convexHull(@JsonObject Val jsonGeometry) {
 		return toVal(geoOf(jsonGeometry).convexHull());
 	}
 
 	@Function(docs = UNION_DOC)
-	public Val union(@JsonObject Val... jsonGeometries) throws FunctionException {
+	public Val union(@JsonObject Val... jsonGeometries) {
 		if (jsonGeometries.length == 1) {
 			return jsonGeometries[0];
 		}
@@ -184,40 +183,39 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = INTERSECTION_DOC)
-	public Val intersection(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) throws FunctionException {
+	public Val intersection(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		return toVal(geoOf(jsonGeometryOne).intersection(geoOf(jsonGeometryTwo)));
 	}
 
 	@Function(docs = DIFFERENCE_DOC)
-	public Val difference(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) throws FunctionException {
+	public Val difference(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		return toVal(geoOf(jsonGeometryOne).difference(geoOf(jsonGeometryTwo)));
 	}
 
 	@Function(docs = BETWEEN_TWO_GEOMETRIES)
-	public Val symDifference(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo)
-			throws FunctionException {
+	public Val symDifference(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		return toVal(geoOf(jsonGeometryOne).symDifference(geoOf(jsonGeometryTwo)));
 	}
 
 	@Function(docs = DISTANCE_DOC)
-	public Val distance(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) throws FunctionException {
+	public Val distance(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		return Val.of(geoOf(jsonGeometryOne).distance(geoOf(jsonGeometryTwo)));
 	}
 
 	@Function(docs = GEO_DISTANCE_DOC)
-	public Val geoDistance(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) throws FunctionException {
+	public Val geoDistance(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo) {
 		return Val.of(geodesicDistance(geoOf(jsonGeometryOne), geoOf(jsonGeometryTwo)));
 	}
 
 	@Function(docs = IS_WITHIN_DISTANCE_DOC)
-	public Val isWithinDistance(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo, @Number Val distInput)
-			throws FunctionException {
+	public Val isWithinDistance(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo,
+			@Number Val distInput) {
 		return Val.of(geoOf(jsonGeometryOne).isWithinDistance(geoOf(jsonGeometryTwo), distInput.get().asDouble()));
 	}
 
 	@Function(docs = IS_WITHIN_GEO_DISTANCE_DOC)
 	public Val isWithinGeoDistance(@JsonObject Val jsonGeometryOne, @JsonObject Val jsonGeometryTwo,
-			@Number Val distInput) throws FunctionException {
+			@Number Val distInput) {
 		Geometry geometryOne = geoOf(jsonGeometryOne);
 		Geometry geometryTwo = geoOf(jsonGeometryTwo);
 		double distance = distInput.get().asDouble();
@@ -225,27 +223,27 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = LENGTH_DOC)
-	public Val length(@JsonObject Val jsonGeometry) throws FunctionException {
+	public Val length(@JsonObject Val jsonGeometry) {
 		return Val.of(geoOf(jsonGeometry).getLength());
 	}
 
 	@Function(docs = AREA_DOC)
-	public Val area(@JsonObject Val jsonGeometry) throws FunctionException {
+	public Val area(@JsonObject Val jsonGeometry) {
 		return Val.of(geoOf(jsonGeometry).getArea());
 	}
 
 	@Function(docs = IS_SIMPLE_DOC)
-	public Val isSimple(@JsonObject Val jsonGeometry) throws FunctionException {
+	public Val isSimple(@JsonObject Val jsonGeometry) {
 		return Val.of(geoOf(jsonGeometry).isSimple());
 	}
 
 	@Function(docs = IS_VALID_DOC)
-	public Val isValid(@JsonObject Val jsonGeometry) throws FunctionException {
+	public Val isValid(@JsonObject Val jsonGeometry) {
 		return Val.of(geoOf(jsonGeometry).isValid());
 	}
 
 	@Function(docs = IS_CLOSED_DOC)
-	public Val isClosed(@JsonObject Val jsonGeometry) throws FunctionException {
+	public Val isClosed(@JsonObject Val jsonGeometry) {
 		Geometry geometry = geoOf(jsonGeometry);
 		boolean result = false;
 		if (geometry.isEmpty() || ("Point".equals(geometry.getGeometryType()))
@@ -284,7 +282,7 @@ public class GeoFunctionLibrary {
 	// @Function(docs = TOSQUAREMETER_DOC)
 	// public JsonNode toSquareMeter(@Number JsonNode jsonValue, @Text JsonNode
 	// jsonUnit)
-	// throws FunctionException {
+	// {
 	// double convertedValue;
 	// Unit<? extends Quantity> unitFrom = Unit.valueOf(jsonUnit.asText());
 	//
@@ -300,23 +298,22 @@ public class GeoFunctionLibrary {
 	// }
 
 	@Function(docs = BAG_SIZE_DOC)
-	public Val bagSize(@JsonObject Val jsonGeometry) throws FunctionException {
+	public Val bagSize(@JsonObject Val jsonGeometry) {
 		return Val.of(geoOf(jsonGeometry).getNumGeometries());
 	}
 
 	@Function(docs = ONE_AND_ONLY_DOC)
-	public Val oneAndOnly(@JsonObject Val jsonGeometryCollection) throws FunctionException {
+	public Val oneAndOnly(@JsonObject Val jsonGeometryCollection) {
 		GeometryCollection geometryCollection = (GeometryCollection) geoOf(jsonGeometryCollection);
 		if (geometryCollection.getNumGeometries() == 1) {
 			return toVal(geometryCollection.getGeometryN(0));
 		} else {
-			throw new FunctionException(INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM);
+			throw new PolicyEvaluationException(INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM);
 		}
 	}
 
 	@Function(docs = GEOMETRY_IS_IN_DOC)
-	public Val geometryIsIn(@JsonObject Val jsonGeometry, @JsonObject Val jsonGeometryCollection)
-			throws FunctionException {
+	public Val geometryIsIn(@JsonObject Val jsonGeometry, @JsonObject Val jsonGeometryCollection) {
 		Geometry geometry = geoOf(jsonGeometry);
 		GeometryCollection geometryCollection = (GeometryCollection) geoOf(jsonGeometryCollection);
 		boolean result = false;
@@ -330,7 +327,7 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = GEOMETRY_BAG_DOC)
-	public Val geometryBag(@JsonObject Val... geometryJsonInput) throws FunctionException {
+	public Val geometryBag(@JsonObject Val... geometryJsonInput) {
 		Geometry[] geometries = new Geometry[geometryJsonInput.length];
 		for (int i = 0; i < geometryJsonInput.length; i++) {
 			geometries[i] = geoOf(geometryJsonInput[i]);
@@ -341,7 +338,7 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = RES_TO_GEOMETRY_BAG_DOC)
-	public Val resToGeometryBag(@Array Val resourceArray) throws FunctionException {
+	public Val resToGeometryBag(@Array Val resourceArray) {
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode[] nodes = mapper.convertValue(resourceArray.get(), JsonNode[].class);
 		Val[] vals = new Val[nodes.length];
@@ -352,8 +349,8 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = AT_LEAST_ONE_MEMBER_OF_DOC)
-	public Val atLeastOneMemberOf(@JsonObject Val jsonGeometryCollectionOne, @JsonObject Val jsonGeometryCollectionTwo)
-			throws FunctionException {
+	public Val atLeastOneMemberOf(@JsonObject Val jsonGeometryCollectionOne,
+			@JsonObject Val jsonGeometryCollectionTwo) {
 		GeometryCollection geometryCollectionOne = (GeometryCollection) geoOf(jsonGeometryCollectionOne);
 		GeometryCollection geometryCollectionTwo = (GeometryCollection) geoOf(jsonGeometryCollectionTwo);
 		boolean result = false;
@@ -368,8 +365,7 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = SUBSET_DOC)
-	public Val subset(@JsonObject Val jsonGeometryCollectionOne, @JsonObject Val jsonGeometryCollectionTwo)
-			throws FunctionException {
+	public Val subset(@JsonObject Val jsonGeometryCollectionOne, @JsonObject Val jsonGeometryCollectionTwo) {
 		GeometryCollection geometryCollectionOne = (GeometryCollection) geoOf(jsonGeometryCollectionOne);
 		GeometryCollection geometryCollectionTwo = (GeometryCollection) geoOf(jsonGeometryCollectionTwo);
 		if (geometryCollectionOne.getNumGeometries() > geometryCollectionTwo.getNumGeometries()) {
@@ -391,12 +387,12 @@ public class GeoFunctionLibrary {
 	}
 
 	@Function(docs = GET_PROJECTION_DOC)
-	public Val getProjection(@Text Val srcSystem, @Text Val destSystem) throws FunctionException {
+	public Val getProjection(@Text Val srcSystem, @Text Val destSystem) {
 		return Val.of(new GeoProjection(srcSystem.get().asText(), destSystem.get().asText()).toWkt());
 	}
 
 	@Function(docs = PROJECT_DOC)
-	public Val project(@JsonObject Val jsonGeometry, @Text Val mathTransform) throws FunctionException {
+	public Val project(@JsonObject Val jsonGeometry, @Text Val mathTransform) {
 		GeoProjection projection = new GeoProjection(mathTransform.get().asText());
 		Geometry geometry = geoOf(jsonGeometry);
 		return toVal(projection.project(geometry));

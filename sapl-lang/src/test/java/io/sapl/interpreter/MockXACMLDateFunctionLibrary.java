@@ -16,7 +16,6 @@
 package io.sapl.interpreter;
 
 import io.sapl.api.functions.Function;
-import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 
@@ -24,7 +23,7 @@ import io.sapl.api.interpreter.Val;
 public class MockXACMLDateFunctionLibrary {
 
 	@Function
-	public Val diff(Val type, Val to, Val from) throws FunctionException {
+	public Val diff(Val type, Val to, Val from) {
 		if ("years".equals(type.get().asText())) {
 			return Val.of(15L);
 		}

@@ -32,7 +32,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.AttributeException;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
@@ -73,7 +72,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	 * Create the attribute context from a list of PIPs
 	 * 
 	 * @param policyInformationPoints a list of PIPs
-	 * @throws AttributeException when loading the PIPs fails
+	 * @throws InitializationException when loading the PIPs fails
 	 */
 	public AnnotationAttributeContext(Object... policyInformationPoints) throws InitializationException {
 		for (Object pip : policyInformationPoints) {

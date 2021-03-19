@@ -20,17 +20,13 @@ import java.net.URISyntaxException;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.api.functions.FunctionException;
 import io.sapl.api.interpreter.InitializationException;
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pip.AttributeException;
 import io.sapl.pdp.PolicyDecisionPointFactory;
 
 class ResourcesPolicyRetrievalPointTest {
 
 	@Test
-	void loadPolicies() throws IOException, URISyntaxException, FunctionException, AttributeException,
-			PolicyEvaluationException, InitializationException {
+	void loadPolicies() throws IOException, URISyntaxException, InitializationException {
 		PolicyDecisionPointFactory.resourcesPolicyDecisionPoint();
 	}
 

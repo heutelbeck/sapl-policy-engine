@@ -32,7 +32,7 @@ import org.locationtech.jts.geom.Point;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
@@ -57,7 +57,7 @@ public class GeoFunctionsTest {
 	private JsonNode jsonGeometryCollection;
 
 	@Before
-	public void setUp() throws FunctionException {
+	public void setUp() {
 		jsonGeometryCollection = mock(JsonNode.class);
 		when(jsonGeometryCollection.toString()).thenReturn(SAMPLE_GEOCOLLECTION);
 
@@ -72,8 +72,7 @@ public class GeoFunctionsTest {
 			Geometry geomObject = GeometryBuilder.fromJsonNode(jsonGeometryCollection);
 			assertTrue("GeoJSON is not correctly being converted into JTS object.",
 					geomObject instanceof GeometryCollection);
-		}
-		catch (FunctionException e) {
+		} catch (PolicyEvaluationException e) {
 			fail("GeoJSON is not correctly being converted into JTS object.");
 		}
 	}
@@ -83,14 +82,13 @@ public class GeoFunctionsTest {
 		try {
 			Geometry geomObject = GeometryBuilder.fromWkt(SAMPLE_WKT_POINT);
 			assertTrue("WKT-Format is not correctly being converted into JTS object.", geomObject instanceof Point);
-		}
-		catch (FunctionException e) {
+		} catch (PolicyEvaluationException e) {
 			fail("WKT-Format is not correctly being converted into JTS object.");
 		}
 	}
 
-	@Test(expected = FunctionException.class)
-	public void wktParseException() throws FunctionException {
+	@Test(expected = PolicyEvaluationException.class)
+	public void wktParseException() {
 		Geometry geomObject = GeometryBuilder.fromWkt("PNT (0 1)");
 		assertNull("Geometry is being created even though provided WKT-format was not well formed.", geomObject);
 	}
@@ -103,8 +101,7 @@ public class GeoFunctionsTest {
 		try {
 			assertEquals("JTS Geometry is not correctly being converted into GeoJSON-Format.",
 					"{\"type\":\"Point\",\"coordinates\":[1,1]}", GeometryBuilder.toJsonNode(jtsPoint).toString());
-		}
-		catch (FunctionException e) {
+		} catch (PolicyEvaluationException e) {
 			fail("JTS Geometry is not correctly being converted into GeoJSON.");
 		}
 	}
@@ -120,7 +117,7 @@ public class GeoFunctionsTest {
 	}
 
 	@Test
-	public void geodesicDistanceJFKFRA() throws FunctionException {
+	public void geodesicDistanceJFKFRA() {
 		int correctDistance = 6206;
 		int calculatedDistance = (int) Math.round(GeometryBuilder.geodesicDistance(pointJFK, pointFRA) / 1000);
 
@@ -129,7 +126,7 @@ public class GeoFunctionsTest {
 	}
 
 	@Test
-	public void geodesicDistanceJFKBJM() throws FunctionException {
+	public void geodesicDistanceJFKBJM() {
 		int correctDistance = 11357;
 		int calculatedDistance = (int) Math.round(GeometryBuilder.geodesicDistance(pointJFK, pointBJM) / 1000);
 
@@ -138,13 +135,13 @@ public class GeoFunctionsTest {
 	}
 
 	@Test
-	public void geodesicDistanceComparison() throws FunctionException {
+	public void geodesicDistanceComparison() {
 		assertTrue("Geodesic distances are not correctly calculated.", GeometryBuilder.geodesicDistance(pointJFK,
 				pointBJM) > GeometryBuilder.geodesicDistance(pointFRA, pointBJM));
 	}
 
 	@Test
-	public void coordinateProjection() throws FunctionException {
+	public void coordinateProjection() {
 		GeoProjection projection = new GeoProjection();
 
 		assertTrue("Geodesic distances are not correctly calculated.",
@@ -157,8 +154,8 @@ public class GeoFunctionsTest {
 				.verify();
 	}
 
-	@Test(expected = FunctionException.class)
-	public void jsonIOException() throws FunctionException {
+	@Test(expected = PolicyEvaluationException.class)
+	public void jsonIOException() {
 		JsonNode nodeMock = mock(JsonNode.class);
 		assertNull("Geometry is being created even though JsonNode is only a mock object.",
 				GeometryBuilder.fromJsonNode(nodeMock));

@@ -22,7 +22,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 import io.sapl.api.functions.Function;
-import io.sapl.api.functions.FunctionException;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Int;
@@ -38,7 +37,7 @@ public class SimpleFilterFunctionLibrary {
 	}
 
 	@Function(name = "roundto")
-	public static Val roundto(@Int Val node, @Int Val roundvalue) throws FunctionException {
+	public static Val roundto(@Int Val node, @Int Val roundvalue)  {
 		int value = node.get().asInt();
 		int round = roundvalue.get().asInt();
 
@@ -51,7 +50,7 @@ public class SimpleFilterFunctionLibrary {
 	}
 
 	@Function
-	public Val isOfToday(@Text Val parameter) throws FunctionException {
+	public Val isOfToday(@Text Val parameter)  {
 		LocalDate today = LocalDate.now(clock);
 		Instant instant = Instant.parse(parameter.get().asText());
 		ZoneId zone = ZoneId.of("Europe/Berlin");

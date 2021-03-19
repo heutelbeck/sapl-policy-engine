@@ -25,7 +25,7 @@ import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.MathTransformFactory;
 import org.opengis.referencing.operation.TransformException;
 
-import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode
@@ -43,41 +43,41 @@ public class GeoProjection {
 
 	private final MathTransform mathTransform;
 
-	public GeoProjection() throws FunctionException {
+	public GeoProjection()  {
 		// standard configuration
 		this(WGS84_CRS, WEB_MERCATOR_CRS);
 	}
 
-	public GeoProjection(String source, String dest) throws FunctionException {
+	public GeoProjection(String source, String dest)  {
 		try {
 			mathTransform = CRS.findMathTransform(CRS.decode(source), CRS.decode(dest), false);
 		} catch (FactoryException e) {
-			throw new FunctionException(CRS_COULD_NOT_INITIALIZE, e);
+			throw new PolicyEvaluationException(CRS_COULD_NOT_INITIALIZE, e);
 		}
 	}
 
-	public GeoProjection(String mathTransformWkt) throws FunctionException {
+	public GeoProjection(String mathTransformWkt)  {
 		try {
 			MathTransformFactory fact = new DefaultMathTransformFactory();
 			mathTransform = fact.createFromWKT(mathTransformWkt);
 		} catch (FactoryException e) {
-			throw new FunctionException(CRS_COULD_NOT_INITIALIZE, e);
+			throw new PolicyEvaluationException(CRS_COULD_NOT_INITIALIZE, e);
 		}
 	}
 
-	public Geometry project(Geometry geometry) throws FunctionException {
+	public Geometry project(Geometry geometry)  {
 		try {
 			return JTS.transform(geometry, mathTransform);
 		} catch (MismatchedDimensionException | TransformException e) {
-			throw new FunctionException(UNABLE_TO_TRANSFORM, e);
+			throw new PolicyEvaluationException(UNABLE_TO_TRANSFORM, e);
 		}
 	}
 
-	public Geometry reProject(Geometry geometry) throws FunctionException {
+	public Geometry reProject(Geometry geometry)  {
 		try {
 			return JTS.transform(geometry, mathTransform.inverse());
 		} catch (MismatchedDimensionException | TransformException e) {
-			throw new FunctionException(UNABLE_TO_TRANSFORM, e);
+			throw new PolicyEvaluationException(UNABLE_TO_TRANSFORM, e);
 		}
 	}
 

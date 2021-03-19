@@ -27,7 +27,7 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.api.functions.FunctionException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
@@ -43,14 +43,14 @@ public class KMLTest {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Test
-	public void importTest() throws FunctionException {
+	public void importTest() {
 		KMLImport kml = new KMLImport(TESTFILE);
 		assertEquals("KML file is not correctly imported into GeoPIPResponse", EXPECTED_RESPONSE,
 				kml.toGeoPIPResponse().toString());
 	}
 
 	@Test
-	public void constructorTest() throws FunctionException {
+	public void constructorTest() {
 		JsonNode jsonFilename = JSON.textNode(TESTFILE);
 		KMLImport stringKml = new KMLImport(TESTFILE);
 		KMLImport jsonKml = new KMLImport(jsonFilename);
@@ -63,19 +63,19 @@ public class KMLTest {
 		EqualsVerifier.forClass(KMLImport.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS).verify();
 	}
 
-	@Test(expected = FunctionException.class)
-	public void httpIllegalArgTest() throws FunctionException {
+	@Test(expected = PolicyEvaluationException.class)
+	public void httpIllegalArgTest() {
 		assertNull("Empty HTTP-address leads to valid response.", new KMLImport("https://").toGeoPIPResponse());
 	}
 
-	@Test(expected = FunctionException.class)
-	public void invalidJsonInConstructorTest() throws FunctionException {
+	@Test(expected = PolicyEvaluationException.class)
+	public void invalidJsonInConstructorTest() {
 		assertNull("Non textual JSON as constructor leads to valid response.",
 				new KMLImport(JSON.booleanNode(false)).toGeoPIPResponse());
 	}
 
-	@Test(expected = FunctionException.class)
-	public void httpNoKmlTest() throws FunctionException {
+	@Test(expected = PolicyEvaluationException.class)
+	public void httpNoKmlTest() {
 		assertNull("Random HTTP-address (non-KML) leads to valid response.",
 				new KMLImport("http://about:blank").toGeoPIPResponse());
 	}
@@ -85,21 +85,21 @@ public class KMLTest {
 		try {
 			new KMLImport("file_that_does_not_exist.kml").toGeoPIPResponse();
 			fail("No exception is thrown when trying to access a non existing KML-file.");
-		} catch (FunctionException e) {
+		} catch (PolicyEvaluationException e) {
 			assertEquals("Wrong exception thrown when trying to access a non existing KML-file.",
 					KMLImport.UNABLE_TO_PARSE_KML, e.getMessage());
 		}
 	}
 
 	@Test
-	public void wrongCollection()  {
+	public void wrongCollection() {
 		Collection<String> coll = new LinkedList<>();
 		coll.add("TestString");
 
 		try {
 			KMLImport.formatCollection(coll);
 			fail("No exception is thrown when providing non compliant KML source.");
-		} catch (FunctionException e) {
+		} catch (PolicyEvaluationException e) {
 			assertEquals("Wrong exception handling when providing non compliant KML source.",
 					KMLImport.UNABLE_TO_PARSE_KML, e.getMessage());
 		}
