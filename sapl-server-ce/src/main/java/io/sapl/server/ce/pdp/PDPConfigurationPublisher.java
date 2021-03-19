@@ -17,7 +17,7 @@ package io.sapl.server.ce.pdp;
 
 import java.util.Collection;
 
-import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import lombok.NonNull;
 

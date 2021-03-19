@@ -17,10 +17,45 @@ package io.sapl.api.pep;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+/**
+ * Utility interface for implementing constraint handlers.
+ * 
+ * Both, obligations and advices are considered constraints. The only difference
+ * is the behavior of the PEP, if no handler for an obligation can be found. If
+ * no obligation handler for any obligation is present, the PEP must not grant
+ * access.
+ * 
+ * A constraint handler is a component which is capable of implementing the
+ * behavior implied by a constraint.
+ *
+ */
 public interface ConstraintHandler {
 
+	/**
+	 * 
+	 * Perform the behavior required by the constraint. If the behavior was not
+	 * successfully completed, return false. If the constraint was an obligation and
+	 * the handle method returns false, the PEP must not grant access.
+	 * 
+	 * @param constraint the constraint JSON value from the AuthorizationDecision
+	 *                   object.
+	 * @return true, iff the constraint was handled successfully
+	 */
 	boolean handle(JsonNode constraint);
 
+	/**
+	 * SAPL does not impose any scheme on constraint values. Specifying such a
+	 * scheme is up to the application developers. However, it should be possible to
+	 * distinguish between different types of constraints by inspecting the JSON
+	 * value.
+	 * 
+	 * This method is used to perform this inspection, so that a PEP can decide if a
+	 * matching constraint handler is present and to call it if applicable.
+	 * 
+	 * @param constraint the constraint JSON value from the AuthorizationDecision
+	 *                   object.
+	 * @return true, iff the class is able to handle the given constraint.
+	 */
 	boolean canHandle(JsonNode constraint);
 
 }

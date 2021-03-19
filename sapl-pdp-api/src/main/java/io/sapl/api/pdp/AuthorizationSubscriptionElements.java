@@ -15,12 +15,23 @@
  */
 package io.sapl.api.pdp;
 
-/**
- * Enumeration of the algorithms supported by the SAPL policy engine to combine SAPL
- * documents (holding a policy set or a policy).
- */
-public enum PolicyDocumentCombiningAlgorithm {
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
-	DENY_OVERRIDES, PERMIT_OVERRIDES, ONLY_ONE_APPLICABLE, DENY_UNLESS_PERMIT, PERMIT_UNLESS_DENY
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import lombok.Value;
+
+/**
+ * Data structure holding IDs for the elements of an
+ * {@link AuthorizationSubscription} SAPL authorization subscription).
+ */
+@Value
+@JsonInclude(NON_EMPTY)
+public class AuthorizationSubscriptionElements {
+
+	Integer subjectId;
+	Integer actionId;
+	Integer resourceId;
+	Integer environmentId;
 
 }

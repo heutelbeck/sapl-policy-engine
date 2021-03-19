@@ -40,8 +40,8 @@ import lombok.NoArgsConstructor;
  * policies.</li>
  * </ul>
  *
- * All of these objects are expected to be Jackson JsonNodes representing an
- * arbitrary JSON object.
+ * Are marshaled using the Jackson ObjectMapper. If omitted, a default mapper is
+ * used. A custom mapper can be supplied.
  */
 @Data
 @NoArgsConstructor
@@ -55,12 +55,62 @@ public class AuthorizationSubscription {
 	private JsonNode resource;
 	private JsonNode environment;
 
+	/**
+	 * Creates an AuthorizationSubscription, containing the supplied objects
+	 * marshaled to JSON by a default ObjectMapper with Jdk8Module registered.
+	 * Environment will be omitted.
+	 * 
+	 * @param subject  an object describing the subject.
+	 * @param action   an object describing the action.
+	 * @param resource an object describing the resource.
+	 * @return an AuthorizationSubscrption for subscribing to a SAPL PDP
+	 */
 	public static AuthorizationSubscription of(Object subject, Object action, Object resource) {
-		return of(subject, action, resource, null);
+		return of(subject, action, resource, MAPPER);
 	}
 
+	/**
+	 * Creates an AuthorizationSubscription, containing the supplied objects
+	 * marshaled the supplied ObjectMapper. Environment will be omitted.
+	 * 
+	 * @param subject  an object describing the subject.
+	 * @param action   an object describing the action.
+	 * @param resource an object describing the resource.
+	 * @param mapper   the ObjectMapper to be used for marshaling.
+	 * @return an AuthorizationSubscrption for subscribing to a SAPL PDP
+	 */
+	public static AuthorizationSubscription of(Object subject, Object action, Object resource, ObjectMapper mapper) {
+		return of(subject, action, resource, null, mapper);
+	}
+
+	/**
+	 * Creates an AuthorizationSubscription, containing the supplied objects
+	 * marshaled to JSON by a default ObjectMapper with Jdk8Module registered.
+	 * 
+	 * @param subject     an object describing the subject.
+	 * @param action      an object describing the action.
+	 * @param resource    an object describing the resource.
+	 * @param environment an object describing the environment.
+	 * @return an AuthorizationSubscrption for subscribing to a SAPL PDP
+	 */
 	public static AuthorizationSubscription of(Object subject, Object action, Object resource, Object environment) {
-		return new AuthorizationSubscription(MAPPER.valueToTree(subject), MAPPER.valueToTree(action),
-				MAPPER.valueToTree(resource), MAPPER.valueToTree(environment));
+		return of(subject, action, resource, environment, MAPPER);
+	}
+
+	/**
+	 * Creates an AuthorizationSubscription, containing the supplied objects
+	 * marshaled the supplied ObjectMapper.
+	 * 
+	 * @param subject     an object describing the subject.
+	 * @param action      an object describing the action.
+	 * @param resource    an object describing the resource.
+	 * @param environment an object describing the environment.
+	 * @param mapper      the ObjectMapper to be used for marshaling.
+	 * @return an AuthorizationSubscrption for subscribing to a SAPL PDP
+	 */
+	public static AuthorizationSubscription of(Object subject, Object action, Object resource, Object environment,
+			ObjectMapper mapper) {
+		return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
+				mapper.valueToTree(resource), mapper.valueToTree(environment));
 	}
 }

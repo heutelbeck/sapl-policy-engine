@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Iterables;
 
-import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.server.ce.model.pdpconfiguration.SelectedCombiningAlgorithm;
 import io.sapl.server.ce.pdp.PDPConfigurationPublisher;
 import io.sapl.server.ce.persistence.SelectedCombiningAlgorithmRepository;

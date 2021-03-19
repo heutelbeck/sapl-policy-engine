@@ -21,7 +21,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-import io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;

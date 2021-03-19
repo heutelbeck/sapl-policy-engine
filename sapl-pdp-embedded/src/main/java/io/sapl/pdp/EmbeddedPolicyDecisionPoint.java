@@ -17,11 +17,11 @@ package io.sapl.pdp;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationSubscription;
-import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
-import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
 import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.interpreter.EvaluationContext;

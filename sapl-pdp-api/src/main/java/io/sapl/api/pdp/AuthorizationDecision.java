@@ -15,9 +15,6 @@
  */
 package io.sapl.api.pdp;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.Objects;
 import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -26,8 +23,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.ToString;
 
 /**
@@ -35,6 +34,7 @@ import lombok.ToString;
  */
 @Getter
 @ToString
+@EqualsAndHashCode
 @NoArgsConstructor
 @AllArgsConstructor
 public class AuthorizationDecision {
@@ -61,10 +61,6 @@ public class AuthorizationDecision {
 
 	Decision decision = Decision.INDETERMINATE;
 
-	// Optional fields initialized as Optional.empty to allow comparing with JSON
-	// marshaling/unmarshaling
-	// Without initialization, fields would be null after JSON
-	// marshaling/unmarshaling
 	@JsonInclude(Include.NON_ABSENT)
 	Optional<JsonNode> resource = Optional.empty();
 
@@ -75,62 +71,43 @@ public class AuthorizationDecision {
 	Optional<ArrayNode> advices = Optional.empty();
 
 	/**
-	 * @param decision the decision
+	 * @param decision Creates an immuatable authorization decision with 'decision'
+	 *                 as value, and without any resource, advices, or obligations.
+	 *                 Must not be null.
 	 */
-	public AuthorizationDecision(Decision decision) {
-		this.decision = requireNonNull(decision);
+	public AuthorizationDecision(@NonNull Decision decision) {
+		this.decision = decision;
 	}
 
-	@Override
-	public boolean equals(Object o) {
-		if (o == this) {
-			return true;
-		}
-		if (o == null || o.getClass() != this.getClass()) {
-			return false;
-		}
-		final AuthorizationDecision other = (AuthorizationDecision) o;
-		if (!Objects.equals(getDecision(), other.getDecision())) {
-			return false;
-		}
-		if (!areEqual(getResource(), other.getResource())) {
-			return false;
-		}
-		if (!areEqual(getObligations(), other.getObligations())) {
-			return false;
-		}
-		return areEqual(getAdvices(), other.getAdvices());
+	/**
+	 * @param newObligations a JSON array containing obligations.
+	 * @return new immuatable decision object, replacing the obligations of the
+	 *         original object with newObligations. If the array is empty, no
+	 *         obligations will be present, not even an empty array.
+	 */
+	public AuthorizationDecision withObligations(@NonNull ArrayNode newObligations) {
+		return new AuthorizationDecision(decision, resource,
+				newObligations.isEmpty() ? Optional.empty() : Optional.of(newObligations), advices);
 	}
 
-	private static boolean areEqual(Optional<?> thisOptional, Optional<?> otherOptional) {
-		return thisOptional.map(value -> otherOptional.filter(value::equals).isPresent()).orElseGet(otherOptional::isEmpty);
+	/**
+	 * @param newAdvices a JSON array containing advices.
+	 * @return new immuatable decision object, replacing the advices of the original
+	 *         object with newAdvices. If the array is empty, no advices will be
+	 *         present, not even an empty array.
+	 */
+	public AuthorizationDecision withAdvices(@NonNull ArrayNode newAdvices) {
+		return new AuthorizationDecision(decision, resource, obligations,
+				newAdvices.isEmpty() ? Optional.empty() : Optional.of(newAdvices));
 	}
 
-	public AuthorizationDecision withObligations(ArrayNode newObligations) {
-		return new AuthorizationDecision(decision, resource, Optional.of(newObligations), advices);
-	}
-
-	public AuthorizationDecision withAdvices(ArrayNode newAdvices) {
-		return new AuthorizationDecision(decision, resource, obligations, Optional.of(newAdvices));
-	}
-
-	public AuthorizationDecision withResource(JsonNode newResource) {
+	/**
+	 * @param newResource a JSON object, must nor be null.
+	 * @return new immuatable decision object, replacing the resource with
+	 *         newResource.
+	 */
+	public AuthorizationDecision withResource(@NonNull JsonNode newResource) {
 		return new AuthorizationDecision(decision, Optional.of(newResource), obligations, advices);
-	}
-
-	@Override
-	public int hashCode() {
-		final int PRIME = 59;
-		int result = 1;
-		final Object thisDecision = getDecision();
-		result = result * PRIME + (thisDecision == null ? 43 : thisDecision.hashCode());
-		final Optional<JsonNode> thisResource = getResource();
-		result = result * PRIME + thisResource.map(Object::hashCode).orElse(43);
-		final Optional<ArrayNode> thisObligation = getObligations();
-		result = result * PRIME + thisObligation.map(Object::hashCode).orElse(43);
-		final Optional<ArrayNode> thisAdvice = getAdvices();
-		result = result * PRIME + thisAdvice.map(Object::hashCode).orElse(43);
-		return result;
 	}
 
 }

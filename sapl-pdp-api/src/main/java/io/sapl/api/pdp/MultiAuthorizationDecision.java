@@ -13,20 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp.multisubscription;
+package io.sapl.api.pdp;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
 import lombok.NonNull;
 import lombok.Value;
 
@@ -96,10 +92,11 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
 	 * @param subscriptionId the ID of the authorization subscription for which the
 	 *                       related decision has to be returned.
 	 * @return the decision related to the authorization subscription with the given
-	 *         ID.
+	 *         ID. Returns null if not present.
 	 */
 	public Decision getDecisionForSubscriptionWithId(@NonNull String subscriptionId) {
-		return authorizationDecisions.get(subscriptionId).getDecision();
+		var decision = authorizationDecisions.get(subscriptionId);
+		return decision == null ? null : authorizationDecisions.get(subscriptionId).getDecision();
 	}
 
 	/**
@@ -115,7 +112,8 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
 	 *         {@code false} otherwise.
 	 */
 	public boolean isAccessPermittedForSubscriptionWithId(@NonNull String subscriptionId) {
-		return authorizationDecisions.get(subscriptionId).getDecision() == Decision.PERMIT;
+		var decision = authorizationDecisions.get(subscriptionId);
+		return decision != null && decision.getDecision() == Decision.PERMIT;
 	}
 
 	/**
@@ -139,45 +137,6 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
 				return new IdentifiableAuthorizationDecision(entry.getKey(), entry.getValue());
 			}
 		};
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (obj == this) {
-			return true;
-		}
-		if (obj == null || obj.getClass() != this.getClass()) {
-			return false;
-		}
-		final MultiAuthorizationDecision other = (MultiAuthorizationDecision) obj;
-
-		final Map<String, AuthorizationDecision> otherDecisions = other.authorizationDecisions;
-		if (authorizationDecisions.size() != otherDecisions.size()) {
-			return false;
-		}
-
-		final Set<String> thisKeys = authorizationDecisions.keySet();
-		final Set<String> otherKeys = otherDecisions.keySet();
-		for (String key : thisKeys) {
-			if (!otherKeys.contains(key)) {
-				return false;
-			}
-			if (!Objects.equals(authorizationDecisions.get(key), otherDecisions.get(key))) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	@Override
-	public int hashCode() {
-		final int PRIME = 59;
-		int result = 1;
-		for (AuthorizationDecision authzDecision : authorizationDecisions.values()) {
-			result = result * PRIME + (authzDecision == null ? 43 : authzDecision.hashCode());
-		}
-		return result;
 	}
 
 	@Override

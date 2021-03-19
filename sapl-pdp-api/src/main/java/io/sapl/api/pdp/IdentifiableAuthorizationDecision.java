@@ -13,29 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp.multisubscription;
+package io.sapl.api.pdp;
 
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import lombok.NonNull;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import lombok.Value;
 
 /**
- * Holds an {@link AuthorizationSubscription SAPL authorization subscription}
- * together with an ID used to identify the authorization subscription and to
- * assign the authorization subscription its corresponding
- * {@link AuthorizationDecision SAPL authorization decision}.
+ * Holds a {@link AuthorizationDecision SAPL authorization decision} together
+ * with the ID of the corresponding {@link AuthorizationSubscription SAPL
+ * authorization subscription}.
  *
- * @see AuthorizationSubscription
- * @see IdentifiableAuthorizationDecision
+ * @see AuthorizationDecision
+ * @see IdentifiableAuthorizationSubscription
  */
 @Value
-public class IdentifiableAuthorizationSubscription {
+@JsonInclude(NON_NULL)
+public class IdentifiableAuthorizationDecision {
 
-	@NonNull
 	String authorizationSubscriptionId;
+	AuthorizationDecision authorizationDecision;
 
-	@NonNull
-	AuthorizationSubscription authorizationSubscription;
+	public final static IdentifiableAuthorizationDecision INDETERMINATE = new IdentifiableAuthorizationDecision(null,
+			AuthorizationDecision.INDETERMINATE);
 
 }

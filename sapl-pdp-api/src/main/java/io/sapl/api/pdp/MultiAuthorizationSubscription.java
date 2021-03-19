@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp.multisubscription;
+package io.sapl.api.pdp;
 
-import static java.util.Objects.requireNonNull;
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
 import java.util.ArrayList;
@@ -28,7 +27,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
-import io.sapl.api.pdp.AuthorizationSubscription;
+import lombok.NonNull;
 import lombok.Value;
 
 /**
@@ -48,20 +47,12 @@ import lombok.Value;
 @JsonInclude(NON_EMPTY)
 public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuthorizationSubscription> {
 
-	private static final ObjectMapper MAPPER = new ObjectMapper();
-	static {
-		final Jdk8Module jdk8Module = new Jdk8Module();
-		MAPPER.registerModule(jdk8Module);
-	}
+	private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 
 	List<Object> subjects = new ArrayList<>();
-
 	List<Object> actions = new ArrayList<>();
-
 	List<Object> resources = new ArrayList<>();
-
 	List<Object> environments = new ArrayList<>();
-
 	Map<String, AuthorizationSubscriptionElements> authorizationSubscriptions = new HashMap<>();
 
 	/**
@@ -106,9 +97,11 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	 * @return this {@code MultiAuthorizationSubscription} instance to support
 	 *         chaining of multiple calls to {@code addAuthorizationSubscription}.
 	 */
-	public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId, Object subject,
+	public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
 			Object action, Object resource, Object environment) {
-		requireNonNull(subscriptionId, "subscriptionId must not be null");
+
+		if (authorizationSubscriptions.containsKey(subscriptionId))
+			throw new IllegalArgumentException("Cannot add two sunscriptions with the same ID: " + subscriptionId);
 
 		var subjectId = ensureIsElementOfListAndReturnIndex(subject, subjects);
 		var actionId = ensureIsElementOfListAndReturnIndex(action, actions);
@@ -185,12 +178,13 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	public String toString() {
 		final StringBuilder sb = new StringBuilder("MultiAuthorizationSubscription {");
 		for (IdentifiableAuthorizationSubscription subscription : this) {
-			sb.append("\n\t[").append("REQ-ID: ").append(subscription.getAuthorizationSubscriptionId()).append(" | ")
-					.append("SUBJECT: ").append(subscription.getAuthorizationSubscription().getSubject()).append(" | ")
-					.append("ACTION: ").append(subscription.getAuthorizationSubscription().getAction()).append(" | ")
-					.append("RESOURCE: ").append(subscription.getAuthorizationSubscription().getResource())
-					.append(" | ").append("ENVIRONMENT: ")
-					.append(subscription.getAuthorizationSubscription().getEnvironment()).append(']');
+			sb.append("\n\t[").append("SUBSCRIPTION-ID: ").append(subscription.getAuthorizationSubscriptionId())
+					.append(" | ").append("SUBJECT: ").append(subscription.getAuthorizationSubscription().getSubject())
+					.append(" | ").append("ACTION: ").append(subscription.getAuthorizationSubscription().getAction())
+					.append(" | ").append("RESOURCE: ")
+					.append(subscription.getAuthorizationSubscription().getResource()).append(" | ")
+					.append("ENVIRONMENT: ").append(subscription.getAuthorizationSubscription().getEnvironment())
+					.append(']');
 		}
 		sb.append("\n}");
 		return sb.toString();

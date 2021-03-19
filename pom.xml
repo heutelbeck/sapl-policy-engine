@@ -173,6 +173,12 @@
 				<version>${hamcrest.version}</version>
 				<scope>test</scope>
 			</dependency>
+			<dependency>
+				<groupId>nl.jqno.equalsverifier</groupId>
+				<artifactId>equalsverifier</artifactId>
+				<version>3.5.5</version>
+				<scope>test</scope>
+			</dependency>
 			<!-- Spring-Boot -->
 			<dependency>
 				<groupId>org.springframework.boot</groupId>

@@ -24,10 +24,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.api.pdp.multisubscription.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.multisubscription.MultiAuthorizationDecision;
-import io.sapl.api.pdp.multisubscription.MultiAuthorizationSubscription;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 

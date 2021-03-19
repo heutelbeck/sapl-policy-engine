@@ -13,26 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp.multisubscription;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
-
-import com.fasterxml.jackson.annotation.JsonInclude;
-
-import io.sapl.api.pdp.AuthorizationSubscription;
-import lombok.Value;
+package io.sapl.interpreter.combinators;
 
 /**
- * Data structure holding IDs for the elements of an
- * {@link AuthorizationSubscription} SAPL authorization subscription).
+ * Enumeration of the algorithms supported by the SAPL policy engine to combine SAPL
+ * documents (holding a policy set or a policy).
  */
-@Value
-@JsonInclude(NON_EMPTY)
-public class AuthorizationSubscriptionElements {
+public enum PolicyDocumentCombiningAlgorithm {
 
-	Integer subjectId;
-	Integer actionId;
-	Integer resourceId;
-	Integer environmentId;
+	DENY_OVERRIDES, PERMIT_OVERRIDES, ONLY_ONE_APPLICABLE, DENY_UNLESS_PERMIT, PERMIT_UNLESS_DENY
 
 }
