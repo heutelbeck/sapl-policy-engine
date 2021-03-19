@@ -1,12 +1,12 @@
 /*
  * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -30,8 +30,8 @@ import io.sapl.interpreter.pip.AttributeContext
 import java.util.Collections
 import java.util.HashMap
 import java.util.Map
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.MatcherAssert.assertThat
@@ -58,7 +58,7 @@ class ClockPolicyInformationPointTest {
 
 	static AuthorizationSubscription authzSubscriptionObj
 
-	@Before
+	@BeforeEach
 	def void setUp() {
 		FUNCTION_CTX.loadLibrary(new StandardFunctionLibrary())
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(PIP)

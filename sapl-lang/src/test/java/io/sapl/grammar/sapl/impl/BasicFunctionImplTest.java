@@ -18,26 +18,26 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
 
-public class BasicFunctionImplTest {
+class BasicFunctionImplTest {
 	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
-	public void basicSuccessfullEvaluationNull() {
+	void basicSuccessfullEvaluationNull() {
 		expressionEvaluatesTo(CTX, "mock.nil()", "null");
 	}
 
 	@Test
-	public void basicSuccessfullEvaluationError() {
+	void basicSuccessfullEvaluationError() {
 		expressionErrors(CTX, "mock.error()");
 	}
 
 	@Test
-	public void basicSuccessfullEvaluationExceptionToError() {
+	void basicSuccessfullEvaluationExceptionToError() {
 		expressionErrors(CTX, "mock.exception()");
 	}
 }

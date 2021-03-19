@@ -15,14 +15,14 @@
  */
 package io.sapl.interpreter.pip;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.InitializationException;
 
-public class AnnotationAttributeContextTest {
+class AnnotationAttributeContextTest {
 
 	@Test
-	public void registerFinder() throws InitializationException {
+	void registerFinder() throws InitializationException {
 		TestPIP pip = new TestPIP();
 		AnnotationAttributeContext attributeCtx = new AnnotationAttributeContext();
 		attributeCtx.loadPolicyInformationPoint(pip);

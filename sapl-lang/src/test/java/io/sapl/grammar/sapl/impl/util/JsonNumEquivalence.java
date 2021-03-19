@@ -19,8 +19,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.assertj.core.util.Objects;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.NodeType;
 import com.google.common.base.Equivalence;
@@ -30,11 +28,12 @@ import com.google.common.collect.Sets;
 public class JsonNumEquivalence extends Equivalence<JsonNode> {
 
 	protected boolean doNumEquivalent(final JsonNode a, final JsonNode b) {
-		return a.decimalValue().equals(b.decimalValue());
+		return a.decimalValue().compareTo(b.decimalValue()) == 0;
 	}
 
 	protected int doNumHash(final JsonNode t) {
-		return Objects.hashCodeFor(t.decimalValue());
+		// https://stackoverflow.com/a/65658325
+		return t == null ? 0 : t.decimalValue().stripTrailingZeros().hashCode();
 	}
 
 	@Override
@@ -90,10 +89,8 @@ public class JsonNumEquivalence extends Equivalence<JsonNode> {
 			return t.hashCode();
 
 		/*
-		 * The following hash calculations work, yes, but they are poor at best. And
+		 * The following hash calculations works, yes, but they are poor at best. And
 		 * probably slow, too.
-		 *
-		 * TODO: try and figure out those hash classes from Guava
 		 */
 		int ret = 0;
 

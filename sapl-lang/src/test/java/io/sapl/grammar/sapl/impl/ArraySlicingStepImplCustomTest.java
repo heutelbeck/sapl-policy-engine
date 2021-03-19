@@ -18,172 +18,172 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
 
-public class ArraySlicingStepImplCustomTest {
+class ArraySlicingStepImplCustomTest {
 
 	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
-	public void slicingPropagatesErrors() {
+	void slicingPropagatesErrors() {
 		expressionErrors(CTX, "(1/0)[0:1]");
 	}
 
 	@Test
-	public void applySlicingToNoArray() {
+	void applySlicingToNoArray() {
 		expressionErrors(CTX, "\"abc\"[0:1]");
 	}
 
 	@Test
-	public void defaultsToIdentity() {
+	void defaultsToIdentity() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][:]";
 		var expected = "[0,1,2,3,4,5,6,7,8,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void useCaseTestTwoNull() {
+	void useCaseTestTwoNull() {
 		var expression = "[1,2,3,4,5][2:]";
 		var expected = "[3,4,5]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void negativeToTest() {
+	void negativeToTest() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][7:-1]";
 		var expected = "[7,8]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applySlicingToArrayNodeNegativeFrom() {
+	void applySlicingToArrayNodeNegativeFrom() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][-3:9]";
 		var expected = "[7,8]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applySlicingToArrayWithFromGreaterThanToReturnsEmptyArray() {
+	void applySlicingToArrayWithFromGreaterThanToReturnsEmptyArray() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][4:1]";
 		var expected = "[]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applySlicingToArrayNodeWithoutTo() {
+	void applySlicingToArrayNodeWithoutTo() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][7:]";
 		var expected = "[7,8,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applySlicingToArrayNodeWithoutFrom() {
+	void applySlicingToArrayNodeWithoutFrom() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][:3]";
 		var expected = "[0,1,2]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applySlicingToArrayNodeWithNegativeFrom() {
+	void applySlicingToArrayNodeWithNegativeFrom() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][-3:]";
 		var expected = "[7,8,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applySlicingToArrayNodeWithNegativeStep() {
+	void applySlicingToArrayNodeWithNegativeStep() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][: :-1]";
 		var expected = "[0,1,2,3,4,5,6,7,8,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applySlicingToArrayNodeWithNegativeStepAndNegativeFrom() {
+	void applySlicingToArrayNodeWithNegativeStepAndNegativeFrom() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][-2:6:-1]";
 		var expected = "[]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applySlicingToArrayNodeWithNegativeStepAndNegativeFromAndTo() {
+	void applySlicingToArrayNodeWithNegativeStepAndNegativeFromAndTo() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][-2:-5:-1]";
 		var expected = "[]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applySlicingToArrayWithNegativeStepAndToGreaterThanFrom() {
+	void applySlicingToArrayWithNegativeStepAndToGreaterThanFrom() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][1:5:-1]";
 		var expected = "[1,2,3,4]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applySlicingStepZeroErrors() {
+	void applySlicingStepZeroErrors() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][1:5:0]";
 		expressionErrors(CTX, expression);
 	}
 
 	@Test
-	public void applySlicingToResultArray() {
+	void applySlicingToResultArray() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][3:6]";
 		var expected = "[3,4,5]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applySlicingToArrayWithThreeStep() {
+	void applySlicingToArrayWithThreeStep() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][: :3]";
 		var expected = "[0,3,6,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applySlicingToArrayWithNegativeStep() {
+	void applySlicingToArrayWithNegativeStep() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][: :-3]";
 		var expected = "[1,4,7]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterDefaultsToIdentity() {
+	void filterDefaultsToIdentity() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[:] : mock.nil }";
 		var expected = "[null,null,null,null,null,null,null,null,null,null]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterDefaultsToIdentityDescendStep() {
+	void filterDefaultsToIdentityDescendStep() {
 		var expression = "[[10,11,12,13,14],0,1,2,3,4,5,6,7,8,9] |- { @[:][-2:] : mock.nil }";
 		var expected = "[[10,11,12,null,null],0,1,2,3,4,5,6,7,8,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterErrorOnZeroStep() {
+	void filterErrorOnZeroStep() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[: :0] : mock.nil }";
 		expressionErrors(CTX, expression);
 	}
 
 	@Test
-	public void filterEmptyArray() {
+	void filterEmptyArray() {
 		var expression = "[] |- { @[:] : mock.nil }";
 		var expected = "[]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterNegativeStepArray() {
+	void filterNegativeStepArray() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[: :-2] : mock.nil }";
 		var expected = "[null,1,null,3,null,5,null,7,null,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterNegativeTo() {
+	void filterNegativeTo() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[:-2] : mock.nil }";
 		var expected = "[null,null,null,null,null,null,null,null,8,9]";
 		expressionEvaluatesTo(CTX, expression, expected);

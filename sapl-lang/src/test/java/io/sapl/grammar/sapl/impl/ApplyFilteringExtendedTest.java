@@ -21,7 +21,7 @@ import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
 import java.io.IOException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.EObjectUtil;
@@ -30,36 +30,36 @@ import io.sapl.grammar.sapl.impl.util.ParserUtil;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.test.StepVerifier;
 
-public class ApplyFilteringExtendedTest {
+class ApplyFilteringExtendedTest {
 
 	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
-	public void filterUndefined() {
+	void filterUndefined() {
 		expressionErrors(CTX, "undefined |- { @.name : filter.remove }");
 	}
 
 	@Test
-	public void filterError() {
+	void filterError() {
 		expressionErrors(CTX, "(10/0) |- { @.name : filter.remove }");
 	}
 
 	@Test
-	public void noStatements() {
+	void noStatements() {
 		var root = "{ \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }";
 		var expression = root + " |-  { }";
 		expressionEvaluatesTo(CTX, expression, root);
 	}
 
 	@Test
-	public void removeKeyStepFromObject() {
+	void removeKeyStepFromObject() {
 		var expression = "{ \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" } |- { @.name : filter.remove }";
 		var expected = "{ \"job\" : \"recreational surgeon\" }";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void removeElementTwoKeyStepsDownFromObject() {
+	void removeElementTwoKeyStepsDownFromObject() {
 		var expression = "{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\", \"wage\" : 1000000 } } "
 				+ "|- { @.job.wage : filter.remove }";
 		var expected = "{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\" } }";
@@ -67,7 +67,7 @@ public class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	public void removeElementThreeKeyStepsDownFromObject() {
+	void removeElementThreeKeyStepsDownFromObject() {
 		var expression = "{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\",  \"wage\" : { \"monthly\" : 1000000, \"currency\" : \"GBP\"} } } "
 				+ "|- { @.job.wage.monthly : filter.remove }";
 		var expected = "{ \"name\" : \"Jack the Ripper\", \"job\" : { \"title\" : \"recreational surgeon\",  \"wage\" : { \"currency\" : \"GBP\"} } }";
@@ -75,7 +75,7 @@ public class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	public void removeKeyStepFromArray() {
+	void removeKeyStepFromArray() {
 		var expression = "[ { \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }, { \"name\" : \"Billy the Kid\", \"job\" : \"professional perforator\" } ] "
 				+ "|- { @.name : filter.remove }";
 		var expected = "[ { \"job\" : \"recreational surgeon\" }, { \"job\" : \"professional perforator\"} ] ";
@@ -83,54 +83,54 @@ public class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	public void removeNoStepsNoEach() {
+	void removeNoStepsNoEach() {
 		var expression = "{} |- { @ : filter.remove }";
 		var expected = Val.UNDEFINED;
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void removeEachNoArray() {
+	void removeEachNoArray() {
 		expressionErrors(CTX, "{} |- { each @ : filter.remove }");
 	}
 
 	@Test
-	public void removeNoStepsEach() {
+	void removeNoStepsEach() {
 		var expression = "[ null, true ] |- { each @ : filter.remove }";
 		var expected = "[ ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void emptyStringNoStepsNoEach() {
+	void emptyStringNoStepsNoEach() {
 		var expression = "[ null, true ] |- { @ : mock.emptyString }";
 		var expected = "\"\"";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void emptyStringNoStepsEach() {
+	void emptyStringNoStepsEach() {
 		var expression = "[ null, true ] |- { each @ : mock.emptyString }";
 		var expected = "[ \"\", \"\" ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void emptyStringEachNoArray() throws IOException {
+	void emptyStringEachNoArray() throws IOException {
 		var expression = ParserUtil.expression("[ {}, true ] |- { each @[0] : mock.emptyString }");
 		EObjectUtil.dump(expression);
 		expressionErrors(CTX, "[ {}, true ] |- { each @[0] : mock.emptyString }");
 	}
 
 	@Test
-	public void removeResultArrayNoEach() {
+	void removeResultArrayNoEach() {
 		var expression = "[ null, true ] |-  { @[0] : filter.remove }";
 		var expected = "[ true ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void blackenIndexInSelectedField() {
+	void blackenIndexInSelectedField() {
 		var expression = "[ { \"name\" : \"Jack the Ripper\", \"job\" : \"recreational surgeon\" }, { \"name\" : \"Billy the Kid\", \"job\" : \"professional perforator\" } ] "
 				+ "|- { @[0].job : filter.blacken }";
 		var expected = "[ { \"name\" : \"Jack the Ripper\", \"job\" : \"XXXXXXXXXXXXXXXXXXXX\" }, { \"name\" : \"Billy the Kid\", \"job\" : \"professional perforator\" } ]";
@@ -138,77 +138,77 @@ public class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	public void blackenResultArrayNoEach() {
+	void blackenResultArrayNoEach() {
 		var expression = "[ null, \"secret\", true ] |- { @[-2] : filter.blacken }";
 		var expected = "[ null, \"XXXXXX\", true ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void removeArraySliceNegative() {
+	void removeArraySliceNegative() {
 		var expression = "[ 0, 1, 2, 3, 4, 5 ] |- { @[-2:] : filter.remove }";
 		var expected = "[0, 1, 2, 3 ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void removeArraySlicePositive() {
+	void removeArraySlicePositive() {
 		var expression = "[ 0, 1, 2, 3, 4, 5 ] |- { @[2:4:1] : filter.remove }";
 		var expected = "[ 0, 1, 4, 5 ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void removeArraySliceNegativeTo() {
+	void removeArraySliceNegativeTo() {
 		var expression = "[ 1, 2, 3, 4, 5 ] |- { @[0:-2:2] : filter.remove }";
 		var expected = "[ 2, 4, 5 ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void removeArraySliceNegativeStep() {
+	void removeArraySliceNegativeStep() {
 		var expression = "[ 0, 1, 2, 3, 4, 5 ] |- { @[1:5:-2] : filter.remove }";
 		var expected = "[ 0, 2, 4, 5 ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void removeAttributeUnionStep() {
+	void removeAttributeUnionStep() {
 		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 } |- { @[\"b\" , \"d\"] : filter.remove }";
 		var expected = "{ \"a\" : 1, \"c\" : 3 }";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void removeArrayElementInAttributeUnionStep() {
+	void removeArrayElementInAttributeUnionStep() {
 		var expression = "{ \"a\" : [0,1,2,3], \"b\" : [0,1,2,3], \"c\" : [0,1,2,3], \"d\" : [0,1,2,3] } |- { @[\"b\" , \"d\"][1] : filter.remove }";
 		var expected = "{ \"a\" : [0,1,2,3], \"b\" : [0,2,3], \"c\" : [0,1,2,3], \"d\" : [0,2,3] }";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void replaceWithEmptyStringArrayElementInAttributeUnionStep() {
+	void replaceWithEmptyStringArrayElementInAttributeUnionStep() {
 		var expression = "{ \"a\" : [0,1,2,3], \"b\" : [0,1,2,3], \"c\" : [0,1,2,3], \"d\" : [0,1,2,3] } |- { @[\"b\" , \"d\"][1] : mock.emptyString }";
 		var expected = "{ \"a\" : [0,1,2,3], \"b\" : [0,\"\",2,3], \"c\" : [0,1,2,3], \"d\" : [0,\"\",2,3] }";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void removeIndexUnionStep() {
+	void removeIndexUnionStep() {
 		var expression = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ] |- { @[1,3] : filter.remove }";
 		var expected = "[ [0,1,2,3], [2,1,2,3], [4,1,2,3] ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void doubleRemoveIndexUnionStep() {
+	void doubleRemoveIndexUnionStep() {
 		var expression = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ] |- { @[1,3][2,1] : filter.remove }";
 		var expected = "[ [0,1,2,3], [1,3], [2,1,2,3], [3,3], [4,1,2,3] ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void replaceRecussiveKeyStepObject() {
+	void replaceRecussiveKeyStepObject() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
 				+ "|- { @..key : filter.blacken }";
 		var expected = "{ \"key\" : \"XXXXXX\", \"array1\" : [ { \"key\" : \"XXXXXX\" }, { \"key\" : \"XXXXXX\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] }";
@@ -216,7 +216,7 @@ public class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	public void multipleFilterStatements() {
+	void multipleFilterStatements() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
 				+ "|- { @..[0] : filter.remove, @..key : filter.blacken, @.array2[-1] : filter.remove }";
 		var expected = "{ \"key\" : \"XXXXXX\", \"array1\" : [ { \"key\" : \"XXXXXX\" } ], \"array2\" : [ 2, 3, 4 ] }";
@@ -224,7 +224,7 @@ public class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	public void complexWithFunctionAndRelative() throws IOException {
+	void complexWithFunctionAndRelative() throws IOException {
 		var root = Val.ofJson("{\"name\": \"Ben\", \"origin\": \"Berlin\"}");
 		var filter = filterComponent("{@.name : simple.append(\" from \", @.origin), @.origin : filter.remove}");
 		var expected = Val.ofJson("{\"name\": \"Ben from Berlin\"}");
@@ -232,7 +232,7 @@ public class ApplyFilteringExtendedTest {
 	}
 
 	@Test
-	public void complexWithFunctionAndRelativeArray() throws IOException {
+	void complexWithFunctionAndRelativeArray() throws IOException {
 		var root = Val.ofJson(
 				"[ {\"name\": \"Ben\", \"origin\": \"Berlin\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}]");
 		var filter = filterComponent("{@.name : simple.append(\" from \", @.origin), @.origin : filter.remove}");

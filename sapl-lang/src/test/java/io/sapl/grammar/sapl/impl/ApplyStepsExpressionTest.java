@@ -18,110 +18,110 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
 
-public class ApplyStepsExpressionTest {
+class ApplyStepsExpressionTest {
 
 	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
-	public void expressionStepPropagatesErrors1() {
+	void expressionStepPropagatesErrors1() {
 		expressionErrors(CTX, "[][(10/0)]");
 	}
 
 	@Test
-	public void expressionStepPropagatesErrors2() {
+	void expressionStepPropagatesErrors2() {
 		expressionErrors(CTX, "[(10/0)][(2+2)]");
 	}
 
 	@Test
-	public void expressionStepOutOfBounds1() {
+	void expressionStepOutOfBounds1() {
 		expressionErrors(CTX, "[1,2,3][(1+100)]");
 	}
 
 	@Test
-	public void expressionStepOutOfBounds2() {
+	void expressionStepOutOfBounds2() {
 		expressionErrors(CTX, "[1,2,3][(1 - 100)]");
 	}
 
 	@Test
-	public void expressionStepOutOfBouonds2() {
+	void expressionStepOutOfBouonds2() {
 		expressionErrors(CTX, "[1,2,3][(1 - 100)]");
 	}
 
 	@Test
-	public void applyExpressionStepToNonObjectNonArrayFails() {
+	void applyExpressionStepToNonObjectNonArrayFails() {
 		expressionErrors(CTX, "undefined[(1 + 1)]");
 	}
 
 	@Test
-	public void expressionEvaluatesToBooleanAndFails() {
+	void expressionEvaluatesToBooleanAndFails() {
 		expressionErrors(CTX, "[1,2,3][(true)]");
 	}
 
 	@Test
-	public void applyToArrayWithTextualExpressionResult() {
+	void applyToArrayWithTextualExpressionResult() {
 		expressionErrors(CTX, "[0,1,2,3,4,5,6,7,8,9][(\"key\")]");
 	}
 
 	@Test
-	public void applyToArrayWithNumberExpressionResult() {
+	void applyToArrayWithNumberExpressionResult() {
 		expressionEvaluatesTo(CTX, "[0,1,2,3,4,5,6,7,8,9][(2+3)]", "5");
 	}
 
 	@Test
-	public void applyToObjectWithTextualResult() {
+	void applyToObjectWithTextualResult() {
 		expressionEvaluatesTo(CTX, "{ \"key\" : true }[(\"ke\"+\"y\")]", "true");
 	}
 
 	@Test
-	public void applyToObjectWithTextualResultNonExistingKey() {
+	void applyToObjectWithTextualResultNonExistingKey() {
 		expressionEvaluatesTo(CTX, "{ \"key\" : true }[(\"no_ke\"+\"y\")]", Val.UNDEFINED);
 	}
 
 	@Test
-	public void applyToObjectWithNumericalResult() {
+	void applyToObjectWithNumericalResult() {
 		expressionErrors(CTX, "{ \"key\" : true }[(5+2)]");
 	}
 
 	@Test
-	public void applyToObjectWithError() {
+	void applyToObjectWithError() {
 		expressionErrors(CTX, "{ \"key\" : true }[(10/0)]");
 	}
 
 	@Test
-	public void filterNonArrayNonObject() {
+	void filterNonArrayNonObject() {
 		expressionEvaluatesTo(CTX, "123 |- { @[(1+1)] : mock.nil }", "123");
 	}
 
 	@Test
-	public void removeExpressionStepArray() {
+	void removeExpressionStepArray() {
 		var expression = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [3,1,2,3], [4,1,2,3] ] |- { @[(1+2)] : filter.remove }";
 		var expected = "[ [0,1,2,3], [1,1,2,3], [2,1,2,3], [4,1,2,3] ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterTypeMismatch1() {
+	void filterTypeMismatch1() {
 		expressionErrors(CTX, "[ [4,1,2,3] ] |- { @[(false)] : filter.remove }");
 	}
 
 	@Test
-	public void filterTypeMismatch2() {
+	void filterTypeMismatch2() {
 		expressionErrors(CTX, "[ [4,1,2,3] ] |- { @[(\"a\")] : filter.remove }");
 	}
 
 	@Test
-	public void filterTypeMismatch3() {
+	void filterTypeMismatch3() {
 		expressionErrors(CTX, "{ \"a\": [4,1,2,3] } |- { @[(123)] : filter.remove }");
 	}
 
 	@Test
-	public void removeExpressionStepObject() {
+	void removeExpressionStepObject() {
 		var expression = "{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"cb\" : [0,1,2,3], \"d\" : [0,1,2,3] } |- { @[(\"c\"+\"b\")] : filter.remove }";
 		var expected = "{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"d\" : [0,1,2,3] }";
 		expressionEvaluatesTo(CTX, expression, expected);

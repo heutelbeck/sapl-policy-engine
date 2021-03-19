@@ -15,9 +15,16 @@
  */
 package io.sapl.prp.index.canonical;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.hamcrest.collection.IsEmptyCollection.empty;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,26 +33,26 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 
-public class CanonicalIndexAlgorithmTest {
+class CanonicalIndexAlgorithmTest {
 
 	private EvaluationContext subscriptionScopedEvaluationContext;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 		subscriptionScopedEvaluationContext = new EvaluationContext(new AnnotationAttributeContext(),
 				new AnnotationFunctionContext(), new HashMap<>());
 
 	}
 
 	@Test
-	public void test_or_bitmask() {
+	void test_or_bitmask() {
 		var b1 = new Bitmask();
 		var b2 = new Bitmask();
 
@@ -54,52 +61,49 @@ public class CanonicalIndexAlgorithmTest {
 
 		var b3 = CanonicalIndexAlgorithm.orBitMask(b1, b2);
 
-		assertThat(b3).isNotNull();
-		assertThat(b3.isSet(0)).isTrue();
-		assertThat(b3.isSet(2)).isTrue();
-		assertThat(b3.isSet(4)).isTrue();
-
-		assertThatNullPointerException().isThrownBy(() -> CanonicalIndexAlgorithm.orBitMask(null, b2));
-		assertThatNullPointerException().isThrownBy(() -> CanonicalIndexAlgorithm.orBitMask(b1, null));
-		assertThatNullPointerException().isThrownBy(() -> CanonicalIndexAlgorithm.orBitMask(null, null));
+		assertAll(() -> assertNotNull(b3), () -> assertTrue(b3.isSet(0)), () -> assertTrue(b3.isSet(2)),
+				() -> assertTrue(b3.isSet(4)),
+				() -> assertThrows(NullPointerException.class, () -> CanonicalIndexAlgorithm.orBitMask(null, b2)),
+				() -> assertThrows(NullPointerException.class, () -> CanonicalIndexAlgorithm.orBitMask(b1, null)),
+				() -> assertThrows(NullPointerException.class, () -> CanonicalIndexAlgorithm.orBitMask(null, null)));
 	}
 
 	@Test
-	public void test_find_unsatisfiable_candidates() {
+	void test_find_unsatisfiable_candidates() {
 		var predicate = new Predicate(new Bool(true));
 		var candidates = new Bitmask();
 
 		var matchingCtx = new CanonicalIndexMatchingContext(0, subscriptionScopedEvaluationContext);
 
-		assertThat(CanonicalIndexAlgorithm.findUnsatisfiableCandidates(matchingCtx, predicate, true).numberOfBitsSet())
-				.isEqualTo(0);
-		assertThat(CanonicalIndexAlgorithm.findUnsatisfiableCandidates(matchingCtx, predicate, false).numberOfBitsSet())
-				.isEqualTo(0);
+		assertEquals(0,
+				CanonicalIndexAlgorithm.findUnsatisfiableCandidates(matchingCtx, predicate, true).numberOfBitsSet());
+		assertEquals(0,
+				CanonicalIndexAlgorithm.findUnsatisfiableCandidates(matchingCtx, predicate, false).numberOfBitsSet());
 
 		predicate.getFalseForTruePredicate().set(0, 3);
 		predicate.getFalseForFalsePredicate().set(3, 7);
 
-		assertThat(CanonicalIndexAlgorithm.findUnsatisfiableCandidates(matchingCtx, predicate, true).numberOfBitsSet())
-				.isEqualTo(0);
-		assertThat(CanonicalIndexAlgorithm.findUnsatisfiableCandidates(matchingCtx, predicate, false).numberOfBitsSet())
-				.isEqualTo(0);
+		assertEquals(0,
+				CanonicalIndexAlgorithm.findUnsatisfiableCandidates(matchingCtx, predicate, true).numberOfBitsSet());
+		assertEquals(0,
+				CanonicalIndexAlgorithm.findUnsatisfiableCandidates(matchingCtx, predicate, false).numberOfBitsSet());
 
 		candidates.set(0, 7);
 		matchingCtx.addCandidates(candidates);
 
 		var uc1 = CanonicalIndexAlgorithm.findUnsatisfiableCandidates(matchingCtx, predicate, true);
-		assertThat(uc1.numberOfBitsSet()).isEqualTo(3);
-		assertThat(uc1.isSet(2)).isTrue();
-		assertThat(uc1.isSet(3)).isFalse();
+		assertEquals(3, uc1.numberOfBitsSet());
+		assertTrue(uc1.isSet(2));
+		assertFalse(uc1.isSet(3));
 
 		var uc2 = CanonicalIndexAlgorithm.findUnsatisfiableCandidates(matchingCtx, predicate, false);
-		assertThat(uc2.numberOfBitsSet()).isEqualTo(4);
-		assertThat(uc2.isSet(3)).isTrue();
-		assertThat(uc2.isSet(2)).isFalse();
+		assertEquals(4, uc2.numberOfBitsSet());
+		assertTrue(uc2.isSet(3));
+		assertFalse(uc2.isSet(2));
 	}
 
 	@Test
-	public void test_eliminate_candidates() {
+	void test_eliminate_candidates() {
 		var candidates = new Bitmask();
 		var satisfiableCandidates = new Bitmask();
 		var unsatisfiableCandidates = new Bitmask();
@@ -110,7 +114,7 @@ public class CanonicalIndexAlgorithmTest {
 		CanonicalIndexAlgorithm.reduceCandidates(matchingCtx, unsatisfiableCandidates, satisfiableCandidates,
 				orphanedCandidates);
 		var remainingCandidates = matchingCtx.getCopyOfCandidates();
-		assertThat(remainingCandidates.numberOfBitsSet()).isEqualTo(0);
+		assertEquals(0, remainingCandidates.numberOfBitsSet());
 
 		candidates.set(0, 5);
 		matchingCtx.addCandidates(candidates);
@@ -118,64 +122,63 @@ public class CanonicalIndexAlgorithmTest {
 		CanonicalIndexAlgorithm.reduceCandidates(matchingCtx, unsatisfiableCandidates, satisfiableCandidates,
 				orphanedCandidates);
 		remainingCandidates = matchingCtx.getCopyOfCandidates();
-		assertThat(remainingCandidates.numberOfBitsSet()).isEqualTo(5);
+		assertEquals(5, remainingCandidates.numberOfBitsSet());
 
 		satisfiableCandidates.set(4);
 		CanonicalIndexAlgorithm.reduceCandidates(matchingCtx, unsatisfiableCandidates, satisfiableCandidates,
 				orphanedCandidates);
 		remainingCandidates = matchingCtx.getCopyOfCandidates();
-		assertThat(remainingCandidates.numberOfBitsSet()).isEqualTo(4);
-		assertThat(remainingCandidates.isSet(4)).isFalse();
+		assertEquals(4, remainingCandidates.numberOfBitsSet());
+		assertFalse(remainingCandidates.isSet(4));
 
 		unsatisfiableCandidates.set(3);
 		CanonicalIndexAlgorithm.reduceCandidates(matchingCtx, unsatisfiableCandidates, satisfiableCandidates,
 				orphanedCandidates);
 		remainingCandidates = matchingCtx.getCopyOfCandidates();
-		assertThat(remainingCandidates.numberOfBitsSet()).isEqualTo(3);
-		assertThat(remainingCandidates.isSet(3)).isFalse();
+		assertEquals(3, remainingCandidates.numberOfBitsSet());
+		assertFalse(remainingCandidates.isSet(3));
 
 		orphanedCandidates.set(0);
 		CanonicalIndexAlgorithm.reduceCandidates(matchingCtx, unsatisfiableCandidates, satisfiableCandidates,
 				orphanedCandidates);
 		remainingCandidates = matchingCtx.getCopyOfCandidates();
-		assertThat(remainingCandidates.numberOfBitsSet()).isEqualTo(2);
-		assertThat(remainingCandidates.isSet(0)).isFalse();
-		assertThat(remainingCandidates.isSet(1)).isTrue();
+		assertEquals(2, remainingCandidates.numberOfBitsSet());
+		assertFalse(remainingCandidates.isSet(0));
+		assertTrue(remainingCandidates.isSet(1));
 	}
 
 	@Test
-	public void test_remove_candidates_related_to_predicate() {
+	void test_remove_candidates_related_to_predicate() {
 		var predicate = new Predicate(new Bool(true));
-
 		var matchingCtx = new CanonicalIndexMatchingContext(0, subscriptionScopedEvaluationContext);
-
 		var candidates = new Bitmask();
 		candidates.set(0, 5);
 		matchingCtx.addCandidates(candidates);
 
 		CanonicalIndexAlgorithm.handleErrorEvaluationResult(predicate, matchingCtx);
 		var remainingCandidates = matchingCtx.getCopyOfCandidates();
-		assertThat(remainingCandidates.numberOfBitsSet()).isEqualTo(5);
+		assertEquals(5, remainingCandidates.numberOfBitsSet());
 
 		predicate.getConjunctions().set(3);
 		CanonicalIndexAlgorithm.handleErrorEvaluationResult(predicate, matchingCtx);
 		remainingCandidates = matchingCtx.getCopyOfCandidates();
-		assertThat(remainingCandidates.numberOfBitsSet()).isEqualTo(4);
-		assertThat(remainingCandidates.isSet(3)).isFalse();
+		assertEquals(4, remainingCandidates.numberOfBitsSet());
+		assertFalse(remainingCandidates.isSet(3));
 	}
 
 	@Test
-	public void test_fetch_formulas() {
+	void test_fetch_formulas() {
 		var satisfiableCandidates = new Bitmask();
 		List<Set<DisjunctiveFormula>> relatedFormulas = new ArrayList<>();
 		var dataContainer = createEmptyContainer();
 
-		assertThat(CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, dataContainer)).isEmpty();
+		assertThat(CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, dataContainer), empty());
 
 		satisfiableCandidates.set(1);
 		satisfiableCandidates.set(2);
-		assertThatExceptionOfType(IndexOutOfBoundsException.class)
-				.isThrownBy(() -> CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, createEmptyContainer()));
+		assertThrows(IndexOutOfBoundsException.class, () -> {
+			CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, createEmptyContainer());
+		});
 
 		Set<DisjunctiveFormula> set0 = new HashSet<>();
 
@@ -195,15 +198,15 @@ public class CanonicalIndexAlgorithmTest {
 		dataContainer = createEmptyContainerWithRelatedFormulas(relatedFormulas);
 
 		Set<DisjunctiveFormula> formulas = CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, dataContainer);
-		assertThat(formulas).isNotEmpty();
-		assertThat(formulas.size()).isEqualTo(5);
+		assertThat(formulas, not(empty()));
+		assertThat(formulas, hasSize(5));
 
 		Bitmask satisfiableCandidates2 = new Bitmask();
-		assertThat(CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates2, dataContainer)).isEmpty();
+		assertThat(CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates2, dataContainer), empty());
 	}
 
 	@Test
-	public void test_find_satisfiable_candidates() {
+	void test_find_satisfiable_candidates() {
 		var candidates = new Bitmask();
 		var predicate = new Predicate(new Bool(true));
 		int[] numberOfLiteralsInConjunction = new int[] { 1, 1, 2 };
@@ -211,8 +214,8 @@ public class CanonicalIndexAlgorithmTest {
 		var matchingCtx = new CanonicalIndexMatchingContext(3, subscriptionScopedEvaluationContext);
 		var dataContainer = createEmptyContainerWithNUmberOfLiteralsInConjunction(numberOfLiteralsInConjunction);
 
-		assertThat(CanonicalIndexAlgorithm.findSatisfiableCandidates(predicate, false, matchingCtx, dataContainer)
-				.numberOfBitsSet()).isEqualTo(0);
+		assertEquals(0, CanonicalIndexAlgorithm.findSatisfiableCandidates(predicate, false, matchingCtx, dataContainer)
+				.numberOfBitsSet());
 
 		candidates.set(0, 3);
 		matchingCtx.addCandidates(candidates);
@@ -222,33 +225,33 @@ public class CanonicalIndexAlgorithmTest {
 		// true -> {1} satisfiableCandidates
 		var satisfiableCandidates = CanonicalIndexAlgorithm.findSatisfiableCandidates(predicate, true, matchingCtx,
 				dataContainer);
-		assertThat(satisfiableCandidates.isSet(0)).isFalse();
-		assertThat(satisfiableCandidates.isSet(1)).isTrue();
-		assertThat(satisfiableCandidates.isSet(2)).isFalse();
+		assertFalse(satisfiableCandidates.isSet(0));
+		assertTrue(satisfiableCandidates.isSet(1));
+		assertFalse(satisfiableCandidates.isSet(2));
 
 		// calling the method again without clearing the array
 		// trueLiteralsOfConjunction, so number of true literals
 		// is "2" for the third candidate (all literals are true)
 		satisfiableCandidates = CanonicalIndexAlgorithm.findSatisfiableCandidates(predicate, true, matchingCtx,
 				dataContainer);
-		assertThat(satisfiableCandidates.isSet(2)).isTrue();
+		assertTrue(satisfiableCandidates.isSet(2));
 
 		satisfiableCandidates = CanonicalIndexAlgorithm.findSatisfiableCandidates(predicate, false, matchingCtx,
 				dataContainer);
-		assertThat(satisfiableCandidates.isSet(0)).isTrue();
-		assertThat(satisfiableCandidates.isSet(1)).isFalse();
-		assertThat(satisfiableCandidates.isSet(2)).isFalse();
+		assertTrue(satisfiableCandidates.isSet(0));
+		assertFalse(satisfiableCandidates.isSet(1));
+		assertFalse(satisfiableCandidates.isSet(2));
 	}
 
 	@Test
-	public void test_find_orphaned_candidates() {
+	void test_find_orphaned_candidates() {
 		var satisfiableCandidates = new Bitmask();
 
 		CanonicalIndexDataContainer dataContainer = createEmptyContainer();
 		var matchingCtx = new CanonicalIndexMatchingContext(0, subscriptionScopedEvaluationContext);
 
-		assertThat(CanonicalIndexAlgorithm.findOrphanedCandidates(satisfiableCandidates, matchingCtx, dataContainer)
-				.numberOfBitsSet()).isEqualTo(0);
+		assertEquals(0, CanonicalIndexAlgorithm
+				.findOrphanedCandidates(satisfiableCandidates, matchingCtx, dataContainer).numberOfBitsSet());
 	}
 
 	private List<ConjunctiveClause> createDummyClauseList(int numberOfLiterals) {

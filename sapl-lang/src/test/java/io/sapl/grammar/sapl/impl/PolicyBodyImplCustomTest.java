@@ -17,8 +17,8 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.HashMap;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -31,13 +31,13 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
-public class PolicyBodyImplCustomTest {
+class PolicyBodyImplCustomTest {
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	private EvaluationContext ctx;
 
-	@Before
-	public void setUp() throws InitializationException {
+	@BeforeEach
+	void setUp() throws InitializationException {
 		Hooks.onOperatorDebug();
 		var attributeCtx = new AnnotationAttributeContext();
 		var functionCtx = new AnnotationFunctionContext();
@@ -47,28 +47,28 @@ public class PolicyBodyImplCustomTest {
 	}
 
 	@Test
-	public void trueReturnsEntitlement() {
+	void trueReturnsEntitlement() {
 		var policy = INTERPRETER.parse("policy \"p\" permit true where true; true; true;");
 		var expected = AuthorizationDecision.PERMIT;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void oneFalseReturnsNotApplicableEntitlement() {
+	void oneFalseReturnsNotApplicableEntitlement() {
 		var policy = INTERPRETER.parse("policy \"p\" permit true where true; false; true;");
 		var expected = AuthorizationDecision.NOT_APPLICABLE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void oneErrorReturnsIndeterminate() {
+	void oneErrorReturnsIndeterminate() {
 		var policy = INTERPRETER.parse("policy \"p\" permit true where true; (10/0); true;");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void valueDefinitionsEvaluateAndScope() {
+	void valueDefinitionsEvaluateAndScope() {
 		var policy = INTERPRETER
 				.parse("policy \"p\" permit true where variable == undefined; var variable = 1; variable == 1;");
 		var expected = AuthorizationDecision.PERMIT;
@@ -76,7 +76,7 @@ public class PolicyBodyImplCustomTest {
 	}
 
 	@Test
-	public void valueDefinitionsDefineUndefined() {
+	void valueDefinitionsDefineUndefined() {
 		var policy = INTERPRETER.parse(
 				"policy \"p\" permit true where variable == undefined; var variable = undefined; variable == undefined;");
 		var expected = AuthorizationDecision.PERMIT;
@@ -84,56 +84,56 @@ public class PolicyBodyImplCustomTest {
 	}
 
 	@Test
-	public void valueDefinitionsDefineError() {
+	void valueDefinitionsDefineError() {
 		var policy = INTERPRETER.parse("policy \"p\" permit where var variable = (10/0);");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableSubjectError() {
+	void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableSubjectError() {
 		var policy = INTERPRETER.parse("policy \"p\" permit where var subject = {};");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableActionError() {
+	void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableActionError() {
 		var policy = INTERPRETER.parse("policy \"p\" permit where var action = {};");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableResourceError() {
+	void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableResourceError() {
 		var policy = INTERPRETER.parse("policy \"p\" permit where var resource = {};");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableEnvironmentError() {
+	void valueDefinitionsAttemptToOverwriteDefailtSubscriptionVariableEnvironmentError() {
 		var policy = INTERPRETER.parse("policy \"p\" permit where var environment = {};");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void lazyStatementEvaluationVarDef() {
+	void lazyStatementEvaluationVarDef() {
 		var policy = INTERPRETER.parse("policy \"p\" permit true where false; var variable = (10/0);");
 		var expected = AuthorizationDecision.NOT_APPLICABLE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void lazyStatementEvaluationVarDefOnError() {
+	void lazyStatementEvaluationVarDefOnError() {
 		var policy = INTERPRETER.parse("policy \"p\" permit true where (10/0); var variable = (10/0);");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void lazyStatementEvaluation() {
+	void lazyStatementEvaluation() {
 		var policy = INTERPRETER.parse("policy \"p\" permit true where false; (10/0);");
 		var expected = AuthorizationDecision.NOT_APPLICABLE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();

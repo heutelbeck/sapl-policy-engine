@@ -18,8 +18,8 @@ package io.sapl.grammar.sapl.impl;
 import java.util.HashMap;
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -38,14 +38,14 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
-public class PolicySetImplCustomTest {
+class PolicySetImplCustomTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	private EvaluationContext ctx;
 
-	@Before
-	public void setUp() throws JsonProcessingException, InitializationException {
+	@BeforeEach
+	void setUp() throws JsonProcessingException, InitializationException {
 		Hooks.onOperatorDebug();
 		var attributeCtx = new AnnotationAttributeContext();
 		var functionCtx = new AnnotationFunctionContext();
@@ -55,14 +55,14 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void simplePermitAllOnePolicy() {
+	void simplePermitAllOnePolicy() {
 		var policy = INTERPRETER.parse("set \"set\" deny-overrides policy \"set.p1\" permit");
 		var expected = AuthorizationDecision.PERMIT;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void denyOverrides() {
+	void denyOverrides() {
 		var policy = INTERPRETER.parse("set \"set\" deny-overrides " + "policy \"permits\" permit "
 				+ "policy \"indeterminate\" permit where (10/0); " + "policy \"denies\" deny "
 				+ "policy \"not-applicable\" deny where false;");
@@ -71,7 +71,7 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void permitOverrides() {
+	void permitOverrides() {
 		var policy = INTERPRETER.parse("set \"set\" permit-overrides " + "policy \"permits\" permit "
 				+ "policy \"indeterminate\" permit where (10/0); " + "policy \"denies\" deny "
 				+ "policy \"not-applicable\" deny where false;");
@@ -80,7 +80,7 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void onlyOneApplicable() {
+	void onlyOneApplicable() {
 		var policy = INTERPRETER.parse("set \"set\" only-one-applicable " + "policy \"permits\" permit "
 				+ "policy \"indeterminate\" permit where (10/0); " + "policy \"denies\" deny "
 				+ "policy \"not-applicable\" deny where false;");
@@ -89,7 +89,7 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void firstApplicable() {
+	void firstApplicable() {
 		var policy = INTERPRETER.parse("set \"set\" first-applicable " + "policy \"permits\" permit "
 				+ "policy \"indeterminate\" permit where (10/0); " + "policy \"denies\" deny "
 				+ "policy \"not-applicable\" deny where false;");
@@ -98,7 +98,7 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void denyUnlessPermit() {
+	void denyUnlessPermit() {
 		var policy = INTERPRETER.parse("set \"set\" deny-unless-permit " + "policy \"permits\" permit "
 				+ "policy \"indeterminate\" permit where (10/0); " + "policy \"denies\" deny "
 				+ "policy \"not-applicable\" deny where false;");
@@ -107,7 +107,7 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void duplicatePolicyNamesIndeterminate() {
+	void duplicatePolicyNamesIndeterminate() {
 		var policy = INTERPRETER
 				.parse("set \"set\" deny-unless-permit policy \"permits\" permit policy \"permits\" permit");
 		var expected = AuthorizationDecision.INDETERMINATE;
@@ -115,7 +115,7 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void permitUnlessDeny() {
+	void permitUnlessDeny() {
 		var policy = INTERPRETER.parse("set \"set\" permit-unless-deny " + "policy \"permits\" permit "
 				+ "policy \"indeterminate\" permit where (10/0); " + "policy \"denies\" deny "
 				+ "policy \"not-applicable\" deny where false;");
@@ -124,7 +124,7 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void valueDefinitions() {
+	void valueDefinitions() {
 		var policy = INTERPRETER.parse(
 				"set \"set\" deny-overrides var a = 5; var b = a+2; policy \"set.p1\" permit where a==5 && b == 7;");
 		var expected = AuthorizationDecision.PERMIT;
@@ -132,7 +132,7 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void valueDefinitionsUndefined() {
+	void valueDefinitionsUndefined() {
 		var policy = INTERPRETER
 				.parse("set \"set\" deny-overrides var a = undefined; policy \"set.p1\" permit where a==undefined;");
 		var expected = AuthorizationDecision.PERMIT;
@@ -140,7 +140,7 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void valueErrorLazy() {
+	void valueErrorLazy() {
 		var policy = INTERPRETER.parse(
 				"set \"set\" first-applicable var a = (10/0); var b = 12; policy \"set.p1\" permit where a==undefined;");
 		var expected = AuthorizationDecision.INDETERMINATE;
@@ -148,7 +148,7 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void valueDefinitionsFromOnePolicyDoNotLeakIntoOtherPolicy() {
+	void valueDefinitionsFromOnePolicyDoNotLeakIntoOtherPolicy() {
 		var policy = INTERPRETER.parse(
 				"set \"set\" deny-overrides policy \"set.p1\" permit where var a=5; var b=2; policy \"set.p2\" permit where a==undefined && b == undefined;");
 		var expected = AuthorizationDecision.PERMIT;
@@ -156,35 +156,35 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void simpleDenyAll() {
+	void simpleDenyAll() {
 		var policy = INTERPRETER.parse("policy \"p\" deny");
 		var expected = AuthorizationDecision.DENY;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void simplePermitAllWithBodyTrue() {
+	void simplePermitAllWithBodyTrue() {
 		var policy = INTERPRETER.parse("policy \"p\" permit where true;");
 		var expected = AuthorizationDecision.PERMIT;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void simplePermitAllWithBodyFalse() {
+	void simplePermitAllWithBodyFalse() {
 		var policy = INTERPRETER.parse("policy \"p\" permit where false;");
 		var expected = AuthorizationDecision.NOT_APPLICABLE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void simplePermitAllWithBodyError() {
+	void simplePermitAllWithBodyError() {
 		var policy = INTERPRETER.parse("policy \"p\" permit where (10/0);");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void obligationEvaluatesSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
+	void obligationEvaluatesSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
 		var policy = INTERPRETER.parse("policy \"p\" permit obligation true");
 		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
 				Optional.of(Val.ofJson("[true]").getArrayNode()), Optional.empty());
@@ -192,21 +192,21 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void obligationErrors() {
+	void obligationErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit obligation (10/0)");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void obligationUndefined() {
+	void obligationUndefined() {
 		var policy = INTERPRETER.parse("policy \"p\" permit obligation undefined");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void adviceEvaluatesSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
+	void adviceEvaluatesSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
 		var policy = INTERPRETER.parse("policy \"p\" permit advice true");
 		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
 				Optional.of(Val.ofJson("[true]").getArrayNode()));
@@ -214,21 +214,21 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void adviceErrors() {
+	void adviceErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit advice (10/0)");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void adviceUndefined() {
+	void adviceUndefined() {
 		var policy = INTERPRETER.parse("policy \"p\" permit advice undefined");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void transformEvaluatesSuccessfully() {
+	void transformEvaluatesSuccessfully() {
 		var policy = INTERPRETER.parse("policy \"p\" permit transform true");
 		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.JSON.booleanNode(true)),
 				Optional.empty(), Optional.empty());
@@ -236,21 +236,21 @@ public class PolicySetImplCustomTest {
 	}
 
 	@Test
-	public void transformErrors() {
+	void transformErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit transform (10/0)");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void transformUndefined() {
+	void transformUndefined() {
 		var policy = INTERPRETER.parse("policy \"p\" permit transform undefined");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void allComponentsPresentSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
+	void allComponentsPresentSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
 		var policy = INTERPRETER.parse(
 				"policy \"p\" permit where true; obligation \"wash your hands\" advice \"smile\" transform [true,false,null]");
 		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.ofJson("[true,false,null]").get()),

@@ -15,8 +15,9 @@
  */
 package io.sapl.interpreter;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -24,8 +25,8 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -49,7 +50,7 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.TestPIP;
 import reactor.core.publisher.Hooks;
 
-public class DefaultSAPLInterpreterTest {
+class DefaultSAPLInterpreterTest {
 
 	private static final String AUTHZ_SUBSCRIPTION_JSON = "{ " + "\"subject\" : { " + "\"id\" : \"1234\","
 			+ "\"organizationId\" : \"5678\"," + "\"isActive\" : true," + "\"granted_authorities\" : { "
@@ -66,8 +67,8 @@ public class DefaultSAPLInterpreterTest {
 	private EvaluationContext evaluationCtx;
 	private AuthorizationSubscription authzSubscription;
 
-	@Before
-	public void setUp() throws JsonProcessingException, InitializationException {
+	@BeforeEach
+	void setUp() throws JsonProcessingException, InitializationException {
 		Hooks.onOperatorDebug();
 		authzSubscription = MAPPER.readValue(AUTHZ_SUBSCRIPTION_JSON, AuthorizationSubscription.class);
 		var attributeCtx = new AnnotationAttributeContext();
@@ -79,703 +80,693 @@ public class DefaultSAPLInterpreterTest {
 	}
 
 	@Test
-	public void parseTest() {
+	void parseTest() {
 		final String policyDocument = "policy \"test\" permit";
 		INTERPRETER.parse(policyDocument);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void brokenInputStreamTest() {
+	@Test
+	void brokenInputStreamTest() {
 		var brokenInputStream = mock(InputStream.class);
-		INTERPRETER.parse(brokenInputStream);
-	}
-
-	@Test(expected = PolicyEvaluationException.class)
-	public void parseTestWithError() {
-		final String policyDocument = "xyz";
-		INTERPRETER.parse(policyDocument);
+		assertThrows(PolicyEvaluationException.class, () -> {
+			INTERPRETER.parse(brokenInputStream);
+		});
 	}
 
 	@Test
-	public void analyzePolicySet() {
+	void parseTestWithError() {
+		final String policyDocument = "xyz";
+		assertThrows(PolicyEvaluationException.class, () -> {
+			INTERPRETER.parse(policyDocument);
+		});
+	}
+
+	@Test
+	void analyzePolicySet() {
 		final String policyDefinition = "set \"test\" deny-overrides policy \"xx\" permit";
 		final DocumentAnalysisResult expected = new DocumentAnalysisResult(true, "test", DocumentType.POLICY_SET, "");
 		final DocumentAnalysisResult actual = INTERPRETER.analyze(policyDefinition);
-		assertEquals("policy set analysis result mismatch", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void analyzePolicy() {
+	void analyzePolicy() {
 		final String policyDefinition = "policy \"test\" permit";
 		final DocumentAnalysisResult expected = new DocumentAnalysisResult(true, "test", DocumentType.POLICY, "");
 		final DocumentAnalysisResult actual = INTERPRETER.analyze(policyDefinition);
-		assertEquals("policy analysis result mismatch", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void analyzeException() {
+	void analyzeException() {
 		final String policyDefinition = "xyz";
 		final DocumentAnalysisResult actual = INTERPRETER.analyze(policyDefinition);
-		assertFalse("policy analysis failure not reported correctly", actual.isValid());
+		assertFalse(actual.isValid());
 	}
 
 	@Test
-	public void permitAll() {
+	void permitAll() {
 		final String policyDefinition = "policy \"test\" permit";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("permit all did not evaluate to permit", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void denyAll() {
+	void denyAll() {
 		final String policyDefinition = "policy \"test\" deny";
 		final AuthorizationDecision expected = AuthorizationDecision.DENY;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("deny all did not evaluate to deny", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void permitFalse() {
+	void permitFalse() {
 		final String policyDefinition = "policy \"test\" permit false";
 		final AuthorizationDecision expected = AuthorizationDecision.NOT_APPLICABLE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("false in target did not lead to not_applicable result", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void permitParseError() {
+	void permitParseError() {
 		final String policyDefinition = "--- policy \"test\" permit ---";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("parse error should lead to indeterminate", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void targetNotBoolean() {
+	void targetNotBoolean() {
 		final String policyDefinition = "policy \"test\" permit 20";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("target expression type mismatch not detected", expected, actual);
-	}
-
-	@Test(expected = PolicyEvaluationException.class)
-	public void syntaxError() {
-		final String policyDefinition = "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ";
-		INTERPRETER.parse(policyDefinition);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void processParsedEmptyArray() {
+	void syntaxError() {
+		final String policyDefinition = "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ";
+		assertThrows(PolicyEvaluationException.class, () -> {
+			INTERPRETER.parse(policyDefinition);
+		});
+	}
+
+	@Test
+	void processParsedEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit resource.emptyArray == []";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("a parsed empty array cannot be processed", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void processParsedEmptyObject() {
+	void processParsedEmptyObject() {
 		final String policyDefinition = "policy \"test\" permit resource.emptyObject == {}";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("a parsed empty object cannot be processed", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void evaluateWorkingBodyTrue() {
+	void evaluateWorkingBodyTrue() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where true;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("evaluateRule behaves unexpectedly", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void evaluateWorkingBodyFalse() {
+	void evaluateWorkingBodyFalse() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where false;";
 		final AuthorizationDecision expected = AuthorizationDecision.NOT_APPLICABLE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("evaluateRule behaves unexpectedly", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void evaluateWorkingBodyError() {
+	void evaluateWorkingBodyError() {
 		final String policyDefinition = "policy \"test\" permit subject.isActive == true where 4 && true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("evaluateRule behaves unexpectedly", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void echoAttributeFinder() {
+	void echoAttributeFinder() {
 		final String policyDefinition = "policy \"test\" permit where var variable = [1,2,3]; variable.<sapl.pip.test.echo> == variable;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("external attribute finder not evaluated as expected", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void attributeFinderInTarget() {
+	void attributeFinderInTarget() {
 		final String policyDefinition = "policy \"test\" permit \"test\".<sapl.pip.test.echo> == \"test\"";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("external attribute finder was allowed in target", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void attributeFinderWithArgumentsTest() {
+	void attributeFinderWithArgumentsTest() {
 		final String policyDefinition = "policy \"test\" permit where var variable = \"hello\"; variable.<sapl.pip.test.echoRepeat(2)> == (variable + variable);";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("external attribute finder not evaluated as expected", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void bodyStatementNotBoolean() {
+	void bodyStatementNotBoolean() {
 		final String policyDefinition = "policy \"test\" permit where null;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("non boolean statement should lead to an error", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void variableRedefinition() {
+	void variableRedefinition() {
 		final String policyDefinition = "policy \"test\" permit where var test = null; var test = 2; test == 2;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("redefinition of value was not allowed", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void unboundVariable() {
+	void unboundVariable() {
 		final String policyDefinition = "policy \"test\" permit where variable;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("access to unbound variable should lead to an error", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void functionCall() {
+	void functionCall() {
 		final String policyDefinition = "policy \"test\" permit where simple.append(\"a\",\"b\") == \"ab\";";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("function call not evaluated as expected", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void functionCallImport() {
+	void functionCallImport() {
 		final String policyDefinition = "import simple.append policy \"test\" permit where append(\"a\",\"b\") == \"ab\";";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("function call with import not evaluated as expected", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void functionCallError() {
+	void functionCallError() {
 		final String policyDefinition = "policy \"test\" permit where append(null) == \"ab\";";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("function call error should lead to indeterminate", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void keyStepOnUndefined() {
+	void keyStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where undefined.key == undefined;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("key step on undefined did not evaluate to undefined", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveKeyStepOnUndefined() {
+	void recursiveKeyStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where undefined..key == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive key step on undefined did not evaluate to []", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void keyStepOnString() {
+	void keyStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where \"foo\".key == undefined;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("key step on string did not evaluate to undefined", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveKeyStepOnString() {
+	void recursiveKeyStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where \"foo\"..key == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive key step on string did not evaluate to []", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void keyStepWithUnknownKey() {
+	void keyStepWithUnknownKey() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": 1}.key == undefined;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("key step with unknown key did not evaluate to undefined", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveKeyStepWithUnknownKey() {
+	void recursiveKeyStepWithUnknownKey() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": 1}..key == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive key step with unknown key did not evaluate to the empty array", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void keyStepWithKnownKey() {
+	void keyStepWithKnownKey() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": 1}.key == 1;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("key step with known key did not evaluate to the value", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveKeyStepWithKnownKey() {
+	void recursiveKeyStepWithKnownKey() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": 1}..key == [1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive key step with known key did not evaluate to an array containing the value", expected,
-				actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void keyStepWithKnownKeyInChildObject() {
+	void keyStepWithKnownKeyInChildObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}.key == undefined;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("key step with known key in child object did not evaluate to undefined", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveKeyStepWithKnownKeyInChildObject() {
+	void recursiveKeyStepWithKnownKeyInChildObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}..key == [1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals(
-				"recursive key step with known key in child object did not evaluate to an array containing the value",
-				expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void keyStepWithKnownKeyInParentAndChildObject() {
+	void keyStepWithKnownKeyInParentAndChildObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": 1}}.key == {\"key\": 1};";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("key step with known key in parent and child object did not evaluate to child object", expected,
-				actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveKeyStepWithKnownKeyInParentAndChildObject() {
+	void recursiveKeyStepWithKnownKeyInParentAndChildObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": 1}}..key == [{\"key\": 1}, 1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals(
-				"recursive key step with known key in parent and child object did not evaluate to an array containing the values",
-				expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveKeyStepComplex() {
+	void recursiveKeyStepComplex() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": [{\"key\": 1}, {\"key\": 2}]}}..key == [{\"key\": [{\"key\": 1}, {\"key\": 2}]}, [{\"key\": 1}, {\"key\": 2}], 1, 2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive key step on complex object did not evaluate as expected", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void indexStepOnUndefined() {
+	void indexStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = undefined[0]; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("index step on undefined did not throw an exception", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveIndexStepOnUndefined() {
+	void recursiveIndexStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where undefined..[0] == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive index step on undefined did not return []", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void indexStepOnString() {
+	void indexStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where var error = \"foo\"[0]; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("index step on string did not throw an exception", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void indexStepOnArrayWithUndefined() {
+	void indexStepOnArrayWithUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = [undefined][0]; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("index step on array with undefined did not throw an exception", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveIndexStepOnArrayWithUndefined() {
+	void recursiveIndexStepOnArrayWithUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = [undefined]..[0]; error == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive index step on array with undefined did not return []", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void indexStepOnArrayWithIndexOutOfBounds() {
+	void indexStepOnArrayWithIndexOutOfBounds() {
 		final String policyDefinition = "policy \"test\" permit where var error = [0,1][2]; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("index step on array with index out of bounds did not throw an exception", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveIndexStepOnArrayWithIndexOutOfBounds() {
+	void recursiveIndexStepOnArrayWithIndexOutOfBounds() {
 		final String policyDefinition = "policy \"test\" permit where [0,1]..[2] == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive index step on array with index out of bounds did not throw an exception", expected,
-				actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void indexStepOnArrayWithValidIndex() {
+	void indexStepOnArrayWithValidIndex() {
 		final String policyDefinition = "policy \"test\" permit where [0,1][1] == 1;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("index step on array with valid index did not evaluate to array element", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveIndexStepOnArrayWithValidIndex() {
+	void recursiveIndexStepOnArrayWithValidIndex() {
 		final String policyDefinition = "policy \"test\" permit where [0,1]..[1] == [1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals(
-				"recursive index step on array with valid index did not evaluate to array containing the correct element",
-				expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveIndexStepOnArrayWithChildArray1() {
+	void recursiveIndexStepOnArrayWithChildArray1() {
 		final String policyDefinition = "policy \"test\" permit where [[0,1], 2]..[1] == [2, 1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive index step on array with child array (1) did not evaluate as expected", expected,
-				actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveIndexStepOnArrayWithChildArray2() {
+	void recursiveIndexStepOnArrayWithChildArray2() {
 		final String policyDefinition = "policy \"test\" permit where [0, [0,1]]..[1] == [[0,1], 1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive index step on array with child array (2) did not evaluate as expected", expected,
-				actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveIndexStepOnArrayWithChildArray3() {
+	void recursiveIndexStepOnArrayWithChildArray3() {
 		final String policyDefinition = "policy \"test\" permit where [0, [0, 1, 2]]..[2] == [2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive index step on array with child array (3) did not evaluate as expected", expected,
-				actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveIndexStepComplex() {
+	void recursiveIndexStepComplex() {
 		final String policyDefinition = "policy \"test\" permit where [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2]]..[2] == [2, 5];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive index step on complex array did not evaluate as expected", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void wildcardStepOnUndefined() {
+	void wildcardStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = undefined.*; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("wildcard step on undefined did not throw an exception", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveWildcardStepOnUndefined() {
+	void recursiveWildcardStepOnUndefined() {
 		final String policyDefinition = "policy \"test\" permit where var error = undefined..*; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive wildcard step on undefined did not throw an exception", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void wildcardStepOnString() {
+	void wildcardStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where var error = \"foo\".*; true == true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("wildcard step on string did not throw an exception", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveWildcardStepOnString() {
+	void recursiveWildcardStepOnString() {
 		final String policyDefinition = "policy \"test\" permit where \"foo\"..* == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive wildcard step on string did not return []", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void wildcardStepOnEmptyObject() {
+	void wildcardStepOnEmptyObject() {
 		final String policyDefinition = "policy \"test\" permit where {}.* == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("wildcard step on empty object did not evaluate to the empty array", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveWildcardStepOnEmptyObject() {
+	void recursiveWildcardStepOnEmptyObject() {
 		final String policyDefinition = "policy \"test\" permit where {}..* == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive wildcard step on empty object did not evaluate to the empty array", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void wildcardStepOnEmptyArray() {
+	void wildcardStepOnEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit where [].* == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("wildcard step on empty array did not evaluate to the empty array", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveWildcardStepOnEmptyArray() {
+	void recursiveWildcardStepOnEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit where []..* == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive wildcard step on empty array did not evaluate to the empty array", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void wildcardStepOnSimpleObject() {
+	void wildcardStepOnSimpleObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": 1, \"attr\": 2}.* == [1, 2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("wildcard step on simple object did not evaluate to array of values", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveWildcardStepOnSimpleObject() {
+	void recursiveWildcardStepOnSimpleObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"key\": 1, \"attr\": 2}..* == [1, 2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive wildcard step on simple object did not evaluate to array of values", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void wildcardStepOnSimpleArray() {
+	void wildcardStepOnSimpleArray() {
 		final String policyDefinition = "policy \"test\" permit where [1, 2].* == [1, 2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("wildcard step on simple array did not evaluate to same array", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveWildcardStepOnSimpleArray() {
+	void recursiveWildcardStepOnSimpleArray() {
 		final String policyDefinition = "policy \"test\" permit where [1, 2]..* == [1, 2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive wildcard step on simple array did not evaluate to array of elements", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void wildcardStepOnHierarchicalObject() {
+	void wildcardStepOnHierarchicalObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}.* == [{\"key\": 1}];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("wildcard step on hierarchical object did not evaluate to array of top level values", expected,
-				actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveWildcardStepOnHierarchicalObject() {
+	void recursiveWildcardStepOnHierarchicalObject() {
 		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}..* == [{\"key\": 1}, 1];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive wildcard step on hierarchical object did not evaluate to array of all values", expected,
-				actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void wildcardStepOnHierarchicalArray() {
+	void wildcardStepOnHierarchicalArray() {
 		final String policyDefinition = "policy \"test\" permit where [0, [1, 2]].* == [0, [1, 2]];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("wildcard step on hierarchical array did not evaluate to same array", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveWildcardStepOnHierarchicalArray() {
+	void recursiveWildcardStepOnHierarchicalArray() {
 		final String policyDefinition = "policy \"test\" permit where [0, [1, 2]]..* == [0, [1, 2], 1, 2];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("recursive wildcard step on hierarchical array did not evaluate as expected", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void recursiveWildcardStepComplex() {
+	void recursiveWildcardStepComplex() {
 		final String policyDefinition = "policy \"test\" permit where [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2], 6]..* == [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2], {\"text\": 1, \"arr\": [3, 4, 5]}, 1, [3, 4, 5], 3, 4, 5, 1, 2, 6];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("complex recursive wildcard step did not evaluate as expected", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void conditionStepOnEmptyArray() {
+	void conditionStepOnEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit where [][?(@ == undefined)] == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("condition step on empty array did not evaluate to empty array", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void conditionStepOnEmptyObject() {
+	void conditionStepOnEmptyObject() {
 		final String policyDefinition = "policy \"test\" permit where {}[?(@ == undefined)] == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("condition step on empty object did not evaluate to empty array", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void functionCallOnObjectNodeWithRelativeArguments() {
+	void functionCallOnObjectNodeWithRelativeArguments() {
 		final String policyDefinition = "import simple.append import filter.remove policy \"test\" permit where {\"name\": \"Ben\", \"origin\": \"Berlin\"} |- {@.name : append(\" from \", @.origin), @.origin : remove} == {\"name\": \"Ben from Berlin\"};";
 		SAPL s = INTERPRETER.parse(policyDefinition);
 		EObjectUtil.dump(s);
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("function call on object node passing relative arguments not evaluated as expected", expected,
-				actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void functionCallOnEachArrayItemWithRelativeArguments() {
+	void functionCallOnEachArrayItemWithRelativeArguments() {
 		final String policyDefinition = "import simple.* import filter.* policy \"test\" permit where [{\"name\": \"Hans\", \"origin\": \"Hagen\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}] |- { @..name : append(\" aus \", @.origin),  @..origin : remove} == [{\"name\": \"Hans aus Hagen\"}, {\"name\": \"Felix aus Zürich\"}];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("function call on each array item passing relative arguments not evaluated as expected", expected,
-				actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void filterExtended() throws IOException {
+	void filterExtended() throws IOException {
 		final String policyDefinition = "policy \"test\" permit transform [\"foo\", \"bars\"] |- {each @.<sapl.pip.test.echo> : simple.length}";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("permit all did not evaluate to permit", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void subtemplateOnEmptyArray() {
+	void subtemplateOnEmptyArray() {
 		final String policyDefinition = "policy \"test\" permit where [] :: { \"name\": \"foo\" } == [];";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("subtemplate on empty array did not evaluate to empty array", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void transformation() {
+	void transformation() {
 		final String policyDefinition = "policy \"test\" permit transform null";
 		final Optional<NullNode> expected = Optional.of(JSON.nullNode());
 		final AuthorizationDecision authzDecision = INTERPRETER
 				.evaluate(authzSubscription, policyDefinition, evaluationCtx).blockFirst();
 		final Optional<JsonNode> actual = authzDecision.getResource();
-		assertEquals("transformation not evaluated as expected", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void transformationError() {
+	void transformationError() {
 		final String policyDefinition = "policy \"test\" permit transform null * true";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("error in transformation should evaluate to indeterminate", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void obligation() {
+	void obligation() {
 		final String policyDefinition = "policy \"test\" permit obligation null";
 
 		final ArrayNode expectedObligation = JSON.arrayNode();
@@ -786,20 +777,20 @@ public class DefaultSAPLInterpreterTest {
 				.evaluate(authzSubscription, policyDefinition, evaluationCtx).blockFirst();
 		final Optional<ArrayNode> actual = authzDecision.getObligations();
 
-		assertEquals("obligation not evaluated as expected", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void obligationError() {
+	void obligationError() {
 		final String policyDefinition = "policy \"test\" permit obligation \"a\" > 5";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("error in obligation evaluation should evaluate to indeterminate", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void advice() {
+	void advice() {
 		final String policyDefinition = "policy \"test\" permit advice null";
 
 		final ArrayNode expectedAdvice = JSON.arrayNode();
@@ -810,97 +801,97 @@ public class DefaultSAPLInterpreterTest {
 				.evaluate(authzSubscription, policyDefinition, evaluationCtx).blockFirst();
 		final Optional<ArrayNode> actual = authzDecision.getAdvices();
 
-		assertEquals("advice not evaluated as expected", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void adviceError() {
+	void adviceError() {
 		final String policyDefinition = "policy \"test\" permit advice \"a\" > 5";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("error in advice evaluation should evaluate to indeterminate", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void importWildcard() {
+	void importWildcard() {
 		final String policyDefinition = "import simple.* policy \"test\" permit where var a = append(\"a\",\"b\");";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("wildcard import not working", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void importAttributeFinder() {
+	void importAttributeFinder() {
 		final String policyDefinition = "import sapl.pip.test.echo policy \"test\" permit where \"echo\" == \"echo\".<echo>;";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("attribute finder import not working", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void importLibrary() {
+	void importLibrary() {
 		final String policyDefinition = "import simple as simple_lib policy \"test\" permit where var a = simple_lib.append(\"a\",\"b\");";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("library import with alias not working", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void importMultiple() {
+	void importMultiple() {
 		final String policyDefinition = "import simple.length import simple.append policy \"test\" permit where var a = append(\"a\",\"b\");";
 		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("multiple imports not working", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void importNonExistingFunction() {
+	void importNonExistingFunction() {
 		final String policyDefinition = "import simple.non_existing policy \"test\" permit where true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("importing non existing function should cause an error", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void importDuplicateFunction() {
+	void importDuplicateFunction() {
 		final String policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("importing duplicate short name should cause an error", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void importDuplicateFunctionMatchingPolicy() {
+	void importDuplicateFunctionMatchingPolicy() {
 		final String policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("importing duplicate short name should cause an error", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void importDuplicateWildcard() {
+	void importDuplicateWildcard() {
 		final String policyDefinition = "import simple.append import simple.* policy \"test\" permit where true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("importing duplicate short name should cause an error", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 	@Test
-	public void importDuplicateAlias() {
+	void importDuplicateAlias() {
 		final String policyDefinition = "import simple as test import simple as test policy \"test\" permit where true;";
 		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
 		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
 				.blockFirst();
-		assertEquals("importing duplicate aliased name should cause an error", expected, actual);
+		assertEquals(expected, actual);
 	}
 
 }

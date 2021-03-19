@@ -33,8 +33,8 @@ import java.util.HashMap
 import java.util.Map
 import java.util.Optional
 import lombok.extern.slf4j.Slf4j
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.MatcherAssert.assertThat
@@ -52,7 +52,7 @@ class SampleXACMLTest {
 
 	static AuthorizationSubscription authzSubscription_example_two;
 
-	@Before
+	@BeforeEach
 	def void setUp() {
 		FUNCTION_CTX.loadLibrary(new MockXACMLStringFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new MockXACMLDateFunctionLibrary());

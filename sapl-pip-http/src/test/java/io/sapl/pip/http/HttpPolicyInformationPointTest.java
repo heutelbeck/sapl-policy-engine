@@ -15,7 +15,7 @@
  */
 package io.sapl.pip.http;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -27,11 +27,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -45,7 +45,7 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Flux;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class HttpPolicyInformationPointTest {
 
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -58,7 +58,7 @@ public class HttpPolicyInformationPointTest {
 
 	private WebClientRequestExecutor requestExecutor;
 
-	@Before
+	@BeforeEach
 	public void setUp() throws IOException {
 		final String request = "{ " + "\"url\": \"http://jsonplaceholder.typicode.com/posts\", " + "\"headers\": { "
 				+ "\"" + HttpHeaders.ACCEPT + "\" : \"application/stream+json\", " + "\"" + HttpHeaders.ACCEPT_CHARSET
@@ -87,7 +87,7 @@ public class HttpPolicyInformationPointTest {
 		attributeCtx.loadPolicyInformationPoint(pip);
 		var evaluationCtx = new EvaluationContext(attributeCtx, new AnnotationFunctionContext(), new HashMap<>());
 		var returnedAttribute = attributeCtx.evaluate("http.post", actualRequestSpec, evaluationCtx, null).blockFirst();
-		assertEquals("return value not matching", Val.of(result), returnedAttribute);
+		assertEquals(Val.of(result), returnedAttribute);
 		verify(requestExecutor).executeReactiveRequest(eq(expectedRequestSpec), eq(POST));
 	}
 

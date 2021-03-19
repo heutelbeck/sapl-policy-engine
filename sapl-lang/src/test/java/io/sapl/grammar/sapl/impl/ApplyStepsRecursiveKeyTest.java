@@ -18,50 +18,50 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
 
-public class ApplyStepsRecursiveKeyTest {
+class ApplyStepsRecursiveKeyTest {
 
 	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
-	public void recursiveKeyStepPropagatesErrors() {
+	void recursiveKeyStepPropagatesErrors() {
 		expressionErrors(CTX, "(10/0)..key");
 	}
 
 	@Test
-	public void recursiveKeyStepOnUndefinedIsEmpty() {
+	void recursiveKeyStepOnUndefinedIsEmpty() {
 		var expression = "undefined..key";
 		var expected = "[]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyToNull() {
+	void applyToNull() {
 		var expression = "null..key";
 		var expected = "[]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyToObject() {
+	void applyToObject() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..key";
 		var expected = "[ \"value1\", \"value2\", \"value3\" ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyToObjectNotPresent() {
+	void applyToObjectNotPresent() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..yek";
 		var expected = "[ ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterArray() {
+	void filterArray() {
 		var expression = "[ { \"key\" : \"value1\", \"array1\" : [ { \"key\" : { \"key2\": \"value2\" } }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}, "
 				+ " { \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]} ]"
 				+ " |- { @..key : mock.nil} ";
@@ -70,7 +70,7 @@ public class ApplyStepsRecursiveKeyTest {
 	}
 
 	@Test
-	public void filterArrayDescend() {
+	void filterArrayDescend() {
 		var expression = "[ { \"key\" : \"value1\", \"array1\" : [ { \"key\" : { \"key2\": \"value2\" } }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}, "
 				+ " { \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]} ]"
 				+ " |- { @..key..key2 : mock.nil}";
@@ -79,7 +79,7 @@ public class ApplyStepsRecursiveKeyTest {
 	}
 
 	@Test
-	public void filterArrayEmpty() {
+	void filterArrayEmpty() {
 		var expression = "[] |- { @..key..key2 : mock.nil} ";
 		var expected = "[]";
 		expressionEvaluatesTo(CTX, expression, expected);

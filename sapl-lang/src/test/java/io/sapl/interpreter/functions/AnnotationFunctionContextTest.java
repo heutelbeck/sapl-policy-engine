@@ -15,14 +15,14 @@
  */
 package io.sapl.interpreter.functions;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.InitializationException;
 
-public class AnnotationFunctionContextTest {
+class AnnotationFunctionContextTest {
 
 	@Test
-	public void testAutoconfigure() throws InitializationException {
+	void testAutoconfigure() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		context.evaluate(MockLibrary.NAME + ".helloTest");
 	}

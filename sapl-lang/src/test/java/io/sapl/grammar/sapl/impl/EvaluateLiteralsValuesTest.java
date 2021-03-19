@@ -18,62 +18,62 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 import static org.mockito.Mockito.mock;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.interpreter.EvaluationContext;
 
-public class EvaluateLiteralsValuesTest {
+class EvaluateLiteralsValuesTest {
 
 	private final static EvaluationContext CTX = mock(EvaluationContext.class);
 
 	@Test
-	public void evaluateNullLiteral() {
+	void evaluateNullLiteral() {
 		expressionEvaluatesTo(CTX, "null", "null");
 	}
 
 	@Test
-	public void evaluateTrueLiteral() {
+	void evaluateTrueLiteral() {
 		expressionEvaluatesTo(CTX, "true", "true");
 	}
 
 	@Test
-	public void evaluateFalseLiteral() {
+	void evaluateFalseLiteral() {
 		expressionEvaluatesTo(CTX, "false", "false");
 	}
 
 	@Test
-	public void evaluateStringLiteral() {
+	void evaluateStringLiteral() {
 		expressionEvaluatesTo(CTX, "\"Otto\"", "\"Otto\"");
 	}
 
 	@Test
-	public void evaluateNumberLiteral() {
+	void evaluateNumberLiteral() {
 		expressionEvaluatesTo(CTX, "666", "666");
 	}
 
 	@Test
-	public void evaluateNumberLiteral2() {
+	void evaluateNumberLiteral2() {
 		expressionEvaluatesTo(CTX, "1", "1.0");
 	}
 
 	@Test
-	public void evaluateEmptyObject() {
+	void evaluateEmptyObject() {
 		expressionEvaluatesTo(CTX, "{}", "{}");
 	}
 
 	@Test
-	public void evaluateObject() {
+	void evaluateObject() {
 		var json = "{ \"key1\" : null, \"key2\" : true }";
 		expressionEvaluatesTo(CTX, json, json);
 	}
 
 	@Test
-	public void evaluateEmptyArray() {
+	void evaluateEmptyArray() {
 		expressionEvaluatesTo(CTX, "[]", "[]");
 	}
 
 	@Test
-	public void evaluateArray() {
+	void evaluateArray() {
 		var json = "[null,true,false]";
 		expressionEvaluatesTo(CTX, json, json);
 	}

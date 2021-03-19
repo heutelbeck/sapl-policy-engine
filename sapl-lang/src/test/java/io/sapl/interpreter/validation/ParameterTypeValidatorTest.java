@@ -16,7 +16,7 @@
 package io.sapl.interpreter.validation;
 
 import static io.sapl.interpreter.validation.ParameterTypeValidator.validateType;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,10 +34,8 @@ import java.util.stream.Stream;
 
 import javax.inject.Inject;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.google.common.collect.Sets;
 
@@ -51,11 +49,8 @@ import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor
-@RunWith(Parameterized.class)
-public class ParameterTypeValidatorTest {
+class ParameterTypeValidatorTest {
 
 	private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
 			Text.class, Array.class, JsonObject.class);
@@ -70,10 +65,7 @@ public class ParameterTypeValidatorTest {
 			new Class<?>[] { JsonObject.class }, Val.TRUE, new Class<?>[] { Bool.class }, Val.ofEmptyArray(),
 			new Class<?>[] { Array.class }, Val.of(""), new Class<?>[] { Text.class });
 
-	private final ValidationTestSpecification testSpec;
-
-	@Parameters
-	public static Collection<ValidationTestSpecification> data() {
+	static Collection<ValidationTestSpecification> data() {
 		var testData = new LinkedList<ValidationTestSpecification>();
 		for (var testCase : TEST_CASES.entrySet()) {
 			var givenValue = testCase.getKey();
@@ -90,8 +82,9 @@ public class ParameterTypeValidatorTest {
 		return testData;
 	}
 
-	@Test
-	public void theGivenValue_YieldsExpctedValidation() {
+	@ParameterizedTest
+	@MethodSource("data")
+	void theGivenValue_YieldsExpctedValidation(ValidationTestSpecification testSpec) {
 		var parameter = mockParameter(testSpec.getGivenAnnotations());
 		assertEquals(testSpec.expectedToBeSuccessfullyValidated,
 				validationOfValue_IsSuccessfull(testSpec.getGivenValue(), parameter));
@@ -120,9 +113,9 @@ public class ParameterTypeValidatorTest {
 
 	@Data
 	@AllArgsConstructor
-	public static class ValidationTestSpecification {
-		public Val givenValue;
-		public Set<Class<?>> givenAnnotations;
-		public boolean expectedToBeSuccessfullyValidated;
+	static class ValidationTestSpecification {
+		Val givenValue;
+		Set<Class<?>> givenAnnotations;
+		boolean expectedToBeSuccessfullyValidated;
 	}
 }

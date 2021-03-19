@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import java.lang.reflect.InvocationTargetException;
@@ -22,10 +23,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.reflections.Reflections;
 
 import io.sapl.api.interpreter.Val;
@@ -34,69 +33,83 @@ import io.sapl.grammar.sapl.Step;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.test.StepVerifier;
 
-@RunWith(Parameterized.class)
-public class StepApplyNullCheckAndErrorPropoagationTest {
+class StepApplyNullCheckAndErrorPropoagationTest {
 
 	private final static EvaluationContext CTX = mock(EvaluationContext.class);
 
-	private final Step step;
-
-	public StepApplyNullCheckAndErrorPropoagationTest(Step step) {
-		this.step = step;
-	}
-
-	@Parameters
-	public static Collection<Object> data() throws InstantiationException, IllegalAccessException,
-			IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
+	static Collection<Step> data() throws InstantiationException, IllegalAccessException, IllegalArgumentException,
+			InvocationTargetException, NoSuchMethodException, SecurityException {
 		var reflections = new Reflections("io.sapl.grammar.sapl.impl");
 		var classes = reflections.getSubTypesOf(Step.class);
-		List<Object> instances = new ArrayList<Object>(classes.size());
+		List<Step> instances = new ArrayList<>(classes.size());
 		for (var clazz : classes) {
 			if (clazz.getSimpleName().endsWith("ImplCustom")) {
 				instances.add(clazz.getDeclaredConstructor().newInstance());
 			}
 		}
-		return (List<Object>) instances;
+		return instances;
 	}
 
-	@Test(expected = NullPointerException.class)
-	public void nullEvaluationContext() {
-		step.apply(Val.UNDEFINED, null, Val.UNDEFINED);
+	@ParameterizedTest
+	@MethodSource("data")
+	void nullEvaluationContext(Step step) {
+		assertThrows(NullPointerException.class, () -> {
+			step.apply(Val.UNDEFINED, null, Val.UNDEFINED);
+		});
 	}
 
-	@Test(expected = NullPointerException.class)
-	public void nullRelativeNode() {
-		step.apply(Val.UNDEFINED, CTX, null);
+	@ParameterizedTest
+	@MethodSource("data")
+	void nullRelativeNode(Step step) {
+		assertThrows(NullPointerException.class, () -> {
+			step.apply(Val.UNDEFINED, CTX, null);
+		});
 	}
 
-	@Test(expected = NullPointerException.class)
-	public void nullParentNode() {
-		step.apply(null, CTX, Val.UNDEFINED);
+	@ParameterizedTest
+	@MethodSource("data")
+	void nullParentNode(Step step) {
+		assertThrows(NullPointerException.class, () -> {
+			step.apply(null, CTX, Val.UNDEFINED);
+		});
 	}
 
-	@Test
-	public void stepsPropagateErrors() {
+	@ParameterizedTest
+	@MethodSource("data")
+	void stepsPropagateErrors(Step step) {
 		var error = Val.error("TEST");
 		StepVerifier.create(step.apply(error, CTX, Val.UNDEFINED)).expectNext(error).verifyComplete();
 	}
 
-	@Test(expected = NullPointerException.class)
-	public void nullEvaluationContextFilter() {
-		step.applyFilterStatement(Val.UNDEFINED, null, Val.UNDEFINED, 0, mock(FilterStatement.class));
+	@ParameterizedTest
+	@MethodSource("data")
+	void nullEvaluationContextFilter(Step step) {
+		assertThrows(NullPointerException.class, () -> {
+			step.applyFilterStatement(Val.UNDEFINED, null, Val.UNDEFINED, 0, mock(FilterStatement.class));
+		});
 	}
 
-	@Test(expected = NullPointerException.class)
-	public void nullRelativeNodeFilter() {
-		step.applyFilterStatement(Val.UNDEFINED, CTX, null, 0, mock(FilterStatement.class));
+	@ParameterizedTest
+	@MethodSource("data")
+	void nullRelativeNodeFilter(Step step) {
+		assertThrows(NullPointerException.class, () -> {
+			step.applyFilterStatement(Val.UNDEFINED, CTX, null, 0, mock(FilterStatement.class));
+		});
 	}
 
-	@Test(expected = NullPointerException.class)
-	public void nullParentNodeFilter() {
-		step.applyFilterStatement(null, CTX, Val.UNDEFINED, 0, mock(FilterStatement.class));
+	@ParameterizedTest
+	@MethodSource("data")
+	void nullParentNodeFilter(Step step) {
+		assertThrows(NullPointerException.class, () -> {
+			step.applyFilterStatement(null, CTX, Val.UNDEFINED, 0, mock(FilterStatement.class));
+		});
 	}
 
-	@Test(expected = NullPointerException.class)
-	public void nullFilterStatementFilter() {
-		step.applyFilterStatement(Val.UNDEFINED, CTX, Val.UNDEFINED, 0, null);
+	@ParameterizedTest
+	@MethodSource("data")
+	void nullFilterStatementFilter(Step step) {
+		assertThrows(NullPointerException.class, () -> {
+			step.applyFilterStatement(Val.UNDEFINED, CTX, Val.UNDEFINED, 0, null);
+		});
 	}
 }

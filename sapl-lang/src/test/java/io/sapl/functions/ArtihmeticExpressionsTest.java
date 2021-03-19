@@ -15,71 +15,70 @@
  */
 package io.sapl.functions;
 
+import static io.sapl.grammar.sapl.impl.util.MockUtil.constructTestEnvironmentPdpScopedEvaluationContext;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.comparesEqualTo;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
 
-public class ArtihmeticExpressionsTest {
+class ArtihmeticExpressionsTest {
 
 	@Test
-	public void parentPriority() throws IOException {
+	void parentPriority() throws IOException {
 		assertEvaluatesTo("(1+2)*3.0", 9.00D);
 	}
 
 	@Test
-	public void unaryMinusNoSpace() throws IOException {
+	void unaryMinusNoSpace() throws IOException {
 		assertEvaluatesTo("1+-1", 0D);
 	}
 
 	@Test
-	public void unaryMinusSpace() throws IOException {
+	void unaryMinusSpace() throws IOException {
 		assertEvaluatesTo("1+ -1", 0D);
 	}
 
 	@Test
-	public void twoSpacesUnaryMinus() throws IOException {
+	void twoSpacesUnaryMinus() throws IOException {
 		assertEvaluatesTo("1 + -1", 0D);
 	}
 
 	@Test
-	public void threeSpacesUnaryMinus() throws IOException {
+	void threeSpacesUnaryMinus() throws IOException {
 		assertEvaluatesTo("1 + - 1", 0D);
 	}
 
 	@Test
-	public void doubleNegation() throws IOException {
+	void doubleNegation() throws IOException {
 		assertEvaluatesTo("--1", 1D);
 	}
 
 	@Test
-	public void oneMinusOne_IsNull() throws IOException {
+	void oneMinusOne_IsNull() throws IOException {
 		assertEvaluatesTo("1-1", 0D);
 	}
 
 	@Test
-	public void unaryPlus_IsImplemented() throws IOException {
+	void unaryPlus_IsImplemented() throws IOException {
 		assertEvaluatesTo("1+ +(2)", 3D);
 	}
 
 	@Test
-	public void noSpacesPlusAndMinusEvaluates() throws IOException {
+	void noSpacesPlusAndMinusEvaluates() throws IOException {
 		assertEvaluatesTo("5+5-3", 7D);
 	}
 
 	private void assertEvaluatesTo(String given, double expected) throws IOException {
 		var expression = ParserUtil.expression(given);
-		var actual = expression.evaluate(MockUtil.constructTestEnvironmentPdpScopedEvaluationContext(), Val.UNDEFINED)
+		var actual = expression.evaluate(constructTestEnvironmentPdpScopedEvaluationContext(), Val.UNDEFINED)
 				.blockFirst();
-		assertThat(actual.decimalValue(), Matchers.comparesEqualTo(BigDecimal.valueOf(expected)));
-
+		assertThat(actual.decimalValue(), comparesEqualTo(BigDecimal.valueOf(expected)));
 	}
 
 }

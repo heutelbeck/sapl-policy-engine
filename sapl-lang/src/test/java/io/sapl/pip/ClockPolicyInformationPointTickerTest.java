@@ -15,7 +15,7 @@
  */
 package io.sapl.pip;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -24,7 +24,7 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.TemporalFunctionLibrary;
@@ -42,30 +42,27 @@ public class ClockPolicyInformationPointTickerTest {
 					final LocalDateTime localDateTime = LocalDateTime.now();
 					final String actual = TemporalFunctionLibrary.localDateTime(node).get().textValue();
 					final String expected = localDateTime.truncatedTo(ChronoUnit.SECONDS).toString();
-					assertEquals("<clock.ticker> or time.localDateTime() do not work as expected", expected, actual);
+					assertEquals(expected, actual);
 				}).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					final LocalTime localTime = LocalTime.now();
 					final String actual = TemporalFunctionLibrary.localTime(node).get().textValue();
 					final String expected = localTime.truncatedTo(ChronoUnit.SECONDS).toString();
-					assertEquals("<clock.ticker> or time.localTime() do not work as expected", expected, actual);
+					assertEquals(expected, actual);
 				}).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					final LocalTime localTime = LocalTime.now();
 					final Number actual = TemporalFunctionLibrary.localHour(node).get().numberValue();
 					final Number expected = BigDecimal.valueOf(localTime.getHour());
-					assertEquals("<clock.ticker> or time.localHour() do not work as expected", expected.longValue(),
-							actual.longValue());
+					assertEquals(expected.longValue(), actual.longValue());
 				}).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					final LocalTime localTime = LocalTime.now();
 					final Number actual = TemporalFunctionLibrary.localMinute(node).get().numberValue();
 					final Number expected = BigDecimal.valueOf(localTime.getMinute());
-					assertEquals("<clock.ticker> or time.localMinute() do not work as expected", expected.longValue(),
-							actual.longValue());
+					assertEquals(expected.longValue(), actual.longValue());
 				}).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					final LocalTime localTime = LocalTime.now();
 					final Number actual = TemporalFunctionLibrary.localSecond(node).get().numberValue();
 					final Number expected = BigDecimal.valueOf(localTime.getSecond());
-					assertEquals("<clock.ticker> or time.localSecond() do not work as expected", expected.longValue(),
-							actual.longValue());
+					assertEquals(expected.longValue(), actual.longValue());
 				}).thenCancel().verify();
 	}
 

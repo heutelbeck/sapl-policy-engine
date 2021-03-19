@@ -35,8 +35,8 @@ import java.util.Collections
 import java.util.HashMap
 import java.util.Map
 import java.util.Optional
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import reactor.core.publisher.Hooks
 
 import static org.hamcrest.CoreMatchers.equalTo
@@ -52,7 +52,7 @@ class SampleOurPuppetTest {
 	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
 		SYSTEM_VARIABLES);
 
-	@Before
+	@BeforeEach
 	def void setUp() throws FunctionException {
 		FUNCTION_CTX.loadLibrary(new SimpleFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new FilterFunctionLibrary());

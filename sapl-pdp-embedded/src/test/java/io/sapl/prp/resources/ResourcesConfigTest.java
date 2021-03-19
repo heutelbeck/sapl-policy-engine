@@ -15,15 +15,16 @@
  */
 package io.sapl.prp.resources;
 
-import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
-import org.junit.Test;
-import reactor.core.publisher.SignalType;
-
 import java.util.logging.Level;
 
-public class ResourcesConfigTest {
+import org.junit.jupiter.api.Test;
+
+import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
+import reactor.core.publisher.SignalType;
+
+class ResourcesConfigTest {
 	@Test
-	public void doTest() throws InterruptedException {
+	void doTest() throws InterruptedException {
 		var configProvider = new ResourcesVariablesAndCombinatorSource("/policies");
 		configProvider.getCombiningAlgorithm().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
 		configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();

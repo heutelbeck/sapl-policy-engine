@@ -17,14 +17,15 @@ package io.sapl.functions;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -43,61 +44,73 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 
-public class FilterFunctionLibraryTest {
+class FilterFunctionLibraryTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 	private static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
 	private static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
-	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections
-			.unmodifiableMap(new HashMap<>());
+	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 	private static final FilterFunctionLibrary LIBRARY = new FilterFunctionLibrary();
 	private static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES);
 
-	@Before
-	public void setUp() throws InitializationException {
+	@BeforeEach
+	void setUp() throws InitializationException {
 		FUNCTION_CTX.loadLibrary(LIBRARY);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void blackenTooManyArguments() {
-		FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of("x"), Val.of(2));
-
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void blackenNoString() {
-		FilterFunctionLibrary.blacken(Val.of(2));
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void blackenReplacementNoString() {
-		FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2));
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void blackenReplacementNegativeRight() {
-		FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(-2));
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void blackenReplacementNegativeLeft() {
-		FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(-2), Val.of(2));
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void blackenReplacementRightNoNumber() {
-		FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.ofNull());
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void blackenReplacementLeftNoNumber() {
-		FilterFunctionLibrary.blacken(Val.of("abcde"), Val.ofNull(), Val.of(2));
+	@Test
+	void blackenTooManyArguments() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of("x"), Val.of(2));
+		});
 	}
 
 	@Test
-	public void blackenWorking() {
+	void blackenNoString() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			FilterFunctionLibrary.blacken(Val.of(2));
+		});
+	}
+
+	@Test
+	void blackenReplacementNoString() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(2), Val.of(2));
+		});
+	}
+
+	@Test
+	void blackenReplacementNegativeRight() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.of(-2));
+		});
+	}
+
+	@Test
+	void blackenReplacementNegativeLeft() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(-2), Val.of(2));
+		});
+	}
+
+	@Test
+	void blackenReplacementRightNoNumber() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.ofNull());
+		});
+	}
+
+	@Test
+	void blackenReplacementLeftNoNumber() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.ofNull(), Val.of(2));
+		});
+	}
+
+	@Test
+	void blackenWorking() {
 		var given = Val.of("abcde");
 		var discloseLeft = Val.of(1);
 		var discloseRight = Val.of(1);
@@ -108,7 +121,7 @@ public class FilterFunctionLibraryTest {
 	}
 
 	@Test
-	public void blackenWorkingAllVisible() {
+	void blackenWorkingAllVisible() {
 		var text = Val.of("abcde");
 		var discloseLeft = Val.of(3);
 		var discloseRight = Val.of(3);
@@ -120,7 +133,7 @@ public class FilterFunctionLibraryTest {
 	}
 
 	@Test
-	public void blackenReplacementDefault() {
+	void blackenReplacementDefault() {
 		var text = Val.of("abcde");
 		var discloseLeft = Val.of(1);
 		var discloseRight = Val.of(1);
@@ -130,7 +143,7 @@ public class FilterFunctionLibraryTest {
 	}
 
 	@Test
-	public void blackenDiscloseRightDefault() {
+	void blackenDiscloseRightDefault() {
 		var text = Val.of("abcde");
 		var discloseLeft = Val.of(2);
 
@@ -140,7 +153,7 @@ public class FilterFunctionLibraryTest {
 	}
 
 	@Test
-	public void blackenDiscloseLeftDefault() {
+	void blackenDiscloseLeftDefault() {
 		var text = Val.of("abcde");
 		var result = FilterFunctionLibrary.blacken(text);
 		assertThat("blacken function - default value for disclose left not working as expected", result,
@@ -148,7 +161,7 @@ public class FilterFunctionLibraryTest {
 	}
 
 	@Test
-	public void blackenInPolicy() throws JsonProcessingException {
+	void blackenInPolicy() throws JsonProcessingException {
 		var authzSubscription = MAPPER.readValue("{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
 				AuthorizationSubscription.class);
 		var policyDefinition = "policy \"test\"	permit transform resource |- { @.key1 : filter.blacken(1) }";
@@ -161,13 +174,13 @@ public class FilterFunctionLibraryTest {
 	}
 
 	@Test
-	public void replace() {
+	void replace() {
 		var result = FilterFunctionLibrary.replace(Val.ofNull(), Val.of(1));
 		assertThat("replace function not working as expected", result, equalTo(Val.of(1)));
 	}
 
 	@Test
-	public void replaceInPolicy() throws JsonProcessingException {
+	void replaceInPolicy() throws JsonProcessingException {
 		var authzSubscription = MAPPER.readValue("{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
 				AuthorizationSubscription.class);
 		var policyDefinition = "policy \"test\" permit transform resource |- { @.array[1] : filter.replace(\"***\"), @.key1 : filter.replace(null) }";

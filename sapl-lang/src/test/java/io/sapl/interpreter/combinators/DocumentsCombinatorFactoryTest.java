@@ -20,9 +20,10 @@ import static io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMI
 import static io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm.ONLY_ONE_APPLICABLE;
 import static io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES;
 import static io.sapl.api.pdp.PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.grammar.sapl.impl.DenyOverridesCombiningAlgorithmImplCustom;
 import io.sapl.grammar.sapl.impl.DenyUnlessPermitCombiningAlgorithmImplCustom;
@@ -30,35 +31,35 @@ import io.sapl.grammar.sapl.impl.OnlyOneApplicableCombiningAlgorithmImplCustom;
 import io.sapl.grammar.sapl.impl.PermitOverridesCombiningAlgorithmImplCustom;
 import io.sapl.grammar.sapl.impl.PermitUnlessDenyCombiningAlgorithmImplCustom;
 
-public class DocumentsCombinatorFactoryTest {
+class DocumentsCombinatorFactoryTest {
 
 	@Test
-	public void permitUnlessDeny() {
-		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(PERMIT_UNLESS_DENY))
-				.isInstanceOf(PermitUnlessDenyCombiningAlgorithmImplCustom.class);
+	void permitUnlessDeny() {
+		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(PERMIT_UNLESS_DENY),
+				instanceOf(PermitUnlessDenyCombiningAlgorithmImplCustom.class));
 	}
 
 	@Test
-	public void permitOverrides() {
-		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(PERMIT_OVERRIDES))
-				.isInstanceOf(PermitOverridesCombiningAlgorithmImplCustom.class);
+	void permitOverrides() {
+		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(PERMIT_OVERRIDES),
+				instanceOf(PermitOverridesCombiningAlgorithmImplCustom.class));
 	}
 
 	@Test
-	public void denyOverrides() {
-		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_OVERRIDES))
-				.isInstanceOf(DenyOverridesCombiningAlgorithmImplCustom.class);
+	void denyOverrides() {
+		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_OVERRIDES),
+				instanceOf(DenyOverridesCombiningAlgorithmImplCustom.class));
 	}
 
 	@Test
-	public void oneApplicable() {
-		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(ONLY_ONE_APPLICABLE))
-				.isInstanceOf(OnlyOneApplicableCombiningAlgorithmImplCustom.class);
+	void oneApplicable() {
+		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(ONLY_ONE_APPLICABLE),
+				instanceOf(OnlyOneApplicableCombiningAlgorithmImplCustom.class));
 	}
 
 	@Test
-	public void dynyUnlessPErmit() {
-		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_UNLESS_PERMIT))
-				.isInstanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class);
+	void dynyUnlessPErmit() {
+		assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_UNLESS_PERMIT),
+				instanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class));
 	}
 }

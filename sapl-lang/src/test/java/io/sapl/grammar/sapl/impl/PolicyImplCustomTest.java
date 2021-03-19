@@ -18,8 +18,8 @@ package io.sapl.grammar.sapl.impl;
 import java.util.HashMap;
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -38,14 +38,14 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
-public class PolicyImplCustomTest {
+class PolicyImplCustomTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	private EvaluationContext ctx;
 
-	@Before
-	public void setUp() throws JsonProcessingException, InitializationException {
+	@BeforeEach
+	void setUp() throws JsonProcessingException, InitializationException {
 		Hooks.onOperatorDebug();
 		var attributeCtx = new AnnotationAttributeContext();
 		var functionCtx = new AnnotationFunctionContext();
@@ -55,42 +55,42 @@ public class PolicyImplCustomTest {
 	}
 
 	@Test
-	public void simplePermitAll() {
+	void simplePermitAll() {
 		var policy = INTERPRETER.parse("policy \"p\" permit");
 		var expected = AuthorizationDecision.PERMIT;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void simpleDenyAll() {
+	void simpleDenyAll() {
 		var policy = INTERPRETER.parse("policy \"p\" deny");
 		var expected = AuthorizationDecision.DENY;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void simplePermitAllWithBodyTrue() {
+	void simplePermitAllWithBodyTrue() {
 		var policy = INTERPRETER.parse("policy \"p\" permit where true;");
 		var expected = AuthorizationDecision.PERMIT;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void simplePermitAllWithBodyFalse() {
+	void simplePermitAllWithBodyFalse() {
 		var policy = INTERPRETER.parse("policy \"p\" permit where false;");
 		var expected = AuthorizationDecision.NOT_APPLICABLE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void simplePermitAllWithBodyError() {
+	void simplePermitAllWithBodyError() {
 		var policy = INTERPRETER.parse("policy \"p\" permit where (10/0);");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void obligationEvaluatesSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
+	void obligationEvaluatesSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
 		var policy = INTERPRETER.parse("policy \"p\" permit obligation true");
 		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
 				Optional.of(Val.ofJson("[true]").getArrayNode()), Optional.empty());
@@ -98,21 +98,21 @@ public class PolicyImplCustomTest {
 	}
 
 	@Test
-	public void obligationErrors() {
+	void obligationErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit obligation (10/0)");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void obligationUndefined() {
+	void obligationUndefined() {
 		var policy = INTERPRETER.parse("policy \"p\" permit obligation undefined");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void adviceEvaluatesSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
+	void adviceEvaluatesSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
 		var policy = INTERPRETER.parse("policy \"p\" permit advice true");
 		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
 				Optional.of(Val.ofJson("[true]").getArrayNode()));
@@ -120,21 +120,21 @@ public class PolicyImplCustomTest {
 	}
 
 	@Test
-	public void adviceErrors() {
+	void adviceErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit advice (10/0)");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void adviceUndefined() {
+	void adviceUndefined() {
 		var policy = INTERPRETER.parse("policy \"p\" permit advice undefined");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void transformEvaluatesSuccessfully() {
+	void transformEvaluatesSuccessfully() {
 		var policy = INTERPRETER.parse("policy \"p\" permit transform true");
 		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.JSON.booleanNode(true)),
 				Optional.empty(), Optional.empty());
@@ -142,21 +142,21 @@ public class PolicyImplCustomTest {
 	}
 
 	@Test
-	public void transformErrors() {
+	void transformErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit transform (10/0)");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void transformUndefined() {
+	void transformUndefined() {
 		var policy = INTERPRETER.parse("policy \"p\" permit transform undefined");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void allComponentsPresentSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
+	void allComponentsPresentSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
 		var policy = INTERPRETER.parse(
 				"policy \"p\" permit where true; obligation \"wash your hands\" advice \"smile\" transform [true,false,null]");
 		var expected = new AuthorizationDecision(Decision.PERMIT, Optional.of(Val.ofJson("[true,false,null]").get()),

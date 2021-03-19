@@ -17,14 +17,15 @@ package io.sapl.prp.filesystem;
 
 import java.util.logging.Level;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import reactor.core.publisher.SignalType;
 
-public class FilesystemConfigTest {
+class FilesystemConfigTest {
+
 	@Test
-	public void doTest() throws InterruptedException {
+	void doTest() throws InterruptedException {
 		var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
 		configProvider.getCombiningAlgorithm().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
 		configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();

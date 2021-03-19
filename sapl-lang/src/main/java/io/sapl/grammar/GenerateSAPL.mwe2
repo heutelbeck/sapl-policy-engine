@@ -74,7 +74,9 @@ Workflow {
 			//parserGenerator = {
 				//debugGrammar = true
 			//}
-
+			junitSupport = {
+				junitVersion = "5"
+			}
 			webSupport = {
 				generateHtmlExample = false
 				codeMirrorVersion = "5.39.2"

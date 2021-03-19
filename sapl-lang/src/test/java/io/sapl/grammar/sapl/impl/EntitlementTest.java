@@ -15,25 +15,27 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.IOException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.impl.util.ParserUtil;
 
-public class EntitlementTest {
+class EntitlementTest {
 
 	@Test
-	public void permitIsPermit() throws IOException {
+	void permitIsPermit() throws IOException {
 		var permit = ParserUtil.entitilement("permit");
-		org.junit.Assert.assertEquals(permit.getDecision(), Decision.PERMIT);
+		assertEquals(permit.getDecision(), Decision.PERMIT);
 	}
 
 	@Test
-	public void denyIsDeny() throws IOException {
+	void denyIsDeny() throws IOException {
 		var deny = ParserUtil.entitilement("deny");
-		org.junit.Assert.assertEquals(deny.getDecision(), Decision.DENY);
+		assertEquals(deny.getDecision(), Decision.DENY);
 	}
 
 }

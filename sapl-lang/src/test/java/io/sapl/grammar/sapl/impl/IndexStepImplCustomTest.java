@@ -18,94 +18,94 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
 
-public class IndexStepImplCustomTest {
+class IndexStepImplCustomTest {
 
 	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
-	public void applyIndexStepToNonArrayFails() {
+	void applyIndexStepToNonArrayFails() {
 		expressionErrors(CTX, "undefined[0]");
 	}
 
 	@Test
-	public void applyPositiveExistingToArrayNode() {
+	void applyPositiveExistingToArrayNode() {
 		expressionEvaluatesTo(CTX, "[0,1,2,3,4,5,6,7,8,9][5]", "5");
 	}
 
 	@Test
-	public void applyPositiveExistingToArrayNodeUpperEdge() {
+	void applyPositiveExistingToArrayNodeUpperEdge() {
 		expressionEvaluatesTo(CTX, "[0,1,2,3,4,5,6,7,8,9][9]", "9");
 	}
 
 	@Test
-	public void applyPositiveExistingToArrayNodeLowerEdge() {
+	void applyPositiveExistingToArrayNodeLowerEdge() {
 		expressionEvaluatesTo(CTX, "[0,1,2,3,4,5,6,7,8,9][0]", "0");
 	}
 
 	@Test
-	public void applyPositiveExistingToArrayNodeLowerEdgeNegative() {
+	void applyPositiveExistingToArrayNodeLowerEdgeNegative() {
 		expressionEvaluatesTo(CTX, "[0,1,2,3,4,5,6,7,8,9][-1]", "9");
 	}
 
 	@Test
-	public void applyPositiveExistingToArrayNodeOpperEdgeNegative() {
+	void applyPositiveExistingToArrayNodeOpperEdgeNegative() {
 		expressionEvaluatesTo(CTX, "[0,1,2,3,4,5,6,7,8,9][-10]", "0");
 	}
 
 	@Test
-	public void applyPositiveOutOfBoundsToArrayNode1() {
+	void applyPositiveOutOfBoundsToArrayNode1() {
 		expressionErrors(CTX, "[0,1,2,3,4,5,6,7,8,9][100]");
 	}
 
 	@Test
-	public void applyPositiveOutOfBoundsToArrayNodeUpperEdge() {
+	void applyPositiveOutOfBoundsToArrayNodeUpperEdge() {
 		expressionErrors(CTX, "[0,1,2,3,4,5,6,7,8,9][10]");
 	}
 
 	@Test
-	public void applyPositiveOutOfBoundsToArrayLowerUpperEdgeNegative() {
+	void applyPositiveOutOfBoundsToArrayLowerUpperEdgeNegative() {
 		expressionErrors(CTX, "[0,1,2,3,4,5,6,7,8,9][-11]");
 	}
 
 	@Test
-	public void applyNegativeExistingToArrayNode() {
+	void applyNegativeExistingToArrayNode() {
 		expressionEvaluatesTo(CTX, "[0,1,2,3,4,5,6,7,8,9][-2]", "8");
 
 	}
 
 	@Test
-	public void applyNegativeOutOfBoundsToArrayNode() {
+	void applyNegativeOutOfBoundsToArrayNode() {
 		expressionErrors(CTX, "[0,1,2,3,4,5,6,7,8,9][-12]");
 	}
 
 	@Test
-	public void filterOutOfBounds1() {
+	void filterOutOfBounds1() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[-12] : mock.nil }";
 		var expected = "[0,1,2,3,4,5,6,7,8,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterElementsInDescend() {
+	void filterElementsInDescend() {
 		var expression = "[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[3][2] : mock.nil }";
 		var expected = "[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,null,3]]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterOutOfBounds2() {
+	void filterOutOfBounds2() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[12] : mock.nil }";
 		var expected = "[0,1,2,3,4,5,6,7,8,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterNonArray() {
+	void filterNonArray() {
 		expressionEvaluatesTo(CTX, "666 |- { @[2] : mock.nil }", "666");
 	}
 

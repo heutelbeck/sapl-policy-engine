@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.HashMap;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.HeadAttributeFinderStep;
@@ -37,7 +37,7 @@ import io.sapl.interpreter.pip.AttributeContext;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-public class HeadAttributeFinderStepImplCustomTest {
+class HeadAttributeFinderStepImplCustomTest {
 
 	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
 	private static final String ATTRIBUTE = "attribute";
@@ -46,45 +46,45 @@ public class HeadAttributeFinderStepImplCustomTest {
 	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
-	public void evaluateBasicAttributeFlux() {
+	void evaluateBasicAttributeFlux() {
 		var expression = "\"\".|<test.numbers>";
 		var expected = new String[] { "0" };
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void evaluateBasicAttributeInTargetPolicy() throws IOException {
+	void evaluateBasicAttributeInTargetPolicy() throws IOException {
 		var expression = ParserUtil.expression("\"\".|<test.numbers>");
 		MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
 		expressionErrors(CTX, expression);
 	}
 
 	@Test
-	public void evaluateBasicAttributeInTargetPolicySet() throws IOException {
+	void evaluateBasicAttributeInTargetPolicySet() throws IOException {
 		var expression = ParserUtil.expression("\"\".|<test.numbers>");
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
 		expressionErrors(CTX, expression);
 	}
 
 	@Test
-	public void evaluateBasicAttributeOnUndefined() {
+	void evaluateBasicAttributeOnUndefined() {
 		expressionErrors(CTX, "undefined.|<test.numbers>");
 	}
 
 	@Test
-	public void evaluateAttributeInFilterSelction() {
+	void evaluateAttributeInFilterSelction() {
 		expressionErrors(CTX, "123 |- { @.|<test.numbers> : mock.nil }");
 	}
 
 	@Test
-	public void exceptionDuringEvaluation() {
+	void exceptionDuringEvaluation() {
 		var ctx = mockEvaluationContextWithAttributeStream(Flux.just(Val.error("ERROR")));
 		var step = headAttributeFinderStep();
 		StepVerifier.create(step.apply(Val.NULL, ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	public void applyWithSomeStreamData() {
+	void applyWithSomeStreamData() {
 		Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
 		var ctx = mockEvaluationContextWithAttributeStream(Flux.just(data));
 		var step = headAttributeFinderStep();

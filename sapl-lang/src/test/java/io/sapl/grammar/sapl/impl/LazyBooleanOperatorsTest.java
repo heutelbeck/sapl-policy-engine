@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
@@ -31,52 +31,52 @@ import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-public class LazyBooleanOperatorsTest {
+class LazyBooleanOperatorsTest {
 
 	private final static EvaluationContext CTX = mock(EvaluationContext.class);
 
 	@Test
-	public void andEvaluationSouldfailInPolicyTargetExpression() {
+	void andEvaluationSouldfailInPolicyTargetExpression() {
 		var and = new AndImplCustom();
 		MockUtil.mockPolicyTargetExpressionContainerExpression(and);
 		StepVerifier.create(and.evaluate(CTX, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	public void andEvaluationSouldfailInPolicySetTargetExpression() {
+	void andEvaluationSouldfailInPolicySetTargetExpression() {
 		var and = new AndImplCustom();
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(and);
 		StepVerifier.create(and.evaluate(CTX, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	public void andEvaluationShouldFailWithNonBooleanLeft() {
+	void andEvaluationShouldFailWithNonBooleanLeft() {
 		expressionErrors(CTX, "null && true");
 	}
 
 	@Test
-	public void andEvaluationShouldFailWithNonBooleanRight() {
+	void andEvaluationShouldFailWithNonBooleanRight() {
 		expressionErrors(CTX, "true && null");
 	}
 
 	@Test
-	public void andEvaluationShouldBeLazyAndReturnFalseInLazyCase() {
+	void andEvaluationShouldBeLazyAndReturnFalseInLazyCase() {
 		expressionEvaluatesTo(CTX, "false && undefined", "false");
 
 	}
 
 	@Test
-	public void andEvaluationOfTrueAndFalseShouldBeFalse() {
+	void andEvaluationOfTrueAndFalseShouldBeFalse() {
 		expressionEvaluatesTo(CTX, "true && false", "false");
 	}
 
 	@Test
-	public void andEvaluationTrueAndTrueSouldBeTrue() {
+	void andEvaluationTrueAndTrueSouldBeTrue() {
 		expressionEvaluatesTo(CTX, "true && true", "true");
 	}
 
 	@Test
-	public void andEvaluationOfSequencesSouldReturnMathicingSequence() {
+	void andEvaluationOfSequencesSouldReturnMathicingSequence() {
 		var left = mock(Expression.class);
 		var right = mock(Expression.class);
 		var and = new AndImplCustom();
@@ -91,51 +91,51 @@ public class LazyBooleanOperatorsTest {
 	}
 
 	@Test
-	public void orEvaluationSouldfailInPolicyTargetExpression() {
+	void orEvaluationSouldfailInPolicyTargetExpression() {
 		var and = new OrImplCustom();
 		MockUtil.mockPolicyTargetExpressionContainerExpression(and);
 		StepVerifier.create(and.evaluate(CTX, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	public void orEvaluationSouldfailInPolicySetTargetExpression() {
+	void orEvaluationSouldfailInPolicySetTargetExpression() {
 		var and = new OrImplCustom();
 		MockUtil.mockPolicySetTargetExpressionContainerExpression(and);
 		StepVerifier.create(and.evaluate(CTX, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	public void orEvaluationShouldFailWithNonBooleanLeft() {
+	void orEvaluationShouldFailWithNonBooleanLeft() {
 		expressionErrors(CTX, "null || true");
 	}
 
 	@Test
-	public void orEvaluationShouldFailWithNonBooleanRight() {
+	void orEvaluationShouldFailWithNonBooleanRight() {
 		expressionErrors(CTX, "false || null");
 	}
 
 	@Test
-	public void orEvaluationShouldBeLazyAndReturnTrueInLazyCase() {
+	void orEvaluationShouldBeLazyAndReturnTrueInLazyCase() {
 		expressionEvaluatesTo(CTX, "true || undefined", "true");
 	}
 
 	@Test
-	public void orEvaluationOfTrueAndFalseShouldBeTrue() {
+	void orEvaluationOfTrueAndFalseShouldBeTrue() {
 		expressionEvaluatesTo(CTX, "true || false", "true");
 	}
 
 	@Test
-	public void orEvaluationOfFalseAndTrueShouldBeTrue() {
+	void orEvaluationOfFalseAndTrueShouldBeTrue() {
 		expressionEvaluatesTo(CTX, "false || true", "true");
 	}
 
 	@Test
-	public void orEvaluationTrueAndTrueSouldBeTrue() {
+	void orEvaluationTrueAndTrueSouldBeTrue() {
 		expressionEvaluatesTo(CTX, "true || true", "true");
 	}
 
 	@Test
-	public void orEvaluationOfSequencesSouldReturnMathicingSequence() {
+	void orEvaluationOfSequencesSouldReturnMathicingSequence() {
 		var left = mock(Expression.class);
 		var right = mock(Expression.class);
 		var or = new OrImplCustom();

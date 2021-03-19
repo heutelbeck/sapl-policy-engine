@@ -15,7 +15,7 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.interpreter.Val;
@@ -25,44 +25,44 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.test.StepVerifier;
 
-public class PolicyElementImplCustomTest {
+class PolicyElementImplCustomTest {
 
 	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 	private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	@Test
-	public void emptyTargetMatches() {
+	void emptyTargetMatches() {
 		var policy = INTERPRETER.parse("policy \"p\" permit");
 		StepVerifier.create(policy.matches(CTX)).expectNext(Val.TRUE).verifyComplete();
 	}
 
 	@Test
-	public void undefinedTargetErrors() {
+	void undefinedTargetErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit undefined");
 		EObjectUtil.dump(policy);
 		StepVerifier.create(policy.matches(CTX)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	public void errorTargetErrors() {
+	void errorTargetErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit (10/0)");
 		StepVerifier.create(policy.matches(CTX)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	public void nonBooleanTargetErrors() {
+	void nonBooleanTargetErrors() {
 		var policy = INTERPRETER.parse("policy \"p\" permit \"abc\"");
 		StepVerifier.create(policy.matches(CTX)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	public void falseTargetDosNotMatch() {
+	void falseTargetDosNotMatch() {
 		var policy = INTERPRETER.parse("policy \"p\" permit false");
 		StepVerifier.create(policy.matches(CTX)).expectNext(Val.FALSE).verifyComplete();
 	}
 
 	@Test
-	public void trueTargetDosMatch() {
+	void trueTargetDosMatch() {
 		var policy = INTERPRETER.parse("policy \"p\" permit true");
 		StepVerifier.create(policy.matches(CTX)).expectNext(Val.TRUE).verifyComplete();
 	}

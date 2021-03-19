@@ -18,66 +18,66 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
 
-public class ApplyStepsRecursiveIndexTest {
+class ApplyStepsRecursiveIndexTest {
 
 	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
-	public void recursiveIndexStepPropagatesErrors() {
+	void recursiveIndexStepPropagatesErrors() {
 		expressionErrors(CTX, "(10/0)..[5]");
 	}
 
 	@Test
-	public void recursiveIndexStepOnUndefinedEmpty() {
+	void recursiveIndexStepOnUndefinedEmpty() {
 		expressionEvaluatesTo(CTX, "undefined..[2]", "[]");
 	}
 
 	@Test
-	public void applyToNull() {
+	void applyToNull() {
 		expressionEvaluatesTo(CTX, "null..[2]", "[]");
 	}
 
 	@Test
-	public void applyIndex1() {
+	void applyIndex1() {
 		expressionEvaluatesTo(CTX, "[ [1,2,3], [4,5,6,7] ]..[1]", "[[4,5,6,7],2,5]");
 	}
 
 	@Test
-	public void applyIndex2() {
+	void applyIndex2() {
 		expressionEvaluatesTo(CTX, "[ [1,2,3], [4,5,6,7] ]..[2]", "[3,6]");
 	}
 
 	@Test
-	public void applyIndex3() {
+	void applyIndex3() {
 		expressionEvaluatesTo(CTX, "[ [1,2,3], [4,5,6,7] ]..[-1]", "[[4,5,6,7],3,7]");
 	}
 
 	@Test
-	public void applyIndex4() {
+	void applyIndex4() {
 		expressionEvaluatesTo(CTX, "[ [1,2,3], [4,5,6,7] ]..[-4]", "[4]");
 	}
 
 	@Test
-	public void filterApplyIndex() {
+	void filterApplyIndex() {
 		expressionEvaluatesTo(CTX, "[ [1,2,3], [4,5,6,7] ] |- { @..[-4] : mock.nil }", "[ [1,2,3], [null,5,6,7] ]");
 	}
 
 	@Test
-	public void applyToObject() throws JsonProcessingException {
+	void applyToObject() throws JsonProcessingException {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ]}..[0]";
 		var expected = "[ { \"key\" : \"value2\" }, 1 ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void removeRecussiveIndexStepObject() {
+	void removeRecussiveIndexStepObject() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value2\" }, { \"key\" : \"value3\" } ], \"array2\" : [ 1, 2, 3, 4, 5 ] } "
 				+ "|- { @..[0] : filter.remove }";
 		var expected = "{ \"key\" : \"value1\", \"array1\" : [ { \"key\" : \"value3\" } ], \"array2\" : [ 2, 3, 4, 5 ] }";
@@ -85,7 +85,7 @@ public class ApplyStepsRecursiveIndexTest {
 	}
 
 	@Test
-	public void removeRecussiveIndexStepObjectDescend() {
+	void removeRecussiveIndexStepObjectDescend() {
 		var expression = "{ \"key\" : \"value1\", \"array1\" : [ [ 1,2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [1,2,3], 2, 3, 4, 5 ] } "
 				+ "|- { @..[0][0] : filter.remove }";
 		var expected = "{ \"key\" : \"value1\", \"array1\" : [ [ 2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [2,3], 2, 3, 4, 5 ] }";

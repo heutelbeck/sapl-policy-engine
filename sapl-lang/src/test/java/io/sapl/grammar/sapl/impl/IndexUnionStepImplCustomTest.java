@@ -18,50 +18,50 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
 
-public class IndexUnionStepImplCustomTest {
+class IndexUnionStepImplCustomTest {
 
 	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
-	public void applyIndexUnionStepToNonArrayFails() {
+	void applyIndexUnionStepToNonArrayFails() {
 		expressionErrors(CTX, "(undefined)[1,2]");
 	}
 
 	@Test
-	public void applyToArray() {
+	void applyToArray() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][0,1,-2,10,-10]";
 		var expected = "[0,1,8]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyToArrayOutOfBounds() {
+	void applyToArrayOutOfBounds() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9][100,-100]";
 		var expected = "[]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterNegativeStepArray() {
+	void filterNegativeStepArray() {
 		var expression = "\"Otto\" |- { @[1,2,3] : mock.nil }";
 		var expected = "\"Otto\"";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterElementsInArray() {
+	void filterElementsInArray() {
 		var expression = "[0,1,2,3,4,5,6,7,8,9] |- { @[0,1,-2,10,-10] : mock.nil }";
 		var expected = "[null,null,2,3,4,5,6,7,null,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterElementsInDescend() {
+	void filterElementsInDescend() {
 		var expression = "[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[1,3][3] : mock.nil }";
 		var expected = "[[0,1,2,3],[0,1,2,null],[0,1,2,3],[0,1,2,null]]";
 		expressionEvaluatesTo(CTX, expression, expected);

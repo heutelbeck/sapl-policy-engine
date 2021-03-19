@@ -25,8 +25,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -45,7 +45,7 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pip.ClockPolicyInformationPoint;
 
-public class TemporalFunctionLibraryTest {
+class TemporalFunctionLibraryTest {
 
 	static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 	static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
@@ -59,8 +59,8 @@ public class TemporalFunctionLibraryTest {
 
 	static AuthorizationSubscription authzSubscriptionObj;
 
-	@BeforeClass
-	public static void beforeClass() throws InitializationException, JsonProcessingException {
+	@BeforeAll
+	static void beforeClass() throws InitializationException, JsonProcessingException {
 		FUNCTION_CTX.loadLibrary(new StandardFunctionLibrary());
 		FUNCTION_CTX.loadLibrary(new TemporalFunctionLibrary());
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
@@ -68,7 +68,7 @@ public class TemporalFunctionLibraryTest {
 	}
 
 	@Test
-	public void nowPlus10Seconds() {
+	void nowPlus10Seconds() {
 		var zoneId = Val.of("UTC");
 		var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
 		var plus10 = TemporalFunctionLibrary.plusSeconds(now, Val.of(10L));
@@ -77,7 +77,7 @@ public class TemporalFunctionLibraryTest {
 	}
 
 	@Test
-	public void dayOfWeekFrom() {
+	void dayOfWeekFrom() {
 		var zoneId = Val.of("UTC");
 		var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
 		var dayOfWeek = TemporalFunctionLibrary.dayOfWeekFrom(now);
@@ -86,7 +86,7 @@ public class TemporalFunctionLibraryTest {
 	}
 
 	@Test
-	public void policyWithMatchingTemporalBody() {
+	void policyWithMatchingTemporalBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where time.before(\"UTC\".<clock.now>, time.plusSeconds(\"UTC\".<clock.now>, 10));";
 		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
 		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
@@ -95,7 +95,7 @@ public class TemporalFunctionLibraryTest {
 	}
 
 	@Test
-	public void policyWithNonMatchingTemporalBody() {
+	void policyWithNonMatchingTemporalBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where time.after(\"UTC\".<clock.now>, time.plusSeconds(\"UTC\".<clock.now>, 10));";
 		var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
 		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
@@ -104,7 +104,7 @@ public class TemporalFunctionLibraryTest {
 	}
 
 	@Test
-	public void policyWithDayOfWeekBody() {
+	void policyWithDayOfWeekBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where time.dayOfWeekFrom(\"UTC\".<clock.now>) == \"SUNDAY\";";
 		AuthorizationDecision expectedAuthzDecision;
 		if (DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)) == DayOfWeek.SUNDAY) {
@@ -118,7 +118,7 @@ public class TemporalFunctionLibraryTest {
 	}
 
 	@Test
-	public void policyWithLocalDateTimeBody() {
+	void policyWithLocalDateTimeBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localDateTime(\"UTC\".<clock.now>)) in [16, 19];";
 		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
 		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
@@ -127,7 +127,7 @@ public class TemporalFunctionLibraryTest {
 	}
 
 	@Test
-	public void policyWithLocalTimeBody() {
+	void policyWithLocalTimeBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localTime(\"UTC\".<clock.now>)) in [5, 8];";
 		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
 		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
@@ -136,7 +136,7 @@ public class TemporalFunctionLibraryTest {
 	}
 
 	@Test
-	public void policyWithLocalHourBody() {
+	void policyWithLocalHourBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where var hour = time.localHour(\"UTC\".<clock.now>); hour >= 0 && hour <= 23;";
 		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
 		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
@@ -145,7 +145,7 @@ public class TemporalFunctionLibraryTest {
 	}
 
 	@Test
-	public void policyWithLocalMinuteBody() {
+	void policyWithLocalMinuteBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where var minute = time.localMinute(\"UTC\".<clock.now>); minute >= 0 && minute <= 59;";
 		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
 		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
@@ -154,7 +154,7 @@ public class TemporalFunctionLibraryTest {
 	}
 
 	@Test
-	public void policyWithLocalSecondBody() {
+	void policyWithLocalSecondBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where var second = time.localSecond(\"UTC\".<clock.now>); second >= 0 && second <= 59;";
 		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
 		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)

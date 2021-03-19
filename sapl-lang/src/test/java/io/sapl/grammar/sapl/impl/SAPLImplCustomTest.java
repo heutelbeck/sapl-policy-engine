@@ -15,11 +15,12 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.SAPLInterpreter;
@@ -30,32 +31,32 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.test.StepVerifier;
 
-public class SAPLImplCustomTest {
+class SAPLImplCustomTest {
 
 	private final static EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 	private final static SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	@Test
-	public void detectErrorInTargetMatches() {
+	void detectErrorInTargetMatches() {
 		var policy = INTERPRETER.parse("policy \"policy\" permit (10/0)");
 		StepVerifier.create(policy.matches(CTX)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	public void detectErrorInImportsDuringMatches() {
+	void detectErrorInImportsDuringMatches() {
 		var policy = INTERPRETER.parse("import filter.blacken import filter.blacken policy \"policy\" permit true");
 		StepVerifier.create(policy.matches(CTX)).expectNextMatches(Val::isError).verifyComplete();
 	}
 
 	@Test
-	public void detectErrorInImportsDuringEvaluate() {
+	void detectErrorInImportsDuringEvaluate() {
 		var policy = INTERPRETER.parse("import filter.blacken import filter.blacken policy \"policy\" permit true");
 		var expected = AuthorizationDecision.INDETERMINATE;
 		StepVerifier.create(policy.evaluate(CTX)).expectNext(expected).verifyComplete();
 	}
 
 	@Test
-	public void importsWorkCorrectlyBasicFunction() {
+	void importsWorkCorrectlyBasicFunction() {
 		var policy = INTERPRETER.parse("import filter.blacken policy \"policy\" permit true");
 		var expectedImports = Map.of("blacken", "filter.blacken");
 		var actualImports = policy.documentScopedEvaluationContext(CTX).getImports();
@@ -63,7 +64,7 @@ public class SAPLImplCustomTest {
 	}
 
 	@Test
-	public void importsWorkCorrectlyWildcardFunction() {
+	void importsWorkCorrectlyWildcardFunction() {
 		var policy = INTERPRETER.parse("import filter.* policy \"policy\" permit true");
 		var expectedImports = Map.of("blacken", "filter.blacken", "replace", "filter.replace", "remove",
 				"filter.remove");
@@ -72,7 +73,7 @@ public class SAPLImplCustomTest {
 	}
 
 	@Test
-	public void importsWorkCorrectlyLibraryFunction() {
+	void importsWorkCorrectlyLibraryFunction() {
 		var policy = INTERPRETER.parse("import filter as fil policy \"policy\" permit true");
 		var expectedImports = Map.of("fil.blacken", "filter.blacken", "fil.replace", "filter.replace", "fil.remove",
 				"filter.remove");
@@ -81,7 +82,7 @@ public class SAPLImplCustomTest {
 	}
 
 	@Test
-	public void importsWorkCorrectlyBasicAttribute() {
+	void importsWorkCorrectlyBasicAttribute() {
 		var policy = INTERPRETER.parse("import test.numbers policy \"policy\" permit true");
 		var expectedImports = Map.of("numbers", "test.numbers");
 		var actualImports = policy.documentScopedEvaluationContext(CTX).getImports();
@@ -89,7 +90,7 @@ public class SAPLImplCustomTest {
 	}
 
 	@Test
-	public void importsWorkCorrectlyWildcardAttribute() {
+	void importsWorkCorrectlyWildcardAttribute() {
 		var policy = INTERPRETER.parse("import test.* policy \"policy\" permit true");
 		var expectedImports = Map.of("numbers", "test.numbers", "numbersWithError", "test.numbersWithError", "nilflux",
 				"test.nilflux");
@@ -99,7 +100,7 @@ public class SAPLImplCustomTest {
 	}
 
 	@Test
-	public void importsWorkCorrectlyLibraryAttribute() {
+	void importsWorkCorrectlyLibraryAttribute() {
 		var policy = INTERPRETER.parse("import test as t policy \"policy\" permit true");
 		var expectedImports = Map.of("t.numbers", "test.numbers", "t.numbersWithError", "test.numbersWithError",
 				"t.nilflux", "test.nilflux");
@@ -107,26 +108,32 @@ public class SAPLImplCustomTest {
 		assertEquals(expectedImports, actualImports);
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void importNonExistingFails() {
+	@Test
+	void importNonExistingFails() {
 		var policy = INTERPRETER.parse("import test.nonExisting policy \"policy\" permit true");
-		policy.documentScopedEvaluationContext(CTX);
-	}
-
-	@Test(expected = PolicyEvaluationException.class)
-	public void doubleImportWildcardFails() {
-		var policy = INTERPRETER.parse("import test.* import test.* policy \"policy\" permit true");
-		policy.documentScopedEvaluationContext(CTX);
-	}
-
-	@Test(expected = PolicyEvaluationException.class)
-	public void doubleImportLibraryFails() {
-		var policy = INTERPRETER.parse("import test as t import test as t policy \"policy\" permit true");
-		policy.documentScopedEvaluationContext(CTX);
+		assertThrows(PolicyEvaluationException.class, () -> {
+			policy.documentScopedEvaluationContext(CTX);
+		});
 	}
 
 	@Test
-	public void policyBodyEvaluationDoesNotCheckTargetAgain() {
+	void doubleImportWildcardFails() {
+		var policy = INTERPRETER.parse("import test.* import test.* policy \"policy\" permit true");
+		assertThrows(PolicyEvaluationException.class, () -> {
+			policy.documentScopedEvaluationContext(CTX);
+		});
+	}
+
+	@Test
+	void doubleImportLibraryFails() {
+		var policy = INTERPRETER.parse("import test as t import test as t policy \"policy\" permit true");
+		assertThrows(PolicyEvaluationException.class, () -> {
+			policy.documentScopedEvaluationContext(CTX);
+		});
+	}
+
+	@Test
+	void policyBodyEvaluationDoesNotCheckTargetAgain() {
 		var policy = INTERPRETER.parse("policy \"policy\" permit (10/0)");
 		var expected = AuthorizationDecision.PERMIT;
 		StepVerifier.create(policy.evaluate(CTX)).expectNext(expected).verifyComplete();

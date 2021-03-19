@@ -15,6 +15,14 @@
  */
 package io.sapl.integrationtest;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.HashMap;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+
 import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.prp.PolicyRetrievalResult;
@@ -27,35 +35,24 @@ import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
 
-import java.util.HashMap;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-public class IntegrationTest {
-
-	@Rule
-	public Timeout globalTimeout = Timeout.seconds(3);
+@Timeout(3)
+class IntegrationTest {
 
 	private SAPLInterpreter interpreter;
 	private ImmutableParsedDocumentIndex seedIndex;
 	private static final EvaluationContext PDP_SCOPED_EVALUATION_CONTEXT = new EvaluationContext(
 			new AnnotationAttributeContext(), new AnnotationFunctionContext(), new HashMap<>());
-	private static final AuthorizationSubscription EMPTY_SUBSCRIPTION =
-			AuthorizationSubscription.of(null, null, null);
+	private static final AuthorizationSubscription EMPTY_SUBSCRIPTION = AuthorizationSubscription.of(null, null, null);
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 		interpreter = new DefaultSAPLInterpreter();
 		seedIndex = new CanonicalImmutableParsedDocumentIndex(PDP_SCOPED_EVALUATION_CONTEXT);
 	}
 
 	@Test
-	public void return_empty_result_when_no_documents_are_published() {
+	void return_empty_result_when_no_documents_are_published() {
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty", interpreter);
 		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
@@ -71,7 +68,7 @@ public class IntegrationTest {
 	}
 
 	@Test
-	public void return_invalid_prp_state_for_invalid_document() {
+	void return_invalid_prp_state_for_invalid_document() {
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/invalid", interpreter);
 		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
@@ -88,7 +85,7 @@ public class IntegrationTest {
 	}
 
 	@Test
-	public void return_error_flag_when_evaluation_throws_exception() {
+	void return_error_flag_when_evaluation_throws_exception() {
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/error", interpreter);
 		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
@@ -103,7 +100,7 @@ public class IntegrationTest {
 	}
 
 	@Test
-	public void return_matching_document_for_valid_subscription() {
+	void return_matching_document_for_valid_subscription() {
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/policies", interpreter);
 		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 		var authzSubscription = AuthorizationSubscription.of(null, "read", null);
@@ -117,8 +114,8 @@ public class IntegrationTest {
 		assertThat(result.getMatchingDocuments()).hasSize(1);
 		assertThat(result.isErrorsInTarget()).isFalse();
 
-		assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get()
-				.getPolicyElement().getSaplName()).isEqualTo("policy read");
+		assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get().getPolicyElement()
+				.getSaplName()).isEqualTo("policy read");
 
 		authzSubscription = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
@@ -133,12 +130,12 @@ public class IntegrationTest {
 		assertThat(result.isErrorsInTarget()).isFalse();
 		assertThat(result.isPrpValidState()).isTrue();
 
-		assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get()
-				.getPolicyElement().getSaplName()).isEqualTo("policy eat icecream");
+		assertThat(result.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get().getPolicyElement()
+				.getSaplName()).isEqualTo("policy eat icecream");
 	}
 
 	@Test
-	public void return_empty_result_for_non_matching_subscription() {
+	void return_empty_result_for_non_matching_subscription() {
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/policies", interpreter);
 		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),

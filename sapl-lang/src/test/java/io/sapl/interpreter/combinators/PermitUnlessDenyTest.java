@@ -15,13 +15,13 @@
  */
 package io.sapl.interpreter.combinators;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
 import java.util.Optional;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -33,7 +33,7 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 
-public class PermitUnlessDenyTest {
+class PermitUnlessDenyTest {
 
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
@@ -47,144 +47,134 @@ public class PermitUnlessDenyTest {
 
 	private EvaluationContext evaluationCtx;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 		var attributeCtx = new AnnotationAttributeContext();
 		var functionCtx = new AnnotationFunctionContext();
 		evaluationCtx = new EvaluationContext(attributeCtx, functionCtx, new HashMap<>());
 	}
 
 	@Test
-	public void permit() {
+	void permit() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" permit";
-
-		assertEquals("should return permit if the only policy evaluates to permit", Decision.PERMIT,
+		assertEquals(Decision.PERMIT,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void deny() {
+	void deny() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny";
-
-		assertEquals("should return deny if the only policy evaluates to deny", Decision.DENY,
+		assertEquals(Decision.DENY,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void notApplicableTarget() {
+	void notApplicableTarget() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny true == false";
-
-		assertEquals("should return permit if the only policy target evaluates to not applicable", Decision.PERMIT,
+		assertEquals(Decision.PERMIT,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void notApplicableCondition() {
+	void notApplicableCondition() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny where true == false;";
-
-		assertEquals("should return permit if the only policy condition evaluates to not applicable", Decision.PERMIT,
+		assertEquals(Decision.PERMIT,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void indeterminateTarget() {
+	void indeterminateTarget() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny \"a\" < 5";
-
-		assertEquals("should return permit if the only target is indeterminate", Decision.PERMIT,
+		assertEquals(Decision.PERMIT,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void indeterminateCondition() {
+	void indeterminateCondition() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" deny where \"a\" < 5;";
-
-		assertEquals("should return deny if the only condition is indeterminate", Decision.PERMIT,
+		assertEquals(Decision.PERMIT,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void permitDeny() {
+	void permitDeny() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit" + " policy \"testp2\" deny";
-
-		assertEquals("should return deny if any policy evaluates to deny", Decision.DENY,
+		assertEquals(Decision.DENY,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void denyIndeterminate() {
+	void denyIndeterminate() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
 				+ " policy \"testp2\" permit where \"a\" > 5;";
-
-		assertEquals("should return permit if policies evaluate to deny and indeterminate", Decision.PERMIT,
+		assertEquals(Decision.PERMIT,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void permitNotApplicableDeny() {
+	void permitNotApplicableDeny() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
 				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" deny";
 
-		assertEquals("should return deny if any policy evaluates to permit", Decision.DENY,
+		assertEquals(Decision.DENY,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void permitNotApplicableIndeterminateDeny() {
+	void permitNotApplicableIndeterminateDeny() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" deny \"a\" > 5"
 				+ " policy \"testp2\" permit true == false" + " policy \"testp3\" permit \"a\" > 5"
 				+ " policy \"testp4\" deny" + " policy \"testp5\" permit";
 
-		assertEquals("should return deny if any policy evaluates to deny", Decision.DENY,
+		assertEquals(Decision.DENY,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void permitIndeterminateNotApplicable() {
+	void permitIndeterminateNotApplicable() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
 				+ " policy \"testp2\" permit \"a\" < 5" + " policy \"testp3\" permit true == false";
 
-		assertEquals("should return permit if only indeterminate, permit and not applicable present", Decision.PERMIT,
+		assertEquals(Decision.PERMIT,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void multiplePermitTransformationDeny() {
+	void multiplePermitTransformationDeny() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit transform false"
 				+ " policy \"testp2\" permit transform true" + " policy \"testp3\" deny false";
 
-		assertEquals("should return deny if final decision would be permit and there is a transformation incertainty",
-				Decision.DENY,
+		assertEquals(Decision.DENY,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void singlePermitTransformation() {
+	void singlePermitTransformation() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit transform true";
 
-		assertEquals("should return permit if there is no transformation incertainty", Decision.PERMIT,
+		assertEquals(Decision.PERMIT,
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void singlePermitTransformationResource() {
+	void singlePermitTransformationResource() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp\" permit transform true";
 
-		assertEquals("should return resource if there is no transformation incertainty",
-				Optional.of(JSON.booleanNode(true)),
+		assertEquals(Optional.of(JSON.booleanNode(true)),
 				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getResource());
 	}
 
 	@Test
-	public void multiplePermitNoTransformation() {
+	void multiplePermitNoTransformation() {
 		String policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit"
 				+ " policy \"testp2\" permit";
 
-		assertEquals("should return permit if there is no transformation incertainty", Decision.PERMIT, INTERPRETER
+		assertEquals(Decision.PERMIT, INTERPRETER
 				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getDecision());
 	}
 
 	@Test
-	public void collectObligationDeny() {
+	void collectObligationDeny() {
 		String policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\""
@@ -195,13 +185,13 @@ public class PermitUnlessDenyTest {
 		obligation.add(JSON.textNode("obligation1"));
 		obligation.add(JSON.textNode("obligation2"));
 
-		assertEquals("should collect all deny obligation", Optional.of(obligation),
+		assertEquals(Optional.of(obligation),
 				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst()
 						.getObligations());
 	}
 
 	@Test
-	public void collectAdviceDeny() {
+	void collectAdviceDeny() {
 		String policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\""
@@ -212,12 +202,12 @@ public class PermitUnlessDenyTest {
 		advice.add(JSON.textNode("advice1"));
 		advice.add(JSON.textNode("advice2"));
 
-		assertEquals("should collect all deny advice", Optional.of(advice), INTERPRETER
+		assertEquals(Optional.of(advice), INTERPRETER
 				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
 	}
 
 	@Test
-	public void collectObligationPermit() {
+	void collectObligationPermit() {
 		String policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\""
@@ -228,13 +218,13 @@ public class PermitUnlessDenyTest {
 		obligation.add(JSON.textNode("obligation1"));
 		obligation.add(JSON.textNode("obligation2"));
 
-		assertEquals("should collect all permit obligation", Optional.of(obligation),
+		assertEquals(Optional.of(obligation),
 				INTERPRETER.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst()
 						.getObligations());
 	}
 
 	@Test
-	public void collectAdvicePermit() {
+	void collectAdvicePermit() {
 		String policySet = "set \"tests\" permit-unless-deny"
 				+ " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
 				+ " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\""
@@ -245,7 +235,7 @@ public class PermitUnlessDenyTest {
 		advice.add(JSON.textNode("advice1"));
 		advice.add(JSON.textNode("advice2"));
 
-		assertEquals("should collect all permit obligation", Optional.of(advice), INTERPRETER
+		assertEquals(Optional.of(advice), INTERPRETER
 				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
 	}
 

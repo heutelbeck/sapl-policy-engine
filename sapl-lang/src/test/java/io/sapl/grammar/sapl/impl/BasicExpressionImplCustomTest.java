@@ -17,37 +17,37 @@ package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
 
-public class BasicExpressionImplCustomTest {
+class BasicExpressionImplCustomTest {
 
 	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
-	public void basicExpressionWithStep() {
+	void basicExpressionWithStep() {
 		expressionEvaluatesTo(CTX, "[ null ].[0]", "null");
 	}
 
 	@Test
-	public void basicExpressionWithFilter() {
+	void basicExpressionWithFilter() {
 		expressionEvaluatesTo(CTX, "null |- mock.emptyString", "\"\"");
 	}
 
 	@Test
-	public void subtemplateNoArray() {
+	void subtemplateNoArray() {
 		expressionEvaluatesTo(CTX, "null :: { \"name\" : @ }", "{ \"name\" : null }");
 	}
 
 	@Test
-	public void subtemplateArray() {
+	void subtemplateArray() {
 		expressionEvaluatesTo(CTX, "[true, false] :: null", "[ null,null ]");
 	}
 
 	@Test
-	public void subtemplateEmptyArray() {
+	void subtemplateEmptyArray() {
 		expressionEvaluatesTo(CTX, "[] :: null", "[]");
 	}
 

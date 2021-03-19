@@ -18,81 +18,81 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionErrors;
 import static io.sapl.grammar.sapl.impl.util.TestUtil.expressionEvaluatesTo;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
 
-public class ApplyStepsWildcardTest {
+class ApplyStepsWildcardTest {
 
 	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
-	public void wildcardStepPropagatesErrors() {
+	void wildcardStepPropagatesErrors() {
 		expressionErrors(CTX, "(10/0).*");
 	}
 
 	@Test
-	public void wildcardStepOnOtherThanArrayOrObjectFails() {
+	void wildcardStepOnOtherThanArrayOrObjectFails() {
 		expressionErrors(CTX, "\"\".*");
 	}
 
 	@Test
-	public void wildcardStepOnUndefinedFails() {
+	void wildcardStepOnUndefinedFails() {
 		expressionErrors(CTX, "undefined.*");
 	}
 
 	@Test
-	public void wildcardStepOnArrayIsIdentity() {
+	void wildcardStepOnArrayIsIdentity() {
 		var expression = "[1,2,3,4,5,6,7,8,9].*";
 		var expected = "[1,2,3,4,5,6,7,8,9]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void applyToObject() {
+	void applyToObject() {
 		var expression = "{\"key1\":null,\"key2\":true,\"key3\":false,\"key4\":{\"other_key\":123}}.*";
 		var expected = "[ null, true, false , { \"other_key\" : 123 } ]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void replaceWildcardStepArray() {
+	void replaceWildcardStepArray() {
 		var expression = "[1,2,3,4,5] |- { @.* : mock.emptyString }";
 		var expected = "[ \"\", \"\",\"\", \"\", \"\"]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void replaceWildcardStepObject() {
+	void replaceWildcardStepObject() {
 		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @.* : mock.emptyString }";
 		var expected = "{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void replaceRecursiveWildcardStepArray() {
+	void replaceRecursiveWildcardStepArray() {
 		var expression = "[1,2,3,4,5] |- { @..* : mock.emptyString }";
 		var expected = "[ \"\", \"\",\"\", \"\", \"\"]";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterNonObjectNonArray() {
+	void filterNonObjectNonArray() {
 		var expression = "\"Herbert\" |- { @..* : mock.emptyString }";
 		var expected = "\"Herbert\"";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void replaceRecussiveWildcardStepObject() {
+	void replaceRecussiveWildcardStepObject() {
 		var expression = "{ \"a\" : 1, \"b\" : 2, \"c\" : 3, \"d\" : 4 , \"e\" : 5 } |- { @..* : mock.emptyString }";
 		var expected = "{ \"a\" : \"\", \"b\" : \"\", \"c\" : \"\", \"d\" : \"\" , \"e\" : \"\" }";
 		expressionEvaluatesTo(CTX, expression, expected);
 	}
 
 	@Test
-	public void filterInObjectDescend() {
+	void filterInObjectDescend() {
 		var expression = "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [ \"Mary\", \"Louis\", \"Paul\" ] } } "
 				+ "|- { @.*.partner : mock.emptyString }";
 		var expected = "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"\", \"children\": [ \"Mary\", \"Louis\", \"Paul\" ] } }";
@@ -100,7 +100,7 @@ public class ApplyStepsWildcardTest {
 	}
 
 	@Test
-	public void filterInArrayDescend() {
+	void filterInArrayDescend() {
 		var expression = "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [ \"Mary\", \"Louis\", \"Paul\" ] } } "
 				+ "|- { @..children[*] : mock.nil }";
 		var expected = "{ \"name\" : \"Otto\", \"family\" : { \"partner\" : \"James\", \"children\": [null,null,null] } } ";
@@ -108,7 +108,7 @@ public class ApplyStepsWildcardTest {
 	}
 
 	@Test
-	public void filterInArrayDescend2() {
+	void filterInArrayDescend2() {
 		var expression = "[ {\"a\" : 1},{\"b\" : 2}] |- { @[*].b : mock.nil }";
 		var expected = "[ {\"a\" : 1},{\"b\" : null}]";
 		expressionEvaluatesTo(CTX, expression, expected);
