@@ -21,7 +21,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pep.ConstraintHandler;
@@ -73,7 +72,7 @@ public class ConstraintHandlerService {
 		if (authzDecision.getAdvices().isEmpty())
 			return;
 
-		handleConstraints(authzDecision.getObligations().get());
+		handleConstraints(authzDecision.getAdvices().get());
 	}
 
 	/**
@@ -82,7 +81,7 @@ public class ConstraintHandlerService {
 	 * @param constraints an array of constraint JSON objects
 	 * @return true, iff all handlers that could handle
 	 */
-	private boolean handleConstraints(ArrayNode constraints) {
+	private boolean handleConstraints(Iterable<JsonNode> constraints) {
 		var success = true;
 		for (JsonNode constraint : constraints)
 			success &= handleConstraint(constraint);
@@ -98,7 +97,7 @@ public class ConstraintHandlerService {
 	 * @return true, if for all obligations in a authorization decision at least one
 	 *         obligation handler is registered.
 	 */
-	private boolean handlersForAllObligationsAreAvailable(ArrayNode obligations) {
+	private boolean handlersForAllObligationsAreAvailable(Iterable<JsonNode> obligations) {
 		for (JsonNode obligation : obligations)
 			if (!atLeastOneHandlerForObligationIsPresent(obligation))
 				return false;
@@ -135,7 +134,7 @@ public class ConstraintHandlerService {
 	 *         constraint.
 	 */
 	private boolean handleConstraint(JsonNode constraint) {
-		boolean success = false;
+		boolean success = true;
 		for (ConstraintHandler handler : constraintHandlers)
 			if (handler.canHandle(constraint))
 				success &= handler.handle(constraint);
