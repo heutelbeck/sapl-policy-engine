@@ -13,30 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.interpreter;
+package io.sapl.interpreter;
 
-/**
- * Indicates an error during function context setup or function evaluation.
- */
-public class InitializationException extends Exception {
+import lombok.Value;
 
-	/**
-	 * Create a new FunctionException
-	 * 
-	 * @param message a message
-	 */
-	public InitializationException(String message) {
-		super(message);
-	}
+@Value
+public class DocumentAnalysisResult {
 
-	/**
-	 * Create a new PolicyEvaluationException
-	 * 
-	 * @param format format string
-	 * @param args   arguments for format string
-	 */
-	public InitializationException(String format, Object... args) {
-		super(String.format(format, args));
-	}
+	boolean valid;
+
+	String name;
+
+	DocumentType type;
+
+	String parserError;
 
 }

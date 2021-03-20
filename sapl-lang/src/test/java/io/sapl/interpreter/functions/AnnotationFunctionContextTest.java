@@ -29,10 +29,10 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
+import io.sapl.interpreter.InitializationException;
 import lombok.NoArgsConstructor;
 
 class AnnotationFunctionContextTest {

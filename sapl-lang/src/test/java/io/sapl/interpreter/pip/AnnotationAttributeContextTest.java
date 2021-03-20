@@ -17,7 +17,7 @@ package io.sapl.interpreter.pip;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.api.interpreter.InitializationException;
+import io.sapl.interpreter.InitializationException;
 
 class AnnotationAttributeContextTest {
 

@@ -34,10 +34,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.collect.Lists;
 
-import io.sapl.api.interpreter.DocumentAnalysisResult;
-import io.sapl.api.interpreter.DocumentType;
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.DocumentAnalysisResult;
+import io.sapl.interpreter.DocumentType;
+import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.prp.PrpUpdateEventSource;

@@ -23,9 +23,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.prp.PolicyRetrievalResult;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Mono;

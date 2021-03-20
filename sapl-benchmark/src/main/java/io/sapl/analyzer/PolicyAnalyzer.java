@@ -16,13 +16,13 @@
 package io.sapl.analyzer;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.benchmark.PolicyGeneratorConfiguration;
 import io.sapl.generator.DomainData;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.index.canonical.Bool;

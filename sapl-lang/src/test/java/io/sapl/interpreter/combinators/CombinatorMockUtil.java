@@ -22,8 +22,8 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
+import io.sapl.prp.PolicyRetrievalResult;
 import reactor.core.publisher.Flux;
 
 class CombinatorMockUtil {

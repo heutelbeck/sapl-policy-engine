@@ -15,7 +15,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import io.sapl.api.interpreter.SAPLInterpreter;
+import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEventSource;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;

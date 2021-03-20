@@ -20,7 +20,7 @@ import java.net.URISyntaxException;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.api.interpreter.InitializationException;
+import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.PolicyDecisionPointFactory;
 
 class ResourcesPolicyRetrievalPointTest {

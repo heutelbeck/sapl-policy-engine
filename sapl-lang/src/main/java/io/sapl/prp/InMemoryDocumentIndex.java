@@ -13,19 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.interpreter;
+package io.sapl.prp;
 
-import lombok.Value;
+import java.util.Map;
 
-@Value
-public class DocumentAnalysisResult {
+import com.fasterxml.jackson.databind.JsonNode;
 
-	boolean valid;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.interpreter.functions.FunctionContext;
+import reactor.core.publisher.Mono;
 
-	String name;
+public interface InMemoryDocumentIndex {
 
-	DocumentType type;
+	void insert(String documentKey, String document);
 
-	String parserError;
+	void publish(String documentKey);
+
+	void withdraw(String documentKey);
+
+	void updateFunctionContext(FunctionContext functionCtx);
+
+	void setLiveMode();
+
+	Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
+			FunctionContext functionCtx, Map<String, JsonNode> variables);
 
 }

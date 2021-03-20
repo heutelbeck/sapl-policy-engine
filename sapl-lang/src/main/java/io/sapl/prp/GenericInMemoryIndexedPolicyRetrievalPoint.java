@@ -16,8 +16,6 @@
 package io.sapl.prp;
 
 
-import io.sapl.api.prp.PolicyRetrievalPoint;
-import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;

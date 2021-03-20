@@ -15,8 +15,8 @@
  */
 package io.sapl.prp.index;
 
-import io.sapl.api.prp.PolicyRetrievalResult;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import reactor.core.publisher.Mono;
 

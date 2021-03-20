@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.interpreter;
+package io.sapl.interpreter;
 
 import java.io.InputStream;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 public interface SAPLInterpreter {

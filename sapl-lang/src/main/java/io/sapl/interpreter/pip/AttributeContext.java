@@ -17,10 +17,10 @@ package io.sapl.interpreter.pip;
 
 import java.util.Collection;
 
-import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.InitializationException;
 import reactor.core.publisher.Flux;
 
 public interface AttributeContext extends LibraryFunctionProvider {

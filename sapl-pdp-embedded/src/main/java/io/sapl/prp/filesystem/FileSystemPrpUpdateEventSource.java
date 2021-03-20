@@ -19,7 +19,7 @@ import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPre
 
 import java.util.Optional;
 
-import io.sapl.api.interpreter.SAPLInterpreter;
+import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEventSource;
 import io.sapl.util.filemonitoring.FileEvent;

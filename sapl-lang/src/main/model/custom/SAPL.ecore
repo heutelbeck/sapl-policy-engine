@@ -538,5 +538,5 @@
 		eSuperTypes="#//CombiningAlgorithm" />
 	<eClassifiers xsi:type="ecore:EDataType"
 		name="PolicyRetrievalResult"
-		instanceClassName="io.sapl.api.prp.PolicyRetrievalResult" />
+		instanceClassName="io.sapl.prp.PolicyRetrievalResult" />
 </ecore:EPackage>

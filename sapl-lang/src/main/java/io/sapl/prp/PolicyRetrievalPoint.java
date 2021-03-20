@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.prp;
+package io.sapl.prp;
 
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;

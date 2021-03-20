@@ -16,11 +16,11 @@
 package io.sapl.spring.pdp.embedded;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.prp.PolicyRetrievalPoint;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
+import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PrpUpdateEventSource;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;

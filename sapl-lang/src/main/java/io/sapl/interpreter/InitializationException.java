@@ -13,20 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter.functions;
+package io.sapl.interpreter;
 
-import java.util.Collection;
+/**
+ * Indicates an error during function context setup or function evaluation.
+ */
+public class InitializationException extends Exception {
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.pip.LibraryFunctionProvider;
+	/**
+	 * Create a new FunctionException
+	 * 
+	 * @param message a message
+	 */
+	public InitializationException(String message) {
+		super(message);
+	}
 
-public interface FunctionContext extends LibraryFunctionProvider {
-
-	Val evaluate(String function, Val... parameters);
-
-	void loadLibrary(Object library) throws InitializationException;
-
-	Collection<LibraryDocumentation> getDocumentation();
+	/**
+	 * Create a new PolicyEvaluationException
+	 * 
+	 * @param format format string
+	 * @param args   arguments for format string
+	 */
+	public InitializationException(String format, Object... args) {
+		super(String.format(format, args));
+	}
 
 }

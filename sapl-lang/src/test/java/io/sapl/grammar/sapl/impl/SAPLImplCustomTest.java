@@ -23,12 +23,12 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.SAPLInterpreter;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.SAPLInterpreter;
 import reactor.test.StepVerifier;
 
 class SAPLImplCustomTest {

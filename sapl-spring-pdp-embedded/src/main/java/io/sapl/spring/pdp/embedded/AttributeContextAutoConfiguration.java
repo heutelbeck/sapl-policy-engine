@@ -24,8 +24,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.api.interpreter.InitializationException;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import lombok.extern.slf4j.Slf4j;
