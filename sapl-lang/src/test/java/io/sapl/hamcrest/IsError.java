@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter.functions;
+package io.sapl.hamcrest;
 
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;

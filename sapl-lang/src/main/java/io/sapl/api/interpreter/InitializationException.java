@@ -22,13 +22,6 @@ public class InitializationException extends Exception {
 
 	/**
 	 * Create a new FunctionException
-	 */
-	public InitializationException() {
-		super();
-	}
-
-	/**
-	 * Create a new FunctionException
 	 * 
 	 * @param message a message
 	 */
@@ -44,36 +37,6 @@ public class InitializationException extends Exception {
 	 */
 	public InitializationException(String format, Object... args) {
 		super(String.format(format, args));
-	}
-
-	/**
-	 * Create a new PolicyEvaluationException
-	 * 
-	 * @param format format string
-	 * @param cause  causing Throwable
-	 * @param args   arguments for format string
-	 */
-	public InitializationException(Throwable cause, String format, Object... args) {
-		super(String.format(format, args), cause);
-	}
-
-	/**
-	 * Create a new FunctionException
-	 * 
-	 * @param message a message
-	 * @param cause   causing Throwable
-	 */
-	public InitializationException(String message, Throwable cause) {
-		super(message, cause);
-	}
-
-	/**
-	 * Create a new FunctionException
-	 * 
-	 * @param cause causing Throwable
-	 */
-	public InitializationException(Throwable cause) {
-		super(cause);
 	}
 
 }

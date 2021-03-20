@@ -15,16 +15,205 @@
  */
 package io.sapl.interpreter.functions;
 
+import static com.spotify.hamcrest.pojo.IsPojo.pojo;
+import static io.sapl.hamcrest.IsError.isError;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import org.junit.jupiter.api.Test;
 
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.InitializationException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.Text;
+import lombok.NoArgsConstructor;
 
 class AnnotationFunctionContextTest {
 
 	@Test
-	void testAutoconfigure() throws InitializationException {
-		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
-		context.evaluate(MockLibrary.NAME + ".helloTest");
+	void failToInitializeNonFuntionLibraryAnnotatedClass() {
+		assertThrows(InitializationException.class, () -> new AnnotationFunctionContext(""));
 	}
 
+	@Test
+	void givenLibraryWithNoExplicitNameInAnnotationWhenDocumentationIsReadThenReturnsClassName()
+			throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new FunctionLibraryWithoutName());
+		assertThat(context.getDocumentation(), contains(pojo(LibraryDocumentation.class).withProperty("name",
+				is(FunctionLibraryWithoutName.class.getSimpleName()))));
+	}
+
+	@Test
+	void givenMockLibraryWhenListingFucntionsTheMockFunctionIsAvailable() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
+		assertThat(context.providedFunctionsOfLibrary(MockLibrary.LIBRARY_NAME), hasItems(MockLibrary.FUNCTION_NAME));
+	}
+
+	@Test
+	void givenNoLibrariesWhanListingFunctionForALibraryCollectionIsEmpty() {
+		assertThat(new AnnotationFunctionContext().providedFunctionsOfLibrary(null), empty());
+	}
+
+	@Test
+	void simpleFunctionCallNoParameters() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
+		assertThat(context.evaluate(MockLibrary.LIBRARY_NAME + "." + MockLibrary.FUNCTION_NAME),
+				is(MockLibrary.RETURN_VALUE));
+	}
+
+	@Test
+	void simpleFunctionCallWithParameters() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
+		assertThat(context.evaluate(MockLibrary.LIBRARY_NAME + ".helloTwoArgs", Val.TRUE, Val.FALSE),
+				is(MockLibrary.RETURN_VALUE));
+	}
+
+	@Test
+	void simpleFunctionCallWithVarArgsParameters() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
+		assertThat(context.evaluate(MockLibrary.LIBRARY_NAME + ".helloVarArgs", Val.TRUE, Val.FALSE, Val.UNDEFINED),
+				is(MockLibrary.RETURN_VALUE));
+	}
+
+	@Test
+	void validationForFixedParametersFailsOnWringInput() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new ValidationLibrary());
+		assertThat(context.evaluate("validate.fixed", Val.of(0)), isError());
+	}
+
+	@Test
+	void validationForVarArgsParametersFailsOnWringInput() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new ValidationLibrary());
+		assertThat(context.evaluate("validate.varArgs", Val.of(""), Val.of(1)), isError());
+	}
+
+	@Test
+	void callingFunctionReturningExceptionReturnsError() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
+		assertThat(context.evaluate(MockLibrary.LIBRARY_NAME + ".helloFailure", Val.TRUE, Val.TRUE, Val.TRUE),
+				isError());
+	}
+
+	@Test
+	void simpleFunctionCallNoParametersBadParameterNumberReturnsError() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
+		assertThat(context.evaluate(MockLibrary.LIBRARY_NAME + "." + MockLibrary.FUNCTION_NAME, Val.TRUE), isError());
+	}
+
+	@Test
+	void loadedFuntionShouldBeProvided() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
+		assertAll(
+				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + "." + MockLibrary.FUNCTION_NAME),
+						is(true)),
+				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + ".helloTwoArgs"), is(true)),
+				() -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + ".helloVarArgs"), is(true)));
+	}
+
+	@Test
+	void libsTest() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext();
+		assertThat(context.evaluate("i.am.not.a.function"), isError());
+	}
+
+	@Test
+	void failToInitializeWithBadParametersInLibrary() {
+		assertThrows(InitializationException.class,
+				() -> new AnnotationFunctionContext(new BadParameterTypeFunctionLibrary()));
+	}
+
+	@Test
+	void failToInitializeWithBadParametersInLibraryVarArgs() {
+		assertThrows(InitializationException.class,
+				() -> new AnnotationFunctionContext(new BadParameterTypeFunctionLibraryVarArgs()));
+	}
+
+	@Test
+	void failToInitializeWithBadReturnTypeInLibrary() {
+		assertThrows(InitializationException.class,
+				() -> new AnnotationFunctionContext(new BadReturnTypeFunctionLibrary()));
+	}
+
+	@FunctionLibrary(name = MockLibrary.LIBRARY_NAME, description = MockLibrary.LIBRARY_DOC)
+	public static class MockLibrary {
+
+		public static final String FUNCTION_DOC = "docs for helloTest";
+		public static final String FUNCTION_NAME = "helloTest";
+		public static final Val RETURN_VALUE = Val.of("HELLO TEST");
+		public static final String LIBRARY_NAME = "test.lib";
+		public static final String LIBRARY_DOC = "docs of my lib";
+
+		@Function(name = FUNCTION_NAME, docs = FUNCTION_DOC)
+		public static Val helloTest() {
+			return RETURN_VALUE;
+		}
+
+		@Function
+		public static Val helloVarArgs(Val... args) {
+			return RETURN_VALUE;
+		}
+
+		@Function
+		public static Val helloTwoArgs(Val arg1, Val arg2) {
+			return RETURN_VALUE;
+		}
+
+		@Function
+		public static Val helloFailure(Val arg1, Val arg2, Val arg3) {
+			throw new PolicyEvaluationException();
+		}
+
+	}
+
+	@FunctionLibrary(name = "validate")
+	public static class ValidationLibrary {
+		@Function
+		public static Val fixed(@Text Val arg) {
+			return Val.UNDEFINED;
+		}
+
+		@Function
+		public static Val varArgs(@Text Val... args) {
+			return Val.UNDEFINED;
+		}
+	}
+
+	@FunctionLibrary
+	@NoArgsConstructor
+	public static class FunctionLibraryWithoutName {
+	}
+
+	@FunctionLibrary
+	@NoArgsConstructor
+	public static class BadParameterTypeFunctionLibrary {
+		@Function
+		public Val fun(String param) {
+			return Val.UNDEFINED;
+		}
+	}
+
+	@FunctionLibrary
+	@NoArgsConstructor
+	public static class BadParameterTypeFunctionLibraryVarArgs {
+		@Function
+		public Val fun(String... param) {
+			return Val.UNDEFINED;
+		}
+	}
+
+	@FunctionLibrary
+	@NoArgsConstructor
+	public static class BadReturnTypeFunctionLibrary {
+		@Function
+		public String fun(Val param) {
+			return param.toString();
+		}
+	}
 }

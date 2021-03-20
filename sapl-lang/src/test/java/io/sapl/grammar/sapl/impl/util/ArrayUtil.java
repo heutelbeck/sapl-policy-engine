@@ -17,12 +17,14 @@ package io.sapl.grammar.sapl.impl.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.github.fge.jackson.JsonNumEquals;
+import com.google.common.base.Equivalence;
 
 import io.sapl.api.interpreter.Val;
 
 public class ArrayUtil {
 
-	private final static JsonNumEquivalence EQ = new JsonNumEquivalence();
+	private final static Equivalence<JsonNode> EQ = JsonNumEquals.getInstance();
 
 	public static Val numberArray(Integer... vals) {
 		var array = Val.JSON.arrayNode();

@@ -28,6 +28,7 @@ import java.util.Map;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.InitializationException;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.validation.IllegalParameterType;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
@@ -38,17 +39,19 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Context to hold functions libraries during policy evaluation. *
+ * Context to hold functions libraries during policy evaluation.
  */
 @Slf4j
 @NoArgsConstructor
 public class AnnotationFunctionContext implements FunctionContext {
 
+	private static final int VAR_ARGS = -1;
 	private static final String DOT = ".";
 	private static final String UNKNOWN_FUNCTION = "Unknown function %s";
 	private static final String ILLEGAL_NUMBER_OF_PARAMETERS = "Illegal number of parameters. Function expected %d but got %d";
 	private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION = "Provided class has no @FunctionLibrary annotation.";
 	private static final String ILLEGAL_PARAMETER_FOR_IMPORT = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
+	private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT = "Function does not return a Val. Cannot be loaded. Type was: %s.";
 
 	private final Collection<LibraryDocumentation> documentation = new LinkedList<>();
 	private final Map<String, FunctionMetadata> functions = new HashMap<>();
@@ -61,45 +64,67 @@ public class AnnotationFunctionContext implements FunctionContext {
 	 * @throws InitializationException
 	 */
 	public AnnotationFunctionContext(Object... libraries) throws InitializationException {
-		for (Object library : libraries) {
+		for (Object library : libraries)
 			loadLibrary(library);
-		}
 	}
 
 	@Override
 	public Val evaluate(String function, Val... parameters) {
-		log.trace("evaluate {}({})", function, parameters);
-		final FunctionMetadata metadata = functions.get(function);
-		if (metadata == null) {
+		log.trace("Evaluating function: {}({})", function, parameters);
+		var metadata = functions.get(function);
+		if (metadata == null)
 			return Val.error(UNKNOWN_FUNCTION, function);
+
+		var funParams = metadata.getFunction().getParameters();
+
+		if (metadata.isVarArgs()) {
+			return evaluateVarArgsFunction(metadata, funParams, parameters);
 		}
-		final Parameter[] funParams = metadata.getFunction().getParameters();
+		if (metadata.getParameterCardinality() == parameters.length) {
+			return evaluateFixedParametersFunction(metadata, funParams, parameters);
+		}
+		return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getParameterCardinality(), parameters.length);
+	}
+
+	private Val evaluateFixedParametersFunction(FunctionMetadata metadata, Parameter[] funParams, Val... parameters) {
+		for (int i = 0; i < parameters.length; i++) {
+			try {
+				ParameterTypeValidator.validateType(parameters[i], funParams[i]);
+			} catch (IllegalParameterType e) {
+				return invokationExceptionToError(e, metadata, (Object[]) parameters);
+			}
+		}
+		return invokeFunction(metadata, (Object[]) parameters);
+	}
+
+	private Val evaluateVarArgsFunction(FunctionMetadata metadata, Parameter[] funParams, Val... parameters) {
+		for (Val parameter : parameters) {
+			try {
+				ParameterTypeValidator.validateType(parameter, funParams[0]);
+			} catch (IllegalParameterType e) {
+				return invokationExceptionToError(e, metadata, (Object[]) parameters);
+			}
+		}
+		return invokeFunction(metadata, new Object[] { parameters });
+	}
+
+	private Val invokeFunction(FunctionMetadata metadata, Object... parameters) {
 		try {
-			if (metadata.getParameterCardinality() == -1) {
-				// function is a varargs function
-				// all args are validated against the same annotation if present
-				for (Val parameter : parameters) {
-					ParameterTypeValidator.validateType(parameter, funParams[0]);
-				}
-				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), new Object[] { parameters });
-			} else if (metadata.getParameterCardinality() == parameters.length) {
-				for (int i = 0; i < parameters.length; i++) {
-					ParameterTypeValidator.validateType(parameters[i], funParams[i]);
-				}
-				return (Val) metadata.getFunction().invoke(metadata.getLibrary(), (Object[]) parameters);
-			} else {
-				return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS, metadata.getParameterCardinality(), parameters.length);
-			}
-		} catch (RuntimeException | IllegalParameterType | IllegalAccessException | InvocationTargetException e) {
-			var params = new StringBuilder();
-			for (var i = 0; i < parameters.length; i++) {
-				params.append(parameters[i]);
-				if (i < parameters.length - 2)
-					params.append(',');
-			}
-			return Val.error("Error during evaluation of function %s(%s): %s", function, params.toString(),
-					e.getMessage());
+			return (Val) metadata.getFunction().invoke(metadata.getLibrary(), parameters);
+		} catch (PolicyEvaluationException | IllegalAccessException | InvocationTargetException e) {
+			return invokationExceptionToError(e, metadata, parameters);
 		}
+	}
+
+	private Val invokationExceptionToError(Exception e, FunctionMetadata metadata, Object... parameters) {
+		var params = new StringBuilder();
+		for (var i = 0; i < parameters.length; i++) {
+			params.append(parameters[i]);
+			if (i < parameters.length - 2)
+				params.append(',');
+		}
+		return Val.error("Error during evaluation of function %s(%s): %s", metadata.getName(), params.toString(),
+				e.getMessage());
 	}
 
 	@Override
@@ -114,42 +139,45 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 		String libName = libAnnotation.name();
 		if (libName.isEmpty()) {
-			libName = clazz.getName();
+			libName = clazz.getSimpleName();
 		}
 		libraries.put(libName, new HashSet<>());
 
 		LibraryDocumentation libDocs = new LibraryDocumentation(libName, libAnnotation.description(), library);
 
-		libDocs.setName(libAnnotation.name());
 		for (Method method : clazz.getDeclaredMethods()) {
 			if (method.isAnnotationPresent(Function.class)) {
 				importFunction(library, libName, libDocs, method);
 			}
 		}
-		documentation.add(libDocs);
 
+		documentation.add(libDocs);
 	}
 
 	private final void importFunction(Object library, String libName, LibraryDocumentation libMeta, Method method)
 			throws InitializationException {
 		Function funAnnotation = method.getAnnotation(Function.class);
 		String funName = funAnnotation.name();
-		if (funName.isEmpty()) {
+		if (funName.isEmpty())
 			funName = method.getName();
-		}
+
+		if (!Val.class.isAssignableFrom(method.getReturnType()))
+			throw new InitializationException(ILLEGAL_RETURN_TYPE_FOR_IMPORT, method.getReturnType().getName());
 
 		int parameters = method.getParameterCount();
 		for (Class<?> parameterType : method.getParameterTypes()) {
-			if (parameters == 1 && parameterType.isArray()) {
-				// functions with a variable number of arguments
-				parameters = -1;
+			if (parameters == 1 && parameterType.isArray()
+					&& Val.class.isAssignableFrom(parameterType.getComponentType())) {
+				parameters = VAR_ARGS;
 			} else if (!Val.class.isAssignableFrom(parameterType)) {
 				throw new InitializationException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
 			}
 		}
 		libMeta.documentation.put(funName, funAnnotation.docs());
-		FunctionMetadata funMeta = new FunctionMetadata(library, parameters, method);
-		functions.put(fullName(libName, funName), funMeta);
+
+		var fullName = fullName(libName, funName);
+		FunctionMetadata funMeta = new FunctionMetadata(fullName, library, parameters, method);
+		functions.put(fullName, funMeta);
 
 		libraries.get(libName).add(funName);
 	}
@@ -171,11 +199,10 @@ public class AnnotationFunctionContext implements FunctionContext {
 	@Override
 	public Collection<String> providedFunctionsOfLibrary(String libraryName) {
 		Collection<String> libs = libraries.get(libraryName);
-		if (libs != null) {
+		if (libs != null)
 			return libs;
-		} else {
+		else
 			return new HashSet<>();
-		}
 	}
 
 	/**
@@ -184,15 +211,17 @@ public class AnnotationFunctionContext implements FunctionContext {
 	@Data
 	@AllArgsConstructor
 	public static class FunctionMetadata {
-
+		@NonNull
+		String name;
 		@NonNull
 		Object library;
-
 		int parameterCardinality;
-
 		@NonNull
 		Method function;
 
+		public boolean isVarArgs() {
+			return parameterCardinality == VAR_ARGS;
+		}
 	}
 
 }
