@@ -16,6 +16,7 @@
 package io.sapl.api.interpreter;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -37,12 +38,15 @@ import reactor.core.publisher.Mono;
 
 public class Val {
 
-	private static final String UNDEFINED_VALUE_ERROR = "Undefined value error.";
-	private static final String OBJECT_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Expected an object, but got %s.";
-	private static final String ARRAY_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Expected an array, but got %s.";
-	private static final String BOOLEAN_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
-	private static final String TEXT_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Text operation expects text values, but got: '%s'.";
-	private static final String ARITHMETIC_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Number operation expects number values, but got: '%s'.";
+	static final String ERROR_TEXT = "ERROR";
+	static final String UNDEFINED_TEXT = "undefined";
+	static final String UNKNOWN_ERROR = "Unknown Error";
+	static final String UNDEFINED_VALUE_ERROR = "Undefined value error.";
+	static final String OBJECT_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Expected an object, but got %s.";
+	static final String ARRAY_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Expected an array, but got %s.";
+	static final String BOOLEAN_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
+	static final String TEXT_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Text operation expects text values, but got: '%s'.";
+	static final String ARITHMETIC_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Number operation expects number values, but got: '%s'.";
 
 	public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 	private static final ObjectMapper MAPPER = new ObjectMapper(); // .enable(SerializationFeature.INDENT_OUTPUT);
@@ -81,8 +85,12 @@ public class Val {
 		return new Val(JSON.arrayNode());
 	}
 
+	public static Val error() {
+		return new Val(UNKNOWN_ERROR);
+	}
+
 	public static Val error(String errorMessage, Object... args) {
-		return errorMessage == null ? new Val("Unknown Error") : new Val(String.format(errorMessage, args));
+		return new Val(String.format(errorMessage, args));
 	}
 
 	public static Val error(Throwable throwable) {
@@ -98,6 +106,7 @@ public class Val {
 	public static Mono<Val> errorMono(String errorMessage, Object... args) {
 		return Mono.just(error(errorMessage, args));
 	}
+
 	public String getMessage() {
 		if (isError()) {
 			return errorMessage;
@@ -141,10 +150,6 @@ public class Val {
 
 	public boolean isBigInteger() {
 		return isDefined() && value.isBigInteger();
-	}
-
-	public boolean isBinary() {
-		return isDefined() && value.isBinary();
 	}
 
 	public boolean isBoolean() {
@@ -195,25 +200,21 @@ public class Val {
 		return isDefined() && value.isValueNode();
 	}
 
-	public static Flux<Val> nullFlux() {
-		return Flux.just(ofNull());
-	}
-
 	public void ifDefined(Consumer<? super JsonNode> consumer) {
-		if (value != null)
+		if (isDefined())
 			consumer.accept(value);
 	}
 
 	public JsonNode orElse(JsonNode other) {
-		return value != null ? value : other;
+		return isDefined() ? value : other;
 	}
 
 	public JsonNode orElseGet(Supplier<? extends JsonNode> other) {
-		return value != null ? value : other.get();
+		return isDefined() ? value : other.get();
 	}
 
 	public <X extends Throwable> JsonNode orElseThrow(Supplier<? extends X> exceptionSupplier) throws X {
-		if (value != null) {
+		if (isDefined()) {
 			return value;
 		} else {
 			throw exceptionSupplier.get();
@@ -239,31 +240,21 @@ public class Val {
 
 	@Override
 	public boolean equals(Object obj) {
-
 		if (this == obj) {
 			return true;
 		}
-
 		if (!(obj instanceof Val)) {
 			return false;
 		}
-
 		Val other = (Val) obj;
-
 		if (isError() != other.isError()) {
 			return false;
 		}
-
 		if (isError()) {
 			return errorMessage.equals(other.getMessage());
 		}
-
 		if (isDefined() != other.isDefined()) {
 			return false;
-		}
-
-		if (value == other.value) {
-			return true;
 		}
 
 		return JsonNumEquals.getInstance().equivalent(value, other.value);
@@ -271,7 +262,7 @@ public class Val {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(value, errorMessage);
+		return Objects.hash(JsonNumEquals.getInstance().hash(value), errorMessage);
 	}
 
 	@Override
@@ -279,19 +270,11 @@ public class Val {
 		if (isError()) {
 			return "ERROR[" + errorMessage + "]";
 		}
-		return value != null ? String.format("Value[%s]", value.toString()) : "Value.undefined";
+		return value != null ? String.format("Value[%s]", value.toString()) : "Value[undefined]";
 	}
 
 	public Optional<JsonNode> optional() {
-		return isUndefined() ? Optional.empty() : Optional.of(value);
-	}
-
-	public static Val ofNull() {
-		return NULL;
-	}
-
-	public static Flux<Val> undefinedFlux() {
-		return Flux.just(UNDEFINED);
+		return isDefined() ? Optional.of(value) : Optional.empty();
 	}
 
 	public static Flux<Val> fluxOfTrue() {
@@ -304,6 +287,10 @@ public class Val {
 
 	public static Flux<Val> fluxOfFalse() {
 		return Flux.just(FALSE);
+	}
+
+	public static Flux<Val> fluxOfNull() {
+		return Flux.just(NULL);
 	}
 
 	public static Val ofJson(String val) throws JsonProcessingException {
@@ -322,6 +309,10 @@ public class Val {
 		return Val.of(JSON.numberNode(val));
 	}
 
+	public static Val of(BigInteger val) {
+		return Val.of(JSON.numberNode(val));
+	}
+
 	public static Val of(long val) {
 		return Val.of(JSON.numberNode(val));
 	}
@@ -334,7 +325,15 @@ public class Val {
 		return Val.of(JSON.numberNode(val));
 	}
 
+	public static Val of(float val) {
+		return Val.of(JSON.numberNode(val));
+	}
+
 	public static Flux<Val> fluxOf(BigDecimal val) {
+		return Flux.just(of(val));
+	}
+
+	public static Flux<Val> fluxOf(BigInteger val) {
 		return Flux.just(of(val));
 	}
 
@@ -361,18 +360,17 @@ public class Val {
 	}
 
 	public String getText() {
+		if (isUndefined()) {
+			return UNDEFINED_TEXT;
+		}
 		if (isTextual()) {
 			return value.textValue();
-		} else {
-			return value.toString();
 		}
+		return value.toString();
 	}
 
 	public static Val requireBoolean(Val value) {
-		if (value.isError()) {
-			return value;
-		}
-		if (value.isUndefined() || !value.get().isBoolean()) {
+		if (!value.isBoolean()) {
 			return Val.error(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(value));
 		}
 		return value;
@@ -424,7 +422,7 @@ public class Val {
 	}
 
 	public BigDecimal decimalValue() {
-		if (isDefined() && value.isNumber()) {
+		if (this.isNumber()) {
 			return value.decimalValue();
 		}
 		throw new PolicyEvaluationException(ARITHMETIC_OPERATION_TYPE_MISMATCH_S, typeOf(this));
@@ -441,7 +439,7 @@ public class Val {
 	}
 
 	public static Flux<ObjectNode> toObjectNode(Val value) {
-		if (!value.isUndefined() || !value.get().isObject()) {
+		if (value.isUndefined() || !value.get().isObject()) {
 			return Flux.error(new PolicyEvaluationException(OBJECT_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
 		}
 		return Flux.just((ObjectNode) value.get());
@@ -451,7 +449,7 @@ public class Val {
 		if (value.isError()) {
 			return value;
 		}
-		if (!value.isUndefined() || !value.get().isObject()) {
+		if (value.isUndefined() || !value.get().isObject()) {
 			return Val.error(OBJECT_OPERATION_TYPE_MISMATCH_S, typeOf(value));
 		}
 		return value;
@@ -497,9 +495,9 @@ public class Val {
 
 	public static String typeOf(Val value) {
 		if (value.isError()) {
-			return "ERROR";
+			return ERROR_TEXT;
 		}
-		return value.isDefined() ? value.get().getNodeType().toString() : "undefined";
+		return value.isDefined() ? value.get().getNodeType().toString() : UNDEFINED_TEXT;
 	}
 
 	public String getValType() {

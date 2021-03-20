@@ -1117,7 +1117,7 @@ public class EthereumPolicyInformationPoint {
 
 	private Flux<Val> scheduledFlux(Callable<Val> functionToCall, Map<String, JsonNode> variables) {
 		Flux<Long> timer = Flux.interval(Duration.ZERO, getPollingInterval(variables));
-		return timer.flatMap(i -> Mono.fromCallable(functionToCall)).distinctUntilChanged().onErrorReturn(Val.ofNull());
+		return timer.flatMap(i -> Mono.fromCallable(functionToCall)).distinctUntilChanged().onErrorReturn(Val.NULL);
 	}
 
 	private static Duration getPollingInterval(Map<String, JsonNode> variables) {

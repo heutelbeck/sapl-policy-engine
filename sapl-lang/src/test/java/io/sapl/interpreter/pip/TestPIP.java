@@ -64,7 +64,7 @@ public class TestPIP {
 		if (value.isDefined() && variables.containsKey(value.get().asText())) {
 			return Flux.just(Val.of(variables.get(value.get().asText()).deepCopy()));
 		}
-		return Val.nullFlux();
+		return Val.fluxOfNull();
 	}
 
 }

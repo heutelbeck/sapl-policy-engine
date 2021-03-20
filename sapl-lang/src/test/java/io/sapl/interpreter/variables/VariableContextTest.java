@@ -68,8 +68,8 @@ class VariableContextTest {
 	void emptyauthzSubscriptionInitializationTest() {
 		VariableContext ctx = new VariableContext(EMPTY_MAP);
 		ctx = ctx.forAuthorizationSubscription(EMPTY_AUTH_SUBSCRIPTION);
-		assertTrue(ctx != null && ctx.get("subject").equals(Val.ofNull()) && ctx.get("action").equals(Val.ofNull())
-				&& ctx.get("resource").equals(Val.ofNull()) && ctx.get("environment").equals(Val.ofNull()));
+		assertTrue(ctx != null && ctx.get("subject").equals(Val.NULL) && ctx.get("action").equals(Val.NULL)
+				&& ctx.get("resource").equals(Val.NULL) && ctx.get("environment").equals(Val.NULL));
 	}
 
 	@Test

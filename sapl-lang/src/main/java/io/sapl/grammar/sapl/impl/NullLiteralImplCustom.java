@@ -24,7 +24,7 @@ public class NullLiteralImplCustom extends NullLiteralImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return Val.nullFlux();
+		return Val.fluxOfNull();
 	}
 
 }

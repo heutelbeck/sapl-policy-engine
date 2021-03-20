@@ -33,7 +33,7 @@ public class UndefinedLiteralImplCustom extends UndefinedLiteralImpl {
 	 */
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return Val.undefinedFlux();
+		return Val.fluxOfUndefined();
 	}
 
 }

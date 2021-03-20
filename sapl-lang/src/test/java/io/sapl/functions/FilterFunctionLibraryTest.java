@@ -98,14 +98,14 @@ class FilterFunctionLibraryTest {
 	@Test
 	void blackenReplacementRightNoNumber() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.ofNull());
+			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.of(2), Val.NULL);
 		});
 	}
 
 	@Test
 	void blackenReplacementLeftNoNumber() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.ofNull(), Val.of(2));
+			FilterFunctionLibrary.blacken(Val.of("abcde"), Val.NULL, Val.of(2));
 		});
 	}
 
@@ -175,7 +175,7 @@ class FilterFunctionLibraryTest {
 
 	@Test
 	void replace() {
-		var result = FilterFunctionLibrary.replace(Val.ofNull(), Val.of(1));
+		var result = FilterFunctionLibrary.replace(Val.NULL, Val.of(1));
 		assertThat("replace function not working as expected", result, equalTo(Val.of(1)));
 	}
 
