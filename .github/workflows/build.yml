@@ -69,13 +69,13 @@ jobs:
 
     - name: Build and push SAPL Server LT Docker image
       run: |
-        mvn -B dockerfile:build -pl sapl-server-lt -P docker || exit 1
-        mvn -B dockerfile:push -pl sapl-server-lt -P docker
+        mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests|| exit 1
+        mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
        
     - name: Build and push SAPL Server CE Docker image
       run: |
-        mvn -B clean package dockerfile:build -pl sapl-server-ce -P docker,production,mariadb,!h2 || exit 1
-        mvn -B dockerfile:push -pl sapl-server-ce -P docker,production,mariadb,!h2
+        mvn -B clean package dockerfile:build -pl sapl-server-ce -P docker,production,mariadb,!h2 -DskipTests|| exit 1
+        mvn -B dockerfile:push -pl sapl-server-ce -P docker,production,mariadb,!h2 -DskipTests
            
     - name: Trigger CI build of downstream repositories
       run: |
