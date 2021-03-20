@@ -17,25 +17,44 @@ package io.sapl.prp.index.canonical;
 
 import java.util.Objects;
 
-import com.google.common.base.Preconditions;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class Literal {
 
+	@Getter
+	@NonNull
 	private final Bool bool;
+	@Getter
+	private final boolean negated;
 
 	private int hash;
-
 	private boolean hasHashCode;
 
-	private final boolean hasNegation;
-
-	public Literal(final Bool bool) {
+	public Literal(@NonNull final Bool bool) {
 		this(bool, false);
 	}
 
-	public Literal(final Bool bool, boolean negation) {
-		this.bool = Preconditions.checkNotNull(bool);
-		hasNegation = negation;
+	public boolean isImmutable() {
+		return bool.isImmutable();
+	}
+
+	public boolean evaluate() {
+		return negated ^ bool.evaluate();
+	}
+
+	public Literal negate() {
+		return new Literal(bool, !negated);
+	}
+
+	public boolean sharesBool(final Literal other) {
+		return bool.equals(other.bool);
+	}
+
+	public boolean sharesNegation(final Literal other) {
+		return negated == other.negated;
 	}
 
 	@Override
@@ -49,67 +68,23 @@ public class Literal {
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
+		if (hashCode() != obj.hashCode()) {
+			return false;
+		}
 		final Literal other = (Literal) obj;
-		if (hashCode() != other.hashCode()) {
+		if (negated != other.negated) {
 			return false;
 		}
-		if (!Objects.equals(hasNegation, other.hasNegation)) {
-			return false;
-		}
-		return Objects.equals(bool, other.bool);
-	}
-
-	public boolean evaluate() {
-		boolean result = bool.evaluate();
-		if (hasNegation) {
-			return !result;
-		}
-		return result;
-	}
-
-//	public Mono<Boolean> evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
-	// {
-	// Mono<Boolean> result = bool.evaluate(functionCtx, variableCtx);
-	// if (hasNegation) {
-	// return !result;
-	// }
-	// return result;
-	// }
-
-	public Bool getBool() {
-		return bool;
+		return bool.equals(other.bool);
 	}
 
 	@Override
 	public int hashCode() {
 		if (!hasHashCode) {
-			int h = 5;
-			h = 19 * h + Objects.hashCode(bool);
-			h = 19 * h + Objects.hashCode(hasNegation);
-			hash = h;
+			hash = Objects.hash(bool, negated);
 			hasHashCode = true;
 		}
 		return hash;
-	}
-
-	public boolean isImmutable() {
-		return bool.isImmutable();
-	}
-
-	public boolean isNegated() {
-		return hasNegation;
-	}
-
-	public Literal negate() {
-		return new Literal(bool, !hasNegation);
-	}
-
-	public boolean sharesBool(final Literal other) {
-		return bool.equals(other.bool);
-	}
-
-	public boolean sharesNegation(final Literal other) {
-		return hasNegation == other.hasNegation;
 	}
 
 }

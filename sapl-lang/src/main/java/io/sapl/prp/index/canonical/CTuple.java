@@ -15,18 +15,14 @@
  */
 package io.sapl.prp.index.canonical;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.Value;
 
-@Getter
-@RequiredArgsConstructor
-// tuple of a conjunction index number and the number of formulas in F(ci) containing ci .
+/**
+ * Tuple of a conjunction index number and the number of formulas in F(ci)
+ * containing ci .
+ */
+@Value
 public class CTuple {
-
-	// conjunction index number
-	private final int cI;
-
-	// number of formulas containing conjunction
-	private final long n;
-
+	int cI; // conjunction index number
+	long n; // number of formulas containing conjunction
 }

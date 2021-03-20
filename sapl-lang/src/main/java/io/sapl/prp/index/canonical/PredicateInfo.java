@@ -27,25 +27,18 @@ import com.google.common.math.DoubleMath;
 
 public class PredicateInfo implements Comparable<PredicateInfo> {
 
+	private static final double EPSILON = 0.000000001;
 	private final Predicate predicate;
-
 	private final Set<ConjunctiveClause> unsatisfiableConjunctionsIfFalse = new HashSet<>();
-
 	private final Set<ConjunctiveClause> unsatisfiableConjunctionsIfTrue = new HashSet<>();
 
 	/* required for existing variable order */
 	private int groupedNumberOfNegatives;
-
 	private int groupedNumberOfPositives;
-
 	private int numberOfNegatives;
-
 	private int numberOfPositives;
-
 	private double relevance;
-
 	private final List<Double> relevanceList = new LinkedList<>();
-
 	private double score;
 
 	public PredicateInfo(final Predicate predicate) {
@@ -130,11 +123,10 @@ public class PredicateInfo implements Comparable<PredicateInfo> {
 
 	@Override
 	public int compareTo(PredicateInfo o) {
-		final double epsilon = 0.000000001;
 		double lhs = getScore();
 		double rhs = o.getScore();
 
-		if (DoubleMath.fuzzyEquals(lhs, rhs, epsilon)) {
+		if (DoubleMath.fuzzyEquals(lhs, rhs, EPSILON)) {
 			return 0;
 		}
 		if (lhs < rhs) {

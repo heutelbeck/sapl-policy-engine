@@ -101,23 +101,6 @@ public class DisjunctiveFormula {
 		return result;
 	}
 
-//	public boolean evaluate(final FunctionContext functionCtx, final VariableContext variableCtx)
-//			 {
-//		ListIterator<ConjunctiveClause> iter = clauses.listIterator();
-//		if (!iter.hasNext()) {
-//			throw new PolicyEvaluationException(EVALUATION_NOT_POSSIBLE);
-//		}
-//		ConjunctiveClause first = iter.next();
-//		boolean result = first.evaluate(functionCtx, variableCtx);
-//		while (iter.hasNext()) {
-//			if (result) {
-//				return true;
-//			}
-//			result = iter.next().evaluate(functionCtx, variableCtx);
-//		}
-//		return result;
-//	}
-
 	public List<ConjunctiveClause> getClauses() {
 		return Collections.unmodifiableList(clauses);
 	}
