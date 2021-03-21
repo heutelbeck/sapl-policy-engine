@@ -45,25 +45,25 @@ public class StandardFunctionLibrary {
 
 	@Function(docs = LENGTH_DOC)
 	public static Val length(@Array @Text @JsonObject Val parameter) {
-		if (parameter.isTextual()) {
+		if (parameter.isTextual())
 			return Val.of(parameter.getText().length());
-		} else {
-			return Val.of(parameter.get().size());
-		}
+
+		return Val.of(parameter.get().size());
 	}
 
 	@Function(docs = NUMBER_TO_STRING_DOC)
 	public static Val numberToString(@Text @Number @Bool Val parameter) {
 		JsonNode param = parameter.get();
-		if (param.isNumber()) {
+		if (param.isNumber())
 			return Val.of(param.numberValue().toString());
-		} else if (param.isBoolean()) {
+
+		if (param.isBoolean())
 			return Val.of(String.valueOf(param.booleanValue()));
-		} else if (param.isNull()) {
+
+		if (param.isNull())
 			return Val.of("");
-		} else {
-			return parameter;
-		}
+
+		return parameter;
 	}
 
 }
