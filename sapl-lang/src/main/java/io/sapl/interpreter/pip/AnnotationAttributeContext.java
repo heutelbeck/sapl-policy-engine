@@ -29,6 +29,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -58,7 +59,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 	private static final String ATTRIBUTE_NAME_COLLISION_PIP_CONTAINS_MULTIPLE_ATTRIBUTE_METHODS_WITH_NAME = "Attribute name collision. PIP contains multiple attribute methods with name %s";
 	private static final String CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION = "Provided class has no @PolicyInformationPoint annotation.";
 	private static final String UNKNOWN_ATTRIBUTE = "Unknown attribute %s";
-	private static final String BAD_NUMBER_OF_PARAMETERS = "Bad number of parameters for attribute finder. Attribute finders are supposed to have at least one JsonNode and one Map<String, JsonNode> as parameters. The method had %d parameters";
+	private static final String BAD_NUMBER_OF_PARAMETERS = "Bad number of parameters for attribute finder. Attribute finders are supposed to have at least one Val and one Map<String, JsonNode> as parameters. The method had %d parameters";
 	private static final String FIRST_PARAMETER_OF_METHOD_MUST_BE_A_VALUE = "First parameter of method must be a Value. Was: %s";
 	private static final String ADDITIONAL_PARAMETER_OF_METHOD_MUST_BE_A_FLUX_OF_VALUES = "Additional parameters of the method must be Flux<Val>. Was: %s.";
 	private static final String SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP = "Second parameter of method must be a Map<String, JsonNode>. Was: %s";
@@ -93,7 +94,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 		final Parameter firstParameter = method.getParameters()[0];
 		try {
 			ParameterTypeValidator.validateType(value, firstParameter);
-			if (arguments == null || arguments.getArgs() == null || arguments.getArgs().size() == 0) {
+			if (arguments == null) {
 				return (Flux<Val>) method.invoke(pip, value, ctx.getVariableCtx().getVariables());
 			}
 			Object[] argObjects = new Object[arguments.getArgs().size() + 2];
@@ -104,8 +105,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 				argObjects[i++] = argument.evaluate(ctx, Val.UNDEFINED);
 			}
 			return (Flux<Val>) method.invoke(pip, argObjects);
-		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
-				| IllegalParameterType e) {
+		} catch (PolicyEvaluationException | IllegalAccessException | IllegalArgumentException
+				| InvocationTargetException | IllegalParameterType e) {
 			log.error(e.getMessage());
 			return Flux.just(Val.error(e));
 		}
@@ -123,13 +124,13 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		String pipName = pipAnnotation.name();
 		if (pipName.isEmpty()) {
-			pipName = clazz.getName();
+			pipName = clazz.getSimpleName();
 		}
 		attributeNamesByPipName.put(pipName, new HashSet<>());
 		PolicyInformationPointDocumentation pipDocs = new PolicyInformationPointDocumentation(pipName,
 				pipAnnotation.description(), pip);
 
-		pipDocs.setName(pipAnnotation.name());
+		pipDocs.setName(pipName);
 		for (Method method : clazz.getDeclaredMethods()) {
 			if (method.isAnnotationPresent(Attribute.class)) {
 				importAttribute(pip, pipName, pipDocs, method);
@@ -162,11 +163,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 		}
 
 		final Type[] genericTypes = method.getGenericParameterTypes();
-
-		if (!(genericTypes[1] instanceof ParameterizedType
-				|| !(((ParameterizedType) genericTypes[1]).getActualTypeArguments().length == 2))) {
-			throw new InitializationException(SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP, parameterTypes[1].getName());
-		}
 		final Class<?> firstTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1]).getActualTypeArguments()[0];
 		final Class<?> secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[1])
 				.getActualTypeArguments()[1];
@@ -177,14 +173,12 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		if (method.getParameterCount() > REQUIRED_NUMBER_OF_PARAMETERS) {
 			for (int i = REQUIRED_NUMBER_OF_PARAMETERS; i < parameterTypes.length; i++) {
-				if (!Flux.class.isAssignableFrom(parameterTypes[i])
-						|| !(genericTypes[i] instanceof ParameterizedType)) {
+				if (!Flux.class.isAssignableFrom(parameterTypes[i])) {
 					throw new InitializationException(ADDITIONAL_PARAMETER_OF_METHOD_MUST_BE_A_FLUX_OF_VALUES,
 							parameterTypes[i]);
 				}
 				final Type fluxContentType = ((ParameterizedType) genericTypes[i]).getActualTypeArguments()[0];
-				if (fluxContentType instanceof ParameterizedType
-						|| !Val.class.isAssignableFrom((Class<?>) fluxContentType)) {
+				if (!Val.class.isAssignableFrom((Class<?>) fluxContentType)) {
 					throw new InitializationException(ADDITIONAL_PARAMETER_OF_METHOD_MUST_BE_A_FLUX_OF_VALUES,
 							genericTypes[i]);
 				}
@@ -234,11 +228,10 @@ public class AnnotationAttributeContext implements AttributeContext {
 	@Override
 	public Collection<String> providedFunctionsOfLibrary(String pipName) {
 		Collection<String> pips = attributeNamesByPipName.get(pipName);
-		if (pips != null) {
+		if (pips != null)
 			return pips;
-		} else {
+		else
 			return new HashSet<>();
-		}
 	}
 
 	/**
@@ -247,10 +240,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 	@Data
 	@AllArgsConstructor
 	public static class AttributeFinderMetadata {
-
 		@NonNull
 		Object policyInformationPoint;
-
 		@NonNull
 		Method function;
 
