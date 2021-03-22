@@ -12,6 +12,7 @@ spring:
 loader.path: /pdp/data/lib
 
 logging.level:
+  org.springframework: INFO
   # set to TRACE to see how the PDP is coming to its decisions
   io.sapl: TRACE
   
