@@ -1,7 +1,6 @@
 package io.sapl.functions;
 
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonInt;
-import static com.spotify.hamcrest.jackson.IsJsonText.jsonText;
+import static io.sapl.hamcrest.IsVal.val;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -19,8 +18,8 @@ class StandardFunctionLibraryTest {
 
 	@Test
 	void lengthOfEmptyIsZero() {
-		assertThat(StandardFunctionLibrary.length(Val.ofEmptyArray()).get(), is(jsonInt(0)));
-		assertThat(StandardFunctionLibrary.length(Val.ofEmptyObject()).get(), is(jsonInt(0)));
+		assertThat(StandardFunctionLibrary.length(Val.ofEmptyArray()), is(val(0)));
+		assertThat(StandardFunctionLibrary.length(Val.ofEmptyObject()), is(val(0)));
 	}
 
 	@Test
@@ -30,7 +29,7 @@ class StandardFunctionLibraryTest {
 		array.add(Val.JSON.booleanNode(false));
 		array.add(Val.JSON.booleanNode(false));
 		array.add(Val.JSON.booleanNode(false));
-		assertThat(StandardFunctionLibrary.length(Val.of(array)).get(), is(jsonInt(4)));
+		assertThat(StandardFunctionLibrary.length(Val.of(array)), is(val(4)));
 	}
 
 	@Test
@@ -41,33 +40,33 @@ class StandardFunctionLibraryTest {
 		object.set("key3", Val.JSON.booleanNode(false));
 		object.set("key4", Val.JSON.booleanNode(false));
 		object.set("key5", Val.JSON.booleanNode(false));
-		assertThat(StandardFunctionLibrary.length(Val.of(object)).get(), is(jsonInt(5)));
+		assertThat(StandardFunctionLibrary.length(Val.of(object)), is(val(5)));
 
 	}
 
 	@Test
 	void lengthOfText() {
-		assertThat(StandardFunctionLibrary.length(Val.of("ABC")).get(), is(jsonInt(3)));
+		assertThat(StandardFunctionLibrary.length(Val.of("ABC")), is(val(3)));
 	}
 
 	@Test
 	void numberToStringBooleanLeftIntact() {
-		assertThat(StandardFunctionLibrary.numberToString(Val.TRUE).get(), is(jsonText("true")));
+		assertThat(StandardFunctionLibrary.numberToString(Val.TRUE), is(val("true")));
 	}
 
 	@Test
 	void numberToStringSomeNumberLeftIntact() {
-		assertThat(StandardFunctionLibrary.numberToString(Val.of(1.23e-1D)).get(), is(jsonText("0.123")));
+		assertThat(StandardFunctionLibrary.numberToString(Val.of(1.23e-1D)), is(val("0.123")));
 	}
 
 	@Test
 	void numberToStringNullEmptyString() {
-		assertThat(StandardFunctionLibrary.numberToString(Val.NULL).get(), is(jsonText("")));
+		assertThat(StandardFunctionLibrary.numberToString(Val.NULL), is(val("")));
 	}
 
 	@Test
 	void numberToStringTextIntact() {
-		assertThat(StandardFunctionLibrary.numberToString(Val.of("ABC")).get(), is(jsonText("ABC")));
+		assertThat(StandardFunctionLibrary.numberToString(Val.of("ABC")), is(val("ABC")));
 	}
 
 }

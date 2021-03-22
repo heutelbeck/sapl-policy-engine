@@ -15,7 +15,8 @@
  */
 package io.sapl.functions;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static io.sapl.hamcrest.IsVal.val;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.time.DayOfWeek;
@@ -44,6 +45,7 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pip.ClockPolicyInformationPoint;
+import reactor.test.StepVerifier;
 
 class TemporalFunctionLibraryTest {
 
@@ -73,7 +75,7 @@ class TemporalFunctionLibraryTest {
 		var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
 		var plus10 = TemporalFunctionLibrary.plusSeconds(now, Val.of(10L));
 		var expected = Instant.parse(now.get().asText()).plusSeconds(10).toString();
-		assertThat("plusSeconds() not working as expected", plus10.get().asText(), equalTo(expected));
+		assertThat(plus10, is(val(expected)));
 	}
 
 	@Test
@@ -82,25 +84,22 @@ class TemporalFunctionLibraryTest {
 		var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
 		var dayOfWeek = TemporalFunctionLibrary.dayOfWeekFrom(now);
 		var expected = DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)).toString();
-		assertThat("dayOfWeekFrom() not working as expected", dayOfWeek.get().asText(), equalTo(expected));
+		assertThat(dayOfWeek, is(val(expected)));
 	}
 
 	@Test
 	void policyWithMatchingTemporalBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where time.before(\"UTC\".<clock.now>, time.plusSeconds(\"UTC\".<clock.now>, 10));";
 		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
-				.blockFirst();
-		assertThat("temporal functions not working as expected", authzDecision, equalTo(expectedAuthzDecision));
+
+		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
 	}
 
 	@Test
 	void policyWithNonMatchingTemporalBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where time.after(\"UTC\".<clock.now>, time.plusSeconds(\"UTC\".<clock.now>, 10));";
 		var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
-		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
-				.blockFirst();
-		assertThat("temporal functions not working as expected", authzDecision, equalTo(expectedAuthzDecision));
+		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
 	}
 
 	@Test
@@ -112,53 +111,49 @@ class TemporalFunctionLibraryTest {
 		} else {
 			expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
 		}
-		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
-				.blockFirst();
-		assertThat("dayOfWeek() not working as expected", authzDecision, equalTo(expectedAuthzDecision));
+		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
 	}
 
 	@Test
 	void policyWithLocalDateTimeBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localDateTime(\"UTC\".<clock.now>)) in [16, 19];";
 		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
-				.blockFirst();
-		assertThat("localDateTime() not working as expected", authzDecision, equalTo(expectedAuthzDecision));
+		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
 	}
 
 	@Test
 	void policyWithLocalTimeBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localTime(\"UTC\".<clock.now>)) in [5, 8];";
 		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
-				.blockFirst();
-		assertThat("localTime() not working as expected", authzDecision, equalTo(expectedAuthzDecision));
+		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
 	}
 
 	@Test
 	void policyWithLocalHourBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where var hour = time.localHour(\"UTC\".<clock.now>); hour >= 0 && hour <= 23;";
 		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
-				.blockFirst();
-		assertThat("localHour() not working as expected", authzDecision, equalTo(expectedAuthzDecision));
+		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
 	}
 
 	@Test
 	void policyWithLocalMinuteBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where var minute = time.localMinute(\"UTC\".<clock.now>); minute >= 0 && minute <= 59;";
 		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
-				.blockFirst();
-		assertThat("localMinute() not working as expected", authzDecision, equalTo(expectedAuthzDecision));
+		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
 	}
 
 	@Test
 	void policyWithLocalSecondBody() {
 		var policyDefinition = "policy \"test\" permit action == \"read\" where var second = time.localSecond(\"UTC\".<clock.now>); second >= 0 && second <= 59;";
 		var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-		var authzDecision = INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT)
-				.blockFirst();
-		assertThat("localSecond() not working as expected", authzDecision, equalTo(expectedAuthzDecision));
+		assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
 	}
+
+	private void assertThatPolicyEvaluatesTo(String policyDefinition, AuthorizationDecision expectedAuthzDecision) {
+		StepVerifier.create(INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT))
+				.assertNext(authzDecision -> {
+					assertThat(authzDecision, is(expectedAuthzDecision));
+				}).verifyComplete();
+	}
+
 }

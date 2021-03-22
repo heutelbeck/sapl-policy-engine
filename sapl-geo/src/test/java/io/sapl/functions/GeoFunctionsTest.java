@@ -15,15 +15,18 @@
  */
 package io.sapl.functions;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.hamcrest.number.IsCloseTo.closeTo;
+import static org.hamcrest.number.OrderingComparison.greaterThan;
+import static org.hamcrest.number.OrderingComparison.lessThan;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
@@ -36,10 +39,9 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
-public class GeoFunctionsTest {
+class GeoFunctionsTest {
 
 	private static final double COORDINATE_TOLERANCE = 0.001;
-
 	private static final int GEO_DISTANCE_TOLERANCE = 1;
 
 	private static final String SAMPLE_GEOCOLLECTION = "{ \"type\": \"GeometryCollection\","
@@ -56,109 +58,83 @@ public class GeoFunctionsTest {
 
 	private JsonNode jsonGeometryCollection;
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 		jsonGeometryCollection = mock(JsonNode.class);
 		when(jsonGeometryCollection.toString()).thenReturn(SAMPLE_GEOCOLLECTION);
-
 		pointJFK = GeometryBuilder.fromWkt("POINT (40.64 -73.77861111)");
 		pointFRA = GeometryBuilder.fromWkt("POINT (50.03333333 8.57055556)");
 		pointBJM = GeometryBuilder.fromWkt("POINT (-3.32388889 29.31861111)");
 	}
 
 	@Test
-	public void jsonToGeometry() {
-		try {
-			Geometry geomObject = GeometryBuilder.fromJsonNode(jsonGeometryCollection);
-			assertTrue("GeoJSON is not correctly being converted into JTS object.",
-					geomObject instanceof GeometryCollection);
-		} catch (PolicyEvaluationException e) {
-			fail("GeoJSON is not correctly being converted into JTS object.");
-		}
+	void jsonToGeometry() {
+		Geometry geomObject = GeometryBuilder.fromJsonNode(jsonGeometryCollection);
+		assertThat(geomObject, is(instanceOf(GeometryCollection.class)));
 	}
 
 	@Test
-	public void wktToGeometry() {
-		try {
-			Geometry geomObject = GeometryBuilder.fromWkt(SAMPLE_WKT_POINT);
-			assertTrue("WKT-Format is not correctly being converted into JTS object.", geomObject instanceof Point);
-		} catch (PolicyEvaluationException e) {
-			fail("WKT-Format is not correctly being converted into JTS object.");
-		}
-	}
-
-	@Test(expected = PolicyEvaluationException.class)
-	public void wktParseException() {
-		Geometry geomObject = GeometryBuilder.fromWkt("PNT (0 1)");
-		assertNull("Geometry is being created even though provided WKT-format was not well formed.", geomObject);
+	void wktToGeometry() {
+		Geometry geomObject = GeometryBuilder.fromWkt(SAMPLE_WKT_POINT);
+		assertThat(geomObject, is(instanceOf(Point.class)));
 	}
 
 	@Test
-	public void geometryGeoJsonExport() {
+	void wktParseException() {
+		assertThrows(PolicyEvaluationException.class, () -> GeometryBuilder.fromWkt("PNT (0 1)"));
+	}
+
+	@Test
+	void geometryGeoJsonExport() {
 		GeometryFactory geomFactory = new GeometryFactory();
 		Geometry jtsPoint = geomFactory.createPoint(new Coordinate(1, 1));
-
-		try {
-			assertEquals("JTS Geometry is not correctly being converted into GeoJSON-Format.",
-					"{\"type\":\"Point\",\"coordinates\":[1,1]}", GeometryBuilder.toJsonNode(jtsPoint).toString());
-		} catch (PolicyEvaluationException e) {
-			fail("JTS Geometry is not correctly being converted into GeoJSON.");
-		}
+		assertThat(GeometryBuilder.toJsonNode(jtsPoint).toString(), is("{\"type\":\"Point\",\"coordinates\":[1,1]}"));
 	}
 
 	@Test
-	public void geometryWktExport() {
+	void geometryWktExport() {
 		GeometryFactory geomFactory = new GeometryFactory();
 		Geometry jtsPoint = geomFactory.createPoint(new Coordinate(1, 1));
-
-		assertEquals("JTS Geometry is not correctly being converted into WKT-format.", "POINT (1 1)",
-				GeometryBuilder.toWkt(jtsPoint));
-
+		assertThat(GeometryBuilder.toWkt(jtsPoint), is("POINT (1 1)"));
 	}
 
 	@Test
-	public void geodesicDistanceJFKFRA() {
-		int correctDistance = 6206;
-		int calculatedDistance = (int) Math.round(GeometryBuilder.geodesicDistance(pointJFK, pointFRA) / 1000);
-
-		assertEquals("Geodesic distance (JFK-FRA) is not correctly calculated.", calculatedDistance, correctDistance,
-				GEO_DISTANCE_TOLERANCE);
+	void geodesicDistanceJFKFRA() {
+		double correctDistance = 6206D;
+		double calculatedDistance = GeometryBuilder.geodesicDistance(pointJFK, pointFRA) / 1000;
+		assertThat(calculatedDistance, is(closeTo(correctDistance, GEO_DISTANCE_TOLERANCE)));
 	}
 
 	@Test
-	public void geodesicDistanceJFKBJM() {
-		int correctDistance = 11357;
-		int calculatedDistance = (int) Math.round(GeometryBuilder.geodesicDistance(pointJFK, pointBJM) / 1000);
-
-		assertEquals("Geodesic distance (JFK-BJM) is not correctly calculated.", calculatedDistance, correctDistance,
-				GEO_DISTANCE_TOLERANCE);
+	void geodesicDistanceJFKBJM() {
+		double correctDistance = 11357D;
+		double calculatedDistance = GeometryBuilder.geodesicDistance(pointJFK, pointBJM) / 1000.D;
+		assertThat(calculatedDistance, is(closeTo(correctDistance, GEO_DISTANCE_TOLERANCE)));
 	}
 
 	@Test
-	public void geodesicDistanceComparison() {
-		assertTrue("Geodesic distances are not correctly calculated.", GeometryBuilder.geodesicDistance(pointJFK,
-				pointBJM) > GeometryBuilder.geodesicDistance(pointFRA, pointBJM));
+	void geodesicDistanceComparison() {
+		assertThat(GeometryBuilder.geodesicDistance(pointJFK, pointBJM),
+				is(greaterThan(GeometryBuilder.geodesicDistance(pointFRA, pointBJM))));
 	}
 
 	@Test
-	public void coordinateProjection() {
+	void coordinateProjection() {
 		GeoProjection projection = new GeoProjection();
-
-		assertTrue("Geodesic distances are not correctly calculated.",
-				pointFRA.distance(projection.reProject(projection.project(pointFRA))) < COORDINATE_TOLERANCE);
+		assertThat(pointFRA.distance(projection.reProject(projection.project(pointFRA))),
+				is(lessThan(COORDINATE_TOLERANCE)));
 	}
 
 	@Test
-	public void geoProjectionEquals() {
+	void geoProjectionEquals() {
 		EqualsVerifier.forClass(GeoProjection.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
 				.verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void jsonIOException() {
+	@Test
+	void jsonIOException() {
 		JsonNode nodeMock = mock(JsonNode.class);
-		assertNull("Geometry is being created even though JsonNode is only a mock object.",
-				GeometryBuilder.fromJsonNode(nodeMock));
+		assertThrows(PolicyEvaluationException.class, () -> GeometryBuilder.fromJsonNode(nodeMock));
 	}
 
 }

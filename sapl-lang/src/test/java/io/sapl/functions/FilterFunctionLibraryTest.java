@@ -15,7 +15,8 @@
  */
 package io.sapl.functions;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static io.sapl.hamcrest.IsVal.val;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -43,6 +44,7 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import reactor.test.StepVerifier;
 
 class FilterFunctionLibraryTest {
 
@@ -115,9 +117,8 @@ class FilterFunctionLibraryTest {
 		var discloseLeft = Val.of(1);
 		var discloseRight = Val.of(1);
 		var replacement = Val.of("*");
-		var expected = Val.of("a***e");
 		var actual = FilterFunctionLibrary.blacken(given, discloseLeft, discloseRight, replacement);
-		assertThat("blacken function not working as expected", actual, equalTo(expected));
+		assertThat(actual, is(val("a***e")));
 	}
 
 	@Test
@@ -129,7 +130,7 @@ class FilterFunctionLibraryTest {
 
 		var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement);
 
-		assertThat("blacken function not working as expected", result, equalTo(Val.of("abcde")));
+		assertThat(result, is(val("abcde")));
 	}
 
 	@Test
@@ -138,8 +139,7 @@ class FilterFunctionLibraryTest {
 		var discloseLeft = Val.of(1);
 		var discloseRight = Val.of(1);
 		var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight);
-		assertThat("blacken function - default value for replacement not working as expected", result,
-				equalTo(Val.of("aXXXe")));
+		assertThat(result, is(val("aXXXe")));
 	}
 
 	@Test
@@ -148,16 +148,14 @@ class FilterFunctionLibraryTest {
 		var discloseLeft = Val.of(2);
 
 		var result = FilterFunctionLibrary.blacken(text, discloseLeft);
-		assertThat("blacken function - default value for disclose left not working as expected", result,
-				equalTo(Val.of("abXXX")));
+		assertThat(result, is(val("abXXX")));
 	}
 
 	@Test
 	void blackenDiscloseLeftDefault() {
 		var text = Val.of("abcde");
 		var result = FilterFunctionLibrary.blacken(text);
-		assertThat("blacken function - default value for disclose left not working as expected", result,
-				equalTo(Val.of("XXXXX")));
+		assertThat(result, is(val("XXXXX")));
 	}
 
 	@Test
@@ -168,15 +166,17 @@ class FilterFunctionLibraryTest {
 		var expectedResource = MAPPER.readValue("{	\"array\": [ null, true ], \"key1\": \"aXXXX\" }", JsonNode.class);
 		var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 				Optional.empty(), Optional.empty());
-		var authzDecision = INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT)
-				.blockFirst();
-		assertThat("builtin function blacken() not working as expected", authzDecision, equalTo(expectedAuthzDecision));
+
+		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT))
+				.assertNext(authzDecision -> {
+					assertThat(authzDecision, is(expectedAuthzDecision));
+				}).verifyComplete();
 	}
 
 	@Test
 	void replace() {
 		var result = FilterFunctionLibrary.replace(Val.NULL, Val.of(1));
-		assertThat("replace function not working as expected", result, equalTo(Val.of(1)));
+		assertThat(result, is(val(1)));
 	}
 
 	@Test
@@ -187,8 +187,10 @@ class FilterFunctionLibraryTest {
 		var expectedResource = MAPPER.readValue("{	\"array\": [ null, \"***\" ], \"key1\": null }", JsonNode.class);
 		var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
 				Optional.empty(), Optional.empty());
-		var authzDecision = INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT)
-				.blockFirst();
-		assertThat("builtin function replace() not working as expected", authzDecision, equalTo(expectedAuthzDecision));
+
+		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, PDP_EVALUATION_CONTEXT))
+				.assertNext(authzDecision -> {
+					assertThat(authzDecision, is(expectedAuthzDecision));
+				}).verifyComplete();
 	}
 }

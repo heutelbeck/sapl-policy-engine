@@ -15,9 +15,9 @@
  */
 package io.sapl.interpreter.pip.geo;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -26,10 +26,8 @@ import static org.springframework.http.HttpMethod.GET;
 
 import java.io.IOException;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,8 +39,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 import reactor.core.publisher.Flux;
 
-@RunWith(MockitoJUnitRunner.class)
-public class TraccarTest {
+class TraccarTest {
 
 	private static String positionsJson = "[{\"id\":16,\"attributes\":{\"batteryLevel\":66.0,\"distance\":1.0,"
 			+ "\"totalDistance\":2,\"ip\":\"192.168.2.1\",\"motion\":false},\"deviceId\":1,"
@@ -83,8 +80,8 @@ public class TraccarTest {
 
 	private WebClientRequestExecutor requestExecutor;
 
-	@Before
-	public void setUp() throws IOException {
+	@BeforeEach
+	void setUp() throws IOException {
 		requestExecutor = mock(WebClientRequestExecutor.class);
 		trConn = new TraccarConnection(MAPPER.readValue(configJson, TraccarConfig.class), requestExecutor);
 		trDevice = MAPPER.readValue(devicesJson, TraccarDevice[].class)[0];
@@ -94,105 +91,97 @@ public class TraccarTest {
 	}
 
 	@Test
-	public void jsonConstructor() throws IOException {
+	void jsonConstructor() throws IOException {
 		JsonNode jsonConfig = MAPPER.readValue(configJson, JsonNode.class);
-		assertEquals("Same parameters used in different constructor formats result in different results.",
-				new TraccarConnection(jsonConfig).getConfig(), trConn.getConfig());
+		assertEquals(new TraccarConnection(jsonConfig).getConfig(), trConn.getConfig());
 	}
 
 	@Test
-	public void getDeviceTest() throws IOException {
+	void getDeviceTest() throws IOException {
 		when(requestExecutor.executeReactiveRequest(any(), eq(GET)))
 				.thenReturn(Flux.just(MAPPER.readTree(devicesJson)));
 
-		assertEquals("Traccar devices not correctly obtained.", "TestDevice",
-				trConn.getTraccarDevice(DEVICE_ID).block().getName());
+		assertEquals("TestDevice", trConn.getTraccarDevice(DEVICE_ID).block().getName());
 	}
 
 	@Test
-	public void getPositionTest() throws IOException {
+	void getPositionTest() throws IOException {
 		when(requestExecutor.executeReactiveRequest(any(), eq(GET)))
 				.thenReturn(Flux.just(MAPPER.readTree(positionsJson)));
 
 		TraccarPosition expectedPosition = MAPPER.readValue(positionsJson, TraccarPosition[].class)[0];
-		assertEquals("Traccar position not correctly obtained.", expectedPosition,
-				trConn.getTraccarPosition(trDevice).block());
+		assertEquals(expectedPosition, trConn.getTraccarPosition(trDevice).block());
 	}
 
 	@Test
-	public void getGeofencesTest() throws IOException {
+	void getGeofencesTest() throws IOException {
 		when(requestExecutor.executeReactiveRequest(any(), eq(GET)))
 				.thenReturn(Flux.just(MAPPER.convertValue(trFences, JsonNode.class)));
 
-		assertArrayEquals("Traccar geofences not correctly obtained.", trFences,
-				trConn.getTraccarGeofences(trDevice).block());
+		assertArrayEquals(trFences, trConn.getTraccarGeofences(trDevice).block());
 	}
 
 	@Test
-	public void httpHeaderGenerationTest() {
-		assertEquals("HTTP-Header is not correctly created.",
-				"{Authorization=Basic YWRtaW46YWRtaW4=, Accept=application/json}",
+	void httpHeaderGenerationTest() {
+		assertEquals("{Authorization=Basic YWRtaW46YWRtaW4=, Accept=application/json}",
 				trConn.getTraccarHTTPHeader().toString());
 	}
 
 	@Test
-	public void createCredentialsTest() throws IOException {
+	void createCredentialsTest() throws IOException {
 		String config = "{\"deviceID\": \"123456\", \"url\": \"http://lcl:00/api/\","
 				+ "\"username\": \"admin\", \"password\": \"admin\"}";
 		TraccarConnection conn = new TraccarConnection(MAPPER.readValue(config, TraccarConfig.class));
-		assertEquals("Base64 encoding of username and password is not correct.",
-				"{Authorization=Basic YWRtaW46YWRtaW4=, Accept=application/json}",
+		assertEquals("{Authorization=Basic YWRtaW46YWRtaW4=, Accept=application/json}",
 				conn.getTraccarHTTPHeader().toString());
 	}
 
 	@Test
-	public void positionEqualsTest() {
+	void positionEqualsTest() {
 		EqualsVerifier.forClass(TraccarPosition.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
 				.withPrefabValues(JsonNode.class, jsonDumpOne, jsonDumpTwo).verify();
 	}
 
 	@Test
-	public void geofenceEqualsTest() {
+	void geofenceEqualsTest() {
 		EqualsVerifier.forClass(TraccarGeofence.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
 				.withPrefabValues(JsonNode.class, jsonDumpOne, jsonDumpTwo).verify();
 	}
 
 	@Test
-	public void deviceEqualsTest() {
+	void deviceEqualsTest() {
 		EqualsVerifier.forClass(TraccarDevice.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
 				.withPrefabValues(JsonNode.class, jsonDumpOne, jsonDumpTwo).verify();
 	}
 
 	@Test
-	public void configEqualsTest() {
+	void configEqualsTest() {
 		EqualsVerifier.forClass(TraccarConfig.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS)
 				.verify();
 	}
 
 	@Test
-	public void positionCompareAscendingTest() {
+	void positionCompareAscendingTest() {
 		TraccarPosition a = mock(TraccarPosition.class);
 		TraccarPosition b = mock(TraccarPosition.class);
 
 		when(a.getId()).thenReturn(0);
 		when(b.getId()).thenReturn(1);
 
-		assertTrue("Sorting TraccarPositions in ascending order does not work properly.",
-				TraccarPosition.compareAscending(a, b) == -1 && TraccarPosition.compareAscending(b, a) == 1
-						&& TraccarPosition.compareAscending(a, a) == 0);
+		assertTrue(TraccarPosition.compareAscending(a, b) == -1 && TraccarPosition.compareAscending(b, a) == 1
+				&& TraccarPosition.compareAscending(a, a) == 0);
 	}
 
 	@Test
-	public void positionCompareDescendingTest() {
+	void positionCompareDescendingTest() {
 		TraccarPosition a = mock(TraccarPosition.class);
 		TraccarPosition b = mock(TraccarPosition.class);
 
 		when(a.getId()).thenReturn(0);
 		when(b.getId()).thenReturn(1);
 
-		assertTrue("Sorting TraccarPositions in descending order does not work properly.",
-				TraccarPosition.compareDescending(a, b) == 1 && TraccarPosition.compareDescending(b, a) == -1
-						&& TraccarPosition.compareDescending(a, a) == 0);
+		assertTrue(TraccarPosition.compareDescending(a, b) == 1 && TraccarPosition.compareDescending(b, a) == -1
+				&& TraccarPosition.compareDescending(a, a) == 0);
 	}
 
 }

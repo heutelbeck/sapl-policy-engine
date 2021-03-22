@@ -15,7 +15,9 @@
  */
 package io.sapl.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
@@ -30,8 +32,8 @@ class EvaluationContextTest {
 
 	@Test
 	void okCase() {
-		assertNotNull(new EvaluationContext(mock(AttributeContext.class), mock(FunctionContext.class),
-				Collections.emptyMap()));
+		assertThat(new EvaluationContext(mock(AttributeContext.class), mock(FunctionContext.class),
+				Collections.emptyMap()), is(notNullValue()));
 	}
 
 	@Test

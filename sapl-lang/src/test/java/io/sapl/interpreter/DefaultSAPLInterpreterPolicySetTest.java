@@ -15,25 +15,23 @@
  */
 package io.sapl.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static com.spotify.hamcrest.jackson.IsJsonBoolean.jsonBoolean;
+import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.HashMap;
-import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Hooks;
+import reactor.test.StepVerifier;
 
 class DefaultSAPLInterpreterPolicySetTest {
 
@@ -55,143 +53,134 @@ class DefaultSAPLInterpreterPolicySetTest {
 
 	@Test
 	void setPermit() {
-		String policySet = "set \"tests\" deny-overrides " + "policy \"testp\" permit";
-		AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
-		assertEquals(expected, actual);
+		var policySet = "set \"tests\" deny-overrides " + "policy \"testp\" permit";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void setDeny() {
-		String policySet = "set \"tests\" deny-overrides " + "policy \"testp\" deny";
-		AuthorizationDecision expected = AuthorizationDecision.DENY;
-		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
-		assertEquals(expected, actual);
+		var policySet = "set \"tests\" deny-overrides " + "policy \"testp\" deny";
+		var expected = AuthorizationDecision.DENY;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void setNotApplicable() {
-		String policySet = "set \"tests\" deny-overrides " + "for true == false " + "policy \"testp\" deny";
-		AuthorizationDecision expected = AuthorizationDecision.NOT_APPLICABLE;
-		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
-		assertEquals(expected, actual);
+		var policySet = "set \"tests\" deny-overrides " + "for true == false " + "policy \"testp\" deny";
+		var expected = AuthorizationDecision.NOT_APPLICABLE;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void noApplicablePolicies() {
-		String policySet = "set \"tests\" deny-overrides " + "for true " + "policy \"testp\" deny true == false";
-		AuthorizationDecision expected = AuthorizationDecision.NOT_APPLICABLE;
-		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
-		assertEquals(expected, actual);
+		var policySet = "set \"tests\" deny-overrides " + "for true " + "policy \"testp\" deny true == false";
+		var expected = AuthorizationDecision.NOT_APPLICABLE;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void setIndeterminate() {
-		String policySet = "set \"tests\" deny-overrides" + "for \"a\" > 4 " + "policy \"testp\" permit";
-		AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
-		assertEquals(expected, actual);
+		var policySet = "set \"tests\" deny-overrides" + "for \"a\" > 4 " + "policy \"testp\" permit";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void denyOverridesPermitAndDeny() {
-		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit " + "policy \"testp2\" deny";
-		AuthorizationDecision expected = AuthorizationDecision.DENY;
-		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
-		assertEquals(expected, actual);
+		var policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit " + "policy \"testp2\" deny";
+		var expected = AuthorizationDecision.DENY;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void denyOverridesPermitAndNotApplicableAndDeny() {
-		String policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
+		var policySet = "set \"tests\" deny-overrides " + "policy \"testp1\" permit "
 				+ "policy \"testp2\" permit true == false " + "policy \"testp3\" deny";
-		AuthorizationDecision expected = AuthorizationDecision.DENY;
-		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
-		assertEquals(expected, actual);
+		var expected = AuthorizationDecision.DENY;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void denyOverridesPermitAndIntederminateAndDeny() {
-		String policySet = "set \"tests\" deny-overrides " + //
+		var policySet = "set \"tests\" deny-overrides " + //
 				"policy \"testp1\" permit " + //
 				"policy \"testp2\" permit \"a\" < 5 " + //
 				"policy \"testp3\" deny";
-		AuthorizationDecision expected = AuthorizationDecision.DENY;
-		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
-		assertEquals(expected, actual);
+		var expected = AuthorizationDecision.DENY;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void importsInSetAvailableInPolicy() {
-		String policySet = "import filter.replace " + //
+		var policySet = "import filter.replace " + //
 				"set \"tests\" deny-overrides " + //
 				"policy \"testp1\" permit transform true |- replace(false)";
-		Optional<BooleanNode> expected = Optional.of(JsonNodeFactory.instance.booleanNode(false));
-		Optional<JsonNode> actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst()
-				.getResource();
-		assertEquals(expected, actual);
+
+		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx))
+				.assertNext(decision -> assertThat(decision.getResource(), is(optionalWithValue(jsonBoolean(false)))))
+				.verifyComplete();
 	}
 
 	@Test
 	void importsDuplicatesByPolicySet() {
-		String policySet = "import filter.replace " + //
+		var policySet = "import filter.replace " + //
 				"import filter.replace " + //
 				"set \"tests\" deny-overrides " + //
 				"policy \"testp1\" permit where true;";
-		AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
-		assertEquals(expected, actual);
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void variablesOnSetLevel() {
-		String policySet = "set \"tests\" deny-overrides " + //
+		var policySet = "set \"tests\" deny-overrides " + //
 				"var var1 = true; " + //
 				"policy \"testp1\" permit var1 == true";
-		Decision expected = Decision.PERMIT;
-		Decision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst().getDecision();
-		assertEquals(expected, actual);
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void variablesOnSetLevelError() {
-		String policySet = "set \"tests\" deny-overrides " + //
+		var policySet = "set \"tests\" deny-overrides " + //
 				"var var1 = true / null; " + //
 				"policy \"testp1\" permit";
-		AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
-		assertEquals(expected, actual);
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void variablesOverwriteInPolicy() {
-		String policySet = "set \"tests\" deny-overrides " + //
+		var policySet = "set \"tests\" deny-overrides " + //
 				"var var1 = true; " + //
 				"policy \"testp1\" permit where var var1 = 10; var1 == 10; " + //
 				"policy \"testp2\" deny where !(var1 == true);";
-		Decision expected = Decision.PERMIT;
-		Decision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst().getDecision();
-		assertEquals(expected, actual);
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void subjectAsVariable() {
-		String policySet = "set \"test\" deny-overrides " + //
+		var policySet = "set \"test\" deny-overrides " + //
 				"var subject = null;  " + //
 				"policy \"test\" permit";
-		AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
-		assertEquals(expected, actual);
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
 	}
 
 	@Test
 	void variablesInPolicyMustNotLeakIntoNextPolicy() {
-		String policySet = "set \"test\" deny-overrides " + "var ps1 = true; " + //
+		var policySet = "set \"test\" deny-overrides " + "var ps1 = true; " + //
 				"policy \"pol1\" permit where var p1 = 10; p1 == 10; " + //
 				"policy \"pol2\" deny where p1 == undefined;";
-		AuthorizationDecision expected = AuthorizationDecision.DENY;
-		AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policySet, evaluationCtx).blockFirst();
-		assertEquals(expected, actual);
+		var expected = AuthorizationDecision.DENY;
+		assertThatDocumentEvaluationReturnsExpected(policySet, expected);
+	}
+
+	private void assertThatDocumentEvaluationReturnsExpected(String document, AuthorizationDecision expected) {
+		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, document, evaluationCtx)).expectNext(expected)
+				.verifyComplete();
 	}
 
 }

@@ -16,7 +16,7 @@
 package io.sapl.interpreter.functions;
 
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
-import static io.sapl.hamcrest.IsError.isError;
+import static io.sapl.hamcrest.IsValError.valError;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -85,26 +85,26 @@ class AnnotationFunctionContextTest {
 	@Test
 	void validationForFixedParametersFailsOnWringInput() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new ValidationLibrary());
-		assertThat(context.evaluate("validate.fixed", Val.of(0)), isError());
+		assertThat(context.evaluate("validate.fixed", Val.of(0)), valError());
 	}
 
 	@Test
 	void validationForVarArgsParametersFailsOnWringInput() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new ValidationLibrary());
-		assertThat(context.evaluate("validate.varArgs", Val.of(""), Val.of(1)), isError());
+		assertThat(context.evaluate("validate.varArgs", Val.of(""), Val.of(1)), valError());
 	}
 
 	@Test
 	void callingFunctionReturningExceptionReturnsError() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		assertThat(context.evaluate(MockLibrary.LIBRARY_NAME + ".helloFailure", Val.TRUE, Val.TRUE, Val.TRUE),
-				isError());
+				valError());
 	}
 
 	@Test
 	void simpleFunctionCallNoParametersBadParameterNumberReturnsError() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
-		assertThat(context.evaluate(MockLibrary.LIBRARY_NAME + "." + MockLibrary.FUNCTION_NAME, Val.TRUE), isError());
+		assertThat(context.evaluate(MockLibrary.LIBRARY_NAME + "." + MockLibrary.FUNCTION_NAME, Val.TRUE), valError());
 	}
 
 	@Test
@@ -120,7 +120,7 @@ class AnnotationFunctionContextTest {
 	@Test
 	void libsTest() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext();
-		assertThat(context.evaluate("i.am.not.a.function"), isError());
+		assertThat(context.evaluate("i.am.not.a.function"), valError());
 	}
 
 	@Test

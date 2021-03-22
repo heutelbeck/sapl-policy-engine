@@ -15,98 +15,66 @@
  */
 package io.sapl.functions;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.mockito.Mockito.mockStatic;
 
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Geometry;
+import org.mockito.MockedStatic;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.operation.TransformException;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({ ObjectMapper.class, CRS.class, JTS.class })
-public class ExceptionHandlingTest {
+class ExceptionHandlingTest {
 
 	private Geometry sampleGeometry;
 
-	@Before
-	public void setUp() {
-		mockStatic(CRS.class);
-		mockStatic(JTS.class);
+	@BeforeEach
+	void setUp() {
 		sampleGeometry = mock(Geometry.class);
 	}
 
 	@Test
-	public void factoryExceptionInProjectionConstructor() throws FactoryException {
-		when(CRS.findMathTransform(any(), any(), anyBoolean())).thenThrow(new FactoryException());
-
-		try {
-			new GeoProjection();
-			fail("Exception in transform method was expected but not thrown.");
-		} catch (PolicyEvaluationException e) {
-			assertEquals("Handling of FactoryException in GeoProjection works not as expected.",
-					GeoProjection.CRS_COULD_NOT_INITIALIZE, e.getMessage());
+	void factoryExceptionInProjectionConstructor() {
+		try (MockedStatic<CRS> crsMock = mockStatic(CRS.class)) {
+			crsMock.when(() -> CRS.findMathTransform(any(), any(), anyBoolean())).thenThrow(new FactoryException());
+			assertThrows(PolicyEvaluationException.class, () -> new GeoProjection());
 		}
 	}
 
 	@Test
-	public void transformExceptioninProjection() throws TransformException, MismatchedDimensionException {
-		when(JTS.transform(any(Geometry.class), any())).thenThrow(new TransformException());
-
-		try {
-			GeoProjection sampleProjection = new GeoProjection();
-			sampleProjection.project(sampleGeometry);
-			fail("Exception in transform method was expected but not thrown.");
-		} catch (PolicyEvaluationException e) {
-			assertEquals("Handling of FactoryException in GeoProjection works not as expected.",
-					GeoProjection.UNABLE_TO_TRANSFORM, e.getMessage());
+	void transformExceptioninProjection() {
+		try (MockedStatic<JTS> jtsMock = mockStatic(JTS.class)) {
+			jtsMock.when(() -> JTS.transform(any(Geometry.class), any())).thenThrow(new TransformException());
+			assertThrows(PolicyEvaluationException.class, () -> new GeoProjection().project(sampleGeometry));
 		}
 	}
 
 	@Test
-	public void mismatchedDimensionExceptioninProjection() throws TransformException, MismatchedDimensionException {
-		when(JTS.transform(any(Geometry.class), any())).thenThrow(new MismatchedDimensionException());
-
-		try {
-			GeoProjection sampleProjection = new GeoProjection();
-			sampleProjection.project(sampleGeometry);
-			fail("Exception in transform method was expected but not thrown.");
-		} catch (PolicyEvaluationException e) {
-			assertEquals("Handling of FactoryException in GeoProjection works not as expected.",
-					GeoProjection.UNABLE_TO_TRANSFORM, e.getMessage());
+	void mismatchedDimensionExceptioninProjection() {
+		try (MockedStatic<JTS> jtsMock = mockStatic(JTS.class)) {
+			jtsMock.when(() -> JTS.transform(any(Geometry.class), any())).thenThrow(new MismatchedDimensionException());
+			assertThrows(PolicyEvaluationException.class, () -> new GeoProjection().project(sampleGeometry));
 		}
 	}
 
 	@Test
-	public void factoryExceptionInGeodesicCalculation() throws FactoryException, PolicyEvaluationException {
-		when(CRS.decode(anyString())).thenThrow(new FactoryException());
-
-		Geometry geometryOne = GeometryBuilder.fromWkt("POINT (10 10)");
-		Geometry geometryTwo = mock(Geometry.class);
-
-		try {
-			GeometryBuilder.geodesicDistance(geometryOne, geometryTwo);
-			fail("Exception in geodesic calculations was expected but not thrown.");
-		} catch (PolicyEvaluationException e) {
-			assertEquals("Handling of FactoryException in geodesic calculations works not as expected.",
-					GeoProjection.CRS_COULD_NOT_INITIALIZE, e.getMessage());
+	void factoryExceptionInGeodesicCalculation() {
+		try (MockedStatic<CRS> crsMock = mockStatic(CRS.class)) {
+			crsMock.when(() -> CRS.decode(anyString())).thenThrow(new FactoryException());
+			Geometry geometryOne = GeometryBuilder.fromWkt("POINT (10 10)");
+			Geometry geometryTwo = mock(Geometry.class);
+			assertThrows(PolicyEvaluationException.class,
+					() -> GeometryBuilder.geodesicDistance(geometryOne, geometryTwo));
 		}
 	}
 

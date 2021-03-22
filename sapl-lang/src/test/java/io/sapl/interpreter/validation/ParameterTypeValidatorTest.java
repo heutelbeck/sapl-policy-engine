@@ -16,7 +16,8 @@
 package io.sapl.interpreter.validation;
 
 import static io.sapl.interpreter.validation.ParameterTypeValidator.validateType;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -86,8 +87,8 @@ class ParameterTypeValidatorTest {
 	@MethodSource("data")
 	void theGivenValue_YieldsExpctedValidation(ValidationTestSpecification testSpec) {
 		var parameter = mockParameter(testSpec.getGivenAnnotations());
-		assertEquals(testSpec.expectedToBeSuccessfullyValidated,
-				validationOfValue_IsSuccessfull(testSpec.getGivenValue(), parameter));
+		assertThat(validationOfValue_IsSuccessfull(testSpec.getGivenValue(), parameter),
+				is(testSpec.expectedToBeSuccessfullyValidated));
 	}
 
 	private boolean validationOfValue_IsSuccessfull(Val givenValue, Parameter givenParameter) {

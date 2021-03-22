@@ -95,6 +95,11 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-hamcrest</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
@@ -107,13 +112,16 @@
 		<dependency>
 			<groupId>com.spotify</groupId>
 			<artifactId>hamcrest-pojo</artifactId>
-			<version>1.2.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.spotify</groupId>
+			<artifactId>hamcrest-optional</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.spotify</groupId>
 			<artifactId>hamcrest-jackson</artifactId>
-			<version>1.2.0</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

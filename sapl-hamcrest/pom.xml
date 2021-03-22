@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -25,64 +25,33 @@
 		<artifactId>sapl-policy-engine</artifactId>
 		<version>2.0.0-SNAPSHOT</version>
 	</parent>
-
-	<artifactId>sapl-extensions-api</artifactId>
+	<name>SAPL Hamcrest Matchers</name>
+	<artifactId>sapl-hamcrest</artifactId>
+	<description>Hamcrest matchers for writing tests.</description>
 
 	<packaging>jar</packaging>
 
-	<name>SAPL Extensions API</name>
-
-	<organization>
-		<name>Dominic Heutelbeck</name>
-	</organization>
-
-	<inceptionYear>2020</inceptionYear>
-
-	<licenses>
-		<license>
-			<name>Apache 2.0</name>
-			<url>http://www.apache.org/licenses/LICENSE-2.0</url>
-		</license>
-	</licenses>
-
 	<dependencies>
 		<dependency>
-			<groupId>io.projectreactor</groupId>
-			<artifactId>reactor-core</artifactId>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-extensions-api</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.github.fge</groupId>
-			<artifactId>jackson-coreutils</artifactId>
-			<version>1.8</version>
+			<groupId>com.spotify</groupId>
+			<artifactId>hamcrest-jackson</artifactId>
 		</dependency>
+	
+		<!-- Testing -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>com.spotify</groupId>
-			<artifactId>hamcrest-jackson</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.spotify</groupId>
-			<artifactId>hamcrest-optional</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.projectreactor</groupId>
-			<artifactId>reactor-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>nl.jqno.equalsverifier</groupId>
-			<artifactId>equalsverifier</artifactId>
-			<scope>test</scope>
-		</dependency>
 	</dependencies>
+
 </project>

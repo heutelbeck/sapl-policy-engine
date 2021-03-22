@@ -17,24 +17,33 @@ package io.sapl.hamcrest;
 
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import io.sapl.api.interpreter.Val;
 
-public class IsError extends TypeSafeMatcher<Val> {
+public class IsValUndefined extends TypeSafeDiagnosingMatcher<Val> {
 
-	public static Matcher<Val> isError() {
-		return new IsError();
+	public IsValUndefined() {
+		super(Val.class);
+	}
+
+	public static Matcher<Val> valUndefined() {
+		return new IsValUndefined();
 	}
 
 	@Override
 	public void describeTo(Description description) {
-		description.appendText("not an error");
+		description.appendText("undefined");
 	}
 
 	@Override
-	protected boolean matchesSafely(Val item) {
-		return item.isError();
+	protected boolean matchesSafely(Val item, Description mismatchDescription) {
+		if (item.isUndefined()) {
+			return true;
+		} else {
+			mismatchDescription.appendText("a Val that is ").appendValue(item);
+			return false;
+		}
 	}
 
 }

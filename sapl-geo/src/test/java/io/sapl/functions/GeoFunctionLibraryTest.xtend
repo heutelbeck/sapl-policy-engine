@@ -29,10 +29,11 @@ import io.sapl.interpreter.pip.AttributeContext
 import io.sapl.interpreter.pip.GeoPolicyInformationPoint
 import java.util.HashMap
 import java.util.Map
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
-import static org.junit.Assert.assertEquals
+import static org.hamcrest.MatcherAssert.assertThat
+import static org.hamcrest.Matchers.is
 
 class GeoFunctionLibraryTest {
 
@@ -46,7 +47,7 @@ class GeoFunctionLibraryTest {
 	static JsonNode subject;
 	static JsonNode resource;
 
-	@Before
+	@BeforeEach
 	def void setUp() {
 		ATTRIBUTE_CTX.loadPolicyInformationPoint(new GeoPolicyInformationPoint());
 		FUNCTION_CTX.loadLibrary(new GeoFunctionLibrary());
@@ -205,7 +206,7 @@ class GeoFunctionLibraryTest {
 			geo.equals(resource.pointOne, resource.pointOne);
 			!geo.equals(resource.pointOne, resource.polyTwo);
 		''';
-		assertEquals("geo.equals() does not work as expected", getDecision(policyDefinition), Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -217,7 +218,7 @@ class GeoFunctionLibraryTest {
 			geo.crosses(resource.lineOne, resource.lineTwo);
 			!geo.touches(resource.lineOne, resource.lineTwo);
 		''';
-		assertEquals("geo.crosses() does not work as expected", getDecision(policyDefinition), Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -229,8 +230,7 @@ class GeoFunctionLibraryTest {
 			geo.intersects(resource.lineOne, resource.lineTwo);
 			!geo.disjoint(resource.lineOne, resource.lineTwo);
 		''';
-		assertEquals("geo.disjoint() or geo.intersects() does not work as expected", getDecision(policyDefinition),
-			Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -242,8 +242,7 @@ class GeoFunctionLibraryTest {
 			geo.contains(resource.polyOne, resource.pointOne);
 			geo.within(resource.pointOne, resource.polyOne);
 		''';
-		assertEquals("geo.contains() or geo.within() does not work as expected", getDecision(policyDefinition),
-			Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -257,8 +256,7 @@ class GeoFunctionLibraryTest {
 			geo.within(resource.pointOne, bag);
 			geo.contains(bag, resource.pointOne);
 		''';
-		assertEquals("geo.resToGeometryBag() does not work as expected", getDecision(policyDefinition),
-			Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -269,7 +267,7 @@ class GeoFunctionLibraryTest {
 			where
 			geo.overlaps(resource.polyTwo, resource.polyThree);
 		''';
-		assertEquals("geo.overlaps() does not work as expected", getDecision(policyDefinition), Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -280,7 +278,7 @@ class GeoFunctionLibraryTest {
 			where
 			geo.within(resource.pointOne, geo.buffer(resource.polyOne, 5.0));
 		''';
-		assertEquals("geo.buffer() does not work as expected", getDecision(policyDefinition), Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -291,11 +289,7 @@ class GeoFunctionLibraryTest {
 			where
 			geo.isWithinDistance(resource.pointTwo, geo.centroid(resource.polyOne), 1);
 		''';
-		assertEquals(
-			"geo.centroid() or geo.isWithinDistance() work not as expected",
-			getDecision(policyDefinition),
-			Decision.PERMIT
-		);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -307,8 +301,7 @@ class GeoFunctionLibraryTest {
 			var bound = geo.boundary(resource.polyOne);
 			geo.within(resource.pointOne, geo.convexHull(resource.polyOne));
 		''';
-		assertEquals("geo.boundary() or geo.convexHull() does not work as expected", getDecision(policyDefinition),
-			Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -320,7 +313,7 @@ class GeoFunctionLibraryTest {
 			var unionResult = geo.union(resource.polyOne, resource.polyTwo);
 			geo.within(resource.polyOne, unionResult);
 		''';
-		assertEquals("geo.union() does not work as expected", getDecision(policyDefinition), Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -332,7 +325,7 @@ class GeoFunctionLibraryTest {
 			var intersectionResult = geo.intersection(resource.polyTwo, resource.polyThree);
 			geo.equals(intersectionResult, resource.polyThreeIntFour);
 		''';
-		assertEquals("geo.intersection() does not work as expected", getDecision(policyDefinition), Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -345,8 +338,7 @@ class GeoFunctionLibraryTest {
 			var symDifferenceResult = geo.symDifference(resource.polyTwo, resource.polyThree);
 			geo.area(differenceResult) <= geo.area(symDifferenceResult);
 		''';
-		assertEquals("geo.difference() or geo.symDifference() does not work as expected", getDecision(policyDefinition),
-			Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -358,8 +350,7 @@ class GeoFunctionLibraryTest {
 			geo.area(resource.polyThreeIntFour) <= geo.area(resource.polyTwo);
 			geo.length(resource.lineOne) >= geo.length(resource.lineTwo);
 		''';
-		assertEquals("geo.area() or geo.length() does not work as expected", getDecision(policyDefinition),
-			Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -372,8 +363,7 @@ class GeoFunctionLibraryTest {
 			!geo.isWithinGeoDistance(resource.pointOne, resource.pointTwo, 5);
 			geo.geoDistance(resource.pointOne, resource.pointTwo) >= 547000;
 		''';
-		assertEquals("geo.geoDistance() or geo.isWithinGeoDistance() does not work as expected",
-			getDecision(policyDefinition), Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -384,7 +374,7 @@ class GeoFunctionLibraryTest {
 			where
 			geo.distance(resource.pointOne, resource.pointTwo) <= geo.distance(resource.pointOne, resource.lineTwo);
 		''';
-		assertEquals("geo.distance() does not work as expected", getDecision(policyDefinition), Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 //	@Test
@@ -398,8 +388,7 @@ class GeoFunctionLibraryTest {
 //			geo.toSquareMeter(1, "ft^2") == 0.09290304;
 //			geo.toSquareMeter(2000, "in^2") == 1.29032;
 //		''';
-//		assertEquals("Unit conversions work not as expected", 
-//			getDecision(policyDefinition), Decision.PERMIT);
+//		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 //	}
 	@Test
 	def void conversionFromWrongUnitsTest() {
@@ -409,7 +398,7 @@ class GeoFunctionLibraryTest {
 			where
 			geo.toMeter(2, "s") == 1.8;
 		''';
-		assertEquals("Unit conversions work not as expected", getDecision(policyDefinition), Decision.INDETERMINATE);
+		assertThat(getDecision(policyDefinition), is(Decision.INDETERMINATE));
 	}
 
 	@Test
@@ -420,7 +409,7 @@ class GeoFunctionLibraryTest {
 			where
 			geo.toSquareMeter(1, "min") == 0.09;
 		''';
-		assertEquals("Unit conversions work not as expected", getDecision(policyDefinition), Decision.INDETERMINATE);
+		assertThat(getDecision(policyDefinition), is(Decision.INDETERMINATE));
 	}
 
 	@Test
@@ -432,8 +421,7 @@ class GeoFunctionLibraryTest {
 			geo.isSimple(resource.pointOne);
 			geo.isValid(resource.pointOne);
 		''';
-		assertEquals("geo.isSimple() or geo.isValid() does not work as expected", getDecision(policyDefinition),
-			Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -449,7 +437,7 @@ class GeoFunctionLibraryTest {
 			!geo.isClosed(resource.polyOne);
 			!geo.isClosed(resource.geoColl1);
 		''';
-		assertEquals("geo.isClosed() does not work as expected", getDecision(policyDefinition), Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -470,7 +458,7 @@ class GeoFunctionLibraryTest {
 			!geo.subset(bag2, bag3);
 			!geo.subset(bag3, bag4);
 		''';
-		assertEquals("GeometryCollections work not as expected", getDecision(policyDefinition), Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	@Test
@@ -481,8 +469,7 @@ class GeoFunctionLibraryTest {
 			where
 			geo.geometryIsIn(resource.pointOne, resource.geoColl1);
 		''';
-		assertEquals("GeometryCollections work not as expected", getDecision(policyDefinition),
-			Decision.NOT_APPLICABLE);
+		assertThat(getDecision(policyDefinition), is(Decision.NOT_APPLICABLE));
 	}
 
 	@Test
@@ -494,8 +481,7 @@ class GeoFunctionLibraryTest {
 			geo.oneAndOnly(resource.geoColl1);
 			
 		''';
-		assertEquals("geo.oneAndOnly() does not work as expected", getDecision(policyDefinition),
-			Decision.INDETERMINATE);
+		assertThat(getDecision(policyDefinition), is(Decision.INDETERMINATE));
 	}
 
 	@Test
@@ -510,7 +496,7 @@ class GeoFunctionLibraryTest {
 			!geo.equals(resource.pointOne, projPointOne);
 			geo.equals(resource.pointOne, geo.project(projPointOne, projInv));
 		''';
-		assertEquals("Projections do not work as expected", getDecision(policyDefinition), Decision.PERMIT);
+		assertThat(getDecision(policyDefinition), is(Decision.PERMIT));
 	}
 
 	def Decision getDecision(String policyDefinition) {

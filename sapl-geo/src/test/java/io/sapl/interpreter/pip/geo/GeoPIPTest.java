@@ -15,35 +15,32 @@
  */
 package io.sapl.interpreter.pip.geo;
 
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.pip.GeoPolicyInformationPoint;
+import reactor.test.StepVerifier;
 
-public class GeoPIPTest {
+class GeoPIPTest {
 
 	private static final GeoPolicyInformationPoint AF = new GeoPolicyInformationPoint();
 
 	@Test
-	public void postgisTest() {
-		assertEquals("GeoAttributeFinder does not call the correct methods when accessing PostGIS.",
-				PostGISConnection.TEST_OKAY,
-				AF.postgis(Val.of(PostGISConnection.AF_TEST), null).blockFirst().get().asText());
+	void postgisTest() {
+		StepVerifier.create(AF.traccar(Val.of(TraccarConnection.AF_TEST), null).take(1))
+				.expectNextMatches(v -> TraccarConnection.TEST_OKAY.equals(v.getText())).verifyComplete();
 	}
 
 	@Test
-	public void traccarTest() {
-		assertEquals("GeoAttributeFinder does not call the correct methods when accessing Traccar.",
-				TraccarConnection.TEST_OKAY,
-				AF.traccar(Val.of(TraccarConnection.AF_TEST), null).blockFirst().get().asText());
+	void traccarTest() {
+		StepVerifier.create(AF.postgis(Val.of(PostGISConnection.AF_TEST), null).take(1))
+				.expectNextMatches(v -> PostGISConnection.TEST_OKAY.equals(v.getText())).verifyComplete();
 	}
 
 	@Test
-	public void kmlTest() {
-		assertEquals("GeoAttributeFinder does not call the correct methods when accessing KML.", KMLImport.TEST_OKAY,
-				AF.kml(Val.of(""), null).blockFirst().get().asText());
+	void kmlTest() {
+		StepVerifier.create(AF.kml(Val.of(""), null).take(1))
+				.expectNextMatches(v -> KMLImport.TEST_OKAY.equals(v.getText())).verifyComplete();
 	}
 
 }

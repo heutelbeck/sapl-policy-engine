@@ -85,83 +85,45 @@ import reactor.test.StepVerifier;
 public class EthereumIntegrationTest {
 
 	private static final String TRANSACTION = "transaction";
-
 	private static final String HTTP_LOCALHOST = "http://localhost:";
-
 	private static final String WRONG_NAME = "wrongName";
-
 	private static final String ACCESS = "access";
-
 	private static final String ETHEREUM = "ethereum";
-
 	private static final String OUTPUT_PARAMS = "outputParams";
-
 	private static final String BOOL = "bool";
-
 	private static final String INPUT_PARAMS = "inputParams";
-
 	private static final String VALUE = "value";
-
 	private static final String ADDRESS = "address";
-
 	private static final String TYPE = "type";
-
 	private static final String TO_ACCOUNT = "toAccount";
-
 	private static final String FROM_ACCOUNT = "fromAccount";
-
 	private static final String CONTRACT_ADDRESS = "contractAddress";
-
 	private static final String TRANSACTION_HASH = "transactionHash";
-
 	private static final String TRANSACTION_VALUE = "transactionValue";
-
 	private static final String FUNCTION_NAME = "functionName";
-
 	private static final String IS_AUTHORIZED = "isAuthorized";
-
 	private static final String USER1_ADDRESS = "0xfe3b557e8fb62b89f4916b721be55ceb828dbd73";
-
 	private static final String USER1_PRIVATE_KEY = "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63";
-
 	private static final String USER2_ADDRESS = "0x627306090abaB3A6e1400e9345bC60c78a8BEf57";
-
 	private static final String USER3_ADDRESS = "0xf17f52151EbEF6C7334FAD080c5704D77216b732";
-
 	private static final String USER3_PRIVATE_KEY = "0xae6ae8e5ccbfb04590405997ee2d52d2b330726137b875053c36d94e974d162f";
-
 	private static final BigInteger TRANSACTION1_VALUE = new BigInteger("2000000000000000000");
-
 	private static final String DEFAULT_BLOCK_PARAMETER = "defaultBlockParameter";
-
 	private static final String LATEST = "latest";
-
 	private static final String POSITION = "position";
-
 	private static final String BLOCK_HASH = "blockHash";
-
 	private static final String RETURN_FULL_TRANSACTION_OBJECTS = "returnFullTransactionObjects";
-
 	private static final String TRANSACTION_INDEX = "transactionIndex";
-
 	private static final String FILTER_ID = "filterId";
-
 	private static final String UNCLE_INDEX = "uncleIndex";
 
 	private static final ObjectMapper mapper = new ObjectMapper();
-
 	private static Web3j web3j;
-
 	private static EthereumPolicyInformationPoint ethPip;
-
 	private static PolicyDecisionPoint pdp;
-
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	private static String authContractAddress;
-
 	private static TransactionReceipt transactionReceiptUser2;
-
 	private static TransactionReceipt transactionReceiptUser3;
 
 	@ClassRule

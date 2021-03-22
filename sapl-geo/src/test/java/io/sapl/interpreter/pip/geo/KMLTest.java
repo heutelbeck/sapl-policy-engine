@@ -15,14 +15,14 @@
  */
 package io.sapl.interpreter.pip.geo;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collection;
 import java.util.LinkedList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -31,11 +31,11 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
-public class KMLTest {
+class KMLTest {
 
-	public static final String TESTFILE = "/sample.kml";
+	static final String TESTFILE = "/sample.kml";
 
-	public static final String EXPECTED_RESPONSE = "{\"altitude\":0.0,\"accuracy\":0.0,\"trust\":0.0,"
+	static final String EXPECTED_RESPONSE = "{\"altitude\":0.0,\"accuracy\":0.0,\"trust\":0.0,"
 			+ "\"geofences\":{\"Sample1\":{\"type\":\"MultiPoint\",\"coordinates\":[[-80,40],[-86,41]]},"
 			+ "\"Sample2\":{\"type\":\"MultiPolygon\",\"coordinates\":"
 			+ "[[[[-1,1],[-2,2],[-3,3],[-4,4],[-5,5],[-1,1]]]]}}}";
@@ -43,66 +43,50 @@ public class KMLTest {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Test
-	public void importTest() {
+	void importTest() {
 		KMLImport kml = new KMLImport(TESTFILE);
-		assertEquals("KML file is not correctly imported into GeoPIPResponse", EXPECTED_RESPONSE,
-				kml.toGeoPIPResponse().toString());
+		assertThat(kml.toGeoPIPResponse().toString(), is(EXPECTED_RESPONSE));
 	}
 
 	@Test
-	public void constructorTest() {
+	void constructorTest() {
 		JsonNode jsonFilename = JSON.textNode(TESTFILE);
 		KMLImport stringKml = new KMLImport(TESTFILE);
 		KMLImport jsonKml = new KMLImport(jsonFilename);
-
-		assertEquals("Different constructors result in different import configurations.", stringKml, jsonKml);
+		assertThat(stringKml, is(jsonKml));
 	}
 
 	@Test
-	public void equalsTest() {
+	void equalsTest() {
 		EqualsVerifier.forClass(KMLImport.class).suppress(Warning.STRICT_INHERITANCE, Warning.NONFINAL_FIELDS).verify();
 	}
 
-	@Test(expected = PolicyEvaluationException.class)
-	public void httpIllegalArgTest() {
-		assertNull("Empty HTTP-address leads to valid response.", new KMLImport("https://").toGeoPIPResponse());
-	}
-
-	@Test(expected = PolicyEvaluationException.class)
-	public void invalidJsonInConstructorTest() {
-		assertNull("Non textual JSON as constructor leads to valid response.",
-				new KMLImport(JSON.booleanNode(false)).toGeoPIPResponse());
-	}
-
-	@Test(expected = PolicyEvaluationException.class)
-	public void httpNoKmlTest() {
-		assertNull("Random HTTP-address (non-KML) leads to valid response.",
-				new KMLImport("http://about:blank").toGeoPIPResponse());
+	@Test
+	void httpIllegalArgTest() {
+		assertThrows(PolicyEvaluationException.class, () -> new KMLImport("https://").toGeoPIPResponse());
 	}
 
 	@Test
-	public void invalidFileImportTest() {
-		try {
-			new KMLImport("file_that_does_not_exist.kml").toGeoPIPResponse();
-			fail("No exception is thrown when trying to access a non existing KML-file.");
-		} catch (PolicyEvaluationException e) {
-			assertEquals("Wrong exception thrown when trying to access a non existing KML-file.",
-					KMLImport.UNABLE_TO_PARSE_KML, e.getMessage());
-		}
+	void invalidJsonInConstructorTest() {
+		assertThrows(PolicyEvaluationException.class, () -> new KMLImport(JSON.booleanNode(false)).toGeoPIPResponse());
 	}
 
 	@Test
-	public void wrongCollection() {
+	void httpNoKmlTest() {
+		assertThrows(PolicyEvaluationException.class, () -> new KMLImport("http://about:blank").toGeoPIPResponse());
+	}
+
+	@Test
+	void invalidFileImportTest() {
+		assertThrows(PolicyEvaluationException.class,
+				() -> new KMLImport("file_that_does_not_exist.kml").toGeoPIPResponse());
+	}
+
+	@Test
+	void wrongCollection() {
 		Collection<String> coll = new LinkedList<>();
 		coll.add("TestString");
-
-		try {
-			KMLImport.formatCollection(coll);
-			fail("No exception is thrown when providing non compliant KML source.");
-		} catch (PolicyEvaluationException e) {
-			assertEquals("Wrong exception handling when providing non compliant KML source.",
-					KMLImport.UNABLE_TO_PARSE_KML, e.getMessage());
-		}
+		assertThrows(PolicyEvaluationException.class, () -> KMLImport.formatCollection(coll));
 	}
 
 }

@@ -15,8 +15,8 @@
  */
 package io.sapl.interpreter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
@@ -29,23 +29,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.NullNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.impl.util.EObjectUtil;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.TestPIP;
 import reactor.core.publisher.Hooks;
+import reactor.test.StepVerifier;
 
 class DefaultSAPLInterpreterTest {
 
@@ -78,7 +74,7 @@ class DefaultSAPLInterpreterTest {
 
 	@Test
 	void parseTest() {
-		final String policyDocument = "policy \"test\" permit";
+		var policyDocument = "policy \"test\" permit";
 		INTERPRETER.parse(policyDocument);
 	}
 
@@ -92,7 +88,7 @@ class DefaultSAPLInterpreterTest {
 
 	@Test
 	void parseTestWithError() {
-		final String policyDocument = "xyz";
+		var policyDocument = "xyz";
 		assertThrows(PolicyEvaluationException.class, () -> {
 			INTERPRETER.parse(policyDocument);
 		});
@@ -100,75 +96,61 @@ class DefaultSAPLInterpreterTest {
 
 	@Test
 	void analyzePolicySet() {
-		final String policyDefinition = "set \"test\" deny-overrides policy \"xx\" permit";
-		final DocumentAnalysisResult expected = new DocumentAnalysisResult(true, "test", DocumentType.POLICY_SET, "");
-		final DocumentAnalysisResult actual = INTERPRETER.analyze(policyDefinition);
-		assertEquals(expected, actual);
+		var policyDefinition = "set \"test\" deny-overrides policy \"xx\" permit";
+		var expected = new DocumentAnalysisResult(true, "test", DocumentType.POLICY_SET, "");
+		assertThat(INTERPRETER.analyze(policyDefinition), is(expected));
 	}
 
 	@Test
 	void analyzePolicy() {
-		final String policyDefinition = "policy \"test\" permit";
-		final DocumentAnalysisResult expected = new DocumentAnalysisResult(true, "test", DocumentType.POLICY, "");
-		final DocumentAnalysisResult actual = INTERPRETER.analyze(policyDefinition);
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit";
+		var expected = new DocumentAnalysisResult(true, "test", DocumentType.POLICY, "");
+		assertThat(INTERPRETER.analyze(policyDefinition), is(expected));
 	}
 
 	@Test
 	void analyzeException() {
-		final String policyDefinition = "xyz";
-		final DocumentAnalysisResult actual = INTERPRETER.analyze(policyDefinition);
-		assertFalse(actual.isValid());
+		assertThat(INTERPRETER.analyze("xyz").isValid(), is(false));
 	}
 
 	@Test
 	void permitAll() {
-		final String policyDefinition = "policy \"test\" permit";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void denyAll() {
-		final String policyDefinition = "policy \"test\" deny";
-		final AuthorizationDecision expected = AuthorizationDecision.DENY;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" deny";
+		var expected = AuthorizationDecision.DENY;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void permitFalse() {
-		final String policyDefinition = "policy \"test\" permit false";
-		final AuthorizationDecision expected = AuthorizationDecision.NOT_APPLICABLE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit false";
+		var expected = AuthorizationDecision.NOT_APPLICABLE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void permitParseError() {
-		final String policyDefinition = "--- policy \"test\" permit ---";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "--- policy \"test\" permit ---";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void targetNotBoolean() {
-		final String policyDefinition = "policy \"test\" permit 20";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit 20";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void syntaxError() {
-		final String policyDefinition = "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ";
+		var policyDefinition = "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ";
 		assertThrows(PolicyEvaluationException.class, () -> {
 			INTERPRETER.parse(policyDefinition);
 		});
@@ -176,719 +158,561 @@ class DefaultSAPLInterpreterTest {
 
 	@Test
 	void processParsedEmptyArray() {
-		final String policyDefinition = "policy \"test\" permit resource.emptyArray == []";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit resource.emptyArray == []";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void processParsedEmptyObject() {
-		final String policyDefinition = "policy \"test\" permit resource.emptyObject == {}";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit resource.emptyObject == {}";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void evaluateWorkingBodyTrue() {
-		final String policyDefinition = "policy \"test\" permit subject.isActive == true where true;";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit subject.isActive == true where true;";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void evaluateWorkingBodyFalse() {
-		final String policyDefinition = "policy \"test\" permit subject.isActive == true where false;";
-		final AuthorizationDecision expected = AuthorizationDecision.NOT_APPLICABLE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit subject.isActive == true where false;";
+		var expected = AuthorizationDecision.NOT_APPLICABLE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void evaluateWorkingBodyError() {
-		final String policyDefinition = "policy \"test\" permit subject.isActive == true where 4 && true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit subject.isActive == true where 4 && true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void echoAttributeFinder() {
-		final String policyDefinition = "policy \"test\" permit where var variable = [1,2,3]; variable.<sapl.pip.test.echo> == variable;";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where var variable = [1,2,3]; variable.<sapl.pip.test.echo> == variable;";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void attributeFinderInTarget() {
-		final String policyDefinition = "policy \"test\" permit \"test\".<sapl.pip.test.echo> == \"test\"";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit \"test\".<sapl.pip.test.echo> == \"test\"";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void attributeFinderWithArgumentsTest() {
-		final String policyDefinition = "policy \"test\" permit where var variable = \"hello\"; variable.<sapl.pip.test.echoRepeat(2)> == (variable + variable);";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where var variable = \"hello\"; variable.<sapl.pip.test.echoRepeat(2)> == (variable + variable);";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void bodyStatementNotBoolean() {
-		final String policyDefinition = "policy \"test\" permit where null;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where null;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void variableRedefinition() {
-		final String policyDefinition = "policy \"test\" permit where var test = null; var test = 2; test == 2;";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where var test = null; var test = 2; test == 2;";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void unboundVariable() {
-		final String policyDefinition = "policy \"test\" permit where variable;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where variable;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void functionCall() {
-		final String policyDefinition = "policy \"test\" permit where simple.append(\"a\",\"b\") == \"ab\";";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where simple.append(\"a\",\"b\") == \"ab\";";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void functionCallImport() {
-		final String policyDefinition = "import simple.append policy \"test\" permit where append(\"a\",\"b\") == \"ab\";";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "import simple.append policy \"test\" permit where append(\"a\",\"b\") == \"ab\";";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void functionCallError() {
-		final String policyDefinition = "policy \"test\" permit where append(null) == \"ab\";";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where append(null) == \"ab\";";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void keyStepOnUndefined() {
-		final String policyDefinition = "policy \"test\" permit where undefined.key == undefined;";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where undefined.key == undefined;";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveKeyStepOnUndefined() {
-		final String policyDefinition = "policy \"test\" permit where undefined..key == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where undefined..key == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void keyStepOnString() {
-		final String policyDefinition = "policy \"test\" permit where \"foo\".key == undefined;";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where \"foo\".key == undefined;";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveKeyStepOnString() {
-		final String policyDefinition = "policy \"test\" permit where \"foo\"..key == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where \"foo\"..key == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void keyStepWithUnknownKey() {
-		final String policyDefinition = "policy \"test\" permit where {\"attr\": 1}.key == undefined;";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"attr\": 1}.key == undefined;";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveKeyStepWithUnknownKey() {
-		final String policyDefinition = "policy \"test\" permit where {\"attr\": 1}..key == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"attr\": 1}..key == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void keyStepWithKnownKey() {
-		final String policyDefinition = "policy \"test\" permit where {\"key\": 1}.key == 1;";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"key\": 1}.key == 1;";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveKeyStepWithKnownKey() {
-		final String policyDefinition = "policy \"test\" permit where {\"key\": 1}..key == [1];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"key\": 1}..key == [1];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void keyStepWithKnownKeyInChildObject() {
-		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}.key == undefined;";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}.key == undefined;";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveKeyStepWithKnownKeyInChildObject() {
-		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}..key == [1];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}..key == [1];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void keyStepWithKnownKeyInParentAndChildObject() {
-		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": 1}}.key == {\"key\": 1};";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": 1}}.key == {\"key\": 1};";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveKeyStepWithKnownKeyInParentAndChildObject() {
-		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": 1}}..key == [{\"key\": 1}, 1];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": 1}}..key == [{\"key\": 1}, 1];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveKeyStepComplex() {
-		final String policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": [{\"key\": 1}, {\"key\": 2}]}}..key == [{\"key\": [{\"key\": 1}, {\"key\": 2}]}, [{\"key\": 1}, {\"key\": 2}], 1, 2];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"key\": {\"key\": [{\"key\": 1}, {\"key\": 2}]}}..key == [{\"key\": [{\"key\": 1}, {\"key\": 2}]}, [{\"key\": 1}, {\"key\": 2}], 1, 2];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void indexStepOnUndefined() {
-		final String policyDefinition = "policy \"test\" permit where var error = undefined[0]; true == true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where var error = undefined[0]; true == true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveIndexStepOnUndefined() {
-		final String policyDefinition = "policy \"test\" permit where undefined..[0] == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where undefined..[0] == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void indexStepOnString() {
-		final String policyDefinition = "policy \"test\" permit where var error = \"foo\"[0]; true == true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where var error = \"foo\"[0]; true == true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void indexStepOnArrayWithUndefined() {
-		final String policyDefinition = "policy \"test\" permit where var error = [undefined][0]; true == true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where var error = [undefined][0]; true == true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveIndexStepOnArrayWithUndefined() {
-		final String policyDefinition = "policy \"test\" permit where var error = [undefined]..[0]; error == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where var error = [undefined]..[0]; error == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void indexStepOnArrayWithIndexOutOfBounds() {
-		final String policyDefinition = "policy \"test\" permit where var error = [0,1][2]; true == true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where var error = [0,1][2]; true == true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveIndexStepOnArrayWithIndexOutOfBounds() {
-		final String policyDefinition = "policy \"test\" permit where [0,1]..[2] == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [0,1]..[2] == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void indexStepOnArrayWithValidIndex() {
-		final String policyDefinition = "policy \"test\" permit where [0,1][1] == 1;";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [0,1][1] == 1;";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveIndexStepOnArrayWithValidIndex() {
-		final String policyDefinition = "policy \"test\" permit where [0,1]..[1] == [1];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [0,1]..[1] == [1];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveIndexStepOnArrayWithChildArray1() {
-		final String policyDefinition = "policy \"test\" permit where [[0,1], 2]..[1] == [2, 1];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [[0,1], 2]..[1] == [2, 1];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveIndexStepOnArrayWithChildArray2() {
-		final String policyDefinition = "policy \"test\" permit where [0, [0,1]]..[1] == [[0,1], 1];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [0, [0,1]]..[1] == [[0,1], 1];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveIndexStepOnArrayWithChildArray3() {
-		final String policyDefinition = "policy \"test\" permit where [0, [0, 1, 2]]..[2] == [2];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [0, [0, 1, 2]]..[2] == [2];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveIndexStepComplex() {
-		final String policyDefinition = "policy \"test\" permit where [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2]]..[2] == [2, 5];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2]]..[2] == [2, 5];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void wildcardStepOnUndefined() {
-		final String policyDefinition = "policy \"test\" permit where var error = undefined.*; true == true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where var error = undefined.*; true == true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveWildcardStepOnUndefined() {
-		final String policyDefinition = "policy \"test\" permit where var error = undefined..*; true == true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where var error = undefined..*; true == true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void wildcardStepOnString() {
-		final String policyDefinition = "policy \"test\" permit where var error = \"foo\".*; true == true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where var error = \"foo\".*; true == true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveWildcardStepOnString() {
-		final String policyDefinition = "policy \"test\" permit where \"foo\"..* == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where \"foo\"..* == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void wildcardStepOnEmptyObject() {
-		final String policyDefinition = "policy \"test\" permit where {}.* == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {}.* == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveWildcardStepOnEmptyObject() {
-		final String policyDefinition = "policy \"test\" permit where {}..* == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {}..* == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void wildcardStepOnEmptyArray() {
-		final String policyDefinition = "policy \"test\" permit where [].* == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [].* == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveWildcardStepOnEmptyArray() {
-		final String policyDefinition = "policy \"test\" permit where []..* == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where []..* == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void wildcardStepOnSimpleObject() {
-		final String policyDefinition = "policy \"test\" permit where {\"key\": 1, \"attr\": 2}.* == [1, 2];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"key\": 1, \"attr\": 2}.* == [1, 2];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveWildcardStepOnSimpleObject() {
-		final String policyDefinition = "policy \"test\" permit where {\"key\": 1, \"attr\": 2}..* == [1, 2];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"key\": 1, \"attr\": 2}..* == [1, 2];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void wildcardStepOnSimpleArray() {
-		final String policyDefinition = "policy \"test\" permit where [1, 2].* == [1, 2];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [1, 2].* == [1, 2];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveWildcardStepOnSimpleArray() {
-		final String policyDefinition = "policy \"test\" permit where [1, 2]..* == [1, 2];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [1, 2]..* == [1, 2];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void wildcardStepOnHierarchicalObject() {
-		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}.* == [{\"key\": 1}];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}.* == [{\"key\": 1}];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveWildcardStepOnHierarchicalObject() {
-		final String policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}..* == [{\"key\": 1}, 1];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {\"attr\": {\"key\": 1}}..* == [{\"key\": 1}, 1];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void wildcardStepOnHierarchicalArray() {
-		final String policyDefinition = "policy \"test\" permit where [0, [1, 2]].* == [0, [1, 2]];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [0, [1, 2]].* == [0, [1, 2]];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveWildcardStepOnHierarchicalArray() {
-		final String policyDefinition = "policy \"test\" permit where [0, [1, 2]]..* == [0, [1, 2], 1, 2];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [0, [1, 2]]..* == [0, [1, 2], 1, 2];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void recursiveWildcardStepComplex() {
-		final String policyDefinition = "policy \"test\" permit where [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2], 6]..* == [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2], {\"text\": 1, \"arr\": [3, 4, 5]}, 1, [3, 4, 5], 3, 4, 5, 1, 2, 6];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2], 6]..* == [0, [{\"text\": 1, \"arr\": [3, 4, 5]}, 1, 2], {\"text\": 1, \"arr\": [3, 4, 5]}, 1, [3, 4, 5], 3, 4, 5, 1, 2, 6];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void conditionStepOnEmptyArray() {
-		final String policyDefinition = "policy \"test\" permit where [][?(@ == undefined)] == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [][?(@ == undefined)] == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void conditionStepOnEmptyObject() {
-		final String policyDefinition = "policy \"test\" permit where {}[?(@ == undefined)] == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where {}[?(@ == undefined)] == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void functionCallOnObjectNodeWithRelativeArguments() {
-		final String policyDefinition = "import simple.append import filter.remove policy \"test\" permit where {\"name\": \"Ben\", \"origin\": \"Berlin\"} |- {@.name : append(\" from \", @.origin), @.origin : remove} == {\"name\": \"Ben from Berlin\"};";
-		SAPL s = INTERPRETER.parse(policyDefinition);
-		EObjectUtil.dump(s);
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "import simple.append import filter.remove policy \"test\" permit where {\"name\": \"Ben\", \"origin\": \"Berlin\"} |- {@.name : append(\" from \", @.origin), @.origin : remove} == {\"name\": \"Ben from Berlin\"};";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void functionCallOnEachArrayItemWithRelativeArguments() {
-		final String policyDefinition = "import simple.* import filter.* policy \"test\" permit where [{\"name\": \"Hans\", \"origin\": \"Hagen\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}] |- { @..name : append(\" aus \", @.origin),  @..origin : remove} == [{\"name\": \"Hans aus Hagen\"}, {\"name\": \"Felix aus Zürich\"}];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "import simple.* import filter.* policy \"test\" permit where [{\"name\": \"Hans\", \"origin\": \"Hagen\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}] |- { @..name : append(\" aus \", @.origin),  @..origin : remove} == [{\"name\": \"Hans aus Hagen\"}, {\"name\": \"Felix aus Zürich\"}];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void filterExtended() throws IOException {
-		final String policyDefinition = "policy \"test\" permit transform [\"foo\", \"bars\"] |- {each @.<sapl.pip.test.echo> : simple.length}";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit transform [\"foo\", \"bars\"] |- {each @.<sapl.pip.test.echo> : simple.length}";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void subtemplateOnEmptyArray() {
-		final String policyDefinition = "policy \"test\" permit where [] :: { \"name\": \"foo\" } == [];";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit where [] :: { \"name\": \"foo\" } == [];";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
+	}
+
+	@Test
+
+	void transformationError() {
+		var policyDefinition = "policy \"test\" permit transform null * true";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void transformation() {
-		final String policyDefinition = "policy \"test\" permit transform null";
-		final Optional<NullNode> expected = Optional.of(JSON.nullNode());
-		final AuthorizationDecision authzDecision = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, evaluationCtx).blockFirst();
-		final Optional<JsonNode> actual = authzDecision.getResource();
-		assertEquals(expected, actual);
-	}
-
-	@Test
-	void transformationError() {
-		final String policyDefinition = "policy \"test\" permit transform null * true";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit transform null";
+		var expected = Optional.of(JSON.nullNode());
+		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx))
+				.assertNext(actual -> assertThat(actual.getResource(), is(expected))).verifyComplete();
 	}
 
 	@Test
 	void obligation() {
-		final String policyDefinition = "policy \"test\" permit obligation null";
-
-		final ArrayNode expectedObligation = JSON.arrayNode();
+		var policyDefinition = "policy \"test\" permit obligation null";
+		var expectedObligation = JSON.arrayNode();
 		expectedObligation.add(JSON.nullNode());
-		final Optional<ArrayNode> expected = Optional.of(expectedObligation);
-
-		final AuthorizationDecision authzDecision = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, evaluationCtx).blockFirst();
-		final Optional<ArrayNode> actual = authzDecision.getObligations();
-
-		assertEquals(expected, actual);
+		var expected = Optional.of(expectedObligation);
+		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx))
+				.assertNext(actual -> assertThat(actual.getObligations(), is(expected))).verifyComplete();
 	}
 
 	@Test
 	void obligationError() {
-		final String policyDefinition = "policy \"test\" permit obligation \"a\" > 5";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit obligation \"a\" > 5";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void advice() {
-		final String policyDefinition = "policy \"test\" permit advice null";
-
-		final ArrayNode expectedAdvice = JSON.arrayNode();
+		var policyDefinition = "policy \"test\" permit advice null";
+		var expectedAdvice = JSON.arrayNode();
 		expectedAdvice.add(JSON.nullNode());
-		final Optional<ArrayNode> expected = Optional.of(expectedAdvice);
-
-		final AuthorizationDecision authzDecision = INTERPRETER
-				.evaluate(authzSubscription, policyDefinition, evaluationCtx).blockFirst();
-		final Optional<ArrayNode> actual = authzDecision.getAdvices();
-
-		assertEquals(expected, actual);
+		var expected = Optional.of(expectedAdvice);
+		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx))
+				.assertNext(actual -> assertThat(actual.getAdvices(), is(expected))).verifyComplete();
 	}
 
 	@Test
 	void adviceError() {
-		final String policyDefinition = "policy \"test\" permit advice \"a\" > 5";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "policy \"test\" permit advice \"a\" > 5";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void importWildcard() {
-		final String policyDefinition = "import simple.* policy \"test\" permit where var a = append(\"a\",\"b\");";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "import simple.* policy \"test\" permit where var a = append(\"a\",\"b\");";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void importAttributeFinder() {
-		final String policyDefinition = "import sapl.pip.test.echo policy \"test\" permit where \"echo\" == \"echo\".<echo>;";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "import sapl.pip.test.echo policy \"test\" permit where \"echo\" == \"echo\".<echo>;";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void importLibrary() {
-		final String policyDefinition = "import simple as simple_lib policy \"test\" permit where var a = simple_lib.append(\"a\",\"b\");";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "import simple as simple_lib policy \"test\" permit where var a = simple_lib.append(\"a\",\"b\");";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void importMultiple() {
-		final String policyDefinition = "import simple.length import simple.append policy \"test\" permit where var a = append(\"a\",\"b\");";
-		final AuthorizationDecision expected = AuthorizationDecision.PERMIT;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "import simple.length import simple.append policy \"test\" permit where var a = append(\"a\",\"b\");";
+		var expected = AuthorizationDecision.PERMIT;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void importNonExistingFunction() {
-		final String policyDefinition = "import simple.non_existing policy \"test\" permit where true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "import simple.non_existing policy \"test\" permit where true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void importDuplicateFunction() {
-		final String policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void importDuplicateFunctionMatchingPolicy() {
-		final String policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "import simple.append import simple.append policy \"test\" permit where true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void importDuplicateWildcard() {
-		final String policyDefinition = "import simple.append import simple.* policy \"test\" permit where true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "import simple.append import simple.* policy \"test\" permit where true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
 	}
 
 	@Test
 	void importDuplicateAlias() {
-		final String policyDefinition = "import simple as test import simple as test policy \"test\" permit where true;";
-		final AuthorizationDecision expected = AuthorizationDecision.INDETERMINATE;
-		final AuthorizationDecision actual = INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx)
-				.blockFirst();
-		assertEquals(expected, actual);
+		var policyDefinition = "import simple as test import simple as test policy \"test\" permit where true;";
+		var expected = AuthorizationDecision.INDETERMINATE;
+		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
+	}
+
+	private void assertThatPolicyEvaluationReturnsExpected(String document, AuthorizationDecision expected) {
+		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, document, evaluationCtx)).expectNext(expected)
+				.verifyComplete();
 	}
 
 }
