@@ -58,10 +58,8 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 	protected void configure(HttpSecurity http) throws Exception {
 		// Not using Spring CSRF here to be able to use plain HTML for the login page
 		http.csrf().disable()
-
-				// Register our CustomRequestCache, that saves unauthorized access attempts, so
-				// the user is redirected after login.
-				.requestCache().requestCache(new CustomRequestCache())
+				// skip authentication for static resources
+				.authorizeRequests().antMatchers("/icons/**", "/images/**").permitAll()
 
 				// use basic authentication for API
 				.and().authorizeRequests().antMatchers(API_PATHS)
@@ -69,6 +67,10 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 				.and()
 				.httpBasic()
 				.realmName("API")
+
+				// Register our CustomRequestCache, that saves unauthorized access attempts, so
+				// the user is redirected after login.
+				.and().requestCache().requestCache(new CustomRequestCache())
 
 				// Restrict access to our application.
 				.and().authorizeRequests()
