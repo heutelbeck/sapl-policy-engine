@@ -32,7 +32,6 @@
 		<geotools.version>20.2</geotools.version>
 		<geojson-jackson.version>1.8</geojson-jackson.version>
 		<asciidoc.version>2.1.0</asciidoc.version>
-		<version.powermock>2.0.0</version.powermock>
 	</properties>
 
 	<dependencies>

@@ -75,7 +75,6 @@
 		<hamcrest.version>2.2</hamcrest.version>
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
 		<springboot.version>2.4.4</springboot.version>
-		<powermock.version>2.0.9</powermock.version>
 		<mockito.version>3.8.0</mockito.version>
 		<vaadin.version>14.4.9</vaadin.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
