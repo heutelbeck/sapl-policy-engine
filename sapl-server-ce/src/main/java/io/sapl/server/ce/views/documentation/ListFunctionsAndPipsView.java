@@ -15,14 +15,6 @@
  */
 package io.sapl.server.ce.views.documentation;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.annotation.PostConstruct;
-
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.grid.Grid;
@@ -37,13 +29,19 @@ import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.templatemodel.TemplateModel;
-
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.server.ce.views.MainView;
 import io.sapl.spring.pdp.embedded.FunctionLibrariesDocumentation;
 import io.sapl.spring.pdp.embedded.PolicyInformationPointsDocumentation;
 import lombok.RequiredArgsConstructor;
+
+import javax.annotation.PostConstruct;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * A Designer generated component for the list-functions-and-pips-view template.
@@ -109,7 +107,15 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 				}, query -> availableFunctionLibs.size());
 
 		functionLibsGrid.setSelectionMode(SelectionMode.SINGLE);
-		functionLibsGrid.addColumn(LibraryDocumentation::getName).setHeader("Name");
+		functionLibsGrid.addColumn(LibraryDocumentation::getName)
+				.setHeader("Name");
+		functionsOfCurrentFunctionLibGrid.addColumn(Entry<String, String>::getKey)
+				.setHeader("Function");
+		functionsOfCurrentFunctionLibGrid.addColumn(Entry<String, String>::getValue)
+				.setHeader("Documentation")
+				.setFlexGrow(5);
+		functionsOfCurrentFunctionLibGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
+		functionsOfCurrentFunctionLibGrid.setSelectionMode(SelectionMode.NONE);
 		functionLibsGrid.addSelectionListener(selection -> {
 			Optional<LibraryDocumentation> optionalSelectedFunctionLib = selection.getFirstSelectedItem();
 			optionalSelectedFunctionLib.ifPresentOrElse((LibraryDocumentation selectedFunctionLib) -> {
@@ -127,12 +133,6 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 							return documentationAsEntrySet.stream().skip(offset).limit(limit);
 						}, query -> documentationAsEntrySet.size());
 
-				functionsOfCurrentFunctionLibGrid.removeAllColumns();
-				functionsOfCurrentFunctionLibGrid.addColumn(Entry<String, String>::getKey).setHeader("Function");
-				functionsOfCurrentFunctionLibGrid.addColumn(Entry<String, String>::getValue).setHeader("Documentation")
-						.setFlexGrow(5);
-				functionsOfCurrentFunctionLibGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
-				functionsOfCurrentFunctionLibGrid.setSelectionMode(SelectionMode.NONE);
 				functionsOfCurrentFunctionLibGrid.setDataProvider(dataProviderForFunctionsOfCurrentFunctionLibGrid);
 			}, () -> {
 				showCurrentFunctionLibLayout.setVisible(false);
@@ -160,7 +160,15 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 				}, query -> availablePips.size());
 
 		pipsGrid.setSelectionMode(SelectionMode.SINGLE);
-		pipsGrid.addColumn(PolicyInformationPointDocumentation::getName).setHeader("Name");
+		pipsGrid.addColumn(PolicyInformationPointDocumentation::getName)
+				.setHeader("Name");
+		functionsOfCurrentPipGrid.addColumn(Entry<String, String>::getKey)
+				.setHeader("Function");
+		functionsOfCurrentPipGrid.addColumn(Entry<String, String>::getValue)
+				.setHeader("Documentation")
+				.setFlexGrow(5);
+		functionsOfCurrentPipGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
+		functionsOfCurrentPipGrid.setSelectionMode(SelectionMode.NONE);
 		pipsGrid.addSelectionListener(selection -> {
 			Optional<PolicyInformationPointDocumentation> optionalSelectedPip = selection.getFirstSelectedItem();
 			optionalSelectedPip.ifPresentOrElse((PolicyInformationPointDocumentation selectedPip) -> {
@@ -177,13 +185,6 @@ public class ListFunctionsAndPipsView extends PolymerTemplate<ListFunctionsAndPi
 
 							return documentationAsEntrySet.stream().skip(offset).limit(limit);
 						}, query -> documentationAsEntrySet.size());
-
-				functionsOfCurrentPipGrid.removeAllColumns();
-				functionsOfCurrentPipGrid.addColumn(Entry<String, String>::getKey).setHeader("Function");
-				functionsOfCurrentPipGrid.addColumn(Entry<String, String>::getValue).setHeader("Documentation")
-						.setFlexGrow(5);
-				functionsOfCurrentPipGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
-				functionsOfCurrentPipGrid.setSelectionMode(SelectionMode.NONE);
 				functionsOfCurrentPipGrid.setDataProvider(dataProviderForFunctionsOfCurrentPipGrid);
 			}, () -> {
 				showCurrentPipLayout.setVisible(false);
