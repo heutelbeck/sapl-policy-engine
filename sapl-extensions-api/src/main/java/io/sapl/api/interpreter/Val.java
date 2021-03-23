@@ -238,6 +238,28 @@ public class Val {
 		}
 	}
 
+	public static Val notEqual(Val left, Val right) {
+		return Val.of(notEqualBool(left, right));
+	}
+
+	private static boolean notEqualBool(Val left, Val right) {
+		if (left.isUndefined() && right.isUndefined()) {
+			return false;
+		}
+		if (left.isUndefined() || right.isUndefined()) {
+			return true;
+		}
+		if (left.isNumber() && right.isNumber()) {
+			return left.decimalValue().compareTo(right.decimalValue()) != 0;
+		} else {
+			return !left.get().equals(right.get());
+		}
+	}
+
+	public static Val equal(Val left, Val right) {
+		return Val.of(!notEqualBool(left, right));
+	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj) {

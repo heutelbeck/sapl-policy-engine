@@ -1,6 +1,19 @@
 package io.sapl.prp.filesystem;
 
+import static io.sapl.util.filemonitoring.FileMonitorUtil.readFile;
+
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.collect.Maps;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -13,18 +26,6 @@ import io.sapl.util.filemonitoring.FileEvent;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import static io.sapl.util.filemonitoring.FileMonitorUtil.readFile;
 
 @Slf4j
 class ImmutableFileIndex {
@@ -213,7 +214,7 @@ class ImmutableFileIndex {
 			try {
 				rawDocument = readFile(path.toFile());
 			} catch (IOException e) {
-				log.debug("Error reading file '{}': {}. Will lead to inconsistent index.", getAbsolutePath(),
+				log.debug("Error reading file '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
 						e.getMessage());
 			}
 			try {
@@ -222,7 +223,7 @@ class ImmutableFileIndex {
 					documentName = parsedDocument.getPolicyElement().getSaplName();
 				}
 			} catch (PolicyEvaluationException e) {
-				log.debug("Error in document '{}': {}. Will lead to inconsistent index.", getAbsolutePath(),
+				log.debug("Error in document '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
 						e.getMessage());
 			}
 		}

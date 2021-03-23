@@ -50,6 +50,25 @@ class ValTest {
 	}
 
 	@Test
+	void notEqualComparisonTest() {
+		assertAll(() -> assertThat(Val.notEqual(Val.of("A"), Val.of("A")), is(Val.FALSE)),
+				() -> assertThat(Val.notEqual(Val.of("A"), Val.of("B")), is(Val.TRUE)),
+				() -> assertThat(Val.notEqual(Val.of(1.0D), Val.of(1)), is(Val.FALSE)),
+				() -> assertThat(Val.notEqual(Val.of(1.0D), Val.of(1.1D)), is(Val.TRUE)),
+				() -> assertThat(Val.notEqual(Val.of("X"), Val.of(1)), is(Val.TRUE)),
+				() -> assertThat(Val.notEqual(Val.of(1.0D), Val.of("X")), is(Val.TRUE)),
+				() -> assertThat(Val.notEqual(Val.UNDEFINED, Val.error()), is(Val.TRUE)),
+				() -> assertThat(Val.notEqual(Val.error(), Val.UNDEFINED), is(Val.TRUE)),
+				() -> assertThat(Val.notEqual(Val.UNDEFINED, Val.UNDEFINED), is(Val.FALSE)));
+	}
+
+	@Test
+	void equalComparisonTest() {
+		assertAll(() -> assertThat(Val.equal(Val.of("A"), Val.of("A")), is(Val.TRUE)),
+				() -> assertThat(Val.equal(Val.of("A"), Val.of("B")), is(Val.FALSE)));
+	}
+
+	@Test
 	void createErrorWithFormattedMessage() {
 		assertEquals(MESSAGE_STRING_1, Val.error(MESSAGE_STRING_D, 1).getMessage());
 	}
