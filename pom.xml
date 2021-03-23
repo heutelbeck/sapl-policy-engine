@@ -98,7 +98,6 @@
 		<module>sapl-spring-pdp-remote</module>
 		<module>sapl-spring-security</module>
 		<module>sapl-webflux-endpoint</module>
-		<module>sapl-benchmark</module>
 		<module>sapl-pip-http</module>
 		<module>sapl-documentation</module>
 		<module>sapl-geo</module>
