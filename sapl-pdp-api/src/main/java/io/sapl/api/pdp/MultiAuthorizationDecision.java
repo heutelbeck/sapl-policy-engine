@@ -23,8 +23,9 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.Value;
 
 /**
  * A multi-decision holds a map of authorization subscription IDs and
@@ -38,7 +39,8 @@ import lombok.Value;
  *
  * @see AuthorizationDecision
  */
-@Value
+@Data
+@NoArgsConstructor
 public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthorizationDecision> {
 
 	@JsonInclude(NON_EMPTY)

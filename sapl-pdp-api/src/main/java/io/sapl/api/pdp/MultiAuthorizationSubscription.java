@@ -23,12 +23,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.validation.constraints.NotEmpty;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.Value;
 
 /**
  * A multi-subscription holds a list of subjects, a list of actions, a list of
@@ -43,16 +46,22 @@ import lombok.Value;
  *
  * @see AuthorizationSubscription
  */
-@Value
+@Data
+@NoArgsConstructor
 @JsonInclude(NON_EMPTY)
 public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuthorizationSubscription> {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 
+	@NotEmpty
 	List<Object> subjects = new ArrayList<>();
+	@NotEmpty
 	List<Object> actions = new ArrayList<>();
+	@NotEmpty
 	List<Object> resources = new ArrayList<>();
+	@NotEmpty
 	List<Object> environments = new ArrayList<>();
+	@NotEmpty
 	Map<String, AuthorizationSubscriptionElements> authorizationSubscriptions = new HashMap<>();
 
 	/**

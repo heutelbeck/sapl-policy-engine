@@ -1,0 +1,5 @@
+spring.main.banner-mode: OFF
+logging.level:
+  root: ERROR
+  "[org.springframework]": ERROR
+  "[io.sapl]": ERROR

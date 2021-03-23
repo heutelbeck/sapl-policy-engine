@@ -15,6 +15,8 @@
  */
 package io.sapl.api.pdp;
 
+import javax.validation.constraints.NotNull;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -50,8 +52,11 @@ import lombok.NoArgsConstructor;
 public class AuthorizationSubscription {
 	private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 
+	@NotNull
 	private JsonNode subject;
+	@NotNull
 	private JsonNode action;
+	@NotNull
 	private JsonNode resource;
 	private JsonNode environment;
 

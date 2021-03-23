@@ -18,8 +18,11 @@ package io.sapl.api.pdp;
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.Value;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Holds a {@link AuthorizationDecision SAPL authorization decision} together
@@ -29,11 +32,15 @@ import lombok.Value;
  * @see AuthorizationDecision
  * @see IdentifiableAuthorizationSubscription
  */
-@Value
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonInclude(NON_NULL)
 public class IdentifiableAuthorizationDecision {
 
+	@JsonProperty(required = true)
 	String authorizationSubscriptionId;
+	@JsonProperty(required = true)
 	AuthorizationDecision authorizationDecision;
 
 	public final static IdentifiableAuthorizationDecision INDETERMINATE = new IdentifiableAuthorizationDecision(null,

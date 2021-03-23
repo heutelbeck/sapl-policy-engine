@@ -17,6 +17,8 @@ package io.sapl.api.pdp;
 
 import java.util.Optional;
 
+import javax.validation.constraints.NotNull;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -59,6 +61,7 @@ public class AuthorizationDecision {
 	 */
 	public static final AuthorizationDecision NOT_APPLICABLE = new AuthorizationDecision(Decision.NOT_APPLICABLE);
 
+	@NotNull
 	Decision decision = Decision.INDETERMINATE;
 
 	@JsonInclude(Include.NON_ABSENT)

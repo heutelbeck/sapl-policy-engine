@@ -17,21 +17,31 @@ package io.sapl.api.pdp;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
+import javax.validation.constraints.NotNull;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import lombok.Value;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Data structure holding IDs for the elements of an
  * {@link AuthorizationSubscription} SAPL authorization subscription).
  */
-@Value
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonInclude(NON_EMPTY)
 public class AuthorizationSubscriptionElements {
-
+	
+	@NotNull
 	Integer subjectId;
+	@NotNull
 	Integer actionId;
+	@NotNull
 	Integer resourceId;
+	@NotNull
 	Integer environmentId;
 
 }

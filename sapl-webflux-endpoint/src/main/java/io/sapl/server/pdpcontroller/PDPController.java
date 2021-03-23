@@ -15,6 +15,8 @@
  */
 package io.sapl.server.pdpcontroller;
 
+import javax.validation.Valid;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,8 +35,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * REST controller providing endpoints for a policy decision point. The
- * endpoints can be connected using the client in the module
- * sapl-pdp-client.
+ * endpoints can be connected using the client in the module sapl-pdp-client.
  */
 
 @RestController
@@ -54,7 +55,7 @@ public class PDPController {
 	 */
 	@PostMapping(value = "/decide", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	public Flux<ServerSentEvent<AuthorizationDecision>> decide(
-			@RequestBody AuthorizationSubscription authzSubscription) {
+			@Valid @RequestBody AuthorizationSubscription authzSubscription) {
 		return pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE))
 				.map(decision -> ServerSentEvent.<AuthorizationDecision>builder().data(decision).build());
 	}
@@ -72,7 +73,7 @@ public class PDPController {
 	 */
 	@PostMapping(value = "/multi-decide", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	public Flux<ServerSentEvent<IdentifiableAuthorizationDecision>> decide(
-			@RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
+			@Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
 		return pdp.decide(multiAuthzSubscription)
 				.onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE))
 				.map(decision -> ServerSentEvent.<IdentifiableAuthorizationDecision>builder().data(decision).build());
@@ -91,7 +92,7 @@ public class PDPController {
 	 */
 	@PostMapping(value = "/multi-decide-all", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	public Flux<ServerSentEvent<MultiAuthorizationDecision>> decideAll(
-			@RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
+			@Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
 		return pdp.decideAll(multiAuthzSubscription)
 				.onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate()))
 				.map(decision -> ServerSentEvent.<MultiAuthorizationDecision>builder().data(decision).build());
