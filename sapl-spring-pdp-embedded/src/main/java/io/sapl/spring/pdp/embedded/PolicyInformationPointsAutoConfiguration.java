@@ -15,65 +15,17 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import io.sapl.pip.ClockPolicyInformationPoint;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.lang.Nullable;
 
-import io.netty.handler.ssl.SslContext;
-import io.sapl.interpreter.pip.EthereumPolicyInformationPoint;
-import io.sapl.interpreter.pip.GeoPolicyInformationPoint;
-import io.sapl.pip.http.HttpPolicyInformationPoint;
-import io.sapl.pip.http.WebClientRequestExecutor;
-import lombok.extern.slf4j.Slf4j;
+import io.sapl.pip.ClockPolicyInformationPoint;
 
-@Slf4j
 @Configuration
 public class PolicyInformationPointsAutoConfiguration {
-
-	@Configuration
-	@ConditionalOnClass(io.sapl.pip.http.HttpPolicyInformationPoint.class)
-	public static class HTTPConfiguration {
-		@Nullable
-		@Autowired(required = false)
-		SslContext sslContext;
-
-		@Bean
-		public HttpPolicyInformationPoint httpPolicyInformationPoint() {
-			if (sslContext == null) {
-				log.info("HTTP PIP present. No SslContext bean. Loading with default SslContext...");
-				return new HttpPolicyInformationPoint(new WebClientRequestExecutor());
-			} else {
-				log.info("HTTP PIP present. Loading with custom SslContext bean...");
-				return new HttpPolicyInformationPoint(new WebClientRequestExecutor(sslContext));
-			}
-		}
-	}
-
-	@Configuration
-	@ConditionalOnClass(io.sapl.interpreter.pip.GeoPolicyInformationPoint.class)
-	public static class GeoConfiguration {
-		@Bean
-		public GeoPolicyInformationPoint geoPolicyInformationPoint() {
-			log.info("GEO PIP present. Loading.");
-			return new GeoPolicyInformationPoint();
-		}
-	}
-
-	@Configuration
-	@ConditionalOnClass(io.sapl.interpreter.pip.EthereumPolicyInformationPoint.class)
-	public static class EthereumConfiguration {
-		@Bean
-		public EthereumPolicyInformationPoint ethereumPolicyInformationPoint() {
-			log.info("Ethereum PIP present. Loading.");
-			return new EthereumPolicyInformationPoint();
-		}
-	}
 
 	@Bean
 	public ClockPolicyInformationPoint clockPolicyInformationPoint() {
 		return new ClockPolicyInformationPoint();
 	}
+	
 }

@@ -46,37 +46,6 @@
 			<version>${project.version}</version>
 		</dependency>
 		
-		<!-- 
-		     The following PIPs are compile scoped but optional. 
-		     
-		     This means that an application using this embedded PDP 
-		     does not automatically get them as a transitive dependency.
-		     However, the auto configuration can check for their presence 
-		     and instantiate them if the application explicitly declares 
-		     them as a dependency.
-		-->
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-pip-http</artifactId>
-			<version>${project.version}</version>
-			<scope>compile</scope>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-geo</artifactId>
-			<version>${project.version}</version>
-			<scope>compile</scope>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-ethereum</artifactId>
-			<version>${project.version}</version>
-			<scope>compile</scope>
-			<optional>true</optional>
-		</dependency>
-		
 		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>

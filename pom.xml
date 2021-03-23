@@ -91,20 +91,16 @@
 		<module>sapl-lang</module>
 		<module>sapl-ide</module>
 		<module>sapl-web</module>
-		<module>sapl-editor-for-vaadin</module>
 		<module>sapl-pdp-embedded</module>
 		<module>sapl-pdp-remote</module>
 		<module>sapl-spring-pdp-embedded</module>
 		<module>sapl-spring-pdp-remote</module>
 		<module>sapl-spring-security</module>
 		<module>sapl-webflux-endpoint</module>
-		<module>sapl-pip-http</module>
 		<module>sapl-documentation</module>
-		<module>sapl-geo</module>
-		<module>sapl-ethereum</module>
 		<module>sapl-server-lt</module>
+		<module>sapl-editor-for-vaadin</module>
 		<module>sapl-server-ce</module>
-		<module>sapl-bom</module>
 	</modules>
 
 	<dependencyManagement>
