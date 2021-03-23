@@ -24,10 +24,7 @@ import java.util.function.Function;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.common.util.WrappedException;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.util.EcoreUtil;
-import org.eclipse.xtext.linking.lazy.LazyLinkingResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
-import org.eclipse.xtext.util.CancelIndicator;
 import org.reactivestreams.Publisher;
 
 import com.google.inject.Injector;
@@ -113,11 +110,6 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 		try {
 			resource.load(policyInputStream, resourceSet.getLoadOptions());
-			if (resource instanceof LazyLinkingResource) {
-				((LazyLinkingResource) resource).resolveLazyCrossReferences(CancelIndicator.NullImpl);
-			} else {
-				EcoreUtil.resolveAll(resource);
-			}
 		} catch (IOException | WrappedException e) {
 			throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
 		}
