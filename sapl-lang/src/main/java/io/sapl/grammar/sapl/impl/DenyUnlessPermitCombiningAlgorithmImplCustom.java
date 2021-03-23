@@ -32,9 +32,9 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
 
 	@Override
 	protected AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions, boolean errorsInTarget) {
-		if (decisions == null || decisions.length == 0) {
+		if (decisions.length == 0)
 			return AuthorizationDecision.DENY;
-		}
+
 		var entitlement = DENY;
 		var collector = new ObligationAdviceCollector();
 		Optional<JsonNode> resource = Optional.empty();

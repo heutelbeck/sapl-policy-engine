@@ -43,7 +43,7 @@ import reactor.core.publisher.Flux;
 public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverridesCombiningAlgorithmImpl {
 	@Override
 	protected AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions, boolean errorsInTarget) {
-		if ((decisions == null || decisions.length == 0) && !errorsInTarget) {
+		if (decisions.length == 0 && !errorsInTarget) {
 			log.debug("| |-- No matches/errors. Default to: {}", AuthorizationDecision.NOT_APPLICABLE);
 			return AuthorizationDecision.NOT_APPLICABLE;
 		}

@@ -39,12 +39,12 @@ import reactor.core.publisher.Flux;
  */
 @Slf4j
 public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesCombiningAlgorithmImpl {
-	
+
 	@Override
 	protected AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions, boolean errorsInTarget) {
-		if ((decisions == null || decisions.length == 0) && !errorsInTarget) {
+		if (decisions.length == 0 && !errorsInTarget)
 			return AuthorizationDecision.NOT_APPLICABLE;
-		}
+
 		var entitlement = errorsInTarget ? INDETERMINATE : NOT_APPLICABLE;
 		var collector = new ObligationAdviceCollector();
 		Optional<JsonNode> resource = Optional.empty();

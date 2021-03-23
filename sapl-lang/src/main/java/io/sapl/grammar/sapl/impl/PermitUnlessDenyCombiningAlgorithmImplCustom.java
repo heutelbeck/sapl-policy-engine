@@ -31,9 +31,9 @@ import reactor.core.publisher.Flux;
 public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDenyCombiningAlgorithmImpl {
 	@Override
 	protected AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions, boolean errorsInTarget) {
-		if (decisions == null || decisions.length == 0) {
+		if (decisions.length == 0) 
 			return AuthorizationDecision.PERMIT;
-		}
+		
 		var entitlement = PERMIT;
 		var collector = new ObligationAdviceCollector();
 		Optional<JsonNode> resource = Optional.empty();

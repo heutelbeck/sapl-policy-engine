@@ -47,25 +47,25 @@ public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicable
 
 	private Function<AuthorizationDecision, Publisher<? extends AuthorizationDecision>> combine(int policyId,
 			List<Policy> policies, EvaluationContext ctx) {
-		if (policyId == policies.size()) {
+		if (policyId == policies.size())
 			return Flux::just;
-		}
+
 		return decision -> evaluatePolicy(policies.get(policyId), ctx).switchMap(newDecision -> {
-			if (newDecision.getDecision() != NOT_APPLICABLE) {
+			if (newDecision.getDecision() != NOT_APPLICABLE)
 				return Flux.just(newDecision);
-			}
+
 			return Flux.just(newDecision).switchMap(combine(policyId + 1, policies, ctx));
 		});
 	}
 
 	private Flux<AuthorizationDecision> evaluatePolicy(Policy policy, EvaluationContext ctx) {
 		return policy.matches(ctx).flux().flatMap(match -> {
-			if (match.isError() || !match.isBoolean()) {
+			if (!match.isBoolean())
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
-			}
-			if (!match.getBoolean()) {
+
+			if (!match.getBoolean())
 				return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
-			}
+
 			return policy.evaluate(ctx);
 		});
 	}
