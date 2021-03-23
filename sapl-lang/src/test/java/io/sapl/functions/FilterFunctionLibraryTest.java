@@ -16,6 +16,7 @@
 package io.sapl.functions;
 
 import static io.sapl.hamcrest.IsVal.val;
+import static io.sapl.hamcrest.IsValUndefined.valUndefined;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -156,6 +157,12 @@ class FilterFunctionLibraryTest {
 		var text = Val.of("abcde");
 		var result = FilterFunctionLibrary.blacken(text);
 		assertThat(result, is(val("XXXXX")));
+	}
+
+	@Test
+	void remove() {
+		var result = FilterFunctionLibrary.remove(Val.of("abcde"));
+		assertThat(result, is(valUndefined()));
 	}
 
 	@Test

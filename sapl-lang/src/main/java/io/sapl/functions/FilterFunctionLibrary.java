@@ -76,8 +76,7 @@ public class FilterFunctionLibrary {
 	private static int extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(Val... parameters) {
 		int discloseLeft = DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_LEFT;
 		if (parameters.length >= DISCLOSE_RIGHT_INDEX) {
-			if (parameters[DISCLOSE_LEFT_INDEX].isUndefined() || !parameters[DISCLOSE_LEFT_INDEX].isNumber()
-					|| parameters[DISCLOSE_LEFT_INDEX].get().asInt() < 0) {
+			if (!parameters[DISCLOSE_LEFT_INDEX].isNumber() || parameters[DISCLOSE_LEFT_INDEX].get().asInt() < 0) {
 				throw new IllegalArgumentException(ILLEGAL_PARAMETER_DISCLOSE_LEFT);
 			}
 			discloseLeft = parameters[DISCLOSE_LEFT_INDEX].get().asInt();
@@ -88,8 +87,7 @@ public class FilterFunctionLibrary {
 	private static int extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(Val... parameters) {
 		int discloseRight = DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_RIGHT;
 		if (parameters.length >= REPLACEMENT_INDEX) {
-			if (parameters[DISCLOSE_RIGHT_INDEX].isUndefined() || !parameters[DISCLOSE_RIGHT_INDEX].isNumber()
-					|| parameters[DISCLOSE_RIGHT_INDEX].get().asInt() < 0) {
+			if (!parameters[DISCLOSE_RIGHT_INDEX].isNumber() || parameters[DISCLOSE_RIGHT_INDEX].get().asInt() < 0) {
 				throw new IllegalArgumentException(ILLEGAL_PARAMETER_DISCLOSE_RIGHT);
 			}
 			discloseRight = parameters[DISCLOSE_RIGHT_INDEX].get().asInt();
@@ -100,7 +98,7 @@ public class FilterFunctionLibrary {
 	private static String extractReplacementStringFromParametersOrUseDefault(Val... parameters) {
 		String replacement = DEFAULT_REPLACEMENT;
 		if (parameters.length == MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN) {
-			if (parameters[REPLACEMENT_INDEX].isUndefined() || !parameters[REPLACEMENT_INDEX].isTextual()) {
+			if (!parameters[REPLACEMENT_INDEX].isTextual()) {
 				throw new IllegalArgumentException(ILLEGAL_PARAMETER_REPLACEMENT);
 			}
 			replacement = parameters[REPLACEMENT_INDEX].get().asText();
@@ -109,7 +107,7 @@ public class FilterFunctionLibrary {
 	}
 
 	private static String extractOriginalTextFromParameters(Val... parameters) {
-		if (parameters[0].isUndefined() || !parameters[0].isTextual()) {
+		if (!parameters[0].isTextual()) {
 			throw new IllegalArgumentException(ILLEGAL_PARAMETER_STRING);
 		}
 		return parameters[ORIGINAL_STRING_INDEX].get().asText();
