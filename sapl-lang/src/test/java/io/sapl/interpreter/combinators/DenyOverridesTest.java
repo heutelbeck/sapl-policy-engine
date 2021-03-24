@@ -182,6 +182,15 @@ class DenyOverridesTest {
 	}
 
 	@Test
+	void transformUncertaintyButItIsDenySoItIsJustDeny() {
+		String policySet = "set \"tests\" deny-overrides" + " policy \"testp\" deny transform true"
+				+ " policy \"testp2\" permit transform false";
+
+		assertEquals(Optional.of(JSON.booleanNode(true)),
+				INTERPRETER.evaluate(EMPTY_AUTH_SUBSCRIPTION, policySet, evaluationCtx).blockFirst().getResource());
+	}
+
+	@Test
 	void multiplePermitNoTransformation() {
 		String policySet = "set \"tests\" deny-overrides" + " policy \"testp1\" permit" + " policy \"testp2\" permit";
 
