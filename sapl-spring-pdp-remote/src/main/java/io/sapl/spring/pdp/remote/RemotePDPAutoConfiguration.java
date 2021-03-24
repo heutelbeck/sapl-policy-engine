@@ -30,10 +30,10 @@ import lombok.extern.slf4j.Slf4j;
 @Configuration
 @RequiredArgsConstructor
 @ComponentScan("io.sapl.spring")
-@EnableConfigurationProperties(RemotePDPConfiguration.class)
+@EnableConfigurationProperties(RemotePDPProperties.class)
 public class RemotePDPAutoConfiguration {
 
-	private final RemotePDPConfiguration configuration;
+	private final RemotePDPProperties configuration;
 
 	@Bean
 	@ConditionalOnMissingBean

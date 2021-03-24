@@ -18,28 +18,55 @@ package io.sapl.spring.pdp.remote;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
-
-class RemotePDPAutoConfigurationTest {
+class RemotePDPPropertiesValidationTest {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withUserConfiguration(EnablePropertiesInApplicationTestRunnerConfiguration.class)
-			.withConfiguration(AutoConfigurations.of(RemotePDPAutoConfiguration.class));
+			.withUserConfiguration(EnablePropertiesInApplicationTestRunnerConfiguration.class);
 
 	@EnableConfigurationProperties(RemotePDPProperties.class)
 	static class EnablePropertiesInApplicationTestRunnerConfiguration {
 	}
 
 	@Test
-	void validateAutoConfiguration() {
+	void proertiesLoadingValidPropertiesAreLoading() {
 		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443",
 				"io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret").run(context -> {
 					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+				});
+	}
+
+	@Test
+	void validationRejectsInvalidHostString() {
+		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=ht tps://loc alhost:8443",
+				"io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret").run(context -> {
+					assertThat(context).hasFailed();
+				});
+	}
+
+	@Test
+	void validationRejectsMissingHost() {
+		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=", "io.sapl.pdp.remote.key=",
+				"io.sapl.pdp.remote.secret=aSecret").run(context -> {
+					assertThat(context).hasFailed();
+				});
+	}
+	
+	@Test
+	void validationRejectsMissingKey() {
+		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.key=",
+				"io.sapl.pdp.remote.secret=aSecret").run(context -> {
+					assertThat(context).hasFailed();
+				});
+	}
+
+	@Test
+	void validationRejectsMissingSecret() {
+		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443",
+				"io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=").run(context -> {
+					assertThat(context).hasFailed();
 				});
 	}
 
