@@ -19,25 +19,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 
-class RemotePDPAutoConfigurationTest {
+class RemotePDPAutoConfigurationTests {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withUserConfiguration(EnablePropertiesInApplicationTestRunnerConfiguration.class)
 			.withConfiguration(AutoConfigurations.of(RemotePDPAutoConfiguration.class));
 
-	@EnableConfigurationProperties(RemotePDPProperties.class)
-	static class EnablePropertiesInApplicationTestRunnerConfiguration {
-	}
-
 	@Test
-	void validateAutoConfiguration() {
-		contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443",
-				"io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret").run(context -> {
+	void whenValidPropertiesArePresent_thenTheRemotePdpIsPresent() {
+		contextRunner.withPropertyValues(
+					"io.sapl.pdp.remote.host=https://localhost:8443",
+					"io.sapl.pdp.remote.key=aKey", 
+					"io.sapl.pdp.remote.secret=aSecret"
+				).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
 				});

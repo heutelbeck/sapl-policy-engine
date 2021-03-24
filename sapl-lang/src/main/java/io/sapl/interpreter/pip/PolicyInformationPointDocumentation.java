@@ -20,20 +20,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@RequiredArgsConstructor
 public class PolicyInformationPointDocumentation implements Serializable {
-
 	@NonNull
 	String name;
-
 	@NonNull
 	String description;
-
 	@NonNull
 	Object policyInformationPoint;
-
 	Map<String, String> documentation = new HashMap<>();
-
 }

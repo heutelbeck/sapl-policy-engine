@@ -16,9 +16,7 @@
 package io.sapl.spring.pdp.embedded;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.interpreter.functions.FunctionContext;
@@ -32,8 +30,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-@ComponentScan("io.sapl.spring")
-@EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class PDPConfigurationProviderAutoConfiguration {
 
 	private final AttributeContext attributeCtx;

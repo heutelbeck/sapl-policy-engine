@@ -15,19 +15,22 @@
  */
 package io.sapl.spring.pdp.embedded;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEventSource;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
+@EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class PrpUpdateEventSourceAutoConfiguration {
 
 	private final SAPLInterpreter interpreter;

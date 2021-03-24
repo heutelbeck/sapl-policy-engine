@@ -21,7 +21,6 @@ import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.functions.FunctionLibrary;
@@ -32,8 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
-@ComponentScan("io.sapl")
-@AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
+@AutoConfigureAfter(FunctionLibrariesAutoConfiguration.class)
 public class FunctionContextAutoConfiguration {
 
 	private final Collection<Object> functionLibraries;
@@ -45,11 +43,11 @@ public class FunctionContextAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public FunctionContext functionContext() throws InitializationException {
-		var ctx = new AnnotationFunctionContext();
-		for (var entry : functionLibraries) {
-			log.debug("loading FunctionLibrary: {}", entry.getClass().getSimpleName());
-			ctx.loadLibrary(entry);
+		var functionContext = new AnnotationFunctionContext();
+		for (var library : functionLibraries) {
+			log.debug("loading FunctionLibrary: {}", library.getClass().getSimpleName());
+			functionContext.loadLibrary(library);
 		}
-		return ctx;
+		return functionContext;
 	}
 }

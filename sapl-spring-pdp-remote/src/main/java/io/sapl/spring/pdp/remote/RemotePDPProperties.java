@@ -28,6 +28,7 @@ import lombok.Data;
 @ConfigurationProperties(prefix = "io.sapl.pdp.remote")
 public class RemotePDPProperties {
 	@URL
+	@NotEmpty
 	private String host = "";
 	@NotEmpty
 	private String key = "";

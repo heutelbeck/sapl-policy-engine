@@ -17,7 +17,6 @@ package io.sapl.spring.pdp.embedded;
 
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.interpreter.functions.FunctionContext;
@@ -26,8 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
-@ComponentScan("io.sapl.spring")
-@AutoConfigureAfter({ PDPAutoConfiguration.class })
+@AutoConfigureAfter({ AttributeContextAutoConfiguration.class, FunctionContextAutoConfiguration.class })
 public class DocumentationAutoConfiguration {
 
 	@Bean

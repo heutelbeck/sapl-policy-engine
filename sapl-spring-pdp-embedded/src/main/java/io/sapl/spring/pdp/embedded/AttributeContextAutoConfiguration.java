@@ -21,7 +21,6 @@ import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -32,8 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
-@ComponentScan("io.sapl")
-@AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
+@AutoConfigureAfter(PolicyInformationPointsAutoConfiguration.class)
 public class AttributeContextAutoConfiguration {
 
 	private final Collection<Object> policyInformationPoints;
