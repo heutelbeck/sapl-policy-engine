@@ -99,8 +99,6 @@
 		<module>sapl-webflux-endpoint</module>
 		<module>sapl-documentation</module>
 		<module>sapl-server-lt</module>
-		<module>sapl-editor-for-vaadin</module>
-		<module>sapl-server-ce</module>
 	</modules>
 
 	<dependencyManagement>
