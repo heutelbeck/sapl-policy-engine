@@ -42,8 +42,6 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class PolicyEnforcementPoint {
 
-	private static final AuthorizationDecision DENY = AuthorizationDecision.DENY;
-
 	private final PolicyDecisionPoint pdp;
 	private final ConstraintHandlerService constraintHandlers;
 	private final ObjectMapper mapper;
@@ -67,7 +65,6 @@ public class PolicyEnforcementPoint {
 	 */
 	public Flux<Decision> enforce(Object subject, Object action, Object resource, Object environment) {
 		return execute(subject, action, resource, environment, false).map(AuthorizationDecision::getDecision);
-
 	}
 
 	/**
@@ -122,16 +119,16 @@ public class PolicyEnforcementPoint {
 			log.debug("SUBSCRIPTION   : ACTION={} RESOURCE={} SUBJ={} ENV={}", authzSubscription.getAction(),
 					authzSubscription.getResource(), authzSubscription.getSubject(),
 					authzSubscription.getEnvironment());
-			log.debug("AUTHZ_DECISION : {} - {}", authzDecision == null ? "null" : authzDecision.getDecision(),
-					authzDecision);
+			log.debug("AUTHZ_DECISION : {} - {}", authzDecision.getDecision(), authzDecision);
 
-			if (authzDecision == null || authzDecision.getDecision() != Decision.PERMIT) {
-				return DENY;
+			if (authzDecision.getDecision() != Decision.PERMIT) {
+				return authzDecision.withDecision(Decision.DENY);
 			}
+
 			if (!supportResourceTransformation && authzDecision.getResource().isPresent()) {
-				log.debug("PDP returned a new resource value. "
-						+ "This PEP cannot handle resource replacement. Thus, deny access.");
-				return DENY;
+				log.debug(
+						"PDP returned a new resource value. This PEP cannot handle resource replacement. Thus, deny access.");
+				return authzDecision.withDecision(Decision.DENY);
 			}
 			try {
 				constraintHandlers.handleObligations(authzDecision);
@@ -140,7 +137,7 @@ public class PolicyEnforcementPoint {
 			} catch (AccessDeniedException e) {
 				log.debug("PEP failed to fulfill PDP obligations ({}). Access denied by policy enforcement point.",
 						e.getLocalizedMessage());
-				return DENY;
+				return authzDecision.withDecision(Decision.DENY);
 			}
 		}).distinctUntilChanged();
 	}
@@ -185,14 +182,7 @@ public class PolicyEnforcementPoint {
 	 */
 	public Flux<IdentifiableAuthorizationDecision> filterEnforce(
 			MultiAuthorizationSubscription multiAuthzSubscription) {
-		final Flux<IdentifiableAuthorizationDecision> identifiableAuthzDecisionFlux = pdp
-				.decide(multiAuthzSubscription);
-		return identifiableAuthzDecisionFlux.map(iad -> {
-			log.debug("SUBSCRIPTION      : {}",
-					multiAuthzSubscription.getAuthorizationSubscriptionWithId(iad.getAuthorizationSubscriptionId()));
-			log.debug("ORIGINAL DECISION : {}", iad.getAuthorizationDecision());
-			return handle(iad);
-		});
+		return pdp.decide(multiAuthzSubscription).map(this::handle);
 	}
 
 	/**
@@ -241,9 +231,10 @@ public class PolicyEnforcementPoint {
 	private IdentifiableAuthorizationDecision handle(IdentifiableAuthorizationDecision identifiableAuthzDecision) {
 		final String subscriptionId = identifiableAuthzDecision.getAuthorizationSubscriptionId();
 		final AuthorizationDecision authzDecision = identifiableAuthzDecision.getAuthorizationDecision();
-		if (authzDecision == null || authzDecision.getDecision() != Decision.PERMIT) {
-			return new IdentifiableAuthorizationDecision(subscriptionId, DENY);
-		}
+
+		if (authzDecision.getDecision() != Decision.PERMIT)
+			return new IdentifiableAuthorizationDecision(subscriptionId, authzDecision.withDecision(Decision.DENY));
+
 		try {
 			constraintHandlers.handleObligations(authzDecision);
 			constraintHandlers.handleAdvices(authzDecision);
@@ -251,7 +242,7 @@ public class PolicyEnforcementPoint {
 		} catch (AccessDeniedException e) {
 			log.debug("PEP failed to fulfill PDP obligations ({}). Access denied by policy enforcement point.",
 					e.getLocalizedMessage());
-			return new IdentifiableAuthorizationDecision(subscriptionId, DENY);
+			return new IdentifiableAuthorizationDecision(subscriptionId, authzDecision.withDecision(Decision.DENY));
 		}
 	}
 

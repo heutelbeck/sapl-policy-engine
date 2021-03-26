@@ -50,6 +50,13 @@ class AuthorizationDecisionTest {
 			new AuthorizationDecision().withAdvices(null);
 		});
 	}
+	
+	@Test
+	void withDecisionNull() {
+		assertThrows(NullPointerException.class, () -> {
+			new AuthorizationDecision().withDecision(null);
+		});
+	}
 
 	@Test
 	void withAdvicesEmpty() {
@@ -99,6 +106,12 @@ class AuthorizationDecisionTest {
 	void withResource() {
 		var decision = new AuthorizationDecision().withResource(JSON.numberNode(0));
 		assertThat(decision.getResource(), is(optionalWithValue(is(jsonInt(0)))));
+	}
+
+	@Test
+	void withDecision() {
+		var decision = AuthorizationDecision.DENY.withDecision(Decision.PERMIT);
+		assertThat(decision.getDecision(), is(Decision.PERMIT));
 	}
 
 }

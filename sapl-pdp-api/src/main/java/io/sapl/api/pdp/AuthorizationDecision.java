@@ -113,4 +113,13 @@ public class AuthorizationDecision {
 		return new AuthorizationDecision(decision, Optional.of(newResource), obligations, advices);
 	}
 
+	/**
+	 * @param newResource a JSON object, must nor be null.
+	 * @return new immuatable decision object, replacing the resource with
+	 *         newResource.
+	 */
+	public AuthorizationDecision withDecision(@NonNull Decision newDecision) {
+		return new AuthorizationDecision(newDecision, resource, obligations, advices);
+	}
+
 }
