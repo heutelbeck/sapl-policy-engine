@@ -113,6 +113,21 @@ class HasAdviceContainingKeyValueTest {
 	}
 	
 	@Test
+	public void test_MatchingKey_NotMatchingValue() {
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode actualAdivce = mapper.createObjectNode();
+		actualAdivce.put("foo", "bar");
+		actualAdivce.put("key", "value");
+		ArrayNode actualAdivces = mapper.createArrayNode();
+		actualAdivces.add(actualAdivce);
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(actualAdivces));
+
+		var sut = Matchers.hasAdviceContainingKeyValue("key", "xxx");
+		
+		assertThat(dec, not(is(sut)));
+	}
+	
+	@Test
 	void testDescriptionForMatcherEmptyMatcher() {
 		var sut = Matchers.hasAdviceContainingKeyValue("key");
 		final StringDescription description = new StringDescription();
