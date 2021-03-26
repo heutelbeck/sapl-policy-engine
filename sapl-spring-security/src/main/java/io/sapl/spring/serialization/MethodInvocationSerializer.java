@@ -16,7 +16,6 @@
 package io.sapl.spring.serialization;
 
 import static java.lang.reflect.Modifier.isFinal;
-import static java.lang.reflect.Modifier.isNative;
 import static java.lang.reflect.Modifier.isPrivate;
 import static java.lang.reflect.Modifier.isProtected;
 import static java.lang.reflect.Modifier.isPublic;

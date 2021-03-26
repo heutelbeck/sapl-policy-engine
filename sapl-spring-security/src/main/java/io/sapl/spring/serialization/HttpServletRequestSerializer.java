@@ -32,33 +32,63 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 @JsonComponent
 public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequest> {
 
+	static final String PARAMETERS = "parameters";
+	static final String LOCALES = "locales";
+	static final String LOCALE = "locale";
+	static final String COOKIES = "cookies";
+	static final String HEADERS = "headers";
+	static final String SERVLET_PATH = "servletPath";
+	static final String REQUEST_URL = "requestURL";
+	static final String REQUESTED_URI = "requestedURI";
+	static final String REQUESTED_SESSION_ID = "requestedSessionId";
+	static final String QUERY_STRING = "queryString";
+	static final String CONTEXT_PATH = "contextPath";
+	static final String METHOD = "method";
+	static final String AUTH_TYPE = "authType";
+	static final String LOCAL_PORT = "localPort";
+	static final String LOCAL_ADDRESS = "localAddress";
+	static final String LOCAL_NAME = "localName";
+	static final String IS_SECURE = "isSecure";
+	static final String REMOTE_PORT = "remotePort";
+	static final String REMOTE_HOST = "remoteHost";
+	static final String REMOTE_ADDRESS = "remoteAddress";
+	static final String SERVER_PORT = "serverPort";
+	static final String SERVER_NAME = "serverName";
+	static final String SCHEME = "scheme";
+	static final String PROTOCOL = "protocol";
+	static final String CONTENT_TYPE = "Content-Type";
+	static final String CHARACTER_ENCODING = "characterEncoding";
+
 	@Override
 	public void serialize(HttpServletRequest value, JsonGenerator gen, SerializerProvider serializers)
 			throws IOException {
 		gen.writeStartObject();
-		gen.writeStringField("characterEncoding", value.getCharacterEncoding());
-		gen.writeStringField("Content-Type", value.getContentType());
-		gen.writeStringField("protocol", value.getProtocol());
-		gen.writeStringField("scheme", value.getScheme());
-		gen.writeStringField("serverName", value.getServerName());
-		gen.writeNumberField("serverPort", value.getServerPort());
-		gen.writeStringField("remoteAddress", value.getRemoteAddr());
-		gen.writeStringField("remoteHost", value.getRemoteHost());
-		gen.writeNumberField("remotePort", value.getRemotePort());
-		gen.writeBooleanField("isSecure", value.isSecure());
-		gen.writeStringField("localName", value.getLocalName());
-		gen.writeStringField("localAddress", value.getLocalAddr());
-		gen.writeNumberField("localPort", value.getLocalPort());
-		gen.writeStringField("authType", value.getAuthType());
-		gen.writeStringField("method", value.getMethod());
-		gen.writeStringField("pathInfo", value.getPathInfo());
-		gen.writeStringField("pathTranslated", value.getPathTranslated());
-		gen.writeStringField("contextPath", value.getContextPath());
-		gen.writeStringField("queryString", value.getQueryString());
-		gen.writeStringField("requestedSessionId", value.getRequestedSessionId());
-		gen.writeStringField("requestedURI", value.getRequestURI());
-		gen.writeStringField("requestURL", value.getRequestURL().toString());
-		gen.writeStringField("servletPath", value.getServletPath());
+		if (value.getCharacterEncoding() != null)
+			gen.writeStringField(CHARACTER_ENCODING, value.getCharacterEncoding());
+		if (value.getContentType() != null)
+			gen.writeStringField(CONTENT_TYPE, value.getContentType());
+		gen.writeStringField(PROTOCOL, value.getProtocol());
+		gen.writeStringField(SCHEME, value.getScheme());
+		gen.writeStringField(SERVER_NAME, value.getServerName());
+		gen.writeNumberField(SERVER_PORT, value.getServerPort());
+		gen.writeStringField(REMOTE_ADDRESS, value.getRemoteAddr());
+		gen.writeStringField(REMOTE_HOST, value.getRemoteHost());
+		gen.writeNumberField(REMOTE_PORT, value.getRemotePort());
+		gen.writeBooleanField(IS_SECURE, value.isSecure());
+		gen.writeStringField(LOCAL_NAME, value.getLocalName());
+		gen.writeStringField(LOCAL_ADDRESS, value.getLocalAddr());
+		gen.writeNumberField(LOCAL_PORT, value.getLocalPort());
+		if (value.getAuthType() != null)
+			gen.writeStringField(AUTH_TYPE, value.getAuthType());
+		gen.writeStringField(METHOD, value.getMethod());
+		gen.writeStringField(CONTEXT_PATH, value.getContextPath());
+		if (value.getQueryString() != null)
+			gen.writeStringField(QUERY_STRING, value.getQueryString());
+		if (value.getRequestedSessionId() != null)
+			gen.writeStringField(REQUESTED_SESSION_ID, value.getRequestedSessionId());
+		gen.writeStringField(REQUESTED_URI, value.getRequestURI());
+		gen.writeStringField(REQUEST_URL, value.getRequestURL().toString());
+		gen.writeStringField(SERVLET_PATH, value.getServletPath());
 
 		writeHeaders(value, gen);
 		writeCookies(value, gen);
@@ -69,7 +99,7 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 	private void writeHeaders(HttpServletRequest value, JsonGenerator gen) throws IOException {
 		Enumeration<String> headerNames = value.getHeaderNames();
 		if (headerNames.hasMoreElements()) {
-			gen.writeObjectFieldStart("headers");
+			gen.writeObjectFieldStart(HEADERS);
 			while (headerNames.hasMoreElements()) {
 				String name = headerNames.nextElement();
 				Enumeration<String> headers = value.getHeaders(name);
@@ -86,8 +116,8 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 	}
 
 	private void writeCookies(HttpServletRequest value, JsonGenerator gen) throws IOException {
-		if (value.getCookies() != null && value.getCookies().length > 0) {
-			gen.writeArrayFieldStart("cookies");
+		if (value.getCookies() != null) {
+			gen.writeArrayFieldStart(COOKIES);
 			for (Cookie cookie : value.getCookies()) {
 				gen.writeObject(cookie);
 			}
@@ -96,19 +126,20 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 	}
 
 	private void writeLocales(HttpServletRequest value, JsonGenerator gen) throws IOException {
-		gen.writeStringField("locale", value.getLocale().toString());
+		gen.writeStringField(LOCALE, value.getLocale().toString());
 		Enumeration<Locale> locales = value.getLocales();
-		if (locales.hasMoreElements()) {
-			gen.writeArrayFieldStart("locales");
-			while (locales.hasMoreElements()) {
-				gen.writeString(locales.nextElement().toString());
-			}
-			gen.writeEndArray();
+		gen.writeArrayFieldStart(LOCALES);
+		while (locales.hasMoreElements()) {
+			gen.writeString(locales.nextElement().toString());
 		}
+		gen.writeEndArray();
 	}
 
 	private void writeParameters(HttpServletRequest value, JsonGenerator gen) throws IOException {
-		gen.writeObjectFieldStart("parameters");
+		if (value.getParameterMap().isEmpty())
+			return;
+
+		gen.writeObjectFieldStart(PARAMETERS);
 		for (Entry<String, String[]> entry : value.getParameterMap().entrySet()) {
 			gen.writeArrayFieldStart(entry.getKey());
 			for (String val : entry.getValue()) {
