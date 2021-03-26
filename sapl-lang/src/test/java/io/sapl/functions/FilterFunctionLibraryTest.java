@@ -15,8 +15,8 @@
  */
 package io.sapl.functions;
 
-import static io.sapl.hamcrest.IsVal.val;
-import static io.sapl.hamcrest.IsValUndefined.valUndefined;
+import static io.sapl.hamcrest.Matchers.val;
+import static io.sapl.hamcrest.Matchers.valUndefined;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;

@@ -16,7 +16,7 @@
 package io.sapl.interpreter.functions;
 
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
-import static io.sapl.hamcrest.IsValError.valError;
+import static io.sapl.hamcrest.Matchers.valError;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;

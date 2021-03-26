@@ -15,7 +15,7 @@
  */
 package io.sapl.interpreter.variables;
 
-import static io.sapl.hamcrest.IsVal.valNull;
+import static io.sapl.hamcrest.Matchers.valNull;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -55,8 +55,7 @@ class VariableContextTest {
 	@Test
 	void authzSubscriptionInitializationTest() {
 		var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
-		assertAll(() -> assertThat(ctx, notNullValue()),
-				() -> assertThat(ctx.get("subject"), is(SUBJECT_NODE)),
+		assertAll(() -> assertThat(ctx, notNullValue()), () -> assertThat(ctx.get("subject"), is(SUBJECT_NODE)),
 				() -> assertThat(ctx.get("action"), is(ACTION_NODE)),
 				() -> assertThat(ctx.get("resource"), is(RESOURCE_NODE)),
 				() -> assertThat(ctx.get("environment"), is(ENVIRONMENT_NODE)));
@@ -65,8 +64,7 @@ class VariableContextTest {
 	@Test
 	void emptyauthzSubscriptionInitializationTest() {
 		var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(EMPTY_AUTH_SUBSCRIPTION);
-		assertAll(() -> assertThat(ctx, notNullValue()), 
-				() -> assertThat(ctx.get("subject"), is(valNull())),
+		assertAll(() -> assertThat(ctx, notNullValue()), () -> assertThat(ctx.get("subject"), is(valNull())),
 				() -> assertThat(ctx.get("action"), is(valNull())),
 				() -> assertThat(ctx.get("resource"), is(valNull())),
 				() -> assertThat(ctx.get("environment"), is(valNull())));

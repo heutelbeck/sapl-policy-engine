@@ -1,6 +1,6 @@
 package io.sapl.functions;
 
-import static io.sapl.hamcrest.IsVal.val;
+import static io.sapl.hamcrest.Matchers.val;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
