@@ -24,13 +24,11 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
@@ -43,30 +41,26 @@ import lombok.extern.slf4j.Slf4j;
 public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 
 	private final PolicyDecisionPoint pdp;
-
 	private final ConstraintHandlerService constraintHandlers;
-
 	private final ObjectMapper mapper;
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 
-		HttpServletRequest req = (HttpServletRequest) request;
-
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-		AuthorizationDecision authzDecision = pdp.decide(buildRequest(authentication, req, req)).blockFirst();
+		var req = (HttpServletRequest) request;
+		var authentication = SecurityContextHolder.getContext().getAuthentication();
+		var authzDecision = pdp.decide(buildRequest(authentication, req, req)).blockFirst();
 
 		log.trace("PDP decision: {}", authzDecision);
 
-		if (authzDecision == null || authzDecision.getDecision() != Decision.PERMIT) {
-			log.trace("User was not authorized for this action. Decision was: {}",
-					authzDecision == null ? "null" : authzDecision.getDecision());
-			throw new AccessDeniedException("Current User may not perform this action.");
-		}
-		constraintHandlers.handleObligations(authzDecision);
 		constraintHandlers.handleAdvices(authzDecision);
+		constraintHandlers.handleObligations(authzDecision);
+
+		if (authzDecision.getDecision() != Decision.PERMIT) {
+			throw new AccessDeniedException(String.format("PDP decision: %s", authzDecision.getDecision()));
+		}
+
 		chain.doFilter(req, response);
 	}
 
