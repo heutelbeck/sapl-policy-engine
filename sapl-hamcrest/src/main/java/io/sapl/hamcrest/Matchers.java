@@ -25,7 +25,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 public class Matchers {
 	public static Matcher<Val> val() {
 		return new IsVal();

@@ -50,6 +50,11 @@
 			<groupId>com.spotify</groupId>
 			<artifactId>hamcrest-jackson</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<scope>provided</scope>
+		</dependency>
 	
 		<!-- Testing -->
 		<dependency>
