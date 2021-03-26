@@ -1,5 +1,6 @@
 package io.sapl.hamcrest;
 
+import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
 import static io.sapl.hamcrest.Matchers.anyResource;
 import static io.sapl.hamcrest.Matchers.isResource;
 import static org.hamcrest.CoreMatchers.is;
@@ -83,14 +84,22 @@ class IsResourceTest {
 	
 	@Test
 	public void test_nullJsonNode() {
-		assertThrows(NullPointerException.class, () -> isResource(null));
+		assertThrows(NullPointerException.class, () -> isResource((ObjectNode)null));
 	}
 
 	@Test
-	void testDescriptionForMatcher() {
+	void testDescriptionEmptyMatcher() {
 		var sut = isResource();
 		final StringDescription description = new StringDescription();
 		sut.describeTo(description);
 		assertThat(description.toString(), is("a resource with any JsonNode"));
-	}	
+	}
+	
+	@Test
+	void testDescriptionMatcher() {
+		var sut = isResource(jsonText("value"));
+		final StringDescription description = new StringDescription();
+		sut.describeTo(description);
+		assertThat(description.toString(), is("a resource with a text node with value that is \"value\""));
+	}
 }

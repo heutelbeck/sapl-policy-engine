@@ -38,6 +38,23 @@ class HasObligationContainingKeyValueTest {
 
 		assertThat(dec, is(sut));
 	}
+	
+	@Test
+	public void test_neg() {
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode obligation = mapper.createObjectNode();
+		obligation.put("foo", "bar");
+		obligation.put("key", "value");
+		ArrayNode obligations = mapper.createArrayNode();
+		obligations.add(obligation);
+
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+				Optional.of(obligations), Optional.empty());
+
+		var sut = Matchers.hasObligationContainingKeyValue("xxx", jsonText("yyy"));
+
+		assertThat(dec, not(is(sut)));
+	}
 
 	@Test
 	public void test_nullDecision() {
@@ -76,7 +93,7 @@ class HasObligationContainingKeyValueTest {
 		actualObligations.add(actualObligation);
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations), null);
 
-		var sut = Matchers.hasObligationContainingKeyValue("foo");
+		var sut = Matchers.hasObligationContainingKeyValue("key");
 		
 		assertThat(dec, is(sut));
 	}
@@ -91,9 +108,24 @@ class HasObligationContainingKeyValueTest {
 		actualObligations.add(actualObligation);
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations), null);
 
-		var sut = Matchers.hasObligationContainingKeyValue("foo", "bar");
+		var sut = Matchers.hasObligationContainingKeyValue("key", "value");
 		
 		assertThat(dec, is(sut));
+	}
+	
+	@Test
+	public void test_MatchingKey_NotMatchingValue() {
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode actualObligation = mapper.createObjectNode();
+		actualObligation.put("foo", "bar");
+		actualObligation.put("key", "value");
+		ArrayNode actualObligations = mapper.createArrayNode();
+		actualObligations.add(actualObligation);
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations), null);
+
+		var sut = Matchers.hasObligationContainingKeyValue("key", "xxx");
+		
+		assertThat(dec, not(is(sut)));
 	}
 	
 	@Test

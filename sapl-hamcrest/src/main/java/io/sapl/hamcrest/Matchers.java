@@ -173,6 +173,10 @@ public class Matchers {
 		return new IsResource(jsonObject(node));
 	}
 	
+	public static Matcher<AuthorizationDecision> isResource(Matcher<? super JsonNode> matcher) {
+		return new IsResource(matcher);
+	}
+	
 	public static Matcher<AuthorizationDecision> isResource() {
 		return new IsResource();
 	}
