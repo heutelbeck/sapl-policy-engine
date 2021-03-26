@@ -15,18 +15,13 @@
  */
 package io.sapl.spring.serialization;
 
-import static java.lang.reflect.Modifier.isAbstract;
 import static java.lang.reflect.Modifier.isFinal;
-import static java.lang.reflect.Modifier.isInterface;
 import static java.lang.reflect.Modifier.isNative;
 import static java.lang.reflect.Modifier.isPrivate;
 import static java.lang.reflect.Modifier.isProtected;
 import static java.lang.reflect.Modifier.isPublic;
 import static java.lang.reflect.Modifier.isStatic;
-import static java.lang.reflect.Modifier.isStrict;
 import static java.lang.reflect.Modifier.isSynchronized;
-import static java.lang.reflect.Modifier.isTransient;
-import static java.lang.reflect.Modifier.isVolatile;
 
 import java.io.IOException;
 
@@ -40,56 +35,53 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 @JsonComponent
 public class MethodInvocationSerializer extends JsonSerializer<MethodInvocation> {
 
+	static final String SIMPLE_NAME = "simpleName";
+	static final String INSTANCEOF = "instanceof";
+	static final String SYNCHRONIZED = "synchronized";
+	static final String STATIC = "static";
+	static final String PUBLIC = "public";
+	static final String PROTECTED = "protected";
+	static final String PRIVATE = "private";
+	static final String FINAL = "final";
+	static final String MODIFIERS = "modifiers";
+	static final String DECLARING_TYPE_NAME = "declaringTypeName";
+	static final String NAME = "name";
+
 	@Override
 	public void serialize(MethodInvocation value, JsonGenerator gen, SerializerProvider serializers)
 			throws IOException {
 		gen.writeStartObject();
-		gen.writeStringField("name", value.getMethod().getName());
-		gen.writeStringField("shortSig",
-				value.getMethod().getDeclaringClass().getSimpleName() + "." + value.getMethod().getName() + "(..)");
-		gen.writeStringField("declaringTypeName", value.getMethod().getDeclaringClass().getTypeName());
-		gen.writeArrayFieldStart("modifiers");
+		gen.writeStringField(NAME, value.getMethod().getName());
+		gen.writeStringField(DECLARING_TYPE_NAME, value.getMethod().getDeclaringClass().getTypeName());
+		gen.writeArrayFieldStart(MODIFIERS);
 		int mod = value.getMethod().getModifiers();
-		if (isAbstract(mod)) {
-			gen.writeString("abstract");
-		}
+
 		if (isFinal(mod)) {
-			gen.writeString("final");
-		}
-		if (isInterface(mod)) {
-			gen.writeString("interface");
-		}
-		if (isNative(mod)) {
-			gen.writeString("native");
+			gen.writeString(FINAL);
 		}
 		if (isPrivate(mod)) {
-			gen.writeString("private");
+			gen.writeString(PRIVATE);
 		}
 		if (isProtected(mod)) {
-			gen.writeString("protected");
+			gen.writeString(PROTECTED);
 		}
 		if (isPublic(mod)) {
-			gen.writeString("public");
+			gen.writeString(PUBLIC);
 		}
 		if (isStatic(mod)) {
-			gen.writeString("static");
-		}
-		if (isStrict(mod)) {
-			gen.writeString("strict");
+			gen.writeString(STATIC);
 		}
 		if (isSynchronized(mod)) {
-			gen.writeString("synchronized");
-		}
-		if (isTransient(mod)) {
-			gen.writeString("transient");
-		}
-		if (isVolatile(mod)) {
-			gen.writeString("volatile");
+			gen.writeString(SYNCHRONIZED);
 		}
 
 		gen.writeEndArray();
-		gen.writeArrayFieldStart("instanceof");
-		writeClassHierarchy(gen, value.getThis().getClass());
+		
+		gen.writeArrayFieldStart(INSTANCEOF);
+		if (value.getThis() != null)
+			writeClassHierarchy(gen, value.getThis().getClass());
+		else
+			writeClassHierarchy(gen, value.getMethod().getDeclaringClass());
 		gen.writeEndArray();
 
 		gen.writeEndObject();
@@ -111,9 +103,8 @@ public class MethodInvocationSerializer extends JsonSerializer<MethodInvocation>
 
 	private void writeClass(JsonGenerator gen, Class<?> clazz) throws IOException {
 		gen.writeStartObject();
-		gen.writeStringField("name", clazz.getName());
-		gen.writeStringField("simpleName", clazz.getSimpleName());
-		gen.writeStringField("canonicalName", clazz.getCanonicalName());
+		gen.writeStringField(NAME, clazz.getName());
+		gen.writeStringField(SIMPLE_NAME, clazz.getSimpleName());
 		gen.writeEndObject();
 	}
 
