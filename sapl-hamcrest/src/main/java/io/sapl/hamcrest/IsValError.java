@@ -15,9 +15,6 @@
  */
 package io.sapl.hamcrest;
 
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsAnything.anything;
-
 import java.util.Objects;
 
 import org.hamcrest.Description;
@@ -33,18 +30,6 @@ public class IsValError extends TypeSafeDiagnosingMatcher<Val> {
 	public IsValError(Matcher<? super String> stringMatcher) {
 		super(Val.class);
 		this.stringMatcher = Objects.requireNonNull(stringMatcher);
-	}
-
-	public static Matcher<Val> valError() {
-		return new IsValError(is(anything()));
-	}
-
-	public static Matcher<Val> valError(String errorMessage) {
-		return new IsValError(is(errorMessage));
-	}
-
-	public static Matcher<Val> valError(Matcher<? super String> stringMatcher) {
-		return new IsValError(stringMatcher);
 	}
 
 	@Override

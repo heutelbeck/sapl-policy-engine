@@ -1,6 +1,6 @@
 package io.sapl.hamcrest;
 
-import static io.sapl.hamcrest.IsValError.valError;
+import static io.sapl.hamcrest.Matchers.valError;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;

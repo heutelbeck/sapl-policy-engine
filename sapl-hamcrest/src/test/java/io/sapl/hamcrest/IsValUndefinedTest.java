@@ -1,6 +1,6 @@
 package io.sapl.hamcrest;
 
-import static io.sapl.hamcrest.IsValUndefined.valUndefined;
+import static io.sapl.hamcrest.Matchers.valUndefined;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;

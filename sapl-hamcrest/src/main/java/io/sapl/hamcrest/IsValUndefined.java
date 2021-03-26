@@ -16,7 +16,6 @@
 package io.sapl.hamcrest;
 
 import org.hamcrest.Description;
-import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import io.sapl.api.interpreter.Val;
@@ -25,10 +24,6 @@ public class IsValUndefined extends TypeSafeDiagnosingMatcher<Val> {
 
 	public IsValUndefined() {
 		super(Val.class);
-	}
-
-	public static Matcher<Val> valUndefined() {
-		return new IsValUndefined();
 	}
 
 	@Override

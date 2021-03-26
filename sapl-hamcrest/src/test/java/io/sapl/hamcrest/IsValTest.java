@@ -2,10 +2,11 @@ package io.sapl.hamcrest;
 
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonBoolean;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
-import static io.sapl.hamcrest.IsVal.val;
-import static io.sapl.hamcrest.IsVal.valFalse;
-import static io.sapl.hamcrest.IsVal.valNull;
-import static io.sapl.hamcrest.IsVal.valTrue;
+import static io.sapl.hamcrest.Matchers.anyVal;
+import static io.sapl.hamcrest.Matchers.val;
+import static io.sapl.hamcrest.Matchers.valFalse;
+import static io.sapl.hamcrest.Matchers.valNull;
+import static io.sapl.hamcrest.Matchers.valTrue;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -116,6 +117,16 @@ class IsValTest {
 	void testNull() {
 		var sut = valNull();
 		assertThat(Val.NULL, is(sut));
+	}
+	
+	@Test
+	void testAnyVal() {
+		var sut = anyVal();
+		assertThat(Val.NULL, is(sut));
+		assertThat(Val.of(1), is(sut));
+		assertThat(Val.FALSE, is(sut));
+		assertThat(Val.error(), not(is(sut)));
+		assertThat(Val.UNDEFINED, not(is(sut)));
 	}
 
 	@Test

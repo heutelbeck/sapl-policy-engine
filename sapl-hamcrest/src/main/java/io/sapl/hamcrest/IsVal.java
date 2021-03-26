@@ -15,18 +15,6 @@
  */
 package io.sapl.hamcrest;
 
-import static com.spotify.hamcrest.jackson.IsJsonBoolean.jsonBoolean;
-import static com.spotify.hamcrest.jackson.IsJsonNull.jsonNull;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonBigDecimal;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonBigInteger;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonDouble;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonFloat;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonInt;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonLong;
-import static com.spotify.hamcrest.jackson.IsJsonText.jsonText;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -50,58 +38,6 @@ public class IsVal extends TypeSafeDiagnosingMatcher<Val> {
 	public IsVal() {
 		super(Val.class);
 		this.jsonMatcher = Optional.empty();
-	}
-
-	public static Matcher<Val> val() {
-		return new IsVal();
-	}
-
-	public static Matcher<Val> val(String text) {
-		return new IsVal(jsonText(text));
-	}
-
-	public static Matcher<Val> val(int integer) {
-		return new IsVal(jsonInt(integer));
-	}
-
-	public static Matcher<Val> val(BigDecimal decimal) {
-		return new IsVal(jsonBigDecimal(decimal));
-	}
-
-	public static Matcher<Val> val(BigInteger bigInt) {
-		return new IsVal(jsonBigInteger(bigInt));
-	}
-
-	public static Matcher<Val> val(float floatValue) {
-		return new IsVal(jsonFloat(floatValue));
-	}
-
-	public static Matcher<Val> valNull() {
-		return new IsVal(jsonNull());
-	}
-
-	public static Matcher<Val> val(boolean bool) {
-		return new IsVal(jsonBoolean(bool));
-	}
-
-	public static Matcher<Val> valTrue() {
-		return val(true);
-	}
-
-	public static Matcher<Val> valFalse() {
-		return val(false);
-	}
-
-	public static Matcher<Val> val(double doubleValue) {
-		return new IsVal(jsonDouble(doubleValue));
-	}
-
-	public static Matcher<Val> val(long longValue) {
-		return new IsVal(jsonLong(longValue));
-	}
-
-	public static Matcher<Val> val(Matcher<? super JsonNode> jsonMatcher) {
-		return new IsVal(jsonMatcher);
 	}
 
 	@Override
