@@ -32,11 +32,9 @@ import io.sapl.spring.method.pre.PreInvocationEnforcementAttribute;
 public class PolicyBasedEnforcementAttributeFactory implements PolicyEnforcementAttributeFactory {
 
 	private final Object parserLock = new Object();
-
 	private ExpressionParser parser;
-
 	private MethodSecurityExpressionHandler handler;
-
+	
 	public PolicyBasedEnforcementAttributeFactory(MethodSecurityExpressionHandler handler) {
 		this.handler = handler;
 	}

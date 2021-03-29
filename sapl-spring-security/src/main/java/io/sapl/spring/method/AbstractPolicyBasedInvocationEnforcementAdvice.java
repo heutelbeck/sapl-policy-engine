@@ -51,19 +51,12 @@ import lombok.RequiredArgsConstructor;
 public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 
 	protected static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
 	protected MethodSecurityExpressionHandler expressionHandler = new DefaultMethodSecurityExpressionHandler();
-
 	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
-
 	protected final ObjectFactory<ConstraintHandlerService> constraintHandlerFactory;
-
 	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
-
 	protected PolicyDecisionPoint pdp;
-
 	protected ConstraintHandlerService constraintHandlers;
-
 	protected ObjectMapper mapper;
 
 	/**

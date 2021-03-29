@@ -25,11 +25,8 @@ import org.springframework.security.access.ConfigAttribute;
 public interface EnforcementAttribute extends ConfigAttribute {
 
 	Expression getSubjectExpression();
-
 	Expression getActionExpression();
-
 	Expression getResourceExpression();
-
 	Expression getEnvironmentExpression();
 
 }

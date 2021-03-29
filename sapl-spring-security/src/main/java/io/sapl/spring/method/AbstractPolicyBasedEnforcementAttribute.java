@@ -35,19 +35,16 @@ public abstract class AbstractPolicyBasedEnforcementAttribute implements ConfigA
 	private static final SpelExpressionParser PARSER = new SpelExpressionParser();
 
 	private final Expression subjectExpression;
-
 	private final Expression actionExpression;
-
 	private final Expression resourceExpression;
-
 	private final Expression environmentExpression;
 
 	protected AbstractPolicyBasedEnforcementAttribute(String subjectExpression, String actionExpression,
 			String resourceExpression, String environmentExpression) {
-		this.subjectExpression = subjectExpression == null ? null : PARSER.parseExpression(subjectExpression);
-		this.actionExpression = actionExpression == null ? null : PARSER.parseExpression(actionExpression);
-		this.resourceExpression = resourceExpression == null ? null : PARSER.parseExpression(resourceExpression);
-		this.environmentExpression = environmentExpression == null ? null : PARSER.parseExpression(subjectExpression);
+		this(subjectExpression == null ? null : PARSER.parseExpression(subjectExpression),
+				actionExpression == null ? null : PARSER.parseExpression(actionExpression),
+				resourceExpression == null ? null : PARSER.parseExpression(resourceExpression),
+				environmentExpression == null ? null : PARSER.parseExpression(environmentExpression));
 	}
 
 	protected AbstractPolicyBasedEnforcementAttribute(Expression subjectExpression, Expression actionExpression,
