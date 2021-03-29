@@ -82,6 +82,18 @@ class PolicyEnforcementFilterPEPTests {
 
 	@Test
 	@WithMockUser
+	void whenEmptyAnswert_thenAccessDeniedException() throws IOException, ServletException {
+		var sut = new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
+		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.empty());
+		var request = new MockHttpServletRequest();
+		var response = new MockHttpServletResponse();
+		var filterChain = mock(FilterChain.class);
+		assertThrows(AccessDeniedException.class, () -> sut.doFilter(request, response, filterChain));
+	}
+
+	
+	@Test
+	@WithMockUser
 	void whenDeny_thenAccessDeniedException() throws IOException, ServletException {
 		var sut = new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.DENY));
