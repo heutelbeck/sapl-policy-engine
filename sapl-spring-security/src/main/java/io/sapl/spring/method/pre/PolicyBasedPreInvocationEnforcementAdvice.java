@@ -45,18 +45,18 @@ public class PolicyBasedPreInvocationEnforcementAdvice extends AbstractPolicyBas
 	}
 
 	@Override
-	public boolean before(Authentication authentication, MethodInvocation mi,
-			PolicyBasedPreInvocationEnforcementAttribute attr) {
+	public boolean before(Authentication authentication, MethodInvocation methodInvocation,
+			PolicyBasedPreInvocationEnforcementAttribute attribute) {
 		// Lazy loading to decouple infrastructure initialization from domain
 		// initialization. Else, beans may become non eligible for BeanPostProcessors
 		lazyLoadDependencies();
 
-		EvaluationContext ctx = expressionHandler.createEvaluationContext(authentication, mi);
+		EvaluationContext evaluationContext = expressionHandler.createEvaluationContext(authentication, methodInvocation);
 
-		Object subject = retrieveSubject(authentication, attr, ctx);
-		Object action = retrieveAction(mi, attr, ctx);
-		Object resource = retrieveResource(mi, attr, ctx);
-		Object environment = retrieveEnvironment(attr, ctx);
+		Object subject = retrieveSubject(authentication, attribute, evaluationContext);
+		Object action = retrieveAction(methodInvocation, attribute, evaluationContext);
+		Object resource = retrieveResource(methodInvocation, attribute, evaluationContext);
+		Object environment = retrieveEnvironment(attribute, evaluationContext);
 
 		AuthorizationSubscription authzSubscription = new AuthorizationSubscription(mapper.valueToTree(subject),
 				mapper.valueToTree(action), mapper.valueToTree(resource), mapper.valueToTree(environment));
@@ -76,12 +76,13 @@ public class PolicyBasedPreInvocationEnforcementAdvice extends AbstractPolicyBas
 			return false;
 		}
 
+		constraintHandlers.handleAdvices(authzDecision);
+
 		try {
 			constraintHandlers.handleObligations(authzDecision);
 		} catch (AccessDeniedException e) {
 			return false;
 		}
-		constraintHandlers.handleAdvices(authzDecision);
 		return true;
 	}
 

@@ -88,9 +88,8 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 	protected Object retrieveSubject(Authentication authentication, AbstractPolicyBasedEnforcementAttribute attr,
 									 EvaluationContext ctx) {
 		if (attr.getSubjectExpression() == null) {
-			// no explicit subject declared => use the authentication object to indicate
-			// the
-			// subject
+			// no explicit subject declared => use the authentication object 
+			// to describe the subject
 			return authentication;
 		} else {
 			// subject declared by expression
