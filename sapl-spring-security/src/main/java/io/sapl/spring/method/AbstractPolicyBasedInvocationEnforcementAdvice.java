@@ -86,9 +86,9 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 	}
 
 	protected Object retrieveSubject(Authentication authentication, AbstractPolicyBasedEnforcementAttribute attr,
-									 EvaluationContext ctx) {
+			EvaluationContext ctx) {
 		if (attr.getSubjectExpression() == null) {
-			// no explicit subject declared => use the authentication object 
+			// no explicit subject declared => use the authentication object
 			// to describe the subject
 			return authentication;
 		} else {
@@ -105,7 +105,7 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		}
 	}
 
-	protected JsonNode serializeMethod(Method m) {
+	protected static JsonNode serializeMethod(Method m) {
 		ObjectNode result = JSON.objectNode();
 		result.set("name", JSON.textNode(m.getName()));
 		result.set("returnType", JSON.textNode(m.getReturnType().getName()));
@@ -148,13 +148,13 @@ public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
 		actionNode.set("java", mapper.valueToTree(mi));
 
 		// Collect call arguments. not serializable => null
-		ArrayNode array = JsonNodeFactory.instance.arrayNode();
+		ArrayNode array = JSON.arrayNode();	
 		for (Object o : mi.getArguments()) {
 			try {
 				JsonNode json = mapper.valueToTree(o);
 				array.add(json);
 			} catch (IllegalArgumentException e) {
-				array.add(JsonNodeFactory.instance.nullNode());
+				array.add(JSON.nullNode());
 			}
 		}
 		actionNode.set("arguments", array);
