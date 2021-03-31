@@ -30,6 +30,7 @@ import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -47,10 +48,13 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	private final WebClient client;
 
 	@Setter
+	@Getter
 	private int firstBackoffMillis = 500;
 	@Setter
+	@Getter
 	private int maxBackOffMillis = 5000;
 	@Setter
+	@Getter
 	private int backoffFactor = 2;
 
 	public RemotePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret, SslContext sslContext) {
@@ -101,7 +105,9 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 			Object authzSubscription) {
 		return client.post().uri(path).accept(MediaType.APPLICATION_NDJSON).contentType(MediaType.APPLICATION_JSON)
 				.bodyValue(authzSubscription).retrieve().bodyToFlux(type).map(ServerSentEvent::data)
-				.doOnError(error -> log.error("Error : {}", error.getMessage()));
+				.doOnError(error -> {
+					log.error("Error : {}", error.getMessage());
+				});
 	}
 
 }
