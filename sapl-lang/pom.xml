@@ -69,7 +69,6 @@
 			<artifactId>xtext-antlr-generator</artifactId>
 			<optional>true</optional>
 		</dependency>
-
 		<!-- Logging -->
 		<dependency>
 			<groupId>org.slf4j</groupId>

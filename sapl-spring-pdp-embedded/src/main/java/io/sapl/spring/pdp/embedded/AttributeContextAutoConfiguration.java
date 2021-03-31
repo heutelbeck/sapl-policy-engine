@@ -45,7 +45,7 @@ public class AttributeContextAutoConfiguration {
 	public AttributeContext attributeContext() throws InitializationException {
 		var ctx = new AnnotationAttributeContext();
 		for (var entry : policyInformationPoints) {
-			log.debug("loading Policy Information Point: {}", entry.getClass().getSimpleName());
+			log.info("loading Policy Information Point: {}", entry.getClass().getSimpleName());
 			ctx.loadPolicyInformationPoint(entry);
 		}
 		return ctx;
