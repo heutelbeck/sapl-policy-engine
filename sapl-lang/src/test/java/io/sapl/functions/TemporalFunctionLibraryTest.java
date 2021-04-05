@@ -38,6 +38,7 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -71,11 +72,56 @@ class TemporalFunctionLibraryTest {
     }
 
     @Test
+    void nowPlus10Nanos() {
+        var zoneId = Val.of("UTC");
+        var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
+        var plus10 = TemporalFunctionLibrary.plusNanos(now, Val.of(10L));
+        var expected = Instant.parse(now.get().asText()).plusNanos(10).toString();
+        assertThat(plus10, is(val(expected)));
+    }
+
+    @Test
+    void nowPlus10Millis() {
+        var zoneId = Val.of("UTC");
+        var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
+        var plus10 = TemporalFunctionLibrary.plusMillis(now, Val.of(10L));
+        var expected = Instant.parse(now.get().asText()).plusMillis(10).toString();
+        assertThat(plus10, is(val(expected)));
+    }
+
+    @Test
     void nowPlus10Seconds() {
         var zoneId = Val.of("UTC");
         var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
         var plus10 = TemporalFunctionLibrary.plusSeconds(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).plusSeconds(10).toString();
+        assertThat(plus10, is(val(expected)));
+    }
+
+    @Test
+    void nowMinus10Nanos() {
+        var zoneId = Val.of("UTC");
+        var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
+        var plus10 = TemporalFunctionLibrary.minusNanos(now, Val.of(10L));
+        var expected = Instant.parse(now.get().asText()).minusNanos(10).toString();
+        assertThat(plus10, is(val(expected)));
+    }
+
+    @Test
+    void nowMinus10Millis() {
+        var zoneId = Val.of("UTC");
+        var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
+        var plus10 = TemporalFunctionLibrary.minusMillis(now, Val.of(10L));
+        var expected = Instant.parse(now.get().asText()).minusMillis(10).toString();
+        assertThat(plus10, is(val(expected)));
+    }
+
+    @Test
+    void nowMinus10Seconds() {
+        var zoneId = Val.of("UTC");
+        var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
+        var plus10 = TemporalFunctionLibrary.minusSeconds(now, Val.of(10L));
+        var expected = Instant.parse(now.get().asText()).minusSeconds(10).toString();
         assertThat(plus10, is(val(expected)));
     }
 
@@ -88,6 +134,14 @@ class TemporalFunctionLibraryTest {
         assertThat(dayOfWeek, is(val(expected)));
     }
 
+    @Test
+    void betweenTest() {
+        var now = Instant.now();
+        var yesterday = now.minus(1, ChronoUnit.DAYS);
+        var tomorrow = now.plus(1, ChronoUnit.DAYS);
+        var isBetween = TemporalFunctionLibrary.between(Val.of(now.toString()), Val.of(yesterday.toString()), Val.of(tomorrow.toString()));
+        assertThat(isBetween.getBoolean(), is(true));
+    }
 
     @Test
     void should_return_error_for_invalid_time_arguments() {
