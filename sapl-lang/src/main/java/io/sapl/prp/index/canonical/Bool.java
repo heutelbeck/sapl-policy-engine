@@ -15,16 +15,15 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.Map;
-import java.util.Objects;
-
 import com.google.common.base.Preconditions;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
+import java.util.Objects;
 
 public class Bool {
 
@@ -100,10 +99,10 @@ public class Bool {
             return false;
         }
         final Bool other = (Bool) obj;
-        if (hashCode() != other.hashCode()) {
+        if (!Objects.equals(isConstantExpression, other.isConstantExpression)) {
             return false;
         }
-        if (!Objects.equals(isConstantExpression, other.isConstantExpression)) {
+        if (hashCode() != other.hashCode()) {
             return false;
         }
         if (isConstantExpression) {
