@@ -139,7 +139,19 @@ class TemporalFunctionLibraryTest {
         var now = Instant.now();
         var yesterday = now.minus(1, ChronoUnit.DAYS);
         var tomorrow = now.plus(1, ChronoUnit.DAYS);
+
+        //yesterday < now < tomorrow
         var isBetween = TemporalFunctionLibrary.between(Val.of(now.toString()), Val.of(yesterday.toString()), Val.of(tomorrow.toString()));
+        assertThat(isBetween.getBoolean(), is(true));
+
+        //yesterday = now < tomorrow
+        now = yesterday;
+        isBetween = TemporalFunctionLibrary.between(Val.of(now.toString()), Val.of(yesterday.toString()), Val.of(tomorrow.toString()));
+        assertThat(isBetween.getBoolean(), is(true));
+
+        //yesterday = now = tomorrow
+        now = tomorrow;
+        isBetween = TemporalFunctionLibrary.between(Val.of(now.toString()), Val.of(yesterday.toString()), Val.of(tomorrow.toString()));
         assertThat(isBetween.getBoolean(), is(true));
     }
 

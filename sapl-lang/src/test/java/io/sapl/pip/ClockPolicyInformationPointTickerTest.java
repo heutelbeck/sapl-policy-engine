@@ -16,6 +16,8 @@
 package io.sapl.pip;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -24,6 +26,8 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
@@ -64,6 +68,15 @@ public class ClockPolicyInformationPointTickerTest {
 					var expected = BigDecimal.valueOf(localTime.getSecond());
 					assertEquals(expected.longValue(), actual.longValue());
 				}).thenCancel().verify();
+	}
+
+	@Test
+	void testConvertToZoneId(){
+		var jsonNodeMock = mock(JsonNode.class);
+		when(jsonNodeMock.asText()).thenReturn(null);
+
+		var clockPip = new ClockPolicyInformationPoint();
+		var result = clockPip.now(Val.of(jsonNodeMock), Collections.emptyMap()).blockFirst();
 	}
 
 }
