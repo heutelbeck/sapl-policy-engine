@@ -58,9 +58,9 @@ class RemotePolicyDecisionPointTests {
 		server = new MockWebServer();
 		server.start();
 		pdp = new RemotePolicyDecisionPoint(this.server.url("/").toString(), "secret", "key");
-		pdp.setBackoffFactor(1);
-		pdp.setFirstBackoffMillis(1);
-		pdp.setMaxBackOffMillis(2);
+		pdp.setBackoffFactor(2);
+		pdp.setFirstBackoffMillis(100);
+		pdp.setMaxBackOffMillis(200);
 	}
 
 	@AfterEach
