@@ -84,7 +84,7 @@ class RemotePolicyDecisionPointTests {
 
 		var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
 
-		StepVerifier.create(pdp.decide(subscription))
+		StepVerifier.create(pdp.decide(subscription).log())
 				.expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE,
 						AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE,
 						AuthorizationDecision.INDETERMINATE, AuthorizationDecision.INDETERMINATE,

@@ -66,7 +66,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 		log.info("Loading a static set of policies from the bundled ressources");
 		URL policyFolderUrl = clazz.getResource(policyPath);
 		if (policyFolderUrl == null) {
-			throw new RuntimeException("Policy folder not found. Path:" + policyPath);
+			throw new RuntimeException("Policy folder in applicarion resources is either empty or not present at all. Path:" + policyPath);
 		}
 
 		if ("jar".equals(policyFolderUrl.getProtocol())) {
