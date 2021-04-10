@@ -7,8 +7,8 @@ import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.util.filemonitoring.FileChangedEvent;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
+import lombok.val;
 import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedConstruction;
@@ -43,15 +43,17 @@ public class ImmutableFileIndexTest {
     private static SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
     @Test
-    @Disabled
     public void test_after_file_event() throws Exception {
         final boolean[] inconsistent = {true};
 
-        for (int i = 1; i <= 5; i++) {
-            new File(folder, "file" + i + ".sapl").createNewFile();
-        }
+        //        var fileMock = mock(File.class);
+        //        when(fileMock.getName()).thenReturn("file");
+        var p1 = new File(folder, "policy1.sapl");
+
 
         var indexMock = mock(ImmutableFileIndex.class, withSettings().useConstructor(folder.getPath(), interpreter));
+        when(indexMock.afterFileEvent(any())).thenCallRealMethod();
+        when(indexMock.getUpdateEvent()).thenCallRealMethod();
 
         // WHEN
 
@@ -62,34 +64,20 @@ public class ImmutableFileIndexTest {
                     doNothing().when(mock).load(any());
                     doNothing().when(mock).unload(any());
                     doCallRealMethod().when(mock).change(any());
+//                    when(mock.becameInconsistentComparedTo(any())).thenReturn(true);
 
                     when(mock.afterFileEvent(any())).thenCallRealMethod();
                     when(mock.getUpdateEvent()).thenCallRealMethod();
                 })) {
 
             // DO
-            for (File file : folder.listFiles()) {
-                indexMock = indexMock.afterFileEvent(new FileCreatedEvent(file));
-                indexMock = indexMock.afterFileEvent(new FileChangedEvent(file));
-                indexMock = indexMock.afterFileEvent(new FileDeletedEvent(file));
+           indexMock.afterFileEvent(new FileCreatedEvent(p1));
+            verify(mocked.constructed().get(0),times(1)).load(any());
 
-                toggleInconsistent(inconsistent, indexMock);
-            }
+            indexMock.afterFileEvent(new FileChangedEvent(p1));
+            verify(mocked.constructed().get(1),times(1)).load(any());
         }
 
-        //        whenNew(ImmutableFileIndex.class).withAnyArguments().thenReturn(indexMock);
-
-        // THEN
-        verify(indexMock, times(10)).load(any());
-        verify(indexMock, times(10)).unload(any());
-        verify(indexMock, times(5)).change(any());
-//        verifyNew(ImmutableFileIndex.class, times(15)).withArguments(any(ImmutableFileIndex.class));
-
-
-        assertThat(indexMock.getUpdateEvent().getUpdates(), arrayContaining(pojo(PrpUpdateEvent.Update.class)
-                .withProperty("type", is(Type.CONSISTENT))));
-        assertThat(indexMock.getUpdateEvent().getUpdates(), arrayContaining(pojo(PrpUpdateEvent.Update.class)
-                .withProperty("type", is(Type.INCONSISTENT))));
     }
 
     @Test
