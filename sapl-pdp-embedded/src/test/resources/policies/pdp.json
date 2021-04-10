@@ -1,5 +1,5 @@
 {
-  "algorithm": "PERMIT_UNLESS_DENY",
+  "algorithm": "DENY_UNLESS_PERMIT",
   "variables": {
     "key1": "value1",
     "key2": "value2",

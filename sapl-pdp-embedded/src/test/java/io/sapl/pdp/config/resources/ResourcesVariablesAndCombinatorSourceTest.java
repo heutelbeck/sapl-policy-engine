@@ -1,10 +1,12 @@
-package io.sapl.pdp.config.filesystem;
+package io.sapl.pdp.config.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
+import io.sapl.grammar.sapl.impl.PermitUnlessDenyCombiningAlgorithmImplCustom;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
 import io.sapl.util.filemonitoring.FileMonitorUtil;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.MockedConstruction;
@@ -24,23 +26,24 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 
-class FileSystemVariablesAndCombinatorSourceTest {
+@Disabled
+class ResourcesVariablesAndCombinatorSourceTest {
 
     @Test
     void loadExistingConfigTest() {
-        var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
+        var configProvider = new ResourcesVariablesAndCombinatorSource("src/test/resources/policies");
         var algo = configProvider.getCombiningAlgorithm().blockFirst();
         var variables = configProvider.getVariables().blockFirst();
         configProvider.dispose();
 
-        assertThat(algo.get() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
+        assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithmImplCustom, is(true));
         assertThat(variables.get().size(), is(3));
     }
 
 
     @Test
     void return_default_config_for_missing_configuration_file() {
-        var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources");
+        var configProvider = new ResourcesVariablesAndCombinatorSource("src/test/resources");
         var algo = configProvider.getCombiningAlgorithm().blockFirst();
         var variables = configProvider.getVariables().blockFirst();
         configProvider.dispose();
@@ -56,7 +59,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
                     doThrow(new IOException()).when(mock).readValue(ArgumentMatchers.any(File.class), ArgumentMatchers.any(Class.class));
                 })) {
 
-            var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
+            var configProvider = new ResourcesVariablesAndCombinatorSource("src/test/resources/policies");
             var algo = configProvider.getCombiningAlgorithm().blockFirst();
             var variables = configProvider.getVariables().blockFirst();
             configProvider.dispose();
@@ -76,7 +79,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
                     .thenReturn(Flux.just(new FileCreatedEvent(null), new FileDeletedEvent(null)));
 
 
-            var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
+            var configProvider = new ResourcesVariablesAndCombinatorSource("src/test/resources/policies");
             var algo = configProvider.getCombiningAlgorithm().blockLast();
             configProvider.getVariables().blockFirst();
             configProvider.dispose();
