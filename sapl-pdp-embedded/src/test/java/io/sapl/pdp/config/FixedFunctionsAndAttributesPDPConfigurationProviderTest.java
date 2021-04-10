@@ -1,5 +1,6 @@
 package io.sapl.pdp.config;
 
+import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
 import io.sapl.grammar.sapl.impl.PermitUnlessDenyCombiningAlgorithmImplCustom;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
@@ -21,7 +22,7 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTest {
         provider.dispose();
 
 
-        assertThat(config.getDocumentsCombinator() instanceof PermitUnlessDenyCombiningAlgorithmImplCustom, is(true));
+        assertThat(config.getDocumentsCombinator() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
         assertThat(config.getPdpScopedEvaluationContext().getAttributeCtx(), is(attrCtx));
         assertThat(config.getPdpScopedEvaluationContext().getFunctionCtx(), is(funcCtx));
         assertThat(config.isValid(), is(true));
