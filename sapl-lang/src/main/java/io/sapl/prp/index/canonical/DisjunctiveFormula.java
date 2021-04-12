@@ -76,10 +76,10 @@ public class DisjunctiveFormula {
 			return false;
 		}
 		final DisjunctiveFormula other = (DisjunctiveFormula) obj;
-		if (hashCode() != other.hashCode()) {
+		if (clauses.size() != other.clauses.size()) {
 			return false;
 		}
-		if (clauses.size() != other.clauses.size()) {
+		if (hashCode() != other.hashCode()) {
 			return false;
 		}
 		return clauses.containsAll(other.clauses) && other.clauses.containsAll(clauses);

@@ -45,6 +45,8 @@ class PolicyRetrievalresultTest {
 
         assertThat(empty.equals("match"), is(false));
 
+        assertThat(empty.equals(null), is(false));
+
         assertThat(nullResult.equals(invalid), is(false));
         assertThat(error.equals(nullResult), is(false));
 

@@ -1,5 +1,6 @@
 package io.sapl.prp;
 
+import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
@@ -69,6 +70,36 @@ class GenericInMemoryIndexedPolicyRetrievalPointTest {
 
         var documentMock = mock(SAPL.class);
         when(documentMock.getPolicyElement()).thenReturn(policyElementMock);
+
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(documentMock);
+        //        doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
+
+        when(indexMock.retrievePolicies(any())).thenReturn(Mono.just(policyRetrievalResult));
+
+        //DO
+        val prp = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
+        val result = prp.retrievePolicies(contextMock).blockFirst();
+        prp.dispose();
+
+        //THEN
+        verify(sourceMock, times(1)).getUpdates();
+        verify(indexMock, times(1)).apply(any());
+        assertThat(prp, is(notNullValue()));
+
+        verify(indexMock, times(1)).retrievePolicies((any()));
+        assertThat(result, is(policyRetrievalResult));
+
+
+    }
+
+    @Test
+    void testConstructAndRetrieveWithNonSAPLResult() {
+        //WHEN
+        var policyElementMock = mock(PolicyElement.class);
+        when(policyElementMock.getSaplName()).thenReturn("SAPL");
+        //        when(policyElementMock.getClass()).thenCallRealMethod();
+
+        var documentMock = mock(AuthorizationDecisionEvaluable.class);
 
         var policyRetrievalResult = new PolicyRetrievalResult().withMatch(documentMock);
         //        doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());

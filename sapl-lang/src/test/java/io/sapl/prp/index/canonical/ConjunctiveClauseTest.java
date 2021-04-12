@@ -3,9 +3,12 @@ package io.sapl.prp.index.canonical;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import java.util.Collections;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -19,6 +22,8 @@ class ConjunctiveClauseTest {
         var clause = new ConjunctiveClause(new Literal(new Bool(true)));
         assertThat(clause, is(notNullValue()));
         assertThat(clause.size(), is(1));
+
+        assertThrows(IllegalArgumentException.class, () -> new ConjunctiveClause(Collections.emptyList()));
     }
 
     @Test
@@ -68,12 +73,34 @@ class ConjunctiveClauseTest {
     }
 
     @Test
-    void testIsSubsetOf() {
+    void testEvaluate() {
+        var c1 = new ConjunctiveClause(new Literal(new Bool(true)));
+        var c2 = new ConjunctiveClause(new Literal(new Bool(true)));
+        var c3 = new ConjunctiveClause(new Literal(new Bool(false)));
+        var c4 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
+        var c5 = new ConjunctiveClause(new Literal(new Bool(false)), new Literal(new Bool(true)));
 
+        assertThat(c1.evaluate(), is(true));
+        assertThat(c2.evaluate(), is(true));
+        assertThat(c3.evaluate(), is(false));
+        assertThat(c4.evaluate(), is(false));
+        assertThat(c5.evaluate(), is(false));
     }
 
     @Test
-    void testNegate() {
+    void testIsSubsetOf() {
+        var c1 = new ConjunctiveClause(new Literal(new Bool(true)));
+        var c2 = new ConjunctiveClause(new Literal(new Bool(true)));
+        var c3 = new ConjunctiveClause(new Literal(new Bool(false)));
+        var c4 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
+        var c5 = new ConjunctiveClause(new Literal(new Bool(false)), new Literal(new Bool(true)));
+
+        assertThat(c1.isSubsetOf(c1), is(true));
+        assertThat(c1.isSubsetOf(c2), is(true));
+        assertThat(c1.isSubsetOf(c3), is(false));
+        assertThat(c1.isSubsetOf(c4), is(true));
+        assertThat(c1.isSubsetOf(c5), is(true));
 
     }
+
 }
