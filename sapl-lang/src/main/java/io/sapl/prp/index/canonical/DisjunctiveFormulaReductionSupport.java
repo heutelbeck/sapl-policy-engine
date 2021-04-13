@@ -53,9 +53,6 @@ public class DisjunctiveFormulaReductionSupport {
 		ListIterator<ConjunctiveClause> forward = data.listIterator(pointer.nextIndex());
 		while (forward.hasNext()) {
 			ConjunctiveClause rhs = forward.next();
-			if (rhs == null) {
-				continue;
-			}
 			if (value.isSubsetOf(rhs)) {
 				forward.set(null);
 			} else if (rhs.isSubsetOf(value)) {

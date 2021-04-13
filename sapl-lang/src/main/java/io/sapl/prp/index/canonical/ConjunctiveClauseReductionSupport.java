@@ -53,9 +53,6 @@ public class ConjunctiveClauseReductionSupport {
 		ListIterator<Literal> forward = data.listIterator(pointer.nextIndex());
 		while (forward.hasNext()) {
 			Literal rhs = forward.next();
-			if (rhs == null) {
-				continue;
-			}
 			if (value.sharesBool(rhs)) {
 				if (value.sharesNegation(rhs)) {
 					forward.set(null);
