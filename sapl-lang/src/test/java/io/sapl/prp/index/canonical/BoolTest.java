@@ -50,7 +50,8 @@ class BoolTest {
     }
 
 
-    @Test
+	@Test
+    @SuppressWarnings("unlikely-arg-type")
     void equalsTest() {
         assertThat(constantBool.equals(constantBool), is(true));
         assertThat(expressionBool.equals(expressionBool), is(true));

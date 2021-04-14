@@ -27,6 +27,7 @@ class ConjunctiveClauseTest {
     }
 
     @Test
+    @SuppressWarnings("unlikely-arg-type")
     void testEquals() {
         var c1 = new ConjunctiveClause(new Literal(new Bool(true)));
         var c2 = new ConjunctiveClause(new Literal(new Bool(true)));

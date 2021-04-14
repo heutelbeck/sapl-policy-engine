@@ -38,7 +38,8 @@ class PolicyRetrievalresultTest {
     }
 
     @Test
-    void equalsTest() {
+    @SuppressWarnings("unlikely-arg-type")
+   void equalsTest() {
         assertThat(empty.equals(empty), is(true));
         assertThat(empty.equals(invalid), is(true));
         assertThat(empty.equals(error), is(false));

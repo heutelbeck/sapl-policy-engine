@@ -46,6 +46,7 @@ class LiteralTest {
     }
 
     @Test
+    @SuppressWarnings("unlikely-arg-type")
     void equalsTest() {
         var literal = new Literal(new Bool(false), true);
         var literalMock = mock(Literal.class);

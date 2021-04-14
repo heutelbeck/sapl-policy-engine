@@ -42,6 +42,7 @@ class DisjunctiveFormulaTest {
     }
 
     @Test
+    @SuppressWarnings("unlikely-arg-type")
     void testEquals() {
         val trueClause = new ConjunctiveClause(new Literal(new Bool(true)));
         val falseClause = new ConjunctiveClause(new Literal(new Bool(false)));
