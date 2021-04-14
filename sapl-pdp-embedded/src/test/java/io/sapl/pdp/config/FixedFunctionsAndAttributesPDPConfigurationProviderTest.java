@@ -1,14 +1,14 @@
 package io.sapl.pdp.config;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
+import org.junit.jupiter.api.Test;
+
 import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
-import io.sapl.grammar.sapl.impl.PermitUnlessDenyCombiningAlgorithmImplCustom;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
-import org.junit.jupiter.api.Test;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 class FixedFunctionsAndAttributesPDPConfigurationProviderTest {
 

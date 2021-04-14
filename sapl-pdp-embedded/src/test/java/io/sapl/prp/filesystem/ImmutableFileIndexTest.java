@@ -1,30 +1,12 @@
 package io.sapl.prp.filesystem;
 
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.prp.PrpUpdateEvent;
-import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.util.filemonitoring.FileChangedEvent;
-import io.sapl.util.filemonitoring.FileCreatedEvent;
-import io.sapl.util.filemonitoring.FileDeletedEvent;
-import lombok.val;
-import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.MockedConstruction;
-import org.mockito.Mockito;
-
-import java.io.File;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.core.Is.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doNothing;
@@ -33,6 +15,24 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
+
+import java.io.File;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.MockedConstruction;
+import org.mockito.Mockito;
+
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEvent.Type;
+import io.sapl.util.filemonitoring.FileChangedEvent;
+import io.sapl.util.filemonitoring.FileCreatedEvent;
+import io.sapl.util.filemonitoring.FileDeletedEvent;
 
 
 public class ImmutableFileIndexTest {

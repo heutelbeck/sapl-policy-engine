@@ -15,6 +15,18 @@
  */
 package io.sapl.prp.filesystem;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.HashMap;
+import java.util.logging.Level;
+
+import org.junit.jupiter.api.Test;
+
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
@@ -26,19 +38,8 @@ import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
-import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
-
-import java.util.HashMap;
-import java.util.logging.Level;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class FilesystemPRPTest {
 

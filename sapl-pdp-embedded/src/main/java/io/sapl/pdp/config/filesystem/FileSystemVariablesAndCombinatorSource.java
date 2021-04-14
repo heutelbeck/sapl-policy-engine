@@ -42,8 +42,8 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 
-    private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
-    private final ObjectMapper objectMapper = new ObjectMapper();
+	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final String watchDir;
     private final Flux<Optional<PolicyDecisionPointConfiguration>> configFlux;
@@ -69,7 +69,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
             return Optional.of(new PolicyDecisionPointConfiguration());
         }
         try {
-            return Optional.of(objectMapper.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class));
+            return Optional.of(MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class));
         } catch (IOException e) {
             return Optional.empty();
         }

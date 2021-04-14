@@ -16,6 +16,17 @@
 package io.sapl.integrationtest;
 
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.collection.IsEmptyCollection.empty;
+
+import java.util.HashMap;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
@@ -28,16 +39,6 @@ import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-
-import java.util.HashMap;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.collection.IsEmptyCollection.empty;
 
 @Timeout(3)
 class IntegrationTest {

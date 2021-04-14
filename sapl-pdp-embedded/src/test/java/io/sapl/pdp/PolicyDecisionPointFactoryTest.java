@@ -1,12 +1,13 @@
 package io.sapl.pdp;
 
-import io.sapl.functions.FilterFunctionLibrary;
-import org.junit.jupiter.api.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.notNullValue;
 
 import java.util.Collections;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
+import org.junit.jupiter.api.Test;
+
+import io.sapl.functions.FilterFunctionLibrary;
 
 class PolicyDecisionPointFactoryTest {
 
