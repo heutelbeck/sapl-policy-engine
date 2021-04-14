@@ -1,13 +1,13 @@
 package io.sapl.prp.index.canonical;
 
-import org.junit.jupiter.api.Test;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.mock;
+
+import org.junit.jupiter.api.Test;
 
 class PredicateInfoTest {
 
@@ -74,7 +74,8 @@ class PredicateInfoTest {
     }
 
     @Test
-    void testEquals() {
+    @SuppressWarnings("unlikely-arg-type")
+   void testEquals() {
         var p1 = new PredicateInfo(new Predicate(new Bool(true)));
         var p2 = new PredicateInfo(new Predicate(new Bool(true)));
 

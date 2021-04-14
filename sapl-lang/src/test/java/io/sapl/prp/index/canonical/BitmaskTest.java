@@ -1,16 +1,16 @@
 package io.sapl.prp.index.canonical;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class BitmaskTest {
 
@@ -30,7 +30,8 @@ class BitmaskTest {
         assertThat(bitmask.toString(), is("{0, 1}"));
     }
 
-    @Test
+	@Test
+    @SuppressWarnings("unchecked")
     void forEachSetBitTest() {
         var listMock = (List<Integer>) mock(List.class);
 

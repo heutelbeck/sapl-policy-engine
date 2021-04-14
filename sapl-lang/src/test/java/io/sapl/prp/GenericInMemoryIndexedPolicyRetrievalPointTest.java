@@ -1,16 +1,5 @@
 package io.sapl.prp;
 
-import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
-import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.prp.index.ImmutableParsedDocumentIndex;
-import lombok.val;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -19,6 +8,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
+import io.sapl.grammar.sapl.PolicyElement;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.EvaluationContext;
+import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import lombok.val;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 class GenericInMemoryIndexedPolicyRetrievalPointTest {
 

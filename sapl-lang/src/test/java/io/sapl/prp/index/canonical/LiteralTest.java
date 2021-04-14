@@ -1,10 +1,10 @@
 package io.sapl.prp.index.canonical;
 
-import org.junit.jupiter.api.Test;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
+
+import org.junit.jupiter.api.Test;
 
 class LiteralTest {
 

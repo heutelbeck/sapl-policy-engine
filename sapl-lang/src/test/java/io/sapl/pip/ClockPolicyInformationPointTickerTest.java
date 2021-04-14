@@ -26,9 +26,9 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import lombok.val;
 import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.TemporalFunctionLibrary;

@@ -15,11 +15,11 @@
  */
 package io.sapl.prp.index.canonical;
 
+import java.util.Objects;
+
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-
-import java.util.Objects;
 
 @RequiredArgsConstructor
 public class Literal {

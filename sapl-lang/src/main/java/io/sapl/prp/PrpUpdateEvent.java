@@ -15,12 +15,12 @@
  */
 package io.sapl.prp;
 
+import java.util.Arrays;
+import java.util.List;
+
 import io.sapl.grammar.sapl.SAPL;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-
-import java.util.Arrays;
-import java.util.List;
 
 @Value
 public class PrpUpdateEvent {

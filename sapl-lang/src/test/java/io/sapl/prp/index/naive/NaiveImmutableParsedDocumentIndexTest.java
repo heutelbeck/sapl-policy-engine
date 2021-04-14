@@ -1,17 +1,5 @@
 package io.sapl.prp.index.naive;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.prp.PrpUpdateEvent;
-import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.prp.PrpUpdateEvent.Update;
-import lombok.val;
-import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -19,6 +7,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.Test;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEvent.Type;
+import io.sapl.prp.PrpUpdateEvent.Update;
+import lombok.val;
+import reactor.core.publisher.Mono;
 
 class NaiveImmutableParsedDocumentIndexTest {
 

@@ -1,18 +1,19 @@
 package io.sapl.prp;
 
-import io.sapl.grammar.sapl.SAPL;
-import lombok.val;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.sapl.grammar.sapl.SAPL;
+import lombok.val;
 
 class PolicyRetrievalresultTest {
 
