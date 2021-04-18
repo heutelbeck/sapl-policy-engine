@@ -32,8 +32,8 @@ import io.sapl.grammar.sapl.Or
  */
 class SAPLValidator extends AbstractSAPLValidator {
 
-	protected static final String MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "And is not allowed in target expression."
-	protected static final String MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Or is not allowed in target expression."
+	protected static final String MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Lazy And (&&) is not allowed, please use Eager And (&) instead."
+	protected static final String MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Lazy Or (||) is not allowed, please use Eager Or (||) instead."
 	protected static final String MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "AttributeFinderStep is not allowed in target expression."
 
 	/**
