@@ -57,15 +57,6 @@ class ResourcesVariablesAndCombinatorSourceTests {
                 })) {
 
             assertThrows(Exception.class, () -> new ResourcesVariablesAndCombinatorSource("/policies"));
-            //            var algo = configProvider.getCombiningAlgorithm().blockFirst();
-            //            var variables = configProvider.getVariables().blockFirst();
-            //            configProvider.dispose();
-            //
-            //            verify(mocked.constructed().get(0), times(1)).
-            //                    readValue(ArgumentMatchers.any(File.class), ArgumentMatchers.any(Class.class));
-            //
-            //            assertThat(algo.isEmpty(), is(true));
-            //            assertThat(variables.isEmpty(), is(true));
         }
     }
 
