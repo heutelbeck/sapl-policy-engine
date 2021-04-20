@@ -1,24 +1,23 @@
 package io.sapl.prp.filesystem;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
-
-import java.util.Collections;
-
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
 import io.sapl.util.filemonitoring.FileMonitorUtil;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.util.Collections;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
 class FileSystemPrpUpdateEventSourceTest {
 
@@ -34,16 +33,19 @@ class FileSystemPrpUpdateEventSourceTest {
 
             try (MockedStatic<FileMonitorUtil> mock = mockStatic(FileMonitorUtil.class)) {
                 mock.when(() -> FileMonitorUtil.monitorDirectory(any(), any()))
-                        .thenReturn(Flux.just(new FileCreatedEvent(null), new FileDeletedEvent(null)));
-
+                        .thenReturn(Flux
+                                .just(new FileCreatedEvent(null), new FileDeletedEvent(null)));
 
                 var updates = source.getUpdates();
-                            StepVerifier.create(updates)
-                                    .expectNextCount(1).thenCancel().verify();
+                StepVerifier.create(updates)
+                        .expectNextCount(2L)
+                        .thenCancel().verify();
 
 
                 mock.verify(() -> FileMonitorUtil.monitorDirectory(any(), any()), times(1));
             }
         }
+
+        source.dispose();
     }
 }
