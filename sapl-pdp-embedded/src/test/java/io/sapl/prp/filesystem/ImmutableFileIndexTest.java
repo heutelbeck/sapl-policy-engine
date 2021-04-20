@@ -1,5 +1,23 @@
 package io.sapl.prp.filesystem;
 
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEvent.Type;
+import io.sapl.util.filemonitoring.FileChangedEvent;
+import io.sapl.util.filemonitoring.FileCreatedEvent;
+import io.sapl.util.filemonitoring.FileDeletedEvent;
+import lombok.val;
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.MockedConstruction;
+import org.mockito.Mockito;
+
+import java.io.File;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -15,24 +33,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
-
-import java.io.File;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-
-import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.MockedConstruction;
-import org.mockito.Mockito;
-
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.prp.PrpUpdateEvent;
-import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.util.filemonitoring.FileChangedEvent;
-import io.sapl.util.filemonitoring.FileCreatedEvent;
-import io.sapl.util.filemonitoring.FileDeletedEvent;
 
 
 public class ImmutableFileIndexTest {
@@ -55,6 +55,7 @@ public class ImmutableFileIndexTest {
         when(indexMock.afterFileEvent(any())).thenCallRealMethod();
         when(indexMock.getUpdateEvent()).thenCallRealMethod();
 
+
         // WHEN
 
         // this will break the immutability of the index (the same mock will be returned
@@ -64,19 +65,33 @@ public class ImmutableFileIndexTest {
                     doNothing().when(mock).load(any());
                     doNothing().when(mock).unload(any());
                     doCallRealMethod().when(mock).change(any());
-//                    when(mock.becameInconsistentComparedTo(any())).thenReturn(true);
+                    //                    when(mock.becameInconsistentComparedTo(any())).thenReturn(true);
 
                     when(mock.afterFileEvent(any())).thenCallRealMethod();
                     when(mock.getUpdateEvent()).thenCallRealMethod();
                 })) {
 
             // DO
-           indexMock.afterFileEvent(new FileCreatedEvent(p1));
-            verify(mocked.constructed().get(0),times(1)).load(any());
+            indexMock.afterFileEvent(new FileCreatedEvent(p1));
+            verify(mocked.constructed().get(0), times(1)).load(any());
 
             indexMock.afterFileEvent(new FileChangedEvent(p1));
-            verify(mocked.constructed().get(1),times(1)).load(any());
+            verify(mocked.constructed().get(1), times(1)).load(any());
         }
+
+    }
+
+    @Test
+    void should_become_inconsistent_after_file_event() {
+        File notADirectoryFile = new File(folder, "not_a_directory_file");
+
+        val consistentIndex = new ImmutableFileIndex("src/test/resources/filemonitoring/empty", interpreter);
+        val inconsistentIndex = consistentIndex.afterFileEvent(new FileCreatedEvent(notADirectoryFile));
+
+        //
+        assertThat(Arrays.stream(inconsistentIndex.getUpdateEvent().getUpdates())
+                .anyMatch(update -> update.getType() == Type.INCONSISTENT), is(true));
+
 
     }
 
@@ -113,12 +128,6 @@ public class ImmutableFileIndexTest {
                 .anyMatch(update -> update.getType() == Type.UNPUBLISH), is(true));
     }
 
-    private void toggleInconsistent(boolean[] inconsistent, ImmutableFileIndex indexMock) {
-        when(indexMock.becameConsistentComparedTo(any())).thenReturn(!inconsistent[0]);
-        when(indexMock.becameInconsistentComparedTo(any())).thenReturn(inconsistent[0]);
-
-        inconsistent[0] = (!inconsistent[0]);
-    }
 
     @Test
     public void should_not_throw_exception_when_watchdir_can_not_be_opened() throws Exception {
@@ -167,4 +176,16 @@ public class ImmutableFileIndexTest {
                 .withProperty("type", is(Type.INCONSISTENT))));
     }
 
+    @Test
+    void testBecameConsistent() {
+        var consistentIndex = new ImmutableFileIndex("src/test/resources/filemonitoring/empty", interpreter);
+        var inconsistentIndex = new ImmutableFileIndex("src/test/resources/filemonitoring/invalid", interpreter);
+
+        assertThat(consistentIndex.becameConsistentComparedTo(inconsistentIndex), is(true));
+        assertThat(inconsistentIndex.becameInconsistentComparedTo(consistentIndex), is(true));
+
+        assertThat(inconsistentIndex.becameConsistentComparedTo(consistentIndex), is(false));
+        assertThat(consistentIndex.becameInconsistentComparedTo(inconsistentIndex), is(false));
+
+    }
 }
