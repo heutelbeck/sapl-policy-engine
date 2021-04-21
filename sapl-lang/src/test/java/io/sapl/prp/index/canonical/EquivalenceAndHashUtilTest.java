@@ -1,15 +1,16 @@
 package io.sapl.prp.index.canonical;
 
-import io.sapl.grammar.sapl.impl.StringLiteralImplCustom;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import io.sapl.grammar.sapl.impl.StringLiteralImplCustom;
 
 class EquivalenceAndHashUtilTest {
 

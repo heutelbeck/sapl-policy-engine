@@ -15,6 +15,12 @@
  */
 package io.sapl.pdp;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
+import org.reactivestreams.Publisher;
+
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
@@ -29,12 +35,7 @@ import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
 
 @Slf4j
 @RequiredArgsConstructor

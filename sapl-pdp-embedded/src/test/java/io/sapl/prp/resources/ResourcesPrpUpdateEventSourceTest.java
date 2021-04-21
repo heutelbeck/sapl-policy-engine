@@ -1,17 +1,18 @@
 package io.sapl.prp.resources;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.prp.PrpUpdateEvent.Update;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import java.util.Arrays;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.Arrays;
+
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.prp.PrpUpdateEvent.Update;
 
 class ResourcesPrpUpdateEventSourceTest {
 

@@ -15,41 +15,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.NullNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.prp.PolicyRetrievalResult;
-import io.sapl.prp.PrpUpdateEvent;
-import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.prp.PrpUpdateEvent.Update;
-import io.sapl.prp.index.ImmutableParsedDocumentIndex;
-import io.sapl.prp.index.canonical.ordering.NoPredicateOrderStrategy;
-import lombok.val;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -67,6 +32,42 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.prp.PolicyRetrievalResult;
+import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEvent.Type;
+import io.sapl.prp.PrpUpdateEvent.Update;
+import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.prp.index.canonical.ordering.NoPredicateOrderStrategy;
 
 @Timeout(5)
 class CanonicalImmutableParsedDocumentIndexTest {
@@ -358,7 +359,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
                     doReturn(null).when(mock).constructNew(any(), any());
                 })) {
 
-            val updatedIndex = emptyIndex.recreateIndex(saplMap, true);
+            emptyIndex.recreateIndex(saplMap, true);
             verify(mocked.constructed().get(0), times(1)).constructNew(any(), any());
         }
     }
@@ -377,7 +378,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
                     doReturn(null).when(mock).constructNew(any(), any());
                 })) {
 
-            val updatedIndex = emptyIndex.recreateIndex(saplMap, true);
+            emptyIndex.recreateIndex(saplMap, true);
             verify(mocked.constructed().get(0), times(1)).constructNew(any(), any());
         }
     }

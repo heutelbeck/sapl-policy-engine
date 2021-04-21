@@ -15,6 +15,10 @@
  */
 package io.sapl.prp.filesystem;
 
+import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
+
+import java.util.Optional;
+
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEventSource;
@@ -25,10 +29,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
-
-import java.util.Optional;
-
-import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
 
 @Slf4j
 public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {

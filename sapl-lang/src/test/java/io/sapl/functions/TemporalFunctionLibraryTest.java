@@ -200,12 +200,6 @@ class TemporalFunctionLibraryTest {
         assertThat(function.apply(Val.of("abc"), Val.of("def")).isError(), is(true));
     }
 
-    private void assertErrorValIsReturnedThreeArgs(BiFunction<Val, Val, Val> function) {
-        assertThat(function.apply(Val.NULL, Val.of((String) null)).isError(), is(true));
-        assertThat(function.apply(Val.UNDEFINED, Val.UNDEFINED).isError(), is(true));
-        assertThat(function.apply(Val.of("abc"), Val.of("def")).isError(), is(true));
-    }
-
     @Test
     void policyWithMatchingTemporalBody() {
         var policyDefinition = "policy \"test\" permit action == \"read\" where time.before(\"UTC\".<clock.now>, time.plusSeconds(\"UTC\".<clock.now>, 10));";

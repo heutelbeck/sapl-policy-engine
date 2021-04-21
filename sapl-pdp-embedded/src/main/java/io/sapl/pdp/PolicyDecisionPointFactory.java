@@ -15,6 +15,9 @@
  */
 package io.sapl.pdp;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.functions.FilterFunctionLibrary;
@@ -38,9 +41,6 @@ import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;
-
-import java.util.ArrayList;
-import java.util.Collection;
 
 public class PolicyDecisionPointFactory {
 

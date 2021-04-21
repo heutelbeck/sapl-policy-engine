@@ -1,23 +1,5 @@
 package io.sapl.prp.filesystem;
 
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.prp.PrpUpdateEvent;
-import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.util.filemonitoring.FileChangedEvent;
-import io.sapl.util.filemonitoring.FileCreatedEvent;
-import io.sapl.util.filemonitoring.FileDeletedEvent;
-import lombok.val;
-import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.MockedConstruction;
-import org.mockito.Mockito;
-
-import java.io.File;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -34,6 +16,25 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import java.io.File;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.MockedConstruction;
+import org.mockito.Mockito;
+
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEvent.Type;
+import io.sapl.util.filemonitoring.FileChangedEvent;
+import io.sapl.util.filemonitoring.FileCreatedEvent;
+import io.sapl.util.filemonitoring.FileDeletedEvent;
+import lombok.val;
+
 
 public class ImmutableFileIndexTest {
 
@@ -44,10 +45,6 @@ public class ImmutableFileIndexTest {
 
     @Test
     public void test_after_file_event() throws Exception {
-        final boolean[] inconsistent = {true};
-
-        //        var fileMock = mock(File.class);
-        //        when(fileMock.getName()).thenReturn("file");
         var p1 = new File(folder, "policy1.sapl");
 
 

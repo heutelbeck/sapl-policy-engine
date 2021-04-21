@@ -76,7 +76,7 @@ public class ClockPolicyInformationPointTickerTest {
 		when(jsonNodeMock.asText()).thenReturn(null);
 
 		var clockPip = new ClockPolicyInformationPoint();
-		var result = clockPip.now(Val.of(jsonNodeMock), Collections.emptyMap()).blockFirst();
+		clockPip.now(Val.of(jsonNodeMock), Collections.emptyMap()).blockFirst();
 	}
 
 }
