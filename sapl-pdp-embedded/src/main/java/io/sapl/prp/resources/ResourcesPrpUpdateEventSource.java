@@ -122,7 +122,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 		}
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(policiesDirectoryPath, POLICY_FILE_GLOB_PATTERN)) {
 			for (Path filePath : stream) {
-				log.info("loading SAPL document: {}", filePath);
+				log.debug("loading SAPL document: {}", filePath);
 				var rawDocument = readFile(filePath);
 				var saplDocument = interpreter.parse(rawDocument);
 				updates.add(new Update(Type.PUBLISH, saplDocument, rawDocument));

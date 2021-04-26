@@ -54,7 +54,7 @@ class ImmutableFileIndex {
 
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(watchDir), SAPL_GLOB_PATTERN)) {
 			for (var filePath : stream) {
-				log.info("loading SAPL document: {}", filePath);
+				log.debug("loading SAPL document: {}", filePath);
 				load(filePath);
 			}
 		} catch (IOException e) {
@@ -152,7 +152,7 @@ class ImmutableFileIndex {
 		}
 		documentsWithName.add(newDocument);
 		if (documentsWithName.size() == 1) {
-			log.info("The document has been parsed successfully. It will be published to the index.");
+			log.debug("The document has been parsed successfully. It will be published to the index.");
 			newDocument.setPublished(true);
 			updates.add(new Update(Type.PUBLISH, newDocument.getParsedDocument(), newDocument.getRawDocument()));
 		} else {
