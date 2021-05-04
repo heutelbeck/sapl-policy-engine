@@ -170,7 +170,7 @@ helm install   cert-manager jetstack/cert-manager   --namespace cert-manager   -
 Change the Email address in the Clusterissuer.yaml (Line email: user@email.com)
 
 ```shell
-wget https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-server-lt/kubernetes/clusterissuer.yml
+wget https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/clusterissuer.yml
 kubectl apply -f clusterissuer.yml -n your-namespace
 ```
 
@@ -182,13 +182,13 @@ First apply the Persistent Volume yaml
 
 ```shell
 kubectl create namespace sapl-server-lt
-kubectl apply -f https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-server-lt/kubernetes/sapl-server-lt-pv.yml -n sapl-server-lt
+kubectl apply -f https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-pv.yml -n sapl-server-lt
 ```
 
 Then download the Baremetal yaml file 
 
 ```shell
-wget https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-server-lt/kubernetes/sapl-server-lt-baremetal.yml
+wget https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-baremetal.yml
 ```
 
 change the URL in the Ingress section 
@@ -225,7 +225,7 @@ Apply the sapl.server-lt.yml file
 
 ```shell
 kubectl create namespace sapl-server-lt
-kubectl apply -f https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-server-lt/kubernetes/sapl-server-lt.yml -n sapl-server-lt
+kubectl apply -f https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt.yml -n sapl-server-lt
 ```
 
 The URL is sapl.lt.local and has to be added to the hosts file (which is located in ```%windir%\system32\drivers\etc```) add the Line 
