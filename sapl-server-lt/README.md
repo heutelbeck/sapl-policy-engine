@@ -182,7 +182,7 @@ First apply the Persistent Volume yaml
 
 ```shell
 kubectl create namespace sapl-server-lt
-kubectl apply -f https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-server-lt/kubernetes/clusterissuer.yml -n sapl-server-lt
+kubectl apply -f https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-server-lt/kubernetes/sapl-server-lt-pv.yml -n sapl-server-lt
 ```
 
 Then download the Baremetal yaml file 
