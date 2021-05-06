@@ -15,13 +15,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
@@ -33,6 +26,13 @@ import io.sapl.prp.index.canonical.ordering.DefaultPredicateOrderStrategy;
 import io.sapl.prp.index.canonical.ordering.PredicateOrderStrategy;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
@@ -64,6 +64,8 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 
         this.indexDataContainer = new CanonicalIndexDataCreationStrategy(predicateOrderStrategy).constructNew(documents,
                 targets);
+
+        log.info("created CanonicalImmutableParsedDocumentIndex");
     }
 
     CanonicalImmutableParsedDocumentIndex recreateIndex(Map<String, SAPL> updatedDocuments, boolean consistent) {
@@ -73,6 +75,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 
     @Override
     public Mono<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext) {
+        log.info("evaluating {} documents", documents.size());
         if (!consistent) {
             return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true, false));
         }

@@ -88,4 +88,6 @@ public class CanonicalIndexMatchingContext {
     void removeCandidates(Bitmask candidatesToRemove) {
         candidatesMask.andNot(candidatesToRemove);
     }
+
+
 }
