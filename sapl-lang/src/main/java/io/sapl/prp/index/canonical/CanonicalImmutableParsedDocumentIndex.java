@@ -75,7 +75,6 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 
     @Override
     public Mono<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext) {
-        log.info("evaluating {} documents", documents.size());
         if (!consistent) {
             return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true, false));
         }
