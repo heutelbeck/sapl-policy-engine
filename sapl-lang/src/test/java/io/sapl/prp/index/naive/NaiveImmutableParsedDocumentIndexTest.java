@@ -1,5 +1,17 @@
 package io.sapl.prp.index.naive;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEvent.Type;
+import io.sapl.prp.PrpUpdateEvent.Update;
+import lombok.val;
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -7,19 +19,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import org.junit.jupiter.api.Test;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.prp.PrpUpdateEvent;
-import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.prp.PrpUpdateEvent.Update;
-import lombok.val;
-import reactor.core.publisher.Mono;
 
 class NaiveImmutableParsedDocumentIndexTest {
 
@@ -82,16 +81,19 @@ class NaiveImmutableParsedDocumentIndexTest {
         when(saplMock1.matches(any())).thenReturn(Mono.just(Val.TRUE));
 
         val saplMock2 = mock(SAPL.class, RETURNS_DEEP_STUBS);
+        val valMock2 = mock(Val.class);
+        when(valMock2.isBoolean()).thenReturn(false);
+        when(valMock2.isError()).thenReturn(true);
+        when(valMock2.getMessage()).thenReturn("Error Val");
         when(saplMock2.getPolicyElement().getSaplName()).thenReturn("SAPL2");
-        when(saplMock2.matches(any())).thenReturn(Mono.just(Val.error()));
+        when(saplMock2.matches(any())).thenReturn(Mono.just(valMock2));
 
         val saplMock3 = mock(SAPL.class, RETURNS_DEEP_STUBS);
-        val valMock = mock(Val.class);
-        when(valMock.isBoolean()).thenReturn(false);
-        when(valMock.getMessage()).thenReturn("i'm not a boolean");
+        val valMock3 = mock(Val.class);
+        when(valMock3.isBoolean()).thenReturn(false);
+        when(valMock3.getMessage()).thenReturn("i'm not a boolean");
         when(saplMock3.getPolicyElement().getSaplName()).thenReturn("SAPL3");
-        when(saplMock3.matches(any())).thenReturn(Mono.just(valMock));
-
+        when(saplMock3.matches(any())).thenReturn(Mono.just(valMock3));
 
         val saplMock4 = mock(SAPL.class, RETURNS_DEEP_STUBS);
         when(saplMock4.getPolicyElement().getSaplName()).thenReturn("SAPL4");

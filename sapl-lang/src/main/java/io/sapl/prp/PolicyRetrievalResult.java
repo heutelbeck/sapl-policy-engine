@@ -15,28 +15,16 @@
  */
 package io.sapl.prp;
 
-import com.google.common.collect.Sets;
-import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
-import io.sapl.grammar.sapl.SAPL;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
 
-@Slf4j
 @NoArgsConstructor
 @AllArgsConstructor
 public class PolicyRetrievalResult {
@@ -115,76 +103,6 @@ public class PolicyRetrievalResult {
     public String toString() {
         return "PolicyRetrievalResult(" + "matchingDocuments=" + getMatchingDocuments() + ", errorsInTarget="
                 + isErrorsInTarget() + ")";
-    }
-
-    public static class PolicyRetrievalResultCollector<T extends Pair<SAPL, Val>> implements Collector<T, Builder, PolicyRetrievalResult> {
-
-        @Override
-        public Supplier<Builder> supplier() {
-            return Builder::builder;
-        }
-
-        @Override
-        public BiConsumer<Builder, T> accumulator() {
-            return Builder::add;
-        }
-
-        @Override
-        public BinaryOperator<Builder> combiner() {
-            return (left, right) -> left.combine(right.build());
-        }
-
-        @Override
-        public Function<Builder, PolicyRetrievalResult> finisher() {
-            return Builder::build;
-        }
-
-        @Override
-        public Set<Characteristics> characteristics() {
-            return Sets.immutableEnumSet(Characteristics.UNORDERED);
-        }
-
-        public static <T extends Pair<SAPL, Val>> PolicyRetrievalResultCollector<T> toResult() {
-            return new PolicyRetrievalResultCollector<>();
-        }
-    }
-
-    private static class Builder {
-
-        private PolicyRetrievalResult result = new PolicyRetrievalResult();
-
-        public static Builder builder() {
-            return new Builder();
-        }
-
-        public static void add(Builder policyRetrievalResultBuilder, Pair<SAPL, Val> pair) {
-            policyRetrievalResultBuilder.addPair(pair);
-        }
-
-        private void addPair(Pair<SAPL, Val> pair) {
-            var document = pair.getKey();
-            var match = pair.getValue();
-
-            if (match.isError()) {
-                result = result.withError();
-            }
-            if (!match.isBoolean()) {
-                log.error("matching returned error. (Should never happen): {}", match.getMessage());
-                result = result.withError();
-            }
-            if (match.getBoolean()) {
-                result = result.withMatch(document);
-            }
-        }
-
-        public PolicyRetrievalResult build() {
-            return result;
-        }
-
-        public Builder combine(PolicyRetrievalResult build) {
-            build.getMatchingDocuments().forEach(result::withMatch);
-            return this;
-        }
     }
 
 }

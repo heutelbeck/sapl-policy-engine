@@ -15,11 +15,11 @@
  */
 package io.sapl.prp.index.naive;
 
+import com.google.common.collect.Sets;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.PolicyRetrievalResult;
-import io.sapl.prp.PolicyRetrievalResult.PolicyRetrievalResultCollector;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
@@ -31,7 +31,12 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
@@ -58,7 +63,6 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
     @Override
     public Mono<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext) {
         return retrievePoliciesCollector(subscriptionScopedEvaluationContext);
-        //        return retrievePoliciesAccumulate(subscriptionScopedEvaluationContext);
     }
 
     public Mono<PolicyRetrievalResult> retrievePoliciesCollector(EvaluationContext subscriptionScopedEvaluationContext) {
@@ -72,47 +76,11 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
                         .map(val -> Pair.of(document, val))
                 ).collect(Collectors.toList());
 
-        Flux<Pair<SAPL, Val>> valFlux = Flux.concat(valMonoList);
+        var valFlux = Flux.concat(valMonoList);
 
         return valFlux.collect(PolicyRetrievalResultCollector.toResult());
     }
 
-    public Mono<PolicyRetrievalResult> retrievePoliciesAccumulate(EvaluationContext subscriptionScopedEvaluationContext) {
-        var retrieval = Mono.just(new PolicyRetrievalResult());
-        if (!consistent) {
-            return retrieval.map(PolicyRetrievalResult::withInvalidState);
-        }
-
-        for (SAPL document : documents.values()) {
-            retrieval = retrieval.flatMap(retrievalResult -> accumulate(retrievalResult, document, subscriptionScopedEvaluationContext));
-        }
-
-        return retrieval;
-    }
-
-
-    private Mono<PolicyRetrievalResult> accumulate(PolicyRetrievalResult retrievalResult,
-                                                   SAPL document, EvaluationContext subscriptionScopedEvaluationContext) {
-
-        return document.matches(subscriptionScopedEvaluationContext)
-                .map(handleMatchResult(retrievalResult, document));
-    }
-
-    static Function<Val, PolicyRetrievalResult> handleMatchResult(PolicyRetrievalResult retrievalResult, SAPL document) {
-        return match -> {
-            if (match.isError()) {
-                return retrievalResult.withError();
-            }
-            if (!match.isBoolean()) {
-                log.error("matching returned error. (Should never happen): {}", match.getMessage());
-                return retrievalResult.withError();
-            }
-            if (match.getBoolean()) {
-                return retrievalResult.withMatch(document);
-            }
-            return retrievalResult;
-        };
-    }
 
     @Override
     public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
@@ -137,6 +105,77 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
             newDocuments.remove(name);
         } else if (update.getType() == Type.PUBLISH) {
             newDocuments.put(name, update.getDocument());
+        }
+    }
+
+    public static class PolicyRetrievalResultCollector<T extends Pair<SAPL, Val>>
+            implements Collector<T, PolicyRetrievalResultBuilder, PolicyRetrievalResult> {
+
+        @Override
+        public Supplier<PolicyRetrievalResultBuilder> supplier() {
+            return PolicyRetrievalResultBuilder::builder;
+        }
+
+        @Override
+        public BiConsumer<PolicyRetrievalResultBuilder, T> accumulator() {
+            return PolicyRetrievalResultBuilder::add;
+        }
+
+        @Override
+        public BinaryOperator<PolicyRetrievalResultBuilder> combiner() {
+            return (left, right) -> left.combine(right.build());
+        }
+
+        @Override
+        public Function<PolicyRetrievalResultBuilder, PolicyRetrievalResult> finisher() {
+            return PolicyRetrievalResultBuilder::build;
+        }
+
+        @Override
+        public Set<Characteristics> characteristics() {
+            return Sets.immutableEnumSet(Characteristics.UNORDERED);
+        }
+
+        public static <T extends Pair<SAPL, Val>> PolicyRetrievalResultCollector<T> toResult() {
+            return new PolicyRetrievalResultCollector<>();
+        }
+    }
+
+    private static class PolicyRetrievalResultBuilder {
+
+        private PolicyRetrievalResult result = new PolicyRetrievalResult();
+
+        public static PolicyRetrievalResultBuilder builder() {
+            return new PolicyRetrievalResultBuilder();
+        }
+
+        public static void add(PolicyRetrievalResultBuilder policyRetrievalResultBuilder, Pair<SAPL, Val> pair) {
+            policyRetrievalResultBuilder.addPair(pair);
+        }
+
+        private void addPair(Pair<SAPL, Val> pair) {
+            var document = pair.getKey();
+            var match = pair.getValue();
+
+            if (match.isError()) {
+                result = result.withError();
+            }
+            if (!match.isBoolean()) {
+                log.error("matching returned error. (Should never happen): {}", match.getMessage());
+                result = result.withError();
+            }
+            if (match.getBoolean()) {
+                result = result.withMatch(document);
+            }
+        }
+
+        public PolicyRetrievalResult build() {
+            return result;
+        }
+
+        public PolicyRetrievalResultBuilder combine(PolicyRetrievalResult build) {
+            build.getMatchingDocuments().forEach(result::withMatch);
+            return this;
         }
     }
 
