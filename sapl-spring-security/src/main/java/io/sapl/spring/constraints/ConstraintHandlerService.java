@@ -127,19 +127,23 @@ public class ConstraintHandlerService {
 	 * constraint are present.
 	 * 
 	 * A constraint is considered to be handled successfully, if all
-	 * ConstraintHandlers capable of handling the constraint succeed.
+	 * ConstraintHandlers capable of handling the constraint succeed and there is at
+	 * least one such handler.
 	 * 
 	 * @param constraint a constraint
 	 * @return true, iff at least one ConstraintHandler successfully handled the
 	 *         constraint.
 	 */
 	private boolean handleConstraint(JsonNode constraint) {
-		boolean success = true;
+		boolean no_failure_to_handle = true;
+		boolean has_been_handled = false;
 		for (ConstraintHandler handler : constraintHandlers)
-			if (handler.canHandle(constraint))
-				success &= handler.handle(constraint);
-
-		return success;
+			if (handler.canHandle(constraint)) {
+				boolean constraint_handled_successfully = handler.handle(constraint);
+				no_failure_to_handle &= constraint_handled_successfully;
+				has_been_handled |= constraint_handled_successfully;
+			}
+		return no_failure_to_handle && has_been_handled;
 	}
 
 }
