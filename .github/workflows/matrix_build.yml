@@ -39,8 +39,8 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-maven-
           
-    - name: Run tests with maven 
-      run: mvn -B test
+#    - name: Run tests with maven 
+#      run: mvn -B test
 
     - name: Trigger CI build of downstream repositories
       run: |
@@ -79,10 +79,10 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-maven-
           
-    - name: Run analysis (JaCoCo, Sonar) 
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent package org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*
+#    - name: Run analysis (JaCoCo, Sonar) 
+#      env:
+#        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#      run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent package org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*
   
   dockerize:  
     needs: [tests]
@@ -124,11 +124,14 @@ jobs:
           ${{ runner.os }}-maven-
 
     - name: Package 
-      run: mvn -B package -DskipTests || exit 1
+      run: mvn -B install -DskipTests || exit 1
     - name: Build docker image
       run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
     - name: Push image
       run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
+  
+    - name: Clean up local repository before caching
+      run: rm -rf /.m2/repository/io/sapl
  
   deploy:  
     needs: [tests]
