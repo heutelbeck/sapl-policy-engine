@@ -25,9 +25,11 @@ import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.tuple.Pair;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,17 +48,17 @@ import java.util.stream.Collectors;
 @Slf4j
 @ToString
 public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
-    // Mapping of Document Name to the parsed Document
-    private final Map<String, SAPL> documents;
+    private final Map<String, SAPL> documentsByName;
     private final boolean consistent;
 
+
     public NaiveImmutableParsedDocumentIndex() {
-        documents = new HashMap<>();
+        documentsByName = new HashMap<>();
         consistent = true;
     }
 
-    private NaiveImmutableParsedDocumentIndex(Map<String, SAPL> documents, boolean consistent) {
-        this.documents = documents;
+    private NaiveImmutableParsedDocumentIndex(Map<String, SAPL> documentsByName, boolean consistent) {
+        this.documentsByName = documentsByName;
         this.consistent = consistent;
     }
 
@@ -66,26 +68,35 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
     }
 
     public Mono<PolicyRetrievalResult> retrievePoliciesCollector(EvaluationContext subscriptionScopedEvaluationContext) {
-        var retrieval = Mono.just(new PolicyRetrievalResult());
-        if (!consistent) {
-            return retrieval.map(PolicyRetrievalResult::withInvalidState);
-        }
+        if (!consistent)
+            return Mono.just(new PolicyRetrievalResult().withInvalidState());
 
-        var valMonoList = documents.values().stream()
+        var documentsWithMatchingInformation = Flux.merge(documentsByName.values().stream()
                 .map(document -> document.matches(subscriptionScopedEvaluationContext)
-                        .map(val -> Pair.of(document, val))
-                ).collect(Collectors.toList());
+                        .map(val -> Tuples.of(document, val))
+                ).collect(Collectors.toList()));
 
-        var valFlux = Flux.concat(valMonoList);
+        //refactor inner lambda to function
+        return documentsWithMatchingInformation.reduce(new PolicyRetrievalResult(), (policyRetrievalResult, documentWithMatchingInformation) -> {
+            val match = documentWithMatchingInformation.getT2();
+            if (match.isError())
+                return policyRetrievalResult.withError();
+            if (!match.isBoolean()) {
+                log.error("matching returned error. (Should never happen): {}", match.getMessage());
+                return policyRetrievalResult.withError();
+            }
+            if (match.getBoolean())
+                return policyRetrievalResult.withMatch(documentWithMatchingInformation.getT1());
 
-        return valFlux.collect(PolicyRetrievalResultCollector.toResult());
+            return policyRetrievalResult;
+        });
     }
 
 
     @Override
     public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
         // Do a shallow copy. String is immutable, and SAPL is assumed to be too.
-        var newDocuments = new HashMap<>(documents);
+        var newDocuments = new HashMap<>(documentsByName);
         var newConsistencyState = consistent;
         for (var update : event.getUpdates()) {
             if (update.getType() == Type.CONSISTENT) {

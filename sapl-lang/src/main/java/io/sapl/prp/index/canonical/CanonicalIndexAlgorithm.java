@@ -15,27 +15,19 @@
  */
 package io.sapl.prp.index.canonical;
 
-import com.google.common.collect.Sets;
-import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.UtilityClass;
-import org.apache.commons.lang3.tuple.Pair;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @UtilityClass
@@ -46,15 +38,25 @@ public class CanonicalIndexAlgorithm {
     }
 
     public Mono<PolicyRetrievalResult> matchCollector(EvaluationContext subscriptionScopedEvaluationCtx, CanonicalIndexDataContainer dataContainer) {
-        var initialMatchingCtx = new CanonicalIndexMatchingContext(dataContainer.getNumberOfConjunctions(), subscriptionScopedEvaluationCtx);
+        var predicatesWithEvaluationResult = Flux.concat(dataContainer.getPredicateOrder().stream()
+                .map(predicate -> predicate.evaluate(subscriptionScopedEvaluationCtx)
+                        .map(val -> Tuples.of(predicate, val))
+                ).collect(Collectors.toList()));
 
-        var monoList = dataContainer.getPredicateOrder().stream()
-                .map(predicate -> predicate.evaluate(initialMatchingCtx.getSubscriptionScopedEvaluationContext())
-                        .map(val -> Pair.of(predicate, val))
-                ).collect(Collectors.toList());
+        var matchingCtxMono = predicatesWithEvaluationResult
+                .reduce(new CanonicalIndexMatchingContext(dataContainer.getNumberOfConjunctions(), subscriptionScopedEvaluationCtx),
+                        (matchingCtx, predicateWithEvaluationResult) -> {
+                            var predicate = predicateWithEvaluationResult.getT1();
+                            var evaluationResult = predicateWithEvaluationResult.getT2();
 
-        var fluxOfPairs = Flux.concat(monoList);
-        var matchingCtxMono = fluxOfPairs.collect(MatchingContextCollector.toContext(initialMatchingCtx, dataContainer));
+                            if (evaluationResult.isError()) {
+                                handleErrorEvaluationResult(predicate, matchingCtx);
+                            } else {
+                                updateCandidatesInMatchingContext(predicate, evaluationResult.getBoolean(), matchingCtx, dataContainer);
+                            }
+                            return matchingCtx;
+                        }
+                );
 
         return matchingCtxMono.map(matchingCtx -> {
             var matching = matchingCtx.getMatchingCandidatesMask();
@@ -163,78 +165,6 @@ public class CanonicalIndexAlgorithm {
             result.and(predicate.getFalseForFalsePredicate());
 
         return result;
-    }
-
-    @RequiredArgsConstructor
-    public static class MatchingContextCollector<T extends Pair<Predicate, Val>> implements Collector<T, Builder, CanonicalIndexMatchingContext> {
-
-        private final CanonicalIndexMatchingContext initialContext;
-        private final CanonicalIndexDataContainer dataContainer;
-
-        @Override
-        public Supplier<Builder> supplier() {
-            return () -> Builder.builder(initialContext, dataContainer);
-        }
-
-        @Override
-        public BiConsumer<Builder, T> accumulator() {
-            return Builder::add;
-        }
-
-        @Override
-        public BinaryOperator<Builder> combiner() {
-            return (left, right) -> left.combine(right.build());
-        }
-
-        @Override
-        public Function<Builder, CanonicalIndexMatchingContext> finisher() {
-            return Builder::build;
-        }
-
-        @Override
-        public Set<Characteristics> characteristics() {
-            return Sets.immutableEnumSet(Characteristics.UNORDERED);
-        }
-
-        public static <T extends Pair<Predicate, Val>> MatchingContextCollector<T> toContext(CanonicalIndexMatchingContext initialContext,
-                                                                                             CanonicalIndexDataContainer dataContainer) {
-            return new MatchingContextCollector<>(initialContext, dataContainer);
-        }
-    }
-
-    @RequiredArgsConstructor
-    private static class Builder {
-
-        private final CanonicalIndexMatchingContext matchingCtx;
-        private final CanonicalIndexDataContainer dataContainer;
-
-        public static Builder builder(CanonicalIndexMatchingContext initial, CanonicalIndexDataContainer dataContainer) {
-            return new Builder(initial, dataContainer);
-        }
-
-        public static void add(Builder policyRetrievalResultBuilder, Pair<Predicate, Val> pair) {
-            policyRetrievalResultBuilder.addPair(pair);
-        }
-
-        private void addPair(Pair<Predicate, Val> pair) {
-            var predicate = pair.getKey();
-            var evaluationResult = pair.getValue();
-
-            if (evaluationResult.isError()) {
-                handleErrorEvaluationResult(predicate, matchingCtx);
-            } else {
-                updateCandidatesInMatchingContext(predicate, evaluationResult.getBoolean(), matchingCtx, dataContainer);
-            }
-        }
-
-        public CanonicalIndexMatchingContext build() {
-            return matchingCtx;
-        }
-
-        public Builder combine(CanonicalIndexMatchingContext otherContext) {
-            matchingCtx.addSatisfiedCandidates(otherContext.getMatchingCandidatesMask());
-            return this;
-        }
     }
 
 }

@@ -26,8 +26,6 @@ class NaiveImmutableParsedDocumentIndexTest {
     void testConstruction() {
         val index = new NaiveImmutableParsedDocumentIndex();
         assertThat(index, notNullValue());
-
-        assertThat(index.toString(), is("NaiveImmutableParsedDocumentIndex(documents={}, consistent=true)"));
     }
 
     @Test
