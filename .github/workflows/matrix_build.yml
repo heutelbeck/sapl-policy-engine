@@ -149,14 +149,6 @@ jobs:
               "id": "ossrh", 
               "username": "${{ secrets.OSSRH_USERNAME }}",
               "password": "${{ secrets.OSSRH_PASSWORD }}"
-           },{
-              "id": "ghcr.io",
-              "username": "${{ secrets.GHUB_USERNAME }}", 
-              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
-           },{
-              "id": "github", 
-              "username": "${{ secrets.GHUB_USERNAME }}",
-              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            }]
 
     - name: Check out
@@ -178,6 +170,11 @@ jobs:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           ${{ runner.os }}-maven-
+
+    - name: Install GPG Code Signing Key
+      run: |
+        cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+        gpg --list-secret-keys --keyid-format LONG
           
     - name: Deploy Maven artefacts
       run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -DskipTests deploy      
