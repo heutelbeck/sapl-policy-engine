@@ -55,13 +55,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-maven-
           
-    - name: Build 
-      run: mvn -B install
+    - name: Build Modules 
+      run: mvn -B install -DskipTests
 
-    - name: Build and push SAPL Server LT Docker image
-      run: |
-        mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests|| exit 1
-        mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
+    - name: Build SAPL Server LT image
+      run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
+      
+    - name: Push image
+      run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
                   
     - name: Clean up local repository before caching
       run: rm -rf /.m2/repository/io/sapl
