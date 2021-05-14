@@ -187,8 +187,8 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-maven-
           
-    - name: Build Modules 
-      run: mvn -B install -DskipTests
+#    - name: Build Modules 
+#      run: mvn -B install -DskipTests
 
     - name: Install GPG Code Signing Key
       run: |
