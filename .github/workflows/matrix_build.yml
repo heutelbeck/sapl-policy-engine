@@ -110,10 +110,6 @@ jobs:
               "id": "ghcr.io",
               "username": "${{ secrets.GHUB_USERNAME }}", 
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
-           },{
-              "id": "github", 
-              "username": "${{ secrets.GHUB_USERNAME }}",
-              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            }]
     
     - name: Set up Node.js
