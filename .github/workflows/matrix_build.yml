@@ -27,7 +27,7 @@ jobs:
         distribution: 'adopt'
         java-version: ${{ matrix.java }}
 
-    - name: Set up Node.js
+    - name: Set up Node.js 14 LTS
       uses: actions/setup-node@v2
       with:
         node-version: '14'
@@ -99,6 +99,10 @@ jobs:
               "id": "ghcr.io",
               "username": "${{ secrets.GHUB_USERNAME }}", 
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+           },{
+              "id": "github", 
+              "username": "${{ secrets.GHUB_USERNAME }}",
+              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            }]
 
     - name: Check out
@@ -141,6 +145,10 @@ jobs:
               "id": "ossrh", 
               "username": "${{ secrets.OSSRH_USERNAME }}",
               "password": "${{ secrets.OSSRH_PASSWORD }}"
+           },{
+              "id": "github", 
+              "username": "${{ secrets.GHUB_USERNAME }}",
+              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            }]
     
     - name: Check out
