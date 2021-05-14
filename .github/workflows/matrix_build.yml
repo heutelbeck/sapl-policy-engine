@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         java: [ '11' ] # , '16' ]
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest] #, windows-latest, macos-latest]
     name: JDK ${{ matrix.java }} on ${{ matrix.os }} 
     runs-on: ${{ matrix.os }}
     
