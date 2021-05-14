@@ -9,7 +9,7 @@ jobs:
   tests:
     strategy:
       matrix:
-        java: [ '11', '16' ]
+        java: [ '11' ] # , '16' ]
         os: [ubuntu-latest, windows-latest, macos-latest]
     name: Run Tests on ${{ matrix.os }} with JDK ${{ matrix.java }}
     runs-on: ${{ matrix.os }}
@@ -42,6 +42,13 @@ jobs:
           
     - name: Run tests with maven 
       run: mvn -B test
+
+    - name: Trigger CI build of downstream repositories
+      run: |
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-server/dispatches --data '{"event_type": "build_application"}'
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-benchmark/dispatches --data '{"event_type": "build_application"}'
 
   analyze:  
     needs: [tests]
@@ -88,4 +95,59 @@ jobs:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent package org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*
-      
+  
+  dockerize:  
+    needs: [tests]
+    name: Build SAPL server images and publish
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out
+      uses: actions/checkout@v2
+      with:
+        # avoid shallow clone to ensure correct sonarqube auto assignment
+        fetch-depth: 0
+        
+    - name: Set up JDK 11
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'adopt'
+        java-version: 11
+
+  deploy:  
+    needs: [tests]
+    name: Deploy maven artifacts to maven central
+    runs-on: ubuntu-latest
+    steps:
+    - name: Configure servers
+      uses: s4u/maven-settings-action@v2.3.0
+      with:
+        githubServer: false
+        servers: |
+          [{
+              "id": "ossrh", 
+              "username": "${{ secrets.OSSRH_USERNAME }}",
+              "password": "${{ secrets.OSSRH_PASSWORD }}"
+           }]
+    
+    - name: Check out
+      uses: actions/checkout@v2
+      with:
+        # avoid shallow clone to ensure correct sonarqube auto assignment
+        fetch-depth: 0
+        
+    - name: Set up JDK 11
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'adopt'
+        java-version: 11
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v2      
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+          
+    - name: Deploy Maven artefacts
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -DskipTests deploy      
