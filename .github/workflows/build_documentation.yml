@@ -1,4 +1,4 @@
-name: build_documentation
+name: Push documentation to sapl.io
 
 on:
   push:
