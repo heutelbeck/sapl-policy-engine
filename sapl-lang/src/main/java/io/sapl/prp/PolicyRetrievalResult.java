@@ -15,16 +15,18 @@
  */
 package io.sapl.prp;
 
-import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.eclipse.emf.ecore.util.EcoreUtil;
-
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 
+import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+@ToString
+@EqualsAndHashCode
 @NoArgsConstructor
 @AllArgsConstructor
 public class PolicyRetrievalResult {
@@ -51,58 +53,6 @@ public class PolicyRetrievalResult {
 
     public PolicyRetrievalResult withInvalidState() {
         return new PolicyRetrievalResult(new ArrayList<AuthorizationDecisionEvaluable>(matchingDocuments), errorsInTarget, false);
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-        if (other == null || other.getClass() != this.getClass()) {
-            return false;
-        }
-        final PolicyRetrievalResult otherResult = (PolicyRetrievalResult) other;
-        if (!areEqual(this.getMatchingDocuments(), otherResult.getMatchingDocuments())) {
-            return false;
-        }
-        return this.isErrorsInTarget() == otherResult.isErrorsInTarget();
-    }
-
-    private static boolean areEqual(Collection<? extends AuthorizationDecisionEvaluable> thisMatchingDocuments,
-                                    Collection<? extends AuthorizationDecisionEvaluable> otherMatchingDocuments) {
-        if (thisMatchingDocuments == null) {
-            return otherMatchingDocuments == null;
-        }
-        if (otherMatchingDocuments == null) {
-            return false;
-        }
-        if (thisMatchingDocuments.size() != otherMatchingDocuments.size()) {
-            return false;
-        }
-        final Iterator<? extends AuthorizationDecisionEvaluable> thisIterator = thisMatchingDocuments.iterator();
-        final Iterator<? extends AuthorizationDecisionEvaluable> otherIterator = otherMatchingDocuments.iterator();
-        while (thisIterator.hasNext()) {
-            if (!EcoreUtil.equals(thisIterator.next(), otherIterator.next())) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        var prime = 59;
-        var result = 1;
-        final Collection<? extends AuthorizationDecisionEvaluable> thisMatchingDocuments = getMatchingDocuments();
-        result = result * prime + (thisMatchingDocuments == null ? 43 : thisMatchingDocuments.hashCode());
-        result = result * prime + (isErrorsInTarget() ? 79 : 97);
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "PolicyRetrievalResult(" + "matchingDocuments=" + getMatchingDocuments() + ", errorsInTarget="
-                + isErrorsInTarget() + ")";
     }
 
 }
