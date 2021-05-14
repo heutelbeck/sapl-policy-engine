@@ -44,6 +44,7 @@ jobs:
       run: mvn -B test
 
   analyze:  
+    needs: [tests]
     name: Perform Static code analysis and calculate test coverage (JDK 11 and Ubuntu)
     runs-on: ubuntu-latest
     steps:
