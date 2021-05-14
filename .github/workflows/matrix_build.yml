@@ -96,6 +96,10 @@ jobs:
         githubServer: false
         servers: |
           [{
+              "id": "ossrh", 
+              "username": "${{ secrets.OSSRH_USERNAME }}",
+              "password": "${{ secrets.OSSRH_PASSWORD }}"
+           },{
               "id": "ghcr.io",
               "username": "${{ secrets.GHUB_USERNAME }}", 
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
@@ -146,11 +150,15 @@ jobs:
               "username": "${{ secrets.OSSRH_USERNAME }}",
               "password": "${{ secrets.OSSRH_PASSWORD }}"
            },{
+              "id": "ghcr.io",
+              "username": "${{ secrets.GHUB_USERNAME }}", 
+              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+           },{
               "id": "github", 
               "username": "${{ secrets.GHUB_USERNAME }}",
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            }]
-    
+
     - name: Check out
       uses: actions/checkout@v2
       with:
