@@ -1,28 +1,35 @@
 package io.sapl.pdp.config.resources;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mockStatic;
-
-import java.io.File;
-import java.io.IOException;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
+import io.sapl.util.JarPathUtil;
+import io.sapl.util.filemonitoring.FileCreatedEvent;
+import io.sapl.util.filemonitoring.FileDeletedEvent;
+import io.sapl.util.filemonitoring.FileMonitorUtil;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
-import io.sapl.util.filemonitoring.FileCreatedEvent;
-import io.sapl.util.filemonitoring.FileDeletedEvent;
-import io.sapl.util.filemonitoring.FileMonitorUtil;
 import reactor.core.publisher.Flux;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Paths;
+import java.util.zip.ZipFile;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 //@Disabled
 class ResourcesVariablesAndCombinatorSourceTests {
@@ -78,4 +85,79 @@ class ResourcesVariablesAndCombinatorSourceTests {
             assertThat(algo.get() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
         }
     }
+
+    @Test
+    void test_read_config_from_jar() throws Exception {
+        var url = Paths.get("src/test/resources/policies_in_jar.jar!/policies").toUri().toURL();
+        val jarPathElements = url.toString().split("!");
+
+        var source = new ResourcesVariablesAndCombinatorSource("");
+
+        try (MockedStatic<JarPathUtil> mock = mockStatic(JarPathUtil.class)) {
+            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(jarPathElements[0].substring("file:".length()));
+
+            var config = source.readConfigFromJar(url);
+
+            assertThat(config, notNullValue());
+        }
+    }
+
+    @Test
+    void test_read_missing_config_from_jar() throws Exception {
+        var url = Paths.get("src/test/resources/policies_in_jar.jar!/missing_folder").toUri().toURL();
+        val jarPathElements = url.toString().split("!");
+
+        var source = new ResourcesVariablesAndCombinatorSource("");
+
+        try (MockedStatic<JarPathUtil> mock = mockStatic(JarPathUtil.class)) {
+            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(jarPathElements[0].substring("file:".length()));
+
+            var config = source.readConfigFromJar(url);
+
+            assertThat(config, notNullValue());
+        }
+    }
+
+    @Test
+    void throw_exception_when_initialized_with_resource_that_cannot_be_found() {
+        assertThrows(RuntimeException.class, () -> new ResourcesVariablesAndCombinatorSource("kljsdfklösöfdjs/dklsjdsaöfs"));
+    }
+
+    @Test
+    void propagate_exception_caught_while_reading_config_from_directory() throws Exception {
+        var urlMock = mock(URL.class);
+        when(urlMock.toURI()).thenThrow(new URISyntaxException("", ""));
+
+        var source = new ResourcesVariablesAndCombinatorSource("");
+
+        assertThrows(RuntimeException.class, () -> source.readConfigFromDirectory(urlMock));
+    }
+
+    @Test
+    void propagate_exception_caught_while_reading_config_from_jar() throws Exception {
+
+        val url = Paths.get("src/test/resources/policies_in_jar.jar!/policies").toUri().toURL();
+        val jarPathElements = url.toString().split("!");
+        val jarFilePath = jarPathElements[0].substring("file:".length());
+        val zipFile = new ZipFile(jarFilePath);
+
+        val source = new ResourcesVariablesAndCombinatorSource("");
+
+        try (MockedStatic<JarPathUtil> mock = mockStatic(JarPathUtil.class)) {
+            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(jarFilePath);
+
+
+            try (MockedConstruction<ZipFile> mocked = Mockito.mockConstruction(ZipFile.class,
+                    (mockZipFile, context) -> {
+                        doThrow(new IOException()).when(mockZipFile).getInputStream(any());
+                        doReturn(zipFile.entries()).when(mockZipFile).entries();
+                    })) {
+
+                assertThrows(RuntimeException.class, () -> source.readConfigFromJar(url));
+            }
+
+        }
+    }
+
+
 }
