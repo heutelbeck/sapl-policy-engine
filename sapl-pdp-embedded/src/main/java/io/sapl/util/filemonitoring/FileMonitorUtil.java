@@ -19,10 +19,16 @@ public class FileMonitorUtil {
     private static final long POLL_INTERVAL = 500; // ms
 
     public static String resolveHomeFolderIfPresent(String policyPath) {
+        policyPath = policyPath.replaceAll("/", File.separator);
+
         if (policyPath.startsWith("~" + File.separator)) {
-            return System.getProperty("user.home") + policyPath.substring(1);
+            return getUserHomeProperty() + policyPath.substring(1);
         }
         return policyPath;
+    }
+
+    static String getUserHomeProperty() {
+        return System.getProperty("user.home");
     }
 
     public static String readFile(File file) throws IOException {
