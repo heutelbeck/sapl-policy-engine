@@ -1,5 +1,27 @@
 package io.sapl.prp.filesystem;
 
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEvent.Type;
+import io.sapl.prp.filesystem.ImmutableFileIndex.Document;
+import io.sapl.util.filemonitoring.FileChangedEvent;
+import io.sapl.util.filemonitoring.FileCreatedEvent;
+import io.sapl.util.filemonitoring.FileDeletedEvent;
+import lombok.val;
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.MockedConstruction;
+import org.mockito.Mockito;
+
+import java.io.File;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -8,35 +30,18 @@ import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
-import java.io.File;
-import java.nio.charset.Charset;
-import java.util.Arrays;
 
-import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.MockedConstruction;
-import org.mockito.Mockito;
-
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.prp.PrpUpdateEvent;
-import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.util.filemonitoring.FileChangedEvent;
-import io.sapl.util.filemonitoring.FileCreatedEvent;
-import io.sapl.util.filemonitoring.FileDeletedEvent;
-import lombok.val;
-
-
-public class ImmutableFileIndexTest {
+class ImmutableFileIndexTest {
 
     @TempDir
     File folder;
@@ -44,7 +49,7 @@ public class ImmutableFileIndexTest {
     private static SAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
     @Test
-    public void test_after_file_event() throws Exception {
+    void test_after_file_event() throws Exception {
         var p1 = new File(folder, "policy1.sapl");
 
 
@@ -93,7 +98,7 @@ public class ImmutableFileIndexTest {
     }
 
     @Test
-    public void test_internal_copy_constructor() throws Exception {
+    void test_internal_copy_constructor() throws Exception {
         var p1 = new File(folder, "policy1.sapl");
         FileUtils.writeStringToFile(p1, String
                         .format("policy \"%s\"\n" + "permit\n" + "    action == \"read\"\n" + "\n" + "\n" + "\n", "policy1"),
@@ -116,7 +121,7 @@ public class ImmutableFileIndexTest {
 
         // in case of collision published file is randomly selected depending on OS
         // behavior
-        var fileToDelete = newIndex.pathToDocuments.get(p1.getAbsolutePath()).isPublished() ? p1 : p2;
+        var fileToDelete = newIndex.documentsByPath.get(p1.getAbsolutePath()).isPublished() ? p1 : p2;
 
         newIndex = fileIndex.afterFileEvent(new FileDeletedEvent(fileToDelete));
 
@@ -127,7 +132,7 @@ public class ImmutableFileIndexTest {
 
 
     @Test
-    public void should_not_throw_exception_when_watchdir_can_not_be_opened() throws Exception {
+    void should_not_throw_exception_when_watchdir_can_not_be_opened() throws Exception {
         File notADirectoryFile = new File(folder, "not_a_directory_file");
 
         var fileIndex = new ImmutableFileIndex(notADirectoryFile.getPath(), interpreter);
@@ -141,7 +146,7 @@ public class ImmutableFileIndexTest {
     }
 
     @Test
-    public void return_no_event_for_empty_policy_directory() {
+    void return_no_event_for_empty_policy_directory() {
         var fileIndex = new ImmutableFileIndex("src/test/resources/filemonitoring/empty", interpreter);
         var updateEvent = fileIndex.getUpdateEvent();
 
@@ -150,7 +155,7 @@ public class ImmutableFileIndexTest {
     }
 
     @Test
-    public void return_inconsistent_event_for_name_collision() {
+    void return_inconsistent_event_for_name_collision() {
         var fileIndex = new ImmutableFileIndex("src/test/resources/filemonitoring/namecollision", interpreter);
         var updateEvent = fileIndex.getUpdateEvent();
 
@@ -162,7 +167,7 @@ public class ImmutableFileIndexTest {
     }
 
     @Test
-    public void return_inconsistent_event_for_invalid_document() {
+    void return_inconsistent_event_for_invalid_document() {
         var fileIndex = new ImmutableFileIndex("src/test/resources/filemonitoring/invalid", interpreter);
         var updateEvent = fileIndex.getUpdateEvent();
 
@@ -175,14 +180,98 @@ public class ImmutableFileIndexTest {
 
     @Test
     void testBecameConsistent() {
-        var consistentIndex = new ImmutableFileIndex("src/test/resources/filemonitoring/empty", interpreter);
-        var inconsistentIndex = new ImmutableFileIndex("src/test/resources/filemonitoring/invalid", interpreter);
+        val oldIndexMock = mock(ImmutableFileIndex.class);
+        val newIndexMock = mock(ImmutableFileIndex.class);
+        when(newIndexMock.becameConsistentComparedTo(any())).thenCallRealMethod();
 
-        assertThat(consistentIndex.becameConsistentComparedTo(inconsistentIndex), is(true));
-        assertThat(inconsistentIndex.becameInconsistentComparedTo(consistentIndex), is(true));
+        when(oldIndexMock.isInconsistent()).thenReturn(true);
+        when(newIndexMock.isConsistent()).thenReturn(true);
+        assertThat(newIndexMock.becameConsistentComparedTo(oldIndexMock), is(true));
 
-        assertThat(inconsistentIndex.becameConsistentComparedTo(consistentIndex), is(false));
-        assertThat(consistentIndex.becameInconsistentComparedTo(inconsistentIndex), is(false));
+        when(oldIndexMock.isInconsistent()).thenReturn(false);
+        when(newIndexMock.isConsistent()).thenReturn(false);
+        assertThat(newIndexMock.becameConsistentComparedTo(oldIndexMock), is(false));
+
+        when(oldIndexMock.isInconsistent()).thenReturn(true);
+        when(newIndexMock.isConsistent()).thenReturn(false);
+        assertThat(newIndexMock.becameConsistentComparedTo(oldIndexMock), is(false));
+
+        when(oldIndexMock.isInconsistent()).thenReturn(false);
+        when(newIndexMock.isConsistent()).thenReturn(true);
+        assertThat(newIndexMock.becameConsistentComparedTo(oldIndexMock), is(false));
+    }
+
+    @Test
+    void testBecameInconsistent() {
+        val oldIndexMock = mock(ImmutableFileIndex.class);
+        val newIndexMock = mock(ImmutableFileIndex.class);
+        when(newIndexMock.becameInconsistentComparedTo(any())).thenCallRealMethod();
+
+        when(oldIndexMock.isConsistent()).thenReturn(true);
+        when(newIndexMock.isInconsistent()).thenReturn(true);
+        assertThat(newIndexMock.becameInconsistentComparedTo(oldIndexMock), is(true));
+
+        when(oldIndexMock.isConsistent()).thenReturn(false);
+        when(newIndexMock.isInconsistent()).thenReturn(false);
+        assertThat(newIndexMock.becameInconsistentComparedTo(oldIndexMock), is(false));
+
+        when(oldIndexMock.isConsistent()).thenReturn(true);
+        when(newIndexMock.isInconsistent()).thenReturn(false);
+        assertThat(newIndexMock.becameInconsistentComparedTo(oldIndexMock), is(false));
+
+        when(oldIndexMock.isConsistent()).thenReturn(false);
+        when(newIndexMock.isInconsistent()).thenReturn(true);
+        assertThat(newIndexMock.becameInconsistentComparedTo(oldIndexMock), is(false));
+    }
+
+    @Test
+    void testUnload() {
+
+        val pathMock = mock(Path.class, RETURNS_DEEP_STUBS);
+        val fileNameMock2 = mock(Path.class, RETURNS_DEEP_STUBS);
+        when(fileNameMock2.toString()).thenReturn("policy2.sapl");
+
+
+        val documentMock1 = mock(Document.class, RETURNS_DEEP_STUBS);
+        when(documentMock1.getDocumentName()).thenReturn("doc1");
+        val documentMock2 = mock(Document.class, RETURNS_DEEP_STUBS);
+        when(documentMock2.getDocumentName()).thenReturn("doc1");
+        when(documentMock2.getPath().getFileName()).thenReturn(fileNameMock2);
+
+        List<Document> docsByNameList = new ArrayList<>();
+        docsByNameList.add(documentMock1);
+        docsByNameList.add(documentMock2);
+
+
+        val fileIndex = new ImmutableFileIndex("src/test/resources/policies", interpreter);
+        val spy = spy(fileIndex);
+
+        assertThat(spy.getUpdateEvent().getUpdates().length, is(2));
+
+        when(pathMock.toAbsolutePath().toString()).thenReturn("lkjsdafsf");
+        when(spy.containsDocumentWithPath("lkjsdafsf")).thenReturn(false);
+        fileIndex.unload(pathMock);
+        verify(spy, times(0)).addUnpublishUpdate(documentMock1);
+
+
+        when(pathMock.toAbsolutePath().toString()).thenReturn("path1");
+        when(spy.containsDocumentWithPath("path1")).thenReturn(true);
+        when(spy.removeDocumentFromMap("path1")).thenReturn(documentMock1);
+        when(spy.getDocumentByName("doc1")).thenReturn(docsByNameList);
+        when(documentMock1.isPublished()).thenReturn(true);
+        when(documentMock1.isValid()).thenReturn(true);
+
+        spy.unload(pathMock);
+        verify(spy, times(1)).addUnpublishUpdate(documentMock1);
+
+
+        when(pathMock.toAbsolutePath().toString()).thenReturn("path2");
+        when(spy.containsDocumentWithPath("path2")).thenReturn(true);
+        when(spy.removeDocumentFromMap("path2")).thenReturn(documentMock2);
+        when(documentMock2.isValid()).thenReturn(false);
+
+        spy.unload(pathMock);
+        verify(spy, times(1)).decrementInvalidDocumentCount();
 
     }
 }

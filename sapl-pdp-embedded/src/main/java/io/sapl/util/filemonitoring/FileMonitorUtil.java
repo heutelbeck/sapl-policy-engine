@@ -19,7 +19,7 @@ public class FileMonitorUtil {
     private static final long POLL_INTERVAL = 500; // ms
 
     public static String resolveHomeFolderIfPresent(String policyPath) {
-        if (policyPath.startsWith("~" + File.separator) || policyPath.startsWith("~/")) {
+        if (policyPath.startsWith("~" + File.separator)) {
             return System.getProperty("user.home") + policyPath.substring(1);
         }
         return policyPath;
