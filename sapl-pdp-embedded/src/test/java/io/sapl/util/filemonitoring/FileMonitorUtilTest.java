@@ -1,5 +1,16 @@
 package io.sapl.util.filemonitoring;
 
+import org.apache.commons.io.monitor.FileAlterationMonitor;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.mockito.MockedConstruction;
+import org.mockito.Mockito;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
+
+import java.io.File;
+import java.nio.file.NoSuchFileException;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyString;
@@ -9,18 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-
-import java.io.File;
-import java.nio.file.NoSuchFileException;
-
-import org.apache.commons.io.monitor.FileAlterationMonitor;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import org.mockito.MockedConstruction;
-import org.mockito.Mockito;
-
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
 
 @Timeout(3)
 class FileMonitorUtilTest {
@@ -92,7 +91,7 @@ class FileMonitorUtilTest {
 				})) {
 
 			Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("~/", __ -> true);
-			monitorFlux.take(1L).subscribe(System.out::println);
+			monitorFlux.take(1L).subscribe();
 			assertThat(mocked.constructed().size(), is(1));
 			verify(mocked.constructed().get(0), times(1)).start();
 		}

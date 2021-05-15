@@ -1,5 +1,10 @@
 package io.sapl.util.filemonitoring;
 
+import lombok.experimental.UtilityClass;
+import org.apache.commons.io.monitor.FileAlterationMonitor;
+import org.apache.commons.io.monitor.FileAlterationObserver;
+import reactor.core.publisher.Flux;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
@@ -7,12 +12,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-
-import org.apache.commons.io.monitor.FileAlterationMonitor;
-import org.apache.commons.io.monitor.FileAlterationObserver;
-
-import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class FileMonitorUtil {
