@@ -1,13 +1,15 @@
 package io.sapl.prp.index.canonical;
 
+import org.junit.jupiter.api.Test;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.mock;
-
-import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 class PredicateInfoTest {
 
@@ -78,11 +80,14 @@ class PredicateInfoTest {
    void testEquals() {
         var p1 = new PredicateInfo(new Predicate(new Bool(true)));
         var p2 = new PredicateInfo(new Predicate(new Bool(true)));
+        var p3 = spy(p2);
+        when(p3.getScore()).thenReturn(Double.MAX_VALUE);
 
         assertThat(p1.equals(p1), is(true));
         assertThat(p1.equals(null), is(false));
         assertThat(p1.equals(""), is(false));
         assertThat(p1.equals(p2), is(true));
+        assertThat(p1.equals(p3), is(false));
     }
 
     @Test

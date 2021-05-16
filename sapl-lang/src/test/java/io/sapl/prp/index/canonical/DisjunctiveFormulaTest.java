@@ -1,19 +1,20 @@
 package io.sapl.prp.index.canonical;
 
+import lombok.val;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collection;
+import java.util.Collections;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.Collections;
-
-import org.junit.jupiter.api.Test;
-
-import lombok.val;
 
 class DisjunctiveFormulaTest {
 
     @Test
     void should_throw_illegal_argument_exception_when_initialized_with_empty_collection() {
+        assertThrows(NullPointerException.class, () -> new DisjunctiveFormula((Collection<ConjunctiveClause>) null));
         assertThrows(IllegalArgumentException.class, () -> new DisjunctiveFormula(Collections.emptyList()));
     }
 
@@ -49,7 +50,7 @@ class DisjunctiveFormulaTest {
         val f1 = new DisjunctiveFormula(trueClause, falseClause);
         val f2 = new DisjunctiveFormula(falseClause, trueClause);
         val f3 = new DisjunctiveFormula(falseClause);
-        val f4 = new DisjunctiveFormula(falseClause,falseClause);
+        val f4 = new DisjunctiveFormula(falseClause, falseClause);
 
         assertThat(f1.equals(f1), is(true));
         assertThat(f1.equals(f2), is(true));

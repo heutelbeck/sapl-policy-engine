@@ -15,6 +15,8 @@
  */
 package io.sapl.prp.index.canonical;
 
+import lombok.NonNull;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,8 +24,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
-
-import com.google.common.base.Preconditions;
 
 public class DisjunctiveFormula {
 
@@ -36,8 +36,10 @@ public class DisjunctiveFormula {
 
 	private boolean hasHashCode;
 
-	public DisjunctiveFormula(final Collection<ConjunctiveClause> clauses) {
-		Preconditions.checkArgument(!clauses.isEmpty(), CONSTRUCTION_FAILED);
+	public DisjunctiveFormula(@NonNull Collection<ConjunctiveClause> clauses) {
+		if (clauses.isEmpty())
+			throw new IllegalArgumentException(CONSTRUCTION_FAILED);
+
 		this.clauses = new ArrayList<>(clauses);
 	}
 
@@ -87,9 +89,6 @@ public class DisjunctiveFormula {
 
 	public boolean evaluate() {
 		ListIterator<ConjunctiveClause> iter = clauses.listIterator();
-		if (!iter.hasNext()) {
-			throw new IllegalStateException(EVALUATION_NOT_POSSIBLE);
-		}
 		ConjunctiveClause first = iter.next();
 		boolean result = first.evaluate();
 		while (iter.hasNext()) {
@@ -127,9 +126,6 @@ public class DisjunctiveFormula {
 
 	public DisjunctiveFormula negate() {
 		ListIterator<ConjunctiveClause> iter = clauses.listIterator();
-		if (!iter.hasNext()) {
-			return this;
-		}
 		ConjunctiveClause first = iter.next();
 		DisjunctiveFormula result = new DisjunctiveFormula(first.negate());
 		while (iter.hasNext()) {

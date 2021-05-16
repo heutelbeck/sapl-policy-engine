@@ -82,7 +82,7 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
         }
     }
 
-    PolicyDecisionPointConfiguration readConfigFromJar(URL configFolderUrl) {
+    final PolicyDecisionPointConfiguration readConfigFromJar(URL configFolderUrl) {
         log.debug("reading config from jar {}", configFolderUrl);
         val jarPathElements = configFolderUrl.toString().split("!");
         val jarFilePath = JarPathUtil.getJarFilePath(jarPathElements);
@@ -115,7 +115,7 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
         return new PolicyDecisionPointConfiguration();
     }
 
-    PolicyDecisionPointConfiguration readConfigFromDirectory(URL configFolderUrl) {
+    final PolicyDecisionPointConfiguration readConfigFromDirectory(URL configFolderUrl) {
         log.debug("reading config from directory {}", configFolderUrl);
         Path configDirectoryPath;
         try {

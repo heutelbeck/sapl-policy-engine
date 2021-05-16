@@ -1,12 +1,18 @@
 package io.sapl.prp.index.canonical;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+
 class LiteralTest {
+
+    @Test
+    void testGuardClauses(){
+        assertThrows(NullPointerException.class, () -> new Literal((Bool) null));
+    }
 
     @Test
     void isImmutableTest() {
@@ -22,8 +28,13 @@ class LiteralTest {
     @Test
     void negateTest() {
         var literal = new Literal(new Bool(false));
+        var negatedLiteral = new Literal(new Bool(false),true);
+
         var negated = literal.negate();
+        var doubleNegated = negatedLiteral.negate();
+
         assertThat(literal.evaluate(), is(!negated.evaluate()));
+        assertThat(negatedLiteral.evaluate(), is(!doubleNegated.evaluate()));
     }
 
     @Test

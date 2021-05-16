@@ -15,8 +15,6 @@
  */
 package io.sapl.prp.index.naive;
 
-import com.google.common.collect.Sets;
-import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.PolicyRetrievalResult;
@@ -26,19 +24,12 @@ import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.apache.commons.lang3.tuple.Pair;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
@@ -110,84 +101,15 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
         return new NaiveImmutableParsedDocumentIndex(newDocuments, newConsistencyState);
     }
 
+    //only PUBLISH or UNPUBLISH
     private void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
         var name = update.getDocument().getPolicyElement().getSaplName();
         if (update.getType() == Type.UNPUBLISH) {
             newDocuments.remove(name);
-        } else if (update.getType() == Type.PUBLISH) {
+        } else {
             newDocuments.put(name, update.getDocument());
         }
     }
 
-    public static class PolicyRetrievalResultCollector<T extends Pair<SAPL, Val>>
-            implements Collector<T, PolicyRetrievalResultBuilder, PolicyRetrievalResult> {
-
-        @Override
-        public Supplier<PolicyRetrievalResultBuilder> supplier() {
-            return PolicyRetrievalResultBuilder::builder;
-        }
-
-        @Override
-        public BiConsumer<PolicyRetrievalResultBuilder, T> accumulator() {
-            return PolicyRetrievalResultBuilder::add;
-        }
-
-        @Override
-        public BinaryOperator<PolicyRetrievalResultBuilder> combiner() {
-            return (left, right) -> left.combine(right.build());
-        }
-
-        @Override
-        public Function<PolicyRetrievalResultBuilder, PolicyRetrievalResult> finisher() {
-            return PolicyRetrievalResultBuilder::build;
-        }
-
-        @Override
-        public Set<Characteristics> characteristics() {
-            return Sets.immutableEnumSet(Characteristics.UNORDERED);
-        }
-
-        public static <T extends Pair<SAPL, Val>> PolicyRetrievalResultCollector<T> toResult() {
-            return new PolicyRetrievalResultCollector<>();
-        }
-    }
-
-    private static class PolicyRetrievalResultBuilder {
-
-        private PolicyRetrievalResult result = new PolicyRetrievalResult();
-
-        public static PolicyRetrievalResultBuilder builder() {
-            return new PolicyRetrievalResultBuilder();
-        }
-
-        public static void add(PolicyRetrievalResultBuilder policyRetrievalResultBuilder, Pair<SAPL, Val> pair) {
-            policyRetrievalResultBuilder.addPair(pair);
-        }
-
-        private void addPair(Pair<SAPL, Val> pair) {
-            var document = pair.getKey();
-            var match = pair.getValue();
-
-            if (match.isError()) {
-                result = result.withError();
-            }
-            if (!match.isBoolean()) {
-                log.error("matching returned error. (Should never happen): {}", match.getMessage());
-                result = result.withError();
-            }
-            if (match.getBoolean()) {
-                result = result.withMatch(document);
-            }
-        }
-
-        public PolicyRetrievalResult build() {
-            return result;
-        }
-
-        public PolicyRetrievalResultBuilder combine(PolicyRetrievalResult build) {
-            build.getMatchingDocuments().forEach(result::withMatch);
-            return this;
-        }
-    }
 
 }

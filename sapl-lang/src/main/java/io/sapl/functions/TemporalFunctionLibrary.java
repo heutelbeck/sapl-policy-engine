@@ -15,6 +15,12 @@
  */
 package io.sapl.functions;
 
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.Long;
+import io.sapl.api.validation.Text;
+
 import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.Instant;
@@ -24,12 +30,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-
-import io.sapl.api.functions.Function;
-import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.Long;
-import io.sapl.api.validation.Text;
 
 @FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION)
 public class TemporalFunctionLibrary {
@@ -81,8 +81,13 @@ public class TemporalFunctionLibrary {
             Instant t = nodeToInstant(time);
             Instant t1 = nodeToInstant(timeOne);
             Instant t2 = nodeToInstant(timeTwo);
-            boolean result = t.equals(t1) || t.equals(t2) || (t.isBefore(t2) && t.isAfter(t1));
-            return Val.of(result);
+
+            if (t.equals(t1))
+                return Val.TRUE;
+            else if (t.equals(t2))
+                return Val.TRUE;
+            else
+                return Val.of((t.isBefore(t2) && t.isAfter(t1)));
         } catch (DateTimeException e) {
             return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
         }

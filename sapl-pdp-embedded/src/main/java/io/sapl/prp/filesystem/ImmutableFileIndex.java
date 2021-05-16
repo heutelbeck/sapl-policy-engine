@@ -141,11 +141,11 @@ class ImmutableFileIndex {
         return newIndex;
     }
 
-    boolean isConsistent() {
+    final boolean isConsistent() {
         return invalidDocuments == 0 && nameCollisions == 0;
     }
 
-    boolean isInconsistent() {
+    final boolean isInconsistent() {
         return !isConsistent();
     }
 

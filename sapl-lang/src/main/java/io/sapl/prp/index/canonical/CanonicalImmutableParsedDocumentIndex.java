@@ -105,11 +105,12 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
         //                pdpScopedEvaluationContext, newConsistencyState);
     }
 
+    //only PUBLISH or UNPUBLISH
     void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
         var name = update.getDocument().getPolicyElement().getSaplName();
         if (update.getType() == Type.UNPUBLISH) {
             newDocuments.remove(name);
-        } else if (update.getType() == Type.PUBLISH) {
+        } else {
             if (newDocuments.containsKey(name)) {
                 throw new RuntimeException("Fatal error. Policy name collision. A document with a name ('" + name
                         + "') identical to an existing document was published to the PRP.");

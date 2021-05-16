@@ -76,7 +76,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
         }
     }
 
-    PrpUpdateEvent readPoliciesFromJar(URL policiesFolderUrl) {
+    final PrpUpdateEvent readPoliciesFromJar(URL policiesFolderUrl) {
         log.debug("reading policies from jar {}", policiesFolderUrl);
         val jarPathElements = policiesFolderUrl.toString().split("!");
         val jarFilePath = JarPathUtil.getJarFilePath(jarPathElements);
@@ -110,7 +110,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
         return new PrpUpdateEvent(updates);
     }
 
-    PrpUpdateEvent readPoliciesFromDirectory(URL policiesFolderUrl) {
+    final PrpUpdateEvent readPoliciesFromDirectory(URL policiesFolderUrl) {
         log.debug("reading policies from directory {}", policiesFolderUrl);
         List<Update> updates = new LinkedList<>();
         Path policiesDirectoryPath;
@@ -155,6 +155,5 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
             return sb.toString();
         }
     }
-
 
 }

@@ -1,5 +1,11 @@
 package io.sapl.prp.index.canonical;
 
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import java.util.Collection;
+import java.util.Collections;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -10,11 +16,6 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
-
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-
 class ConjunctiveClauseTest {
 
     @Test
@@ -23,6 +24,7 @@ class ConjunctiveClauseTest {
         assertThat(clause, is(notNullValue()));
         assertThat(clause.size(), is(1));
 
+        assertThrows(NullPointerException.class, () -> new ConjunctiveClause((Collection<Literal>) null));
         assertThrows(IllegalArgumentException.class, () -> new ConjunctiveClause(Collections.emptyList()));
     }
 

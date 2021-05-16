@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.zip.ZipFile;
 
@@ -26,6 +27,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -34,6 +36,20 @@ import static org.mockito.Mockito.when;
 
 //@Disabled
 class ResourcesVariablesAndCombinatorSourceTests {
+
+    @Test
+    void test_guard_clauses() {
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, null));
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource("", null));
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, mock(ObjectMapper.class)));
+
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, null, null));
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, "", null));
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(null, null,  mock(ObjectMapper.class)));
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(this.getClass(), null, null));
+        assertThrows(NullPointerException.class, () -> new ResourcesVariablesAndCombinatorSource(this.getClass(), "", null));
+
+    }
 
     @Test
     void loadExistingConfigTest() {
@@ -89,13 +105,15 @@ class ResourcesVariablesAndCombinatorSourceTests {
 
     @Test
     void test_read_config_from_jar() throws Exception {
-        var url = Paths.get("src/test/resources/policies_in_jar.jar!/policies").toUri().toURL();
-        val jarPathElements = url.toString().split("!");
+        URI uri = ClassLoader.getSystemResource("policies_in_jar.jar").toURI();
+        String pathToJar = Paths.get(uri).toString();
+        String pathToJarWithDirectory = pathToJar + "!" + File.separator + "policies";
+        val url = Paths.get(pathToJarWithDirectory).toUri().toURL();
 
         var source = new ResourcesVariablesAndCombinatorSource("");
 
         try (MockedStatic<JarPathUtil> mock = mockStatic(JarPathUtil.class)) {
-            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(jarPathElements[0].substring("file:".length()));
+            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(pathToJar);
 
             var config = source.readConfigFromJar(url);
 
@@ -105,13 +123,15 @@ class ResourcesVariablesAndCombinatorSourceTests {
 
     @Test
     void test_read_missing_config_from_jar() throws Exception {
-        var url = Paths.get("src/test/resources/policies_in_jar.jar!/missing_folder").toUri().toURL();
-        val jarPathElements = url.toString().split("!");
+        URI uri = ClassLoader.getSystemResource("policies_in_jar.jar").toURI();
+        String pathToJar = Paths.get(uri).toString();
+        String pathToJarWithDirectory = pathToJar + "!" + "missing_folder";
+        val url = Paths.get(pathToJarWithDirectory).toUri().toURL();
 
         var source = new ResourcesVariablesAndCombinatorSource("");
 
         try (MockedStatic<JarPathUtil> mock = mockStatic(JarPathUtil.class)) {
-            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(jarPathElements[0].substring("file:".length()));
+            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(pathToJar);
 
             var config = source.readConfigFromJar(url);
 
@@ -130,8 +150,18 @@ class ResourcesVariablesAndCombinatorSourceTests {
         when(urlMock.toURI()).thenThrow(new URISyntaxException("", ""));
 
         var source = new ResourcesVariablesAndCombinatorSource("");
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> source.readConfigFromDirectory(urlMock));
+        assertThat(exception.getCause() instanceof URISyntaxException, is(true));
 
-        assertThrows(RuntimeException.class, () -> source.readConfigFromDirectory(urlMock));
+        try (MockedStatic<Files> mock = mockStatic(Files.class)) {
+            mock.when(() -> Files.newDirectoryStream(any(), anyString())).thenThrow(new IOException());
+
+            URI uri = ClassLoader.getSystemResource("policies").toURI();
+            String pathToDir = Paths.get(uri).toString();
+            val url = Paths.get(pathToDir).toUri().toURL();
+            exception = assertThrows(RuntimeException.class, () -> source.readConfigFromDirectory(url));
+            assertThat(exception.getCause() instanceof IOException, is(true));
+        }
     }
 
     @Test
@@ -156,7 +186,6 @@ class ResourcesVariablesAndCombinatorSourceTests {
 
                 assertThrows(RuntimeException.class, () -> source.readConfigFromJar(url));
             }
-
         }
     }
 

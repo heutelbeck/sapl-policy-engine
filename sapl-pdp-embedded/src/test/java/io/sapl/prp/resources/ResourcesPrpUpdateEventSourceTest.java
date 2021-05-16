@@ -2,6 +2,7 @@ package io.sapl.prp.resources;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.util.JarPathUtil;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,20 @@ class ResourcesPrpUpdateEventSourceTest {
     static final DefaultSAPLInterpreter DEFAULT_SAPL_INTERPRETER = new DefaultSAPLInterpreter();
 
     @Test
+    void test_guard_clauses() {
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, null));
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource("", null));
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, mock(SAPLInterpreter.class)));
+
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, null, null));
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, "", null));
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, null,  mock(SAPLInterpreter.class)));
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(this.getClass(), null, null));
+        assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(this.getClass(), "", null));
+
+    }
+
+    @Test
     void do_stuff() {
         assertThrows(NullPointerException.class, () -> new ResourcesPrpUpdateEventSource(null, null));
 
@@ -51,24 +66,25 @@ class ResourcesPrpUpdateEventSourceTest {
         var update = source.getUpdates().blockFirst();
 
         assertThat(update, notNullValue());
-        assertThat(update.getUpdates().length, is(2));
+        assertThat(update.getUpdates().length, is(3));
 
         assertThrows(RuntimeException.class, () -> new ResourcesPrpUpdateEventSource("/NON-EXISTING-PATH", DEFAULT_SAPL_INTERPRETER));
 
         assertThrows(PolicyEvaluationException.class, () -> new ResourcesPrpUpdateEventSource("/it/invalid", DEFAULT_SAPL_INTERPRETER));
 
-
     }
 
     @Test
     void test_read_config_from_jar() throws Exception {
-        var url = Paths.get("src/test/resources/policies_in_jar.jar!/policies").toUri().toURL();
-        val jarPathElements = url.toString().split("!");
+        URI uri = ClassLoader.getSystemResource("policies_in_jar.jar").toURI();
+        String pathToJar = Paths.get(uri).toString();
+        String pathToJarWithDirectory = pathToJar + "!" + "policies";
+        val url = Paths.get(pathToJarWithDirectory).toUri().toURL();
 
         var source = new ResourcesPrpUpdateEventSource("", DEFAULT_SAPL_INTERPRETER);
 
         try (MockedStatic<JarPathUtil> mock = mockStatic(JarPathUtil.class)) {
-            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(jarPathElements[0].substring("file:".length()));
+            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(pathToJar);
 
             var config = source.readPoliciesFromJar(url);
 
@@ -78,13 +94,15 @@ class ResourcesPrpUpdateEventSourceTest {
 
     @Test
     void test_read_missing_config_from_jar() throws Exception {
-        var url = Paths.get("src/test/resources/policies_in_jar.jar!/missing_folder").toUri().toURL();
-        val jarPathElements = url.toString().split("!");
+        URI uri = ClassLoader.getSystemResource("policies_in_jar.jar").toURI();
+        String pathToJar = Paths.get(uri).toString();
+        String pathToJarWithDirectory = pathToJar + "!" + "missing_folder";
+        val url = Paths.get(pathToJarWithDirectory).toUri().toURL();
 
         var source = new ResourcesPrpUpdateEventSource("", DEFAULT_SAPL_INTERPRETER);
 
         try (MockedStatic<JarPathUtil> mock = mockStatic(JarPathUtil.class)) {
-            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(jarPathElements[0].substring("file:".length()));
+            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(pathToJar);
 
             var config = source.readPoliciesFromJar(url);
 

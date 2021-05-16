@@ -1,18 +1,17 @@
 package io.sapl.prp.index.canonical;
 
+import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.HashMap;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 
 class CanonicalMatchingContextTest {
 
@@ -48,6 +47,7 @@ class CanonicalMatchingContextTest {
 
         matchingCtx.increaseNumberOfEliminatedFormulasForConjunction(0, 42);
         assertThat(matchingCtx.areAllFunctionsEliminated(0, 42), is(true));
+        assertThat(matchingCtx.areAllFunctionsEliminated(0, 41), is(false));
     }
 
 }

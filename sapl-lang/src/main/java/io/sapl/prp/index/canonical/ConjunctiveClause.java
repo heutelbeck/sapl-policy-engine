@@ -15,6 +15,8 @@
  */
 package io.sapl.prp.index.canonical;
 
+import lombok.NonNull;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,8 +24,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
-
-import com.google.common.base.Preconditions;
 
 public class ConjunctiveClause {
 
@@ -36,8 +36,10 @@ public class ConjunctiveClause {
 
     private final List<Literal> literals;
 
-    public ConjunctiveClause(final Collection<Literal> literals) {
-        Preconditions.checkArgument(!literals.isEmpty(), CONSTRUCTION_FAILED);
+    public ConjunctiveClause(@NonNull Collection<Literal> literals) {
+        if (literals.isEmpty())
+            throw new IllegalArgumentException(CONSTRUCTION_FAILED);
+
         this.literals = new ArrayList<>(literals);
     }
 
@@ -68,9 +70,6 @@ public class ConjunctiveClause {
 
     public boolean evaluate() {
         ListIterator<Literal> iter = literals.listIterator();
-        if (!iter.hasNext()) {
-            throw new IllegalStateException(EVALUATION_NOT_POSSIBLE);
-        }
         Literal first = iter.next();
         boolean result = first.evaluate();
         while (iter.hasNext()) {
@@ -124,9 +123,6 @@ public class ConjunctiveClause {
 
     public List<ConjunctiveClause> negate() {
         ListIterator<Literal> iter = literals.listIterator();
-        if (!iter.hasNext()) {
-            return Collections.singletonList(this);
-        }
         List<ConjunctiveClause> result = new ArrayList<>(literals.size());
         while (iter.hasNext()) {
             Literal literal = iter.next();

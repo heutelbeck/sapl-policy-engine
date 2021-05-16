@@ -226,34 +226,47 @@ class ImmutableFileIndexTest {
 
     @Test
     void testUnload() {
-
+        /* MOCKS */
         val pathMock = mock(Path.class, RETURNS_DEEP_STUBS);
-        val fileNameMock2 = mock(Path.class, RETURNS_DEEP_STUBS);
-        when(fileNameMock2.toString()).thenReturn("policy2.sapl");
 
+        val fileNameMock1 = mock(Path.class, RETURNS_DEEP_STUBS);
+        when(fileNameMock1.toString()).thenReturn("policy_1.sapl");
+        val fileNameMock2 = mock(Path.class, RETURNS_DEEP_STUBS);
+        when(fileNameMock2.toString()).thenReturn("policy_2.sapl");
+        val fileNameMock3 = mock(Path.class, RETURNS_DEEP_STUBS);
+        when(fileNameMock3.toString()).thenReturn("policy_3.sapl");
 
         val documentMock1 = mock(Document.class, RETURNS_DEEP_STUBS);
         when(documentMock1.getDocumentName()).thenReturn("doc1");
+        when(documentMock1.getPath().getFileName()).thenReturn(fileNameMock1);
+        when(documentMock1.toString()).thenReturn("policy_1.sapl");
+
         val documentMock2 = mock(Document.class, RETURNS_DEEP_STUBS);
         when(documentMock2.getDocumentName()).thenReturn("doc1");
         when(documentMock2.getPath().getFileName()).thenReturn(fileNameMock2);
+        when(documentMock2.toString()).thenReturn("policy_2.sapl");
+        val documentMock3 = mock(Document.class, RETURNS_DEEP_STUBS);
+        when(documentMock3.getDocumentName()).thenReturn("doc1");
+        when(documentMock3.getPath().getFileName()).thenReturn(fileNameMock3);
+        when(documentMock3.toString()).thenReturn("policy_3.sapl");
 
         List<Document> docsByNameList = new ArrayList<>();
         docsByNameList.add(documentMock1);
         docsByNameList.add(documentMock2);
+        docsByNameList.add(documentMock3);
 
-
+        /* EXECUTE TEST */
         val fileIndex = new ImmutableFileIndex("src/test/resources/policies", interpreter);
         val spy = spy(fileIndex);
-
-        assertThat(spy.getUpdateEvent().getUpdates().length, is(2));
+        assertThat(spy.getUpdateEvent().getUpdates().length, is(3));
 
         when(pathMock.toAbsolutePath().toString()).thenReturn("lkjsdafsf");
         when(spy.containsDocumentWithPath("lkjsdafsf")).thenReturn(false);
+
         fileIndex.unload(pathMock);
         verify(spy, times(0)).addUnpublishUpdate(documentMock1);
 
-
+        // unload "policy_1.sapl"
         when(pathMock.toAbsolutePath().toString()).thenReturn("path1");
         when(spy.containsDocumentWithPath("path1")).thenReturn(true);
         when(spy.removeDocumentFromMap("path1")).thenReturn(documentMock1);
@@ -264,14 +277,36 @@ class ImmutableFileIndexTest {
         spy.unload(pathMock);
         verify(spy, times(1)).addUnpublishUpdate(documentMock1);
 
-
+        // unload "policy_2.sapl"
         when(pathMock.toAbsolutePath().toString()).thenReturn("path2");
         when(spy.containsDocumentWithPath("path2")).thenReturn(true);
         when(spy.removeDocumentFromMap("path2")).thenReturn(documentMock2);
-        when(documentMock2.isValid()).thenReturn(false);
+        when(spy.getDocumentByName("doc1")).thenReturn(docsByNameList);
+        when(documentMock2.isPublished()).thenReturn(true);
+        when(documentMock2.isValid()).thenReturn(true);
+
+        spy.unload(pathMock);
+        verify(spy, times(1)).addUnpublishUpdate(documentMock1);
+
+        // add "policy_2.sapl" again
+        docsByNameList.add(0, documentMock2);
+
+        // unload "policy_3.sapl"
+        when(pathMock.toAbsolutePath().toString()).thenReturn("path3");
+        when(spy.containsDocumentWithPath("path3")).thenReturn(true);
+        when(spy.removeDocumentFromMap("path3")).thenReturn(documentMock3);
+        when(documentMock3.isValid()).thenReturn(true);
+
+        spy.unload(pathMock);
+        verify(spy, times(1)).addUnpublishUpdate(documentMock1);
+
+        // unload "policy_3.sapl" again
+        when(pathMock.toAbsolutePath().toString()).thenReturn("path3");
+        when(spy.containsDocumentWithPath("path3")).thenReturn(true);
+        when(spy.removeDocumentFromMap("path3")).thenReturn(documentMock3);
+        when(documentMock3.isValid()).thenReturn(false);
 
         spy.unload(pathMock);
         verify(spy, times(1)).decrementInvalidDocumentCount();
-
     }
 }

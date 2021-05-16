@@ -15,10 +15,13 @@
  */
 package io.sapl.prp.index.canonical;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 
+@UtilityClass
 public class DisjunctiveFormulaReductionSupport {
 
     static void reduceConstants(final List<ConjunctiveClause> data) {
