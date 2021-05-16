@@ -17,7 +17,6 @@ import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
-import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -48,8 +47,8 @@ class GenericInMemoryIndexedPolicyRetrievalPointTest {
         when(indexMock.retrievePolicies(any())).thenReturn(Mono.just(resultMock));
 
         //DO
-        val prp = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
-        val result = prp.retrievePolicies(contextMock).blockFirst();
+        var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
+        var result = prp.retrievePolicies(contextMock).blockFirst();
         prp.dispose();
 
         //THEN
@@ -78,8 +77,8 @@ class GenericInMemoryIndexedPolicyRetrievalPointTest {
         when(indexMock.retrievePolicies(any())).thenReturn(Mono.just(policyRetrievalResult));
 
         //DO
-        val prp = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
-        val result = prp.retrievePolicies(contextMock).blockFirst();
+        var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
+        var result = prp.retrievePolicies(contextMock).blockFirst();
         prp.dispose();
 
         //THEN
@@ -108,8 +107,8 @@ class GenericInMemoryIndexedPolicyRetrievalPointTest {
         when(indexMock.retrievePolicies(any())).thenReturn(Mono.just(policyRetrievalResult));
 
         //DO
-        val prp = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
-        val result = prp.retrievePolicies(contextMock).blockFirst();
+        var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
+		var result = prp.retrievePolicies(contextMock).blockFirst();
         prp.dispose();
 
         //THEN

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
+import io.sapl.grammar.sapl.PermitUnlessDenyCombiningAlgorithm;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
 import io.sapl.util.filemonitoring.FileMonitorUtil;
@@ -19,13 +20,13 @@ class FileSystemVariablesAndCombinatorSourceTest {
 
     @Test
     void loadExistingConfigTest() {
-        var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
+        var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
         var algo = configProvider.getCombiningAlgorithm().blockFirst();
         var variables = configProvider.getVariables().blockFirst();
         configProvider.dispose();
 
-        assertThat(algo.get() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
-        assertThat(variables.get().size(), is(3));
+        assertThat(algo.get() instanceof PermitUnlessDenyCombiningAlgorithm, is(true));
+        assertThat(variables.get().size(), is(2));
     }
 
     @Test
@@ -57,7 +58,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
 
 			mock.when(() -> FileMonitorUtil.resolveHomeFolderIfPresent(any())).thenCallRealMethod();
 
-			var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
+			var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
 			var algo = configProvider.getCombiningAlgorithm().blockLast();
 			configProvider.getVariables().blockFirst();
 			configProvider.dispose();

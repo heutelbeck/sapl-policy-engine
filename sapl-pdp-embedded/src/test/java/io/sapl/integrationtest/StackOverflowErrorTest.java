@@ -28,7 +28,6 @@ import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
-import lombok.val;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
@@ -80,7 +79,7 @@ class StackOverflowErrorTest {
 
 
     private String getMatchingPolicyNames(PolicyRetrievalResult result) {
-        val sb = new StringBuilder();
+        var sb = new StringBuilder();
         sb.append("[");
 
         for (AuthorizationDecisionEvaluable decisionEvaluable : result.getMatchingDocuments()) {
