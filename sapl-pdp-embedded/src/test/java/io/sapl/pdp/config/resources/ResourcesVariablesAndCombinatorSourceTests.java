@@ -135,17 +135,14 @@ class ResourcesVariablesAndCombinatorSourceTests {
 
     @Test
     void propagate_exception_caught_while_reading_config_from_jar() throws Exception {
-
-        val url = Paths.get("src/test/resources/policies_in_jar.jar!/policies").toUri().toURL();
-        val jarPathElements = url.toString().split("!");
-        val jarFilePath = jarPathElements[0].substring("file:".length());
-        val zipFile = new ZipFile(jarFilePath);
+        URL url = ClassLoader.getSystemResource("policies_in_jar.jar");
+        val url3 = Paths.get(url.getPath() + "!" + File.separator + "policies").toUri().toURL();
+        val zipFile = new ZipFile(url.getPath());
 
         val source = new ResourcesVariablesAndCombinatorSource("");
 
         try (MockedStatic<JarPathUtil> mock = mockStatic(JarPathUtil.class)) {
-            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(jarFilePath);
-
+            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(url.getPath());
 
             try (MockedConstruction<ZipFile> mocked = Mockito.mockConstruction(ZipFile.class,
                     (mockZipFile, context) -> {
@@ -153,7 +150,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
                         doReturn(zipFile.entries()).when(mockZipFile).entries();
                     })) {
 
-                assertThrows(RuntimeException.class, () -> source.readConfigFromJar(url));
+                assertThrows(RuntimeException.class, () -> source.readConfigFromJar(url3));
             }
 
         }
