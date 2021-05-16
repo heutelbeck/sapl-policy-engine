@@ -1,27 +1,5 @@
 package io.sapl.pdp.config.resources;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
-import io.sapl.util.JarPathUtil;
-import io.sapl.util.filemonitoring.FileCreatedEvent;
-import io.sapl.util.filemonitoring.FileDeletedEvent;
-import io.sapl.util.filemonitoring.FileMonitorUtil;
-import lombok.val;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import reactor.core.publisher.Flux;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.zip.ZipFile;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -34,7 +12,30 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-//@Disabled
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.zip.ZipFile;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
+import io.sapl.util.JarPathUtil;
+import io.sapl.util.filemonitoring.FileCreatedEvent;
+import io.sapl.util.filemonitoring.FileDeletedEvent;
+import io.sapl.util.filemonitoring.FileMonitorUtil;
+import lombok.val;
+import reactor.core.publisher.Flux;
+
 class ResourcesVariablesAndCombinatorSourceTests {
 
     @Test
@@ -187,6 +188,8 @@ class ResourcesVariablesAndCombinatorSourceTests {
                 assertThrows(RuntimeException.class, () -> source.readConfigFromJar(url));
             }
         }
+        
+        zipFile.close();
     }
 
 

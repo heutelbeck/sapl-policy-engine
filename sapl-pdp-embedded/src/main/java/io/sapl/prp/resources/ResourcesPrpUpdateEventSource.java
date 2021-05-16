@@ -15,21 +15,6 @@
  */
 package io.sapl.prp.resources;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.prp.PrpUpdateEvent;
-import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.prp.PrpUpdateEvent.Update;
-import io.sapl.prp.PrpUpdateEventSource;
-import io.sapl.util.JarPathUtil;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.commons.io.IOUtils;
-import reactor.core.Exceptions;
-import reactor.core.publisher.Flux;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -46,6 +31,22 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import org.apache.commons.io.IOUtils;
+
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEvent.Type;
+import io.sapl.prp.PrpUpdateEvent.Update;
+import io.sapl.prp.PrpUpdateEventSource;
+import io.sapl.util.JarPathUtil;
+import lombok.NonNull;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {

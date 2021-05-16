@@ -1,7 +1,20 @@
 package io.sapl.integrationtest;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+
+import java.util.HashMap;
+
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.SAPL;
@@ -15,20 +28,9 @@ import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
+import lombok.val;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import java.util.HashMap;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
 
 class StackOverflowErrorTest {
 

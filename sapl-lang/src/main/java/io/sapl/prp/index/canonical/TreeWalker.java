@@ -15,15 +15,16 @@
  */
 package io.sapl.prp.index.canonical;
 
+import java.util.Map;
+
 import com.google.common.base.Preconditions;
+
 import io.sapl.grammar.sapl.BasicGroup;
 import io.sapl.grammar.sapl.EagerAnd;
 import io.sapl.grammar.sapl.EagerOr;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Not;
 import lombok.experimental.UtilityClass;
-
-import java.util.Map;
 
 @UtilityClass
 public class TreeWalker {

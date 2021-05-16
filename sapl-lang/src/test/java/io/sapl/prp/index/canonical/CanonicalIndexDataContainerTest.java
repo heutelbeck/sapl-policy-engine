@@ -1,12 +1,12 @@
 package io.sapl.prp.index.canonical;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.Collections;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
 
 class CanonicalIndexDataContainerTest {
 

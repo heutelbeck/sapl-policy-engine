@@ -15,13 +15,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.prp.index.canonical.ordering.DefaultPredicateOrderStrategy;
-import io.sapl.prp.index.canonical.ordering.PredicateOrderStrategy;
-import lombok.RequiredArgsConstructor;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,6 +25,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.prp.index.canonical.ordering.DefaultPredicateOrderStrategy;
+import io.sapl.prp.index.canonical.ordering.PredicateOrderStrategy;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class CanonicalIndexDataCreationStrategy {

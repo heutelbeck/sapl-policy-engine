@@ -15,6 +15,10 @@
  */
 package io.sapl.prp.index.naive;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.PolicyRetrievalResult;
@@ -22,15 +26,11 @@ import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * The Index Object has to be immutable to avoid race conditions. SAPL Objects

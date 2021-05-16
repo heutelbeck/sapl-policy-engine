@@ -15,20 +15,6 @@
  */
 package io.sapl.pdp.config.resources;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
-import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import io.sapl.util.JarPathUtil;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.commons.io.IOUtils;
-import reactor.core.Exceptions;
-import reactor.core.publisher.Flux;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -44,6 +30,22 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import org.apache.commons.io.IOUtils;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
+import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
+import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.util.JarPathUtil;
+import lombok.NonNull;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombinatorSource {

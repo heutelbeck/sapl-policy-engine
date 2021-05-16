@@ -1,17 +1,18 @@
 package io.sapl.prp.index.canonical;
 
-import lombok.val;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Test;
+
+import lombok.val;
 
 class CanonicalIndexDataCreationStrategyTest {
 
