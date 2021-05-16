@@ -25,7 +25,7 @@ import org.mockito.MockedStatic;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.util.JarUtility;
+import io.sapl.util.JarUtil;
 
 class ResourcesPrpUpdateEventSourceTest {
 
@@ -76,8 +76,8 @@ class ResourcesPrpUpdateEventSourceTest {
 	@Test
 	void ifExecutedInJar_thenLoadDocumentsFromJar() throws URISyntaxException, MalformedURLException {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
-		try (MockedStatic<JarUtility> mock = mockStatic(JarUtility.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtility.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
+		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
+			mock.when(() -> JarUtil.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
 
 			var source = new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER);
 			var update = source.getUpdates().blockFirst();

@@ -31,7 +31,7 @@ import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.prp.PrpUpdateEventSource;
-import io.sapl.util.JarUtility;
+import io.sapl.util.JarUtil;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -55,7 +55,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 			@NonNull SAPLInterpreter interpreter) {
 		this.interpreter = interpreter;
 		log.info("Loading a static set of policies from the bundled ressources");
-		initializingPrpUpdate = readPolicies(JarUtility.inferUrlOfRecourcesPath(clazz, policyPath));
+		initializingPrpUpdate = readPolicies(JarUtil.inferUrlOfRecourcesPath(clazz, policyPath));
 	}
 
 	private final PrpUpdateEvent readPolicies(URL policyFolderUrl) throws IOException, URISyntaxException {
@@ -66,18 +66,17 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 
 	private final PrpUpdateEvent readPoliciesFromJar(URL policiesFolderUrl) throws IOException {
 		log.debug("reading policies from jar {}", policiesFolderUrl);
-		var pathOfJar = JarUtility.getJarFilePath(policiesFolderUrl);
-		var pathWithinJar = JarUtility.getPathWithinJar(policiesFolderUrl);
+		var pathOfJar = JarUtil.getJarFilePath(policiesFolderUrl);
 		try (var jarFile = new ZipFile(pathOfJar)) {
-			var updates = jarFile.stream().filter(entry -> isSAPLDocumentWithinPath(pathWithinJar, entry))
+			var updates = jarFile.stream().filter(entry -> isSAPLDocumentWithinPath(entry))
 					.peek(entry -> log.info("load SAPL document: {}", entry.getName()))
-					.map(entry -> JarUtility.readStringFromZipEntry(jarFile, entry))
+					.map(entry -> JarUtil.readStringFromZipEntry(jarFile, entry))
 					.map(this::parseAndCreatePublicationUpdate).collect(Collectors.toList());
 			return new PrpUpdateEvent(updates);
 		}
 	}
 
-	private boolean isSAPLDocumentWithinPath(String policiesDirPathStr, ZipEntry zipEntry) {
+	private boolean isSAPLDocumentWithinPath(ZipEntry zipEntry) {
 		return !zipEntry.isDirectory() && zipEntry.getName().endsWith(POLICY_FILE_SUFFIX);
 	}
 
@@ -92,8 +91,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 				POLICY_FILE_GLOB_PATTERN)) {
 			var updates = StreamSupport.stream(directoryStream.spliterator(), false)
 					.peek(path -> log.info("load SAPL document: {}", path))
-					.map(ResourcesPrpUpdateEventSource::readFileAsString)
-					.map(this::parseAndCreatePublicationUpdate)
+					.map(ResourcesPrpUpdateEventSource::readFileAsString).map(this::parseAndCreatePublicationUpdate)
 					.collect(Collectors.toList());
 			return new PrpUpdateEvent(updates);
 		}

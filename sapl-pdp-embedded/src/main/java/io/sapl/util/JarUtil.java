@@ -8,12 +8,11 @@ import java.util.zip.ZipFile;
 
 import org.apache.commons.io.IOUtils;
 
-import lombok.Cleanup;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class JarUtility {
+public class JarUtil {
 
 	public URL inferUrlOfRecourcesPath(Class<?> clazz, String path) {
 		var url = clazz.getResource(path);
@@ -27,22 +26,11 @@ public class JarUtility {
 		return url.toString().split("!")[0].substring("jar:file:".length());
 	}
 
-	public String getPathWithinJar(URL url) {
-		var jarPathElements = url.toString().split("!");
-		var pathWithinJar = new StringBuilder();
-		for (int i = 1; i < jarPathElements.length; i++) {
-			pathWithinJar.append(jarPathElements[i]);
-		}
-		if (pathWithinJar.charAt(0) == '/') {
-			pathWithinJar.deleteCharAt(0);
-		}
-		return pathWithinJar.toString();
-	}
-
 	@SneakyThrows
 	public String readStringFromZipEntry(ZipFile jarFile, ZipEntry entry) {
-		@Cleanup
 		var bis = new BufferedInputStream(jarFile.getInputStream(entry));
-		return IOUtils.toString(bis, StandardCharsets.UTF_8);
+		var result = IOUtils.toString(bis, StandardCharsets.UTF_8);
+		bis.close();
+		return result;
 	}
 }

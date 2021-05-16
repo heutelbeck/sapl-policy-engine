@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
 import io.sapl.grammar.sapl.PermitUnlessDenyCombiningAlgorithm;
-import io.sapl.util.JarUtility;
+import io.sapl.util.JarUtil;
 
 class ResourcesVariablesAndCombinatorSourceTests {
 
@@ -72,8 +72,8 @@ class ResourcesVariablesAndCombinatorSourceTests {
 	@Test
 	void ifExecutedInJar_thenLoadConfigurationFileFromJar() throws URISyntaxException, MalformedURLException {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
-		try (MockedStatic<JarUtility> mock = mockStatic(JarUtility.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtility.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
+		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
+			mock.when(() -> JarUtil.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
 
 			var configProvider = new ResourcesVariablesAndCombinatorSource();
 			var algo = configProvider.getCombiningAlgorithm().blockFirst();
@@ -88,8 +88,8 @@ class ResourcesVariablesAndCombinatorSourceTests {
 	@Test
 	void ifExecutedInJarAndConfigFileBroken_thenPropagateException() throws URISyntaxException, MalformedURLException {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("broken_config_in_jar.jar") + "!/policies");
-		try (MockedStatic<JarUtility> mock = mockStatic(JarUtility.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtility.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
+		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
+			mock.when(() -> JarUtil.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
 			assertThrows(JsonParseException.class, () -> new ResourcesVariablesAndCombinatorSource("/policies"));
 		}
 	}
@@ -97,8 +97,8 @@ class ResourcesVariablesAndCombinatorSourceTests {
 	@Test
 	void ifExecutedInJarAndNoConfigFilePresent_thenLoadDefaultConfiguration() throws MalformedURLException {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/not_existing");
-		try (MockedStatic<JarUtility> mock = mockStatic(JarUtility.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtility.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
+		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
+			mock.when(() -> JarUtil.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
 
 			var configProvider = new ResourcesVariablesAndCombinatorSource("/not_existing");
 			var algo = configProvider.getCombiningAlgorithm().blockFirst();

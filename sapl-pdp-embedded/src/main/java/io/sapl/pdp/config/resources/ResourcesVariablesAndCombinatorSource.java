@@ -33,7 +33,7 @@ import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import io.sapl.util.JarUtility;
+import io.sapl.util.JarUtil;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -64,7 +64,7 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 			@NonNull ObjectMapper mapper) {
 		log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 		this.mapper = mapper;
-		config = readConfig(JarUtility.inferUrlOfRecourcesPath(clazz, configPath), configPath);
+		config = readConfig(JarUtil.inferUrlOfRecourcesPath(clazz, configPath), configPath);
 	}
 
 	private final PolicyDecisionPointConfiguration readConfig(URL configFolderUrl, String configPath) {
@@ -76,12 +76,12 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 	@SneakyThrows
 	private final PolicyDecisionPointConfiguration readConfigFromJar(URL configFolderUrl, String configPath) {
 		log.info("reading config from jar {}", configFolderUrl);
-		var jarFilePath = JarUtility.getJarFilePath(configFolderUrl);
+		var jarFilePath = JarUtil.getJarFilePath(configFolderUrl);
 		var pathOfFileInJar = stripLeadingSlashAndAppendConfigFilename(configPath);
 		try (ZipFile jarFile = new ZipFile(jarFilePath)) {
 			ZipEntry configFile = jarFile.getEntry(pathOfFileInJar);
 			if (configFile != null)
-				return mapper.readValue(JarUtility.readStringFromZipEntry(jarFile, configFile),
+				return mapper.readValue(JarUtil.readStringFromZipEntry(jarFile, configFile),
 						PolicyDecisionPointConfiguration.class);
 		}
 		log.info("No PDP configuration found in resources. Using defaults.");
