@@ -4,22 +4,22 @@ on:
   push:
     branches: [master]
     paths-ignore: ['sapl-documentation/**']
-  
+
 jobs:
   tests:
     strategy:
       matrix:
-        java: [ '11' ] # , '16' ]
+        java: [ '11' , '16' ]
         os: [ubuntu-latest, windows-latest, macos-latest]
-    name: JDK ${{ matrix.java }} on ${{ matrix.os }} 
+    name: JDK ${{ matrix.java }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    
+
     steps:
     - name: Check out
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
-                
+
     - name: Set up JDK ${{ matrix.java }}
       uses: actions/setup-java@v2
       with:
@@ -30,16 +30,16 @@ jobs:
       uses: actions/setup-node@v2
       with:
         node-version: '14'
-    
+
     - name: Cache Maven dependencies
-      uses: actions/cache@v2      
+      uses: actions/cache@v2
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           ${{ runner.os }}-maven-
-          
-    - name: Run tests 
+
+    - name: Run tests
       run: mvn -B test
 
     - name: Trigger CI build of downstream repositories
@@ -49,7 +49,7 @@ jobs:
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-benchmark/dispatches --data '{"event_type": "build_application"}'
 
-  analyze:  
+  analyze:
     needs: [tests]
     name: Code analysis and coverage
     runs-on: ubuntu-latest
@@ -59,32 +59,32 @@ jobs:
       with:
         # avoid shallow clone to ensure correct sonarqube auto assignment
         fetch-depth: 0
-        
+
     - name: Set up JDK 11
       uses: actions/setup-java@v2
       with:
         distribution: 'adopt'
         java-version: 11
-    
+
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
         node-version: '14'
-    
+
     - name: Cache Maven dependencies
-      uses: actions/cache@v2      
+      uses: actions/cache@v2
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           ${{ runner.os }}-maven-
-          
-    - name: Run analysis (JaCoCo, Sonar) 
+
+    - name: Run analysis (JaCoCo, Sonar)
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: mvn -B org.jacoco:jacoco-maven-plugin:prepare-agent package org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.host.url=https://sonar.ftk.de -Dsonar.login=${SONAR_TOKEN} -Dsonar.exclusions=**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*
-  
-  dockerize:  
+
+  dockerize:
     needs: [tests]
     name: Deliver server images
     runs-on: ubuntu-latest
@@ -93,7 +93,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
-        
+
     - name: Set up JDK 11
       uses: actions/setup-java@v2
       with:
@@ -107,37 +107,37 @@ jobs:
         servers: |
           [{
               "id": "ghcr.io",
-              "username": "${{ secrets.GHUB_USERNAME }}", 
+              "username": "${{ secrets.GHUB_USERNAME }}",
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            }]
-    
+
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
         node-version: '14'
-    
+
     - name: Cache Maven dependencies
-      uses: actions/cache@v2      
+      uses: actions/cache@v2
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           ${{ runner.os }}-maven-
-          
-    - name: Build Modules 
+
+    - name: Build Modules
       run: mvn -B install -DskipTests
 
     - name: Build SAPL Server LT image
       run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
-      
+
     - name: Push image
       run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
-                  
+
     - name: Clean up local repository before caching
       run: rm -rf /.m2/repository/io/sapl
 
- 
-  deploy:  
+
+  deploy:
     needs: [tests]
     name: Deploy to central
     runs-on: ubuntu-latest
@@ -146,7 +146,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
-        
+
     - name: Set up JDK 11
       uses: actions/setup-java@v2
       with:
@@ -159,26 +159,26 @@ jobs:
         githubServer: false
         servers: |
           [{
-              "id": "ossrh", 
+              "id": "ossrh",
               "username": "${{ secrets.OSSRH_USERNAME }}",
               "password": "${{ secrets.OSSRH_PASSWORD }}"
            },{
               "id": "ghcr.io",
-              "username": "${{ secrets.GHUB_USERNAME }}", 
+              "username": "${{ secrets.GHUB_USERNAME }}",
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            },{
-              "id": "github", 
+              "id": "github",
               "username": "${{ secrets.GHUB_USERNAME }}",
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            }]
-    
+
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
         node-version: '14'
-    
+
     - name: Cache Maven dependencies
-      uses: actions/cache@v2      
+      uses: actions/cache@v2
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -191,4 +191,4 @@ jobs:
         gpg --list-secret-keys --keyid-format LONG
 
     - name: Deploy Maven artefacts
-      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -DskipTests deploy      
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -DskipTests deploy

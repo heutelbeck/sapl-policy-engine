@@ -15,11 +15,7 @@
  */
 package io.sapl.pdp;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
@@ -41,7 +37,12 @@ import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;
+import lombok.experimental.UtilityClass;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
+@UtilityClass
 public class PolicyDecisionPointFactory {
 
 	private static final String DEFAULT_FILE_LOCATION = "~/sapl/policies";

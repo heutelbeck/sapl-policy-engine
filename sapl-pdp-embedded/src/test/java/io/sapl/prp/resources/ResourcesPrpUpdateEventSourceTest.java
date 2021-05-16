@@ -81,6 +81,8 @@ class ResourcesPrpUpdateEventSourceTest {
         String pathToJarWithDirectory = pathToJar + "!" + "policies";
         val url = Paths.get(pathToJarWithDirectory).toUri().toURL();
 
+        System.out.println(url);
+
         var source = new ResourcesPrpUpdateEventSource("", DEFAULT_SAPL_INTERPRETER);
 
         try (MockedStatic<JarPathUtil> mock = mockStatic(JarPathUtil.class)) {
