@@ -30,7 +30,6 @@ import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 import java.io.BufferedInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -91,10 +90,10 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
         for (var i = 1; i < jarPathElements.length; i++) {
             dirPath.append(jarPathElements[i]);
         }
-        if (dirPath.charAt(0) == File.separatorChar) {
+        if (dirPath.charAt(0) == '/') {
             dirPath.deleteCharAt(0);
         }
-        final String configFilePath = dirPath.append(File.separatorChar).append(CONFIG_FILE_GLOB_PATTERN).toString();
+        final String configFilePath = dirPath.append('/').append(CONFIG_FILE_GLOB_PATTERN).toString();
 
         try (ZipFile zipFile = new ZipFile(jarFilePath)) {
             Enumeration<? extends ZipEntry> e = zipFile.entries();

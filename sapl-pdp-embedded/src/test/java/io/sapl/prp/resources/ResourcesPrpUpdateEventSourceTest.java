@@ -11,6 +11,7 @@ import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
@@ -109,14 +110,16 @@ class ResourcesPrpUpdateEventSourceTest {
 
     @Test
     void propagate_exception_caught_while_reading_policies_from_jar() throws Exception {
-        URL url = ClassLoader.getSystemResource("policies_in_jar.jar");
-        val url3 = Paths.get(url.getPath() + "!" + File.separator + "policies").toUri().toURL();
-        val zipFile = new ZipFile(url.getPath());
+        URI uri = ClassLoader.getSystemResource("policies_in_jar.jar").toURI();
+        String pathToJar = Paths.get(uri).toString();
+        String pathToJarWithDirectory =pathToJar + "!" + File.separator + "policies";
+        val url = Paths.get(pathToJarWithDirectory).toUri().toURL();
 
+        val zipFile = new ZipFile(pathToJar);
         var source = new ResourcesPrpUpdateEventSource("", DEFAULT_SAPL_INTERPRETER);
 
         try (MockedStatic<JarPathUtil> mock = mockStatic(JarPathUtil.class)) {
-            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(url.getPath());
+            mock.when(() -> JarPathUtil.getJarFilePath(any())).thenReturn(pathToJar);
 
             try (MockedConstruction<ZipFile> mocked = Mockito.mockConstruction(ZipFile.class,
                     (mockZipFile, context) -> {
@@ -124,7 +127,7 @@ class ResourcesPrpUpdateEventSourceTest {
                         doReturn(zipFile.entries()).when(mockZipFile).entries();
                     })) {
 
-                assertThrows(RuntimeException.class, () -> source.readPoliciesFromJar(url3));
+                assertThrows(RuntimeException.class, () -> source.readPoliciesFromJar(url));
             }
 
         }

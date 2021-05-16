@@ -32,7 +32,6 @@ import reactor.core.publisher.Flux;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
@@ -85,7 +84,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
         for (int i = 1; i < jarPathElements.length; i++) {
             policiesDirPath.append(jarPathElements[i]);
         }
-        if (policiesDirPath.charAt(0) == File.separatorChar) {
+        if (policiesDirPath.charAt(0) == '/') {
             policiesDirPath.deleteCharAt(0);
         }
         List<Update> updates = new LinkedList<>();
