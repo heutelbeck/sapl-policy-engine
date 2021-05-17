@@ -14,7 +14,7 @@ public class FileMonitorUtil {
 
 	private static final long POLL_INTERVAL_IN_MS = 500;
 
-	public String resolveHomeFolderIfPresent(String policyPath) {
+	public static String resolveHomeFolderIfPresent(String policyPath) {
 		policyPath = policyPath.replace("/", File.separator);
 
 		if (policyPath.startsWith("~" + File.separator))
@@ -23,11 +23,11 @@ public class FileMonitorUtil {
 		return policyPath;
 	}
 
-	String getUserHomeProperty() {
+	static String getUserHomeProperty() {
 		return System.getProperty("user.home");
 	}
 
-	public Flux<FileEvent> monitorDirectory(final String watchDir, final FileFilter fileFilter) {
+	public static Flux<FileEvent> monitorDirectory(final String watchDir, final FileFilter fileFilter) {
 		return Flux.push(emitter -> {
 			var adaptor = new FileEventAdaptor(emitter);
 			var monitor = new FileAlterationMonitor(POLL_INTERVAL_IN_MS);
