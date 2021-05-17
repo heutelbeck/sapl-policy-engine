@@ -167,7 +167,7 @@ class PolicyEnforcementMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenAnnotationOnInterfaceAnInterfaceMethod_ThenReturnsOnInterfaceMEthod()
+	void whenAnnotationOnInterfaceAnInterfaceMethod_ThenReturnsOnInterfaceMethod()
 			throws NoSuchMethodException, SecurityException {
 
 		class TestClass implements TestInterfaceAnnotatedOnInterfaceAndMethod {
