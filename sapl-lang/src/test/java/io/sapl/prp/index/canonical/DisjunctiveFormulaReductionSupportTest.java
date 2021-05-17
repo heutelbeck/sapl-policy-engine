@@ -1,12 +1,17 @@
 package io.sapl.prp.index.canonical;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 
-import org.junit.jupiter.api.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class DisjunctiveFormulaReductionSupportTest {
 
@@ -52,7 +57,6 @@ class DisjunctiveFormulaReductionSupportTest {
         assertThat(clauses.isEmpty(), is(true));
         DisjunctiveFormulaReductionSupport.reduceFormula(clauses);
         assertThat(clauses.isEmpty(), is(true));
-
 
         var trueLiteral = new Literal(new Bool(true));
         var falseLiteral = new Literal(new Bool(false));
@@ -117,6 +121,23 @@ class DisjunctiveFormulaReductionSupportTest {
         DisjunctiveFormulaReductionSupport.reduceFormula(clauses);
         assertThat(clauses.size() == 1, is(true));
         clauses.clear();
+    }
 
+    @Test
+    void testReduceFormulaStep() {
+        var clauseMock = mock(ConjunctiveClause.class);
+        when(clauseMock.isSubsetOf(any())).thenReturn(true,false,true);
+        var clauseMock2 = mock(ConjunctiveClause.class);
+        when(clauseMock2.isSubsetOf(any())).thenReturn(true,false,true);
+
+        var pointerMock = mock(ListIterator.class);
+        var forwardMock = mock(ListIterator.class);
+        when(forwardMock.next()).thenReturn(clauseMock2, null, clauseMock2, clauseMock2);
+        when(forwardMock.hasNext()).thenReturn(true, true, true, false);
+
+        var listMock = mock(List.class);
+        when(listMock.listIterator(anyInt())).thenReturn(forwardMock);
+
+        DisjunctiveFormulaReductionSupport.reduceFormulaStep(listMock, pointerMock, clauseMock);
     }
 }
