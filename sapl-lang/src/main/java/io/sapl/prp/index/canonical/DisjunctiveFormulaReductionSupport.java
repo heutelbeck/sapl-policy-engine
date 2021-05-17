@@ -15,11 +15,11 @@
  */
 package io.sapl.prp.index.canonical;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
-
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class DisjunctiveFormulaReductionSupport {
@@ -51,8 +51,8 @@ public class DisjunctiveFormulaReductionSupport {
         data.removeIf(Objects::isNull);
     }
 
-    private static void reduceFormulaStep(final List<ConjunctiveClause> data,
-                                          final ListIterator<ConjunctiveClause> pointer, final ConjunctiveClause value) {
+    static void reduceFormulaStep(final List<ConjunctiveClause> data,
+                                  final ListIterator<ConjunctiveClause> pointer, final ConjunctiveClause value) {
         ListIterator<ConjunctiveClause> forward = data.listIterator(pointer.nextIndex());
         while (forward.hasNext()) {
             ConjunctiveClause rhs = forward.next();

@@ -1,17 +1,6 @@
 package io.sapl.prp.filesystem;
 
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.collect.Maps;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -24,6 +13,16 @@ import io.sapl.util.filemonitoring.FileEvent;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 class ImmutableFileIndex {
@@ -111,6 +110,10 @@ class ImmutableFileIndex {
         invalidDocuments--;
     }
 
+    void decrementNameCollisions() {
+        nameCollisions--;
+    }
+
     public ImmutableFileIndex afterFileEvent(FileEvent event) {
         var fileName = event.getFile().getName();
         var path = event.getFile().toPath().toAbsolutePath();
@@ -188,8 +191,12 @@ class ImmutableFileIndex {
         load(filePath);
     }
 
+    String getAbsolutePathAsString(Path filePath) {
+        return filePath.toAbsolutePath().toString();
+    }
+
     void unload(Path filePath) {
-        var path = filePath.toAbsolutePath().toString();
+        var path = getAbsolutePathAsString(filePath);
         if (containsDocumentWithPath(path)) {
             var oldDocument = removeDocumentFromMap(path);
             if (oldDocument.isPublished()) {
@@ -198,7 +205,7 @@ class ImmutableFileIndex {
             if (oldDocument.isValid()) {
                 var documentsWithOriginalName = getDocumentByName(oldDocument.getDocumentName());
                 if (documentsWithOriginalName.size() > 1) {
-                    nameCollisions--;
+                    decrementNameCollisions();
                 }
                 documentsWithOriginalName.remove(oldDocument);
                 if (documentsWithOriginalName.size() == 1) {
@@ -218,6 +225,7 @@ class ImmutableFileIndex {
             }
         }
     }
+
 
     @Data
     @Slf4j

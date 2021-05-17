@@ -1,17 +1,19 @@
 package io.sapl.prp.index.canonical;
 
+import org.junit.jupiter.api.Test;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
-
-import org.junit.jupiter.api.Test;
 
 class LiteralTest {
 
     @Test
-    void testGuardClauses(){
+    void testGuardClauses() {
         assertThrows(NullPointerException.class, () -> new Literal((Bool) null));
+        assertThat(new Literal(new Bool(true)), notNullValue());
     }
 
     @Test
@@ -28,7 +30,7 @@ class LiteralTest {
     @Test
     void negateTest() {
         var literal = new Literal(new Bool(false));
-        var negatedLiteral = new Literal(new Bool(false),true);
+        var negatedLiteral = new Literal(new Bool(false), true);
 
         var negated = literal.negate();
         var doubleNegated = negatedLiteral.negate();
