@@ -37,7 +37,7 @@ class FileMonitorUtilTest {
 	void resolve_home_folder_in_path_without_home() {
 		var folder = File.separator + "opt" + File.separator;
 		var path = FileMonitorUtil.resolveHomeFolderIfPresent(folder);
-		assertThat(path, not(emptyString()));
+
 		assertThat(path, is(folder));
 	}
 
