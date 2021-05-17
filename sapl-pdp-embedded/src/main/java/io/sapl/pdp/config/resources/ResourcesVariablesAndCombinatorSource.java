@@ -15,6 +15,8 @@
  */
 package io.sapl.pdp.config.resources;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -30,12 +32,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.util.JarUtil;
 import lombok.NonNull;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -48,33 +50,40 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 	private final ObjectMapper mapper;
 	private final PolicyDecisionPointConfiguration config;
 
-	public ResourcesVariablesAndCombinatorSource() {
+	public ResourcesVariablesAndCombinatorSource() throws InitializationException {
 		this(DEFAULT_CONFIG_PATH);
 	}
 
-	public ResourcesVariablesAndCombinatorSource(String configPath) {
+	public ResourcesVariablesAndCombinatorSource(String configPath) throws InitializationException {
 		this(configPath, new ObjectMapper());
 	}
 
-	public ResourcesVariablesAndCombinatorSource(String configPath, ObjectMapper mapper) {
+	public ResourcesVariablesAndCombinatorSource(String configPath, ObjectMapper mapper)
+			throws InitializationException {
 		this(ResourcesVariablesAndCombinatorSource.class, configPath, mapper);
 	}
 
 	public ResourcesVariablesAndCombinatorSource(@NonNull Class<?> clazz, @NonNull String configPath,
-			@NonNull ObjectMapper mapper) {
+			@NonNull ObjectMapper mapper) throws InitializationException {
 		log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 		this.mapper = mapper;
 		config = readConfig(JarUtil.inferUrlOfRecourcesPath(clazz, configPath), configPath);
 	}
 
-	private final PolicyDecisionPointConfiguration readConfig(URL configFolderUrl, String configPath) {
-		if ("jar".equals(configFolderUrl.getProtocol()))
-			return readConfigFromJar(configFolderUrl, configPath);
-		return readConfigFromDirectory(configFolderUrl);
+	private final PolicyDecisionPointConfiguration readConfig(URL configFolderUrl, String configPath)
+			throws InitializationException {
+		try {
+
+			if ("jar".equals(configFolderUrl.getProtocol()))
+				return readConfigFromJar(configFolderUrl, configPath);
+			return readConfigFromDirectory(configFolderUrl);
+		} catch (IOException | URISyntaxException e) {
+			throw new InitializationException("Failed to create ResourcesVariablesAndCombinatorSource", e);
+		}
 	}
 
-	@SneakyThrows
-	private final PolicyDecisionPointConfiguration readConfigFromJar(URL configFolderUrl, String configPath) {
+	private final PolicyDecisionPointConfiguration readConfigFromJar(URL configFolderUrl, String configPath)
+			throws IOException {
 		log.info("reading config from jar {}", configFolderUrl);
 		var jarFilePath = JarUtil.getJarFilePath(configFolderUrl);
 		var pathOfFileInJar = stripLeadingSlashAndAppendConfigFilename(configPath);
@@ -92,8 +101,8 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 		return configPath.replaceAll("^/+", "") + "/" + CONFIG_FILE;
 	}
 
-	@SneakyThrows
-	private final PolicyDecisionPointConfiguration readConfigFromDirectory(URL configFolderUrl) {
+	private final PolicyDecisionPointConfiguration readConfigFromDirectory(URL configFolderUrl)
+			throws IOException, URISyntaxException {
 		log.debug("reading config from directory {}", configFolderUrl);
 		Path configDirectoryPath = Paths.get(configFolderUrl.toURI());
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE)) {

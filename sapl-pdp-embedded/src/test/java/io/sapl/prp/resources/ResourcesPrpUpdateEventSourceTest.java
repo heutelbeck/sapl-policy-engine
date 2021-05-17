@@ -14,7 +14,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -24,6 +23,7 @@ import org.mockito.MockedStatic;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.util.JarUtil;
 
@@ -49,7 +49,7 @@ class ResourcesPrpUpdateEventSourceTest {
 	}
 
 	@Test
-	void readPoliciesFromDirectory() {
+	void readPoliciesFromDirectory() throws InitializationException {
 		var source = new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER);
 		var update = source.getUpdates().blockFirst();
 		assertThat(update, notNullValue());
@@ -68,13 +68,13 @@ class ResourcesPrpUpdateEventSourceTest {
 
 		try (MockedStatic<Channels> mock = mockStatic(Channels.class, CALLS_REAL_METHODS)) {
 			mock.when(() -> Channels.newInputStream(any(ReadableByteChannel.class))).thenReturn(failingInputStream);
-			assertThrows(IOException.class,
+			assertThrows(InitializationException.class,
 					() -> new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER));
 		}
 	}
 
 	@Test
-	void ifExecutedInJar_thenLoadDocumentsFromJar() throws URISyntaxException, MalformedURLException {
+	void ifExecutedInJar_thenLoadDocumentsFromJar() throws InitializationException, MalformedURLException {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
 		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
 			mock.when(() -> JarUtil.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);

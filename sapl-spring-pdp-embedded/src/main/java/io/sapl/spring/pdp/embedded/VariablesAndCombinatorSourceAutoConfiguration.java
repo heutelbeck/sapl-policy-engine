@@ -20,6 +20,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
@@ -37,7 +38,7 @@ public class VariablesAndCombinatorSourceAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean(VariablesAndCombinatorSource.class)
-	public VariablesAndCombinatorSource vareiablesAndCombinatorSource() {
+	public VariablesAndCombinatorSource vareiablesAndCombinatorSource() throws InitializationException {
 		log.info("Deploying {} VariablesAndCombinatorSource configuration provider. Sourcing data from: {}",
 				pdpProperties.getPdpConfigType(), pdpProperties.getConfigPath());
 

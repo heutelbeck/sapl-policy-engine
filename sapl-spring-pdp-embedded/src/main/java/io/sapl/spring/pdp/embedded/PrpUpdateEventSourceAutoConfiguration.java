@@ -20,6 +20,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEventSource;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
@@ -38,7 +39,7 @@ public class PrpUpdateEventSourceAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PrpUpdateEventSource prpUpdateSource() {
+	public PrpUpdateEventSource prpUpdateSource() throws InitializationException {
 		var policiesFolder = pdpProperties.getPoliciesPath();
 		if (pdpProperties.getPdpConfigType() == EmbeddedPDPProperties.PDPDataSource.FILESYSTEM) {
 			log.info("creating embedded PDP sourcing and monitoring access policies from the filesystem: {}",

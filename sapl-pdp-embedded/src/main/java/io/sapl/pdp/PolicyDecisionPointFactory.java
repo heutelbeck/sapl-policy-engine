@@ -89,7 +89,8 @@ public class PolicyDecisionPointFactory {
 	public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint(String path,
 			Collection<Object> policyInformationPoints, Collection<Object> functionLibraries)
 			throws InitializationException {
-		var resourcesSource = new ResourcesVariablesAndCombinatorSource(EmbeddedPolicyDecisionPoint.class, path,
+		ResourcesVariablesAndCombinatorSource resourcesSource;
+		resourcesSource = new ResourcesVariablesAndCombinatorSource(EmbeddedPolicyDecisionPoint.class, path,
 				new ObjectMapper());
 		var configurationProvider = constructConfigurationProvider(resourcesSource, policyInformationPoints,
 				functionLibraries);
@@ -125,9 +126,11 @@ public class PolicyDecisionPointFactory {
 		return attributeCtx;
 	}
 
-	private static PolicyRetrievalPoint constructResourcesPolicyRetrievalPoint(String resourcePath) {
+	private static PolicyRetrievalPoint constructResourcesPolicyRetrievalPoint(String resourcePath)
+			throws InitializationException {
 		var seedIndex = constructDocumentIndex();
 		var source = new ResourcesPrpUpdateEventSource(resourcePath, new DefaultSAPLInterpreter());
+
 		return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
 	}
 

@@ -26,6 +26,7 @@ import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
@@ -46,22 +47,26 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 	private final SAPLInterpreter interpreter;
 	private final PrpUpdateEvent initializingPrpUpdate;
 
-	public ResourcesPrpUpdateEventSource(String policyPath, SAPLInterpreter interpreter) {
+	public ResourcesPrpUpdateEventSource(String policyPath, SAPLInterpreter interpreter)
+			throws InitializationException {
 		this(ResourcesPrpUpdateEventSource.class, policyPath, interpreter);
 	}
 
-	@SneakyThrows
 	public ResourcesPrpUpdateEventSource(@NonNull Class<?> clazz, @NonNull String policyPath,
-			@NonNull SAPLInterpreter interpreter) {
+			@NonNull SAPLInterpreter interpreter) throws InitializationException {
 		this.interpreter = interpreter;
 		log.info("Loading a static set of policies from the bundled ressources");
 		initializingPrpUpdate = readPolicies(JarUtil.inferUrlOfRecourcesPath(clazz, policyPath));
 	}
 
-	private final PrpUpdateEvent readPolicies(URL policyFolderUrl) throws IOException, URISyntaxException {
-		if ("jar".equals(policyFolderUrl.getProtocol()))
-			return readPoliciesFromJar(policyFolderUrl);
-		return readPoliciesFromDirectory(policyFolderUrl);
+	private final PrpUpdateEvent readPolicies(URL policyFolderUrl) throws InitializationException {
+		try {
+			if ("jar".equals(policyFolderUrl.getProtocol()))
+				return readPoliciesFromJar(policyFolderUrl);
+			return readPoliciesFromDirectory(policyFolderUrl);
+		} catch (IOException | URISyntaxException e) {
+			throw new InitializationException("Failed to read policies", e);
+		}
 	}
 
 	private final PrpUpdateEvent readPoliciesFromJar(URL policiesFolderUrl) throws IOException {
