@@ -91,9 +91,11 @@
 		<module>sapl-lang</module>
 		<module>sapl-ide</module>
 		<module>sapl-web</module>
-		<module>sapl-test</module>
+	<!--
+	 	<module>sapl-test</module>
 		<module>sapl-coverage-api</module>
 		<module>sapl-maven-plugin</module>
+	-->
 		<module>sapl-pdp-embedded</module>
 		<module>sapl-pdp-remote</module>
 		<module>sapl-spring-pdp-embedded</module>
