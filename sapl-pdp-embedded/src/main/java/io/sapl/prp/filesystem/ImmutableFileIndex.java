@@ -1,7 +1,5 @@
 package io.sapl.prp.filesystem;
 
-import static io.sapl.util.filemonitoring.FileMonitorUtil.readFile;
-
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -233,7 +231,7 @@ class ImmutableFileIndex {
         public Document(Path path, SAPLInterpreter interpreter) {
             this.path = path;
             try {
-                rawDocument = readFile(path.toFile());
+                rawDocument = Files.readString(path);
             } catch (IOException e) {
                 log.debug("Error reading file '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
                         e.getMessage());

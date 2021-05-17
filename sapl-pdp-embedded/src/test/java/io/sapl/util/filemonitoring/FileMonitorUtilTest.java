@@ -5,21 +5,16 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.io.File;
-import java.nio.file.NoSuchFileException;
 
 import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import reactor.core.publisher.Flux;
@@ -29,42 +24,13 @@ import reactor.test.StepVerifier;
 class FileMonitorUtilTest {
 
 	@Test
-	void return_valid_textfile_as_string() throws Exception {
-		var validTextFile = new File("src/test/resources/policies/policy_1.sapl");
-		var fileAsString = FileMonitorUtil.readFile(validTextFile);
-
-		assertThat(fileAsString, not(emptyString()));
-		assertThat(fileAsString, containsString("policy 1"));
-	}
-
-	@Test
-	void throw_exception_when_reading_non_existent_file() throws Exception {
-		var missingFile = new File("src/test/resources/not_existing.txt");
-
-		assertThrows(NoSuchFileException.class, () -> {
-			FileMonitorUtil.readFile(missingFile);
-		});
-
-	}
-
-	@Test
 	void resolve_home_folder_in_valid_path() {
 		var homePath = String.format("%shome%sjohndoe", File.separator, File.separator);
+		System.setProperty("user.home", homePath);
 
-		try (MockedStatic<FileMonitorUtil> mock = mockStatic(FileMonitorUtil.class)) {
-			mock.when(FileMonitorUtil::getUserHomeProperty).thenReturn(homePath);
-			mock.when(() -> FileMonitorUtil.resolveHomeFolderIfPresent(any())).thenCallRealMethod();
+		var path = FileMonitorUtil.resolveHomeFolderIfPresent("~" + File.separator);
 
-			var path = FileMonitorUtil.resolveHomeFolderIfPresent("~" + File.separator);
-
-			assertThat(path, not(emptyString()));
-			assertThat(path, containsString(homePath));
-
-			path = FileMonitorUtil.resolveHomeFolderIfPresent("~/");
-			assertThat(path, not(emptyString()));
-			assertThat(path, containsString(homePath));
-		}
-
+		assertThat(path, containsString(homePath));
 	}
 
 	@Test
@@ -95,7 +61,6 @@ class FileMonitorUtilTest {
 		try (MockedConstruction<FileAlterationMonitor> mocked = Mockito.mockConstruction(FileAlterationMonitor.class,
 				(mock, context) -> {
 					doThrow(new Exception()).when(mock).start();
-					// verify(mock, times(1)).start();
 				})) {
 
 			Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("~/", __ -> true);
