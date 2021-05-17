@@ -1,0 +1,59 @@
+package io.sapl.mavenplugin.test.coverage.report.html;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.List;
+
+import org.apache.maven.plugin.testing.SilentLog;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import io.sapl.mavenplugin.test.coverage.TestFileHelper;
+import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
+import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
+
+public class HtmlLineCoverageReportGeneratorTest {
+
+	private Path base;
+	
+	@BeforeEach
+	void setup() {
+		base = Paths.get("target/sapl-coverage/html");
+		TestFileHelper.deleteDirectory(base.toFile());
+	}
+
+	
+	
+	@Test
+	public void test() {
+		var policySetHitRatio = 100;
+		var policyHitRatio = 66.6f;
+		var policyConditionHitRatio = 43.9f;
+		var document = new SaplDocumentCoverageInformation(Paths.get("target/classes/policies/policy_1.sapl"), 11);
+		document.markLine(1, LineCoveredValue.UNINTERESTING, 0, 0);
+		document.markLine(2, LineCoveredValue.UNINTERESTING, 0, 0);
+		document.markLine(3, LineCoveredValue.FULLY, 1, 1);
+		document.markLine(4, LineCoveredValue.FULLY, 1, 1);
+		document.markLine(5, LineCoveredValue.UNINTERESTING, 0, 0);
+		document.markLine(6, LineCoveredValue.FULLY, 1, 1);
+		document.markLine(7, LineCoveredValue.UNINTERESTING, 0, 0);
+		document.markLine(8, LineCoveredValue.FULLY, 1,1 );
+		document.markLine(9, LineCoveredValue.UNINTERESTING, 0, 0);
+		document.markLine(10, LineCoveredValue.PARTLY, 1, 2);
+		document.markLine(11, LineCoveredValue.NEVER, 0, 2);
+		Collection<SaplDocumentCoverageInformation> documents = List.of(document);
+		HtmlLineCoverageReportGenerator generator = new HtmlLineCoverageReportGenerator(documents, new SilentLog(), Paths.get("target/sapl-coverage"),
+				policySetHitRatio, policyHitRatio, policyConditionHitRatio);
+		
+		
+		generator.generateHtmlReport();
+		
+		Assertions.assertThat(base.resolve("assets/favicon.png").toFile().exists()).isTrue();
+		Assertions.assertThat(base.resolve("assets/logo-header.png").toFile().exists()).isTrue();
+		Assertions.assertThat(base.resolve("assets/main.css").toFile().exists()).isTrue();
+		Assertions.assertThat(base.resolve("policies/policy_1.sapl.html").toFile().exists()).isTrue();
+		Assertions.assertThat(base.resolve("index.html").toFile().exists()).isTrue();
+	}
+}
