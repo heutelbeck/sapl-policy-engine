@@ -1,15 +1,5 @@
 package io.sapl.prp.index.canonical;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.Expression;
-import io.sapl.interpreter.EvaluationContext;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-import reactor.core.publisher.Flux;
-
-import java.util.Collections;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -20,6 +10,17 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Expression;
+import io.sapl.interpreter.EvaluationContext;
+import reactor.core.publisher.Flux;
 
 class BoolTest {
 
@@ -73,7 +74,8 @@ class BoolTest {
 
     }
 
-    @Test
+	@Test
+    @SuppressWarnings("unchecked")
     void evaluateTest() {
         assertThat(constantBool.evaluate(), is(false));
         assertThrows(IllegalStateException.class, expressionBool::evaluate);
@@ -83,7 +85,6 @@ class BoolTest {
         var expressionMock = mock(Expression.class);
         var boolResult = expressionBool.evaluate(contextMock).block();
 
-        var resultMock = mock(Val.class);
         when(expressionMock.evaluate(any(), any()))
                 .thenReturn(Flux.just(boolResult), Flux.just(Val.error()), Flux.just(Val.UNDEFINED));
         var bool = new Bool(expressionMock, Collections.emptyMap());

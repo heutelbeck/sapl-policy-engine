@@ -1,17 +1,17 @@
 package io.sapl.prp.index.canonical;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
+
+import org.junit.jupiter.api.Test;
 
 class DisjunctiveFormulaReductionSupportTest {
 
@@ -123,7 +123,8 @@ class DisjunctiveFormulaReductionSupportTest {
         clauses.clear();
     }
 
-    @Test
+	@Test
+    @SuppressWarnings("unchecked")
     void testReduceFormulaStep() {
         var clauseMock = mock(ConjunctiveClause.class);
         when(clauseMock.isSubsetOf(any())).thenReturn(true,false,true);
