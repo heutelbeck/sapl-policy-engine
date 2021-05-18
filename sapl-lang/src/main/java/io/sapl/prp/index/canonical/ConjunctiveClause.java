@@ -15,6 +15,8 @@
  */
 package io.sapl.prp.index.canonical;
 
+import lombok.NonNull;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,8 +24,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
-
-import lombok.NonNull;
 
 public class ConjunctiveClause {
 
@@ -62,10 +62,11 @@ public class ConjunctiveClause {
         if (literals.size() != other.literals.size()) {
             return false;
         }
-        if (hashCode() != other.hashCode()) {
+
+        if (!(literals.containsAll(other.literals) && other.literals.containsAll(literals))) {
             return false;
         }
-        return literals.containsAll(other.literals) && other.literals.containsAll(literals);
+        return hashCode() == other.hashCode();
     }
 
     public boolean evaluate() {

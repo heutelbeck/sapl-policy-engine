@@ -56,11 +56,14 @@ class DisjunctiveFormulaTest {
         var f2 = new DisjunctiveFormula(falseClause, trueClause);
         var f3 = new DisjunctiveFormula(falseClause);
         var f4 = new DisjunctiveFormula(falseClause, falseClause);
+        var f5 = new DisjunctiveFormula(trueClause, trueClause);
 
         assertThat(f1.equals(f1), is(true));
         assertThat(f1.equals(f2), is(true));
         assertThat(f1.equals(f3), is(false));
         assertThat(f1.equals(f4), is(false));
+        assertThat(f4.equals(f5), is(false));
+        assertThat(f5.equals(f4), is(false));
 
         assertThat(f1.equals(null), is(false));
         assertThat(f1.equals(""), is(false));
