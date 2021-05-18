@@ -6,11 +6,10 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 @EqualsAndHashCode
+@AllArgsConstructor
 /**
  * Containing all necessary information of a Policy Condition Hit
- *
  */
 public class PolicyConditionHit {
 

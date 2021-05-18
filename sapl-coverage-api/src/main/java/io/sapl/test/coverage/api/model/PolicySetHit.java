@@ -5,11 +5,10 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 @EqualsAndHashCode
+@AllArgsConstructor
 /**
- * Containing all neccessary information of a {@link io.sapl.grammar.sapl.PolicySet} hit
- *
+ * Containing all necessary information of a {@link io.sapl.grammar.sapl.PolicySet} hit
  */
 public class PolicySetHit {
 	/**
@@ -19,9 +18,7 @@ public class PolicySetHit {
 	
 	@Override
 	public String toString() {
-		StringBuilder stringBuilder = new StringBuilder();
-		stringBuilder.append(policySetId);
-		return stringBuilder.toString();
+		return policySetId;
 	}
 	
 	public static PolicySetHit fromString(String policySetToStringResult) {
