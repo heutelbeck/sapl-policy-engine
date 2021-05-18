@@ -14,6 +14,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -73,6 +74,13 @@ class BoolTest {
     }
 
     @Test
+    void evaluate_immutable_bool() {
+        assertThat(constantBool.evaluate(), is(false));
+        assertThrows(IllegalStateException.class, () -> expressionBool.evaluate());
+    }
+
+
+    @Test
     void evaluating_bool_with_error_expression_should_return_error() {
         var contextMock = mock(EvaluationContext.class);
         when(contextMock.withImports(any())).thenReturn(contextMock);
@@ -101,6 +109,21 @@ class BoolTest {
 
         assertThat(result.isBoolean(), is(true));
         assertThat(result.getBoolean(), is(false));
+    }
+
+    @Test
+    void evaluating_bool_with_long_expression_should_return_error() {
+        var contextMock = mock(EvaluationContext.class);
+        when(contextMock.withImports(any())).thenReturn(contextMock);
+
+        var expressionMock = mock(Expression.class);
+        when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.of(0L)));
+
+        var bool = new Bool(expressionMock, Collections.emptyMap());
+        var result = bool.evaluate(contextMock).block();
+
+        assertThat(result.isBoolean(), is(false));
+        assertThat(result.isError(), is(true));
     }
 
     @Test
