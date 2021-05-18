@@ -81,11 +81,9 @@ public class DisjunctiveFormula {
         if (clauses.size() != other.clauses.size()) {
             return false;
         }
-        if (!(clauses.containsAll(other.clauses) && other.clauses.containsAll(clauses))) {
-            return false;
-        }
+        return (clauses.containsAll(other.clauses) && other.clauses.containsAll(clauses));
 
-        return hashCode() == other.hashCode();
+        //        return hashCode() == other.hashCode();
     }
 
     public boolean evaluate() {

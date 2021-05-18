@@ -63,10 +63,8 @@ public class ConjunctiveClause {
             return false;
         }
 
-        if (!(literals.containsAll(other.literals) && other.literals.containsAll(literals))) {
-            return false;
-        }
-        return hashCode() == other.hashCode();
+        return (literals.containsAll(other.literals) && other.literals.containsAll(literals));
+        //        return hashCode() == other.hashCode();
     }
 
     public boolean evaluate() {

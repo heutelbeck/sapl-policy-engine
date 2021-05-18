@@ -31,18 +31,22 @@ class ConjunctiveClauseTest {
     @Test
     @SuppressWarnings("unlikely-arg-type")
     void testEquals() {
+        var l1 = new Literal(new Bool(true));
         var c1 = new ConjunctiveClause(new Literal(new Bool(true)));
         var c2 = new ConjunctiveClause(new Literal(new Bool(true)));
         var c3 = new ConjunctiveClause(new Literal(new Bool(false)));
-        var c4 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(true)));
+        var c4 = new ConjunctiveClause(l1, l1);
         var c5 = new ConjunctiveClause(new Literal(new Bool(false)), new Literal(new Bool(false)));
+        var c6 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
 
-        assertThat(c1.equals(c1), is(true));
+                assertThat(c1.equals(c1), is(true));
         assertThat(c1.equals(c2), is(true)); // true, true
         assertThat(c1.equals(c3), is(false));
         assertThat(c1.equals(c4), is(false));
         assertThat(c4.equals(c5), is(false));
         assertThat(c5.equals(c4), is(false));
+        assertThat(c4.equals(c6), is(false));
+        assertThat(c6.equals(c4), is(false));
 
         assertThat(c1.equals(null), is(false));
         assertThat(c1.equals(""), is(false));
