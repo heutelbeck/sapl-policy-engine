@@ -1,0 +1,8 @@
+import io.sapl.prp.embedded.TestPIP as test
+
+policy "policyWithMultipleFunctionsOrPIPs"
+permit
+    action == "read"
+where
+    subject.<test.upper> == "WILLI";
+    time.dayOfWeekFrom("UTC".<clock.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";

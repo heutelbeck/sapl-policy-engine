@@ -1,0 +1,132 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>io.sapl</groupId>
+		<artifactId>sapl-policy-engine</artifactId>
+		<version>2.0.0-SNAPSHOT</version>
+	</parent>
+	<artifactId>sapl-test</artifactId>
+	<name>SAPL Test</name>
+	<description>Contains all necessary tools for testing your SAPL policies</description>
+
+	<dependencies>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-lang</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-pdp-embedded</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-coverage-api</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest</artifactId>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
+		</dependency>
+
+		<!-- Logging -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+
+
+		<!-- Test Dependencies -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+			<!-- compile -->
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+
+
+	<build>
+<!-- 
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>${project.groupId}</groupId>
+					<artifactId>sapl-maven-plugin</artifactId>
+					<version>${project.version}</version>
+					<executions>
+						<execution>
+							<goals>
+								<goal>enable-coverage-collection</goal>
+								<goal>report-coverage-information</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+ -->
+		<!-- If this is used, you have to configure this sapl-test via a system 
+			property "io.sapl.test.outputDir" too. See maven-surefire-plugin for example 
+			configuration. -->
+		<!--<directory>temp/</directory> -->
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<!-- <configuration> <systemPropertyVariables> <io.sapl.test.outputDir>${project.build.directory}</io.sapl.test.outputDir> 
+					</systemPropertyVariables> </configuration> -->
+			</plugin>
+   <!-- 
+			<plugin>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>sapl-maven-plugin</artifactId>
+				<configuration>
+	 -->
+					<!--<coverageEnabled>false</coverageEnabled> -->
+					<!--<policyPath>policies</policyPath> -->
+					<!--<outputDir>something/special/</outputDir> -->
+					<!--<policySetHitRatio>100</policySetHitRatio> -->
+   <!-- 
+					<policyHitRatio>100</policyHitRatio>
+					<policyConditionHitRatio>50</policyConditionHitRatio>
+				</configuration>
+			</plugin>
+	 -->
+			 
+			<!-- <plugin> <groupId>org.apache.maven.plugins</groupId> <artifactId>maven-javadoc-plugin</artifactId> 
+				</plugin> -->
+		</plugins>
+	</build>
+
+</project>

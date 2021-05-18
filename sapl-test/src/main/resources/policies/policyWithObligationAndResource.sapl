@@ -1,0 +1,18 @@
+import filter.*
+
+policy "policyWithObligationAndResource"
+permit 
+    action.java.name == "findById"
+where 
+    "ROLE_ADMIN" in subject..authority;
+obligation  
+    {
+        "type" : "logAccess",
+		"message" : subject.name + " has accessed patient data (id="+resource.id+") as an administrator."
+    }
+transform 
+	// filtering with text blackening
+	resource |- {
+                    @.icd11Code : blacken(2,0,"\u2588"),
+                    @.diagnosisText : blacken(0,0,"\u2588")
+                }

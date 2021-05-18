@@ -1,0 +1,8 @@
+set "testSet"
+deny-unless-permit
+
+policy "policySimple"
+permit
+    action == "read"
+where
+    subject == "willi";

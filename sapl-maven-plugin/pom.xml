@@ -1,0 +1,249 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>io.sapl</groupId>
+		<artifactId>sapl-policy-engine</artifactId>
+		<version>2.0.0-SNAPSHOT</version>
+	</parent>
+	<artifactId>sapl-maven-plugin</artifactId>
+	<name>SAPL Maven Plugin</name>
+	<packaging>maven-plugin</packaging>
+	
+	<properties>
+		<maven.version>3.6.3</maven.version>
+	</properties>
+	 
+	<dependencies>
+		<!-- Maven Plugin Dependencies -->
+		<dependency>
+			<groupId>org.apache.maven</groupId>
+			<artifactId>maven-plugin-api</artifactId>
+			<version>${maven.version}</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.maven</groupId>
+		    <artifactId>maven-core</artifactId>
+		    <version>${maven.version}</version>
+		</dependency>
+	    <dependency>
+			<groupId>org.apache.maven.plugin-tools</groupId>
+			<artifactId>maven-plugin-annotations</artifactId>
+			<version>3.6.0</version>
+			<scope>provided</scope>
+   		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api -->
+		<dependency>
+		    <groupId>javax.xml.bind</groupId>
+		    <artifactId>jaxb-api</artifactId>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/javax.activation/activation -->
+		<dependency>
+		    <groupId>javax.activation</groupId>
+		    <artifactId>activation</artifactId>
+		    <version>1.1</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-runtime -->
+		<dependency>
+		    <groupId>org.glassfish.jaxb</groupId>
+		    <artifactId>jaxb-runtime</artifactId>
+		</dependency>
+		
+		
+		<!-- SAPL -->
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>sapl-coverage-api</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-lang</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-web</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
+		<!-- Sapl Plugin Dependencies -->
+		<dependency>
+		    <groupId>com.j2html</groupId>
+		    <artifactId>j2html</artifactId>
+		    <version>1.4.0</version>
+		</dependency>
+		
+
+   		
+		<!-- Testing -->
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+	    <dependency>
+	        <groupId>org.apache.maven.plugin-testing</groupId>
+	        <artifactId>maven-plugin-testing-harness</artifactId>
+	        <scope>test</scope>
+	        <version>3.3.0</version>
+	    </dependency>
+		<dependency>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-api</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-simple</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+  
+	<build>
+		<plugins>
+			<plugin>
+			    <?m2e ignore?>
+			    <groupId>org.apache.maven.plugins</groupId>
+			    <artifactId>maven-plugin-plugin</artifactId>
+			    <version>3.6.0</version>
+			</plugin>
+			<!-- <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>unpack</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeGroupIds>${project.groupId}</includeGroupIds>
+                            <includeArtifactIds>sapl-web</includeArtifactIds>
+                            <includes>static/**</includes>
+                            <excludeTransitive>true</excludeTransitive>
+                            <outputDirectory>${project.build.directory}/dependency-resources</outputDirectory>
+                            <overWriteReleases>true</overWriteReleases>
+                            <overWriteSnapshots>true</overWriteSnapshots>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin> -->
+            			<!-- The CSS and JS resources of the xtext web dependency have to copied 
+				to the matching frontend folder CSS and images are hard coded into the HTML 
+				template of the webcomponent JS file -->
+
+			<!-- First unpack the files from the JAR -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>unpack-xtext</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>unpack</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>org.eclipse.xtext</groupId>
+									<artifactId>org.eclipse.xtext.web</artifactId>
+									<version>${xtext.version}</version>
+									<overWrite>true</overWrite>
+									<outputDirectory>${project.build.directory}/xtext</outputDirectory>
+									<includes>META-INF/resources/xtext/${xtext.version}/**/*</includes>
+								</artifactItem>
+							</artifactItems>
+						</configuration>
+					</execution>
+					<execution>
+						<id>unpack-sapl</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>unpack</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>${project.groupId}</groupId>
+									<artifactId>sapl-web</artifactId>
+									<version>${project.version}</version>
+									<overWrite>true</overWrite>
+									<outputDirectory>${project.build.directory}/sapl</outputDirectory>
+									<includes>static/**/*</includes>
+								</artifactItem>
+							</artifactItems>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Second, copy the files into the frontend folder to be accessible 
+				via vaadin tooling -->
+			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>copy-resources-js</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/classes/dependency-resources</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${project.build.directory}/xtext/META-INF/resources/xtext/${xtext.version}</directory>
+									<includes>
+										<include>xtext-codemirror.min.js</include>
+									</includes>
+									<filtering>false</filtering>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+					<execution>
+						<id>copy-resources-sapl</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/classes/dependency-resources</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${project.build.directory}/sapl/static</directory>
+									<includes>
+										<include>sapl-mode.js</include>
+									</includes>
+									<filtering>false</filtering>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+            <!-- <plugin>
+	            <groupId>org.apache.maven.plugins</groupId>
+	            <artifactId>maven-surefire-plugin</artifactId>
+	            <configuration>
+	                <additionalClasspathElements>
+	                    <additionalClasspathElement>${project.build.directory}/dependency-resources</additionalClasspathElement>
+	                </additionalClasspathElements>
+	            </configuration>
+	        </plugin>-->
+		</plugins>
+	</build>
+</project>

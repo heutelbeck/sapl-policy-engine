@@ -88,25 +88,16 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 	 */
 	private <A extends Annotation> A findAnnotation(Method method, Class<?> targetClass, Class<A> annotationClass) {
 		log.debug("LOOKING FOR... {} on {} in {}", annotationClass.getSimpleName(), method.getName(),
-				method.getDeclaringClass());
-
+				targetClass.getSimpleName());
 		// The method may be on an interface, but we need attributes from the target
 		// class.
 		// If the target class is null, the method will be unchanged.
 		Method specificMethod = ClassUtils.getMostSpecificMethod(method, targetClass);
 		A annotation = AnnotationUtils.findAnnotation(specificMethod, annotationClass);
+		
 		if (annotation != null) {
 			log.debug("{} found on specific method: {}", annotation, specificMethod);
 			return annotation;
-		}
-
-		// Check the original (e.g. interface) method
-		if (specificMethod != method) {
-			annotation = AnnotationUtils.findAnnotation(method, annotationClass);
-			if (annotation != null) {
-				log.debug("{} found on: {}", annotation, method);
-				return annotation;
-			}
 		}
 
 		// Check the class-level (note declaringClass, not targetClass, which may not
