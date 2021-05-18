@@ -15,16 +15,15 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.Map;
-import java.util.Objects;
-
 import com.google.common.base.Preconditions;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
+import java.util.Objects;
 
 public class Bool {
 
@@ -60,11 +59,10 @@ public class Bool {
     }
 
     public Mono<Val> evaluate(EvaluationContext subscriptionScopedEvaluationContext) {
-        EvaluationContext documentScopedEvaluationContext = subscriptionScopedEvaluationContext.withImports(imports);
+        var documentScopedEvaluationContext = subscriptionScopedEvaluationContext.withImports(imports);
         Flux<Val> resultFlux = isConstantExpression ? Flux.just(Val.of(constant))
                 : expression.evaluate(documentScopedEvaluationContext, Val.UNDEFINED);
-        return resultFlux.map(result ->
-                result.isError() || result.isBoolean() ? result : Val.error("expression not boolean"))
+        return resultFlux.map(result -> result.isError() || result.isBoolean() ? result : Val.error("expression not boolean"))
                 .next();
     }
 

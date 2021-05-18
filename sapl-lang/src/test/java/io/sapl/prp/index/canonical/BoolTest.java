@@ -14,7 +14,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -74,25 +73,54 @@ class BoolTest {
     }
 
     @Test
-    void evaluateTest() {
-        assertThat(constantBool.evaluate(), is(false));
-        assertThrows(IllegalStateException.class, expressionBool::evaluate);
-
+    void evaluating_bool_with_error_expression_should_return_error() {
         var contextMock = mock(EvaluationContext.class);
         when(contextMock.withImports(any())).thenReturn(contextMock);
+
         var expressionMock = mock(Expression.class);
-        var boolResult = expressionBool.evaluate(contextMock).block();
+        when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.error("error")));
 
-        var resultMock = mock(Val.class);
-        when(expressionMock.evaluate(any(), any()))
-                .thenReturn(Flux.just(boolResult), Flux.just(Val.error()), Flux.just(Val.UNDEFINED));
         var bool = new Bool(expressionMock, Collections.emptyMap());
+        var result = bool.evaluate(contextMock).block();
 
+        assertThat(result.isError(), is(true));
+        assertThat(result.getMessage(), is("error"));
+    }
+
+
+    @Test
+    void evaluating_bool_with_false_expression_should_return_false() {
+        var contextMock = mock(EvaluationContext.class);
+        when(contextMock.withImports(any())).thenReturn(contextMock);
+
+        var expressionMock = mock(Expression.class);
+        when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.FALSE));
+
+        var bool = new Bool(expressionMock, Collections.emptyMap());
         var result = bool.evaluate(contextMock).block();
 
         assertThat(result.isBoolean(), is(true));
-        assertThat(result.get().asBoolean(), is(true));
+        assertThat(result.getBoolean(), is(false));
+    }
 
+    @Test
+    void evaluating_bool_with_impossible_expression_should_return_impossible_value() {
+        var contextMock = mock(EvaluationContext.class);
+        when(contextMock.withImports(any())).thenReturn(contextMock);
+
+        //condition coverage requires Val to be boolean and error at the same time -> impossible
+        var valMock = mock(Val.class);
+        when(valMock.isError()).thenReturn(true);
+        when(valMock.isBoolean()).thenReturn(true);
+
+        var expressionMock = mock(Expression.class);
+        when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(valMock));
+
+        var bool = new Bool(expressionMock, Collections.emptyMap());
+        var result = bool.evaluate(contextMock).block();
+
+        assertThat(result.isError(), is(true));
+        assertThat(result.isBoolean(), is(true));
     }
 
 }

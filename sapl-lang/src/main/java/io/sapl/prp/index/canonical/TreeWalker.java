@@ -15,16 +15,15 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.Map;
-
 import com.google.common.base.Preconditions;
-
 import io.sapl.grammar.sapl.BasicGroup;
 import io.sapl.grammar.sapl.EagerAnd;
 import io.sapl.grammar.sapl.EagerOr;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Not;
 import lombok.experimental.UtilityClass;
+
+import java.util.Map;
 
 @UtilityClass
 public class TreeWalker {
@@ -43,7 +42,7 @@ public class TreeWalker {
         return endRecursion(expression, imports);
     }
 
-    private static DisjunctiveFormula endRecursion(final Expression node, final Map<String, String> imports) {
+    static DisjunctiveFormula endRecursion(final Expression node, final Map<String, String> imports) {
         return new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(node, imports))));
     }
 
@@ -53,7 +52,7 @@ public class TreeWalker {
         return left.distribute(right);
     }
 
-    private static DisjunctiveFormula traverse(final BasicGroup node, final Map<String, String> imports) {
+    static DisjunctiveFormula traverse(final BasicGroup node, final Map<String, String> imports) {
         if (node.getFilter() == null && node.getSteps().isEmpty() && node.getSubtemplate() == null) {
             return walk(node.getExpression(), imports);
         }
