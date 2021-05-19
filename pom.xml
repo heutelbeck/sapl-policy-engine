@@ -91,7 +91,7 @@
 		<module>sapl-lang</module>
 		<module>sapl-ide</module>
 		<module>sapl-web</module>
-	 	<module>sapl-test</module>
+		<module>sapl-test</module>
 		<module>sapl-coverage-api</module>
 		<module>sapl-maven-plugin</module>
 		<module>sapl-pdp-embedded</module>
@@ -102,6 +102,7 @@
 		<module>sapl-webflux-endpoint</module>
 		<module>sapl-documentation</module>
 		<module>sapl-server-lt</module>
+		<module>sapl-bom</module>
 	</modules>
 
 	<dependencyManagement>
@@ -398,16 +399,6 @@
 	</build>
 
 	<profiles>
-		<profile>
-			<id>jdk9-or-newer</id>
-			<activation>
-				<jdk>[9,)</jdk>
-			</activation>
-			<properties>
-				<moduleProperties>--add-modules=ALL-SYSTEM</moduleProperties>
-			</properties>
-		</profile>
-
 		<profile>
 			<id>publish</id>
 			<build>
