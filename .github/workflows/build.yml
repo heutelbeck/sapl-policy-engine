@@ -44,11 +44,11 @@ jobs:
 
     - name: Clean up local repository before caching (Linux/Mac)
       if: ${{ matrix.os != 'windows-latest'}}
-      run: rm -rf /.m2/repository/io/sapl
+      run: rm -rf ~/.m2/repository/io/sapl
 
     - name: Clean up local repository before caching (Win)
       if: ${{ matrix.os == 'windows-latest'}}
-      run: rm -Recurse -Force /.m2/repository/io/sapl
+      run: rm -Recurse -Force ~/.m2/repository/io/sapl
 
   analyze:
     needs: [tests]
@@ -87,11 +87,11 @@ jobs:
 
     - name: Clean up local repository before caching (Linux/Mac)
       if: ${{ matrix.os != 'windows-latest'}}
-      run: rm -rf /.m2/repository/io/sapl
+      run: rm -rf ~/.m2/repository/io/sapl
 
     - name: Clean up local repository before caching (Win)
       if: ${{ matrix.os == 'windows-latest'}}
-      run: rm -Recurse -Force /.m2/repository/io/sapl
+      run: rm -Recurse -Force ~/.m2/repository/io/sapl
 
   dockerize:
     needs: [tests]
@@ -144,11 +144,11 @@ jobs:
 
     - name: Clean up local repository before caching (Linux/Mac)
       if: ${{ matrix.os != 'windows-latest'}}
-      run: rm -rf /.m2/repository/io/sapl
+      run: rm -rf ~/.m2/repository/io/sapl
 
     - name: Clean up local repository before caching (Win)
       if: ${{ matrix.os == 'windows-latest'}}
-      run: rm -Recurse -Force /.m2/repository/io/sapl
+      run: rm -Recurse -Force ~/.m2/repository/io/sapl
 
   deploy:
     needs: [tests]
@@ -215,9 +215,9 @@ jobs:
     
     - name: Clean up local repository before caching (Linux/Mac)
       if: ${{ matrix.os != 'windows-latest'}}
-      run: rm -rf /.m2/repository/io/sapl
+      run: rm -rf ~/.m2/repository/io/sapl
 
     - name: Clean up local repository before caching (Win)
       if: ${{ matrix.os == 'windows-latest'}}
-      run: rm -Recurse -Force /.m2/repository/io/sapl
+      run: rm -Recurse -Force ~/.m2/repository/io/sapl
         
