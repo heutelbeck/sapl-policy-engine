@@ -87,7 +87,7 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 	 * the logic is the same as for @PreAuthorize and @PostAuthorize.
 	 */
 	private <A extends Annotation> A findAnnotation(Method method, Class<?> targetClass, Class<A> annotationClass) {
-		log.debug("LOOKING FOR... {} on {} in {}", annotationClass.getSimpleName(), method.getName(),
+		log.trace("LOOKING FOR... {} on {} in {}", annotationClass.getSimpleName(), method.getName(),
 				targetClass.getSimpleName());
 		// The method may be on an interface, but we need attributes from the target
 		// class.
@@ -96,7 +96,7 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		A annotation = AnnotationUtils.findAnnotation(specificMethod, annotationClass);
 		
 		if (annotation != null) {
-			log.debug("{} found on specific method: {}", annotation, specificMethod);
+			log.trace("{} found on specific method: {}", annotation, specificMethod);
 			return annotation;
 		}
 
@@ -104,7 +104,7 @@ public class PolicyEnforcementMethodSecurityMetadataSource extends AbstractMetho
 		// actually implement the method)
 		annotation = AnnotationUtils.findAnnotation(specificMethod.getDeclaringClass(), annotationClass);
 		if (annotation != null) {
-			log.debug("{} found on: {}", annotation, specificMethod.getDeclaringClass().getName());
+			log.trace("{} found on: {}", annotation, specificMethod.getDeclaringClass().getName());
 			return annotation;
 		}
 		return null;

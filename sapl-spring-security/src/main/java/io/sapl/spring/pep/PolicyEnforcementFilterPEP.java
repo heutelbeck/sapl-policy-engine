@@ -50,9 +50,12 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 
 		var req = (HttpServletRequest) request;
 		var authentication = SecurityContextHolder.getContext().getAuthentication();
-		var authzDecision = pdp.decide(buildRequest(authentication, req, req)).blockFirst();
+		var subscription = buildRequest(authentication, req, req);
 
-		log.trace("PDP decision: {}", authzDecision);
+		log.debug("PEP filter for: '{}' - {} Subscription: {}", subscription.getResource().get("requestedURI"),
+				subscription.getResource().get("requestURL"), subscription);
+		var authzDecision = pdp.decide(subscription).blockFirst();
+		log.debug("PDP decision  : '{}' {}", authzDecision != null ? authzDecision.getDecision() : null, authzDecision);
 
 		constraintHandlers.handleAdvices(authzDecision);
 		constraintHandlers.handleObligations(authzDecision);
