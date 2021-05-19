@@ -42,14 +42,6 @@ jobs:
     - name: Run tests
       run: mvn -B package # package, as the maven plugin loads resources from the dependency packages
 
-    - name: Clean up local repository before caching (Linux/Mac)
-      if: ${{ matrix.os != 'windows-latest'}}
-      run: rm -rf ~/.m2/repository/io/sapl
-
-    - name: Clean up local repository before caching (Win)
-      if: ${{ matrix.os == 'windows-latest'}}
-      run: rm -Recurse -Force ~/.m2/repository/io/sapl
-
   analyze:
     needs: [tests]
     name: Code analysis and coverage
