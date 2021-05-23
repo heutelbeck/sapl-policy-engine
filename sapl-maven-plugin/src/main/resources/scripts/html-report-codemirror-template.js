@@ -1,15 +1,4 @@
 require.config({
-	paths: {
-        'jQuery': "https://code.jquery.com/jquery-3.2.1.slim.min",
-        'Bootstrap': "https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min",
-        'Popper': "https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min"
-    },    
-    shim: {
-        Bootstrap: {
-            deps: ["jQuery","Popper"],
-            exports: "Bootstrap"
-        }
-    },
 	packages: [{
 	  name: "codemirror",
 	  location: "../assets/codemirror",
@@ -22,17 +11,17 @@ require.config({
 	}, 
 	{
 	  name: "bootstrap",
-	  location: "../assets",
+	  location: "https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js",
 	  main: "bootstrap.min"
 	}, 
 	{
 	  name: "jquery",
-	  location: "../assets",
+	  location: "https://code.jquery.com",
 	  main: "jquery-3.2.1.slim.min"
 	}, 
 	{
 	  name: "popper.js",
-	  location: "../assets",
+	  location: "https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd",
 	  main: "popper.min"
 	}]
 });

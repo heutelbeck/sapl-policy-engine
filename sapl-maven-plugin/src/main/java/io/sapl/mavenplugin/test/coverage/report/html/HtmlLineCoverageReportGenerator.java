@@ -72,10 +72,7 @@ public class HtmlLineCoverageReportGenerator {
 				head(
 					meta().withCharset("utf-8"),
 					meta().withName("viewport").withContent("width=device-width, initial-scale=1, shrink-to-fit=no"),
-					link().withRel("stylesheet")
-						.withHref("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css")
-						.attr(new Attribute("integrity","sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"))
-						.attr(new Attribute("crossorigin", "anonymous")),
+					getBootstrapCss(),
 					link().withRel("stylesheet").withHref("assets/main.css"),
 					link().withRel("icon").withHref("assets/favicon.png").withType("image/png"),
 					title("SAPL Coverage Report")),
@@ -272,23 +269,6 @@ public class HtmlLineCoverageReportGenerator {
 		Path saplCodeMirrorCssTargetPath = this.basedir.resolve("html").resolve("assets").resolve("codemirror.css");
 		var saplCodeMirrorCss = getClass().getClassLoader().getResourceAsStream("scripts/codemirror.css");
 		copyFile(saplCodeMirrorCss, saplCodeMirrorCssTargetPath);
-		
-
-		Path jqueryTargetPath = this.basedir.resolve("html").resolve("assets").resolve("jquery-3.2.1.slim.min.js");
-		var jquery = getClass().getClassLoader().getResourceAsStream("scripts/jquery-3.2.1.slim.min.js");
-		copyFile(jquery, jqueryTargetPath);
-		
-		Path popperTargetPath = this.basedir.resolve("html").resolve("assets").resolve("popper.min.js");
-		var popper = getClass().getClassLoader().getResourceAsStream("scripts/popper.min.js");
-		copyFile(popper, popperTargetPath);
-		
-		Path bootstrapTargetPath = this.basedir.resolve("html").resolve("assets").resolve("bootstrap.min.js");
-		var bootstrap = getClass().getClassLoader().getResourceAsStream("scripts/bootstrap.min.js");
-		copyFile(bootstrap, bootstrapTargetPath);
-		
-		Path bootstrapCssTargetPath = this.basedir.resolve("html").resolve("assets").resolve("bootstrap.min.css");
-		var bootstrapCss = getClass().getClassLoader().getResourceAsStream("scripts/bootstrap.min.css");
-		copyFile(bootstrapCss, bootstrapCssTargetPath);
 	}
 
 	private List<String> readPolicyDocument(Path filePath) {
@@ -327,19 +307,27 @@ public class HtmlLineCoverageReportGenerator {
 
 
 	private ContainerTag getJquery() {
-		return script().withSrc("../assets/jquery-3.2.1.slim.min.js");
+		return script().withSrc("https://code.jquery.com/jquery-3.2.1.slim.min.js")
+	        	.attr(new Attribute("integrity", "sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"))
+	        	.attr(new Attribute("crossorigin", "anonymous"));
 	}
 	
 	private ContainerTag getPopper() {
-		return script().withSrc("../assets/popper.min.js");
+		return script().withSrc("https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js")
+	        	.attr(new Attribute("integrity", "sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"))
+	        	.attr(new Attribute("crossorigin", "anonymous"));
 	}
 	
 	private ContainerTag getBootstrapJs() {
-		return script().withSrc("../assets/bootstrap.min.js");
+		return script().withSrc("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js")
+	        	.attr(new Attribute("integrity", "sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"))
+	        	.attr(new Attribute("crossorigin", "anonymous"));
 	}
 	
 	private EmptyTag getBootstrapCss() {
-		return link().withRel("stylesheet").withHref("../assets/bootstrap.min.css");
+		return link().withRel("stylesheet").withHref("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css")
+	        	.attr(new Attribute("integrity", "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"))
+	        	.attr(new Attribute("crossorigin", "anonymous"));
 	}
 	
 	@Data
