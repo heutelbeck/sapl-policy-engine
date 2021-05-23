@@ -16,18 +16,21 @@ import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SaplPackage;
 import io.sapl.grammar.sapl.Statement;
 import io.sapl.mavenplugin.test.coverage.SaplTestException;
-import io.sapl.mavenplugin.test.coverage.model.CoverageHitSummary;
+import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
+import io.sapl.test.coverage.api.model.PolicyConditionHit;
+import io.sapl.test.coverage.api.model.PolicyHit;
+import io.sapl.test.coverage.api.model.PolicySetHit;
 
 public class GenericCoverageReporter {
 	private static final String ERROR_UNEXPECTED_ENUM_VALUE = "Unexpected Enum-Value \"%s\". Please consider reporting this bug to the library authors!";
 	
 	private Collection<SaplDocument> documents;
-	private CoverageHitSummary hits;
+	private CoverageTargets hits;
 
-	public GenericCoverageReporter(Collection<SaplDocument> documents, CoverageHitSummary hits) {
+	public GenericCoverageReporter(Collection<SaplDocument> documents, CoverageTargets hits) {
 		this.documents = documents;
 		this.hits = hits;
 	}
@@ -90,7 +93,7 @@ public class GenericCoverageReporter {
 		
 
 		// check if policy is hit
-		boolean isSetHit = this.hits.isPolicySetHit(set.getSaplName());
+		boolean isSetHit = this.hits.isPolicySetHit(new PolicySetHit(set.getSaplName()));
 		
 		//mark Lines
 		if(isSetHit) {
@@ -124,7 +127,7 @@ public class GenericCoverageReporter {
 
 		
 		// check if policy is hit
-		boolean isPolicyHit = this.hits.isPolicyHit(policySetName, policy.getSaplName());
+		boolean isPolicyHit = this.hits.isPolicyHit(new PolicyHit(policySetName, policy.getSaplName()));
 		
 		//mark Lines
 		if(isPolicyHit) {
@@ -154,8 +157,8 @@ public class GenericCoverageReporter {
 		// if this statement is of type CONDITION
 		if (statement.eClass().equals(SaplPackage.Literals.CONDITION)) {
 			// get hit types
-			boolean isPositivHit = this.hits.isPolicyConditionHit(policySetName, policyName, statementId, true);
-			boolean isNegativHit = this.hits.isPolicyConditionHit(policySetName, policyName, statementId, false);
+			boolean isPositivHit = this.hits.isPolicyConditionHit(new PolicyConditionHit(policySetName, policyName, statementId, true));
+			boolean isNegativHit = this.hits.isPolicyConditionHit(new PolicyConditionHit(policySetName, policyName, statementId, false));
 			
 			//when this statement was once positive evaluated, then the next statement will have been evaluated too
 			//used for Value-Definition statements (see below)

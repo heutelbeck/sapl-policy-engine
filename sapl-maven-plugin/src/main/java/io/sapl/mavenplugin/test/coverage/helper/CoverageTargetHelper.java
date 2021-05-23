@@ -11,7 +11,7 @@ import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SaplPackage;
 import io.sapl.grammar.sapl.Statement;
 import io.sapl.mavenplugin.test.coverage.SaplTestException;
-import io.sapl.mavenplugin.test.coverage.model.CoverageHitSummary;
+import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
@@ -19,7 +19,7 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 
 public class CoverageTargetHelper {
 
-	public CoverageHitSummary getCoverageTargets(Collection<SaplDocument> documents) {
+	public CoverageTargets getCoverageTargets(Collection<SaplDocument> documents) {
 		// Initialize
 		List<PolicySetHit> availablePolicySetHitTargets = new LinkedList<>();
 		List<PolicyHit> availablePolicyHitTargets = new LinkedList<>();
@@ -44,7 +44,7 @@ public class CoverageTargetHelper {
 			 */
 		}
 
-		return new CoverageHitSummary(List.copyOf(availablePolicySetHitTargets), List.copyOf(availablePolicyHitTargets),
+		return new CoverageTargets(List.copyOf(availablePolicySetHitTargets), List.copyOf(availablePolicyHitTargets),
 				List.copyOf(availablePolicyConditionHitTargets));
 	}
 

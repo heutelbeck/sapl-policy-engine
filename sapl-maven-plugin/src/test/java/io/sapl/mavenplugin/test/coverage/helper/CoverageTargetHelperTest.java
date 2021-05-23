@@ -9,7 +9,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.sapl.mavenplugin.test.coverage.model.CoverageHitSummary;
+import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 
 public class CoverageTargetHelperTest {
@@ -30,7 +30,7 @@ public class CoverageTargetHelperTest {
 	@Test
     public void testPolicyRetrieval() throws Exception {
 		CoverageTargetHelper helper = new CoverageTargetHelper();
-		CoverageHitSummary targets = helper.getCoverageTargets(this.documents);
+		CoverageTargets targets = helper.getCoverageTargets(this.documents);
 		Assertions.assertThat(targets.getPolicySets().size()).isEqualTo(1);
 		Assertions.assertThat(targets.isPolicySetHit("testPolicies")).isTrue();
 		Assertions.assertThat(targets.getPolicys().size()).isEqualTo(2);

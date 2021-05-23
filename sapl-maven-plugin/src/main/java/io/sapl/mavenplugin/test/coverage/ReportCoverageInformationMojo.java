@@ -15,7 +15,7 @@ import io.sapl.mavenplugin.test.coverage.helper.CoverageAPIHelper;
 import io.sapl.mavenplugin.test.coverage.helper.CoverageRatioCalculator;
 import io.sapl.mavenplugin.test.coverage.helper.CoverageTargetHelper;
 import io.sapl.mavenplugin.test.coverage.helper.SaplDocumentReader;
-import io.sapl.mavenplugin.test.coverage.model.CoverageHitSummary;
+import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import io.sapl.mavenplugin.test.coverage.report.GenericCoverageReporter;
 import io.sapl.mavenplugin.test.coverage.report.html.HtmlLineCoverageReportGenerator;
@@ -63,8 +63,8 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
 		// read available targets & hits
 		Collection<SaplDocument> documents = readSaplDocuments();
-		CoverageHitSummary targets = readAvailableTargets(documents);
-		CoverageHitSummary hits = readHits();
+		CoverageTargets targets = readAvailableTargets(documents);
+		CoverageTargets hits = readHits();
 		
 		var actualPolicySetHitRatio = CoverageRatioCalculator.calculatePolicySetHitRatio(targets.getPolicySets(), hits.getPolicySets());
 		var actualPolicyHitRatio = CoverageRatioCalculator.calculatePolicyHitRatio(targets.getPolicys(), hits.getPolicys());
@@ -136,12 +136,12 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 		throw new MojoExecutionException("Error reading coverage targets");
 	}
 
-	private CoverageHitSummary readAvailableTargets(Collection<SaplDocument> documents) {
+	private CoverageTargets readAvailableTargets(Collection<SaplDocument> documents) {
 		CoverageTargetHelper helper = new CoverageTargetHelper();
 		return helper.getCoverageTargets(documents);
 	}
 
-	private CoverageHitSummary readHits() throws MojoExecutionException {
+	private CoverageTargets readHits() throws MojoExecutionException {
 		try {
 			getLog().debug("Loading coverage hits");
 			CoverageAPIHelper helper = new CoverageAPIHelper(

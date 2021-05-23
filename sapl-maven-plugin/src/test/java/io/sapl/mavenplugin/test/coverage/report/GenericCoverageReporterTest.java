@@ -12,7 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.mavenplugin.test.coverage.model.CoverageHitSummary;
+import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
@@ -40,7 +40,7 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("testPolicies", "policy 1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("testPolicies", "policy 1", 0, true);
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("testPolicies", "policy 1", 1, true);
-		CoverageHitSummary hits = new CoverageHitSummary(List.of(setHit), List.of(policyHit), List.of(conditionHit1, conditionHit2));
+		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(policyHit), List.of(conditionHit1, conditionHit2));
 		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
 		
 		//act
@@ -79,7 +79,7 @@ public class GenericCoverageReporterTest {
 		String sapl = "set \"set\" \ndeny-unless-permit \nfor action == \"read\" \npolicy \"policy1\" \npermit";
 		Collection<SaplDocument> documents = List.of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
 		PolicySetHit setHit = new PolicySetHit("set");
-		CoverageHitSummary hits = new CoverageHitSummary(List.of(setHit), List.of(), List.of());
+		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(), List.of());
 		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
 		
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
@@ -104,7 +104,7 @@ public class GenericCoverageReporterTest {
 		String sapl = "set \"set\" \ndeny-unless-permit \nvar temp = 1; \npolicy \"policy1\" \npermit";
 		Collection<SaplDocument> documents = List.of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
 		PolicySetHit setHit = new PolicySetHit("set");
-		CoverageHitSummary hits = new CoverageHitSummary(List.of(setHit), List.of(), List.of());
+		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(), List.of());
 		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
 		
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
@@ -131,7 +131,7 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("", "policy1", 0, true);
-		CoverageHitSummary hits = new CoverageHitSummary(List.of(), List.of(policyHit), List.of(conditionHit1, conditionHit2));
+		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1, conditionHit2));
 		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
 		
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
@@ -155,7 +155,7 @@ public class GenericCoverageReporterTest {
 		Collection<SaplDocument> documents = List.of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit = new PolicyConditionHit("", "policy1", 0, false);
-		CoverageHitSummary hits = new CoverageHitSummary(List.of(), List.of(policyHit), List.of(conditionHit));
+		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit));
 		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
 		
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
@@ -181,7 +181,7 @@ public class GenericCoverageReporterTest {
 		Collection<SaplDocument> documents = List.of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 1, false);
-		CoverageHitSummary hits = new CoverageHitSummary(List.of(), List.of(policyHit), List.of(conditionHit1));
+		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
 		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
 		
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
@@ -208,7 +208,7 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("", "policy1", 0, true);
-		CoverageHitSummary hits = new CoverageHitSummary(List.of(), List.of(policyHit), List.of(conditionHit1, conditionHit2));
+		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1, conditionHit2));
 		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
 		
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
@@ -233,7 +233,7 @@ public class GenericCoverageReporterTest {
 		Collection<SaplDocument> documents = List.of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, true);
-		CoverageHitSummary hits = new CoverageHitSummary(List.of(), List.of(policyHit), List.of(conditionHit1));
+		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
 		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
 		
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();

@@ -2,6 +2,7 @@ package io.sapl.test.steps;
 
 import java.time.Duration;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -96,7 +97,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	public GivenOrWhenStep givenAttribute(String importName, Val... returns) {
 		// this.mockingAttributeContext.loadAttributeMock(importName, returns);
 		this.mockingAttributeContext.markAttributeMock(importName);
-		this.mockedAttributeValues.add(AttributeMockReturnValues.of(importName, returns));
+		this.mockedAttributeValues.add(AttributeMockReturnValues.of(importName, List.of(returns)));
 		return this;
 	}
 	

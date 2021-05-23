@@ -143,12 +143,16 @@ public class HtmlLineCoverageReportGenerator {
 
 		List<HtmlPolicyLineModel> models = createHtmlPolicyLineModel(lines, document);
 
-		String filename = document.getPathToDocument().getFileName().toString();
+		String filename = "";
+		Path filePath = document.getPathToDocument().getFileName();
+		if(filePath != null) {
+			filename = filePath.toString();
+		}
 		ContainerTag policySite = createPolicySite_CodeMirror(filename, models);
 		
 
-		Path filePath = this.basedir.resolve("html").resolve("policies").resolve(filename + ".html");
-		createFile(filePath, policySite.renderFormatted());
+		Path policyPath = this.basedir.resolve("html").resolve("policies").resolve(filename + ".html");
+		createFile(policyPath, policySite.renderFormatted());
 	}
 
 	
@@ -161,17 +165,14 @@ public class HtmlLineCoverageReportGenerator {
 			var model = models.get(i);
 			wholeTextOfPolicy.append(model.getLineContent() + "\n");
 			htmlReportCodeMirrorJSLineClassStatements
-					.append(String.format("editor.addLineClass(%s, \"text\", \"%s\");\n", i, model.getCssClass()));
+					.append(String.format("editor.addLineClass(%s, \"text\", \"%s\");%n", i, model.getCssClass()));
 			if(model.getPopoverContent() != null) {
 				htmlReportCodeMirrorJSLineClassStatements
-				    .append(String.format("editor.getDoc().markText({line:%s,ch:0},{line:%s,ch:%d},{attributes: { \"data-toggle\": \"popover\", \"data-trigger\": \"hover\", \"data-placement\": \"top\", \"data-content\": \"%s\" }})\n", i, i, model.getLineContent().toCharArray().length, model.getPopoverContent()));				
+				    .append(String.format("editor.getDoc().markText({line:%s,ch:0},{line:%s,ch:%d},{attributes: { \"data-toggle\": \"popover\", \"data-trigger\": \"hover\", \"data-placement\": \"top\", \"data-content\": \"%s\" }})%n", i, i, model.getLineContent().toCharArray().length, model.getPopoverContent()));				
 			}
 		}
 
-		var htmlReportCodeMirrorJsTemplatePath = getClass().getClassLoader()
-				.getResourceAsStream("scripts/html-report-codemirror-template.js");
-		String htmlReportCodeMirrorJsTemplate = new BufferedReader(
-				new InputStreamReader(htmlReportCodeMirrorJsTemplatePath)).lines().collect(Collectors.joining("\n"));
+		String htmlReportCodeMirrorJsTemplate = readFileFromClasspath("scripts/html-report-codemirror-template.js");
 		String htmlReportCoreMirrorJS = htmlReportCodeMirrorJsTemplate.replace("{{replacement}}", Stream.of(htmlReportCodeMirrorJSLineClassStatements).collect(Collectors.joining()));
 
 		// @formatter:off
@@ -271,6 +272,19 @@ public class HtmlLineCoverageReportGenerator {
 		copyFile(saplCodeMirrorCss, saplCodeMirrorCssTargetPath);
 	}
 
+	private String readFileFromClasspath(String filename) {
+		var stream = getClass().getClassLoader()
+				.getResourceAsStream((filename));
+		String fileContent = "";
+		try(BufferedReader reader = new BufferedReader(
+				new InputStreamReader(stream))) {
+			fileContent = reader.lines().collect(Collectors.joining("\n"));
+		} catch (IOException e) {
+			this.log.error(String.format("Error reading file: \"%s\"", filename), e);
+		}
+		return fileContent;
+	}
+	
 	private List<String> readPolicyDocument(Path filePath) {
 		try {
 			return Files.readAllLines(filePath);
