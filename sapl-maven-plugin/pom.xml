@@ -117,29 +117,8 @@
 			    <artifactId>maven-plugin-plugin</artifactId>
 			    <version>3.6.0</version>
 			</plugin>
-			<!-- <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>unpack</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>unpack-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <includeGroupIds>${project.groupId}</includeGroupIds>
-                            <includeArtifactIds>sapl-web</includeArtifactIds>
-                            <includes>static/**</includes>
-                            <excludeTransitive>true</excludeTransitive>
-                            <outputDirectory>${project.build.directory}/dependency-resources</outputDirectory>
-                            <overWriteReleases>true</overWriteReleases>
-                            <overWriteSnapshots>true</overWriteSnapshots>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin> -->
-            			<!-- The CSS and JS resources of the xtext web dependency have to copied 
+			
+        	<!-- The CSS and JS resources of the xtext web dependency have to copied 
 				to the matching frontend folder CSS and images are hard coded into the HTML 
 				template of the webcomponent JS file -->
 
@@ -148,25 +127,6 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
 				<executions>
-					<execution>
-						<id>unpack-xtext</id>
-						<phase>generate-resources</phase>
-						<goals>
-							<goal>unpack</goal>
-						</goals>
-						<configuration>
-							<artifactItems>
-								<artifactItem>
-									<groupId>org.eclipse.xtext</groupId>
-									<artifactId>org.eclipse.xtext.web</artifactId>
-									<version>${xtext.version}</version>
-									<overWrite>true</overWrite>
-									<outputDirectory>${project.build.directory}/xtext</outputDirectory>
-									<includes>META-INF/resources/xtext/${xtext.version}/**/*</includes>
-								</artifactItem>
-							</artifactItems>
-						</configuration>
-					</execution>
 					<execution>
 						<id>unpack-sapl</id>
 						<phase>generate-resources</phase>
@@ -189,31 +149,11 @@
 				</executions>
 			</plugin>
 
-			<!-- Second, copy the files into the frontend folder to be accessible 
-				via vaadin tooling -->
+			<!-- Second, copy the files into the frontend folder to be accessible -->
 			<plugin>
 				<artifactId>maven-resources-plugin</artifactId>
 				<version>3.1.0</version>
 				<executions>
-					<execution>
-						<id>copy-resources-js</id>
-						<phase>generate-resources</phase>
-						<goals>
-							<goal>copy-resources</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>${project.build.directory}/classes/dependency-resources</outputDirectory>
-							<resources>
-								<resource>
-									<directory>${project.build.directory}/xtext/META-INF/resources/xtext/${xtext.version}</directory>
-									<includes>
-										<include>xtext-codemirror.min.js</include>
-									</includes>
-									<filtering>false</filtering>
-								</resource>
-							</resources>
-						</configuration>
-					</execution>
 					<execution>
 						<id>copy-resources-sapl</id>
 						<phase>generate-resources</phase>
@@ -235,15 +175,6 @@
 					</execution>
 				</executions>
 			</plugin>
-            <!-- <plugin>
-	            <groupId>org.apache.maven.plugins</groupId>
-	            <artifactId>maven-surefire-plugin</artifactId>
-	            <configuration>
-	                <additionalClasspathElements>
-	                    <additionalClasspathElement>${project.build.directory}/dependency-resources</additionalClasspathElement>
-	                </additionalClasspathElements>
-	            </configuration>
-	        </plugin>-->
 		</plugins>
 	</build>
 </project>
