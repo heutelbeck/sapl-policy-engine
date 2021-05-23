@@ -7,8 +7,8 @@ import java.util.List;
 import org.apache.maven.plugin.testing.SilentLog;
 import org.apache.maven.plugin.testing.stubs.MavenProjectStub;
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
@@ -18,7 +18,7 @@ public class SaplDocumentReaderTest {
 	private MavenProjectStub project;
 	private String policyPath = "policies";
 	
-	@Before
+	@BeforeEach
 	public void setup() {
 		project = new MavenProjectStub();
 		//project.setTestClasspathElements(List.of("C:/Users/Nikolai/eclipse-sapl-workspace/sapl-test/sapl-maven-plugin/target/test-classes"));
