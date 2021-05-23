@@ -8,7 +8,6 @@ import java.time.Duration;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
@@ -55,24 +54,23 @@ public class E_PolicyStreamingTest {
 	}
 	
 	@Test
-	@Disabled
 	void test_streamingPolicyWithVirtualTime() throws InitializationException {
 		
 		fixture.registerPIP(new ClockPolicyInformationPoint())
 			.constructTestCaseWithMocks()
 			.withVirtualTime()
 			.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData"))
-			.thenAwait(Duration.ofSeconds(3))
+			.thenAwait(Duration.ofSeconds(2))
 			.expectNext(anyAuthDecision())
-			.thenAwait(Duration.ofSeconds(3))
+			.thenAwait(Duration.ofSeconds(2))
 			.expectNext(anyAuthDecision())
-			.thenAwait(Duration.ofSeconds(3))
+			.thenAwait(Duration.ofSeconds(2))
 			.expectNext(anyAuthDecision())
-			.thenAwait(Duration.ofSeconds(3))
+			.thenAwait(Duration.ofSeconds(2))
 			.expectNext(anyAuthDecision())
-			.thenAwait(Duration.ofSeconds(3))
+			.thenAwait(Duration.ofSeconds(2))
 			.expectNext(anyAuthDecision())
-			.thenAwait(Duration.ofSeconds(3))
+			.thenAwait(Duration.ofSeconds(2))
 			.expectNext(anyAuthDecision())
 			.verify();
 	}
