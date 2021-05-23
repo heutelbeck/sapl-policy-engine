@@ -19,6 +19,8 @@ import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.StepsDefaultImpl;
 import io.sapl.test.steps.WhenStep;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 /**
@@ -79,8 +81,9 @@ class StepBuilder {
 			Val matchResult = this.document.matches(ctx).block();
 			if(matchResult != null && matchResult.getBoolean()) {
 				if (this.withVirtualTime) {
+					Scheduler scheduler = Schedulers.newSingle("test");
 					this.steps = StepVerifier
-							.withVirtualTime(() -> this.document.evaluate(ctx));
+							.withVirtualTime(() -> this.document.evaluate(ctx).subscribeOn(scheduler));
 				} else {
 					this.steps = StepVerifier.create(this.document.evaluate(ctx));
 				}
