@@ -4,6 +4,9 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicyElement;
@@ -17,6 +20,8 @@ import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
+@Named
+@Singleton
 public class CoverageTargetHelper {
 
 	public CoverageTargets getCoverageTargets(Collection<SaplDocument> documents) {

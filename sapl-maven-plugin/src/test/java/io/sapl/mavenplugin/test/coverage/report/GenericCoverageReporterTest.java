@@ -1,5 +1,7 @@
 package io.sapl.mavenplugin.test.coverage.report;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -7,7 +9,6 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -41,36 +42,36 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("testPolicies", "policy 1", 0, true);
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("testPolicies", "policy 1", 1, true);
 		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(policyHit), List.of(conditionHit1, conditionHit2));
-		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
+		GenericCoverageReporter reporter = new GenericCoverageReporter();
 		
 		//act
-		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
+		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 		
 		//assert
-		Assertions.assertThat(docs.size()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLineCount()).isEqualTo(11);
-		Assertions.assertThat(docs.get(0).getLine(1).getLineNumber()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLine(1).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(2).getLineNumber()).isEqualTo(2);
-		Assertions.assertThat(docs.get(0).getLine(2).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(3).getLineNumber()).isEqualTo(3);
-		Assertions.assertThat(docs.get(0).getLine(3).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(4).getLineNumber()).isEqualTo(4);
-		Assertions.assertThat(docs.get(0).getLine(4).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(5).getLineNumber()).isEqualTo(5);
-		Assertions.assertThat(docs.get(0).getLine(5).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(6).getLineNumber()).isEqualTo(6);
-		Assertions.assertThat(docs.get(0).getLine(6).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(7).getLineNumber()).isEqualTo(7);
-		Assertions.assertThat(docs.get(0).getLine(7).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(8).getLineNumber()).isEqualTo(8);
-		Assertions.assertThat(docs.get(0).getLine(8).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(9).getLineNumber()).isEqualTo(9);
-		Assertions.assertThat(docs.get(0).getLine(9).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(10).getLineNumber()).isEqualTo(10);
-		Assertions.assertThat(docs.get(0).getLine(10).getCoveredValue()).isEqualTo(LineCoveredValue.PARTLY);
-		Assertions.assertThat(docs.get(0).getLine(11).getLineNumber()).isEqualTo(11);
-		Assertions.assertThat(docs.get(0).getLine(11).getCoveredValue()).isEqualTo(LineCoveredValue.PARTLY);
+		assertEquals(1, docs.size());
+		assertEquals(11, docs.get(0).getLineCount());
+		assertEquals(1, docs.get(0).getLine(1).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(1).getCoveredValue());
+		assertEquals(2, docs.get(0).getLine(2).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(2).getCoveredValue());
+		assertEquals(3, docs.get(0).getLine(3).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(3).getCoveredValue());
+		assertEquals(4, docs.get(0).getLine(4).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(4).getCoveredValue());
+		assertEquals(5, docs.get(0).getLine(5).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(5).getCoveredValue());
+		assertEquals(6, docs.get(0).getLine(6).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(6).getCoveredValue());
+		assertEquals(7, docs.get(0).getLine(7).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(7).getCoveredValue());
+		assertEquals(8, docs.get(0).getLine(8).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(8).getCoveredValue());
+		assertEquals(9, docs.get(0).getLine(9).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(9).getCoveredValue());
+		assertEquals(10, docs.get(0).getLine(10).getLineNumber());
+		assertEquals(LineCoveredValue.PARTLY, docs.get(0).getLine(10).getCoveredValue());
+		assertEquals(11, docs.get(0).getLine(11).getLineNumber());
+		assertEquals(LineCoveredValue.PARTLY, docs.get(0).getLine(11).getCoveredValue());
 	}
 	
 	@Test
@@ -80,22 +81,22 @@ public class GenericCoverageReporterTest {
 		Collection<SaplDocument> documents = List.of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
 		PolicySetHit setHit = new PolicySetHit("set");
 		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(), List.of());
-		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
+		GenericCoverageReporter reporter = new GenericCoverageReporter();
 		
-		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
+		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 		
-		Assertions.assertThat(docs.size()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLineCount()).isEqualTo(5);
-		Assertions.assertThat(docs.get(0).getLine(1).getLineNumber()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLine(1).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(2).getLineNumber()).isEqualTo(2);
-		Assertions.assertThat(docs.get(0).getLine(2).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(3).getLineNumber()).isEqualTo(3);
-		Assertions.assertThat(docs.get(0).getLine(3).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(4).getLineNumber()).isEqualTo(4);
-		Assertions.assertThat(docs.get(0).getLine(4).getCoveredValue()).isEqualTo(LineCoveredValue.NEVER);
-		Assertions.assertThat(docs.get(0).getLine(5).getLineNumber()).isEqualTo(5);
-		Assertions.assertThat(docs.get(0).getLine(5).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
+		assertEquals(1, docs.size());
+		assertEquals(5, docs.get(0).getLineCount());
+		assertEquals(1, docs.get(0).getLine(1).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(1).getCoveredValue());
+		assertEquals(2, docs.get(0).getLine(2).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(2).getCoveredValue());
+		assertEquals(3, docs.get(0).getLine(3).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(3).getCoveredValue());
+		assertEquals(4, docs.get(0).getLine(4).getLineNumber());
+		assertEquals(LineCoveredValue.NEVER, docs.get(0).getLine(4).getCoveredValue());
+		assertEquals(5, docs.get(0).getLine(5).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(5).getCoveredValue());
 	}
 	
 	@Test
@@ -105,22 +106,22 @@ public class GenericCoverageReporterTest {
 		Collection<SaplDocument> documents = List.of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
 		PolicySetHit setHit = new PolicySetHit("set");
 		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(), List.of());
-		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
+		GenericCoverageReporter reporter = new GenericCoverageReporter();
 		
-		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
+		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 		
-		Assertions.assertThat(docs.size()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLineCount()).isEqualTo(5);
-		Assertions.assertThat(docs.get(0).getLine(1).getLineNumber()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLine(1).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(2).getLineNumber()).isEqualTo(2);
-		Assertions.assertThat(docs.get(0).getLine(2).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(3).getLineNumber()).isEqualTo(3);
-		Assertions.assertThat(docs.get(0).getLine(3).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(4).getLineNumber()).isEqualTo(4);
-		Assertions.assertThat(docs.get(0).getLine(4).getCoveredValue()).isEqualTo(LineCoveredValue.NEVER);
-		Assertions.assertThat(docs.get(0).getLine(5).getLineNumber()).isEqualTo(5);
-		Assertions.assertThat(docs.get(0).getLine(5).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
+		assertEquals(1, docs.size());
+		assertEquals(5, docs.get(0).getLineCount());
+		assertEquals(1, docs.get(0).getLine(1).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(1).getCoveredValue());
+		assertEquals(2, docs.get(0).getLine(2).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(2).getCoveredValue());
+		assertEquals(3, docs.get(0).getLine(3).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(3).getCoveredValue());
+		assertEquals(4, docs.get(0).getLine(4).getLineNumber());
+		assertEquals(LineCoveredValue.NEVER, docs.get(0).getLine(4).getCoveredValue());
+		assertEquals(5, docs.get(0).getLine(5).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(5).getCoveredValue());
 	}
 	
 	@Test
@@ -132,20 +133,20 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("", "policy1", 0, true);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1, conditionHit2));
-		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
+		GenericCoverageReporter reporter = new GenericCoverageReporter();
 		
-		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
+		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 		
-		Assertions.assertThat(docs.size()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLineCount()).isEqualTo(4);
-		Assertions.assertThat(docs.get(0).getLine(1).getLineNumber()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLine(1).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(2).getLineNumber()).isEqualTo(2);
-		Assertions.assertThat(docs.get(0).getLine(2).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(3).getLineNumber()).isEqualTo(3);
-		Assertions.assertThat(docs.get(0).getLine(3).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(4).getLineNumber()).isEqualTo(4);
-		Assertions.assertThat(docs.get(0).getLine(4).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
+		assertEquals(1, docs.size());
+		assertEquals(4, docs.get(0).getLineCount());
+		assertEquals(1, docs.get(0).getLine(1).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(1).getCoveredValue());
+		assertEquals(2, docs.get(0).getLine(2).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(2).getCoveredValue());
+		assertEquals(3, docs.get(0).getLine(3).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(3).getCoveredValue());
+		assertEquals(4, docs.get(0).getLine(4).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(4).getCoveredValue());
 	}
 	
 	@Test
@@ -156,22 +157,22 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit = new PolicyConditionHit("", "policy1", 0, false);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit));
-		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
+		GenericCoverageReporter reporter = new GenericCoverageReporter();
 		
-		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
+		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 		
-		Assertions.assertThat(docs.size()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLineCount()).isEqualTo(5);
-		Assertions.assertThat(docs.get(0).getLine(1).getLineNumber()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLine(1).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(2).getLineNumber()).isEqualTo(2);
-		Assertions.assertThat(docs.get(0).getLine(2).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(3).getLineNumber()).isEqualTo(3);
-		Assertions.assertThat(docs.get(0).getLine(3).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(4).getLineNumber()).isEqualTo(4);
-		Assertions.assertThat(docs.get(0).getLine(4).getCoveredValue()).isEqualTo(LineCoveredValue.PARTLY);
-		Assertions.assertThat(docs.get(0).getLine(5).getLineNumber()).isEqualTo(5);
-		Assertions.assertThat(docs.get(0).getLine(5).getCoveredValue()).isEqualTo(LineCoveredValue.NEVER);
+		assertEquals(1, docs.size());
+		assertEquals(5, docs.get(0).getLineCount());
+		assertEquals(1, docs.get(0).getLine(1).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(1).getCoveredValue());
+		assertEquals(2, docs.get(0).getLine(2).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(2).getCoveredValue());
+		assertEquals(3, docs.get(0).getLine(3).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(3).getCoveredValue());
+		assertEquals(4, docs.get(0).getLine(4).getLineNumber());
+		assertEquals(LineCoveredValue.PARTLY, docs.get(0).getLine(4).getCoveredValue());
+		assertEquals(5, docs.get(0).getLine(5).getLineNumber());
+		assertEquals(LineCoveredValue.NEVER, docs.get(0).getLine(5).getCoveredValue());
 	}
 
 	@Test
@@ -182,22 +183,22 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 1, false);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
-		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
+		GenericCoverageReporter reporter = new GenericCoverageReporter();
 		
-		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
+		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 		
-		Assertions.assertThat(docs.size()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLineCount()).isEqualTo(5);
-		Assertions.assertThat(docs.get(0).getLine(1).getLineNumber()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLine(1).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(2).getLineNumber()).isEqualTo(2);
-		Assertions.assertThat(docs.get(0).getLine(2).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(3).getLineNumber()).isEqualTo(3);
-		Assertions.assertThat(docs.get(0).getLine(3).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(4).getLineNumber()).isEqualTo(4);
-		Assertions.assertThat(docs.get(0).getLine(4).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(5).getLineNumber()).isEqualTo(5);
-		Assertions.assertThat(docs.get(0).getLine(5).getCoveredValue()).isEqualTo(LineCoveredValue.PARTLY);
+		assertEquals(1, docs.size());
+		assertEquals(5, docs.get(0).getLineCount());
+		assertEquals(1, docs.get(0).getLine(1).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(1).getCoveredValue());
+		assertEquals(2, docs.get(0).getLine(2).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(2).getCoveredValue());
+		assertEquals(3, docs.get(0).getLine(3).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(3).getCoveredValue());
+		assertEquals(4, docs.get(0).getLine(4).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(4).getCoveredValue());
+		assertEquals(5, docs.get(0).getLine(5).getLineNumber());
+		assertEquals(LineCoveredValue.PARTLY, docs.get(0).getLine(5).getCoveredValue());
 	}
 	
 	@Test
@@ -209,21 +210,21 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("", "policy1", 0, true);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1, conditionHit2));
-		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
+		GenericCoverageReporter reporter = new GenericCoverageReporter();
 		
-		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
+		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 		
-		Assertions.assertThat(docs.size()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLineCount()).isEqualTo(4);
-		Assertions.assertThat(docs.get(0).getLine(1).getLineNumber()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLine(1).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(2).getLineNumber()).isEqualTo(2);
-		Assertions.assertThat(docs.get(0).getLine(2).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(3).getLineNumber()).isEqualTo(3);
-		Assertions.assertThat(docs.get(0).getLine(3).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
+		assertEquals(1, docs.size());
+		assertEquals(4, docs.get(0).getLineCount());
+		assertEquals(1, docs.get(0).getLine(1).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(1).getCoveredValue());
+		assertEquals(2, docs.get(0).getLine(2).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(2).getCoveredValue());
+		assertEquals(3, docs.get(0).getLine(3).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(3).getCoveredValue());
 		//expect covered information for second condition on last line to overwrite covered information for first condition
-		Assertions.assertThat(docs.get(0).getLine(4).getLineNumber()).isEqualTo(4);
-		Assertions.assertThat(docs.get(0).getLine(4).getCoveredValue()).isEqualTo(LineCoveredValue.PARTLY);
+		assertEquals(4, docs.get(0).getLine(4).getLineNumber());
+		assertEquals(LineCoveredValue.PARTLY, docs.get(0).getLine(4).getCoveredValue());
 	}
 	
 	@Test
@@ -234,21 +235,21 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, true);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
-		GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
+		GenericCoverageReporter reporter = new GenericCoverageReporter();
 		
-		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage();
+		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 		
-		Assertions.assertThat(docs.size()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLineCount()).isEqualTo(4);
-		Assertions.assertThat(docs.get(0).getLine(1).getLineNumber()).isEqualTo(1);
-		Assertions.assertThat(docs.get(0).getLine(1).getCoveredValue()).isEqualTo(LineCoveredValue.FULLY);
-		Assertions.assertThat(docs.get(0).getLine(2).getLineNumber()).isEqualTo(2);
-		Assertions.assertThat(docs.get(0).getLine(2).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
-		Assertions.assertThat(docs.get(0).getLine(3).getLineNumber()).isEqualTo(3);
-		Assertions.assertThat(docs.get(0).getLine(3).getCoveredValue()).isEqualTo(LineCoveredValue.UNINTERESTING);
+		assertEquals(1, docs.size());
+		assertEquals(4, docs.get(0).getLineCount());
+		assertEquals(1, docs.get(0).getLine(1).getLineNumber());
+		assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(1).getCoveredValue());
+		assertEquals(2, docs.get(0).getLine(2).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(2).getCoveredValue());
+		assertEquals(3, docs.get(0).getLine(3).getLineNumber());
+		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(3).getCoveredValue());
 		//expect covered information for second condition on last line to overwrite covered information for first condition
-		Assertions.assertThat(docs.get(0).getLine(4).getLineNumber()).isEqualTo(4);
-		Assertions.assertThat(docs.get(0).getLine(4).getCoveredValue()).isEqualTo(LineCoveredValue.PARTLY);
+		assertEquals(4, docs.get(0).getLine(4).getLineNumber());
+		assertEquals(LineCoveredValue.PARTLY, docs.get(0).getLine(4).getCoveredValue());
 	}
 	
 	

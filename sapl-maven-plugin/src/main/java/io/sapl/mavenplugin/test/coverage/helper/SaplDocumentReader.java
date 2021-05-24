@@ -8,6 +8,9 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
@@ -17,22 +20,17 @@ import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import reactor.core.Exceptions;
 
+@Named
+@Singleton
 public class SaplDocumentReader {
 	private static final String ERROR_PATH_NOT_FOUND = "Unable to find the directory \"%s\" on the classpath";
 	private static final String ERROR_PATH_WAS_FILE = "Unable to find policies at \"%s\" on the classpath. The path points to a file.";
 
-	private MavenProject project;
-	private Log log;
-	
-	public SaplDocumentReader(Log log, MavenProject project) {
-		this.log = log;
-		this.project = project;
-	}
-	
-	public Collection<SaplDocument> retrievePolicyDocuments(String policyPath) {
+
+	public Collection<SaplDocument> retrievePolicyDocuments(Log log, MavenProject project, String policyPath) {
 		DefaultSAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
-		File policyDir = findPolicyDirOnClasspath(policyPath);
+		File policyDir = findPolicyDirOnClasspath(project, policyPath);
 
 		log.debug("Looking for policies in directory \"" + policyDir.getAbsolutePath() + "\"");
 
@@ -59,7 +57,7 @@ public class SaplDocumentReader {
 	}
 	
 
-	private File findPolicyDirOnClasspath(String policyPath) {
+	private File findPolicyDirOnClasspath(MavenProject project, String policyPath) {
 
 		List<String> projectTestClassPathElements;
 		StringBuilder builder = new StringBuilder(String.format(ERROR_PATH_NOT_FOUND, policyPath));

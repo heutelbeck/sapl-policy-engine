@@ -27,27 +27,19 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 public class GenericCoverageReporter {
 	private static final String ERROR_UNEXPECTED_ENUM_VALUE = "Unexpected Enum-Value \"%s\". Please consider reporting this bug to the library authors!";
 	
-	private Collection<SaplDocument> documents;
-	private CoverageTargets hits;
-
-	public GenericCoverageReporter(Collection<SaplDocument> documents, CoverageTargets hits) {
-		this.documents = documents;
-		this.hits = hits;
-	}
-
-	public List<SaplDocumentCoverageInformation> calcDocumentCoverage() {
+	public List<SaplDocumentCoverageInformation> calcDocumentCoverage(Collection<SaplDocument> documents, CoverageTargets hits) {
 		List<SaplDocumentCoverageInformation> documentsWithCoveringInfo = new LinkedList<>();
-		for (SaplDocument saplDoc : this.documents) {
+		for (SaplDocument saplDoc : documents) {
 			var coveredDoc = new SaplDocumentCoverageInformation(saplDoc.getPathToDocument(), saplDoc.getLineCount());
 
 			PolicyElement element = saplDoc.getSaplDocument().getPolicyElement();
 
 			if (element.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 				PolicySet set = (PolicySet) element;
-				markLinesOfPolicySet(set, coveredDoc);
+				markLinesOfPolicySet(set, coveredDoc, hits);
 			} else if (element.eClass().equals(SaplPackage.Literals.POLICY)) {
 				Policy policy = (Policy) element;
-				markLinesOfPolicy("", policy, coveredDoc);
+				markLinesOfPolicy("", policy, coveredDoc, hits);
 			} else {
 				throw new SaplTestException("Error: Unknown Subtype of " + PolicyElement.class);
 			}
@@ -63,7 +55,7 @@ public class GenericCoverageReporter {
 		}
 	}
 
-	private void markLinesOfPolicySet(PolicySet set, SaplDocumentCoverageInformation coverage) {
+	private void markLinesOfPolicySet(PolicySet set, SaplDocumentCoverageInformation coverage, CoverageTargets hits) {
 		//calculate lines of policyset to be marked
 		Set<Integer> linesOfPolicySet = new HashSet<>();
 
@@ -93,7 +85,7 @@ public class GenericCoverageReporter {
 		
 
 		// check if policy is hit
-		boolean isSetHit = this.hits.isPolicySetHit(new PolicySetHit(set.getSaplName()));
+		boolean isSetHit = hits.isPolicySetHit(new PolicySetHit(set.getSaplName()));
 		
 		//mark Lines
 		if(isSetHit) {
@@ -105,11 +97,11 @@ public class GenericCoverageReporter {
 
 		// evaluate coverage for every policy in this set
 		for (Policy policy : set.getPolicies()) {
-			markLinesOfPolicy(set.getSaplName(), policy, coverage);
+			markLinesOfPolicy(set.getSaplName(), policy, coverage, hits);
 		}
 	}
 
-	private void markLinesOfPolicy(String policySetName, Policy policy, SaplDocumentCoverageInformation coverage) {
+	private void markLinesOfPolicy(String policySetName, Policy policy, SaplDocumentCoverageInformation coverage, CoverageTargets hits) {
 		//calculate lines of policy to be marked
 		Set<Integer> linesOfPolicy = new HashSet<>();
 		
@@ -127,7 +119,7 @@ public class GenericCoverageReporter {
 
 		
 		// check if policy is hit
-		boolean isPolicyHit = this.hits.isPolicyHit(new PolicyHit(policySetName, policy.getSaplName()));
+		boolean isPolicyHit = hits.isPolicyHit(new PolicyHit(policySetName, policy.getSaplName()));
 		
 		//mark Lines
 		if(isPolicyHit) {
@@ -143,22 +135,22 @@ public class GenericCoverageReporter {
 			boolean isLastStatementHit = isPolicyHit;
 			for (int i = 0; i < statements.size(); i++) {
 				isLastStatementHit = markLinesOfPolicyCondition(policySetName, policy.getSaplName(), i,
-						statements.get(i), isLastStatementHit, coverage);
+						statements.get(i), isLastStatementHit, coverage, hits);
 			}
 		}
 		
 	}
 
 	private boolean markLinesOfPolicyCondition(String policySetName, String policyName, int statementId,
-			Statement statement, boolean isLastStatementHit, SaplDocumentCoverageInformation coverage) {
+			Statement statement, boolean isLastStatementHit, SaplDocumentCoverageInformation coverage, CoverageTargets hits) {
 		boolean isThisStatementHit = true;
 		INode node = NodeModelUtils.getNode(statement);
 
 		// if this statement is of type CONDITION
 		if (statement.eClass().equals(SaplPackage.Literals.CONDITION)) {
 			// get hit types
-			boolean isPositivHit = this.hits.isPolicyConditionHit(new PolicyConditionHit(policySetName, policyName, statementId, true));
-			boolean isNegativHit = this.hits.isPolicyConditionHit(new PolicyConditionHit(policySetName, policyName, statementId, false));
+			boolean isPositivHit = hits.isPolicyConditionHit(new PolicyConditionHit(policySetName, policyName, statementId, true));
+			boolean isNegativHit = hits.isPolicyConditionHit(new PolicyConditionHit(policySetName, policyName, statementId, false));
 			
 			//when this statement was once positive evaluated, then the next statement will have been evaluated too
 			//used for Value-Definition statements (see below)

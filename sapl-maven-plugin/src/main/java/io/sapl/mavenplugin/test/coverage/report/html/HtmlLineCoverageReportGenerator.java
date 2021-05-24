@@ -40,31 +40,25 @@ import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInform
 import j2html.attributes.Attribute;
 import j2html.tags.ContainerTag;
 import j2html.tags.EmptyTag;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
-@AllArgsConstructor
 public class HtmlLineCoverageReportGenerator {
 
-	private Collection<SaplDocumentCoverageInformation> documents;
-	private Log log;
-	private Path basedir;
-	private float policySetHitRatio;
-	private float policyHitRatio;
-	private float policyConditionHitRatio;
-
-	public Path generateHtmlReport() {
-		Path index = generateMainSite();
-		generateCustomCSS();
-		copyAssets();
-		for (var doc : this.documents) {
-			generatePolicySite(doc);
+	public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Log log, Path basedir,
+			float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio) {
+		Path index = generateMainSite(policySetHitRatio, policyHitRatio, policyConditionHitRatio, documents, basedir,
+				log);
+		generateCustomCSS(basedir, log);
+		copyAssets(basedir, log);
+		for (var doc : documents) {
+			generatePolicySite(doc, basedir, log);
 		}
 		return index;
 
 	}
 
-	private Path generateMainSite() {
+	private Path generateMainSite(float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio,
+			Collection<SaplDocumentCoverageInformation> documents, Path basedir, Log log) {
 
 		// @formatter:off
 		ContainerTag mainSite = 
@@ -106,7 +100,7 @@ public class HtmlLineCoverageReportGenerator {
 							div(
 								div(
 									each(
-										this.documents,
+										documents,
 										document -> 
 											a(document.getPathToDocument().getFileName().toString())
 												.withHref("policies/" + document.getPathToDocument().getFileName().toString() + ".html")
@@ -123,41 +117,38 @@ public class HtmlLineCoverageReportGenerator {
 			);
 		// @formatter:on
 
-		Path filePath = this.basedir.resolve("html").resolve("index.html");
-		createFile(filePath, mainSite.render());
+		Path filePath = basedir.resolve("html").resolve("index.html");
+		createFile(filePath, mainSite.render(), log);
 		return filePath;
 	}
 
-	private void generateCustomCSS() {
+	private void generateCustomCSS(Path basedir, Log log) {
 		String css = ".coverage-green span { background-color: #ccffcc; }\n"
-				+ ".coverage-yellow span { background-color: #ffffcc; }\n" + ".coverage-red span { background-color: #ffaaaa; }\n"
+				+ ".coverage-yellow span { background-color: #ffffcc; }\n"
+				+ ".coverage-red span { background-color: #ffaaaa; }\n"
 				+ ".CodeMirror { height: calc(100% - 50px) !important; }\n";
-		Path cssPath = this.basedir.resolve("html").resolve("assets").resolve("main.css");
-		createFile(cssPath, css);
+		Path cssPath = basedir.resolve("html").resolve("assets").resolve("main.css");
+		createFile(cssPath, css, log);
 	}
 
+	private void generatePolicySite(SaplDocumentCoverageInformation document, Path basedir, Log log) {
 
-	private void generatePolicySite(SaplDocumentCoverageInformation document) {
-
-		List<String> lines = readPolicyDocument(document.getPathToDocument());
+		List<String> lines = readPolicyDocument(document.getPathToDocument(), log);
 
 		List<HtmlPolicyLineModel> models = createHtmlPolicyLineModel(lines, document);
 
 		String filename = "";
 		Path filePath = document.getPathToDocument().getFileName();
-		if(filePath != null) {
+		if (filePath != null) {
 			filename = filePath.toString();
 		}
-		ContainerTag policySite = createPolicySite_CodeMirror(filename, models);
-		
+		ContainerTag policySite = createPolicySite_CodeMirror(filename, models, log);
 
-		Path policyPath = this.basedir.resolve("html").resolve("policies").resolve(filename + ".html");
-		createFile(policyPath, policySite.renderFormatted());
+		Path policyPath = basedir.resolve("html").resolve("policies").resolve(filename + ".html");
+		createFile(policyPath, policySite.renderFormatted(), log);
 	}
 
-	
-
-	private ContainerTag createPolicySite_CodeMirror(String filename, List<HtmlPolicyLineModel> models) {
+	private ContainerTag createPolicySite_CodeMirror(String filename, List<HtmlPolicyLineModel> models, Log log) {
 
 		StringBuilder wholeTextOfPolicy = new StringBuilder();
 		StringBuilder htmlReportCodeMirrorJSLineClassStatements = new StringBuilder("\n");
@@ -166,14 +157,17 @@ public class HtmlLineCoverageReportGenerator {
 			wholeTextOfPolicy.append(model.getLineContent() + "\n");
 			htmlReportCodeMirrorJSLineClassStatements
 					.append(String.format("editor.addLineClass(%s, \"text\", \"%s\");%n", i, model.getCssClass()));
-			if(model.getPopoverContent() != null) {
-				htmlReportCodeMirrorJSLineClassStatements
-				    .append(String.format("editor.getDoc().markText({line:%s,ch:0},{line:%s,ch:%d},{attributes: { \"data-toggle\": \"popover\", \"data-trigger\": \"hover\", \"data-placement\": \"top\", \"data-content\": \"%s\" }})%n", i, i, model.getLineContent().toCharArray().length, model.getPopoverContent()));				
+			if (model.getPopoverContent() != null) {
+				htmlReportCodeMirrorJSLineClassStatements.append(String.format(
+						"editor.getDoc().markText({line:%s,ch:0},{line:%s,ch:%d},{attributes: { \"data-toggle\": \"popover\", \"data-trigger\": \"hover\", \"data-placement\": \"top\", \"data-content\": \"%s\" }})%n",
+						i, i, model.getLineContent().toCharArray().length, model.getPopoverContent()));
 			}
 		}
 
-		String htmlReportCodeMirrorJsTemplate = readFileFromClasspath("scripts/html-report-codemirror-template.js");
-		String htmlReportCoreMirrorJS = htmlReportCodeMirrorJsTemplate.replace("{{replacement}}", Stream.of(htmlReportCodeMirrorJSLineClassStatements).collect(Collectors.joining()));
+		String htmlReportCodeMirrorJsTemplate = readFileFromClasspath("scripts/html-report-codemirror-template.js",
+				log);
+		String htmlReportCoreMirrorJS = htmlReportCodeMirrorJsTemplate.replace("{{replacement}}",
+				Stream.of(htmlReportCodeMirrorJSLineClassStatements).collect(Collectors.joining()));
 
 		// @formatter:off
 		return html(
@@ -216,7 +210,7 @@ public class HtmlLineCoverageReportGenerator {
 	private List<HtmlPolicyLineModel> createHtmlPolicyLineModel(List<String> lines,
 			SaplDocumentCoverageInformation document) {
 		List<HtmlPolicyLineModel> models = new LinkedList<HtmlPolicyLineModel>();
-				
+
 		for (int i = 0; i < lines.size(); i++) {
 			var model = new HtmlPolicyLineModel();
 			model.setLineContent(lines.get(i));
@@ -230,7 +224,8 @@ public class HtmlLineCoverageReportGenerator {
 				break;
 			case PARTLY:
 				model.setCssClass("coverage-yellow");
-				model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(), line.getBranchesToCover()));
+				model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(),
+						line.getBranchesToCover()));
 				break;
 			case UNINTERESTING:
 				model.setCssClass("");
@@ -240,72 +235,71 @@ public class HtmlLineCoverageReportGenerator {
 		}
 		return models;
 	}
-	
 
-	private void copyAssets() {
-		Path logoHeaderpath = this.basedir.resolve("html").resolve("assets").resolve("logo-header.png");
+	private void copyAssets(Path basedir, Log log) {
+		Path logoHeaderpath = basedir.resolve("html").resolve("assets").resolve("logo-header.png");
 		var logoSourcePath = getClass().getClassLoader().getResourceAsStream("images/logo-header.png");
-		copyFile(logoSourcePath, logoHeaderpath);
+		copyFile(logoSourcePath, logoHeaderpath, log);
 
-		Path faviconPath = this.basedir.resolve("html").resolve("assets").resolve("favicon.png");
+		Path faviconPath = basedir.resolve("html").resolve("assets").resolve("favicon.png");
 		var faviconSourcePath = getClass().getClassLoader().getResourceAsStream("images/favicon.png");
-		copyFile(faviconSourcePath, faviconPath);
+		copyFile(faviconSourcePath, faviconPath, log);
 
-		Path requireJSTargetPath = this.basedir.resolve("html").resolve("assets").resolve("require.js");
+		Path requireJSTargetPath = basedir.resolve("html").resolve("assets").resolve("require.js");
 		var requireJS = getClass().getClassLoader().getResourceAsStream("scripts/require.js");
-		copyFile(requireJS, requireJSTargetPath);
+		copyFile(requireJS, requireJSTargetPath, log);
 
-		Path saplCodeMirrorModeJSTargetPath = this.basedir.resolve("html").resolve("assets").resolve("sapl-mode.js");
+		Path saplCodeMirrorModeJSTargetPath = basedir.resolve("html").resolve("assets").resolve("sapl-mode.js");
 		var saplCodeMirrorModeJS = getClass().getClassLoader().getResourceAsStream("dependency-resources/sapl-mode.js");
-		copyFile(saplCodeMirrorModeJS, saplCodeMirrorModeJSTargetPath);
-				
-		Path saplCodeMirrorSimpleAddonTargetPath = this.basedir.resolve("html").resolve("assets").resolve("codemirror").resolve("addon").resolve("mode").resolve("simple.js");
+		copyFile(saplCodeMirrorModeJS, saplCodeMirrorModeJSTargetPath, log);
+
+		Path saplCodeMirrorSimpleAddonTargetPath = basedir.resolve("html").resolve("assets").resolve("codemirror")
+				.resolve("addon").resolve("mode").resolve("simple.js");
 		var saplCodeMirrorSimpleAddon = getClass().getClassLoader().getResourceAsStream("scripts/simple.js");
-		copyFile(saplCodeMirrorSimpleAddon, saplCodeMirrorSimpleAddonTargetPath);
-		
-		Path saplCodeMirrorJsTargetPath = this.basedir.resolve("html").resolve("assets").resolve("codemirror").resolve("lib").resolve("codemirror.js");
+		copyFile(saplCodeMirrorSimpleAddon, saplCodeMirrorSimpleAddonTargetPath, log);
+
+		Path saplCodeMirrorJsTargetPath = basedir.resolve("html").resolve("assets").resolve("codemirror").resolve("lib")
+				.resolve("codemirror.js");
 		var saplCodeMirrorJs = getClass().getClassLoader().getResourceAsStream("scripts/codemirror.js");
-		copyFile(saplCodeMirrorJs, saplCodeMirrorJsTargetPath);
-		
-		Path saplCodeMirrorCssTargetPath = this.basedir.resolve("html").resolve("assets").resolve("codemirror.css");
+		copyFile(saplCodeMirrorJs, saplCodeMirrorJsTargetPath, log);
+
+		Path saplCodeMirrorCssTargetPath = basedir.resolve("html").resolve("assets").resolve("codemirror.css");
 		var saplCodeMirrorCss = getClass().getClassLoader().getResourceAsStream("scripts/codemirror.css");
-		copyFile(saplCodeMirrorCss, saplCodeMirrorCssTargetPath);
+		copyFile(saplCodeMirrorCss, saplCodeMirrorCssTargetPath, log);
 	}
 
-	private String readFileFromClasspath(String filename) {
-		var stream = getClass().getClassLoader()
-				.getResourceAsStream((filename));
+	private String readFileFromClasspath(String filename, Log log) {
+		var stream = getClass().getClassLoader().getResourceAsStream((filename));
 		String fileContent = "";
-		try(BufferedReader reader = new BufferedReader(
-				new InputStreamReader(stream))) {
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
 			fileContent = reader.lines().collect(Collectors.joining("\n"));
 		} catch (IOException e) {
-			this.log.error(String.format("Error reading file: \"%s\"", filename), e);
+			log.error(String.format("Error reading file: \"%s\"", filename), e);
 		}
 		return fileContent;
 	}
-	
-	private List<String> readPolicyDocument(Path filePath) {
+
+	private List<String> readPolicyDocument(Path filePath, Log log) {
 		try {
 			return Files.readAllLines(filePath);
 		} catch (IOException e) {
-			this.log.error(String.format("Error reading file: \"%s\"", filePath.toString()), e);
+			log.error(String.format("Error reading file: \"%s\"", filePath.toString()), e);
 		}
 		return new LinkedList<>();
 	}
 
-	private void createFile(Path filePath, String content) {
+	private void createFile(Path filePath, String content, Log log) {
 		if (!filePath.toFile().exists()) {
 			PathHelper.createFile(filePath, log);
 		}
 		try {
 			Files.writeString(filePath, content);
 		} catch (IOException e) {
-			this.log.error(String.format("Error writing file \"%s\"", filePath.toString()));
+			log.error(String.format("Error writing file \"%s\"", filePath.toString()));
 		}
 	}
 
-	private void copyFile(InputStream source, Path target) {
+	private void copyFile(InputStream source, Path target, Log log) {
 		try {
 			if (target.getParent() != null && target.getParent().toFile() != null
 					&& !target.getParent().toFile().exists()) {
@@ -315,42 +309,46 @@ public class HtmlLineCoverageReportGenerator {
 				Files.copy(source, target);
 			}
 		} catch (IOException e) {
-			this.log.error(String.format("Error writing file \"%s\"", target.toString()));
+			log.error(String.format("Error writing file \"%s\"", target.toString()));
 		}
 	}
 
-
 	private ContainerTag getJquery() {
 		return script().withSrc("https://code.jquery.com/jquery-3.2.1.slim.min.js")
-	        	.attr(new Attribute("integrity", "sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"))
-	        	.attr(new Attribute("crossorigin", "anonymous"));
+				.attr(new Attribute("integrity",
+						"sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"))
+				.attr(new Attribute("crossorigin", "anonymous"));
 	}
-	
+
 	private ContainerTag getPopper() {
 		return script().withSrc("https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js")
-	        	.attr(new Attribute("integrity", "sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"))
-	        	.attr(new Attribute("crossorigin", "anonymous"));
+				.attr(new Attribute("integrity",
+						"sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"))
+				.attr(new Attribute("crossorigin", "anonymous"));
 	}
-	
+
 	private ContainerTag getBootstrapJs() {
 		return script().withSrc("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js")
-	        	.attr(new Attribute("integrity", "sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"))
-	        	.attr(new Attribute("crossorigin", "anonymous"));
+				.attr(new Attribute("integrity",
+						"sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"))
+				.attr(new Attribute("crossorigin", "anonymous"));
 	}
-	
+
 	private EmptyTag getBootstrapCss() {
-		return link().withRel("stylesheet").withHref("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css")
-	        	.attr(new Attribute("integrity", "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"))
-	        	.attr(new Attribute("crossorigin", "anonymous"));
+		return link().withRel("stylesheet")
+				.withHref("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css")
+				.attr(new Attribute("integrity",
+						"sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"))
+				.attr(new Attribute("crossorigin", "anonymous"));
 	}
-	
+
 	@Data
 	static class HtmlPolicyLineModel {
 		String lineContent;
 		String cssClass;
 		String popoverContent;
 	}
-	
+
 	/*
 	private ContainerTag createPolicySite_GoogleCodePrettify(String filename, List<HtmlPolicyLineModel> models) {
 		// @formatter:off

@@ -21,43 +21,29 @@ import io.sapl.mavenplugin.test.coverage.report.sonar.model.ObjectFactory;
 public class SonarLineCoverageReportGenerator {
 	private ObjectFactory FACTORY = new ObjectFactory();
 
-	private Collection<SaplDocumentCoverageInformation> documents;
-	private Log log;
-	private Path basedir;
-	private String policyPath;
-	private File mavenBaseDir;
-
-	public SonarLineCoverageReportGenerator(Collection<SaplDocumentCoverageInformation> documents, Log log,
+	public void generateSonarLineCoverageReport(Collection<SaplDocumentCoverageInformation> documents, Log log,
 			Path basedir, String policyPath, File mavenBaseDir) {
-		this.documents = documents;
-		this.log = log;
-		this.basedir = basedir;
-		this.policyPath = policyPath;
-		this.mavenBaseDir = mavenBaseDir;
-	}
-
-	public void generateSonarLineCoverageReport() {
 		Coverage sonarCoverage = FACTORY.createCoverage();
 		sonarCoverage.setVersion(BigInteger.valueOf(1));
-		for (var doc : this.documents) {
-			addFile(sonarCoverage, doc);
+		for (var doc : documents) {
+			addFile(sonarCoverage, doc, mavenBaseDir, policyPath);
 		}
 		JAXBContext context;
 		try {
 			context = JAXBContext.newInstance(Coverage.class, ObjectFactory.class);
 			Marshaller marshaller = context.createMarshaller();
 			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-			Path filePath = this.basedir.resolve("sonar").resolve("sonar-generic-coverage.xml");
+			Path filePath = basedir.resolve("sonar").resolve("sonar-generic-coverage.xml");
 			if (!filePath.toFile().exists()) {
 				PathHelper.createFile(filePath, log);
 			}
 			marshaller.marshal(sonarCoverage, filePath.toFile());
 		} catch (JAXBException e) {
-			this.log.error("Error unmarshalling Coverage information to Sonarqube generic coverage format", e);
+			log.error("Error unmarshalling Coverage information to Sonarqube generic coverage format", e);
 		}
 	}
 
-	private void addFile(Coverage coverage, SaplDocumentCoverageInformation doc) {
+	private void addFile(Coverage coverage, SaplDocumentCoverageInformation doc, File mavenBaseDir, String policyPath) {
 		Coverage.File sonarFile = FACTORY.createCoverageFile();
 
 		/**
@@ -67,7 +53,7 @@ public class SonarLineCoverageReportGenerator {
 		 * getting ignored because unknown to sonarqube
 		 */
 		// sonarFile.setPath(doc.getPathToDocument().toString());
-		sonarFile.setPath(this.mavenBaseDir.toPath().resolve("src").resolve("main").resolve("resources")
+		sonarFile.setPath(mavenBaseDir.toPath().resolve("src").resolve("main").resolve("resources")
 				.resolve(policyPath).resolve(doc.getPathToDocument().getFileName()).toString());
 
 		for(int i = 1; i <= doc.getLineCount(); i++) {

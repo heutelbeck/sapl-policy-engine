@@ -2,24 +2,25 @@ package io.sapl.mavenplugin.test.coverage.helper;
 
 import java.nio.file.Path;
 
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
 import io.sapl.test.coverage.api.CoverageAPIFactory;
-import io.sapl.test.coverage.api.CoverageHitReader;
 
+@Named
+@Singleton
 public class CoverageAPIHelper {
 	
-	private final CoverageHitReader reader;
 	
-	public CoverageAPIHelper(Path baseDir) {
-		this.reader = CoverageAPIFactory.constructCoverageHitReader(baseDir);
-	}
-	
-	public CoverageTargets readHits() {
+	public CoverageTargets readHits(Path baseDir) {
+		var reader = CoverageAPIFactory.constructCoverageHitReader(baseDir);
 		return new CoverageTargets(reader.readPolicySetHits(), reader.readPolicyHits(), reader.readPolicyConditionHits());
 	}
 	
-	public void cleanCoverageHitFiles() {
-    	this.reader.cleanCoverageHitFiles();
+	public void cleanCoverageHitFiles(Path baseDir) {
+		var reader = CoverageAPIFactory.constructCoverageHitReader(baseDir);
+    	reader.cleanCoverageHitFiles();
 	}
 	
 

@@ -1,12 +1,13 @@
 package io.sapl.mavenplugin.test.coverage.report.html;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 
 import org.apache.maven.plugin.testing.SilentLog;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -44,16 +45,16 @@ public class HtmlLineCoverageReportGeneratorTest {
 		document.markLine(10, LineCoveredValue.PARTLY, 1, 2);
 		document.markLine(11, LineCoveredValue.NEVER, 0, 2);
 		Collection<SaplDocumentCoverageInformation> documents = List.of(document);
-		HtmlLineCoverageReportGenerator generator = new HtmlLineCoverageReportGenerator(documents, new SilentLog(), Paths.get("target/sapl-coverage"),
+		HtmlLineCoverageReportGenerator generator = new HtmlLineCoverageReportGenerator();
+		
+		
+		generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"),
 				policySetHitRatio, policyHitRatio, policyConditionHitRatio);
 		
-		
-		generator.generateHtmlReport();
-		
-		Assertions.assertThat(base.resolve("assets/favicon.png").toFile().exists()).isTrue();
-		Assertions.assertThat(base.resolve("assets/logo-header.png").toFile().exists()).isTrue();
-		Assertions.assertThat(base.resolve("assets/main.css").toFile().exists()).isTrue();
-		Assertions.assertThat(base.resolve("policies/policy_1.sapl.html").toFile().exists()).isTrue();
-		Assertions.assertThat(base.resolve("index.html").toFile().exists()).isTrue();
+		assertEquals(true, base.resolve("assets/favicon.png").toFile().exists());
+		assertEquals(true, base.resolve("assets/logo-header.png").toFile().exists());
+		assertEquals(true, base.resolve("assets/main.css").toFile().exists());
+		assertEquals(true, base.resolve("policies/policy_1.sapl.html").toFile().exists());
+		assertEquals(true, base.resolve("index.html").toFile().exists());
 	}
 }

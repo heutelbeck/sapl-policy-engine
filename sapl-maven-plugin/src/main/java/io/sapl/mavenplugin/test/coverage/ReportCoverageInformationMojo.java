@@ -3,6 +3,8 @@ package io.sapl.mavenplugin.test.coverage;
 import java.nio.file.Path;
 import java.util.Collection;
 
+import javax.inject.Inject;
+
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -28,6 +30,7 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 public class ReportCoverageInformationMojo extends AbstractMojo {
 
 	@Parameter(defaultValue = "${project}", required = true, readonly = true)
+	//@Component
 	private MavenProject project;
 
 	@Parameter(defaultValue = "true")
@@ -54,6 +57,27 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	@Parameter(defaultValue = "true")
 	private boolean enableHtmlReport;
 
+	private SaplDocumentReader saplDocumentReader;
+	private CoverageTargetHelper coverageTargetHelper;
+	private CoverageAPIHelper coverageAPIHelper;
+	private CoverageRatioCalculator ratioCalculator;
+	private GenericCoverageReporter reporter;
+	private SonarLineCoverageReportGenerator sonarReporter;
+	private HtmlLineCoverageReportGenerator htmlReporter;
+
+	@Inject
+	public ReportCoverageInformationMojo(SaplDocumentReader reader, CoverageTargetHelper coverageTargetHelper,
+			CoverageAPIHelper coverageAPIHelper, CoverageRatioCalculator calc, GenericCoverageReporter reporter,
+			SonarLineCoverageReportGenerator sonarReporter, HtmlLineCoverageReportGenerator htmlReporter) {
+		this.saplDocumentReader = reader;
+		this.coverageTargetHelper = coverageTargetHelper;
+		this.coverageAPIHelper = coverageAPIHelper;
+		this.ratioCalculator = calc;
+		this.reporter = reporter;
+		this.sonarReporter = sonarReporter;
+		this.htmlReporter = htmlReporter;
+	}
+
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		if (!this.coverageEnabled) {
@@ -65,10 +89,12 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 		Collection<SaplDocument> documents = readSaplDocuments();
 		CoverageTargets targets = readAvailableTargets(documents);
 		CoverageTargets hits = readHits();
-		
-		var actualPolicySetHitRatio = CoverageRatioCalculator.calculatePolicySetHitRatio(targets.getPolicySets(), hits.getPolicySets());
-		var actualPolicyHitRatio = CoverageRatioCalculator.calculatePolicyHitRatio(targets.getPolicys(), hits.getPolicys());
-		var actualPolicyConditionHitRatio = CoverageRatioCalculator.calculatePolicyConditionHitRatio(targets.getPolicyConditions(), hits.getPolicyConditions());
+
+		var actualPolicySetHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicySets(),
+				hits.getPolicySets());
+		var actualPolicyHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicys(), hits.getPolicys());
+		var actualPolicyConditionHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicyConditions(),
+				hits.getPolicyConditions());
 
 		getLog().info("");
 		getLog().info("");
@@ -79,33 +105,29 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
 		boolean isPolicyRatioFulfilled = checkPolicyRatio(targets.getPolicys(), actualPolicyHitRatio);
 
-		boolean isPolicyConditionRatioFulfilled = checkPolicyConditionRatio(targets.getPolicyConditions(), actualPolicyConditionHitRatio);
+		boolean isPolicyConditionRatioFulfilled = checkPolicyConditionRatio(targets.getPolicyConditions(),
+				actualPolicyConditionHitRatio);
 
 		getLog().info("");
 		getLog().info("");
-		
+
 		// generate coverage report
 		if (enableSonarReport || enableHtmlReport) {
 			// create generic report information
-			GenericCoverageReporter reporter = new GenericCoverageReporter(documents, hits);
-			var genericDocumentCoverage = reporter.calcDocumentCoverage();
+			var genericDocumentCoverage = reporter.calcDocumentCoverage(documents, hits);
 
 			if (enableSonarReport) {
 				// write to sonar specific report format
-				SonarLineCoverageReportGenerator sonarReporter = new SonarLineCoverageReportGenerator(
-						genericDocumentCoverage, getLog(),
+				sonarReporter.generateSonarLineCoverageReport(genericDocumentCoverage, getLog(),
 						PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()),
 						this.policyPath, this.project.getBasedir());
-				sonarReporter.generateSonarLineCoverageReport();
 			}
 
 			if (enableHtmlReport) {
 				// create HTML report
-				HtmlLineCoverageReportGenerator htmlReporter = new HtmlLineCoverageReportGenerator(
-						genericDocumentCoverage, getLog(),
+				Path indexHtml = htmlReporter.generateHtmlReport(genericDocumentCoverage, getLog(),
 						PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()),
 						actualPolicySetHitRatio, actualPolicyHitRatio, actualPolicyConditionHitRatio);
-				Path indexHtml = htmlReporter.generateHtmlReport();
 				getLog().info("Open this file in a Browser to view the HTML coverage report: ");
 				getLog().info(indexHtml.toUri().toString());
 			}
@@ -127,9 +149,9 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	private Collection<SaplDocument> readSaplDocuments() throws MojoExecutionException {
 		try {
 			getLog().debug("Loading coverage targets");
-			SaplDocumentReader reader = new SaplDocumentReader(getLog(), project);
+			var docs = this.saplDocumentReader.retrievePolicyDocuments(getLog(), project, this.policyPath);
 			getLog().debug("Successful read coverage targets");
-			return reader.retrievePolicyDocuments(this.policyPath);
+			return docs;
 		} catch (Exception e) {
 			getLog().error("Error reading coverage targets: " + e.getMessage(), e);
 		}
@@ -137,17 +159,16 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	}
 
 	private CoverageTargets readAvailableTargets(Collection<SaplDocument> documents) {
-		CoverageTargetHelper helper = new CoverageTargetHelper();
-		return helper.getCoverageTargets(documents);
+		return this.coverageTargetHelper.getCoverageTargets(documents); 	
 	}
 
 	private CoverageTargets readHits() throws MojoExecutionException {
 		try {
 			getLog().debug("Loading coverage hits");
-			CoverageAPIHelper helper = new CoverageAPIHelper(
-					PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()));
+			var hits = this.coverageAPIHelper
+					.readHits(PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()));
 			getLog().debug("Successful read coverage hits");
-			return helper.readHits();
+			return hits;
 		} catch (Exception e) {
 			getLog().error("Error reading coverage hits: " + e.getMessage(), e);
 		}
@@ -158,7 +179,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 		if (targets.isEmpty()) {
 			getLog().info("There are no PolicySets to hit");
 		} else {
-			
+
 			getLog().info("PolicySet Hit Ratio is: " + ratio);
 		}
 
@@ -177,7 +198,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 		} else {
 			getLog().info("Policy Hit Ratio is: " + ratio);
 		}
-		
+
 		if (ratio < policyHitRatio) {
 			getLog().error("Policy Hit Ratio not fulfilled - Expected greater or equal " + policyHitRatio + " but got "
 					+ ratio);
