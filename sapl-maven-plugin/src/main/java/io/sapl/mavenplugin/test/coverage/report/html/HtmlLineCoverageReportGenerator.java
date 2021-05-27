@@ -42,6 +42,7 @@ import j2html.attributes.Attribute;
 import j2html.tags.ContainerTag;
 import j2html.tags.EmptyTag;
 import lombok.Data;
+import lombok.NonNull;
 
 public class HtmlLineCoverageReportGenerator {
 
@@ -300,13 +301,29 @@ public class HtmlLineCoverageReportGenerator {
 		}
 	}
 
-	private void copyFile(InputStream source, Path target, Log log) {
+	private void copyFile(InputStream source, @NonNull Path target, Log log) {
+
+		var parent = target.getParent();
+		if (parent == null) {
+			log.error(String.format("Parent of \"%s\" was null.", target.toString()));
+			return;
+		}
+		var parentFile = parent.toFile();
+		if (parentFile == null) {
+			log.error(String.format("Could not convert parent \"%s\" to file.", parent.toString()));
+			return;
+		}
+		var targetFile = target.toFile();
+		if (targetFile == null) {
+			log.error(String.format("Could not convert target \"%s\" to file.", target.toString()));
+			return;
+		}
+		
 		try {
-			if (target !=null && target.getParent() != null && target.getParent().toFile() != null
-					&& !target.getParent().toFile().exists()) {
+			if (!parentFile.exists()) {
 				PathHelper.creatParentDirs(target, log);
 			}
-			if (!target.toFile().exists()) {
+			if (!targetFile.exists()) {
 				Files.copy(source, target);
 			}
 		} catch (IOException e) {
