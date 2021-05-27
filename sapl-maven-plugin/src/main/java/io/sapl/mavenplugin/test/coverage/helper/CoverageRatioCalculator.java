@@ -19,7 +19,7 @@ public class CoverageRatioCalculator {
 			}
 		}
 		
-		if(hitTargets.size() == 0 || hits == 0) {
+		if(hitTargets.isEmpty() || hits == 0) {
 			return 0;
 		}
 		

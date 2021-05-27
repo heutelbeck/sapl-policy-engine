@@ -25,6 +25,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -271,7 +272,7 @@ public class HtmlLineCoverageReportGenerator {
 	private String readFileFromClasspath(String filename, Log log) {
 		var stream = getClass().getClassLoader().getResourceAsStream((filename));
 		String fileContent = "";
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
 			fileContent = reader.lines().collect(Collectors.joining("\n"));
 		} catch (IOException e) {
 			log.error(String.format("Error reading file: \"%s\"", filename), e);
@@ -301,7 +302,7 @@ public class HtmlLineCoverageReportGenerator {
 
 	private void copyFile(InputStream source, Path target, Log log) {
 		try {
-			if (target.getParent() != null && target.getParent().toFile() != null
+			if (target !=null && target.getParent() != null && target.getParent().toFile() != null
 					&& !target.getParent().toFile().exists()) {
 				PathHelper.creatParentDirs(target, log);
 			}

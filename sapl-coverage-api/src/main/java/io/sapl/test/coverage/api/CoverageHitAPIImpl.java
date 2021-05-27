@@ -45,11 +45,11 @@ class CoverageHitAPIImpl implements CoverageHitRecorder, CoverageHitReader {
 	}
 
 	private void addPossibleHit(Path filePath, String lineToAdd) {
-		if(!Files.exists(filePath)) {
+		if (filePath == null || !Files.exists(filePath)) {
 			log.warn("Expected File {} not found. Did something deleted this file during test runtime?", filePath);
 			createCoverageHitFile(filePath);
 		}
-		
+
 		try {
 			if (doesLineExistsInFile(filePath, lineToAdd)) {
 				// do nothing as already hit
@@ -73,7 +73,8 @@ class CoverageHitAPIImpl implements CoverageHitRecorder, CoverageHitReader {
 	}
 
 	private void appendLineToFile(Path filePathPolicySetHits, String lineToAdd) throws IOException {
-		Files.write(filePathPolicySetHits, (lineToAdd + System.lineSeparator()).getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
+		Files.write(filePathPolicySetHits, (lineToAdd + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
+				StandardOpenOption.APPEND);
 	}
 
 	@Override
@@ -98,7 +99,8 @@ class CoverageHitAPIImpl implements CoverageHitRecorder, CoverageHitReader {
 		try {
 			return Files.readAllLines(filePathPolicySetHits);
 		} catch (IOException e) {
-			log.error(String.format("Error reading File %s. Is the policy coverage recording disabled?", filePathPolicySetHits.toAbsolutePath().toString()), e);
+			log.error(String.format("Error reading File %s. Is the policy coverage recording disabled?",
+					filePathPolicySetHits.toAbsolutePath().toString()), e);
 		}
 		return new LinkedList<>();
 	}
@@ -127,8 +129,8 @@ class CoverageHitAPIImpl implements CoverageHitRecorder, CoverageHitReader {
 
 	private void createCoverageHitFile(Path filePath) {
 		try {
-			//ignore when file in previous test got created
-			if (!Files.exists(filePath)) { 
+			// ignore when file in previous test got created
+			if (!Files.exists(filePath)) {
 				Files.createDirectories(filePath.getParent());
 				Files.createFile(filePath);
 			}
