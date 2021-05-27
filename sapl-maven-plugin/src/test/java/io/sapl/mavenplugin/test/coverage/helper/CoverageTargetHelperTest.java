@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.testing.SilentLog;
 import org.apache.maven.plugin.testing.stubs.MavenProjectStub;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +22,7 @@ public class CoverageTargetHelperTest {
 	private Collection<SaplDocument> documents;
 	
 	@BeforeEach
-	public void setup() {
+	public void setup() throws MojoExecutionException {
 		String policyPath = "policies";
 		MavenProjectStub project = new MavenProjectStub();
 		//project.setTestClasspathElements(List.of("C:/Users/Nikolai/eclipse-sapl-workspace/sapl-test/sapl-maven-plugin/target/test-classes"));

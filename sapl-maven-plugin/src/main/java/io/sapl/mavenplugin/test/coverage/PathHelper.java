@@ -20,30 +20,23 @@ public class PathHelper {
 		}
 	}
 	
-	public static void createFile(Path filePath, Log log) {
-		try {
-			if (!Files.exists(filePath)) {
-				Path parent = filePath.getParent();
-				if (parent != null) {
-					Files.createDirectories(parent);
-				}
-				Files.createFile(filePath);
+	public static void createFile(Path filePath, Log log) throws IOException {
+		if (!Files.exists(filePath)) {
+			Path parent = filePath.getParent();
+			if (parent != null) {
+				Files.createDirectories(parent);
 			}
-		} catch (IOException e) {
-			log.error("Error creating File " + filePath, e);
+			Files.createFile(filePath);
 		}
+		
 	}
 	
-	public static void creatParentDirs(Path filePath, Log log) {
-		try {
-			if (!Files.exists(filePath)) {
-				Path parent = filePath.getParent();
-				if (parent != null) {
-					Files.createDirectories(parent);
-				}
+	public static void creatParentDirs(Path filePath, Log log) throws IOException {
+		if (!Files.exists(filePath)) {
+			Path parent = filePath.getParent();
+			if (parent != null) {
+				Files.createDirectories(parent);
 			}
-		} catch (IOException e) {
-			log.error("Error creating Directorys above " + filePath, e);
 		}
 	}
 }

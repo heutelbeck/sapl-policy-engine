@@ -291,10 +291,10 @@ public class HtmlLineCoverageReportGenerator {
 	}
 
 	private void createFile(Path filePath, String content, Log log) {
-		if (!filePath.toFile().exists()) {
-			PathHelper.createFile(filePath, log);
-		}
 		try {
+			if (!filePath.toFile().exists()) {
+				PathHelper.createFile(filePath, log);
+			}
 			Files.writeString(filePath, content);
 		} catch (IOException e) {
 			log.error(String.format("Error writing file \"%s\"", filePath.toString()));

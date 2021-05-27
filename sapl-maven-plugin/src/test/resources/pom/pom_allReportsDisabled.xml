@@ -56,8 +56,8 @@
 					<policyConditionHitRatio>80</policyConditionHitRatio>
 					
 					
-					<enableSonarReport>true</enableSonarReport>
-					<enableHtmlReport>true</enableHtmlReport>
+					<enableSonarReport>false</enableSonarReport>
+					<enableHtmlReport>false</enableHtmlReport>
 				</configuration>
 			</plugin>
 		</plugins>

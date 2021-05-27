@@ -57,7 +57,7 @@
 					
 					
 					<enableSonarReport>true</enableSonarReport>
-					<enableHtmlReport>true</enableHtmlReport>
+					<enableHtmlReport>false</enableHtmlReport>
 				</configuration>
 			</plugin>
 		</plugins>

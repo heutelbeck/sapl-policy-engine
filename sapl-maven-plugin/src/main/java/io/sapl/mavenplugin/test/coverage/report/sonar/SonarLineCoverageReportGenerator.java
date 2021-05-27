@@ -1,6 +1,7 @@
 package io.sapl.mavenplugin.test.coverage.report.sonar;
 
 import java.io.File;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -40,6 +41,8 @@ public class SonarLineCoverageReportGenerator {
 			marshaller.marshal(sonarCoverage, filePath.toFile());
 		} catch (JAXBException e) {
 			log.error("Error unmarshalling Coverage information to Sonarqube generic coverage format", e);
+		} catch (IOException e) {
+			log.error("Error writing file", e);
 		}
 	}
 

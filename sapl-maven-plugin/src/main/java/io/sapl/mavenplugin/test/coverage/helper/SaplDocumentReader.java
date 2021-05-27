@@ -12,22 +12,22 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import reactor.core.Exceptions;
 
 @Named
 @Singleton
 public class SaplDocumentReader {
-	private static final String ERROR_PATH_NOT_FOUND = "Unable to find the directory \"%s\" on the classpath";
-	private static final String ERROR_PATH_WAS_FILE = "Unable to find policies at \"%s\" on the classpath. The path points to a file.";
+	private static final String ERROR_PATH_NOT_FOUND = "Error reading coverage targets: Unable to find the directory \"%s\" on the classpath";
+	private static final String ERROR_PATH_WAS_FILE = "Error reading coverage targets: Unable to find policies at \"%s\" on the classpath. The path points to a file.";
 
 
-	public Collection<SaplDocument> retrievePolicyDocuments(Log log, MavenProject project, String policyPath) {
+	public Collection<SaplDocument> retrievePolicyDocuments(Log log, MavenProject project, String policyPath) throws MojoExecutionException {
 		DefaultSAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
 		File policyDir = findPolicyDirOnClasspath(project, policyPath);
@@ -36,7 +36,7 @@ public class SaplDocumentReader {
 
 		File[] files = policyDir.listFiles();
 		if (files == null) {
-			throw new SaplTestException(String.format(ERROR_PATH_WAS_FILE, policyDir.getAbsolutePath()));
+			throw new MojoExecutionException(String.format(ERROR_PATH_WAS_FILE, policyDir.getAbsolutePath()));
 		}
 
 		List<SaplDocument> saplDocuments = new LinkedList<>();
@@ -57,7 +57,7 @@ public class SaplDocumentReader {
 	}
 	
 
-	private File findPolicyDirOnClasspath(MavenProject project, String policyPath) {
+	private File findPolicyDirOnClasspath(MavenProject project, String policyPath) throws MojoExecutionException {
 
 		List<String> projectTestClassPathElements;
 		StringBuilder builder = new StringBuilder(String.format(ERROR_PATH_NOT_FOUND, policyPath));
@@ -82,7 +82,7 @@ public class SaplDocumentReader {
 		if(result != null) {
 			return result;
 		} else {
-			throw new SaplTestException(builder.toString());
+			throw new MojoExecutionException("Error reading coverage targets: " + builder.toString());
 		}
 	}
 }

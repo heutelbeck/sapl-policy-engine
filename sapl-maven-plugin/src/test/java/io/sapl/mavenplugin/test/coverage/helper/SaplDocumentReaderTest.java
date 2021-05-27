@@ -7,12 +7,12 @@ import java.io.File;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.testing.SilentLog;
 import org.apache.maven.plugin.testing.stubs.MavenProjectStub;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 
 public class SaplDocumentReaderTest {
@@ -30,23 +30,23 @@ public class SaplDocumentReaderTest {
 	}
 	
 	@Test
-	public void test() {
+	public void test() throws MojoExecutionException {
 		Collection<SaplDocument> documents = reader.retrievePolicyDocuments(new SilentLog(), project, policyPath);
 		assertEquals(2, documents.size());
 	}
 
 	@Test
 	public void test_nonExistentPath() {
-		assertThrows(SaplTestException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project, "src" + File.separator + "test" + File.separator + "resources" + File.separator + "policies"));
+		assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project, "src" + File.separator + "test" + File.separator + "resources" + File.separator + "policies"));
 	}
 	
 	@Test
 	public void test_pathPointsToFile() {
-		assertThrows(SaplTestException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project, "policies" + File.separator + "policy_1.sapl"));
+		assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project, "policies" + File.separator + "policy_1.sapl"));
 	}
 	
 	@Test
-	public void test_FilePathWithDot() {
+	public void test_FilePathWithDot() throws MojoExecutionException {
 		Collection<SaplDocument> documents = reader.retrievePolicyDocuments(new SilentLog(), project, "." + File.separator + "policies");
 		assertEquals(2, documents.size());
 	}

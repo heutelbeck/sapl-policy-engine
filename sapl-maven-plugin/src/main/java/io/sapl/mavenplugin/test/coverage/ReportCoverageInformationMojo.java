@@ -147,32 +147,22 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	}
 
 	private Collection<SaplDocument> readSaplDocuments() throws MojoExecutionException {
-		try {
-			getLog().debug("Loading coverage targets");
-			var docs = this.saplDocumentReader.retrievePolicyDocuments(getLog(), project, this.policyPath);
-			getLog().debug("Successful read coverage targets");
-			return docs;
-		} catch (Exception e) {
-			getLog().error("Error reading coverage targets: " + e.getMessage(), e);
-		}
-		throw new MojoExecutionException("Error reading coverage targets");
+		getLog().debug("Loading coverage targets");
+		var docs = this.saplDocumentReader.retrievePolicyDocuments(getLog(), project, this.policyPath);
+		getLog().debug("Successful read coverage targets");
+		return docs;
 	}
 
 	private CoverageTargets readAvailableTargets(Collection<SaplDocument> documents) {
 		return this.coverageTargetHelper.getCoverageTargets(documents); 	
 	}
 
-	private CoverageTargets readHits() throws MojoExecutionException {
-		try {
-			getLog().debug("Loading coverage hits");
-			var hits = this.coverageAPIHelper
-					.readHits(PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()));
-			getLog().debug("Successful read coverage hits");
-			return hits;
-		} catch (Exception e) {
-			getLog().error("Error reading coverage hits: " + e.getMessage(), e);
-		}
-		throw new MojoExecutionException("Error reading coverage hits");
+	private CoverageTargets readHits() {
+		getLog().debug("Loading coverage hits");
+		var hits = this.coverageAPIHelper
+				.readHits(PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()));
+		getLog().debug("Successful read coverage hits");
+		return hits;
 	}
 
 	private boolean checkPolicySetRatio(Collection<PolicySetHit> targets, float ratio) {
@@ -180,11 +170,11 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 			getLog().info("There are no PolicySets to hit");
 		} else {
 
-			getLog().info("PolicySet Hit Ratio is: " + ratio);
+			getLog().info("Policy Set Hit Ratio is: " + ratio);
 		}
 
 		if (ratio < policySetHitRatio) {
-			getLog().error("PolicySet Hit Ratio not fulfilled - Expected greater or equal " + policySetHitRatio
+			getLog().error("Policy Set Hit Ratio not fulfilled - Expected greater or equal " + policySetHitRatio
 					+ " but got " + ratio);
 			return false;
 		} else {
@@ -194,7 +184,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
 	private boolean checkPolicyRatio(Collection<PolicyHit> targets, float ratio) {
 		if (targets.isEmpty()) {
-			getLog().info("There are no Policys to hit");
+			getLog().info("There are no Policies to hit");
 		} else {
 			getLog().info("Policy Hit Ratio is: " + ratio);
 		}
@@ -212,11 +202,11 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 		if (targets.isEmpty()) {
 			getLog().info("There are no PolicyConditions to hit");
 		} else {
-			getLog().info("PolicyCondition Hit Ratio is: " + ratio);
+			getLog().info("Policy Condition Hit Ratio is: " + ratio);
 		}
 
 		if (ratio < policyConditionHitRatio) {
-			getLog().error("PolicyCondition Hit Ratio not fulfilled - Expected greater or equal "
+			getLog().error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal "
 					+ policyConditionHitRatio + " but got " + ratio);
 			return false;
 		} else {
