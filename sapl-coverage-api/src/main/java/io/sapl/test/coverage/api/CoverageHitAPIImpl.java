@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -44,8 +45,8 @@ class CoverageHitAPIImpl implements CoverageHitRecorder, CoverageHitReader {
 
 	}
 
-	private void addPossibleHit(Path filePath, String lineToAdd) {
-		if (filePath == null || !Files.exists(filePath)) {
+	private void addPossibleHit(@NonNull Path filePath, String lineToAdd) {
+		if (!Files.exists(filePath)) {
 			log.warn("Expected File {} not found. Did something deleted this file during test runtime?", filePath);
 			createCoverageHitFile(filePath);
 		}
