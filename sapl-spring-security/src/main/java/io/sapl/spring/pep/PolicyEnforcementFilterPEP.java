@@ -57,11 +57,11 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 		var authzDecision = pdp.decide(subscription).blockFirst();
 		log.debug("PDP decision  : '{}' {}", authzDecision != null ? authzDecision.getDecision() : null, authzDecision);
 
-		constraintHandlers.handleAdvices(authzDecision);
-		constraintHandlers.handleObligations(authzDecision);
-
 		if (authzDecision == null)
 			throw new AccessDeniedException("PDP decision enpty.");
+
+		constraintHandlers.handleAdvices(authzDecision);
+		constraintHandlers.handleObligations(authzDecision);
 
 		if (authzDecision.getDecision() != Decision.PERMIT)
 			throw new AccessDeniedException(String.format("PDP decision: %s", authzDecision.getDecision()));
