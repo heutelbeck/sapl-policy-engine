@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.TemporalFunctionLibrary;
+import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 public class ClockPolicyInformationPointTickerTest {
@@ -39,7 +40,7 @@ public class ClockPolicyInformationPointTickerTest {
 	@Test
 	public void ticker() {
 		final ClockPolicyInformationPoint clockPip = new ClockPolicyInformationPoint();
-		StepVerifier.withVirtualTime(() -> clockPip.ticker(Val.of(30L), Collections.emptyMap())).expectSubscription()
+		StepVerifier.withVirtualTime(() -> clockPip.ticker(Val.UNDEFINED, Collections.emptyMap(), Flux.just(Val.of(30L)))).expectSubscription()
 				.expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
 					/* the first node is provided some nano seconds after its creation */ })
 				.expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {

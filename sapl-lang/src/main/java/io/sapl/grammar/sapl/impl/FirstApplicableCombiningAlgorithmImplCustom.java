@@ -10,6 +10,7 @@ import org.reactivestreams.Publisher;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.interpreter.EvaluationContext;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -38,6 +39,7 @@ import reactor.core.publisher.Flux;
  * the decision of the policy set is NOT_APPLICABLE.
  *
  */
+@Slf4j
 public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicableCombiningAlgorithmImpl {
 
 	@Override
@@ -60,13 +62,19 @@ public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicable
 
 	private Flux<AuthorizationDecision> evaluatePolicy(Policy policy, EvaluationContext ctx) {
 		return policy.matches(ctx).flux().flatMap(match -> {
-			if (!match.isBoolean())
+
+			if (!match.isBoolean()) {
+				log.debug("| |- Policy {} target does not evaluate to boolen -> INDETERMINATE", policy.getSaplName());
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
+			}
 
-			if (!match.getBoolean())
+			if (!match.getBoolean()) {
+				log.debug("| |- Policy {} target FALSE -> NOT_APPLICABLE", policy.getSaplName());
 				return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
+			}
 
-			return policy.evaluate(ctx);
+			return policy.evaluate(ctx).doOnNext(decision -> log.debug("| |- Policy {} matches and evaluates to: {}",
+					policy.getSaplName(), decision));
 		});
 	}
 

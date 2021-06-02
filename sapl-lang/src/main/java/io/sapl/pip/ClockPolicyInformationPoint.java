@@ -23,10 +23,10 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 import lombok.NoArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -58,8 +58,22 @@ public class ClockPolicyInformationPoint {
 	}
 
 	@Attribute(docs = "Emits every x seconds the current UTC date and time as an ISO-8601 string. x is the passed number value.")
-	public Flux<Val> ticker(@Number Val value, Map<String, JsonNode> variables) {
-		return Flux.interval(Duration.ofSeconds(value.get().asLong())).map(i -> Val.of(Instant.now().toString()));
+	public Flux<Val> ticker(Val leftHand, Map<String, JsonNode> variables, Flux<Val> intervallInSeconds) {
+		return intervallInSeconds.switchMap(seconds -> {
+			if (!seconds.isNumber())
+				return Flux.error(new PolicyEvaluationException(
+						String.format("ticker parameter not a number. Was: %s", seconds.toString())));
+
+			var secondsValue = seconds.get().asLong();
+
+			if (secondsValue == 0)
+				return Flux.error(new PolicyEvaluationException("ticker parameter must not be zero"));
+			
+			// concatenate with a single number leading to have one time-stamp immediately.
+			// Else PEPs have to wait for the interval to pass once before getting a first
+			// decision.
+			return Flux.concat(Flux.just(0), Flux.interval(Duration.ofSeconds(secondsValue)));
+		}).map(__ -> Val.of(Instant.now().toString()));
 	}
 
 }
