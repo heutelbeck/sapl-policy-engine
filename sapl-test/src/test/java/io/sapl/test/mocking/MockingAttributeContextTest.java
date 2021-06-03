@@ -28,7 +28,7 @@ public class MockingAttributeContextTest {
 	@BeforeEach
 	void setup() {
 		this.unmockedCtx = Mockito.mock(AnnotationAttributeContext.class);
-		this.ctx = new MockingAttributeContext(unmockedCtx);
+		this.ctx = new MockingAttributeContext(unmockedCtx, null);
 	}
 
 	@Test
@@ -123,7 +123,7 @@ public class MockingAttributeContextTest {
 	@Test
 	void test_mockEmit_UnmockedAttribute() {
 		AttributeContext unmockedCtx = new AnnotationAttributeContext();
-		MockingAttributeContext ctx = new MockingAttributeContext(unmockedCtx);
+		MockingAttributeContext ctx = new MockingAttributeContext(unmockedCtx, null);
 
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
 				.isThrownBy(() -> ctx.mockEmit("foo.bar", Val.of(1)));

@@ -39,7 +39,11 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	protected LinkedList<AttributeMockReturnValues> mockedAttributeValues;
 	protected Step<AuthorizationDecision> steps;
 	protected boolean withVirtualTime;
-
+	protected NumberOfExpectSteps numberOfExpectSteps;
+	
+	public StepsDefaultImpl() {
+		this.numberOfExpectSteps = new NumberOfExpectSteps();
+	}
 
 
 	@Override
@@ -168,6 +172,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 		this.steps = this.steps
 				.expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.PERMIT)
 				.as("Expecting Decision.PERMIT");
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 
@@ -176,6 +181,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 		this.steps = this.steps
 				.expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.DENY)
 				.as("Expecting Decision.DENY");
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 
@@ -184,6 +190,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 		this.steps = this.steps
 				.expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.INDETERMINATE)
 				.as("Expecting Decision.INDETERMINATE");
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 
@@ -198,18 +205,21 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	@Override
 	public VerifyStep expect(AuthorizationDecision authDec) {
 		this.steps = this.steps.expectNext(authDec);
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 
 	@Override
 	public VerifyStep expect(Predicate<AuthorizationDecision> pred) {
 		this.steps = this.steps.expectNextMatches(pred);
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 
 	@Override
 	public VerifyStep expect(Matcher<AuthorizationDecision> matcher) {
 		this.steps = this.steps.expectNextMatches(dec -> matcher.matches(dec));
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 
@@ -220,6 +230,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 		this.steps = this.steps
 				.expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.PERMIT)
 				.as("Expecting Decision.PERMIT");
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 
@@ -232,6 +243,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 			this.steps = this.steps
 					.expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.PERMIT)
 					.as("Expecting Decision.PERMIT");
+			this.numberOfExpectSteps.addExpectStep();
 		}
 		return this;
 	}
@@ -241,6 +253,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 		this.steps = this.steps
 				.expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.DENY)
 				.as("Expecting Decision.DENY");
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 
@@ -253,6 +266,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 			this.steps = this.steps
 					.expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.DENY)
 					.as("Expecting Decision.DENY");
+			this.numberOfExpectSteps.addExpectStep();
 		}
 		return this;
 	}
@@ -262,6 +276,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 		this.steps = this.steps
 				.expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.INDETERMINATE)
 				.as("Expecting Decision.INDETERMINATE");
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 
@@ -275,6 +290,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 					.expectNextMatches(
 							(AuthorizationDecision dec) -> dec.getDecision() == Decision.INDETERMINATE)
 					.as("Expecting Decision.INDETERMINATE");
+			this.numberOfExpectSteps.addExpectStep();
 		}
 		return this;
 	}
@@ -284,6 +300,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 		this.steps = this.steps
 				.expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.NOT_APPLICABLE)
 				.as("Expecting Decision.NOT_APPLICABLE");
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 
@@ -297,6 +314,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 					.expectNextMatches(
 							(AuthorizationDecision dec) -> dec.getDecision() == Decision.NOT_APPLICABLE)
 					.as("Expecting Decision.NOT_APPLICABLE");
+			this.numberOfExpectSteps.addExpectStep();
 		}
 		return this;
 	}
@@ -304,18 +322,21 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	@Override
 	public ExpectOrVerifyStep expectNext(AuthorizationDecision authDec) {
 		this.steps = this.steps.expectNext(authDec);
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 
 	@Override
 	public ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher) {
 		this.steps = this.steps.expectNextMatches(dec -> matcher.matches(dec));
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 
 	@Override
 	public ExpectOrVerifyStep expectNext(Predicate<AuthorizationDecision> pred) {
 		this.steps = this.steps.expectNextMatches(pred);
+		this.numberOfExpectSteps.addExpectStep();
 		return this;
 	}
 

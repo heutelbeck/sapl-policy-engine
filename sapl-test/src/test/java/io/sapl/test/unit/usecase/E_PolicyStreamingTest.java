@@ -8,7 +8,6 @@ import java.time.Duration;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
@@ -55,12 +54,6 @@ public class E_PolicyStreamingTest {
 	}
 	
 	@Test
-	@Disabled
-	//Test disabled as it's unstable. On some ci builds (guess: on slower build machines) this test fails with
-	// "VerifySubscriber timed out on [...]"
-	// It seems this happens because the returned AuthorizationSubscription is a infinite sequence as emitted by ClockPolicyInformationPoint
-	// Reactor states in their documentation (https://projectreactor.io/docs/core/milestone/reference/#_manipulating_time):
-	// "Virtual time also gets very limited with infinite sequences, which might hog the thread on which both the sequence and its verification run."
 	void test_streamingPolicyWithVirtualTime() throws InitializationException {
 		
 		fixture.registerPIP(new ClockPolicyInformationPoint())

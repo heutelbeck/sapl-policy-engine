@@ -65,7 +65,7 @@ class StepBuilder {
 		Steps(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
 			this.document = document;
 			this.mockingFunctionContext = new MockingFunctionContext(funcCtx);
-			this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
+			this.mockingAttributeContext = new MockingAttributeContext(attrCtx, this.numberOfExpectSteps);
 			this.variables = variables;
 			this.mockedAttributeValues = new LinkedList<>();
 		}

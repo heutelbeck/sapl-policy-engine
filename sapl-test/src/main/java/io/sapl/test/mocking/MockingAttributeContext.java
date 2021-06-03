@@ -17,6 +17,7 @@ import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.steps.NumberOfExpectSteps;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -38,11 +39,18 @@ public class MockingAttributeContext implements AttributeContext {
 	 */
 	private final Map<String, AttributeMock> registeredMocks;
 	private final Map<String, PolicyInformationPointDocumentation> pipDocumentations;
+	private final NumberOfExpectSteps numberOfExpectSteps;
 
-	public MockingAttributeContext(AttributeContext unmockedAttributeContext) {
+	/**
+	 * Constructor of MockingAttributeContext
+	 * @param unmockedAttributeContext unmocked "normal" AttributeContext do delegate unmocked attribute calls
+	 * @param numberOfExpectSteps {@link NumberOfExpectSteps} to convert infinite streams to finite ones via a .take(numberOfExpectSteps) call. "null" if no conversion to a finite stream should happen.
+	 */
+	public MockingAttributeContext(AttributeContext unmockedAttributeContext, NumberOfExpectSteps numberOfExpectSteps) {
 		this.unmockedAttributeContext = unmockedAttributeContext;
 		this.registeredMocks = new HashMap<String, AttributeMock>();
 		this.pipDocumentations = new HashMap<>();
+		this.numberOfExpectSteps = numberOfExpectSteps;
 	}
 
 	@Override
@@ -80,7 +88,12 @@ public class MockingAttributeContext implements AttributeContext {
 		if (mock != null) {
 			return mock.evaluate();
 		} else {
-			return this.unmockedAttributeContext.evaluate(attribute, value, ctx, arguments);
+			if(this.numberOfExpectSteps != null) {
+				return this.unmockedAttributeContext.evaluate(attribute, value, ctx, arguments)
+						.take(this.numberOfExpectSteps.getNumberOfExpectSteps());				
+			} else {
+				return this.unmockedAttributeContext.evaluate(attribute, value, ctx, arguments);
+			}
 		}
 	}
 

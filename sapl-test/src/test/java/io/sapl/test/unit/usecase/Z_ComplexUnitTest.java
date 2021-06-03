@@ -12,8 +12,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -30,9 +28,9 @@ public class Z_ComplexUnitTest {
 	}
 
 	
-	@Test
-	@Disabled
-	void test_reactivePolicy() {
+	//@Test
+	//@Disabled
+	void test_complexPolicy() {
 		var timestamp0 = Val.of(ZonedDateTime.of(2021, 1, 7, 0, 0, 0, 0, ZoneId.of("UTC")).toString());
 		var timestamp1 = Val.of(ZonedDateTime.of(2021, 1, 8, 0, 0, 1, 0, ZoneId.of("UTC")).toString());
 		var timestamp2 = Val.of(ZonedDateTime.of(2021, 1, 9, 0, 0, 2, 0, ZoneId.of("UTC")).toString());
