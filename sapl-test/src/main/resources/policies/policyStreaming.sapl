@@ -8,4 +8,4 @@ permit
 where
   subject == "ROLE_DOCTOR";
   var interval = 2;
-  time.localSecond(interval.<clock.ticker>) > 4;
+  time.localSecond(<clock.ticker(interval)>) > 4;
