@@ -63,7 +63,6 @@ public class GenericInMemoryIndexedPolicyRetrievalPoint implements PolicyRetriev
                         (doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getClass().getSimpleName() : doc.toString());
             }
         }
-        log.trace("|");
     }
 
 }

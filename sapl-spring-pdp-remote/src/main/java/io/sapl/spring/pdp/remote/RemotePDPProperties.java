@@ -34,4 +34,6 @@ public class RemotePDPProperties {
 	private String key = "";
 	@NotEmpty
 	private String secret = "";
+	
+	private boolean ignoreCertificates = false;
 }

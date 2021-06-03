@@ -9,6 +9,7 @@ io.sapl:
     # folder in which the configuration and policies reside on the system
     key: YJidgyT2mfdkbmL
     # BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh)
+    # Authorization: Basic WUppZGd5VDJtZmRrYm1MOkZhNHp2WVFkaXdIWlZYaA==
     secret: $2a$10$PhobF71xYb0MK8KubWLB7e0Dpl2AfMiEUi9dkKTbFR4kkWABrbiyO
 
 loader.path: /pdp/data/lib

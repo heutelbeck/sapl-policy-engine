@@ -53,17 +53,14 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
 		final Expression targetExpression = getTargetExpression();
 		if (targetExpression == null) {
 			log.trace("| | | |-- MATCH (no target expression, matches all)");
-			log.trace("| | |");
 			return Mono.just(Val.TRUE);
 		}
 		return targetExpression.evaluate(ctx, Val.UNDEFINED).next().defaultIfEmpty(Val.FALSE).flatMap(result -> {
 			if (result.isError() || !result.isBoolean()) {
 				log.trace("| | | |-- ERROR in target expression did not evaluate to boolean. Was: {}", result);
-				log.trace("| | |");
 				return Val.errorMono(CONDITION_NOT_BOOLEAN, result);
 			}
 			log.trace("| | | |-- {}", result.get().asBoolean() ? "MATCH" : "NO MATCH");
-			log.trace("| | |");
 			return Mono.just(result);
 		});
 	}

@@ -15,12 +15,16 @@
  */
 package io.sapl.spring.pdp.remote;
 
+import javax.net.ssl.SSLException;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
@@ -37,10 +41,21 @@ public class RemotePDPAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public PolicyDecisionPoint policyDecisionPoint() {
+	public PolicyDecisionPoint policyDecisionPoint() throws SSLException {
 		log.info("Binding to remote PDP server: {}", configuration.getHost());
-		return new RemotePolicyDecisionPoint(configuration.getHost(), configuration.getKey(),
-				configuration.getSecret());
+		if (configuration.isIgnoreCertificates()) {
+			log.warn("INSECURE SSL SETTINGS! This demo uses an insecure SslContext for "
+					+ "testing purposes only. It will accept all certificates. "
+					+ "This is only for testing local servers with self-signed certificates easily. "
+					+ "NERVER USE SUCH A CONFIURATION IN PRODUCTION!");
+			var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+			return new RemotePolicyDecisionPoint(configuration.getHost(), configuration.getKey(),
+					configuration.getSecret(), sslContext);
+
+		} else {
+			return new RemotePolicyDecisionPoint(configuration.getHost(), configuration.getKey(),
+					configuration.getSecret());
+		}
 	}
 
 }

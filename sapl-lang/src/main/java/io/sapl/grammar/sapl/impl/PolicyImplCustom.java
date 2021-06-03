@@ -88,6 +88,7 @@ public class PolicyImplCustom extends PolicyImpl {
 				log.debug("| |- Undefined advice. INDETERMINATE");
 				return AuthorizationDecision.INDETERMINATE;
 			}
+			log.debug("| |- Got advice: {}", advice.get());
 			var adviceArray = Val.JSON.arrayNode();
 			adviceArray.add(advice.get());
 			return previousDecision.withAdvices(adviceArray);
