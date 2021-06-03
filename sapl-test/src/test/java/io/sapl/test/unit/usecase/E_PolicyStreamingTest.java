@@ -60,7 +60,6 @@ public class E_PolicyStreamingTest {
 			.constructTestCaseWithMocks()
 			.withVirtualTime()
 			.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData"))
-			.thenAwait(Duration.ofSeconds(2))
 			.expectNext(anyAuthDecision())
 			.thenAwait(Duration.ofSeconds(2))
 			.expectNext(anyAuthDecision())
