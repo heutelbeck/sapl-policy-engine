@@ -61,7 +61,7 @@ public class StepBuilder {
 			this.prp = prp;
 			this.pdpConfig = pdpConfig;			
 			this.mockingFunctionContext = new MockingFunctionContext(funcCtx);
-			this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
+			this.mockingAttributeContext = new MockingAttributeContext(attrCtx, this.numberOfExpectSteps);
 			this.variables = variables;
 			this.mockedAttributeValues = new LinkedList<>();
 		}
