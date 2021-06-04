@@ -429,21 +429,45 @@ class EagerOperatorsTest {
 		expressionErrors(CTX, "(10/0) / 5");
 	}
 
+
 	@Test
 	void evaluateDivRightError() {
 		expressionErrors(CTX, "10 / (10/0)");
 	}
-
-	// FIXME: why spaces needed ? "2.0-10" fails
+	
 	@Test
-	void evaluate2Minus10() {
-		expressionEvaluatesTo(CTX, "2.0 - 10", "-8");
+	void moduloEvaluationShouldFailWithNonNumberLeft() {
+		expressionErrors(CTX, "null%10");
 	}
 
-	// FIXME: why spaces needed ? "10-2" fails
+	@Test
+	void moduloEvaluationShouldFailWithNonNumberRight() {
+		expressionErrors(CTX, "10%null");
+	}
+
+	@Test
+	void moduloEvaluationShouldFailDivisionByZero() {
+		expressionErrors(CTX, "10%0");
+	}
+
+	@Test
+	void moduloEvaluationSucceed() {
+		expressionEvaluatesTo(CTX, "11%2", "1");
+	}
+
+	@Test
+	void evaluateModuloLeftError() {
+		expressionErrors(CTX, "(10/0) % 5");
+	}
+
+	@Test
+	void evaluate2Minus10() {
+		expressionEvaluatesTo(CTX, "2.0-10", "-8");
+	}
+
 	@Test
 	void evaluate10Minus2() {
-		expressionEvaluatesTo(CTX, "10 - 2", "8");
+		expressionEvaluatesTo(CTX, "10-2", "8");
 	}
 
 	@Test

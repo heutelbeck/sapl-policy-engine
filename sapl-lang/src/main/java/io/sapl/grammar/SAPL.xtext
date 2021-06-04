@@ -100,7 +100,7 @@ Addition returns Expression:
 	Multiplication (({Plus.left=current} '+' | {Minus.left=current} '-') right=Multiplication)* ;
 
 Multiplication returns Expression:
-	UnaryExpression (({Multi.left=current} '*' | {Div.left=current} '/') right=UnaryExpression)* ;
+	UnaryExpression (({Multi.left=current} '*' | {Div.left=current} '/' | {Modulo.left=current} '%') right=UnaryExpression)* ;
 
 UnaryExpression returns Expression:
 	  {Not} '!' expression=UnaryExpression 
