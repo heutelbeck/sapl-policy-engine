@@ -128,6 +128,7 @@ Arguments:
 
 Step:
 	'.' ( {KeyStep} id=ID 
+		| {EscapedKeyStep} id=STRING
 		| {WildcardStep} '*' 
 		| {AttributeFinderStep} '<' idSteps+=ID ('.' idSteps+=ID)* arguments=Arguments? '>'  
 		| {HeadAttributeFinderStep} '|<' idSteps+=ID ('.' idSteps+=ID)* arguments=Arguments? '>' ) 
