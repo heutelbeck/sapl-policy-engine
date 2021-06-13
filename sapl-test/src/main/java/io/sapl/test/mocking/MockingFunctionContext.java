@@ -51,10 +51,13 @@ public class MockingFunctionContext implements FunctionContext {
 	@Override
 	public Boolean isProvidedFunction(String function) {
 		if (this.registeredMocks.containsKey(function)) {
+			log.trace("Function \"{}\" is mocked", function);
 			return Boolean.TRUE;
 		} else if (unmockedFunctionContext.isProvidedFunction(function)) {
+			log.trace("Function \"{}\" is provided by unmocked function context", function);
 			return Boolean.TRUE;
 		} else {
+			log.trace("Function \"{}\" is NOT provided", function);
 			return Boolean.FALSE;
 		}
 	}
@@ -81,8 +84,10 @@ public class MockingFunctionContext implements FunctionContext {
 	public Val evaluate(String function, Val... parameters) {
 		FunctionMock mock = this.registeredMocks.get(function);
 		if (mock != null) {
+			log.debug("Evaluate mocked function \"{}\"", function);
 			return mock.evaluateFunctionCall(new FunctionCallImpl(parameters));
 		} else {
+			log.debug("Delegate function \"{}\" to unmocked function context", function);
 			return this.unmockedFunctionContext.evaluate(function, parameters);
 		}
 	}

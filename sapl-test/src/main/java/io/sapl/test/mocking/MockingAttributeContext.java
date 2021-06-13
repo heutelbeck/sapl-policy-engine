@@ -56,10 +56,13 @@ public class MockingAttributeContext implements AttributeContext {
 	@Override
 	public Boolean isProvidedFunction(String function) {
 		if (this.registeredMocks.containsKey(function)) {
+			log.trace("Attribute \"{}\" is mocked", function);
 			return Boolean.TRUE;
 		} else if (unmockedAttributeContext.isProvidedFunction(function)) {
+			log.trace("Attribute \"{}\" is provided by unmocked attribute context", function);
 			return Boolean.TRUE;
 		} else {
+			log.trace("Attribute \"{}\" is NOT provided", function);
 			return Boolean.FALSE;
 		}
 	}
@@ -86,9 +89,12 @@ public class MockingAttributeContext implements AttributeContext {
 	public Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments) {
 		AttributeMock mock = this.registeredMocks.get(attribute);
 		if (mock != null) {
+			log.debug("Evaluate mocked attribute \"{}\"", attribute);
 			return mock.evaluate();
 		} else {
+			log.debug("Delegate attribute \"{}\" to unmocked attribute context", attribute);
 			if(this.numberOfExpectSteps != null) {
+				log.trace("Covert infinite stream of attribute \"{}\" to finite by taking the first {} Val's", attribute, this.numberOfExpectSteps.getNumberOfExpectSteps());
 				return this.unmockedAttributeContext.evaluate(attribute, value, ctx, arguments)
 						.take(this.numberOfExpectSteps.getNumberOfExpectSteps());				
 			} else {
