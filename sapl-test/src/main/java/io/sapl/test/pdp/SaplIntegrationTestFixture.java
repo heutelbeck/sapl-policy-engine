@@ -2,10 +2,13 @@ package io.sapl.test.pdp;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.test.SaplTestException;
@@ -20,6 +23,10 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 	private static final String ERROR_MESSAGE_POLICY_PATH_NULL = "Null is not allowed for the Path pointing to the policies folder.";
 
 	private final Path pathToPoliciesFolder;
+	
+	private PolicyDocumentCombiningAlgorithm pdpAlgorithm = null;
+	
+	private Map<String, JsonNode> pdpVariables = null;
 
 	/**
 	 * Fixture for constructing a integration test case Expecting your policies are
@@ -52,6 +59,27 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 	public SaplIntegrationTestFixture(Path policyPath) {
 		this.pathToPoliciesFolder = policyPath;
 	}
+	
+	/**
+	 * set {@link PolicyDocumentCombiningAlgorithm} for this policy integration test
+	 * @param alg the {@link PolicyDocumentCombiningAlgorithm} to be used
+	 * @return
+	 */
+	public SaplIntegrationTestFixture withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm alg) {
+		this.pdpAlgorithm = alg;
+		return this;
+	}
+	
+	/**
+	 * set the Variables-{@link Map} normally loaded from the pdp.json file
+	 * @param variables a {@link Map} of variables
+	 * @return
+	 */
+	public SaplIntegrationTestFixture withPDPVariables(Map<String,JsonNode> variables) {
+		this.pdpVariables = variables;
+		return this;
+	}
+
 
 	@Override
 	public GivenStep constructTestCaseWithMocks() {
@@ -80,6 +108,6 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	private VariablesAndCombinatorSource constructPDPConfig() {
 
-		return new ClasspathVariablesAndCombinatorSource(this.pathToPoliciesFolder.toString(), new ObjectMapper());
+		return new ClasspathVariablesAndCombinatorSource(this.pathToPoliciesFolder.toString(), new ObjectMapper(), this.pdpAlgorithm, this.pdpVariables);
 	}
 }

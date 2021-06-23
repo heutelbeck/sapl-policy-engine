@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.test.utils.ClasspathHelper;
@@ -24,22 +25,13 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 	
-	private static final String DEFAULT_CONFIG_PATH = "/policies";
 	private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
 	private final PolicyDecisionPointConfiguration config;
 	
 	
-	public ClasspathVariablesAndCombinatorSource() {
-		this(DEFAULT_CONFIG_PATH);
-	}
-
-	public ClasspathVariablesAndCombinatorSource(String configPath) {
-		this(configPath, new ObjectMapper());
-	}
-
 	public ClasspathVariablesAndCombinatorSource(@NonNull String configPath,
-			@NonNull ObjectMapper mapper) {
+			@NonNull ObjectMapper mapper, PolicyDocumentCombiningAlgorithm testInternalConfiguredCombiningAlg, Map<String,JsonNode> testInternalConfiguredVariables) {
 		log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 		
 		Path configDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass(), configPath);
@@ -55,11 +47,19 @@ public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombin
 		} catch (IOException e) {
 			throw Exceptions.propagate(e);
 		}
+		
 		if(pdpConfig == null) {
 			log.info("No PDP configuration found in resources. Using defaults.");
 			this.config = new PolicyDecisionPointConfiguration();
 		} else {
 			this.config = pdpConfig;
+		}
+		
+		if(testInternalConfiguredCombiningAlg != null) {
+			this.config.setAlgorithm(testInternalConfiguredCombiningAlg);
+		}
+		if(testInternalConfiguredVariables != null) {
+			this.config.setVariables(testInternalConfiguredVariables);
 		}
 	}
 	

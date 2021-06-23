@@ -1,0 +1,8 @@
+policy "policy read"
+permit
+    action == "read"
+where
+	test == 1;
+
+
+

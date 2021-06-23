@@ -17,14 +17,14 @@ public class SaplUnitTestFixtureTest {
 	
 	@Test
 	void test_invalidSaplDocumentName2() {
-		SaplTestFixture fixture = new SaplUnitTestFixture(null);
+		SaplTestFixture fixture = new SaplUnitTestFixture("");
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
 			.isThrownBy(() ->fixture.constructTestCaseWithMocks());
 	}
 	
 	@Test
 	void test_invalidSaplDocumentName3() {
-		SaplTestFixture fixture = new SaplUnitTestFixture("");
+		SaplTestFixture fixture = new SaplUnitTestFixture(null);
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
 			.isThrownBy(() ->fixture.constructTestCase());
 	}
