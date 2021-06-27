@@ -1,6 +1,7 @@
 package io.sapl.mavenplugin.test.coverage.report;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,8 +12,13 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
+import io.sapl.grammar.sapl.PolicyElement;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.grammar.sapl.SaplPackage;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.mavenplugin.test.coverage.SaplTestException;
 import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
@@ -31,7 +37,7 @@ public class GenericCoverageReporterTest {
 	}
 	
 	@Test
-	public void test() throws IOException {
+	public void test_standard() throws IOException {
 		//arrange
 		Path path = Paths.get("target/classes/policies/policy_1.sapl");
 		String sapl = Files.readString(path);
@@ -97,6 +103,25 @@ public class GenericCoverageReporterTest {
 		assertEquals(LineCoveredValue.NEVER, docs.get(0).getLine(4).getCoveredValue());
 		assertEquals(5, docs.get(0).getLine(5).getLineNumber());
 		assertEquals(LineCoveredValue.UNINTERESTING, docs.get(0).getLine(5).getCoveredValue());
+	}
+	
+	@Test
+	public void test_policyWithInvalidType() {
+		String sapl = "set \"set\" \ndeny-unless-permit \nvar temp = 1; \npolicy \"policy1\" \npermit";
+		SAPL mockSAPL = Mockito.mock(SAPL.class);
+		Collection<SaplDocument> documents = List.of(new SaplDocument(Paths.get("test.sapl"), 5, mockSAPL));
+		PolicySetHit setHit = new PolicySetHit("set");
+		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(), List.of());
+		GenericCoverageReporter reporter = new GenericCoverageReporter();
+		PolicyElement mockPolicyElement = Mockito.mock(PolicyElement.class);
+		
+		Mockito.when(mockSAPL.getPolicyElement()).thenReturn(mockPolicyElement);
+		Mockito.when(mockPolicyElement.eClass()).thenReturn(SaplPackage.Literals.POLICY_BODY);
+		
+		assertThrows(SaplTestException.class, () -> reporter.calcDocumentCoverage(documents, hits));
+		
+		
+		
 	}
 	
 	@Test
