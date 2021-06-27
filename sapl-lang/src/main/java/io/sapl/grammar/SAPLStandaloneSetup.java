@@ -20,22 +20,21 @@ import io.sapl.grammar.sapl.SaplPackage;
 import org.eclipse.emf.ecore.EPackage;
 
 /**
- * Initialization support for running Xtext languages without Equinox extension registry.
+ * Initialization support for running Xtext languages without Equinox extension
+ * registry.
  */
 @SuppressWarnings("all")
 public class SAPLStandaloneSetup extends SAPLStandaloneSetupGenerated {
-  public static void doSetup() {
-    new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
-  }
-  
-  @Override
-  public void register(final Injector injector) {
-    boolean _containsKey = EPackage.Registry.INSTANCE.containsKey(SaplPackage.eNS_URI);
-    boolean _not = (!_containsKey);
-    if (_not) {
-      EPackage.Registry.INSTANCE.put(SaplPackage.eNS_URI, 
-        SaplPackage.eINSTANCE);
-    }
-    super.register(injector);
-  }
+	public static void doSetup() {
+		new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
+	}
+
+	@Override
+	public void register(final Injector injector) {
+		boolean containsKey = EPackage.Registry.INSTANCE.containsKey(SaplPackage.eNS_URI);
+		if (!containsKey) {
+			EPackage.Registry.INSTANCE.put(SaplPackage.eNS_URI, SaplPackage.eINSTANCE);
+		}
+		super.register(injector);
+	}
 }

@@ -26,10 +26,10 @@ import org.eclipse.xtext.util.Modules2;
  */
 @SuppressWarnings("all")
 public class SAPLIdeSetup extends SAPLStandaloneSetup {
-  @Override
-  public Injector createInjector() {
-    SAPLRuntimeModule _sAPLRuntimeModule = new SAPLRuntimeModule();
-    SAPLIdeModule _sAPLIdeModule = new SAPLIdeModule();
-    return Guice.createInjector(Modules2.mixin(_sAPLRuntimeModule, _sAPLIdeModule));
-  }
+	@Override
+	public Injector createInjector() {
+		SAPLRuntimeModule saplRuntimeModule = new SAPLRuntimeModule();
+		SAPLIdeModule saplIdeModule = new SAPLIdeModule();
+		return Guice.createInjector(Modules2.mixin(saplRuntimeModule, saplIdeModule));
+	}
 }

@@ -27,25 +27,25 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 @WebServlet(name = "XtextServices", urlPatterns = "/xtext-service/*")
 @SuppressWarnings("all")
 public class SAPLServlet extends XtextServlet {
-  private DisposableRegistry disposableRegistry;
-  
-  @Override
-  public void init() {
-    try {
-      super.init();
-      final Injector injector = new SAPLWebSetup().createInjectorAndDoEMFRegistration();
-      this.disposableRegistry = injector.<DisposableRegistry>getInstance(DisposableRegistry.class);
-    } catch (Throwable _e) {
-      throw Exceptions.sneakyThrow(_e);
-    }
-  }
-  
-  @Override
-  public void destroy() {
-    if ((this.disposableRegistry != null)) {
-      this.disposableRegistry.dispose();
-      this.disposableRegistry = null;
-    }
-    super.destroy();
-  }
+	private DisposableRegistry disposableRegistry;
+
+	@Override
+	public void init() {
+		try {
+			super.init();
+			final Injector injector = new SAPLWebSetup().createInjectorAndDoEMFRegistration();
+			disposableRegistry = injector.<DisposableRegistry>getInstance(DisposableRegistry.class);
+		} catch (Throwable throwable) {
+			throw Exceptions.sneakyThrow(throwable);
+		}
+	}
+
+	@Override
+	public void destroy() {
+		if (disposableRegistry != null) {
+			disposableRegistry.dispose();
+			disposableRegistry = null;
+		}
+		super.destroy();
+	}
 }
