@@ -1,14 +1,21 @@
 package io.sapl.test.coverage.api;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
+import io.sapl.test.coverage.api.model.PolicySetHit;
 
 public class CoverageFilesUtilityTest {
 	
@@ -31,10 +38,7 @@ public class CoverageFilesUtilityTest {
 		Path pathToErrorFile = baseDir.resolve("hits").resolve("_policySetHits.txt").resolve("test.txt");
 		Files.createDirectories(pathToErrorFile.getParent());
 		Files.createFile(pathToErrorFile);
-		
-		reader.cleanCoverageHitFiles();
-		
-		Assertions.assertThatNoException();
+		assertDoesNotThrow(() -> reader.cleanCoverageHitFiles());
 	}
 	
 	@Test
@@ -43,17 +47,54 @@ public class CoverageFilesUtilityTest {
 		Files.createDirectories(pathToErrorFile.getParent());
 		Files.createFile(pathToErrorFile);
 		CoverageHitRecorder recorder = new CoverageHitAPIImpl(baseDir);
-		recorder.createCoverageHitFiles();
-		Assertions.assertThatNoException();
+		assertDoesNotThrow(() -> recorder.createCoverageHitFiles());
 	}
 	
 	@Test
 	void test_NoParent() throws IOException {
+		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+			mockedFiles.when(() -> Files.exists(Mockito.any())).thenReturn(false);
+			Path path = Mockito.mock(Path.class);
+			when(path.getParent()).thenReturn(null);
+			when(path.resolve(Mockito.anyString())).thenReturn(path);
+			CoverageHitRecorder recorder = new CoverageHitAPIImpl(path);
+			assertDoesNotThrow(() -> recorder.createCoverageHitFiles());
+			recorder.cleanCoverageHitFiles();
+	    }
+	}
+
+	
+	@Test
+	void test_ThrowsIOException_OnCreateCoverageFiles() {
 		Path path = Paths.get("target");
 		CoverageHitRecorder recorder = new CoverageHitAPIImpl(path);
+		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+			mockedFiles.when(() -> Files.createDirectories(Mockito.any())).thenThrow(IOException.class);
+			assertDoesNotThrow(() -> recorder.createCoverageHitFiles());
+	    }
+	}
+	
+	@Test
+	void test_ThrowsIOException_OnRecordHit() {
+		CoverageHitRecorder recorder = new CoverageHitAPIImpl(baseDir);
 		recorder.createCoverageHitFiles();
-		Assertions.assertThatNoException();
+		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+			mockedFiles.when(() -> Files.lines(Mockito.any())).thenThrow(IOException.class);
+			assertDoesNotThrow(() -> recorder.recordPolicySetHit(new PolicySetHit("")));
+	    }
 		recorder.cleanCoverageHitFiles();
+	}
+	
+	@Test
+	void test_NullFilePath() {
+		Path path = Mockito.mock(Path.class);
+		when(path.getParent()).thenReturn(null);
+		when(path.resolve(Mockito.anyString()))
+			.thenReturn(path).thenReturn(null)
+			.thenReturn(path).thenReturn(null)
+			.thenReturn(path).thenReturn(null);
+		CoverageHitRecorder recorder = new CoverageHitAPIImpl(path);
+		assertThrows(NullPointerException.class, () -> recorder.recordPolicySetHit(new PolicySetHit("")));
 	}
 	
 }
