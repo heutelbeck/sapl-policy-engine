@@ -17,6 +17,7 @@ module io.sapl.grammar.GenerateSAPL
 
 import org.eclipse.xtext.xtext.generator.*
 import org.eclipse.xtext.xtext.generator.model.project.*
+import io.sapl.generator.web.*
 
 var rootPath = ".."
  
@@ -78,7 +79,7 @@ Workflow {
 			junitSupport = {
 				junitVersion = "5"
 			}
-			webSupport = {
+			webSupport = SAPLWebIntegrationFragment {
 				generateHtmlExample = false
 				codeMirrorVersion = "5.39.2"
 //				aceVersion = "1.2.6"
@@ -88,6 +89,7 @@ Workflow {
 				framework = "CodeMirror" // Orion, CodeMirror, Ace
 				generateJettyLauncher = false
 				generateJsHighlighting = true // overwrites file on every run
+				keywordsFilter = "[a-zA-Z0-9_-]+"
 				generateServlet = false
 				generateWebXml = false
 				highlightingModuleName ="sapl-mode"
