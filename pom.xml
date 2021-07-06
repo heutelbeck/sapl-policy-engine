@@ -32,7 +32,7 @@
 
 	<name>Streaming Attribute Authorization Engine</name>
 
-	<description>Auhtorization engine for Attribute Stream</description>
+	<description>Auhtorization Engine for Attribute Stream-Based Access Control (ASBAC)</description>
 
 	<url>https://sapl.io</url>
 
@@ -70,13 +70,13 @@
 		<xtext.version>2.25.0</xtext.version>
 		<license-maven-plugin.version>3.0</license-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
-		<junit.version>5.7.1</junit.version>
+		<junit.version>5.7.2</junit.version>
 		<lombok.version>1.18.20</lombok.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
-		<springboot.version>2.5.0</springboot.version>
-		<mockito.version>3.8.0</mockito.version>
-		<vaadin.version>14.5.5</vaadin.version>
+		<springboot.version>2.5.2</springboot.version>
+		<mockito.version>3.11.2</mockito.version>
+		<vaadin.version>14.6.5</vaadin.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
@@ -279,7 +279,7 @@
 				<plugin>
 					<groupId>io.spring.javaformat</groupId>
 					<artifactId>spring-javaformat-maven-plugin</artifactId>
-					<version>0.0.15</version>
+					<version>0.0.28</version>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>

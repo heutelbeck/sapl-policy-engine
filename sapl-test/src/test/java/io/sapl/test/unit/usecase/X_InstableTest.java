@@ -15,6 +15,7 @@ import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 
+@Disabled
 class X_InstableTest {
 	
 	private SaplTestFixture fixture;
