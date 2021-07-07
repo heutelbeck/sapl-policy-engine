@@ -15,13 +15,12 @@
  */
 package io.sapl.grammar.validation;
 
-import io.sapl.grammar.sapl.And;
-import io.sapl.grammar.sapl.AttributeFinderStep;
-import io.sapl.grammar.sapl.Or;
-import io.sapl.grammar.sapl.Policy;
-import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.Check;
+
+import io.sapl.grammar.sapl.Policy;
+import io.sapl.grammar.sapl.SaplPackage;
 
 /**
  * This class contains custom validation rules.
@@ -29,7 +28,6 @@ import org.eclipse.xtext.validation.Check;
  * See
  * https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
-@SuppressWarnings("all")
 public class SAPLValidator extends AbstractSAPLValidator {
 
 	protected static final String MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Lazy and (&&) is not allowed, please use eager and (&) instead.";
@@ -42,7 +40,8 @@ public class SAPLValidator extends AbstractSAPLValidator {
 	 */
 	@Check
 	public void policyRuleNoAndAllowedInTargetExpression(final Policy policy) {
-		genericCheckForTargetExpression(policy, And.class, SAPLValidator.MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+		genericCheckForTargetExpression(policy, SaplPackage.Literals.AND,
+				SAPLValidator.MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
 	}
 
 	/**
@@ -51,7 +50,8 @@ public class SAPLValidator extends AbstractSAPLValidator {
 	 */
 	@Check
 	public void policyRuleNoOrAllowedInTargetExpression(final Policy policy) {
-		genericCheckForTargetExpression(policy, Or.class, SAPLValidator.MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+		genericCheckForTargetExpression(policy, SaplPackage.Literals.OR,
+				SAPLValidator.MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
 	}
 
 	/**
@@ -60,35 +60,31 @@ public class SAPLValidator extends AbstractSAPLValidator {
 	 */
 	@Check
 	public void policyRuleNoAttributeFinderAllowedInTargetExpression(final Policy policy) {
-		genericCheckForTargetExpression(policy, AttributeFinderStep.class,
+		genericCheckForTargetExpression(policy, SaplPackage.Literals.ATTRIBUTE_FINDER_STEP,
 				SAPLValidator.MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
 	}
 
 	/**
 	 * looks for given class in the target expression of given Policy
 	 */
-	public <T extends EObject> void genericCheckForTargetExpression(final Policy policy, final Class<T> aClass,
-			final String message) {
-		final T foundItem = findClass(policy.getTargetExpression(), aClass);
+	public void genericCheckForTargetExpression(final Policy policy, final EClass aClass, final String message) {
+		var foundItem = containsClass(policy.getTargetExpression(), aClass);
 		if (foundItem != null) {
-			this.error(message, foundItem, null);
+			error(message, foundItem, null);
 		}
 	}
 
 	/**
 	 * scan content of given EObject recursively
 	 */
-	public <T extends EObject> T findClass(final EObject eObj, final Class<T> aClass) {
-		boolean isInstance = aClass.isInstance(eObj);
-		if (isInstance) {
-			return ((T) eObj);
-		}
-		EList<EObject> eContents = eObj.eContents();
-		for (final EObject o : eContents) {
-			T result = findClass(o, aClass);
-			if (result != null) {
+	public EObject containsClass(final EObject eObj, final EClass eClass) {
+		if (eClass.isSuperTypeOf(eObj.eClass()))
+			return eObj;
+
+		for (var o : eObj.eContents()) {
+			var result = containsClass(o, eClass);
+			if (result != null)
 				return result;
-			}
 		}
 		return null;
 	}
