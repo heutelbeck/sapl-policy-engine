@@ -15,19 +15,20 @@
  */
 package io.sapl.grammar.web;
 
-import com.google.inject.Injector;
 import javax.servlet.annotation.WebServlet;
+
 import org.eclipse.xtext.util.DisposableRegistry;
 import org.eclipse.xtext.web.servlet.XtextServlet;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+
+import com.google.inject.Injector;
 
 /**
  * Deploy this class into a servlet container to enable DSL-specific services.
  */
 @WebServlet(name = "XtextServices", urlPatterns = "/xtext-service/*")
-@SuppressWarnings("all")
 public class SAPLServlet extends XtextServlet {
-	private DisposableRegistry disposableRegistry;
+	private transient DisposableRegistry disposableRegistry;
 
 	@Override
 	public void init() {

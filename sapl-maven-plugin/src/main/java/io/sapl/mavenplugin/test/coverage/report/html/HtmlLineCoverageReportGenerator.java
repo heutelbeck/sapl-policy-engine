@@ -293,7 +293,7 @@ public class HtmlLineCoverageReportGenerator {
 	private void createFile(Path filePath, String content, Log log) {
 		try {
 			if (!filePath.toFile().exists()) {
-				PathHelper.createFile(filePath, log);
+				PathHelper.createFile(filePath);
 			}
 			Files.writeString(filePath, content);
 		} catch (IOException e) {
@@ -318,10 +318,10 @@ public class HtmlLineCoverageReportGenerator {
 			log.error(String.format("Could not convert target \"%s\" to file.", target.toString()));
 			return;
 		}
-		
+
 		try {
 			if (!parentFile.exists()) {
-				PathHelper.creatParentDirs(target, log);
+				PathHelper.creatParentDirs(target);
 			}
 			if (!targetFile.exists()) {
 				Files.copy(source, target);

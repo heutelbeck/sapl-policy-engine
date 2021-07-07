@@ -36,7 +36,7 @@ public class SonarLineCoverageReportGenerator {
 			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 			Path filePath = basedir.resolve("sonar").resolve("sonar-generic-coverage.xml");
 			if (!filePath.toFile().exists()) {
-				PathHelper.createFile(filePath, log);
+				PathHelper.createFile(filePath);
 			}
 			marshaller.marshal(sonarCoverage, filePath.toFile());
 		} catch (JAXBException e) {
@@ -56,17 +56,17 @@ public class SonarLineCoverageReportGenerator {
 		 * getting ignored because unknown to sonarqube
 		 */
 		// sonarFile.setPath(doc.getPathToDocument().toString());
-		sonarFile.setPath(mavenBaseDir.toPath().resolve("src").resolve("main").resolve("resources")
-				.resolve(policyPath).resolve(doc.getPathToDocument().getFileName()).toString());
+		sonarFile.setPath(mavenBaseDir.toPath().resolve("src").resolve("main").resolve("resources").resolve(policyPath)
+				.resolve(doc.getPathToDocument().getFileName()).toString());
 
-		for(int i = 1; i <= doc.getLineCount(); i++) {
+		for (int i = 1; i <= doc.getLineCount(); i++) {
 			addLine(sonarFile, doc.getLine(i));
 		}
 		coverage.getFile().add(sonarFile);
 	}
 
 	private void addLine(Coverage.File file, SaplDocumentLineCoverageInformation line) {
-		if(line.getCoveredValue() == LineCoveredValue.UNINTERESTING) {
+		if (line.getCoveredValue() == LineCoveredValue.UNINTERESTING) {
 			return;
 		}
 		Coverage.File.LineToCover sonarLine = FACTORY.createCoverageFileLineToCover();

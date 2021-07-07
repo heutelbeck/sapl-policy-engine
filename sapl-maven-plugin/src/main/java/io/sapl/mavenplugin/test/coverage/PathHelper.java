@@ -19,8 +19,8 @@ public class PathHelper {
 			return Paths.get(projectBuildDir).resolve("sapl-coverage");
 		}
 	}
-	
-	public static void createFile(Path filePath, Log log) throws IOException {
+
+	public static void createFile(Path filePath) throws IOException {
 		if (!Files.exists(filePath)) {
 			Path parent = filePath.getParent();
 			if (parent != null) {
@@ -28,10 +28,10 @@ public class PathHelper {
 			}
 			Files.createFile(filePath);
 		}
-		
+
 	}
-	
-	public static void creatParentDirs(Path filePath, Log log) throws IOException {
+
+	public static void creatParentDirs(Path filePath) throws IOException {
 		if (!Files.exists(filePath)) {
 			Path parent = filePath.getParent();
 			if (parent != null) {
