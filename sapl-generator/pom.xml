@@ -35,6 +35,7 @@
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.generator</artifactId>
 			<version>${xtext.version}</version>
+			<optional>true</optional>			
 		</dependency>
 	</dependencies>
 
