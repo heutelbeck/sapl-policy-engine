@@ -29,7 +29,8 @@ jobs:
       run: mvn -U -B --fail-at-end -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn org.jacoco:jacoco-maven-plugin:prepare-agent verify org.jacoco:jacoco-maven-plugin:report
 
     - name: Publish Test Report
-      if: ${{ always() }}
+      # do not publish test results if PR is from a fork -> PRs from forks don't have access to the github token to access the checks api
+      if: ${{ github.event.pull_request.base.repo.url ==  github.event.pull_request.head.repo.url }}
       uses: scacap/action-surefire-report@v1
 
     - name: Clean up local repository before caching
