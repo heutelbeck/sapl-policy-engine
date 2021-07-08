@@ -45,6 +45,7 @@
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-generator</artifactId>
 			<version>${project.version}</version>
+			<optional>true</optional>			
 		</dependency>
 
 		<!-- XText -->
