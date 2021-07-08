@@ -117,7 +117,7 @@ public class Matchers {
 		return new IsDecision(Decision.INDETERMINATE);
 	}
 	
-	public static Matcher<AuthorizationDecision> anyAuthDecision() {
+	public static Matcher<AuthorizationDecision> anyDecision() {
 		return new IsDecision();
 	}
 	

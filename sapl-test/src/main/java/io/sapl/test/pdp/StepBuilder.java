@@ -68,16 +68,16 @@ public class StepBuilder {
 
 
 		@Override
-		protected void createStepVerifier(AuthorizationSubscription authSub) {
+		protected void createStepVerifier(AuthorizationSubscription authzSub) {
 			
 			var configurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(this.mockingAttributeContext, this.mockingFunctionContext, this.pdpConfig);
 			PolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint(configurationProvider, this.prp);
 						
 			if (this.withVirtualTime) {
 					this.steps = StepVerifier
-							.withVirtualTime(() -> pdp.decide(authSub));
+							.withVirtualTime(() -> pdp.decide(authzSub));
 			} else {
-				this.steps = StepVerifier.create(pdp.decide(authSub));
+				this.steps = StepVerifier.create(pdp.decide(authzSub));
 			}
 	
 			for (AttributeMockReturnValues mock : this.mockedAttributeValues) {

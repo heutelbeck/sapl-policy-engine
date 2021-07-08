@@ -15,21 +15,21 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 public interface WhenStep {
    /**
     * Sets the {@link AuthorizationSubscription} for the test case.
-    * @param authSubscription the {@link AuthorizationSubscription}
+    * @param authzSubscription the {@link AuthorizationSubscription}
     * @return next available Step {@link ExpectStep}
     */
-   ExpectStep when(AuthorizationSubscription  authSubscription);
+   ExpectStep when(AuthorizationSubscription  authzSubscription);
    /**
     * Sets the {@link AuthorizationSubscription} for the test case.
-    * @param authSubscription {@link String} containing JSON defining a {@link AuthorizationSubscription}
+    * @param authzSubscription {@link String} containing JSON defining a {@link AuthorizationSubscription}
     * @return next available Step {@link ExpectStep}
 	* @throws JsonProcessingException 
 	* @throws JsonMappingException 
     */
-   ExpectStep when(String jsonAuthSub) throws JsonProcessingException;	   
+   ExpectStep when(String jsonauthzSub) throws JsonProcessingException;	   
    /**
     * Sets the {@link AuthorizationSubscription} for the test case.
-    * @param authSubscription {@link ObjectNode} defining a {@link AuthorizationSubscription}
+    * @param authzSubscription {@link ObjectNode} defining a {@link AuthorizationSubscription}
     * @return next available Step {@link ExpectStep}
     */
    ExpectStep when(JsonNode jsonNode);

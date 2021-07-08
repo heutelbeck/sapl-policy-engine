@@ -1,6 +1,6 @@
 package io.sapl.test.unit.usecase;
 
-import static io.sapl.hamcrest.Matchers.anyAuthDecision;
+import static io.sapl.hamcrest.Matchers.anyDecision;
 
 import java.time.Duration;
 
@@ -34,17 +34,17 @@ class X_InstableTest {
 			.constructTestCaseWithMocks()
 			.withVirtualTime()
 			.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData"))
-			.expectNext(anyAuthDecision())
+			.expectNext(anyDecision())
 			.thenAwait(Duration.ofSeconds(2))
-			.expectNext(anyAuthDecision())
+			.expectNext(anyDecision())
 			.thenAwait(Duration.ofSeconds(2))
-			.expectNext(anyAuthDecision())
+			.expectNext(anyDecision())
 			.thenAwait(Duration.ofSeconds(2))
-			.expectNext(anyAuthDecision())
+			.expectNext(anyDecision())
 			.thenAwait(Duration.ofSeconds(2))
-			.expectNext(anyAuthDecision())
+			.expectNext(anyDecision())
 			.thenAwait(Duration.ofSeconds(2))
-			.expectNext(anyAuthDecision())
+			.expectNext(anyDecision())
 			.verify();
 	}
 }

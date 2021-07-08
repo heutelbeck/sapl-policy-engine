@@ -72,9 +72,9 @@ class StepBuilder {
 
 
 		@Override
-		protected void createStepVerifier(AuthorizationSubscription authSub) {
+		protected void createStepVerifier(AuthorizationSubscription authzSub) {
 			EvaluationContext ctx = new EvaluationContext(this.mockingAttributeContext, this.mockingFunctionContext,
-					this.variables).forAuthorizationSubscription(authSub);
+					this.variables).forAuthorizationSubscription(authzSub);
 
 			Val matchResult = this.document.matches(ctx).block();
 			if(matchResult != null && matchResult.getBoolean()) {

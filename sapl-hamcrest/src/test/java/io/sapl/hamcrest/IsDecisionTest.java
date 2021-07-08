@@ -1,6 +1,6 @@
 package io.sapl.hamcrest;
 
-import static io.sapl.hamcrest.Matchers.anyAuthDecision;
+import static io.sapl.hamcrest.Matchers.anyDecision;
 import static io.sapl.hamcrest.Matchers.isDeny;
 import static io.sapl.hamcrest.Matchers.isIndeterminate;
 import static io.sapl.hamcrest.Matchers.isNotApplicable;
@@ -55,7 +55,7 @@ class IsDecisionTest {
 	
 	@Test
 	void testAnyDec() {
-		var sut = anyAuthDecision();
+		var sut = anyDecision();
 		assertThat(new AuthorizationDecision(Decision.PERMIT), is(sut));
 		assertThat(new AuthorizationDecision(Decision.DENY), is(sut));
 		assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), is(sut));

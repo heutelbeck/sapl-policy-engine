@@ -17,13 +17,13 @@ public class StepBuilderTest {
 		DefaultSAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 		SAPL document = interpreter.parse("policy \"test\" permit action == \"read\"");
 
-		AuthorizationSubscription authSub = AuthorizationSubscription.of("willi", "not_matching", "something");
+		AuthorizationSubscription authzSub = AuthorizationSubscription.of("willi", "not_matching", "something");
 		
 		StepBuilder.newBuilderAtWhenStep(document, 
 				new AnnotationAttributeContext(), 
 				new AnnotationFunctionContext(), 
 				new HashMap<>())
-			.when(authSub)
+			.when(authzSub)
 			.expectNotApplicable()
 			.verify();
 		

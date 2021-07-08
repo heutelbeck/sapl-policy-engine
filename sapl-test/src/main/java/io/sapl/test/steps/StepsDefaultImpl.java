@@ -130,20 +130,20 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	}
 
 	@Override
-	public ExpectStep when(AuthorizationSubscription authSub) {
-		createStepVerifier(authSub);
+	public ExpectStep when(AuthorizationSubscription authzSub) {
+		createStepVerifier(authzSub);
 		return this;
 	}
 
 	@Override
-	public ExpectStep when(String jsonAuthSub) throws JsonProcessingException {
+	public ExpectStep when(String jsonauthzSub) throws JsonProcessingException {
 		ObjectMapper objectMapper = new ObjectMapper();
-		JsonNode authSubJsonNode = objectMapper.readTree(jsonAuthSub);
-		if (authSubJsonNode != null) {
-			AuthorizationSubscription authSub = new AuthorizationSubscription(authSubJsonNode.findValue("subject"),
-					authSubJsonNode.findValue("action"), authSubJsonNode.findValue("resource"),
-					authSubJsonNode.findValue("environment"));
-			createStepVerifier(authSub);
+		JsonNode authzSubJsonNode = objectMapper.readTree(jsonauthzSub);
+		if (authzSubJsonNode != null) {
+			AuthorizationSubscription authzSub = new AuthorizationSubscription(authzSubJsonNode.findValue("subject"),
+					authzSubJsonNode.findValue("action"), authzSubJsonNode.findValue("resource"),
+					authzSubJsonNode.findValue("environment"));
+			createStepVerifier(authzSub);
 			return this;
 		}
 		throw new SaplTestException(ERROR_COULD_NOT_PARSE_JSON);
@@ -152,16 +152,16 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	@Override
 	public ExpectStep when(JsonNode jsonNode) {
 		if (jsonNode != null) {
-			AuthorizationSubscription authSub = new AuthorizationSubscription(jsonNode.findValue("subject"),
+			AuthorizationSubscription authzSub = new AuthorizationSubscription(jsonNode.findValue("subject"),
 					jsonNode.findValue("action"), jsonNode.findValue("resource"),
 					jsonNode.findValue("environment"));
-			createStepVerifier(authSub);
+			createStepVerifier(authzSub);
 			return this;
 		}
 		throw new SaplTestException(ERROR_NULL_JSONNODE);
 	}
 
-	protected abstract void createStepVerifier(AuthorizationSubscription authSub);
+	protected abstract void createStepVerifier(AuthorizationSubscription authzSub);
 
 	@Override
 	public VerifyStep expectPermit() {
