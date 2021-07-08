@@ -11,13 +11,12 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.test.mocking.FunctionCallImpl;
 import io.sapl.test.verification.MockRunInformation;
 
+/**
+ * Times Verification Convenience Test Cases
+ * for additional test cases see TimesCalledVerificationTest
+ */
 public class ImportsTest {
 
-	// ################################################################
-	// Times Verification Convenience Test Cases
-	// for additional test cases see TimesCalledVerificationTest
-	// ################################################################
-	
 	@Test
 	void test_times_specificNumber() {
 		MockRunInformation mockRunInformation = new MockRunInformation("test.test");
@@ -132,6 +131,5 @@ public class ImportsTest {
 		
 		assertThat(isAssertionErrorThrown).isFalse();	
 	}
-	// ################################################################
 
 }

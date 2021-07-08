@@ -129,8 +129,6 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 		return this;
 	}
 
-	// ###############################################################################################
-
 	@Override
 	public ExpectStep when(AuthorizationSubscription authSub) {
 		createStepVerifier(authSub);
@@ -164,8 +162,6 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	}
 
 	protected abstract void createStepVerifier(AuthorizationSubscription authSub);
-
-	// ###############################################################################################
 
 	@Override
 	public VerifyStep expectPermit() {
