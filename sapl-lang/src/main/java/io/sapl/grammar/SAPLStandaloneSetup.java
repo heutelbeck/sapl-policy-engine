@@ -23,7 +23,6 @@ import org.eclipse.emf.ecore.EPackage;
  * Initialization support for running Xtext languages without Equinox extension
  * registry.
  */
-@SuppressWarnings("all")
 public class SAPLStandaloneSetup extends SAPLStandaloneSetupGenerated {
 	public static void doSetup() {
 		new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();

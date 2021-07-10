@@ -12,7 +12,6 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 
-@SuppressWarnings("all")
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private List<String> unwantedProposals = new ArrayList<String>(Arrays.<String>asList("@", "!", "(", ")", "[", "]",

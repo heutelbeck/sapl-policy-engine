@@ -24,7 +24,6 @@ import org.eclipse.xtext.util.Modules2;
 /**
  * Initialization support for running Xtext languages as language servers.
  */
-@SuppressWarnings("all")
 public class SAPLIdeSetup extends SAPLStandaloneSetup {
 	@Override
 	public Injector createInjector() {

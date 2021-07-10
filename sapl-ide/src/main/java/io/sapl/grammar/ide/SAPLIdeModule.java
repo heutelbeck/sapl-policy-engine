@@ -20,7 +20,6 @@ import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 /**
  * Use this class to register ide components.
  */
-@SuppressWarnings("all")
 public class SAPLIdeModule extends AbstractSAPLIdeModule {
 	public Class<? extends IdeContentProposalProvider> bindIdeContentProposalProvider() {
 		return SAPLContentProposalProvider.class;
