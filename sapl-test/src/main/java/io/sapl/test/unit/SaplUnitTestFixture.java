@@ -41,13 +41,40 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 				this.variables);
 	}
 
+	@Override
+	public GivenStep constructTestCaseWithMocks2() {
+		if (this.saplDocumentName == null || this.saplDocumentName.isEmpty()) {
+			throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
+		}
+		return StepBuilder2.newBuilderAtGivenStep(readSaplDocument(), this.attributeCtx, this.functionCtx,
+				this.variables);
+	}
+	
+	@Override
+	public GivenStep constructTestCaseWithMocks3() {
+		if (this.saplDocumentName == null || this.saplDocumentName.isEmpty()) {
+			throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
+		}
+		return StepBuilder3.newBuilderAtGivenStep(readSaplDocument(), this.attributeCtx, this.functionCtx,
+				this.variables);
+	}
 
+	
 	@Override
 	public WhenStep constructTestCase() {
 		if (this.saplDocumentName == null || this.saplDocumentName.isEmpty()) {
 			throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
 		}
 		return StepBuilder.newBuilderAtWhenStep(readSaplDocument(), this.attributeCtx, this.functionCtx,
+				this.variables);
+	}
+
+	@Override
+	public WhenStep constructTestCase3() {
+		if (this.saplDocumentName == null || this.saplDocumentName.isEmpty()) {
+			throw new SaplTestException(ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME);
+		}
+		return StepBuilder3.newBuilderAtWhenStep(readSaplDocument(), this.attributeCtx, this.functionCtx,
 				this.variables);
 	}
 

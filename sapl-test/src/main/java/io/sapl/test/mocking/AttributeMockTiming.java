@@ -45,6 +45,7 @@ public class AttributeMockTiming implements AttributeMock {
 		}
 
 		return Flux.interval(this.timing).map(number -> this.returnValues[number.intValue()]).take(this.returnValues.length);
+		// Flux.just(1, 2, 3, 4).delayElements(Duration.ofSeconds(1)))
 	}
 
 	@Override

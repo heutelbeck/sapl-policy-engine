@@ -11,7 +11,10 @@ import io.sapl.test.steps.WhenStep;
 
 public interface SaplTestFixture {
 	GivenStep constructTestCaseWithMocks();
+	GivenStep constructTestCaseWithMocks2();
+	GivenStep constructTestCaseWithMocks3();
 	WhenStep constructTestCase();
+	WhenStep constructTestCase3();
 	
 
 	SaplTestFixture registerPIP(Object pip) throws InitializationException;

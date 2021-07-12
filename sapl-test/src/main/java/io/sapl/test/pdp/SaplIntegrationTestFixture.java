@@ -110,4 +110,22 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 		return new ClasspathVariablesAndCombinatorSource(this.pathToPoliciesFolder.toString(), new ObjectMapper(), this.pdpAlgorithm, this.pdpVariables);
 	}
+
+	@Override
+	public GivenStep constructTestCaseWithMocks2() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public WhenStep constructTestCase3() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public GivenStep constructTestCaseWithMocks3() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
