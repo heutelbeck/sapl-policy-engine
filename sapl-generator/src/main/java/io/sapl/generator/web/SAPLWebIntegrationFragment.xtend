@@ -34,93 +34,93 @@ class SAPLWebIntegrationFragment extends WebIntegrationFragment {
 		this.highlightingModuleName = moduleName
 		super.setHighlightingModuleName(moduleName)
 	}
-	
+
 	def getHighlightingPath() {
 		return highlightingPath
 	}
-	
+
 	override setHighlightingPath(String path) {
 		this.highlightingPath = path
 		super.setHighlightingPath(path)
 	}
-	
+
 	def getKeywordsFilter() {
 		return keywordsFilter
 	}
-	
+
 	override setKeywordsFilter(String keywordsFilter) {
 		this.keywordsFilter = keywordsFilter
 		super.setKeywordsFilter(keywordsFilter)
 	}
-	
+
 	def getWordKeywords() {
-		
+
 		return new ArrayList(wordKeywords);
 	}
-	
+
 	def getNonWordKeywords() {
 		return new ArrayList(nonWordKeywords);
 	}
-	
+
 	def setAllKeywords(Set<String> allKeywords) {
 		this.allKeywords = allKeywords
 	}
-	
+
 	def getAllKeywords() {
-		if(this.allKeywords !== null) 
+		if (this.allKeywords !== null)
 			return new HashSet<String>(this.allKeywords)
 		return grammar.allKeywords
 	}
-	
+
 	override getLanguage() {
-		if(this.language !== null)
+		if (this.language !== null)
 			return this.language
 		return super.language
 	}
-	
+
 	def setLanguage(IXtextGeneratorLanguage language) {
 		this.language = language
 	}
-	
+
 	override protected getProjectConfig() {
-		if(this.projectConfig !== null)
+		if (this.projectConfig !== null)
 			return this.projectConfig
 		super.getProjectConfig()
 	}
-	
+
 	def setProjectConfig(IXtextProjectConfig projectConfig) {
 		this.projectConfig = projectConfig
 	}
 
 	override protected generateJsHighlighting(String langId) {
 		var framework = this.framework.get;
-		
+
 		// correction is only necessary for the codemirror editor
-		if(framework != Framework.CODEMIRROR)
+		if (framework != Framework.CODEMIRROR)
 			super.generateJsHighlighting(langId)
-			
+
 		val allKeywords = this.getAllKeywords()
 		this.wordKeywords = newArrayList
 		this.nonWordKeywords = newArrayList
 		val keywordsFilterPattern = Pattern.compile(keywordsFilter)
 		val wordKeywordPattern = Pattern.compile('\\w(.*\\w)?')
-		allKeywords.filter[keywordsFilterPattern.matcher(it).matches].forEach[
+		allKeywords.filter[keywordsFilterPattern.matcher(it).matches].forEach [
 			if (wordKeywordPattern.matcher(it).matches)
 				wordKeywords += it
 			else if (it != '-') // dashes are part of the SAPL keywords so ignore it
 				nonWordKeywords += it
 		]
-		
+
 		// Sort descending to allow keywords with dashes to be highlighted
 		Collections.sort(wordKeywords, Collections.reverseOrder)
 		Collections.sort(nonWordKeywords, Collections.reverseOrder)
-		
-		if(fileAccessFactory !== null) {	
+
+		if (fileAccessFactory !== null) {
 			val jsFile = fileAccessFactory.createTextFile()
 			jsFile.path = highlightingPath
-			
+
 			val patterns = createCodeMirrorPatterns(langId, allKeywords)
-			
+
 			if (!wordKeywords.empty)
 				patterns.put('start', '''{token: "keyword", regex: «generateKeywordsRegExp»}''')
 			if (!nonWordKeywords.empty)
@@ -137,30 +137,31 @@ class SAPLWebIntegrationFragment extends WebIntegrationFragment {
 					});
 				});
 			'''
-			
+
 			jsFile.writeTo(projectConfig.web.assets)
 		}
 	}
-	
+
 	override generate() {
 		// setup private fields from parent class so we have access to them
 		if (highlightingModuleName !== null && highlightingModuleName.endsWith('.js'))
 			highlightingModuleName = highlightingModuleName.substring(0, highlightingModuleName.length - 3)
-			
+
 		val langId = this.getLanguage.fileExtensions.head
 
 		val hlModName = highlightingModuleName ?: switch framework.get {
 			case ORION: 'xtext-resources/generated/' + langId + '-syntax'
-			case ACE, case CODEMIRROR: 'xtext-resources/generated/mode-' + langId
+			case ACE,
+			case CODEMIRROR: 'xtext-resources/generated/mode-' + langId
 		}
-		
+
 		if (generateJsHighlighting.get && projectConfig.web.assets !== null) {
 			if (highlightingPath.nullOrEmpty)
 				highlightingPath = hlModName + '.js'
 		}
-		
+
 		super.generate()
-		
+
 	}
 
 }
