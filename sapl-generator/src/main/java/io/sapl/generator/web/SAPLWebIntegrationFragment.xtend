@@ -7,18 +7,36 @@ import org.eclipse.xtext.xtext.generator.model.FileAccessFactory
 import org.eclipse.xtext.xtext.generator.web.WebIntegrationFragment
 
 import static extension org.eclipse.xtext.GrammarUtil.*
+import java.util.ArrayList
+import java.util.Set
+import org.eclipse.xtext.xtext.generator.IXtextGeneratorLanguage
+import org.eclipse.xtext.xtext.generator.model.project.IXtextProjectConfig
+import java.util.HashSet
 
 class SAPLWebIntegrationFragment extends WebIntegrationFragment {
 
 	String highlightingModuleName
 	String highlightingPath
 	String keywordsFilter = '\\w+'
+	ArrayList<String> wordKeywords = newArrayList
+	ArrayList<String> nonWordKeywords = newArrayList
+	Set<String> allKeywords
+	IXtextGeneratorLanguage language
+	IXtextProjectConfig projectConfig
 
 	@Inject FileAccessFactory fileAccessFactory
+
+	def getHighlightingModuleName() {
+		return highlightingModuleName
+	}
 
 	override setHighlightingModuleName(String moduleName) {
 		this.highlightingModuleName = moduleName
 		super.setHighlightingModuleName(moduleName)
+	}
+	
+	def getHighlightingPath() {
+		return highlightingPath
 	}
 	
 	override setHighlightingPath(String path) {
@@ -26,9 +44,52 @@ class SAPLWebIntegrationFragment extends WebIntegrationFragment {
 		super.setHighlightingPath(path)
 	}
 	
+	def getKeywordsFilter() {
+		return keywordsFilter
+	}
+	
 	override setKeywordsFilter(String keywordsFilter) {
 		this.keywordsFilter = keywordsFilter
 		super.setKeywordsFilter(keywordsFilter)
+	}
+	
+	def getWordKeywords() {
+		
+		return new ArrayList(wordKeywords);
+	}
+	
+	def getNonWordKeywords() {
+		return new ArrayList(nonWordKeywords);
+	}
+	
+	def setAllKeywords(Set<String> allKeywords) {
+		this.allKeywords = allKeywords
+	}
+	
+	def getAllKeywords() {
+		if(this.allKeywords !== null) 
+			return new HashSet<String>(this.allKeywords)
+		return grammar.allKeywords
+	}
+	
+	override getLanguage() {
+		if(this.language !== null)
+			return this.language
+		return super.language
+	}
+	
+	def setLanguage(IXtextGeneratorLanguage language) {
+		this.language = language
+	}
+	
+	override protected getProjectConfig() {
+		if(this.projectConfig !== null)
+			return this.projectConfig
+		super.getProjectConfig()
+	}
+	
+	def setProjectConfig(IXtextProjectConfig projectConfig) {
+		this.projectConfig = projectConfig
 	}
 
 	override protected generateJsHighlighting(String langId) {
@@ -38,9 +99,9 @@ class SAPLWebIntegrationFragment extends WebIntegrationFragment {
 		if(framework != Framework.CODEMIRROR)
 			super.generateJsHighlighting(langId)
 			
-		val allKeywords = grammar.allKeywords
-		val wordKeywords = newArrayList
-		val nonWordKeywords = newArrayList
+		val allKeywords = this.getAllKeywords()
+		this.wordKeywords = newArrayList
+		this.nonWordKeywords = newArrayList
 		val keywordsFilterPattern = Pattern.compile(keywordsFilter)
 		val wordKeywordPattern = Pattern.compile('\\w(.*\\w)?')
 		allKeywords.filter[keywordsFilterPattern.matcher(it).matches].forEach[
@@ -53,30 +114,32 @@ class SAPLWebIntegrationFragment extends WebIntegrationFragment {
 		// Sort descending to allow keywords with dashes to be highlighted
 		Collections.sort(wordKeywords, Collections.reverseOrder)
 		Collections.sort(nonWordKeywords, Collections.reverseOrder)
+		
+		if(fileAccessFactory !== null) {	
+			val jsFile = fileAccessFactory.createTextFile()
+			jsFile.path = highlightingPath
 			
-		val jsFile = fileAccessFactory.createTextFile()
-		jsFile.path = highlightingPath
-		
-		val patterns = createCodeMirrorPatterns(langId, allKeywords)
-		
-		if (!wordKeywords.empty)
-			patterns.put('start', '''{token: "keyword", regex: «generateKeywordsRegExp»}''')
-		if (!nonWordKeywords.empty)
-			patterns.put('start', '''{token: "keyword", regex: «generateExtraKeywordsRegExp»}''')
-		jsFile.content = '''
-			define(«IF !highlightingModuleName.nullOrEmpty»"«highlightingModuleName»", «ENDIF»["codemirror", "codemirror/addon/mode/simple"], function(CodeMirror, SimpleMode) {
-				«generateKeywords(wordKeywords, nonWordKeywords)»
-				CodeMirror.defineSimpleMode("xtext/«langId»", {
-					«FOR state : patterns.keySet SEPARATOR ','»
-						«state»: «IF state == 'meta'»{«ELSE»[«ENDIF»
-							«FOR rule : patterns.get(state) SEPARATOR ',\n'»«rule»«ENDFOR»
-						«IF state == 'meta'»}«ELSE»]«ENDIF»
-					«ENDFOR»
+			val patterns = createCodeMirrorPatterns(langId, allKeywords)
+			
+			if (!wordKeywords.empty)
+				patterns.put('start', '''{token: "keyword", regex: «generateKeywordsRegExp»}''')
+			if (!nonWordKeywords.empty)
+				patterns.put('start', '''{token: "keyword", regex: «generateExtraKeywordsRegExp»}''')
+			jsFile.content = '''
+				define(«IF !highlightingModuleName.nullOrEmpty»"«highlightingModuleName»", «ENDIF»["codemirror", "codemirror/addon/mode/simple"], function(CodeMirror, SimpleMode) {
+					«generateKeywords(wordKeywords, nonWordKeywords)»
+					CodeMirror.defineSimpleMode("xtext/«langId»", {
+						«FOR state : patterns.keySet SEPARATOR ','»
+							«state»: «IF state == 'meta'»{«ELSE»[«ENDIF»
+								«FOR rule : patterns.get(state) SEPARATOR ',\n'»«rule»«ENDFOR»
+							«IF state == 'meta'»}«ELSE»]«ENDIF»
+						«ENDFOR»
+					});
 				});
-			});
-		'''
-		
-		jsFile.writeTo(projectConfig.web.assets)
+			'''
+			
+			jsFile.writeTo(projectConfig.web.assets)
+		}
 	}
 	
 	override generate() {
@@ -84,8 +147,8 @@ class SAPLWebIntegrationFragment extends WebIntegrationFragment {
 		if (highlightingModuleName !== null && highlightingModuleName.endsWith('.js'))
 			highlightingModuleName = highlightingModuleName.substring(0, highlightingModuleName.length - 3)
 			
-		val langId = language.fileExtensions.head
-		
+		val langId = this.getLanguage.fileExtensions.head
+
 		val hlModName = highlightingModuleName ?: switch framework.get {
 			case ORION: 'xtext-resources/generated/' + langId + '-syntax'
 			case ACE, case CODEMIRROR: 'xtext-resources/generated/mode-' + langId
