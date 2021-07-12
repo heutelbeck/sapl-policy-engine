@@ -138,7 +138,7 @@ class SAPLWebIntegrationFragment extends WebIntegrationFragment {
 				});
 			'''
 
-			jsFile.writeTo(projectConfig.web.assets)
+			jsFile.writeTo(this.getProjectConfig.web.assets)
 		}
 	}
 
@@ -155,7 +155,7 @@ class SAPLWebIntegrationFragment extends WebIntegrationFragment {
 			case CODEMIRROR: 'xtext-resources/generated/mode-' + langId
 		}
 
-		if (generateJsHighlighting.get && projectConfig.web.assets !== null) {
+		if (this.generateJsHighlighting.get && this.getProjectConfig.web.assets !== null) {
 			if (highlightingPath.nullOrEmpty)
 				highlightingPath = hlModName + '.js'
 		}
