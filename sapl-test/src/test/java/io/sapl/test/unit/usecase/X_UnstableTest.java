@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -108,6 +109,7 @@ class X_UnstableTest {
 	}
 
 	@Test
+	@Disabled
 	void test_withoutTimeout() throws InitializationException {
 		System.out.println("test_withoutTimeout");
 		fixture.registerPIP(new io.sapl.pip.ClockPolicyInformationPoint())
