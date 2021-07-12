@@ -1,5 +1,6 @@
 package io.sapl.test.mocking;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -127,6 +128,12 @@ public class MockingAttributeContextTest {
 
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
 				.isThrownBy(() -> ctx.mockEmit("foo.bar", Val.of(1)));
+	}
+	
+	@Test
+	void test_getAvailableLibraries_returnsAllAvailableLibraries() {	
+		this.ctx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
+		assertThat(this.ctx.getAvailableLibraries()).containsOnly("foo.bar");
 	}
 
 }

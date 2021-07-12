@@ -140,6 +140,18 @@ class AnnotationFunctionContextTest {
 		assertThrows(InitializationException.class,
 				() -> new AnnotationFunctionContext(new BadReturnTypeFunctionLibrary()));
 	}
+	
+	@Test 
+	void loadedLibrariesShouldBeReturned() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
+		assertThat(context.getAvailableLibraries().contains(MockLibrary.LIBRARY_NAME), is(true));
+	}
+	
+	@Test 
+	void loadedLibrariesReturnEmptyListWhenNotLoaded() throws InitializationException {
+		AnnotationFunctionContext context = new AnnotationFunctionContext();
+		assertThat(context.getAvailableLibraries().size(), is(0));
+	}
 
 	@FunctionLibrary(name = MockLibrary.LIBRARY_NAME, description = MockLibrary.LIBRARY_DOC)
 	public static class MockLibrary {

@@ -224,4 +224,9 @@ public class AnnotationFunctionContext implements FunctionContext {
 		}
 	}
 
+	@Override
+	public Collection<String> getAvailableLibraries() {
+		return this.libraries.keySet();
+	}
+
 }

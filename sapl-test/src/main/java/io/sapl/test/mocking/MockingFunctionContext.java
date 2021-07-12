@@ -231,4 +231,9 @@ public class MockingFunctionContext implements FunctionContext {
 		}
 
 	}
+
+	@Override
+	public Collection<String> getAvailableLibraries() {
+		 return this.registeredMocks.keySet();
+	}
 }

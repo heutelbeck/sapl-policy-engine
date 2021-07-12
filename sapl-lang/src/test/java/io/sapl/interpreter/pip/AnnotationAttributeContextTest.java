@@ -347,6 +347,20 @@ class AnnotationAttributeContextTest {
 		StepVerifier.create(expression.evaluate(evalCtx, Val.UNDEFINED)).expectNextMatches(Val::isError)
 				.verifyComplete();
 	}
+	
+	@Test
+	void contextShouldReturnEmptyListWhenNoPipsAreLoaded() throws InitializationException {
+		var attributeCtx = new AnnotationAttributeContext();
+		assertThat(attributeCtx.getAvailableLibraries().size(), is(0));
+	}
+	
+	@Test
+	void contextShouldReturnAllLoadedPips() throws InitializationException {
+		var pip = new TestPIP();
+		var attributeCtx = new AnnotationAttributeContext();
+		attributeCtx.loadPolicyInformationPoint(pip);
+		assertThat(attributeCtx.getAvailableLibraries().contains("sapl.pip.test"), is(true));
+	}
 
 	public static EvaluationContext constructContext(AttributeContext attributeCtx, Map<String, JsonNode> variables) {
 		var functionCtx = new AnnotationFunctionContext();

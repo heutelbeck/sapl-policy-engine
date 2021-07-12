@@ -247,4 +247,9 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	}
 
+	@Override
+	public Collection<String> getAvailableLibraries() {
+		return this.attributeNamesByPipName.keySet();
+	}
+
 }

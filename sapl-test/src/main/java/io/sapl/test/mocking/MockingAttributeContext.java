@@ -191,4 +191,9 @@ public class MockingAttributeContext implements AttributeContext {
 
 	}
 
+	@Override
+	public Collection<String> getAvailableLibraries() {
+		return registeredMocks.keySet();
+	}
+
 }

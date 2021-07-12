@@ -22,5 +22,6 @@ public interface LibraryFunctionProvider {
 	Boolean isProvidedFunction(String function);
 
 	Collection<String> providedFunctionsOfLibrary(String pipName);
-
+	
+	Collection<String> getAvailableLibraries();
 }
