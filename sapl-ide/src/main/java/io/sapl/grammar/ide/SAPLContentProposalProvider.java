@@ -1,8 +1,9 @@
 package io.sapl.grammar.ide;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.eclipse.xtext.AbstractElement;
 import org.eclipse.xtext.Assignment;
 import org.eclipse.xtext.CrossReference;
@@ -14,14 +15,13 @@ import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
-	private List<String> unwantedProposals = new ArrayList<String>(Arrays.<String>asList("@", "!", "(", ")", "[", "]",
+	private Set<String> unwantedProposals = new HashSet<String>(Arrays.<String>asList("@", "!", "(", ")", "[", "]",
 			"{", "}", "null", "undefined", "&", "&&", "*", "+", "-", ".", "..", "/", "|", "||"));
 
 	@Override
 	protected boolean filterKeyword(final Keyword keyword, final ContentAssistContext context) {
 		String keyValue = keyword.getValue();
-		boolean contains = this.unwantedProposals.contains(keyValue);
-		if (contains) {
+		if (unwantedProposals.contains(keyValue)) {
 			return false;
 		}
 		return super.filterKeyword(keyword, context);
@@ -47,7 +47,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			return;
 		} else {
 			throw new IllegalArgumentException(
-					"Unhandled parameter types: " + Arrays.<Object>asList(assignment, context, acceptor).toString());
+					"Unhandled parameter types: " + Arrays.<Object>asList(context, acceptor).toString());
 		}
 	}
 }
