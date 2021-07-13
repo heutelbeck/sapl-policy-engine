@@ -74,6 +74,30 @@ public class SAPLValidatorTest {
 	}
 
 	@Test
+	public void policyWithHeadAttributeFinderStepAssertsNoError() throws Exception {
+		String policyText = "policy \"test policy\" permit action.patientid.|<pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
+		SAPL policy = this.parseHelper.parse(policyText);
+		this.validator.assertError(policy, SaplPackage.eINSTANCE.getHeadAttributeFinderStep(), null,
+				SAPLValidator.MSG_HAFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+	}
+
+	@Test
+	public void policyWithBasicEnvironmentAttributeAssertsNoError() throws Exception {
+		String policyText = "policy \"test policy\" permit <pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
+		SAPL policy = this.parseHelper.parse(policyText);
+		this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentAttribute(), null,
+				SAPLValidator.MSG_BEA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+	}
+
+	@Test
+	public void policyWithBasicEnvironmentHeadAttributeAssertsNoError() throws Exception {
+		String policyText = "policy \"test policy\" permit |<pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
+		SAPL policy = this.parseHelper.parse(policyText);
+		this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentHeadAttribute(), null,
+				SAPLValidator.MSG_BEHA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+	}
+
+	@Test
 	public void invalidPolicy() throws Exception {
 		String policyText = "defect";
 		SAPL policy = this.parseHelper.parse(policyText);
