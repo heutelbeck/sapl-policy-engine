@@ -15,14 +15,7 @@
  */
 package io.sapl.pip;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
@@ -31,49 +24,100 @@ import io.sapl.api.validation.Text;
 import lombok.NoArgsConstructor;
 import reactor.core.publisher.Flux;
 
+import java.time.DateTimeException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.Map;
+
 @NoArgsConstructor
 @PolicyInformationPoint(name = ClockPolicyInformationPoint.NAME, description = ClockPolicyInformationPoint.DESCRIPTION)
 public class ClockPolicyInformationPoint {
 
-	public static final String NAME = "clock";
+    public static final String NAME = "clock";
 
-	public static final String DESCRIPTION = "Policy Information Point and attributes for retrieving current date and time information";
+    public static final String DESCRIPTION = "Policy Information Point and attributes for retrieving current date and time information";
+    private static final String PARAMETER_NOT_AN_ISO_8601_STRING = "Parameter not an ISO 8601 string";
 
-	@Attribute(docs = "Returns the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with time offset.")
-	public Flux<Val> now(@Text Val value, Map<String, JsonNode> variables) {
-		final ZoneId zoneId = convertToZoneId(value.get());
-		final OffsetDateTime now = Instant.now().atZone(zoneId).toOffsetDateTime();
-		return Val.fluxOf(now.toString());
-	}
+    @Attribute(docs = "Returns the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with time offset.")
+    public Flux<Val> now(@Text Val value, Map<String, JsonNode> variables) {
+        final ZoneId zoneId = convertToZoneId(value.get());
+        final OffsetDateTime now = Instant.now().atZone(zoneId).toOffsetDateTime();
+        return Val.fluxOf(now.toString());
+    }
 
-	private ZoneId convertToZoneId(JsonNode value) {
-		final String text = value.asText() == null ? "" : value.asText().trim();
-		final String zoneIdStr = text.length() == 0 ? "system" : text;
-		if ("system".equals(zoneIdStr)) {
-			return ZoneId.systemDefault();
-		} else if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {
-			return ZoneId.of(zoneIdStr, ZoneId.SHORT_IDS);
-		}
-		return ZoneId.of(zoneIdStr);
-	}
+    private ZoneId convertToZoneId(JsonNode value) {
+        final String text = value.asText() == null ? "" : value.asText().trim();
+        final String zoneIdStr = text.length() == 0 ? "system" : text;
+        if ("system".equals(zoneIdStr)) {
+            return ZoneId.systemDefault();
+        } else if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {
+            return ZoneId.of(zoneIdStr, ZoneId.SHORT_IDS);
+        }
+        return ZoneId.of(zoneIdStr);
+    }
 
-	@Attribute(docs = "Emits every x seconds the current UTC date and time as an ISO-8601 string. x is the passed number value.")
-	public Flux<Val> ticker(Val leftHand, Map<String, JsonNode> variables, Flux<Val> intervallInSeconds) {
-		return intervallInSeconds.switchMap(seconds -> {
-			if (!seconds.isNumber())
-				return Flux.error(new PolicyEvaluationException(
-						String.format("ticker parameter not a number. Was: %s", seconds.toString())));
+    @Attribute(docs = "Emits every x seconds the current UTC date and time as an ISO-8601 string. x is the passed number value.")
+    public Flux<Val> ticker(Val leftHand, Map<String, JsonNode> variables, Flux<Val> intervallInSeconds) {
+        return intervallInSeconds.switchMap(seconds -> {
+            if (!seconds.isNumber())
+                return Flux.error(new PolicyEvaluationException(
+                        String.format("ticker parameter not a number. Was: %s", seconds.toString())));
 
-			var secondsValue = seconds.get().asLong();
+            var secondsValue = seconds.get().asLong();
 
-			if (secondsValue == 0)
-				return Flux.error(new PolicyEvaluationException("ticker parameter must not be zero"));
-			
-			// concatenate with a single number leading to have one time-stamp immediately.
-			// Else PEPs have to wait for the interval to pass once before getting a first
-			// decision.
-			return Flux.concat(Flux.just(0), Flux.interval(Duration.ofSeconds(secondsValue)));
-		}).map(__ -> Val.of(Instant.now().toString()));
-	}
+            if (secondsValue == 0)
+                return Flux.error(new PolicyEvaluationException("ticker parameter must not be zero"));
+
+            // concatenate with a single number leading to have one time-stamp immediately.
+            // Else PEPs have to wait for the interval to pass once before getting a first
+            // decision.
+            return Flux.concat(Flux.just(0), Flux.interval(Duration.ofSeconds(secondsValue)));
+        }).map(__ -> Val.of(Instant.now().toString()));
+    }
+
+    /*
+     * var start = "09:37"
+     * var isAfter = <clock.clockAfter(start)>; should produce < "10:00" true, "00:00" false, "09:37" true, "00:00" false>
+     */
+    public Flux<Val> clockAfter(Val leftHand, Map<String, JsonNode> variables, @Text Val time) {
+        try {
+            var reference = nodeToInstant(time);
+            var now = Instant.now();
+            var nowIsBeforeReference = now.isBefore(reference);
+
+            var nextMidnight = Instant.now().plus(1L, ChronoUnit.DAYS).truncatedTo(ChronoUnit.DAYS);
+            var nextReferenceTime = reference.plus(1L, ChronoUnit.DAYS);
+
+            var delayToNextMidnight = Duration.between(now, nextMidnight);
+            var delayToNextReferenceTime = nowIsBeforeReference ? Duration.between(now, reference)
+                    : Duration.between(now, nextReferenceTime);
+
+            //emits value every 24 hours at midnight
+            var midnightFlux = Flux.interval(delayToNextMidnight, Duration.ofHours(24L));
+            //emits value every 24 hours at reference time
+            var referenceTimeFlux = Flux.interval(delayToNextReferenceTime, Duration.ofHours(24L));
+
+            //if reference is after "now", next change is is at specified time
+            //if reference is before "now", next change is at midnight of the next day
+            var nextChangeFlux = Flux.merge(midnightFlux, referenceTimeFlux);
+
+            // concatenate with a single number leading to have one time-stamp immediately.
+            // Else PEPs have to wait for the interval to pass once before getting a first
+            // decision.
+            return Flux.concat(Flux.just(0), nextChangeFlux)
+                    .map(__ -> Val.of(Instant.now().isAfter(reference)));
+        } catch (DateTimeException e) {
+            return Flux.just(Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage()));
+        }
+    }
+
+    private static Instant nodeToInstant(Val time) {
+        if (time.isNull() || time.isUndefined()) throw new DateTimeException("provided time value is null or undefined");
+
+        return Instant.parse(time.get().asText());
+    }
 
 }
