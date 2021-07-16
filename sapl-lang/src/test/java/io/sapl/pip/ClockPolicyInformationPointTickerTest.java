@@ -28,15 +28,20 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @Slf4j
 public class ClockPolicyInformationPointTickerTest {
+
+    // private static final Logger log = LoggerFactory.getLogger(ClockPolicyInformationPointTickerTest.class);
 
     @Test
     public void ticker() {
@@ -83,36 +88,53 @@ public class ClockPolicyInformationPointTickerTest {
     }
 
     @Test
-    void testClockAfterWithReferenceTimeAfterNow() {
+    void doTest() {
+        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant ref = Instant.now().minus(1, ChronoUnit.HOURS).plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
+        log.info("{} is after {} =  {}", now, ref, now.isAfter(ref));
+
+        LocalTime timeNow = now.atZone(ZoneOffset.UTC).toLocalTime();
+        LocalTime timeRef = ref.atZone(ZoneOffset.UTC).toLocalTime();
+        log.info("{} is after {} =  {}", timeNow, timeRef, timeNow.isAfter(timeRef));
+
+        System.out.println(LocalTime.now().truncatedTo(ChronoUnit.DAYS));
+
+        var d1 = Duration.ofHours(23);
+        var d2 = Duration.ofMinutes(78);
+        var d3 = Duration.ofSeconds(12);
+        log.info("{} is less than {} = {}", d2, d3, d3.compareTo(d1));
+    }
+
+    @Test
+    void testClockAfter() throws Exception {
         var clockPip = new ClockPolicyInformationPoint();
 
-        //FIXME: in case test is executed between 23:59:50 and 23:59:59:
-        // 'referenceTimeAfterNow' is on the next day, resulting in a reference time that is actually before now
-        // e.g. now = 23:59:50, referenceTimeAfterNow = 00:00:00
-        var referenceTimeAfterNow = Val.of(Instant.now().plusSeconds(10L).toString());
+        assertThat(clockPip.clockAfter(Val.UNDEFINED, Collections.emptyMap(), Val.of(Instant.now().plusSeconds(10L).toString()))
+                .blockFirst().getBoolean(), is(false)
+        );
+        assertThat(clockPip.clockAfter(Val.UNDEFINED, Collections.emptyMap(), Val.of(Instant.now().minusSeconds(10L).toString()))
+                .blockFirst().getBoolean(), is(true)
+        );
 
-        // expected results
-        // < "now" : false, "referenceTimeAfterNow" : true, "00:00" : false, "referenceTimeAfterNow" : true, "00:00" : false, ... >
+        StepVerifier
+                .withVirtualTime(() -> clockPip.clockAfter2(Val.UNDEFINED, Collections.emptyMap(), Val.of(Instant.now().plusSeconds(10L).toString())))
+                .expectSubscription()
+                .thenAwait(Duration.ofHours(25))
+                .expectNextCount(4)
+                .thenCancel().verify(Duration.ofMillis(200));
 
-        clockPip.clockAfter(Val.UNDEFINED, Collections.emptyMap(), referenceTimeAfterNow)
-                .map(val -> {
-                    System.out.println(val.getBoolean());
-                    return val;
-                })
-                .subscribe();
+    }
 
+    @Test
+    void testClockBefore() {
+        var clockPip = new ClockPolicyInformationPoint();
 
-        // StepVerifier.withVirtualTime(() -> clockPip.clockAfter(Val.UNDEFINED, Collections.emptyMap(), referenceTimeAfterNow))
-        //         .expectSubscription()
-        //         .expectNoEvent(Duration.ofSeconds(30))
-        //         .consumeNextWith(node -> {
-        //             assertThat(node.getBoolean(), is(false));
-        //         })
-        //         .expectNoEvent(Duration.ofSeconds(30))
-        //         .consumeNextWith(node -> {
-        //             assertThat(node.getBoolean(), is(true));
-        //         })
-        //         .thenCancel().verify();
+        assertThat(clockPip.clockBefore(Val.UNDEFINED, Collections.emptyMap(), Val.of(Instant.now().plusSeconds(10L).toString()))
+                .blockFirst().getBoolean(), is(true)
+        );
+        assertThat(clockPip.clockBefore(Val.UNDEFINED, Collections.emptyMap(), Val.of(Instant.now().minusSeconds(10L).toString()))
+                .blockFirst().getBoolean(), is(false)
+        );
     }
 
 }
