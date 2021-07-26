@@ -55,7 +55,8 @@ public class E_PolicyStreamingTest {
 	}
 	
 	@Test
-	@Disabled
+	@Disabled("Unmocked PIPs with time-based attributes aren't reliable working with virtual time." + 
+	 "Sometimes on some systems there is a Exception thrown, because the Attribute is emitting on event too few")
 	void test_streamingPolicyWithVirtualTime() throws InitializationException {
 		
 		fixture.registerPIP(new ClockPolicyInformationPoint())
