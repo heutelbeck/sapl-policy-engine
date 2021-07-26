@@ -38,7 +38,7 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 	}
 
 	@Override
-	public Collection<String> GetAvailableAttributes(String identifier) {
+	public Collection<String> getAvailableAttributes(String identifier) {
 
 		identifier = identifier.trim().toLowerCase();
 

@@ -49,7 +49,7 @@ public class DefaultLibraryAttributeFinderTests {
 	@ParameterizedTest
 	@ValueSource(strings = { "time", "filter", "standard", "clock" })
 	public void getAvailableAttributes_WithEmptyString_ReturnsAllLibraries(String value) {
-		Collection<String> availableAttributes = attributeFinder.GetAvailableAttributes("");
+		Collection<String> availableAttributes = attributeFinder.getAvailableAttributes("");
 		assertThat(availableAttributes.contains(value), is(true));
 	}
 
@@ -59,7 +59,7 @@ public class DefaultLibraryAttributeFinderTests {
 		String needle = arguments.getString(1);
 		String expectedLibrary = arguments.getString(0);
 
-		Collection<String> availableAttributes = attributeFinder.GetAvailableAttributes(needle);
+		Collection<String> availableAttributes = attributeFinder.getAvailableAttributes(needle);
 
 		assertAll(() -> assertThat(availableAttributes.size(), is(1)),
 				() -> assertThat(availableAttributes.contains(expectedLibrary), is(true)));
@@ -71,7 +71,7 @@ public class DefaultLibraryAttributeFinderTests {
 		String needle = arguments.getString(0);
 		String expectedFunction = arguments.getString(1);
 
-		Collection<String> availableAttributes = attributeFinder.GetAvailableAttributes(needle);
+		Collection<String> availableAttributes = attributeFinder.getAvailableAttributes(needle);
 
 		assertThat(availableAttributes.contains(expectedFunction), is(true));
 	}
@@ -83,7 +83,7 @@ public class DefaultLibraryAttributeFinderTests {
 		String needle = arguments.getString(0);
 		String expectedFunction = arguments.getString(1);
 
-		Collection<String> availableAttributes = attributeFinder.GetAvailableAttributes(needle);
+		Collection<String> availableAttributes = attributeFinder.getAvailableAttributes(needle);
 
 		assertThat(availableAttributes.contains(expectedFunction), is(true));
 	}

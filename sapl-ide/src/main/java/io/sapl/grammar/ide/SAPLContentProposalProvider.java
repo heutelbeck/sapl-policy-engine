@@ -120,7 +120,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		// remove all spaces we're only interested in statement e.g. "clock.now"
 		importStatement = importStatement.replace(" ", "");
 		// look up proposals
-		return pipAttributeFinder.GetAvailableAttributes(importStatement);
+		return pipAttributeFinder.getAvailableAttributes(importStatement);
 	}
 
 	private boolean handleBasicProposals(String feature, ContentAssistContext context,
