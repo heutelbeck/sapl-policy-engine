@@ -13,13 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide;
+package io.sapl.grammar.ide.contentassist;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
+
+import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
 
 /**
  * This class uses the xtext test classes to test auto completion results.
