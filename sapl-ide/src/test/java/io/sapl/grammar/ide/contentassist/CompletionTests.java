@@ -15,12 +15,15 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
+
 import java.util.Collection;
 import java.util.stream.Collectors;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
-
 import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
 
 /**
@@ -29,22 +32,23 @@ import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
  */
 public class CompletionTests extends AbstractSaplLanguageServerTest {
 
-	protected String createCompletionString(Collection<String> items, TestCompletionConfiguration config) {
-		StringBuilder builder = new StringBuilder();
-
-		for (var item : items) {
-			String index = String.format("[%d, %d]", config.getLine(), config.getColumn());
-			String fullIndex = String.format("[%s .. %s]", index, index);
-			builder.append(String.format("%s -> %s %s\n", item, item, fullIndex));
-		}
-
-		return builder.toString();
-	}
-	
-	protected void assertProposalsSimple(Collection<String> expectedProposals, CompletionList completionList) {
+	protected void assertProposalsSimple(final Collection<String> expectedProposals,
+			final CompletionList completionList) {
 		Collection<CompletionItem> completionItems = completionList.getItems();
-		String actualProposalStr = completionItems.stream().map(CompletionItem::getLabel).collect(Collectors.joining("\n"));
+		String actualProposalStr = completionItems.stream().map(CompletionItem::getLabel)
+				.collect(Collectors.joining("\n"));
 		String expectedProposalStr = String.join("\n", expectedProposals);
 		assertEquals(expectedProposalStr, actualProposalStr);
+	}
+
+	protected void assertDoesNotContainProposals(final Collection<String> unwantedProposals,
+			final CompletionList completionList) {
+		Collection<CompletionItem> completionItems = completionList.getItems();
+		Collection<String> availableProposals = completionItems.stream().map(CompletionItem::getLabel)
+				.collect(Collectors.toSet());
+
+		for (String unwantedProposal : unwantedProposals) {
+			assertThat(availableProposals, not(hasItem(unwantedProposal)));
+		}
 	}
 }

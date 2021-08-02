@@ -34,6 +34,10 @@ import io.sapl.grammar.sapl.impl.ValueDefinitionImpl;
 import io.sapl.interpreter.InitializationException;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * This class enhances the auto completion proposals that the language server
+ * offers.
+ */
 @Slf4j
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
@@ -54,8 +58,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 		String keyValue = keyword.getValue();
 
+		// remove all short keywords unless they are explicitly allowed
 		if (!allowedKeywords.contains(keyValue)) {
-			// remove short keywords
 			if (keyValue.length() < 3)
 				return;
 		}
@@ -87,12 +91,23 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		case "policy":
 			if (handlePolicyProposals(feature, context, acceptor))
 				return;
+
+		case "step":
+			if (handleStepProposals(feature, context, acceptor))
+				return;
 		}
 
 		logDebug("SAPLContentProposalProvider._createProposals ASSIGNMENT - Rule \"" + parserRuleName
 				+ "\" - Feature \"" + feature + "\"");
 
 		super._createProposals(assignment, context, acceptor);
+	}
+
+	private boolean handleStepProposals(String feature, ContentAssistContext context,
+			IIdeContentProposalAcceptor acceptor) {
+		if (feature.equals("id"))
+			return true;
+		return false;
 	}
 
 	private boolean handleImportProposals(String feature, ContentAssistContext context,
@@ -140,11 +155,17 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private boolean handleBasicProposals(String feature, ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
-		Collection<String> unwantedFeatureProposals = Set.of("fsteps", "identifier");
+
+		// remove technical proposals
+		Collection<String> unwantedFeatureProposals = Set.of("fsteps", "identifier", "idsteps", "id");
 		if (unwantedFeatureProposals.contains(feature))
 			return true;
 
+		// try to resolve for available variables
 		if (feature.equals("value")) {
+
+			// try to move up to the policy body and
+			// keep outer condition object as reference
 			EObject reference = null;
 			EObject model = context.getCurrentModel();
 			if (model.eContainer() instanceof ConditionImpl) {
@@ -152,23 +173,30 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 				model = goToFirstParent(model, PolicyBodyImpl.class);
 			}
 
+			// look up all defined variables in the policy
 			if (model instanceof PolicyBodyImpl) {
 				var policyBody = (PolicyBodyImpl) model;
 				Collection<String> definedValues = new HashSet<>();
+
+				// iterate through defined statements which are either conditions or variables
 				for (var statement : policyBody.getStatements()) {
-					// collect only values defined above the condition
+
+					// collect only variables defined above the given condition
 					if (statement == reference)
 						break;
 
+					// add any encountered valuable to the list of proposals
 					if (statement instanceof ValueDefinitionImpl) {
 						var valueDefinition = (ValueDefinitionImpl) statement;
 						definedValues.add(valueDefinition.getName());
 					}
 				}
 
+				// add variables to list of proposals
 				addSimpleProposals(definedValues, context, acceptor);
 			}
 
+			// add authorization subscriptions proposals
 			addSimpleProposals(authzSubProposals, context, acceptor);
 		}
 		return false;
@@ -212,6 +240,16 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		}
 	}
 
+	/**
+	 * Moves up the model tree and returns closest parent that matches the given
+	 * class type.
+	 * 
+	 * @param <T>       Class type of the searched-for parent.
+	 * @param object    The current model from which the search starts.
+	 * @param classType Class type of the searched-for parent.
+	 * @return Returns the first parent for the given class type, or null if no
+	 *         match was found.
+	 */
 	private <T> T goToFirstParent(EObject object, Class<T> classType) {
 		while (object != null) {
 			if (classType.isInstance(object))
@@ -222,6 +260,16 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		return null;
 	}
 
+	/**
+	 * Moves up the model tree and returns the highest parent that matches the given
+	 * class type.
+	 * 
+	 * @param <T>       Class type of the searched-for parent.
+	 * @param object    The current model from which the search starts.
+	 * @param classType Class type of the searched-for parent.
+	 * @return Returns the first parent for the given class type, or null if no
+	 *         match was found.
+	 */
 	private <T> T goToLastParent(EObject object, Class<T> classType) {
 		EObject parent = null;
 

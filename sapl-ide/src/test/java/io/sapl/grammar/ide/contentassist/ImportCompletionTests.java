@@ -20,8 +20,11 @@ import java.util.List;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Tests regarding the auto completion of import statements
+ */
 public class ImportCompletionTests extends CompletionTests {
-	
+
 	@Test
 	public void testCompletion_AtTheBeginningImportStatement_ReturnsLibraries() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -34,7 +37,7 @@ public class ImportCompletionTests extends CompletionTests {
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_WithPartialLibrary_ReturnsLibrary() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -47,7 +50,7 @@ public class ImportCompletionTests extends CompletionTests {
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_WithFullLibrary_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -60,7 +63,7 @@ public class ImportCompletionTests extends CompletionTests {
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_WithFullLibraryAndPartialFunction_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -73,7 +76,7 @@ public class ImportCompletionTests extends CompletionTests {
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_WithFullLibraryAndPartialFunctionAndNewLinesInBetween_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -87,7 +90,7 @@ public class ImportCompletionTests extends CompletionTests {
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_WithPrecedingTextAndFullLibraryAndPartialFunction_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -102,7 +105,7 @@ public class ImportCompletionTests extends CompletionTests {
 			});
 		});
 	}
-	
+
 	@Test
 	public void testCompletion_WithPrecedingAndSucceedingAndFullLibraryAndPartialFunction_ReturnsFunction() {
 		testCompletion((TestCompletionConfiguration it) -> {

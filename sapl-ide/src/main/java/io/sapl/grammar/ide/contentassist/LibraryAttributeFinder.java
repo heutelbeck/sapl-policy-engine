@@ -17,6 +17,19 @@ package io.sapl.grammar.ide.contentassist;
 
 import java.util.Collection;
 
+/**
+ * Base interface to provide library and function search methods for the
+ * proposal provider.
+ */
 public interface LibraryAttributeFinder {
+	/**
+	 * Offers a list of matching libraries and functions on the basis of the
+	 * provided identifier.
+	 * 
+	 * @param identifier A string that is used as needle to look for partially
+	 *                   matching libraries and function, e.g. "clock.n"
+	 * @return Returns a list with libraries and functions that partially match the
+	 *         needle.
+	 */
 	Collection<String> getAvailableAttributes(String identifier);
 }

@@ -40,6 +40,9 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pip.ClockPolicyInformationPoint;
 
+/**
+ * Tests regarding the auto completion of libraries and functions
+ */
 public class DefaultLibraryAttributeFinderTests {
 
 	private static DefaultLibraryAttributeFinder attributeFinder;

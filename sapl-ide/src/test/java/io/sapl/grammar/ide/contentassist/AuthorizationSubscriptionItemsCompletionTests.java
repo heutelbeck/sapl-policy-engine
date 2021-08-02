@@ -20,6 +20,10 @@ import java.util.List;
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Tests regarding the auto completion of the keywords subject, resource,
+ * action, environment
+ */
 public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
 	@Test
 	public void testCompletion_AuthorizationSubscriptionItemsInTargetExpression() {
@@ -27,9 +31,11 @@ public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTes
 			String policy = "policy \"test\" permit ";
 			it.setModel(policy);
 			it.setColumn(policy.length());
-			List<String> expected = List.of("advice", "obligation", "transform", "where", "action", "environment",
-					"resource", "subject");
-			it.setExpectedCompletionItems(createCompletionString(expected, it));
+			it.setAssertCompletionList(completionList -> {
+				var expected = List.of("advice", "obligation", "transform", "where", "action", "environment",
+						"resource", "subject");
+				assertProposalsSimple(expected, completionList);
+			});
 		});
 	}
 
@@ -39,8 +45,23 @@ public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTes
 			String policy = "policy \"test\" permit where ";
 			it.setModel(policy);
 			it.setColumn(policy.length());
-			List<String> expected = List.of("var", "action", "environment", "resource", "subject");
-			it.setExpectedCompletionItems(createCompletionString(expected, it));
+			it.setAssertCompletionList(completionList -> {
+				var expected = List.of("var", "action", "environment", "resource", "subject");
+				assertProposalsSimple(expected, completionList);
+			});
+		});
+	}
+
+	@Test
+	public void testCompletion_NoTechnicalProposalsAfterAuthorizationSubscriptionItem() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "policy \"test\" permit where subject.";
+			it.setModel(policy);
+			it.setColumn(policy.length());
+			it.setAssertCompletionList(completionList -> {
+				var unwantedProposals = List.of("\"id\"", "id", "idSteps");
+				assertDoesNotContainProposals(unwantedProposals, completionList);
+			});
 		});
 	}
 }

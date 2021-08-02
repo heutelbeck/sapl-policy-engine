@@ -33,11 +33,19 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pip.ClockPolicyInformationPoint;
 
+/**
+ * This class is used to offer library and function proposals.
+ */
 public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 
 	private AttributeContext attributeContext;
 	private FunctionContext funtionContext;
 
+	/**
+	 * The default constructor registers the default libraries.
+	 * 
+	 * @throws InitializationException
+	 */
 	public DefaultLibraryAttributeFinder() throws InitializationException {
 		attributeContext = new AnnotationAttributeContext();
 		attributeContext.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
@@ -47,6 +55,12 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 		funtionContext.loadLibrary(new TemporalFunctionLibrary());
 	}
 
+	/**
+	 * Creates a new finder based on the libraries and functions that are registered
+	 * in the provided evaluation context.
+	 * 
+	 * @param evaluationContext
+	 */
 	public DefaultLibraryAttributeFinder(EvaluationContext evaluationContext) {
 		attributeContext = evaluationContext.getAttributeCtx();
 		funtionContext = evaluationContext.getFunctionCtx();
