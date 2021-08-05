@@ -104,7 +104,9 @@ public class ClockPolicyInformationPoint {
      * var time = "09:37"
      * var isAfter = <clock.clockAfter(time)>; should produce < "10:00" true, "00:00" false, "09:37" true, "00:00" false>
      */
-    public Flux<Val> clockAfter(Val leftHand, Map<String, JsonNode> variables, @Text Val time) {
+    public Flux<Val> clockAfter(@Text Val value, Map<String, JsonNode> variables, @Text Val time) {
+        final ZoneId zoneId = convertToZoneId(value.get());
+
         var reference = nodeToInstant(time);
         var now = Instant.now();
         var nowIsBeforeReference = now.isBefore(reference);

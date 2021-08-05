@@ -15,6 +15,12 @@
  */
 package io.sapl.functions;
 
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.Long;
+import io.sapl.api.validation.Text;
+
 import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.Instant;
@@ -24,12 +30,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-
-import io.sapl.api.functions.Function;
-import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.Long;
-import io.sapl.api.validation.Text;
 
 @FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION)
 public class TemporalFunctionLibrary {
@@ -76,11 +76,11 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = BETWEEN_DOC)
-    public static Val between(@Text Val time, @Text Val timeOne, @Text Val timeTwo) {
+    public static Val between(@Text Val startTimeInclusive, @Text Val timeToCheck, @Text Val endTimeInclusive) {
         try {
-            Instant t = nodeToInstant(time);
-            Instant t1 = nodeToInstant(timeOne);
-            Instant t2 = nodeToInstant(timeTwo);
+            Instant t = nodeToInstant(startTimeInclusive);
+            Instant t1 = nodeToInstant(timeToCheck);
+            Instant t2 = nodeToInstant(endTimeInclusive);
 
             if (t.equals(t1))
                 return Val.TRUE;
