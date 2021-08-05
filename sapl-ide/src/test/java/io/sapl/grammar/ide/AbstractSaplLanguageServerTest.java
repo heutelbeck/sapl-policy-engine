@@ -15,15 +15,15 @@
  */
 package io.sapl.grammar.ide;
 
-import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
-
-import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
+import org.eclipse.xtext.testing.AbstractLanguageServerTest;
 
 /**
- * Use this class to register ide components.
+ * This class derives from the xtext test class to define a test environment for
+ * sapl policies
  */
-public class SAPLIdeModule extends AbstractSAPLIdeModule {
-	public Class<? extends IdeContentProposalProvider> bindIdeContentProposalProvider() {
-		return SAPLContentProposalProvider.class;
+public class AbstractSaplLanguageServerTest extends AbstractLanguageServerTest {
+
+	public AbstractSaplLanguageServerTest() {
+		super("sapl");
 	}
 }

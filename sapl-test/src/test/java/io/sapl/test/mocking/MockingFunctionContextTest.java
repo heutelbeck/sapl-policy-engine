@@ -2,9 +2,11 @@ package io.sapl.test.mocking;
 
 import static io.sapl.test.Imports.times;
 import static io.sapl.test.Imports.whenParameters;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 
@@ -97,5 +99,11 @@ public class MockingFunctionContextTest {
 		var doc2 = iterator.next();
 		Assertions.assertThat(doc2.getName()).isEqualTo("test");
 		Assertions.assertThat(doc2.getDocumentation().containsKey("upper")).isTrue();
+	}
+	
+	@Test
+	void test_getAvailableLibraries_returnsAllAvailableLibraries() {	
+		ctx.loadFunctionMockValueFromFunction("foo.bar", (call) -> Val.of("1"));
+		assertThat(this.ctx.getAvailableLibraries()).containsOnly("foo.bar");
 	}
 }

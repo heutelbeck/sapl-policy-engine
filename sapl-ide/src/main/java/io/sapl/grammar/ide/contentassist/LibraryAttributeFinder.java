@@ -13,17 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide;
+package io.sapl.grammar.ide.contentassist;
 
-import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
-
-import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
+import java.util.Collection;
 
 /**
- * Use this class to register ide components.
+ * Base interface to provide library and function search methods for the
+ * proposal provider.
  */
-public class SAPLIdeModule extends AbstractSAPLIdeModule {
-	public Class<? extends IdeContentProposalProvider> bindIdeContentProposalProvider() {
-		return SAPLContentProposalProvider.class;
-	}
+public interface LibraryAttributeFinder {
+	/**
+	 * Offers a list of matching libraries and functions on the basis of the
+	 * provided identifier.
+	 * 
+	 * @param identifier A string that is used as needle to look for partially
+	 *                   matching libraries and function, e.g. "clock.n"
+	 * @return Returns a list with libraries and functions that partially match the
+	 *         needle.
+	 */
+	Collection<String> getAvailableAttributes(String identifier);
 }
