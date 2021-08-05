@@ -15,6 +15,24 @@
  */
 package io.sapl.prp.index.canonical;
 
+import com.google.common.collect.ImmutableList;
+import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -31,24 +49,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.ImmutableList;
-
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 
 class CanonicalIndexAlgorithmTest {
 
@@ -74,6 +78,38 @@ class CanonicalIndexAlgorithmTest {
         var result = CanonicalIndexAlgorithm.match(mock(EvaluationContext.class), dataContainer).block();
 
         assertThat(result, notNullValue());
+    }
+
+    @Test
+    void skip_predicates_without_candidate_references() {
+        var p1 = new Predicate(new Bool(true));
+        var p2 = new Predicate(new Bool(false));
+
+        var matchingCtx = mock(CanonicalIndexMatchingContext.class);
+        when(matchingCtx.isPredicateReferencedInCandidates(p1)).thenReturn(false);
+        when(matchingCtx.isPredicateReferencedInCandidates(p2)).thenReturn(true);
+
+        var dataContainer = mock(CanonicalIndexDataContainer.class);
+        when(dataContainer.getPredicateOrder()).thenReturn(ImmutableList.copyOf(Arrays.asList(p1, p2)));
+
+        try (MockedStatic<CanonicalIndexAlgorithm> mock = mockStatic(CanonicalIndexAlgorithm.class, Mockito.CALLS_REAL_METHODS)) {
+            try (MockedConstruction<CanonicalIndexMatchingContext> mocked = Mockito.mockConstruction(CanonicalIndexMatchingContext.class,
+                    (mockCtx, context) -> {
+                        when(mockCtx.isPredicateReferencedInCandidates(any(Predicate.class)))
+                                .thenAnswer(invocation -> matchingCtx.isPredicateReferencedInCandidates(invocation.getArgument(0, Predicate.class)));
+                    })) {
+
+                var result = CanonicalIndexAlgorithm.match(mock(EvaluationContext.class), dataContainer).block();
+
+                assertThat(result, notNullValue());
+
+                verify(mocked.constructed().get(0), times(2)).isPredicateReferencedInCandidates(any(Predicate.class));
+
+                mock.verify(() -> CanonicalIndexAlgorithm.skipPredicate(any()), times(1));
+                mock.verify(() -> CanonicalIndexAlgorithm.handleEvaluationResult(any(), eq(p2), any(), any()), times(1));
+
+            }
+        }
     }
 
     @Test

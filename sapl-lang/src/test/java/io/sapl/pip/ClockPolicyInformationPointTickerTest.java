@@ -117,7 +117,7 @@ public class ClockPolicyInformationPointTickerTest {
         );
 
         StepVerifier
-                .withVirtualTime(() -> clockPip.clockAfter2(Val.UNDEFINED, Collections.emptyMap(), Val.of(Instant.now().plusSeconds(10L).toString())))
+                .withVirtualTime(() -> clockPip.clockAfter(Val.UNDEFINED, Collections.emptyMap(), Val.of(Instant.now().plusSeconds(10L).toString())))
                 .expectSubscription()
                 .thenAwait(Duration.ofHours(25))
                 .expectNextCount(4)

@@ -15,12 +15,7 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.PolicyRetrievalResult;
@@ -28,35 +23,35 @@ import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @UtilityClass
 public class CanonicalIndexAlgorithm {
 
     public Mono<PolicyRetrievalResult> match(EvaluationContext subscriptionScopedEvaluationCtx, CanonicalIndexDataContainer dataContainer) {
-        return matchCollector(subscriptionScopedEvaluationCtx, dataContainer);
+        return matchCollectorNewest(subscriptionScopedEvaluationCtx, dataContainer);
     }
 
-    public Mono<PolicyRetrievalResult> matchCollector(EvaluationContext subscriptionScopedEvaluationCtx, CanonicalIndexDataContainer dataContainer) {
-        var predicatesWithEvaluationResult = Flux.concat(dataContainer.getPredicateOrder().stream()
-                .map(predicate -> predicate.evaluate(subscriptionScopedEvaluationCtx)
-                        .map(val -> Tuples.of(predicate, val))
-                ).collect(Collectors.toList()));
+    public Mono<PolicyRetrievalResult> matchCollectorNewest(EvaluationContext subscriptionScopedEvaluationCtx, CanonicalIndexDataContainer dataContainer) {
+        var matchingCtxMono = Flux.fromIterable(dataContainer.getPredicateOrder())
+                .reduce(Mono.just(new CanonicalIndexMatchingContext(dataContainer.getNumberOfConjunctions(), subscriptionScopedEvaluationCtx)),
+                        (previousCtxMono, predicate) ->
+                                previousCtxMono
+                                        .flatMap(previousCtx -> previousCtx.isPredicateReferencedInCandidates(predicate)
+                                                //if referenced by an active candidate -> evaluate predicate
+                                                ? evaluatePredicate(subscriptionScopedEvaluationCtx, dataContainer, predicate, previousCtx)
+                                                //else -> just return context
+                                                : skipPredicate(previousCtx)
+                                        ) // result is updated ctx (candidates removed based on predicate evaluation result)
+                )
+                .flatMap(Function.identity()); //mono of mono is flattened
 
-        var matchingCtxMono = predicatesWithEvaluationResult
-                .reduce(new CanonicalIndexMatchingContext(dataContainer.getNumberOfConjunctions(), subscriptionScopedEvaluationCtx),
-                        (matchingCtx, predicateWithEvaluationResult) -> {
-                            var predicate = predicateWithEvaluationResult.getT1();
-                            var evaluationResult = predicateWithEvaluationResult.getT2();
-
-                            if (evaluationResult.isError()) {
-                                handleErrorEvaluationResult(predicate, matchingCtx);
-                            } else {
-                                updateCandidatesInMatchingContext(predicate, evaluationResult.getBoolean(), matchingCtx, dataContainer);
-                            }
-                            return matchingCtx;
-                        }
-                );
 
         return matchingCtxMono.map(matchingCtx -> {
             var matching = matchingCtx.getMatchingCandidatesMask();
@@ -65,6 +60,27 @@ public class CanonicalIndexAlgorithm {
 
             return new PolicyRetrievalResult(policies, matchingCtx.isErrorsInTargets(), true);
         }).onErrorReturn(new PolicyRetrievalResult(Collections.emptyList(), true, true));
+    }
+
+    Mono<CanonicalIndexMatchingContext> skipPredicate(CanonicalIndexMatchingContext previousCtx) {
+        return Mono.just(previousCtx);
+    }
+
+    Mono<CanonicalIndexMatchingContext> evaluatePredicate(EvaluationContext subscriptionScopedEvaluationCtx,
+                                                          CanonicalIndexDataContainer dataContainer, Predicate predicate,
+                                                          CanonicalIndexMatchingContext ctx) {
+        return predicate.evaluate(subscriptionScopedEvaluationCtx)
+                .map(evaluationResult -> handleEvaluationResult(dataContainer, predicate, ctx, evaluationResult));
+    }
+
+    CanonicalIndexMatchingContext handleEvaluationResult(CanonicalIndexDataContainer dataContainer, Predicate predicate,
+                                                         CanonicalIndexMatchingContext ctx, Val evaluationResult) {
+        if (evaluationResult.isError()) {
+            handleErrorEvaluationResult(predicate, ctx);
+        } else {
+            updateCandidatesInMatchingContext(predicate, evaluationResult.getBoolean(), ctx, dataContainer);
+        }
+        return ctx;
     }
 
 

@@ -64,8 +64,6 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 
         this.indexDataContainer = new CanonicalIndexDataCreationStrategy(predicateOrderStrategy).constructNew(documents,
                 targets);
-
-        log.info("created CanonicalImmutableParsedDocumentIndex");
     }
 
     CanonicalImmutableParsedDocumentIndex recreateIndex(Map<String, SAPL> updatedDocuments, boolean consistent) {
