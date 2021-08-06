@@ -57,7 +57,7 @@ public class ClockPolicyInformationPoint {
     }
 
     @Attribute(docs = "Gets the current millisecond instant of the clock. This returns the millisecond-based instant, measured from 1970-01-01T00:00Z (UTC)")
-    public Flux<Val> millis(Val leftHand, Map<String, JsonNode> variables) {
+    public Flux<Val> millis(Map<String, JsonNode> variables) {
         return Flux.just(Val.of(Instant.now().toEpochMilli()));
     }
 

@@ -16,8 +16,10 @@
 package io.sapl.pip;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.TemporalFunctionLibrary;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.stubbing.Answer;
@@ -35,9 +37,12 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -86,9 +91,10 @@ public class ClockPolicyInformationPointTickerTest {
         when(jsonNodeMock.asText()).thenReturn(null);
 
         var clockPip = new ClockPolicyInformationPoint();
-        var zoneId = clockPip.now(Val.of(jsonNodeMock), Collections.emptyMap()).blockFirst();
+        var now = clockPip.now(Val.of(jsonNodeMock), Collections.emptyMap()).blockFirst();
 
-        assertThat(zoneId, is(ZoneId.systemDefault()));
+        assertThat(now, notNullValue());
+        assertThat(now.getValType(), is(JsonNodeType.STRING.toString()));
     }
 
     @Test
@@ -132,6 +138,8 @@ public class ClockPolicyInformationPointTickerTest {
                     })
                     .thenAwait(Duration.ofDays(2L))
                     .expectNextCount(4)
+                    .expectNoEvent(Duration.ofHours(23))
+                    .thenAwait(Duration.ofDays(1L))
                     .thenCancel().verify();
         }
 

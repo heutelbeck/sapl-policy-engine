@@ -31,8 +31,6 @@ public class Schedules {
 
         void startScheduling() {
             try {
-                log.info("currentTime {}", currentTime);
-
                 var nextMidnight = LocalDate.now().plusDays(1L).atStartOfDay();
                 var nextReferenceTime = currentTime.isBefore(referenceTime)
                         //if current time is before reference, the next reference is on the same day (today)
@@ -43,9 +41,9 @@ public class Schedules {
                 var todayAtCurrentTime = LocalDate.now().atTime(currentTime);
 
                 var delayToNextMidnight = Duration.ofSeconds(todayAtCurrentTime.until(nextMidnight, ChronoUnit.SECONDS));
-                log.info("scheduling next Midnight ({}) with a delay of {}", nextMidnight, delayToNextMidnight);
+                log.trace("scheduling next Midnight ({}) with a delay of {}", nextMidnight, delayToNextMidnight);
                 var delayToNextReferenceTime = Duration.ofSeconds(todayAtCurrentTime.until(nextReferenceTime, ChronoUnit.SECONDS));
-                log.info("scheduling next Reference-Time  ({}) with a delay of {}", nextReferenceTime, delayToNextReferenceTime);
+                log.trace("scheduling next Reference-Time  ({}) with a delay of {}", nextReferenceTime, delayToNextReferenceTime);
 
                 initializeScheduler(delayToNextMidnight, delayToNextReferenceTime);
             } catch (Exception e) {
@@ -76,7 +74,7 @@ public class Schedules {
 
         void processResultChange(LocalTime localTimeRef) {
             var currentTime = LocalTime.now();
-            log.info("{} is after {} -> {}", currentTime, localTimeRef, currentTime.isAfter(localTimeRef));
+            log.trace("{} is after {} -> {}", currentTime, localTimeRef, currentTime.isAfter(localTimeRef));
             sink.next(Val.of(currentTime.isAfter(localTimeRef)));
         }
 

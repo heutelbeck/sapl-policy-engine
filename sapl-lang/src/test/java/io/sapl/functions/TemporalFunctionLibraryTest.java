@@ -15,9 +15,24 @@
  */
 package io.sapl.functions;
 
-import static io.sapl.hamcrest.Matchers.val;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.EvaluationContext;
+import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.pip.ClockPolicyInformationPoint;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
@@ -30,27 +45,11 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import static io.sapl.hamcrest.Matchers.val;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pip.ClockPolicyInformationPoint;
-import reactor.test.StepVerifier;
-
+//TODO: tests für sämtliche neue funktionen schreiben
 class TemporalFunctionLibraryTest {
 
     static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
@@ -228,7 +227,7 @@ class TemporalFunctionLibraryTest {
 
     @Test
     void policyWithDayOfWeekBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where time.dayOfWeekFrom(\"UTC\".<clock.now>) == \"SUNDAY\";";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where time.localWeekdayFrom(\"UTC\".<clock.now>) == \"SUNDAY\";";
         AuthorizationDecision expectedAuthzDecision;
         if (DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)) == DayOfWeek.SUNDAY) {
             expectedAuthzDecision = AuthorizationDecision.PERMIT;
@@ -240,35 +239,35 @@ class TemporalFunctionLibraryTest {
 
     @Test
     void policyWithLocalDateTimeBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localDateTime(\"UTC\".<clock.now>)) in [16, 19];";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localDateTimeFrom(\"UTC\".<clock.now>)) in [16, 19];";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalTimeBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localTime(\"UTC\".<clock.now>)) in [5, 8];";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localTimeFrom(\"UTC\".<clock.now>)) in [5, 8];";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalHourBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where var hour = time.localHour(\"UTC\".<clock.now>); hour >= 0 && hour <= 23;";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where var hour = time.localHourFrom(\"UTC\".<clock.now>); hour >= 0 && hour <= 23;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalMinuteBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where var minute = time.localMinute(\"UTC\".<clock.now>); minute >= 0 && minute <= 59;";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where var minute = time.localMinuteFrom(\"UTC\".<clock.now>); minute >= 0 && minute <= 59;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalSecondBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where var second = time.localSecond(\"UTC\".<clock.now>); second >= 0 && second <= 59;";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where var second = time.localSecondFrom(\"UTC\".<clock.now>); second >= 0 && second <= 59;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
