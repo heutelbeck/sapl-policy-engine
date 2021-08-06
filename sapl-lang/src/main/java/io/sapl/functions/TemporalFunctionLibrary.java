@@ -19,17 +19,20 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Long;
+import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 
 import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.OffsetDateTime;
+import java.time.Year;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.Calendar;
 
 @FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION)
 public class TemporalFunctionLibrary {
@@ -76,11 +79,11 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = BETWEEN_DOC)
-    public static Val between(@Text Val startTimeInclusive, @Text Val timeToCheck, @Text Val endTimeInclusive) {
+    public static Val between(@Text Val time, @Text Val timeOne, @Text Val timeTwo) {
         try {
-            Instant t = nodeToInstant(startTimeInclusive);
-            Instant t1 = nodeToInstant(timeToCheck);
-            Instant t2 = nodeToInstant(endTimeInclusive);
+            Instant t = nodeToInstant(time);
+            Instant t1 = nodeToInstant(timeOne);
+            Instant t2 = nodeToInstant(timeTwo);
 
             if (t.equals(t1))
                 return Val.TRUE;
@@ -160,18 +163,129 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = DAYOFWEEK_DOC)
-    public static Val dayOfWeekFrom(@Text Val time) {
+    public static Val localWeekdayFrom(@Text Val utcDateTime) {
         try {
-            final Instant instant = nodeToInstant(time);
-            final OffsetDateTime utc = instant.atOffset(ZoneOffset.UTC);
-            return Val.of(DayOfWeek.from(utc).toString());
+            final Instant instant = nodeToInstant(utcDateTime);
+            final LocalDateTime localDateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
+            return Val.of(DayOfWeek.from(localDateTime).toString());
         } catch (DateTimeException e) {
             return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
         }
     }
 
+    @Function(docs = "TODO")
+    public static Val toEpochSecond(@Text Val utcDateTime) {
+        try {
+            final Instant instant = nodeToInstant(utcDateTime);
+            return Val.of(instant.getEpochSecond());
+        } catch (DateTimeException e) {
+            return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
+        }
+    }
+
+    @Function(docs = "TODO")
+    public static Val toEpochMillis(@Text Val utcDateTime) {
+        try {
+            final Instant instant = nodeToInstant(utcDateTime);
+            return Val.of(instant.toEpochMilli());
+        } catch (DateTimeException e) {
+            return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
+        }
+    }
+
+    @Function(docs = "TODO")
+    public static Val ofEpochSecond(@Number Val epochSeconds) {
+        try {
+            return Val.of(Instant.ofEpochMilli(epochSeconds.get().asLong()).toString());
+        } catch (DateTimeException e) {
+            return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
+        }
+    }
+
+    @Function(docs = "TODO")
+    public static Val ofEpochMillis(@Number Val epochMillis) {
+        try {
+            return Val.of(Instant.ofEpochMilli(epochMillis.get().asLong()).toString());
+        } catch (DateTimeException e) {
+            return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
+        }
+    }
+
+    @Function(docs = "TODO")
+    public static Val timeBetween(@Text Val utcFrom, @Text Val utcTo, @Text Val chronoUnit) {
+        try {
+            final Instant instantFrom = nodeToInstant(utcFrom);
+            final Instant instantTo = nodeToInstant(utcTo);
+            return Val.of(instantFrom.until(instantTo, ChronoUnit.valueOf(chronoUnit.getText())));
+        } catch (DateTimeException e) {
+            return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
+        }
+    }
+
+    @Function(docs = "TODO")
+    public static Val atZone(@Text Val utcDateTime, @Text Val zoneId) {
+        try {
+            final Instant instant = nodeToInstant(utcDateTime);
+            return Val.of(instant.atZone(ZoneId.of(zoneId.getText())).toString());
+        } catch (DateTimeException e) {
+            return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
+        }
+    }
+
+    @Function(docs = "TODO")
+    public static Val atOffset(@Text Val utcDateTime, @Text Val offsetId) {
+        try {
+            final Instant instant = nodeToInstant(utcDateTime);
+            return Val.of(instant.atOffset(ZoneOffset.of(offsetId.getText())).toString());
+        } catch (DateTimeException e) {
+            return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
+        }
+    }
+
+    @Function(docs = "TODO")
+    public static Val isSupported(@Number Val year, @Number Val month, @Number Val day) {
+        try {
+            final Calendar cal = Calendar.getInstance();
+            cal.set(year.get().asInt(), month.get().asInt(), day.get().asInt());
+            return Val.of(cal.isWeekDateSupported());
+        } catch (DateTimeException e) {
+            return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
+        }
+    }
+
+    @Function(docs = "TODO")
+    public static Val weekNumberFor(@Number Val year, @Number Val month, @Number Val day) {
+        try {
+            final Calendar cal = Calendar.getInstance();
+            cal.set(year.get().asInt(), month.get().asInt(), day.get().asInt());
+            return Val.of(cal.getWeeksInWeekYear());
+        } catch (DateTimeException e) {
+            return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
+        }
+    }
+
+
+    @Function(docs = "TODO")
+    public static Val isLeapYear(@Number Val year) {
+        try {
+            return Val.of(Year.isLeap(year.get().asLong()));
+        } catch (DateTimeException e) {
+            return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
+        }
+    }
+
+    @Function(docs = "TODO")
+    public static Val validInstant(@Text Val utcDateTime) {
+        try {
+            nodeToInstant(utcDateTime);
+            return Val.of(true);
+        } catch (DateTimeException e) {
+            return Val.of(false);
+        }
+    }
+
     @Function(docs = LOCAL_DATE_TIME_DOC)
-    public static Val localDateTime(@Text Val utcDateTime) {
+    public static Val localDateTimeFrom(@Text Val utcDateTime) {
         try {
             final Instant instant = nodeToInstant(utcDateTime);
             final LocalDateTime localDateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
@@ -181,8 +295,29 @@ public class TemporalFunctionLibrary {
         }
     }
 
+    @Function(docs = "TODO")
+    public static Val localDateFrom(@Text Val utcDateTime) {
+        try {
+            final Instant instant = nodeToInstant(utcDateTime);
+            final LocalDate localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate();
+            return Val.of(localDate.toString());
+        } catch (DateTimeException e) {
+            return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
+        }
+    }
+
+    @Function(docs = "TODO")
+    public static Val localDateOf(@Number Val year, @Number Val month, @Number Val day) {
+        try {
+            final LocalDate localDate = LocalDate.of(year.get().asInt(), month.get().asInt(), day.get().asInt());
+            return Val.of(localDate.toString());
+        } catch (DateTimeException e) {
+            return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
+        }
+    }
+
     @Function(docs = LOCAL_TIME_DOC)
-    public static Val localTime(@Text Val utcDateTime) {
+    public static Val localTimeFrom(@Text Val utcDateTime) {
         try {
             final Instant instant = nodeToInstant(utcDateTime);
             final LocalTime localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime();
@@ -193,7 +328,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = LOCAL_HOUR_DOC)
-    public static Val localHour(@Text Val utcDateTime) {
+    public static Val localHourFrom(@Text Val utcDateTime) {
         try {
             final Instant instant = nodeToInstant(utcDateTime);
             final LocalTime localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime();
@@ -204,7 +339,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = LOCAL_MINUTE_DOC)
-    public static Val localMinute(@Text Val utcDateTime) {
+    public static Val localMinuteFrom(@Text Val utcDateTime) {
         try {
             final Instant instant = nodeToInstant(utcDateTime);
             final LocalTime localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime();
@@ -215,7 +350,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = LOCAL_SECOND_DOC)
-    public static Val localSecond(@Text Val utcDateTime) {
+    public static Val localSecondFrom(@Text Val utcDateTime) {
         try {
             final Instant instant = nodeToInstant(utcDateTime);
             final LocalTime localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime();

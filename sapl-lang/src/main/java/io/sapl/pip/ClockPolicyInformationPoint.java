@@ -22,13 +22,13 @@ import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Text;
+import io.sapl.pip.Schedules.ScheduleListener;
+import io.sapl.pip.Schedules.ScheduleProducer;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink.OverflowStrategy;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 import java.time.DateTimeException;
 import java.time.Duration;
@@ -37,10 +37,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Slf4j
 @NoArgsConstructor
@@ -68,6 +65,10 @@ public class ClockPolicyInformationPoint {
         final ZoneId zoneId = convertToZoneId(value.get());
         final OffsetDateTime now = Instant.now().atZone(zoneId).toOffsetDateTime();
         return Val.fluxOf(now.getDayOfWeek().name());
+    }
+
+    public Flux<Val> timeZone(@Text Val value, Map<String, JsonNode> variables) {
+        return Val.fluxOf(ZoneId.systemDefault().toString());
     }
 
     private ZoneId convertToZoneId(JsonNode value) {
@@ -100,101 +101,18 @@ public class ClockPolicyInformationPoint {
         }).map(__ -> Val.of(Instant.now().toString()));
     }
 
-    /*
-     * var time = "09:37"
-     * var isAfter = <clock.clockAfter(time)>; should produce < "10:00" true, "00:00" false, "09:37" true, "00:00" false>
-     */
-    public Flux<Val> clockAfter(@Text Val value, Map<String, JsonNode> variables, @Text Val time) {
-        final ZoneId zoneId = convertToZoneId(value.get());
 
-        var reference = nodeToInstant(time);
-        var now = Instant.now();
-        var nowIsBeforeReference = now.isBefore(reference);
-        // log.info("{} is before {}: {}", now, reference, nowIsBeforeReference);
+    public Flux<Val> clockAfter(@Text Val zone, Map<String, JsonNode> variables, @Text Val time) {
+        //e.g. time -> "15:00", "09:00" & zone -> "UTC" -> "Europe/Berlin"
+        var referenceLocalTime = LocalTime.parse(time.getText());
 
-        var nextMidnight = Instant.now().plus(1L, ChronoUnit.DAYS).truncatedTo(ChronoUnit.DAYS);
-        var nextReferenceTime = reference.plus(1L, ChronoUnit.DAYS);
-        // log.info("nextMidnight: {}, nextReferenceTime: {}", nextMidnight, nextReferenceTime);
-
-        var delayToNextMidnight = Duration.between(now, nextMidnight);
-        var delayToNextReferenceTime = nowIsBeforeReference ? Duration.between(now, reference)
-                : Duration.between(now, nextReferenceTime);
-        // log.info("delayToNextMidnight: {}, delayToNextReferenceTime: {}", delayToNextMidnight, delayToNextReferenceTime);
-
-        //emits value every 24 hours at midnight
-        var midnightFlux = Flux.interval(delayToNextMidnight, Duration.ofHours(24));
-        //emits value every 24 hours at reference time
-        var referenceTimeFlux = Flux.interval(delayToNextReferenceTime, Duration.ofHours(24));
-
-        //if reference is after "now", next change is is at specified time
-        //if reference is before "now", next change is at midnight of the next day
-
-        // concatenate with a single number leading to have one time-stamp immediately.
-        // Else PEPs have to wait for the interval to pass once before getting a first
-        // decision.
-        return Flux.concat(Flux.just(0), midnightFlux.mergeWith(referenceTimeFlux))
-                .map(__ -> Val.of(Instant.now().isAfter(reference)));
+        return Flux.create(sink -> ScheduleProducer.builder()
+                .referenceTime(referenceLocalTime)
+                .currentTime(LocalTime.now())
+                .listener(new ScheduleListener(sink))
+                .build().startScheduling(), OverflowStrategy.LATEST);
     }
 
-    public Flux<Val> clockAfter2(Val leftHand, Map<String, JsonNode> variables, @Text Val time) {
-        var instantRef = nodeToInstant(time);
-        var localTimeRef = instantRef.atZone(ZoneOffset.UTC).toLocalTime();
-
-        var delayToNextMidnight = delayUntilNextMidnight();
-        var delayToNextReferenceTime = delayUntilNextReference(localTimeRef);
-        log.info("delayToNextMidnight: {}, delayToNextReferenceTime: {}", delayToNextMidnight, delayToNextReferenceTime);
-
-        var firstTuple = delayToNextMidnight.compareTo(delayToNextReferenceTime) > 0
-                ? Tuples.of("reference", delayToNextReferenceTime)
-                : Tuples.of("reference", delayToNextMidnight);
-
-        ConcurrentLinkedQueue<Tuple2<String, Duration>> queue = new ConcurrentLinkedQueue<>();
-        queue.offer(firstTuple);
-
-        var delayFlux = Flux.<Tuple2<String, Duration>>generate(sink -> {
-            val tuple2 = queue.poll();
-            if (tuple2 == null) {
-                sink.complete();
-            } else {
-                if (tuple2.getT1().equalsIgnoreCase("reference")) {
-                    queue.offer(Tuples.of("midnight", delayUntilNextMidnight()));
-                } else {
-                    queue.offer(Tuples.of("reference", delayUntilNextReference(localTimeRef)));
-                }
-
-                sink.next(tuple2);
-            }
-        }).repeatWhen(it -> it.delayElements(Duration.ofSeconds(10))).delayUntil(tuple -> Mono.delay(tuple.getT2()));
-
-        return Flux.concat(Flux.just(Tuples.of("now", Duration.ZERO)), delayFlux)
-                .map(tuple2 -> {
-                    var localTimeNow = Instant.now().atZone(ZoneOffset.UTC).toLocalTime();
-                    log.info("{} (clock) is after {} (ref): {}", localTimeNow, localTimeRef, localTimeNow.isAfter(localTimeRef));
-
-                    return Val.of(localTimeNow.isAfter(localTimeRef));
-                });
-    }
-
-    private Duration delayUntilNextMidnight() {
-        var now = Instant.now();
-        var nextMidnight = Instant.now().plus(1L, ChronoUnit.DAYS).truncatedTo(ChronoUnit.DAYS);
-
-        return Duration.between(now, nextMidnight);
-    }
-
-    private Duration delayUntilNextReference(LocalTime localTimeRef) {
-        ZonedDateTime zonedNow = Instant.now().atZone(ZoneOffset.UTC);
-        var localTimeNow = zonedNow.toLocalTime();
-        var nowBefore = localTimeNow.isBefore(localTimeRef);
-
-        var nextReferenceTime = zonedNow.toLocalDate() //Today
-                .plusDays(1L) // Tomorrow
-                .atTime(localTimeRef) // Tomorrow at reference Time
-                .atZone(ZoneOffset.UTC);
-
-        return nowBefore ? Duration.between(localTimeNow, localTimeRef) // same day
-                : Duration.between(zonedNow, nextReferenceTime); // next day
-    }
 
     public Flux<Val> clockBefore(Val leftHand, Map<String, JsonNode> variables, @Text Val time) {
         return clockAfter(leftHand, variables, time)
@@ -219,6 +137,12 @@ public class ClockPolicyInformationPoint {
         if (time.isNull() || time.isUndefined()) throw new DateTimeException("provided time value is null or undefined");
 
         return Instant.parse(time.get().asText());
+    }
+
+    private ZoneOffset toOffset(ZoneId zoneId) {
+        Instant instant = Instant.now(); //can be LocalDateTime
+        ZoneId systemZone = ZoneId.systemDefault(); // my timezone
+        return systemZone.getRules().getOffset(instant);
     }
 
 }

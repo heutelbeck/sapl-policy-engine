@@ -131,7 +131,7 @@ class TemporalFunctionLibraryTest {
     void dayOfWeekFrom() {
         var zoneId = Val.of("UTC");
         var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
-        var dayOfWeek = TemporalFunctionLibrary.dayOfWeekFrom(now);
+        var dayOfWeek = TemporalFunctionLibrary.localWeekdayFrom(now);
         var expected = DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)).toString();
         assertThat(dayOfWeek, is(val(expected)));
     }
@@ -183,12 +183,12 @@ class TemporalFunctionLibraryTest {
         assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::minusNanos);
         assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::minusSeconds);
 
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::dayOfWeekFrom);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localDateTime);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localTime);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localHour);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localMinute);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localSecond);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localWeekdayFrom);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localDateTimeFrom);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localTimeFrom);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localHourFrom);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localMinuteFrom);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localSecondFrom);
 
 
         assertThat(TemporalFunctionLibrary.between(Val.NULL, Val.of((BigDecimal) null), Val.of((String) null)).isError(), is(true));

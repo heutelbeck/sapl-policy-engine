@@ -18,64 +18,66 @@ package io.sapl.pip;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.TemporalFunctionLibrary;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.stubbing.Answer;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-@Slf4j
 public class ClockPolicyInformationPointTickerTest {
-
-    // private static final Logger log = LoggerFactory.getLogger(ClockPolicyInformationPointTickerTest.class);
 
     @Test
     public void ticker() {
         final ClockPolicyInformationPoint clockPip = new ClockPolicyInformationPoint();
         StepVerifier.withVirtualTime(() -> clockPip.ticker(Val.UNDEFINED, Collections.emptyMap(), Flux.just(Val.of(30L)))).expectSubscription()
                 .expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
-            /* the first node is provided some nano seconds after its creation */
-        })
+                    /* the first node is provided some nano seconds after its creation */
+                })
                 .expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
-            var localDateTime = LocalDateTime.now();
-            var actual = TemporalFunctionLibrary.localDateTime(node).get().textValue();
-            var expected = localDateTime.truncatedTo(ChronoUnit.SECONDS).toString();
-            assertEquals(expected, actual);
-        }).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
-            var localTime = LocalTime.now();
-            var actual = TemporalFunctionLibrary.localTime(node).get().textValue();
-            var expected = localTime.truncatedTo(ChronoUnit.SECONDS).toString();
-            assertEquals(expected, actual);
-        }).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
-            var localTime = LocalTime.now();
-            var actual = TemporalFunctionLibrary.localHour(node).get().numberValue();
-            var expected = BigDecimal.valueOf(localTime.getHour());
-            assertEquals(expected.longValue(), actual.longValue());
-        }).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
-            var localTime = LocalTime.now();
-            var actual = TemporalFunctionLibrary.localMinute(node).get().numberValue();
-            var expected = BigDecimal.valueOf(localTime.getMinute());
-            assertEquals(expected.longValue(), actual.longValue());
-        }).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
-            var localTime = LocalTime.now();
-            var actual = TemporalFunctionLibrary.localSecond(node).get().numberValue();
-            var expected = BigDecimal.valueOf(localTime.getSecond());
-            assertEquals(expected.longValue(), actual.longValue());
-        }).thenCancel().verify();
+                    var localDateTime = LocalDateTime.now();
+                    var actual = TemporalFunctionLibrary.localDateTimeFrom(node).get().textValue();
+                    var expected = localDateTime.truncatedTo(ChronoUnit.SECONDS).toString();
+                    assertEquals(expected, actual);
+                }).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
+                    var localTime = LocalTime.now();
+                    var actual = TemporalFunctionLibrary.localTimeFrom(node).get().textValue();
+                    var expected = localTime.truncatedTo(ChronoUnit.SECONDS).toString();
+                    assertEquals(expected, actual);
+                }).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
+                    var localTime = LocalTime.now();
+                    var actual = TemporalFunctionLibrary.localHourFrom(node).get().numberValue();
+                    var expected = BigDecimal.valueOf(localTime.getHour());
+                    assertEquals(expected.longValue(), actual.longValue());
+                }).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
+                    var localTime = LocalTime.now();
+                    var actual = TemporalFunctionLibrary.localMinuteFrom(node).get().numberValue();
+                    var expected = BigDecimal.valueOf(localTime.getMinute());
+                    assertEquals(expected.longValue(), actual.longValue());
+                }).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
+                    var localTime = LocalTime.now();
+                    var actual = TemporalFunctionLibrary.localSecondFrom(node).get().numberValue();
+                    var expected = BigDecimal.valueOf(localTime.getSecond());
+                    assertEquals(expected.longValue(), actual.longValue());
+                }).thenCancel().verify();
     }
 
     @Test
@@ -84,57 +86,55 @@ public class ClockPolicyInformationPointTickerTest {
         when(jsonNodeMock.asText()).thenReturn(null);
 
         var clockPip = new ClockPolicyInformationPoint();
-        clockPip.now(Val.of(jsonNodeMock), Collections.emptyMap()).blockFirst();
-    }
+        var zoneId = clockPip.now(Val.of(jsonNodeMock), Collections.emptyMap()).blockFirst();
 
-    @Test
-    void doTest() {
-        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        Instant ref = Instant.now().minus(1, ChronoUnit.HOURS).plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
-        log.info("{} is after {} =  {}", now, ref, now.isAfter(ref));
-
-        LocalTime timeNow = now.atZone(ZoneOffset.UTC).toLocalTime();
-        LocalTime timeRef = ref.atZone(ZoneOffset.UTC).toLocalTime();
-        log.info("{} is after {} =  {}", timeNow, timeRef, timeNow.isAfter(timeRef));
-
-        System.out.println(LocalTime.now().truncatedTo(ChronoUnit.DAYS));
-
-        var d1 = Duration.ofHours(23);
-        var d2 = Duration.ofMinutes(78);
-        var d3 = Duration.ofSeconds(12);
-        log.info("{} is less than {} = {}", d2, d3, d3.compareTo(d1));
+        assertThat(zoneId, is(ZoneId.systemDefault()));
     }
 
     @Test
     void testClockAfter() throws Exception {
+        var jsonNodeMock = mock(JsonNode.class);
+        when(jsonNodeMock.asText()).thenReturn(null);
         var clockPip = new ClockPolicyInformationPoint();
 
-        assertThat(clockPip.clockAfter(Val.UNDEFINED, Collections.emptyMap(), Val.of(Instant.now().plusSeconds(10L).toString()))
-                .blockFirst().getBoolean(), is(false)
-        );
-        assertThat(clockPip.clockAfter(Val.UNDEFINED, Collections.emptyMap(), Val.of(Instant.now().minusSeconds(10L).toString()))
-                .blockFirst().getBoolean(), is(true)
-        );
+        var tomorrowAtMidnight = LocalDate.now().plusDays(1).atStartOfDay();
+        var todayJustBeforeMidnight = tomorrowAtMidnight.minus(30, ChronoUnit.SECONDS);
+        var time = Val.of("23:59:30");
 
-        StepVerifier
-                .withVirtualTime(() -> clockPip.clockAfter(Val.UNDEFINED, Collections.emptyMap(), Val.of(Instant.now().plusSeconds(10L).toString())))
-                .expectSubscription()
-                .thenAwait(Duration.ofHours(25))
-                .expectNextCount(4)
-                .thenCancel().verify(Duration.ofMillis(200));
+        AtomicBoolean atomicBoolean = new AtomicBoolean(false);
+        try (MockedStatic<LocalTime> mock = mockStatic(LocalTime.class, CALLS_REAL_METHODS)) {
 
-    }
+            mock.when(LocalTime::now).thenAnswer((Answer<?>) invocation -> {
+                var beforeMidnight = atomicBoolean.get();
+                atomicBoolean.set(!beforeMidnight);
 
-    @Test
-    void testClockBefore() {
-        var clockPip = new ClockPolicyInformationPoint();
+                if (beforeMidnight) {
+                    return todayJustBeforeMidnight.plusSeconds(5L).toLocalTime();
+                } else {
+                    return tomorrowAtMidnight.plusSeconds(5L).toLocalTime();
+                }
+            });
 
-        assertThat(clockPip.clockBefore(Val.UNDEFINED, Collections.emptyMap(), Val.of(Instant.now().plusSeconds(10L).toString()))
-                .blockFirst().getBoolean(), is(true)
-        );
-        assertThat(clockPip.clockBefore(Val.UNDEFINED, Collections.emptyMap(), Val.of(Instant.now().minusSeconds(10L).toString()))
-                .blockFirst().getBoolean(), is(false)
-        );
+            StepVerifier.withVirtualTime(() -> clockPip.clockAfter(Val.of(jsonNodeMock), Collections.emptyMap(), time))
+                    .expectSubscription()
+                    .thenAwait(Duration.ofDays(1L))
+                    .consumeNextWith(val -> {
+                        // on same day just before midnight
+                        //      -> clock should be slightly after reference time (23:59:30)
+                        var isAfter = val.getBoolean();
+                        assertThat(isAfter, is(true));
+                    })
+                    .consumeNextWith(val -> {
+                        // exactly at midnight
+                        //      -> clock should definitely before reference time  (23:59:30)
+                        var isAfter = val.getBoolean();
+                        assertThat(isAfter, is(false));
+                    })
+                    .thenAwait(Duration.ofDays(2L))
+                    .expectNextCount(4)
+                    .thenCancel().verify();
+        }
+
     }
 
 }
