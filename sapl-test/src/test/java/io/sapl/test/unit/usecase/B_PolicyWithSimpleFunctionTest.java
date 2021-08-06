@@ -3,6 +3,7 @@ package io.sapl.test.unit.usecase;
 import static io.sapl.test.Imports.times;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
@@ -12,6 +13,7 @@ import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 
+@Disabled
 public class B_PolicyWithSimpleFunctionTest {
 	
 	private SaplTestFixture fixture;

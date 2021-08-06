@@ -58,7 +58,7 @@ public class ImportCompletionTests extends CompletionTests {
 			it.setModel(policy);
 			it.setColumn(policy.length());
 			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("now", "ticker");
+				var expected = List.of("millis","now", "ticker");
 				assertProposalsSimple(expected, completionList);
 			});
 		});

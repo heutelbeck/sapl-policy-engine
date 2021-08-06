@@ -20,6 +20,7 @@ import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 
+@Disabled
 public class E_PolicyStreamingTest {
 
 	private SaplTestFixture fixture;
@@ -78,6 +79,7 @@ public class E_PolicyStreamingTest {
 	}
 	
 	@Test
+	@Disabled
 	void test_streamingPolicy_TimingAttributeMock() {
 		var timestamp0 = Val.of("2021-02-08T16:16:01.000Z");
 		var timestamp1 = Val.of("2021-02-08T16:16:02.000Z");
