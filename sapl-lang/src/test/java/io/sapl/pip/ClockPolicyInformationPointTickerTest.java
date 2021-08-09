@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.TemporalFunctionLibrary;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.stubbing.Answer;
@@ -31,11 +30,9 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -59,27 +56,27 @@ public class ClockPolicyInformationPointTickerTest {
                 })
                 .expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
                     var localDateTime = LocalDateTime.now();
-                    var actual = TemporalFunctionLibrary.localDateTimeFrom(node).get().textValue();
+                    var actual = TemporalFunctionLibrary.localDateTime(node).get().textValue();
                     var expected = localDateTime.truncatedTo(ChronoUnit.SECONDS).toString();
                     assertEquals(expected, actual);
                 }).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
                     var localTime = LocalTime.now();
-                    var actual = TemporalFunctionLibrary.localTimeFrom(node).get().textValue();
+                    var actual = TemporalFunctionLibrary.localTime(node).get().textValue();
                     var expected = localTime.truncatedTo(ChronoUnit.SECONDS).toString();
                     assertEquals(expected, actual);
                 }).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
                     var localTime = LocalTime.now();
-                    var actual = TemporalFunctionLibrary.localHourFrom(node).get().numberValue();
+                    var actual = TemporalFunctionLibrary.localHour(node).get().numberValue();
                     var expected = BigDecimal.valueOf(localTime.getHour());
                     assertEquals(expected.longValue(), actual.longValue());
                 }).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
                     var localTime = LocalTime.now();
-                    var actual = TemporalFunctionLibrary.localMinuteFrom(node).get().numberValue();
+                    var actual = TemporalFunctionLibrary.localMinute(node).get().numberValue();
                     var expected = BigDecimal.valueOf(localTime.getMinute());
                     assertEquals(expected.longValue(), actual.longValue());
                 }).expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
                     var localTime = LocalTime.now();
-                    var actual = TemporalFunctionLibrary.localSecondFrom(node).get().numberValue();
+                    var actual = TemporalFunctionLibrary.localSecond(node).get().numberValue();
                     var expected = BigDecimal.valueOf(localTime.getSecond());
                     assertEquals(expected.longValue(), actual.longValue());
                 }).thenCancel().verify();

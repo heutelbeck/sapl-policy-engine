@@ -130,7 +130,7 @@ class TemporalFunctionLibraryTest {
     void dayOfWeekFrom() {
         var zoneId = Val.of("UTC");
         var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
-        var dayOfWeek = TemporalFunctionLibrary.localWeekdayFrom(now);
+        var dayOfWeek = TemporalFunctionLibrary.dayOfWeek(now);
         var expected = DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)).toString();
         assertThat(dayOfWeek, is(val(expected)));
     }
@@ -172,29 +172,71 @@ class TemporalFunctionLibraryTest {
     }
 
     @Test
+    void timeBetweenTest() {
+        var now = Instant.now().truncatedTo(ChronoUnit.HOURS);
+        var yesterday = now.minus(1, ChronoUnit.DAYS);
+        var tomorrow = now.plus(1, ChronoUnit.DAYS);
+
+        var daysBetween = TemporalFunctionLibrary.timeBetween(Val.of(now.toString()), Val.of(tomorrow.toString()), Val.of(ChronoUnit.DAYS.toString()));
+        var hoursBetween = TemporalFunctionLibrary.timeBetween(Val.of(now.toString()), Val.of(tomorrow.toString()), Val.of(ChronoUnit.HOURS.toString()));
+        assertThat(daysBetween.get().asLong(),is(1L));
+        assertThat(hoursBetween.get().asLong(),is(24L));
+
+         daysBetween = TemporalFunctionLibrary.timeBetween(Val.of(tomorrow.toString()), Val.of(yesterday.toString()), Val.of(ChronoUnit.DAYS.toString()));
+         hoursBetween = TemporalFunctionLibrary.timeBetween(Val.of(tomorrow.toString()), Val.of(yesterday.toString()), Val.of(ChronoUnit.HOURS.toString()));
+        assertThat(daysBetween.get().asLong(),is(-2L));
+        assertThat(hoursBetween.get().asLong(),is(-48L));
+    }
+
+    @Test
     void should_return_error_for_invalid_time_arguments() {
         assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::before);
         assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::after);
-        assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::plusMillis);
         assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::plusNanos);
+        assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::plusMillis);
         assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::plusSeconds);
-        assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::minusMillis);
         assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::minusNanos);
+        assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::minusMillis);
         assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::minusSeconds);
 
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localWeekdayFrom);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localDateTimeFrom);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localTimeFrom);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localHourFrom);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localMinuteFrom);
-        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localSecondFrom);
+        assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::atZone);
+        assertErrorValIsReturnedTwoArgs(TemporalFunctionLibrary::atOffset);
+
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::atLocal);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::toEpochSecond);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::toEpochMillis);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::ofEpochSeconds);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::ofEpochMillis);
+
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::weekOfYear);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::dayOfYear);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::dayOfWeek);
+
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localDateTime);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localDate);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localTime);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localHour);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localMinute);
+        assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::localSecond);
 
 
         assertThat(TemporalFunctionLibrary.between(Val.NULL, Val.of((BigDecimal) null), Val.of((String) null)).isError(), is(true));
         assertThat(TemporalFunctionLibrary.between(Val.UNDEFINED, Val.UNDEFINED, Val.UNDEFINED).isError(), is(true));
         assertThat(TemporalFunctionLibrary.between(Val.of("abc"), Val.of("def"), Val.of("ghi")).isError(), is(true));
 
+        assertThat(TemporalFunctionLibrary.timeBetween(Val.NULL, Val.of((BigDecimal) null), Val.of((String) null)).isError(), is(true));
+        assertThat(TemporalFunctionLibrary.timeBetween(Val.UNDEFINED, Val.UNDEFINED, Val.UNDEFINED).isError(), is(true));
+        assertThat(TemporalFunctionLibrary.timeBetween(Val.of("abc"), Val.of("def"), Val.of("ghi")).isError(), is(true));
 
+        assertThat(TemporalFunctionLibrary.validISO(Val.NULL).getBoolean(), is(false));
+        assertThat(TemporalFunctionLibrary.validISO(Val.of((String) null)).getBoolean(), is(false));
+        assertThat(TemporalFunctionLibrary.validISO(Val.UNDEFINED).getBoolean(), is(false));
+        assertThat(TemporalFunctionLibrary.validISO(Val.of("abc")).getBoolean(), is(false));
+
+        assertThat(TemporalFunctionLibrary.validUTC(Val.NULL).getBoolean(), is(false));
+        assertThat(TemporalFunctionLibrary.validUTC(Val.of((String) null)).getBoolean(), is(false));
+        assertThat(TemporalFunctionLibrary.validUTC(Val.UNDEFINED).getBoolean(), is(false));
+        assertThat(TemporalFunctionLibrary.validUTC(Val.of("abc")).getBoolean(), is(false));
     }
 
     private void assertErrorValIsReturnedOneArg(Function<Val, Val> function) {
@@ -227,7 +269,7 @@ class TemporalFunctionLibraryTest {
 
     @Test
     void policyWithDayOfWeekBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where time.localWeekdayFrom(\"UTC\".<clock.now>) == \"SUNDAY\";";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where time.dayOfWeek(\"UTC\".<clock.now>) == \"SUNDAY\";";
         AuthorizationDecision expectedAuthzDecision;
         if (DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)) == DayOfWeek.SUNDAY) {
             expectedAuthzDecision = AuthorizationDecision.PERMIT;
@@ -239,35 +281,35 @@ class TemporalFunctionLibraryTest {
 
     @Test
     void policyWithLocalDateTimeBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localDateTimeFrom(\"UTC\".<clock.now>)) in [16, 19];";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localDateTime(\"UTC\".<clock.now>)) in [16, 19];";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalTimeBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localTimeFrom(\"UTC\".<clock.now>)) in [5, 8];";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localTime(\"UTC\".<clock.now>)) in [5, 8];";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalHourBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where var hour = time.localHourFrom(\"UTC\".<clock.now>); hour >= 0 && hour <= 23;";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where var hour = time.localHour(\"UTC\".<clock.now>); hour >= 0 && hour <= 23;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalMinuteBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where var minute = time.localMinuteFrom(\"UTC\".<clock.now>); minute >= 0 && minute <= 59;";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where var minute = time.localMinute(\"UTC\".<clock.now>); minute >= 0 && minute <= 59;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalSecondBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where var second = time.localSecondFrom(\"UTC\".<clock.now>); second >= 0 && second <= 59;";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where var second = time.localSecond(\"UTC\".<clock.now>); second >= 0 && second <= 59;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
