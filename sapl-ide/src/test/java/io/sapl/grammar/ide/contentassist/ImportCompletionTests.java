@@ -19,10 +19,16 @@ import java.util.List;
 
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
+import io.sapl.grammar.ide.SAPLIdeSpringTestConfiguration;
+import io.sapl.grammar.ide.spring.SpringConfiguration;
 
 /**
  * Tests regarding the auto completion of import statements
  */
+@SpringBootTest
+@ContextConfiguration(classes = { SAPLIdeSpringTestConfiguration.class, SpringConfiguration.class } )
 public class ImportCompletionTests extends CompletionTests {
 
 	@Test
@@ -58,7 +64,7 @@ public class ImportCompletionTests extends CompletionTests {
 			it.setModel(policy);
 			it.setColumn(policy.length());
 			it.setAssertCompletionList(completionList -> {
-				var expected = List.of("millis","now", "ticker");
+				var expected = List.of("millis", "now", "ticker");
 				assertProposalsSimple(expected, completionList);
 			});
 		});

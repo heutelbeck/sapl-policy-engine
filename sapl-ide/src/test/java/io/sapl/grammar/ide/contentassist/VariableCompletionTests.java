@@ -19,10 +19,16 @@ import java.util.List;
 
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
+
+import io.sapl.grammar.ide.SAPLIdeSpringTestConfiguration;
 
 /**
  * Tests regarding the auto completion of variables
  */
+@SpringBootTest
+@ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 public class VariableCompletionTests extends CompletionTests {
 	@Test
 	public void testCompletion_SuggestVariableInBody() {

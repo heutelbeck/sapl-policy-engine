@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
-import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
 
 /**
@@ -31,7 +30,7 @@ import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
  * 
  */
 public class CompletionTests extends AbstractSaplLanguageServerTest {
-
+	
 	protected void assertProposalsSimple(final Collection<String> expectedProposals,
 			final CompletionList completionList) {
 		Collection<CompletionItem> completionItems = completionList.getItems();

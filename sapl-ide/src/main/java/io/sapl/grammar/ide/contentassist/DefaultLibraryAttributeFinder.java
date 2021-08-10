@@ -22,49 +22,27 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.StandardFunctionLibrary;
-import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.interpreter.EvaluationContext;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pip.ClockPolicyInformationPoint;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
 /**
  * This class is used to offer library and function proposals.
  */
+@Component
+@NoArgsConstructor
+@RequiredArgsConstructor
 public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 
+	@Autowired @NonNull
 	private AttributeContext attributeContext;
+	@Autowired @NonNull
 	private FunctionContext funtionContext;
-
-	/**
-	 * The default constructor registers the default libraries.
-	 * 
-	 * @throws InitializationException
-	 */
-	public DefaultLibraryAttributeFinder() throws InitializationException {
-		attributeContext = new AnnotationAttributeContext();
-		attributeContext.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
-		funtionContext = new AnnotationFunctionContext();
-		funtionContext.loadLibrary(new FilterFunctionLibrary());
-		funtionContext.loadLibrary(new StandardFunctionLibrary());
-		funtionContext.loadLibrary(new TemporalFunctionLibrary());
-	}
-
-	/**
-	 * Creates a new finder based on the libraries and functions that are registered
-	 * in the provided evaluation context.
-	 * 
-	 * @param evaluationContext
-	 */
-	public DefaultLibraryAttributeFinder(EvaluationContext evaluationContext) {
-		attributeContext = evaluationContext.getAttributeCtx();
-		funtionContext = evaluationContext.getFunctionCtx();
-	}
 
 	@Override
 	public Collection<String> getAvailableAttributes(String identifier) {

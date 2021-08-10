@@ -45,13 +45,24 @@
 			<artifactId>org.eclipse.xtext.xbase.ide</artifactId>
 			<version>${xtext.version}</version>
 		</dependency>
+		<dependency>
+		    <groupId>org.springframework</groupId>
+		    <artifactId>spring-context</artifactId>
+		    <optional>true</optional>	
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<optional>true</optional>	
+		</dependency>
 
 		<!-- Testing -->
+
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>
-		</dependency>
+		</dependency>		
 		<dependency>
 		    <groupId>junit</groupId>
 		    <artifactId>junit</artifactId>

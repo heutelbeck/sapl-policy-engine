@@ -15,6 +15,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import java.awt.dnd.DropTargetListener;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -28,10 +29,14 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.google.inject.Inject;
+
+import io.sapl.grammar.ide.spring.SpringDependencyResolver;
 import io.sapl.grammar.sapl.impl.ConditionImpl;
 import io.sapl.grammar.sapl.impl.PolicyBodyImpl;
 import io.sapl.grammar.sapl.impl.ValueDefinitionImpl;
-import io.sapl.interpreter.InitializationException;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -41,15 +46,23 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
+	@Inject
+	private SpringDependencyResolver resolver;
+	
+	public SAPLContentProposalProvider() {
+		System.out.println();
+	}
+	
+	public SAPLContentProposalProvider(SpringDependencyResolver context) {
+		System.out.println();
+	}
+	
 	private Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
 	private Collection<String> allowedKeywords = Set.of("as");
 	private Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
 
-	private LibraryAttributeFinder pipAttributeFinder;
-
-	public SAPLContentProposalProvider() throws InitializationException {
-		super();
-		pipAttributeFinder = new DefaultLibraryAttributeFinder();
+	private LibraryAttributeFinder getLibraryAttributeFinder() {
+		return resolver.resolve(LibraryAttributeFinder.class);
 	}
 
 	@Override
@@ -150,7 +163,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		// remove all spaces we're only interested in statement e.g. "clock.now"
 		importStatement = importStatement.replace(" ", "");
 		// look up proposals
-		return pipAttributeFinder.getAvailableAttributes(importStatement);
+		return getLibraryAttributeFinder().getAvailableAttributes(importStatement);
 	}
 
 	private boolean handleBasicProposals(String feature, ContentAssistContext context,

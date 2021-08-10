@@ -20,21 +20,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.aggregator.ArgumentsAccessor;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
@@ -57,11 +50,7 @@ public class DefaultLibraryAttributeFinderTests {
 		funtionContext.loadLibrary(new StandardFunctionLibrary());
 		funtionContext.loadLibrary(new TemporalFunctionLibrary());
 
-		Map<String, JsonNode> environmentVariables = new HashMap<>();
-		EvaluationContext evaluationContext = new EvaluationContext(attributeContext, funtionContext,
-				environmentVariables);
-
-		attributeFinder = new DefaultLibraryAttributeFinder(evaluationContext);
+		attributeFinder = new DefaultLibraryAttributeFinder(attributeContext, funtionContext);
 	}
 
 	@ParameterizedTest
