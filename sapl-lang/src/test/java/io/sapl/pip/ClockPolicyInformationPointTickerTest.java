@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.TemporalFunctionLibrary;
+import io.sapl.interpreter.InitializationException;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.stubbing.Answer;
@@ -52,6 +53,30 @@ import static org.mockito.Mockito.when;
 public class ClockPolicyInformationPointTickerTest {
 
     private static final Val SYSTEM_TIMEZONE_VAL = Val.of(ZoneId.systemDefault().toString());
+
+    @Test
+    void test_streamingPolicyWithVirtualTime() throws InitializationException {
+
+        final ClockPolicyInformationPoint clockPip = new ClockPolicyInformationPoint();
+        StepVerifier.withVirtualTime(() -> clockPip.ticker(Val.UNDEFINED, Collections.emptyMap(), Flux.just(Val.of(2)))).expectSubscription()
+                .assertNext(val -> assertThat(val.isError(), is(false)))
+                .expectNoEvent(Duration.ofSeconds(2))
+                .thenAwait()
+                .assertNext(val -> assertThat(val.isError(), is(false)))
+                .expectNoEvent(Duration.ofSeconds(2))
+                .thenAwait()
+                .assertNext(val -> assertThat(val.isError(), is(false)))
+                .expectNoEvent(Duration.ofSeconds(2))
+                .thenAwait()
+                .assertNext(val -> assertThat(val.isError(), is(false)))
+                .expectNoEvent(Duration.ofSeconds(2))
+                .thenAwait()
+                .assertNext(val -> assertThat(val.isError(), is(false)))
+                .expectNoEvent(Duration.ofSeconds(2))
+                .thenAwait()
+                .assertNext(val -> assertThat(val.isError(), is(false)))
+                .thenCancel().verify();
+    }
 
     @Test
     public void ticker() {

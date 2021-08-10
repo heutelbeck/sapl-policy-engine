@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink.OverflowStrategy;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -37,6 +38,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @NoArgsConstructor
@@ -79,11 +81,12 @@ public class ClockPolicyInformationPoint {
             if (secondsValue == 0)
                 return Flux.error(new PolicyEvaluationException("ticker parameter must not be zero"));
 
-            // concatenate with a single number leading to have one time-stamp immediately.
-            // Else PEPs have to wait for the interval to pass once before getting a first
-            // decision.
-            return Flux.concat(Flux.just(0), Flux.interval(Duration.ofSeconds(secondsValue)));
-        }).map(__ -> Val.of(Instant.now().atZone(zoneId).toOffsetDateTime().toString()));
+            return Flux.<String>create(sink ->
+                    Schedulers.single().schedulePeriodically(
+                            () -> sink.next(Instant.now().atZone(zoneId).toOffsetDateTime().toString()),
+                            0L, secondsValue, TimeUnit.SECONDS));
+
+        }).map(Val::of);
     }
 
 
