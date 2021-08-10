@@ -328,12 +328,12 @@ class TemporalFunctionLibraryTest {
     }
 
     @Test
-    void policyWithTimeZOneBody() {
+    void policyWithTimeZoneBody() {
         var policyDefinition = "policy \"test\" " +
                 "   permit action == \"read\" " +
                 "   where " +
                 "       var timeZone = \"system\".<clock.timeZone>; " +
-                "       timeZone == \"Europe/Berlin\"; ";
+                "       standard.length(timeZone) > 0; ";
 
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
