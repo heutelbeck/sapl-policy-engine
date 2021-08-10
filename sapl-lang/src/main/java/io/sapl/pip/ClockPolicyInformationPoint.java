@@ -20,7 +20,6 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Text;
 import io.sapl.pip.Schedules.ScheduleListener;
 import io.sapl.pip.Schedules.ScheduleProducer;
@@ -30,9 +29,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink.OverflowStrategy;
 import reactor.core.publisher.Mono;
 
-import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -50,40 +49,26 @@ public class ClockPolicyInformationPoint {
     private static final String PARAMETER_NOT_AN_ISO_8601_STRING = "Parameter not an ISO 8601 string";
 
     @Attribute(docs = "Returns the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with time offset.")
-    public Flux<Val> now(@Text Val value, Map<String, JsonNode> variables) {
-        final ZoneId zoneId = convertToZoneId(value.get());
+    public Flux<Val> now(@Text Val zone, Map<String, JsonNode> variables) {
+        final ZoneId zoneId = convertToZoneId(zone);
         final OffsetDateTime now = Instant.now().atZone(zoneId).toOffsetDateTime();
         return Val.fluxOf(now.toString());
     }
 
-    @Attribute(docs = "Gets the current millisecond instant of the clock. This returns the millisecond-based instant, measured from 1970-01-01T00:00Z (UTC)")
-    public Flux<Val> millis(Val leftHand, Map<String, JsonNode> variables) {
-        return Flux.just(Val.of(Instant.now().toEpochMilli()));
+    @Attribute(docs = "Returns the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an  millisecond-based instant, measured from 1970-01-01T00:00Z (UTC).")
+    public Flux<Val> millis(Val zone, Map<String, JsonNode> variables) {
+        final ZoneId zoneId = convertToZoneId(zone);
+        return Flux.just(Val.of(Instant.now().atZone(zoneId).toInstant().toEpochMilli()));
     }
 
-    public Flux<Val> dayOfTheWeek(@Text Val value, Map<String, JsonNode> variables) {
-        final ZoneId zoneId = convertToZoneId(value.get());
-        final OffsetDateTime now = Instant.now().atZone(zoneId).toOffsetDateTime();
-        return Val.fluxOf(now.getDayOfWeek().name());
-    }
-
+    @Attribute(docs = "Returns the system default time-zone.")
     public Flux<Val> timeZone(@Text Val value, Map<String, JsonNode> variables) {
         return Val.fluxOf(ZoneId.systemDefault().toString());
     }
 
-    private ZoneId convertToZoneId(JsonNode value) {
-        final String text = value.asText() == null ? "" : value.asText().trim();
-        final String zoneIdStr = text.length() == 0 ? "system" : text;
-        if ("system".equals(zoneIdStr)) {
-            return ZoneId.systemDefault();
-        } else if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {
-            return ZoneId.of(zoneIdStr, ZoneId.SHORT_IDS);
-        }
-        return ZoneId.of(zoneIdStr);
-    }
-
-    @Attribute(docs = "Emits every x seconds the current UTC date and time as an ISO-8601 string. x is the passed number value.")
-    public Flux<Val> ticker(Val leftHand, Map<String, JsonNode> variables, Flux<Val> intervallInSeconds) {
+    @Attribute(docs = "Emits every x seconds the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with offset. x is the passed number value.")
+    public Flux<Val> ticker(Val zone, Map<String, JsonNode> variables, Flux<Val> intervallInSeconds) {
+        final ZoneId zoneId = convertToZoneId(zone);
         return intervallInSeconds.switchMap(seconds -> {
             if (!seconds.isNumber())
                 return Flux.error(new PolicyEvaluationException(
@@ -98,51 +83,74 @@ public class ClockPolicyInformationPoint {
             // Else PEPs have to wait for the interval to pass once before getting a first
             // decision.
             return Flux.concat(Flux.just(0), Flux.interval(Duration.ofSeconds(secondsValue)));
-        }).map(__ -> Val.of(Instant.now().toString()));
+        }).map(__ -> Val.of(Instant.now().atZone(zoneId).toOffsetDateTime().toString()));
     }
 
 
-    public Flux<Val> clockAfter(@Text Val zone, Map<String, JsonNode> variables, @Text Val time) {
-        //e.g. time -> "15:00", "09:00" & zone -> "UTC" -> "Europe/Berlin"
-        var referenceLocalTime = LocalTime.parse(time.getText());
+    @Attribute(docs = "Returns if the local clock is after the provided time in the specified time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
+    public Flux<Val> after(@Text Val zone, Map<String, JsonNode> variables, Flux<Val> time) {
+        return time.switchMap(referenceTime -> {
+            var referenceLocalTime = LocalTime.parse(referenceTime.getText());
+            var localOffset = toOffset(ZoneId.systemDefault(), referenceLocalTime);
+            var offset = toOffset(convertToZoneId(zone), referenceLocalTime);
+            var adjustedReference = referenceLocalTime.atOffset(localOffset).withOffsetSameInstant(offset)
+                    .toLocalTime();
 
-        return Flux.create(sink -> ScheduleProducer.builder()
-                .referenceTime(referenceLocalTime)
-                .currentTime(LocalTime.now())
-                .listener(new ScheduleListener(sink))
-                .build().startScheduling(), OverflowStrategy.LATEST);
+            return Flux.create(sink -> ScheduleProducer.builder()
+                    .referenceTime(adjustedReference)
+                    .currentTime(LocalTime.now())
+                    .listener(new ScheduleListener(sink))
+                    .build().startScheduling(), OverflowStrategy.LATEST);
+        });
     }
 
-
-    public Flux<Val> clockBefore(Val leftHand, Map<String, JsonNode> variables, @Text Val time) {
-        return clockAfter(leftHand, variables, time)
+    @Attribute(docs = "Returns if the local clock is before the provided local time. Only the time of the day is taken into account. Emits value every time, the result changes.")
+    public Flux<Val> before(Val zone, Map<String, JsonNode> variables, Flux<Val> time) {
+        return after(zone, variables, time)
                 .map(this::negateVal);
+    }
+
+    /*
+     *  var timeout = <timeout("10s")>; <sofort "false" , nach 10s "true">
+     */
+    @Attribute(docs = "Sets a timer for the provided number of seconds. Emits Val.FALSE when created and Val.TRUE after timer elapsed.")
+    public Flux<Val> timer(Val leftHand, Map<String, JsonNode> variables, Flux<Val> timerSeconds) {
+        return timerSeconds.switchMap(seconds -> {
+            if (!seconds.isNumber())
+                return Flux.error(new PolicyEvaluationException(
+                        String.format("timer parameter not a number. Was: %s", seconds)));
+
+            var secondsValue = seconds.get().asLong();
+            if (secondsValue == 0)
+                return Flux.error(new PolicyEvaluationException("ticker parameter must not be zero"));
+
+            return Flux.concat(
+                    Mono.just(Val.FALSE),
+                    Mono.just(Val.TRUE).delayElement(Duration.ofSeconds(seconds.get().numberValue().longValue()))
+            );
+        });
     }
 
     private Val negateVal(Val val) {
         return Val.of(!val.getBoolean());
     }
 
-    /*
-     *  var timeout = <timeout("10s")>; <sofort "false" , nach 10s "true">
-     */
-    public Flux<Val> timeout(Val leftHand, Map<String, JsonNode> variables, @Long Val timeout) {
-        return Flux.concat(
-                Mono.just(Val.FALSE),
-                Mono.just(Val.TRUE).delayElement(Duration.ofMillis(timeout.get().asLong()))
-        );
+
+    private ZoneOffset toOffset(ZoneId zoneId, LocalTime localTime) {
+        return zoneId.getRules().getOffset(LocalDate.now().atTime(localTime));
     }
 
-    private static Instant nodeToInstant(Val time) {
-        if (time.isNull() || time.isUndefined()) throw new DateTimeException("provided time value is null or undefined");
+    private ZoneId convertToZoneId(Val value) {
+        if (value == null || value.isUndefined() || value.isNull() || !value.isTextual()) return ZoneId.systemDefault();
 
-        return Instant.parse(time.get().asText());
-    }
-
-    private ZoneOffset toOffset(ZoneId zoneId) {
-        Instant instant = Instant.now(); //can be LocalDateTime
-        ZoneId systemZone = ZoneId.systemDefault(); // my timezone
-        return systemZone.getRules().getOffset(instant);
+        final String text = value.getText() == null ? "" : value.getText().trim();
+        final String zoneIdStr = text.length() == 0 ? "system" : text;
+        if ("system".equalsIgnoreCase(zoneIdStr)) {
+            return ZoneId.systemDefault();
+        } else if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {
+            return ZoneId.of(zoneIdStr, ZoneId.SHORT_IDS);
+        }
+        return ZoneId.of(zoneIdStr);
     }
 
 }

@@ -18,7 +18,6 @@ package io.sapl.functions;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 
@@ -28,8 +27,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
@@ -68,7 +69,7 @@ public class TemporalFunctionLibrary {
 
     private static final String AT_ZONED_DT_DOC = "toZonedDateTime(TIME, ZONE_ID): Assumes, that TIME is a string representing time in ISO 8601 and ZONE a string representing a valid zone id from the IANA Time Zone Database. Returns a ZonedDateTime formed from TIME at the specified TIMEZONE, as string in ISO 8601";
     private static final String AT_OFFSET_DT_DOC = "toOffsetDateTime(TIME, OFFSET_ID): Assumes, that TIME is a string representing time in ISO 8601 and OFFSET a ISO-8601 formatted string. Returns a OffsetDateTime formed from TIME at the specified OFFSET, as string in ISO 8601";
-    private static final String At_LOCAL_DT_DOC = "toLocalDateTime(TIME): Assumes, that TIME is a string representing time in ISO 8601. Returns a LocalDateTime formed from TIME at the system's default zone, as string in ISO 8601";
+    private static final String AT_LOCAL_DT_DOC = "toLocalDateTime(TIME): Assumes, that TIME is a string representing time in ISO 8601. Returns a LocalDateTime formed from TIME at the system's default zone, as string in ISO 8601";
 
     private static final String DAY_OF_YEAR = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the day of the year. [1-366]";
     private static final String WEEK_OF_YEAR = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the week of the year. [1-52]";
@@ -247,20 +248,20 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = OF_EPOCH_SECONDS_DOC)
-    public static Val ofEpochSeconds(@Long Val epochSeconds) {
+    public static Val ofEpochSeconds(@Number Val epochSeconds) {
         try {
-            requireValue(epochSeconds, Val::isLong);
-            return Val.of(Instant.ofEpochMilli(epochSeconds.get().asLong()).toString());
+            requireValue(epochSeconds, Val::isNumber);
+            return Val.of(Instant.ofEpochMilli(epochSeconds.get().numberValue().longValue()).toString());
         } catch (DateTimeException | IllegalArgumentException e) {
             return Val.error(e);
         }
     }
 
     @Function(docs = OF_EPOCH_MILLIS_DOC)
-    public static Val ofEpochMillis(@Long Val epochMillis) {
+    public static Val ofEpochMillis(@Number Val epochMillis) {
         try {
-            requireValue(epochMillis, Val::isLong);
-            return Val.of(Instant.ofEpochMilli(epochMillis.get().asLong()).toString());
+            requireValue(epochMillis, Val::isNumber);
+            return Val.of(Instant.ofEpochMilli(epochMillis.get().numberValue().longValue()).toString());
         } catch (DateTimeException | IllegalArgumentException e) {
             return Val.error(e);
         }
@@ -322,9 +323,9 @@ public class TemporalFunctionLibrary {
     @Function(docs = AT_ZONED_DT_DOC)
     public static Val atZone(@Text Val isoDateTime, @Text Val zoneId) {
         try {
-            var zone = ZoneId.of(zoneId.getText());
-            final Instant instant = nodeToInstant(isoDateTime);
-            return Val.of(instant.atZone(zone).toString());
+            var zone = nodeToZoneId(zoneId);
+            var zonedDateTime = DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.getText(), ZonedDateTime::from);
+            return Val.of(zonedDateTime.withZoneSameInstant(zone).toLocalDateTime().truncatedTo(ChronoUnit.SECONDS).toString());
         } catch (ZoneRulesException e) {
             return Val.error(PARAMETER_NOT_AN_IANA_ZONE_STRING, e.getMessage());
         } catch (DateTimeException e) {
@@ -335,9 +336,9 @@ public class TemporalFunctionLibrary {
     @Function(docs = AT_OFFSET_DT_DOC)
     public static Val atOffset(@Text Val isoDateTime, @Text Val offsetId) {
         try {
-            var offset = ZoneOffset.of(offsetId.getText());
-            final Instant instant = nodeToInstant(isoDateTime);
-            return Val.of(instant.atOffset(offset).toString());
+            var offsetDateTime = DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.getText(), OffsetDateTime::from);
+            return Val.of(offsetDateTime.withOffsetSameInstant(ZoneOffset.of(offsetId.getText())).toLocalDateTime().truncatedTo(ChronoUnit.SECONDS)
+                    .toString());
         } catch (ZoneRulesException e) {
             return Val.error(PARAMETER_NOT_AN_ISO_8601_OFFSET_STRING, e.getMessage());
         } catch (DateTimeException e) {
@@ -345,12 +346,11 @@ public class TemporalFunctionLibrary {
         }
     }
 
-    @Function(docs = At_LOCAL_DT_DOC)
+    @Function(docs = AT_LOCAL_DT_DOC)
     public static Val atLocal(@Text Val isoDateTime) {
         try {
-            final Instant instant = nodeToInstant(isoDateTime);
-            final LocalDateTime localDateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
-            return Val.of(localDateTime.truncatedTo(ChronoUnit.SECONDS).toString());
+            var zonedDateTime = DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.getText(), ZonedDateTime::from);
+            return Val.of(zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime().truncatedTo(ChronoUnit.SECONDS).toString());
         } catch (DateTimeException e) {
             return Val.error(PARAMETER_NOT_AN_ISO_8601_STRING, e.getMessage());
         }
@@ -413,7 +413,7 @@ public class TemporalFunctionLibrary {
         }
     }
 
-    private static void requireValue(Val nodeNotToBeNull, java.util.function.Function<Val, Boolean> validator) {
+    public static void requireValue(Val nodeNotToBeNull, java.util.function.Function<Val, Boolean> validator) {
         if (nodeNotToBeNull == null || nodeNotToBeNull.isNull() || nodeNotToBeNull.isUndefined() || nodeNotToBeNull.get().isNull())
             throw new IllegalArgumentException("argument is null or undefined");
 
@@ -425,6 +425,17 @@ public class TemporalFunctionLibrary {
         if (time.isNull() || time.isUndefined()) throw new DateTimeException("provided time value is null or undefined");
 
         return Instant.parse(time.get().asText());
+    }
+
+    private static ZoneId nodeToZoneId(Val zone) {
+        final String text = zone.getText() == null ? "" : zone.getText().trim();
+        final String zoneIdStr = text.length() == 0 ? "system" : text;
+        if ("system".equals(zoneIdStr)) {
+            return ZoneId.systemDefault();
+        } else if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {
+            return ZoneId.of(zoneIdStr, ZoneId.SHORT_IDS);
+        }
+        return ZoneId.of(zoneIdStr);
     }
 
 }

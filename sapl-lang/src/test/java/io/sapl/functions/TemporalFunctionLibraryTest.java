@@ -36,6 +36,7 @@ import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -179,13 +180,13 @@ class TemporalFunctionLibraryTest {
 
         var daysBetween = TemporalFunctionLibrary.timeBetween(Val.of(now.toString()), Val.of(tomorrow.toString()), Val.of(ChronoUnit.DAYS.toString()));
         var hoursBetween = TemporalFunctionLibrary.timeBetween(Val.of(now.toString()), Val.of(tomorrow.toString()), Val.of(ChronoUnit.HOURS.toString()));
-        assertThat(daysBetween.get().asLong(),is(1L));
-        assertThat(hoursBetween.get().asLong(),is(24L));
+        assertThat(daysBetween.get().asLong(), is(1L));
+        assertThat(hoursBetween.get().asLong(), is(24L));
 
-         daysBetween = TemporalFunctionLibrary.timeBetween(Val.of(tomorrow.toString()), Val.of(yesterday.toString()), Val.of(ChronoUnit.DAYS.toString()));
-         hoursBetween = TemporalFunctionLibrary.timeBetween(Val.of(tomorrow.toString()), Val.of(yesterday.toString()), Val.of(ChronoUnit.HOURS.toString()));
-        assertThat(daysBetween.get().asLong(),is(-2L));
-        assertThat(hoursBetween.get().asLong(),is(-48L));
+        daysBetween = TemporalFunctionLibrary.timeBetween(Val.of(tomorrow.toString()), Val.of(yesterday.toString()), Val.of(ChronoUnit.DAYS.toString()));
+        hoursBetween = TemporalFunctionLibrary.timeBetween(Val.of(tomorrow.toString()), Val.of(yesterday.toString()), Val.of(ChronoUnit.HOURS.toString()));
+        assertThat(daysBetween.get().asLong(), is(-2L));
+        assertThat(hoursBetween.get().asLong(), is(-48L));
     }
 
     @Test
@@ -310,6 +311,62 @@ class TemporalFunctionLibraryTest {
     @Test
     void policyWithLocalSecondBody() {
         var policyDefinition = "policy \"test\" permit action == \"read\" where var second = time.localSecond(\"UTC\".<clock.now>); second >= 0 && second <= 59;";
+        var expectedAuthzDecision = AuthorizationDecision.PERMIT;
+        assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
+    }
+
+    @Test
+    void policyWithMillisBody() {
+        var policyDefinition = "policy \"test\" " +
+                "   permit action == \"read\" " +
+                "   where " +
+                "       var millis = \"UTC\".<clock.millis>; " +
+                "       var instant = time.ofEpochMillis(millis); " +
+                "       time.validUTC(instant);";
+        var expectedAuthzDecision = AuthorizationDecision.PERMIT;
+        assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
+    }
+
+    @Test
+    void policyWithTimeZOneBody() {
+        var policyDefinition = "policy \"test\" " +
+                "   permit action == \"read\" " +
+                "   where " +
+                "       var timeZone = \"system\".<clock.timeZone>; " +
+                "       timeZone == \"Europe/Berlin\"; ";
+
+        var expectedAuthzDecision = AuthorizationDecision.PERMIT;
+        assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
+    }
+
+    @Test
+    void policyWithTimerBody() {
+        var policyDefinition = "policy \"test\" " +
+                "   permit action == \"read\" " +
+                "   where " +
+                "      \"system\".<clock.timer(5)>; ";
+
+        StepVerifier.withVirtualTime(() -> INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT))
+                .expectSubscription()
+                .consumeNextWith(authzDecision -> {
+                    assertThat(authzDecision, is(AuthorizationDecision.NOT_APPLICABLE));
+                })
+                .expectNoEvent(Duration.ofSeconds(5))
+                .thenAwait(Duration.ofSeconds(5))
+                .consumeNextWith(authzDecision -> {
+                    assertThat(authzDecision, is(AuthorizationDecision.PERMIT));
+                })
+                .expectComplete().verify();
+    }
+
+    @Test
+    void policyWithClockAfterBody() {
+        var policyDefinition = "policy \"test\" " +
+                "   permit action == \"read\" " +
+                "   where " +
+                "       var after =\"system\".|<clock.after(\"00:00\")>; " +
+                "       var before =\"system\".|<clock.before(\"23:59\")>; " +
+                "       after && before;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }

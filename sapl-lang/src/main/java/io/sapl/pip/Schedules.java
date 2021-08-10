@@ -41,13 +41,15 @@ public class Schedules {
                 var todayAtCurrentTime = LocalDate.now().atTime(currentTime);
 
                 var delayToNextMidnight = Duration.ofSeconds(todayAtCurrentTime.until(nextMidnight, ChronoUnit.SECONDS));
-                log.trace("scheduling next Midnight ({}) with a delay of {}", nextMidnight, delayToNextMidnight);
+                log.debug("scheduling next Midnight ({}) with a delay of {}", nextMidnight, delayToNextMidnight);
                 var delayToNextReferenceTime = Duration.ofSeconds(todayAtCurrentTime.until(nextReferenceTime, ChronoUnit.SECONDS));
-                log.trace("scheduling next Reference-Time  ({}) with a delay of {}", nextReferenceTime, delayToNextReferenceTime);
+                log.debug("scheduling next Reference-Time ({}) with a delay of {}", nextReferenceTime, delayToNextReferenceTime);
 
                 initializeScheduler(delayToNextMidnight, delayToNextReferenceTime);
+
+                //emit first result immediately
+                listener.processResultChange(referenceTime);
             } catch (Exception e) {
-                e.printStackTrace();
                 listener.processError(e);
             }
         }
@@ -74,7 +76,7 @@ public class Schedules {
 
         void processResultChange(LocalTime localTimeRef) {
             var currentTime = LocalTime.now();
-            log.trace("{} is after {} -> {}", currentTime, localTimeRef, currentTime.isAfter(localTimeRef));
+            log.debug("{} is after {} -> {}", currentTime, localTimeRef, currentTime.isAfter(localTimeRef));
             sink.next(Val.of(currentTime.isAfter(localTimeRef)));
         }
 
