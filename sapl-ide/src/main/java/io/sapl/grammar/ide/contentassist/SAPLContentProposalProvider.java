@@ -46,14 +46,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	@Inject
 	private SpringDependencyResolver resolver;
 
-	public SAPLContentProposalProvider() {
-		System.out.println();
-	}
-
-	public SAPLContentProposalProvider(SpringDependencyResolver context) {
-		System.out.println();
-	}
-
 	private Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
 	private Collection<String> allowedKeywords = Set.of("as");
 	private Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
