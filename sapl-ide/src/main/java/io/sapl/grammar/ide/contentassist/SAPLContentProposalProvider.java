@@ -15,7 +15,6 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.awt.dnd.DropTargetListener;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -29,8 +28,6 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.google.inject.Inject;
 
 import io.sapl.grammar.ide.spring.SpringDependencyResolver;
@@ -48,15 +45,15 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	@Inject
 	private SpringDependencyResolver resolver;
-	
+
 	public SAPLContentProposalProvider() {
 		System.out.println();
 	}
-	
+
 	public SAPLContentProposalProvider(SpringDependencyResolver context) {
 		System.out.println();
 	}
-	
+
 	private Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
 	private Collection<String> allowedKeywords = Set.of("as");
 	private Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");

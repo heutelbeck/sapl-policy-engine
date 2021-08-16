@@ -22,13 +22,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import io.sapl.grammar.ide.SAPLIdeSpringTestConfiguration;
-import io.sapl.grammar.ide.spring.SpringConfiguration;
 
 /**
  * Tests regarding the auto completion of import statements
  */
 @SpringBootTest
-@ContextConfiguration(classes = { SAPLIdeSpringTestConfiguration.class, SpringConfiguration.class } )
+@ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 public class ImportCompletionTests extends CompletionTests {
 
 	@Test

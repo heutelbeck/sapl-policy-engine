@@ -2,6 +2,7 @@ package io.sapl.grammar.ide;
 
 import org.springframework.context.annotation.Bean;
 
+import io.sapl.grammar.ide.spring.SAPLIdeSpringConfiguration;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 
