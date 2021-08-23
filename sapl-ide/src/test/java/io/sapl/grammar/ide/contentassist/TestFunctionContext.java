@@ -1,4 +1,4 @@
-package io.sapl.grammar.ide;
+package io.sapl.grammar.ide.contentassist;
 
 import java.util.Collection;
 import java.util.HashMap;

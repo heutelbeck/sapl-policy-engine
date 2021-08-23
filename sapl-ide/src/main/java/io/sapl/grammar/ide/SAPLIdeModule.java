@@ -18,7 +18,6 @@ package io.sapl.grammar.ide;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 
 import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
-import io.sapl.grammar.ide.spring.SpringDependencyResolver;
 
 /**
  * Use this class to register ide components.
@@ -26,9 +25,5 @@ import io.sapl.grammar.ide.spring.SpringDependencyResolver;
 public class SAPLIdeModule extends AbstractSAPLIdeModule {
 	public Class<? extends IdeContentProposalProvider> bindIdeContentProposalProvider() {
 		return SAPLContentProposalProvider.class;
-	}
-	
-	public Class<SpringDependencyResolver> bindSpringDependencyResolver() {
-		return SpringDependencyResolver.class;
 	}
 }

@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.spring;
+package io.sapl.grammar.ide.contentassist;
 
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -26,7 +28,8 @@ import lombok.extern.slf4j.Slf4j;
  * and Guice and uses the static applicationContext to resolve dependencies.
  */
 @Slf4j
-public class SpringDependencyResolver implements ApplicationContextAware {
+@Component
+public class SpringContext implements ApplicationContextAware {
 
 	private static ApplicationContext applicationContext;
 
@@ -37,7 +40,7 @@ public class SpringDependencyResolver implements ApplicationContextAware {
 	 * @param clazz The class definition of the searched bean.
 	 * @return Returns a bean that matches the provided class type.
 	 */
-	public <T extends Object> T resolve(Class<T> clazz) {
+	public static <T extends Object> T getBean(Class<T> clazz) {
 		ApplicationContext localContext = applicationContext;
 		if (localContext == null) {
 			throw new IllegalStateException("Spring ApplicationContext was not set");
@@ -48,6 +51,6 @@ public class SpringDependencyResolver implements ApplicationContextAware {
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 		log.debug("Spring ApplicationContext set");
-		SpringDependencyResolver.applicationContext = applicationContext;
+		SpringContext.applicationContext = applicationContext;
 	}
 }

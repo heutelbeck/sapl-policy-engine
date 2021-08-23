@@ -28,9 +28,7 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
-import com.google.inject.Inject;
 
-import io.sapl.grammar.ide.spring.SpringDependencyResolver;
 import io.sapl.grammar.sapl.impl.ConditionImpl;
 import io.sapl.grammar.sapl.impl.PolicyBodyImpl;
 import io.sapl.grammar.sapl.impl.ValueDefinitionImpl;
@@ -43,15 +41,17 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
-	@Inject
-	private SpringDependencyResolver resolver;
-
 	private Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
 	private Collection<String> allowedKeywords = Set.of("as");
 	private Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
 
+	private LibraryAttributeFinder libraryAttributeFinder;
+	
 	private LibraryAttributeFinder getLibraryAttributeFinder() {
-		return resolver.resolve(LibraryAttributeFinder.class);
+		if(libraryAttributeFinder == null) {
+			libraryAttributeFinder = SpringContext.getBean(LibraryAttributeFinder.class);
+		}
+		return libraryAttributeFinder;
 	}
 
 	@Override

@@ -1,21 +1,22 @@
-package io.sapl.grammar.ide;
+package io.sapl.grammar.ide.contentassist;
 
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 
-import io.sapl.grammar.ide.spring.SAPLIdeSpringConfiguration;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 
-public class SAPLIdeSpringTestConfiguration extends SAPLIdeSpringConfiguration {
+@ComponentScan
+@Configuration
+public class SAPLIdeSpringTestConfiguration {
 
 	@Bean
-	@Override
 	public FunctionContext functionContext() {
 		return new TestFunctionContext();
 	}
 	
 	@Bean
-	@Override
 	public AttributeContext attributeContext() {
 		return new TestAttributeContext();
 	}

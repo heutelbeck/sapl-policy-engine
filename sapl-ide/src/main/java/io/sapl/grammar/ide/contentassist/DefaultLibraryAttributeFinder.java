@@ -27,7 +27,6 @@ import org.springframework.stereotype.Component;
 
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
@@ -35,7 +34,6 @@ import lombok.RequiredArgsConstructor;
  * This class is used to offer library and function proposals.
  */
 @Component
-@NoArgsConstructor
 @RequiredArgsConstructor
 public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 
