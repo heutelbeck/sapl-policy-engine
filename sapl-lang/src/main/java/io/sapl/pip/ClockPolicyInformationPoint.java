@@ -15,21 +15,6 @@
  */
 package io.sapl.pip;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
-import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.validation.Text;
-import io.sapl.pip.Schedules.ScheduleListener;
-import io.sapl.pip.Schedules.ScheduleProducer;
-import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink.OverflowStrategy;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -40,7 +25,21 @@ import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-@Slf4j
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pip.Attribute;
+import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.api.validation.Text;
+import io.sapl.pip.Schedules.ScheduleListener;
+import io.sapl.pip.Schedules.ScheduleProducer;
+import lombok.NoArgsConstructor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink.OverflowStrategy;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
 @NoArgsConstructor
 @PolicyInformationPoint(name = ClockPolicyInformationPoint.NAME, description = ClockPolicyInformationPoint.DESCRIPTION)
 public class ClockPolicyInformationPoint {
@@ -48,7 +47,6 @@ public class ClockPolicyInformationPoint {
     public static final String NAME = "clock";
 
     public static final String DESCRIPTION = "Policy Information Point and attributes for retrieving current date and time information";
-    private static final String PARAMETER_NOT_AN_ISO_8601_STRING = "Parameter not an ISO 8601 string";
 
     @Attribute(docs = "Returns the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with time offset.")
     public Flux<Val> now(@Text Val zone, Map<String, JsonNode> variables) {
