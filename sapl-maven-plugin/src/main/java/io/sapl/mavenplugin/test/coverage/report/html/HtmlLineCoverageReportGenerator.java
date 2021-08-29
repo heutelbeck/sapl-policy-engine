@@ -321,7 +321,7 @@ public class HtmlLineCoverageReportGenerator {
 
 		try {
 			if (!parentFile.exists()) {
-				PathHelper.creatParentDirs(target);
+				PathHelper.createParentDirs(target);
 			}
 			if (!targetFile.exists()) {
 				Files.copy(source, target);
@@ -366,46 +366,4 @@ public class HtmlLineCoverageReportGenerator {
 		String cssClass;
 		String popoverContent;
 	}
-
-	/*
-	private ContainerTag createPolicySite_GoogleCodePrettify(String filename, List<HtmlPolicyLineModel> models) {
-		// @formatter:off
-		return html(
-				head(
-					title("SAPL Coverage Report"), meta().withCharset("utf-8"),
-					meta().withName("viewport").withContent("width=device-width, initial-scale=1, shrink-to-fit=no"),
-					getBootstrapCss(),
-					link().withRel("stylesheet").withHref("../assets/main.css"),
-					script().withSrc("https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js")
-				),
-				body(
-					main(
-						attrs("#main.content"),
-						nav(
-							ol(
-								li(
-									a("Home").withHref("../index.html")
-								).withClass("breadcrumb-item"),
-								li(filename).withClass("breadcrumb-item active").attr(new Attribute("aria-current", "page"))
-							).withClass("breadcrumb")).attr(new Attribute("aria-label", "breadcrumb")),
-						div(
-							h1(filename).withStyle("margin-bottom: 2vw"),
-							pre(
-								each(models,
-										model -> span(model.getLineContent() + "\n").withClass(model.getCssClass())
-								)
-							).withClass("source prettyprint linenums")
-						).withClass("card-body")
-					),
-					script().withSrc("../assets/sapl-mode.js"),
-					getJquery(),
-					getPopper(),
-					getBootstrapJs()
-				)
-			);
-
-		// @formatter:on
-
-	}
-	*/
 }

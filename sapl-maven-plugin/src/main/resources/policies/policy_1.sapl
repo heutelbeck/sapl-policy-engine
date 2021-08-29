@@ -8,4 +8,5 @@ permit
     action == "read"
 where
     subject.<test.upper> == "WILLI";
+    var test = 1;
     time.dayOfWeekFrom("UTC".<clock.now>) =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";

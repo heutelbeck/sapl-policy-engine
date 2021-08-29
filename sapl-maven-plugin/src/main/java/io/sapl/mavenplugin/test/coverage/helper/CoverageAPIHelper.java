@@ -12,16 +12,8 @@ import io.sapl.test.coverage.api.CoverageAPIFactory;
 @Singleton
 public class CoverageAPIHelper {
 	
-	
 	public CoverageTargets readHits(Path baseDir) {
 		var reader = CoverageAPIFactory.constructCoverageHitReader(baseDir);
 		return new CoverageTargets(reader.readPolicySetHits(), reader.readPolicyHits(), reader.readPolicyConditionHits());
 	}
-	
-	public void cleanCoverageHitFiles(Path baseDir) {
-		var reader = CoverageAPIFactory.constructCoverageHitReader(baseDir);
-    	reader.cleanCoverageHitFiles();
-	}
-	
-
 }

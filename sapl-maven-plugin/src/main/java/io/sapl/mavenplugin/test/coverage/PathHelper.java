@@ -31,7 +31,7 @@ public class PathHelper {
 
 	}
 
-	public static void creatParentDirs(Path filePath) throws IOException {
+	public static void createParentDirs(Path filePath) throws IOException {
 		if (!Files.exists(filePath)) {
 			Path parent = filePath.getParent();
 			if (parent != null) {

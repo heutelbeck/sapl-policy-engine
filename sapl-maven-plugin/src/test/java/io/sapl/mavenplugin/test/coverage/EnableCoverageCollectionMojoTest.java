@@ -26,7 +26,6 @@ class EnableCoverageCollectionMojoTest extends AbstractMojoTestCase {
 	}
 	
 	@Test
-	@Disabled
 	void test_disableCoverage() throws Exception {
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom_withoutProject_coverageDisabled.xml");
@@ -37,14 +36,13 @@ class EnableCoverageCollectionMojoTest extends AbstractMojoTestCase {
 	}
 	
 	@Test
-	@Disabled
 	void test() throws Exception {
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
 		var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
 		mojo.setLog(this.log);
 		
 	    try (MockedStatic<PathHelper> pathHelper = Mockito.mockStatic(PathHelper.class)) {
-	    	pathHelper.when(() -> PathHelper.resolveBaseDir(any(), any(), log)).thenReturn(Paths.get("tmp"));
+	    	pathHelper.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));
 			assertDoesNotThrow(() -> mojo.execute());
 	    }
 	}
