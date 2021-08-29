@@ -22,7 +22,7 @@ public class CoverageHitRecorderTest {
 	@BeforeEach
 	void setup() {
 		this.basedir = Paths.get("target").resolve("sapl-coverage");
-		this.recorder = new CoverageHitAPIImpl(this.basedir);
+		this.recorder = new CoverageHitAPIFile(this.basedir);
 		this.recorder.cleanCoverageHitFiles();
 		this.recorder.createCoverageHitFiles();
 	}

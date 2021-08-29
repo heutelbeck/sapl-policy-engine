@@ -13,7 +13,7 @@ public class CoverageAPIFactory {
 	 * @return {@link CoverageHitReader}
 	 */
 	public static CoverageHitReader constructCoverageHitReader(Path basedir) {
-		return new CoverageHitAPIImpl(basedir);
+		return new CoverageHitAPIFile(basedir);
 	}
 	
 	/**
@@ -22,7 +22,7 @@ public class CoverageAPIFactory {
 	 * @return {@link CoverageHitRecorder}
 	 */
 	public static CoverageHitRecorder constructCoverageHitRecorder(Path basedir) {
-		var recorder = new CoverageHitAPIImpl(basedir);
+		var recorder = new CoverageHitAPIFile(basedir);
 		recorder.createCoverageHitFiles();
 		return recorder;
 	}

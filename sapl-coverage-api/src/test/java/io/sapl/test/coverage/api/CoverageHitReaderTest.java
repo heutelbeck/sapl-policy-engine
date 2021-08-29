@@ -23,7 +23,7 @@ public class CoverageHitReaderTest {
 	@BeforeEach
 	void setup() {
 		this.basedir = Paths.get("target").resolve("sapl-coverage");
-		this.reader = new CoverageHitAPIImpl(this.basedir);
+		this.reader = new CoverageHitAPIFile(this.basedir);
 		this.reader.cleanCoverageHitFiles();
 	}
 

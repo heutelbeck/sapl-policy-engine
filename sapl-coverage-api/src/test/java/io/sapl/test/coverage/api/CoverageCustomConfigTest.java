@@ -23,8 +23,8 @@ public class CoverageCustomConfigTest {
 	@BeforeEach
 	void setup() {
 		basedir = Paths.get("temp").resolve("sapl-coverage");
-		this.reader = new CoverageHitAPIImpl(basedir);
-		this.recorder = new CoverageHitAPIImpl(basedir);
+		this.reader = new CoverageHitAPIFile(basedir);
+		this.recorder = new CoverageHitAPIFile(basedir);
 	}
 	
 	@AfterEach

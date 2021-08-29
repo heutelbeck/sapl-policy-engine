@@ -18,12 +18,12 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class CoverageHitAPIImpl implements CoverageHitRecorder, CoverageHitReader {
+class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 	public final Path FILE_PATH_POLICY_SET_HITS;
 	public final Path FILE_PATH_POLICY_HITS;
 	public final Path FILE_PATH_POLICY_CONDITION_HITS;
 
-	CoverageHitAPIImpl(Path basedir) {
+	CoverageHitAPIFile(Path basedir) {
 		FILE_PATH_POLICY_SET_HITS = basedir.resolve("hits").resolve("_policySetHits.txt");
 		FILE_PATH_POLICY_HITS = basedir.resolve("hits").resolve("_policyHits.txt");
 		FILE_PATH_POLICY_CONDITION_HITS = basedir.resolve("hits").resolve("_policyConditionHits.txt");
