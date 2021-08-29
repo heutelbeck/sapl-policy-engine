@@ -22,18 +22,18 @@ public class FunctionMockFunctionResultTest {
 	@Test
 	void test() {
 		FunctionMockFunctionResult mock = new FunctionMockFunctionResult("foo", returns, times(1));
-		FunctionCall call = new FunctionCallImpl(Val.of(4), Val.of(2));
+		FunctionCall call = new FunctionCallSimple(Val.of(4), Val.of(2));
 		Assertions.assertThat(mock.evaluateFunctionCall(call)).isEqualTo(Val.of(true));
 	}
 	
 	@Test
 	void test_multipleTimes() {
 		FunctionMockFunctionResult mock = new FunctionMockFunctionResult("foo", returns, times(3));
-		FunctionCall call1 = new FunctionCallImpl(Val.of(4), Val.of(2));
+		FunctionCall call1 = new FunctionCallSimple(Val.of(4), Val.of(2));
 		Assertions.assertThat(mock.evaluateFunctionCall(call1)).isEqualTo(Val.of(true));
-		FunctionCall call2 = new FunctionCallImpl(Val.of(4), Val.of(3));
+		FunctionCall call2 = new FunctionCallSimple(Val.of(4), Val.of(3));
 		Assertions.assertThat(mock.evaluateFunctionCall(call2)).isEqualTo(Val.of(false));
-		FunctionCall call3 = new FunctionCallImpl(Val.of(4), Val.of(4));
+		FunctionCall call3 = new FunctionCallSimple(Val.of(4), Val.of(4));
 		Assertions.assertThat(mock.evaluateFunctionCall(call3)).isEqualTo(Val.of(true));
 		
 		boolean isAssertionErrorThrown = false;
@@ -55,7 +55,7 @@ public class FunctionMockFunctionResultTest {
 	@Test
 	void test_invalidNumberParams_TooLess_Exception() {
 		FunctionMockFunctionResult mock = new FunctionMockFunctionResult("foo", returns, times(1));
-		FunctionCall call = new FunctionCallImpl(Val.of(4));
+		FunctionCall call = new FunctionCallSimple(Val.of(4));
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
 			.isThrownBy(() -> mock.evaluateFunctionCall(call));
 	}
@@ -63,7 +63,7 @@ public class FunctionMockFunctionResultTest {
 	@Test
 	void test_invalidNumberParams_TooMuch_Ignored() {
 		FunctionMockFunctionResult mock = new FunctionMockFunctionResult("foo", returns, times(1));
-		FunctionCall call = new FunctionCallImpl(Val.of(4), Val.of(2), Val.of("ignored"));
+		FunctionCall call = new FunctionCallSimple(Val.of(4), Val.of(2), Val.of("ignored"));
 		Assertions.assertThat(mock.evaluateFunctionCall(call)).isEqualTo(Val.of(true));
 	}
 }

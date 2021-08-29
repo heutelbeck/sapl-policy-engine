@@ -7,13 +7,13 @@ import java.util.List;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 
-public class FunctionCallImpl implements FunctionCall {
+public class FunctionCallSimple implements FunctionCall {
 	
 	private static final String ERROR_INVLID_ARGUMENT_INDEX = "Requested index %d for function call parameters but there are only %d parameters. Did you forget to check with \"getNumberOfArguments()\"";
 
 	private Val[] parameters;
 	
-	public FunctionCallImpl(Val... parameters) {
+	public FunctionCallSimple(Val... parameters) {
 		this.parameters = parameters;
 	}
 	

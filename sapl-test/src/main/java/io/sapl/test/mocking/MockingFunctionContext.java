@@ -85,7 +85,7 @@ public class MockingFunctionContext implements FunctionContext {
 		FunctionMock mock = this.registeredMocks.get(function);
 		if (mock != null) {
 			log.debug("Evaluate mocked function \"{}\"", function);
-			return mock.evaluateFunctionCall(new FunctionCallImpl(parameters));
+			return mock.evaluateFunctionCall(new FunctionCallSimple(parameters));
 		} else {
 			log.debug("Delegate function \"{}\" to unmocked function context", function);
 			return this.unmockedFunctionContext.evaluate(function, parameters);

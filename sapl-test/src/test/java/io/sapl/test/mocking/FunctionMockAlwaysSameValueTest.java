@@ -14,18 +14,18 @@ public class FunctionMockAlwaysSameValueTest {
 	@Test
 	void test() {
 		FunctionMockAlwaysSameValue mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(1));
-		FunctionCall call = new FunctionCallImpl(Val.of(1));
+		FunctionCall call = new FunctionCallSimple(Val.of(1));
 		Assertions.assertThat(mock.evaluateFunctionCall(call)).isEqualTo(alwaysReturnValue);
 	}
 	
 	@Test
 	void test_multipleTimes() {
 		FunctionMockAlwaysSameValue mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(3));
-		FunctionCall call1 = new FunctionCallImpl(Val.of(1));
+		FunctionCall call1 = new FunctionCallSimple(Val.of(1));
 		Assertions.assertThat(mock.evaluateFunctionCall(call1)).isEqualTo(alwaysReturnValue);
-		FunctionCall call2 = new FunctionCallImpl(Val.of(2));
+		FunctionCall call2 = new FunctionCallSimple(Val.of(2));
 		Assertions.assertThat(mock.evaluateFunctionCall(call2)).isEqualTo(alwaysReturnValue);
-		FunctionCall call3 = new FunctionCallImpl(Val.of(3));
+		FunctionCall call3 = new FunctionCallSimple(Val.of(3));
 		Assertions.assertThat(mock.evaluateFunctionCall(call3)).isEqualTo(alwaysReturnValue);
 		
 		boolean isAssertionErrorThrown = false;

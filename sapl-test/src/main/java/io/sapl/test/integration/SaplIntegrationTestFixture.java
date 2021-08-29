@@ -1,4 +1,4 @@
-package io.sapl.test.pdp;
+package io.sapl.test.integration;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

@@ -46,7 +46,7 @@ public class AttributeMockTestPublisher implements AttributeMock {
 	@Override
 	public Flux<Val> evaluate() {
 		// TODO check if call parameter for attributes should stay irrelevant
-		this.mockRunInformation.saveCall(new FunctionCallImpl());
+		this.mockRunInformation.saveCall(new FunctionCallSimple());
 
 		if (this.testpublisher == null) {
 			throw new SaplTestException("Undefined internal state. Please report a bug to the library authors!");

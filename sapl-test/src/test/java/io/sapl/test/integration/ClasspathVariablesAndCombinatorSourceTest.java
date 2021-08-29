@@ -1,4 +1,4 @@
-package io.sapl.test.pdp;
+package io.sapl.test.integration;
 
 import java.util.logging.Level;
 

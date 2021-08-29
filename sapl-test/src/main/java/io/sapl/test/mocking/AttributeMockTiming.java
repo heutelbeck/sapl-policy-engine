@@ -38,7 +38,7 @@ public class AttributeMockTiming implements AttributeMock {
 
 	@Override
 	public Flux<Val> evaluate() {
-		this.mockRunInformation.saveCall(new FunctionCallImpl());
+		this.mockRunInformation.saveCall(new FunctionCallSimple());
 
 		if (this.returnValues == null || this.timing == null) {
 			throw new SaplTestException("Undefined internal state. Please report a bug to the library authors!");

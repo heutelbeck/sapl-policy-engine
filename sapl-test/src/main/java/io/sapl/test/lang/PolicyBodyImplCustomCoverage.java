@@ -32,7 +32,6 @@ public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 	protected Function<? super Tuple2<Val, EvaluationContext>, Publisher<? extends Tuple2<Val, EvaluationContext>>> evaluateStatements(
 			int statementId) {
 		this.currentStatementId = statementId;
-		// System.out.println("StatementId: " + statementId);
 		return super.evaluateStatements(statementId);
 	}
 
@@ -42,7 +41,6 @@ public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 		return super.evaluateCondition(previousResult, condition, ctx).doOnNext(result -> {
 			// record policy condition hit
 			if(result.getT1().isBoolean()) {
-				// System.out.println("Condition: " + condition.getExpression().toString() + " evaluated to " + result.getT1().getBoolean());
 				String policySetId = "";
 				String policyId = "";		
 				EObject eContainer1 = eContainer();
