@@ -32,7 +32,7 @@ public class HtmlLineCoverageReportGeneratorTest {
 		var policySetHitRatio = 100;
 		var policyHitRatio = 66.6f;
 		var policyConditionHitRatio = 43.9f;
-		var document = new SaplDocumentCoverageInformation(Paths.get("target/classes/policies/policy_1.sapl"), 11);
+		var document = new SaplDocumentCoverageInformation(Paths.get("target/classes/policies/policy_1.sapl"), 12);
 		document.markLine(1, LineCoveredValue.UNINTERESTING, 0, 0);
 		document.markLine(2, LineCoveredValue.UNINTERESTING, 0, 0);
 		document.markLine(3, LineCoveredValue.FULLY, 1, 1);
@@ -44,6 +44,7 @@ public class HtmlLineCoverageReportGeneratorTest {
 		document.markLine(9, LineCoveredValue.UNINTERESTING, 0, 0);
 		document.markLine(10, LineCoveredValue.PARTLY, 1, 2);
 		document.markLine(11, LineCoveredValue.NEVER, 0, 2);
+		document.markLine(12, LineCoveredValue.NEVER, 0, 2);
 		Collection<SaplDocumentCoverageInformation> documents = List.of(document);
 		HtmlLineCoverageReportGenerator generator = new HtmlLineCoverageReportGenerator();
 		

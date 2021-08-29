@@ -14,9 +14,9 @@ public class FunctionMockSequenceTest {
 	void test() {
 		FunctionMockSequence mock = new FunctionMockSequence("foo");
 		mock.loadMockReturnValue(seq);
-		FunctionCall call1 = new FunctionCallImpl(Val.of("do"));
-		FunctionCall call2 = new FunctionCallImpl(Val.of("not"));
-		FunctionCall call3 = new FunctionCallImpl(Val.of("matter"));
+		FunctionCall call1 = new FunctionCallSimple(Val.of("do"));
+		FunctionCall call2 = new FunctionCallSimple(Val.of("not"));
+		FunctionCall call3 = new FunctionCallSimple(Val.of("matter"));
 		Assertions.assertThat(mock.evaluateFunctionCall(call1)).isEqualTo(seq[0]);
 		Assertions.assertThat(mock.evaluateFunctionCall(call2)).isEqualTo(seq[1]);
 		Assertions.assertThat(mock.evaluateFunctionCall(call3)).isEqualTo(seq[2]);
@@ -26,10 +26,10 @@ public class FunctionMockSequenceTest {
 	void test_tooMuchCalls() {
 		FunctionMockSequence mock = new FunctionMockSequence("foo");
 		mock.loadMockReturnValue(seq);
-		FunctionCall call1 = new FunctionCallImpl(Val.of("do"));
-		FunctionCall call2 = new FunctionCallImpl(Val.of("not"));
-		FunctionCall call3 = new FunctionCallImpl(Val.of("matter"));
-		FunctionCall call4 = new FunctionCallImpl(Val.of("returnValueUndefined"));
+		FunctionCall call1 = new FunctionCallSimple(Val.of("do"));
+		FunctionCall call2 = new FunctionCallSimple(Val.of("not"));
+		FunctionCall call3 = new FunctionCallSimple(Val.of("matter"));
+		FunctionCall call4 = new FunctionCallSimple(Val.of("returnValueUndefined"));
 		Assertions.assertThat(mock.evaluateFunctionCall(call1)).isEqualTo(seq[0]);
 		Assertions.assertThat(mock.evaluateFunctionCall(call2)).isEqualTo(seq[1]);
 		Assertions.assertThat(mock.evaluateFunctionCall(call3)).isEqualTo(seq[2]);
@@ -41,8 +41,8 @@ public class FunctionMockSequenceTest {
 	void test_tooLessCalls() {
 		FunctionMockSequence mock = new FunctionMockSequence("foo");
 		mock.loadMockReturnValue(seq);
-		FunctionCall call1 = new FunctionCallImpl(Val.of("do"));
-		FunctionCall call2 = new FunctionCallImpl(Val.of("not"));
+		FunctionCall call1 = new FunctionCallSimple(Val.of("do"));
+		FunctionCall call2 = new FunctionCallSimple(Val.of("not"));
 		Assertions.assertThat(mock.evaluateFunctionCall(call1)).isEqualTo(seq[0]);
 		Assertions.assertThat(mock.evaluateFunctionCall(call2)).isEqualTo(seq[1]);
 		

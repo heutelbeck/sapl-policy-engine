@@ -1,4 +1,4 @@
-package io.sapl.test.pdp;
+package io.sapl.test.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

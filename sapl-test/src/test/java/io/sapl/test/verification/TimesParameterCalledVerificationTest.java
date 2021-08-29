@@ -14,17 +14,17 @@ import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.test.mocking.FunctionCallImpl;
+import io.sapl.test.mocking.FunctionCallSimple;
 
 public class TimesParameterCalledVerificationTest {
 
 	@Test
 	void test() {
 		MockRunInformation runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new FunctionCallImpl(Val.of("bar"), Val.of(1)));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("xxx"), Val.of(2)));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("yyy"), Val.of(3)));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("xxx"), Val.of(2)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar"), Val.of(1)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(2)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("yyy"), Val.of(3)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(2)));
 		
 		Matcher<Integer> matcher = comparesEqualTo(2);
 		List<Matcher<Val>> expectedParameters = List.of(is(Val.of("xxx")), is(Val.of(2)));
@@ -51,10 +51,10 @@ public class TimesParameterCalledVerificationTest {
 	@Test
 	void test_assertionError() {
 		MockRunInformation runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new FunctionCallImpl(Val.of("bar"), Val.of(1)));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("xxx"), Val.of(2)));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("yyy"), Val.of(3)));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("xxx"), Val.of(3)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar"), Val.of(1)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(2)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("yyy"), Val.of(3)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(3)));
 		
 		Matcher<Integer> matcher = comparesEqualTo(2);
 		
@@ -84,10 +84,10 @@ public class TimesParameterCalledVerificationTest {
 	@Test
 	void test_assertionError_tooOftenCalled() {
 		MockRunInformation runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new FunctionCallImpl(Val.of("bar"), Val.of(1)));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("xxx"), Val.of(2)));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("xxx"), Val.of(3)));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("xxx"), Val.of(3)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar"), Val.of(1)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(2)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(3)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(3)));
 		
 		Matcher<Integer> matcher = comparesEqualTo(2);
 		
@@ -117,10 +117,10 @@ public class TimesParameterCalledVerificationTest {
 	@Test
 	void test_MultipleParameterTimesVerifications_WithAnyMatcher_OrderingMatters() {
 		MockRunInformation runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new FunctionCallImpl(Val.of("bar"), Val.of(1)));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("xxx"), Val.of(2)));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("yyy"), Val.of(3)));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("xxx"), Val.of(3)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar"), Val.of(1)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(2)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("yyy"), Val.of(3)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(3)));
 		
 		Matcher<Integer> matcher = comparesEqualTo(1);
 		

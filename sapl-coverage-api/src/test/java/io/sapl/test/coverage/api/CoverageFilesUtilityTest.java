@@ -46,7 +46,7 @@ public class CoverageFilesUtilityTest {
 		Path pathToErrorFile = baseDir.resolve("hits").resolve("_policySetHits.txt");
 		Files.createDirectories(pathToErrorFile.getParent());
 		Files.createFile(pathToErrorFile);
-		CoverageHitRecorder recorder = new CoverageHitAPIImpl(baseDir);
+		CoverageHitRecorder recorder = new CoverageHitAPIFile(baseDir);
 		assertDoesNotThrow(() -> recorder.createCoverageHitFiles());
 	}
 	
@@ -57,7 +57,7 @@ public class CoverageFilesUtilityTest {
 			Path path = Mockito.mock(Path.class);
 			when(path.getParent()).thenReturn(null);
 			when(path.resolve(Mockito.anyString())).thenReturn(path);
-			CoverageHitRecorder recorder = new CoverageHitAPIImpl(path);
+			CoverageHitRecorder recorder = new CoverageHitAPIFile(path);
 			assertDoesNotThrow(() -> recorder.createCoverageHitFiles());
 			recorder.cleanCoverageHitFiles();
 	    }
@@ -67,7 +67,7 @@ public class CoverageFilesUtilityTest {
 	@Test
 	void test_ThrowsIOException_OnCreateCoverageFiles() {
 		Path path = Paths.get("target");
-		CoverageHitRecorder recorder = new CoverageHitAPIImpl(path);
+		CoverageHitRecorder recorder = new CoverageHitAPIFile(path);
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.createDirectories(Mockito.any())).thenThrow(IOException.class);
 			assertDoesNotThrow(() -> recorder.createCoverageHitFiles());
@@ -76,7 +76,7 @@ public class CoverageFilesUtilityTest {
 	
 	@Test
 	void test_ThrowsIOException_OnRecordHit() {
-		CoverageHitRecorder recorder = new CoverageHitAPIImpl(baseDir);
+		CoverageHitRecorder recorder = new CoverageHitAPIFile(baseDir);
 		recorder.createCoverageHitFiles();
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.lines(Mockito.any())).thenThrow(IOException.class);
@@ -93,7 +93,7 @@ public class CoverageFilesUtilityTest {
 			.thenReturn(path).thenReturn(null)
 			.thenReturn(path).thenReturn(null)
 			.thenReturn(path).thenReturn(null);
-		CoverageHitRecorder recorder = new CoverageHitAPIImpl(path);
+		CoverageHitRecorder recorder = new CoverageHitAPIFile(path);
 		assertThrows(NullPointerException.class, () -> recorder.recordPolicySetHit(new PolicySetHit("")));
 	}
 	

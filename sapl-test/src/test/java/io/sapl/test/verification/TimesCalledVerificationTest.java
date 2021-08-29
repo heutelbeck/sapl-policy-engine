@@ -10,14 +10,14 @@ import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.test.mocking.FunctionCallImpl;
+import io.sapl.test.mocking.FunctionCallSimple;
 
 public class TimesCalledVerificationTest {
 
 	@Test
 	void test_is() {
 		MockRunInformation runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new FunctionCallImpl(Val.of("bar")));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar")));
 		Matcher<Integer> matcher = is(1);
 		MockingVerification verification = new TimesCalledVerification(matcher);
 		
@@ -34,7 +34,7 @@ public class TimesCalledVerificationTest {
 	@Test
 	void test_comparesEqualTo() {
 		MockRunInformation runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new FunctionCallImpl(Val.of("bar")));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar")));
 		Matcher<Integer> matcher = comparesEqualTo(1);
 		MockingVerification verification = new TimesCalledVerification(matcher);
 		
@@ -51,8 +51,8 @@ public class TimesCalledVerificationTest {
 	@Test
 	void test_comparesEqualTo_multipleCalls() {
 		MockRunInformation runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new FunctionCallImpl(Val.of("bar")));
-		runInfo.saveCall(new FunctionCallImpl(Val.of("xxx")));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar")));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx")));
 		Matcher<Integer> matcher = comparesEqualTo(2);
 		MockingVerification verification = new TimesCalledVerification(matcher);
 		
@@ -85,7 +85,7 @@ public class TimesCalledVerificationTest {
 	@Test
 	void test_greaterThanOrEqualTo() {
 		MockRunInformation runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new FunctionCallImpl(Val.of("bar")));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar")));
 		Matcher<Integer> matcher = greaterThanOrEqualTo(1);
 		MockingVerification verification = new TimesCalledVerification(matcher);
 		

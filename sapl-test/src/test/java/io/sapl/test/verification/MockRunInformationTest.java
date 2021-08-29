@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.mocking.FunctionCall;
-import io.sapl.test.mocking.FunctionCallImpl;
+import io.sapl.test.mocking.FunctionCallSimple;
 
 public class MockRunInformationTest {
 
@@ -23,7 +23,7 @@ public class MockRunInformationTest {
 	@Test
 	void test_increase() {
 		String fullname = "foo";
-		FunctionCall call = new FunctionCallImpl(Val.of("foo"));
+		FunctionCall call = new FunctionCallSimple(Val.of("foo"));
 		MockRunInformation mock = new MockRunInformation(fullname);
 		
 		mock.saveCall(call);

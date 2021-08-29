@@ -1,11 +1,11 @@
-package io.sapl.test.pdp.usecase;
+package io.sapl.test.integration.usecase;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.pdp.SaplIntegrationTestFixture;
+import io.sapl.test.integration.SaplIntegrationTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 
 class A_SimplePDPTest {
