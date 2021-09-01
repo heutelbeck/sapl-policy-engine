@@ -57,4 +57,12 @@ public class PolicyBodyImplCustomCoverageTest {
 		Assertions.assertThat(captor.getAllValues().get(1).getConditionStatementId()).isEqualTo(1);
 		Assertions.assertThat(captor.getAllValues().get(2).getConditionStatementId()).isEqualTo(2);
 	}
+	
+	@Test
+	void test_evaluateConditionThrowsError() {
+		var policy = INTERPRETER.parse("set \"set\" deny-overrides policy \"p\" permit true where true == subject.<pip.attr>; true; true;");
+		var expected = AuthorizationDecision.INDETERMINATE;
+		StepVerifier.create(policy.evaluate(ctx)).expectNext(expected).verifyComplete();
+		Mockito.verify(this.recorder, Mockito.never()).recordPolicyConditionHit(Mockito.any());
+	}
 }

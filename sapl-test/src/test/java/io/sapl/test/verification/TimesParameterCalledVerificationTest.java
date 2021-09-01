@@ -14,6 +14,7 @@ import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.FunctionCallSimple;
 
 public class TimesParameterCalledVerificationTest {
@@ -166,4 +167,140 @@ public class TimesParameterCalledVerificationTest {
 		Assertions.assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
 		Assertions.assertThat(runInfo.getCalls().get(3).isUsed()).isTrue();
 	}
+	
+	@Test
+	void test_assertionError_verificationMessage() {
+		MockRunInformation runInfo = new MockRunInformation("foo");
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar"), Val.of(1)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(2)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("yyy"), Val.of(3)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(3)));
+		
+		Matcher<Integer> matcher = comparesEqualTo(2);
+		
+		List<Matcher<Val>> expectedParameters = new LinkedList<>();
+		expectedParameters.add(is(Val.of("xxx")));
+		expectedParameters.add(is(Val.of(2)));
+		MockingVerification verification = new TimesParameterCalledVerification(
+				new TimesCalledVerification(matcher), 
+				expectedParameters
+				);
+		
+		
+		boolean isAssertionErrorThrown = false;
+		AssertionError error = null;
+		try {
+			verification.verify(runInfo, "VerificationMessage");
+		} catch(AssertionError e) {
+			error = e;
+			isAssertionErrorThrown = true;
+		}
+		
+		assertTrue(isAssertionErrorThrown);
+		Assertions.assertThat(runInfo.getCalls().size()).isEqualTo(4);
+		Assertions.assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
+		Assertions.assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
+		Assertions.assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
+		Assertions.assertThat(runInfo.getCalls().get(3).isUsed()).isFalse();
+		Assertions.assertThat(error.getMessage()).contains("VerificationMessage");
+	}
+	
+
+	@Test
+	void test_assertionError_VerificationMessage_Empty() {
+		MockRunInformation runInfo = new MockRunInformation("foo");
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar"), Val.of(1)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(2)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("yyy"), Val.of(3)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(3)));
+		
+		Matcher<Integer> matcher = comparesEqualTo(2);
+		
+		List<Matcher<Val>> expectedParameters = new LinkedList<>();
+		expectedParameters.add(is(Val.of("xxx")));
+		expectedParameters.add(is(Val.of(2)));
+		MockingVerification verification = new TimesParameterCalledVerification(
+				new TimesCalledVerification(matcher), 
+				expectedParameters
+				);
+		
+
+		boolean isAssertionErrorThrown = false;
+		AssertionError error = null;
+		try {
+			verification.verify(runInfo, "");
+		} catch(AssertionError e) {
+			error = e;
+			isAssertionErrorThrown = true;
+		}
+		
+		assertTrue(isAssertionErrorThrown);
+		Assertions.assertThat(runInfo.getCalls().size()).isEqualTo(4);
+		Assertions.assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
+		Assertions.assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
+		Assertions.assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
+		Assertions.assertThat(runInfo.getCalls().get(3).isUsed()).isFalse();
+		Assertions.assertThat(error.getMessage()).isNotEmpty();
+	}
+	
+	
+	@Test
+	void test_assertionError_VerificationMessage_Null() {
+		MockRunInformation runInfo = new MockRunInformation("foo");
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar"), Val.of(1)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(2)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("yyy"), Val.of(3)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(3)));
+		
+		Matcher<Integer> matcher = comparesEqualTo(2);
+		
+		List<Matcher<Val>> expectedParameters = new LinkedList<>();
+		expectedParameters.add(is(Val.of("xxx")));
+		expectedParameters.add(is(Val.of(2)));
+		MockingVerification verification = new TimesParameterCalledVerification(
+				new TimesCalledVerification(matcher), 
+				expectedParameters
+				);
+		
+
+		boolean isAssertionErrorThrown = false;
+		AssertionError error = null;
+		try {
+			verification.verify(runInfo, null);
+		} catch(AssertionError e) {
+			error = e;
+			isAssertionErrorThrown = true;
+		}
+		
+		assertTrue(isAssertionErrorThrown);
+		Assertions.assertThat(runInfo.getCalls().size()).isEqualTo(4);
+		Assertions.assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
+		Assertions.assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
+		Assertions.assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
+		Assertions.assertThat(runInfo.getCalls().get(3).isUsed()).isFalse();
+		Assertions.assertThat(error.getMessage()).isNotEmpty();
+	}
+	
+	@Test
+	void test_Exception_CountOfExpectedParamterNotEqualsFunctionCallParametersCount() {
+		MockRunInformation runInfo = new MockRunInformation("foo");
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar"), Val.of(1)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(2)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("yyy"), Val.of(3)));
+		runInfo.saveCall(new FunctionCallSimple(Val.of("xxx"), Val.of(3)));
+		
+		Matcher<Integer> matcher = comparesEqualTo(2);
+		
+		List<Matcher<Val>> expectedParameters = new LinkedList<>();
+		expectedParameters.add(is(Val.of("xxx")));
+		MockingVerification verification = new TimesParameterCalledVerification(
+				new TimesCalledVerification(matcher), 
+				expectedParameters
+				);
+		
+
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> verification.verify(runInfo));
+	}
+	
+	
 }

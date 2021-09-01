@@ -1,6 +1,16 @@
 package io.sapl.test.unit.usecase;
 
 
+import static io.sapl.hamcrest.Matchers.anyDecision;
+import static io.sapl.test.Imports.times;
+
+import java.time.Duration;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.TemporalFunctionLibrary;
@@ -9,15 +19,6 @@ import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
-import java.time.Duration;
-
-import static io.sapl.hamcrest.Matchers.anyDecision;
-import static io.sapl.test.Imports.times;
 
 class E_PolicyStreamingTest {
 

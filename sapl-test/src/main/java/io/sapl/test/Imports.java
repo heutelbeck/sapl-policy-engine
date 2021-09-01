@@ -8,7 +8,9 @@ import org.hamcrest.Matcher;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.mocking.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 public class Imports {
 
 	@SafeVarargs

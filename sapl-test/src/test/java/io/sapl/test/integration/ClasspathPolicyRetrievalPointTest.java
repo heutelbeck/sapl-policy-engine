@@ -49,6 +49,13 @@ public class ClasspathPolicyRetrievalPointTest {
 		Assertions.assertThat(prpResult.getMatchingDocuments().size()).isEqualTo(2);
 	}
 	
+	@Test
+	void test_dispose() {
+		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("policiesIT"), this.interpreter);
+		prp.dispose();
+		Assertions.assertThatNoException();
+	}
+	
 	
 	@Test
 	void test_invalidPath() {
@@ -129,5 +136,12 @@ public class ClasspathPolicyRetrievalPointTest {
         assertThat(result.isErrorsInTarget(), is(false));
         assertThat(result.isPrpValidState(), is(true));
     }
-
+    
+	@Test
+	void test_matchingReturnsError() {
+		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/error2"), this.interpreter);
+		var authzSubscription = AuthorizationSubscription.of("WILLI", "access", "foo", "");
+		var prpResult = prp.retrievePolicies(ctx.forAuthorizationSubscription(authzSubscription)).blockFirst();
+		Assertions.assertThat(prpResult.isErrorsInTarget()).isTrue();
+	}
 }

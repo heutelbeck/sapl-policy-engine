@@ -45,7 +45,7 @@ public class StepBuilder {
 	}
 
 	// disable default constructor
-	StepBuilder() {
+	private StepBuilder() {
 	}
 
 	/**

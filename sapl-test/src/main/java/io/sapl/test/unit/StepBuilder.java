@@ -50,7 +50,7 @@ class StepBuilder {
 	}
 
 	// disable default constructor
-	StepBuilder() {
+	private StepBuilder() {
 	}
 
 	/**
@@ -77,7 +77,7 @@ class StepBuilder {
 					this.variables).forAuthorizationSubscription(authzSub);
 
 			Val matchResult = this.document.matches(ctx).block();
-			if(matchResult != null && matchResult.getBoolean()) {
+			if(matchResult.isBoolean() && matchResult.getBoolean()) {
 				if (this.withVirtualTime) {
 					this.steps = StepVerifier
 							.withVirtualTime(() -> this.document.evaluate(ctx));

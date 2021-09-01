@@ -1,7 +1,10 @@
 package io.sapl.test.lang;
 
+import org.eclipse.emf.ecore.EObject;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.PolicySet;
+import io.sapl.grammar.sapl.SaplPackage;
 import io.sapl.grammar.sapl.impl.PolicyImplCustom;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
@@ -25,7 +28,8 @@ public class PolicyImplCustomCoverage extends PolicyImplCustom {
 			//and record policy hit if policy matches
 			if(matches.isBoolean() && matches.getBoolean()) {
 				String policySetId = "";
-				if(eContainer() instanceof PolicySet) {
+				EObject eContainer = eContainer();
+				if(eContainer.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 					policySetId = ((PolicySet) eContainer()).getSaplName();
 				}
 				PolicyHit hit = new PolicyHit(policySetId, getSaplName());

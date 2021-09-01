@@ -32,7 +32,7 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 	private Map<String, SAPL> readPoliciesFromDirectory(String path, SAPLInterpreter interpreter) {
 		Map<String, SAPL> documents = new HashMap<>();		
-		Path policyDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass(), path);
+		Path policyDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), path);
 		log.debug("reading policies from directory {}", policyDirectoryPath);
 		
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(policyDirectoryPath, POLICIES_FILE_GLOB_PATTERN)) {
