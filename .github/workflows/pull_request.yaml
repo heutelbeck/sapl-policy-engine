@@ -30,7 +30,8 @@ jobs:
 
     - name: Publish Test Report
       # do not publish test results if PR is from a fork -> PRs from forks don't have access to the github token to access the checks api
-      if: ${{ github.event.pull_request.base.repo.url ==  github.event.pull_request.head.repo.url }}
+      # do not publish test results if PR is from dependabot -> PRs from dependabot are originated in the same repo but the GITHUB_TOKEN is read-only (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544)
+      if: ${{ github.event.pull_request.base.repo.url == github.event.pull_request.head.repo.url && github.actor != 'dependabot[bot]'}}
       uses: scacap/action-surefire-report@v1
 
     - name: Clean up local repository before caching
