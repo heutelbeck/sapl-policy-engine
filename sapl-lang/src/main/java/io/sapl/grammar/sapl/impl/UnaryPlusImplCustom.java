@@ -17,7 +17,7 @@ package io.sapl.grammar.sapl.impl;
 
 import static io.sapl.grammar.sapl.impl.OperatorUtil.arithmeticOperator;
 
-import com.google.common.base.Functions;
+import java.util.function.Function;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.EvaluationContext;
@@ -28,7 +28,7 @@ public class UnaryPlusImplCustom extends UnaryPlusImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
-		return arithmeticOperator(this, Functions.identity(), ctx, relativeNode);
+		return arithmeticOperator(this, Function.identity(), ctx, relativeNode);
 	}
 
 }

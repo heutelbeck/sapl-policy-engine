@@ -17,11 +17,11 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.base.Functions;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
@@ -103,7 +103,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 	}
 
 	private Flux<Val> packageResultsInArray(Iterable<Flux<Tuple2<JsonNode, Val>>> itemFluxes) {
-		return Flux.combineLatest(itemFluxes, Functions.identity()).map(itemResults -> {
+		return Flux.combineLatest(itemFluxes, Function.identity()).map(itemResults -> {
 			var resultArray = Val.JSON.arrayNode();
 			for (var itemResultObject : itemResults) {
 				@SuppressWarnings("unchecked")
