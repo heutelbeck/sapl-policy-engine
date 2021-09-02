@@ -74,9 +74,9 @@
 		<lombok.version>1.18.20</lombok.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
-		<springboot.version>2.5.2</springboot.version>
+		<springboot.version>2.5.4</springboot.version>
 		<mockito.version>3.11.2</mockito.version>
-		<vaadin.version>14.6.5</vaadin.version>
+		<vaadin.version>14.6.8</vaadin.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
