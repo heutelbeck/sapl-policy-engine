@@ -1,5 +1,7 @@
 package io.sapl.test.steps;
 
+import static io.sapl.hamcrest.Matchers.*;
+
 import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
@@ -7,22 +9,22 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.hamcrest.Matcher;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.FunctionCall;
 import io.sapl.test.mocking.FunctionParameters;
 import io.sapl.test.mocking.MockingAttributeContext;
 import io.sapl.test.mocking.MockingFunctionContext;
 import io.sapl.test.verification.TimesCalledVerification;
+
+import org.hamcrest.Matcher;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import reactor.test.StepVerifier.Step;
 import reactor.test.scheduler.VirtualTimeScheduler;
 
@@ -139,14 +141,11 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
     public ExpectStep when(String jsonauthzSub) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode authzSubJsonNode = objectMapper.readTree(jsonauthzSub);
-        if (authzSubJsonNode != null) {
-            AuthorizationSubscription authzSub = new AuthorizationSubscription(authzSubJsonNode.findValue("subject"),
-                    authzSubJsonNode.findValue("action"), authzSubJsonNode.findValue("resource"),
-                    authzSubJsonNode.findValue("environment"));
-            createStepVerifier(authzSub);
-            return this;
-        }
-        throw new SaplTestException(ERROR_COULD_NOT_PARSE_JSON);
+        AuthorizationSubscription authzSub = new AuthorizationSubscription(authzSubJsonNode.findValue("subject"),
+                authzSubJsonNode.findValue("action"), authzSubJsonNode.findValue("resource"),
+                authzSubJsonNode.findValue("environment"));
+        createStepVerifier(authzSub);
+        return this;
     }
 
     @Override
@@ -165,37 +164,22 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
     @Override
     public VerifyStep expectPermit() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.PERMIT)
-                .as("Expecting Decision.PERMIT");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
+        return this.expect(isPermit());
     }
 
     @Override
     public VerifyStep expectDeny() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.DENY)
-                .as("Expecting Decision.DENY");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
+        return this.expect(isDeny());
     }
 
     @Override
     public VerifyStep expectIndeterminate() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.INDETERMINATE)
-                .as("Expecting Decision.INDETERMINATE");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
+        return this.expect(isIndeterminate());
     }
 
     @Override
     public VerifyStep expectNotApplicable() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.NOT_APPLICABLE)
-                .as("Expecting Decision.NOT_APPLICABLE");
-        return this;
+        return this.expect(isNotApplicable());
     }
 
     @Override
@@ -223,11 +207,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
     @Override
     public ExpectOrVerifyStep expectNextPermit() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.PERMIT)
-                .as("Expecting Decision.PERMIT");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
+        return this.expectNext(isPermit());
     }
 
     @Override
@@ -236,21 +216,14 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
             throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
         }
         for (int i = 0; i < count; i++) {
-            this.steps = this.steps
-                    .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.PERMIT)
-                    .as("Expecting Decision.PERMIT");
-            this.numberOfExpectSteps.addExpectStep();
+            this.expectNext(isPermit());
         }
         return this;
     }
 
     @Override
     public ExpectOrVerifyStep expectNextDeny() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.DENY)
-                .as("Expecting Decision.DENY");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
+        return this.expectNext(isDeny());
     }
 
     @Override
@@ -259,21 +232,14 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
             throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
         }
         for (int i = 0; i < count; i++) {
-            this.steps = this.steps
-                    .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.DENY)
-                    .as("Expecting Decision.DENY");
-            this.numberOfExpectSteps.addExpectStep();
+        	this.expectNext(isDeny());
         }
         return this;
     }
 
     @Override
     public ExpectOrVerifyStep expectNextIndeterminate() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.INDETERMINATE)
-                .as("Expecting Decision.INDETERMINATE");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
+        return this.expectNext(isIndeterminate());
     }
 
     @Override
@@ -282,22 +248,14 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
             throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
         }
         for (int i = 0; i < count; i++) {
-            this.steps = this.steps
-                    .expectNextMatches(
-                            (AuthorizationDecision dec) -> dec.getDecision() == Decision.INDETERMINATE)
-                    .as("Expecting Decision.INDETERMINATE");
-            this.numberOfExpectSteps.addExpectStep();
+        	this.expectNext(isIndeterminate());
         }
         return this;
     }
 
     @Override
     public ExpectOrVerifyStep expectNextNotApplicable() {
-        this.steps = this.steps
-                .expectNextMatches((AuthorizationDecision dec) -> dec.getDecision() == Decision.NOT_APPLICABLE)
-                .as("Expecting Decision.NOT_APPLICABLE");
-        this.numberOfExpectSteps.addExpectStep();
-        return this;
+    	return this.expectNext(isNotApplicable()); 
     }
 
     @Override
@@ -306,11 +264,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
             throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
         }
         for (int i = 0; i < count; i++) {
-            this.steps = this.steps
-                    .expectNextMatches(
-                            (AuthorizationDecision dec) -> dec.getDecision() == Decision.NOT_APPLICABLE)
-                    .as("Expecting Decision.NOT_APPLICABLE");
-            this.numberOfExpectSteps.addExpectStep();
+        	 this.expectNext(isNotApplicable()); 
         }
         return this;
     }
@@ -345,12 +299,6 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
     }
 
     // #
-
-    @Override
-    public ExpectOrVerifyStep thenAwait() {
-        this.steps = this.steps.thenAwait();
-        return this;
-    }
 
     @Override
     public ExpectOrVerifyStep thenAwait(Duration duration) {

@@ -6,11 +6,6 @@ import static io.sapl.test.Imports.times;
 
 import java.time.Duration;
 
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.TemporalFunctionLibrary;
@@ -19,6 +14,11 @@ import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 class E_PolicyStreamingTest {
 
@@ -69,13 +69,10 @@ class E_PolicyStreamingTest {
                 .when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData"))
                 .expectNext(anyDecision())
                 .expectNoEvent(Duration.ofSeconds(2))
-                .thenAwait()
                 .expectNext(anyDecision())
                 .expectNoEvent(Duration.ofSeconds(2))
-                .thenAwait()
                 .expectNext(anyDecision())
                 .expectNoEvent(Duration.ofSeconds(2))
-                .thenAwait()
                 .expectNext(anyDecision())
                 .expectNoEvent(Duration.ofSeconds(2))
                 .thenAwait(Duration.ofSeconds(5))
@@ -170,21 +167,4 @@ class E_PolicyStreamingTest {
                 .verify(); // three times mock of function -> three times called
 
     }
-	
-	
-
-	/*
-	@Test
-	void test_policyWithSimpleMockedFunction_CheckArgument() {
-		
-		fixture.constructTestCaseWithMocks()
-			.givenFunction("time.dayOfWeekFrom", Val.of("SATURDAY"), argThat(Val.of("")))
-			.when(AuthorizationSubscription.of("willi", "read", "something"))
-			.expectPermit()
-			.verify();
-	
-	}
-	*/
-
-
 }

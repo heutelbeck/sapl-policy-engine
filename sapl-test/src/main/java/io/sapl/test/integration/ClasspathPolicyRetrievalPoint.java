@@ -15,6 +15,7 @@ import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.test.utils.ClasspathHelper;
+
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
@@ -54,10 +55,6 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		for (SAPL document : documents.values()) {
 			retrieval = retrieval.flatMap(retrievalResult -> document.matches(subscriptionScopedEvaluationContext).map(match -> {
 				if (match.isError()) {
-					return retrievalResult.withError();
-				}
-				if (!match.isBoolean()) {
-					log.error("matching returned error. (Should never happen): {}", match.getMessage());
 					return retrievalResult.withError();
 				}
 				if (match.getBoolean()) {
