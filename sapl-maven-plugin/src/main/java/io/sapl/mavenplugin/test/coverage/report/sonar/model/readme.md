@@ -1,6 +1,6 @@
 # Generate Models from Sonar Generic Coverage XSD Schema
 
-1. Get schema from here <>
+1. Get schema from here <https://docs.sonarqube.org/latest/analysis/generic-test/>
 
 2. Modify sonar-generic-coverage.xsd to bound schema:
 

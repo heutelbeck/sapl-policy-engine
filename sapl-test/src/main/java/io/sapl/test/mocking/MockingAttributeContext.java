@@ -27,6 +27,7 @@ public class MockingAttributeContext implements AttributeContext {
 	private static final String ERROR_MOCK_INVALID_FULLNAME = "Got invalid attribute reference containing more than one \".\" delimiter: \"%s\"";
 	private static final String ERROR_NOT_MARKED_DYNAMIC_MOCK = "No registered dynamic mock found for \"%s\". Did you forgot to register the mock via \".givenAttribute(\"%s\")\"";
 	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION = "Duplicate registration of mock for PIP attribute \"%s\"";
+	private static final String ERROR_LOADING_PIP_NOT_SUPPORTED = "Loading a PIP on a MockingAttributeContext is not supported";
 	private static final String NAME_DELIMITER = ".";
 	/**
 	 * Holds an AttributeContext implementation to delegate evaluations if this
@@ -73,9 +74,6 @@ public class MockingAttributeContext implements AttributeContext {
 		// read all mocked functions for pipName
 		for (String fullName : this.registeredMocks.keySet()) {
 			String[] splitted = fullName.split(Pattern.quote(NAME_DELIMITER));
-			if (splitted.length != 2)
-				throw new SaplTestException(String.format(ERROR_MOCK_INVALID_FULLNAME, fullName));
-
 			if (splitted[0].equals(pipName))
 				set.add(splitted[1]);
 		}
@@ -105,8 +103,7 @@ public class MockingAttributeContext implements AttributeContext {
 
 	@Override
 	public void loadPolicyInformationPoint(Object pip) throws InitializationException {
-		log.warn("MockingFunctionContext.loadLibrary() was called");
-		this.unmockedAttributeContext.loadPolicyInformationPoint(pip);
+		throw new SaplTestException(ERROR_LOADING_PIP_NOT_SUPPORTED);
 	}
 
 	@Override
@@ -176,12 +173,7 @@ public class MockingAttributeContext implements AttributeContext {
 
 		var existingDoc = this.pipDocumentations.get(pipName);
 		if (existingDoc != null) {
-			var doc = existingDoc.getDocumentation();
-			if (doc.containsKey(attributeName)) {
-				throw new SaplTestException(ERROR_DUPLICATE_MOCK_REGISTRATION);
-			} else {
-				doc.put(attributeName, "Mocked Attribute");
-			}
+			existingDoc.getDocumentation().put(attributeName, "Mocked Attribute");
 		} else {
 			PolicyInformationPointDocumentation pipDocs = new PolicyInformationPointDocumentation(pipName,
 					"Mocked PIP " + pipName, mock);

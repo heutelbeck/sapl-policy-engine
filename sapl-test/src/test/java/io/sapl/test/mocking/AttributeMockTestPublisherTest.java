@@ -34,5 +34,11 @@ public class AttributeMockTestPublisherTest {
 		.isThrownBy(() -> mock.mockEmit(Val.of(1)));
 		
 	}
+	
+	@Test
+	void test_errorMessage() {
+		AttributeMockTestPublisher mock = new AttributeMockTestPublisher("test.test");
+		Assertions.assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
+	}
 
 }

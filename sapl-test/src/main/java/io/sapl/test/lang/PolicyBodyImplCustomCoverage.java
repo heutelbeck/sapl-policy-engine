@@ -9,6 +9,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicySet;
+import io.sapl.grammar.sapl.SaplPackage;
 import io.sapl.grammar.sapl.impl.PolicyBodyImplCustom;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
@@ -44,10 +45,10 @@ public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 				String policySetId = "";
 				String policyId = "";		
 				EObject eContainer1 = eContainer();
-				if(eContainer1 instanceof Policy) {
+				if(eContainer1.eClass().equals(SaplPackage.Literals.POLICY)) {
 					policyId = ((Policy) eContainer1).getSaplName();
 					EObject eContainer2 = eContainer1.eContainer();
-					if(eContainer2 instanceof PolicySet) {
+					if(eContainer2.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 						policySetId = ((PolicySet) eContainer2).getSaplName();
 					}
 				}

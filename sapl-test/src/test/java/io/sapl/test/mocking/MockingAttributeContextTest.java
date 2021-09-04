@@ -17,6 +17,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
+import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.unit.TestPIP;
 import reactor.test.StepVerifier;
@@ -39,6 +40,20 @@ public class MockingAttributeContextTest {
 			.then(() -> ctx.mockEmit("foo.bar", Val.of(1)))
 			.expectNext(Val.of(1))
 			.thenCancel().verify();
+	}
+	
+	@Test
+	void test_dynamicMock_duplicateRegistration() {
+		ctx.markAttributeMock("foo.bar");
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+			.isThrownBy(() -> ctx.markAttributeMock("foo.bar"));
+	}
+	
+	@Test
+	void test_dynamicMock_mockEmitCalledForInvalidFullname() {
+		ctx.loadAttributeMock("test.test", Duration.ofSeconds(10), Val.of(1), Val.of(2));
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+			.isThrownBy(() -> ctx.mockEmit("test.test", Val.of(1)));
 	}
 	
 	@Test
@@ -135,5 +150,9 @@ public class MockingAttributeContextTest {
 		this.ctx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
 		assertThat(this.ctx.getAvailableLibraries()).containsOnly("foo.bar");
 	}
-
+	
+	@Test
+	void test_loadPolicyInformationPoint() {
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> this.ctx.loadPolicyInformationPoint(new ClockPolicyInformationPoint()));
+	}
 }

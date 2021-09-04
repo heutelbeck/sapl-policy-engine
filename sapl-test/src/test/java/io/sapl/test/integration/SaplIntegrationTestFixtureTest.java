@@ -3,6 +3,7 @@ package io.sapl.test.integration;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,6 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.SaplTestFixture;
 
 class SaplIntegrationTestFixtureTest {
 
@@ -57,6 +60,34 @@ class SaplIntegrationTestFixtureTest {
 			.when(AuthorizationSubscription.of("WILLI", "read", "foo"))
 			.expectDeny()
 			.verify();
+	}
+	
+	@Test
+	void test_invalidPath1() {
+		SaplTestFixture fixture = new SaplIntegrationTestFixture("");
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+			.isThrownBy(() ->fixture.constructTestCase());
+	}
+	
+	@Test
+	void test_invalidPath2() {
+		SaplTestFixture fixture = new SaplIntegrationTestFixture("");
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+			.isThrownBy(() ->fixture.constructTestCaseWithMocks());
+	}
+	
+	@Test
+	void test_invalidPath3() {
+		SaplTestFixture fixture = new SaplIntegrationTestFixture(null);
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+			.isThrownBy(() ->fixture.constructTestCase());
+	}
+	
+	@Test
+	void test_invalidPath4() {
+		SaplTestFixture fixture = new SaplIntegrationTestFixture(null);
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+			.isThrownBy(() ->fixture.constructTestCaseWithMocks());
 	}
 
 }

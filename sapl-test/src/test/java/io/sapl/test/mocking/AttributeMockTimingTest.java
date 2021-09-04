@@ -6,6 +6,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
 import reactor.test.StepVerifier;
 
 public class AttributeMockTimingTest {
@@ -34,6 +35,20 @@ public class AttributeMockTimingTest {
 	void test_errorMessage() {
 		AttributeMockTiming mock = new AttributeMockTiming("test.test");
 		Assertions.assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
+	}
+	
+	@Test
+	void test_nullReturnValue() {
+		AttributeMockTiming mock = new AttributeMockTiming("test.test");
+		mock.loadAttributeMockWithTiming(Duration.ofSeconds(1), (Val[])null);
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> mock.evaluate());
+	}
+
+	@Test
+	void test_nullTiming() {
+		AttributeMockTiming mock = new AttributeMockTiming("test.test");
+		mock.loadAttributeMockWithTiming(null, new Val[] {Val.of(1)});
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> mock.evaluate());
 	}
 
 

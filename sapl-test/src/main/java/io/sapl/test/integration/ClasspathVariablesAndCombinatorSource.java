@@ -34,7 +34,7 @@ public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombin
 			@NonNull ObjectMapper mapper, PolicyDocumentCombiningAlgorithm testInternalConfiguredCombiningAlg, Map<String,JsonNode> testInternalConfiguredVariables) {
 		log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 		
-		Path configDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass(), configPath);
+		Path configDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), configPath);
 		
 		log.debug("reading config from directory {}", configDirectoryPath);
 		PolicyDecisionPointConfiguration pdpConfig = null;

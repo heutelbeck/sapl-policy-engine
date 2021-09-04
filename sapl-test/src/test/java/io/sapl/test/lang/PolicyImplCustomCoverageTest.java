@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -32,10 +33,29 @@ public class PolicyImplCustomCoverageTest {
 	}
 
 	@Test
-	void simplePermitAll() {
-		var policy = INTERPRETER.parse("policy \"p\" permit true");
-		Assertions.assertThat(policy.matches(ctx).block().getBoolean()).isTrue();
+	void test_Match() {
+		var policy = INTERPRETER.parse("policy \"p\" permit action == \"read\"");
+		AuthorizationSubscription authzSub = AuthorizationSubscription.of("willi", "read", "something");
+		Assertions.assertThat(policy.matches(ctx.forAuthorizationSubscription(authzSub)).block().getBoolean()).isTrue();
 		Mockito.verify(this.recorder, Mockito.times(1)).recordPolicyHit(Mockito.isA(PolicyHit.class));
 	}
+	
+	
+	@Test
+	void test_NotMatching() {
+		var policy = INTERPRETER.parse("policy \"p\" permit action == \"read\"");
+		AuthorizationSubscription authzSub = AuthorizationSubscription.of("willi", "write", "something");
+		Assertions.assertThat(policy.matches(ctx.forAuthorizationSubscription(authzSub)).block().getBoolean()).isFalse();
+		Mockito.verify(this.recorder, Mockito.never()).recordPolicyHit(Mockito.isA(PolicyHit.class));
+	}
+	
+	@Test
+	void test_matchesThrowsError() {
+		var policy = INTERPRETER.parse("policy \"p\" permit action.<pip.attr> == \"test\"");
+		AuthorizationSubscription authzSub = AuthorizationSubscription.of("willi", "write", "something");
+		Assertions.assertThat(policy.matches(ctx.forAuthorizationSubscription(authzSub)).block().isBoolean()).isFalse();
+		Mockito.verify(this.recorder, Mockito.never()).recordPolicyHit(Mockito.isA(PolicyHit.class));
+	}
 
+	
 }
