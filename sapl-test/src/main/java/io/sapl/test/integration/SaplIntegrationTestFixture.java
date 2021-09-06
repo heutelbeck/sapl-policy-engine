@@ -89,6 +89,6 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	private VariablesAndCombinatorSource constructPDPConfig() {
 
-		return new ClasspathVariablesAndCombinatorSource(this.pathToPoliciesFolder.toString(), new ObjectMapper(), this.pdpAlgorithm, this.pdpVariables);
+		return new ClasspathVariablesAndCombinatorSource(this.pathToPoliciesFolder, new ObjectMapper(), this.pdpAlgorithm, this.pdpVariables);
 	}
 }
