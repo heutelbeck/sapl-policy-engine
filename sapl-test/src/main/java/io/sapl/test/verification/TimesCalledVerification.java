@@ -31,10 +31,6 @@ public class TimesCalledVerification implements MockingVerification {
 			message = String.format(ERROR_TIMES_VERIFICATION, mockRunInformation.getFullname());
 		}
 		
-		Assertions.assertThat(this.matcher.matches(mockRunInformation.getTimesCalled())).isTrue().as(message);
-	}
-	
-	public Matcher<Integer> getWantedInvocations() {
-		return this.matcher;
+		Assertions.assertThat(this.matcher.matches(mockRunInformation.getTimesCalled())).as(message).isTrue();
 	}
 }

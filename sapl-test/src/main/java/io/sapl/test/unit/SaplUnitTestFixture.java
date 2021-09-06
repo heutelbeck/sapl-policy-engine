@@ -69,7 +69,7 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 	}
 
 	private String findFileOnClasspath(String filename) {
-		Path path = ClasspathHelper.findPathOnClasspath(getClass(), filename);
+		Path path = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), filename);
 		try {
 			return Files.readString(path);
 		} catch (IOException e) {

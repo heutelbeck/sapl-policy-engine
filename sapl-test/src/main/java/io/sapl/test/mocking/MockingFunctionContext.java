@@ -25,8 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class MockingFunctionContext implements FunctionContext {
 
-	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION = "Duplicate registration of mock for PIP attribute \"%s\"";
 	private static final String ERROR_MOCK_INVALID_FULLNAME = "Got invalid function reference containing more than one \".\" delimiter: \"%s\"";
+	private static final String ERROR_LOADING_LIB_NOT_SUPPORTED = "Loading a FunctionLibrary on a MockingFunctionContext is not supported";
 	private static final String NAME_DELIMITER = ".";
 
 	/**
@@ -68,9 +68,6 @@ public class MockingFunctionContext implements FunctionContext {
 		// read all mocked functions for functionName
 		for (String fullName : this.registeredMocks.keySet()) {
 			String[] splitted = fullName.split(Pattern.quote(NAME_DELIMITER));
-			if (splitted.length != 2)
-				throw new SaplTestException(String.format(ERROR_MOCK_INVALID_FULLNAME, fullName));
-
 			if (splitted[0].equals(libName))
 				set.add(splitted[1]);
 		}
@@ -94,8 +91,7 @@ public class MockingFunctionContext implements FunctionContext {
 
 	@Override
 	public void loadLibrary(Object library) throws InitializationException {
-		log.warn("MockingFunctionContext.loadLibrary() was called");
-		this.unmockedFunctionContext.loadLibrary(library);
+		throw new SaplTestException(ERROR_LOADING_LIB_NOT_SUPPORTED);
 	}
 
 	@Override
@@ -217,12 +213,7 @@ public class MockingFunctionContext implements FunctionContext {
 
 		var existingDoc = this.functionDocumentations.get(libName);
 		if (existingDoc != null) {
-			var doc = existingDoc.getDocumentation();
-			if (doc.containsKey(functionName)) {
-				throw new SaplTestException(ERROR_DUPLICATE_MOCK_REGISTRATION);
-			} else {
-				doc.put(functionName, "Mocked Function");
-			}
+			existingDoc.getDocumentation().put(functionName, "Mocked Function");
 		} else {
 			LibraryDocumentation functionDocs = new LibraryDocumentation(libName, "Mocked Function Library: " + libName,
 					mock);

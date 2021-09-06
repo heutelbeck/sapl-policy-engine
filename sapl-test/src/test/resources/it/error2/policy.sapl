@@ -1,0 +1,6 @@
+policy "policy read"
+permit
+    action.<pip.attr> == "read"
+
+
+

@@ -1,0 +1,11 @@
+import io.sapl.pip.ClockPolicyInformationPoint as clock
+import io.sapl.functions.TemporalFunctionLibrary as time
+
+
+policy "policyStreaming"
+permit
+  resource == "bar"
+where
+  subject == "WILLI";
+  var interval = 2;
+  time.localSecond(<clock.ticker(interval)>) > 4;

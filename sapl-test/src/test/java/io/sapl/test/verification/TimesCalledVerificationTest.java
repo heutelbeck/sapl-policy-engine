@@ -1,5 +1,6 @@
 package io.sapl.test.verification;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
@@ -113,6 +114,66 @@ public class TimesCalledVerificationTest {
 		}
 		
 		assertTrue(isAssertionErrorThrown);
+	}
+	
+	
+	@Test
+	void test_verificationMessageEmpty() {
+		MockRunInformation runInfo = new MockRunInformation("foo");
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar")));
+		Matcher<Integer> matcher = is(2);
+		MockingVerification verification = new TimesCalledVerification(matcher);
+		
+		boolean isAssertionErrorThrown = false;
+		AssertionError error = null;
+		try {
+			verification.verify(runInfo, "");
+		} catch(AssertionError e) {
+			isAssertionErrorThrown = true;
+			error = e;
+		}
+		assertThat(error.getMessage()).isNotEmpty();
+		assertTrue(isAssertionErrorThrown);		
+	}
+	
+	
+	@Test
+	void test_verificationMessageNull() {
+		MockRunInformation runInfo = new MockRunInformation("foo");
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar")));
+		Matcher<Integer> matcher = is(2);
+		MockingVerification verification = new TimesCalledVerification(matcher);
+		
+		boolean isAssertionErrorThrown = false;
+		AssertionError error = null;
+		try {
+			verification.verify(runInfo, null);
+		} catch(AssertionError e) {
+			isAssertionErrorThrown = true;
+			error = e;
+		}
+		assertThat(error.getMessage()).isNotEmpty();
+		assertTrue(isAssertionErrorThrown);		
+	}
+	
+	
+	@Test
+	void test_verificationMessageNotEmpty() {
+		MockRunInformation runInfo = new MockRunInformation("foo");
+		runInfo.saveCall(new FunctionCallSimple(Val.of("bar")));
+		Matcher<Integer> matcher = is(2);
+		MockingVerification verification = new TimesCalledVerification(matcher);
+		
+		boolean isAssertionErrorThrown = false;
+		AssertionError error = null;
+		try {
+			verification.verify(runInfo, "VerificationMessage");
+		} catch(AssertionError e) {
+			isAssertionErrorThrown = true;
+			error = e;
+		}
+		assertThat(error.getMessage()).contains("VerificationMessage");
+		assertTrue(isAssertionErrorThrown);		
 	}
 
 }

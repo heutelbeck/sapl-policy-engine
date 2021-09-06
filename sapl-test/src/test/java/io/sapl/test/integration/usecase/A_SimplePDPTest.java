@@ -10,7 +10,7 @@ import io.sapl.test.unit.SaplUnitTestFixture;
 
 class A_SimplePDPTest {
 
-private SaplTestFixture fixture;
+	private SaplTestFixture fixture;
 	
 	@BeforeEach
 	void setUp() {

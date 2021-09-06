@@ -15,6 +15,7 @@ import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.test.utils.ClasspathHelper;
+
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
@@ -32,7 +33,7 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
 	private Map<String, SAPL> readPoliciesFromDirectory(String path, SAPLInterpreter interpreter) {
 		Map<String, SAPL> documents = new HashMap<>();		
-		Path policyDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass(), path);
+		Path policyDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), path);
 		log.debug("reading policies from directory {}", policyDirectoryPath);
 		
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(policyDirectoryPath, POLICIES_FILE_GLOB_PATTERN)) {
@@ -54,10 +55,6 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 		for (SAPL document : documents.values()) {
 			retrieval = retrieval.flatMap(retrievalResult -> document.matches(subscriptionScopedEvaluationContext).map(match -> {
 				if (match.isError()) {
-					return retrievalResult.withError();
-				}
-				if (!match.isBoolean()) {
-					log.error("matching returned error. (Should never happen): {}", match.getMessage());
 					return retrievalResult.withError();
 				}
 				if (match.getBoolean()) {

@@ -1,6 +1,5 @@
 package io.sapl.test.integration;
 
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
@@ -22,19 +21,11 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	private static final String ERROR_MESSAGE_POLICY_PATH_NULL = "Null is not allowed for the Path pointing to the policies folder.";
 
-	private final Path pathToPoliciesFolder;
+	private String pathToPoliciesFolder;
 	
 	private PolicyDocumentCombiningAlgorithm pdpAlgorithm = null;
 	
 	private Map<String, JsonNode> pdpVariables = null;
-
-	/**
-	 * Fixture for constructing a integration test case Expecting your policies are
-	 * located at the standard path "policies/" in your resources folder.
-	 */
-	public SaplIntegrationTestFixture() {
-		this.pathToPoliciesFolder = Paths.get("policies");
-	}
 
 	/**
 	 * Fixture for constructing a integration test case
@@ -46,19 +37,9 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 	 *                   "yourspecialdir".
 	 */
 	public SaplIntegrationTestFixture(String policyPath) {
-		this.pathToPoliciesFolder = Paths.get(policyPath);
-	}
-
-	/**
-	 * Fixture for constructing a integration test case
-	 * 
-	 * @param policyPath path to the folder containing the sapl documents. If your
-	 *                   policies are located at src/main/resources/yourspecialdir
-	 *                   you only have to specify "yourspecialdir".
-	 */
-	public SaplIntegrationTestFixture(Path policyPath) {
 		this.pathToPoliciesFolder = policyPath;
 	}
+
 	
 	/**
 	 * set {@link PolicyDocumentCombiningAlgorithm} for this policy integration test
@@ -83,7 +64,7 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	@Override
 	public GivenStep constructTestCaseWithMocks() {
-		if (this.pathToPoliciesFolder == null) {
+		if (this.pathToPoliciesFolder == null || this.pathToPoliciesFolder.isEmpty()) {
 			throw new SaplTestException(ERROR_MESSAGE_POLICY_PATH_NULL);
 		}
 		return StepBuilder.newBuilderAtGivenStep(constructPRP(), constructPDPConfig(), this.attributeCtx,
@@ -92,7 +73,7 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	@Override
 	public WhenStep constructTestCase() {
-		if (this.pathToPoliciesFolder == null) {
+		if (this.pathToPoliciesFolder == null || this.pathToPoliciesFolder.isEmpty()) {
 			throw new SaplTestException(ERROR_MESSAGE_POLICY_PATH_NULL);
 		}
 		return StepBuilder.newBuilderAtWhenStep(constructPRP(), constructPDPConfig(), this.attributeCtx,
@@ -103,11 +84,11 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 		SAPLInterpreter interpreter = new TestSaplInterpreter(
 				CoverageAPIFactory.constructCoverageHitRecorder(resolveCoverageBaseDir()));
-		return new ClasspathPolicyRetrievalPoint(this.pathToPoliciesFolder, interpreter);
+		return new ClasspathPolicyRetrievalPoint(Paths.get(this.pathToPoliciesFolder), interpreter);
 	}
 
 	private VariablesAndCombinatorSource constructPDPConfig() {
 
-		return new ClasspathVariablesAndCombinatorSource(this.pathToPoliciesFolder.toString(), new ObjectMapper(), this.pdpAlgorithm, this.pdpVariables);
+		return new ClasspathVariablesAndCombinatorSource(this.pathToPoliciesFolder, new ObjectMapper(), this.pdpAlgorithm, this.pdpVariables);
 	}
 }

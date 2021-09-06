@@ -82,7 +82,7 @@ public class TimesParameterCalledVerification implements MockingVerification {
 	
 	private <T, U, R> List<R> listCombiner(List<T> list1, List<U> list2, BiFunction<T, U, R> combiner) {
 		if(list1.size() != list2.size()) {
-			throw new SaplTestException();
+			throw new SaplTestException("Number of parameters in the function call is not equals the number of provided parameter matcher!");
 		}
 		
 	    List<R> result = new ArrayList<>(list1.size());
