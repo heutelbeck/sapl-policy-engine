@@ -47,7 +47,7 @@ public class RemotePDPAutoConfiguration {
 			log.warn("INSECURE SSL SETTINGS! This demo uses an insecure SslContext for "
 					+ "testing purposes only. It will accept all certificates. "
 					+ "This is only for testing local servers with self-signed certificates easily. "
-					+ "NERVER USE SUCH A CONFIURATION IN PRODUCTION!");
+					+ "NEVER USE SUCH A CONFIGURATION IN PRODUCTION!");
 			var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
 			return new RemotePolicyDecisionPoint(configuration.getHost(), configuration.getKey(),
 					configuration.getSecret(), sslContext);
