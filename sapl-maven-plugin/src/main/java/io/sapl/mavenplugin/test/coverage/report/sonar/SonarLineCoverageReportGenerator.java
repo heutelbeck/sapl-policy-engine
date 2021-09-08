@@ -66,7 +66,7 @@ public class SonarLineCoverageReportGenerator {
 	}
 
 	private void addLine(Coverage.File file, SaplDocumentLineCoverageInformation line) {
-		if (line.getCoveredValue() == LineCoveredValue.UNINTERESTING) {
+		if (line.getCoveredValue() == LineCoveredValue.IRRELEVANT) {
 			return;
 		}
 		Coverage.File.LineToCover sonarLine = FACTORY.createCoverageFileLineToCover();

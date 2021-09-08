@@ -208,7 +208,7 @@ public class GenericCoverageReporter {
 				// thus this change from NEVER -> FULLY cannot happen
 				throw new SaplTestException(
 						String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
-			case UNINTERESTING:
+			case IRRELEVANT:
 				// mark this line as fully covered by adding +2 to coveredBranches and branchesToCover
 				coverage.markLine(i, LineCoveredValue.FULLY, line.getCoveredBranches() + 2, line.getBranchesToCover() + 2);
 				break;
@@ -232,7 +232,7 @@ public class GenericCoverageReporter {
 				// thus this change from NEVER -> PARTLY cannot happen
 				throw new SaplTestException(
 						String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
-			case UNINTERESTING:
+			case IRRELEVANT:
 				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 1, line.getBranchesToCover() + 2);
 				break;
 			}
@@ -254,7 +254,7 @@ public class GenericCoverageReporter {
 				// only add branches
 				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches() + 0, line.getBranchesToCover() + 2);
 				break;
-			case UNINTERESTING:
+			case IRRELEVANT:
 				coverage.markLine(i, LineCoveredValue.NEVER, line.getCoveredBranches() + 0, line.getBranchesToCover() + 2);
 				break;
 			}
@@ -276,7 +276,7 @@ public class GenericCoverageReporter {
 				// thus this change from NEVER -> FULLY cannot happen
 				throw new SaplTestException(
 						String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
-			case UNINTERESTING:
+			case IRRELEVANT:
 				coverage.markLine(i, LineCoveredValue.FULLY, line.getCoveredBranches(), line.getBranchesToCover());
 				break;
 			}
@@ -298,7 +298,7 @@ public class GenericCoverageReporter {
 				case NEVER:
 					// nothing to do
 					break;
-				case UNINTERESTING:
+				case IRRELEVANT:
 					coverage.markLine(i, LineCoveredValue.NEVER, line.getCoveredBranches(), line.getBranchesToCover());
 					break;
 			}

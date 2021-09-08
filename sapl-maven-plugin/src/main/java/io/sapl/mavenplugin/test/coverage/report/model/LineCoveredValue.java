@@ -4,5 +4,5 @@ public enum LineCoveredValue {
 	FULLY, 
 	PARTLY,
 	NEVER, 
-	UNINTERESTING
+	IRRELEVANT
 }

@@ -12,7 +12,7 @@ public class SaplDocumentLineCoverageInformation {
 
 	public SaplDocumentLineCoverageInformation(int lineNumber) {
 		this.lineNumber = lineNumber;
-		this.coveredValue = LineCoveredValue.UNINTERESTING;
+		this.coveredValue = LineCoveredValue.IRRELEVANT;
 		this.branchesToCover = 0;
 		this.coveredBranches = 0;
 	}

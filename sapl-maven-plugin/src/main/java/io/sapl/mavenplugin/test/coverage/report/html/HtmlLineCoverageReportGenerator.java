@@ -229,7 +229,7 @@ public class HtmlLineCoverageReportGenerator {
 				model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(),
 						line.getBranchesToCover()));
 				break;
-			case UNINTERESTING:
+			case IRRELEVANT:
 				model.setCssClass("");
 				break;
 			}
