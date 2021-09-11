@@ -144,7 +144,9 @@ This should give you a basic understanding of the operation principles applied i
 
 === Getting Started
 
-SAPL provides an embedded PDP including an embedded PRP with a file system policy store which can be easily integrated in a Java applications. Besides this guide, the quickest way to start is to build upon the demo projects hosted on https://github.com/heutelbeck/sapl-demos[GitHub] some good demos to start from are the simple no-framework https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-embedded[Embedded PDP Demo] or the full-stack https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-mvc-app[Spring MVC Project] or the https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-reactive[Reactive Vaadin Application].
+To learn the SAPL policy language and checkout some example policies, you can try out the https://playground.sapl.io/[SAPL-Playground].
+
+In addition SAPL provides an embedded PDP including an embedded PRP with a file system policy store which can be easily integrated in Java applications. Besides this guide, the quickest way to start is to build upon the demo projects hosted on https://github.com/heutelbeck/sapl-demos[GitHub]. Some good demos to start from are the simple no-framework https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-embedded[Embedded PDP Demo] or the full-stack https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-mvc-app[Spring MVC Project] or the https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-reactive[Reactive Vaadin Application].
 
 ==== Maven Dependencies
 
@@ -1757,3 +1759,337 @@ public static JsonNode userprofile(
 }
 +
 Each attribute function must have exactly one parameter which can be annotated with any number of `@Array`, `@Bool`, `@Int`, `@JsonObject`, `@Long`, `@Number` and `@Text`. The annotations describe which types are allowed for the argument passed (in case of multiple annotations each of these types is allowed).
+
+== Testing your SAPL policies
+
+Version 2.0.0 of the SAPL policy introduces a framework to test SAPL policies. This framework supports unit tests of a single SAPL document or policy integration test of all of your SAPL policies via the PDP interface.
+
+=== Unit-Tests
+
+The JUnit-Test-Framework is used for execution of the SAPL unit test cases. You create and setup a `SaplUnitTestFixture` for example in the `@BeforeStep` of a JUnit test case.
+
+Here you define the name of the SAPL document under test or the path to this file. In addition you can register PIPs and FunctionLibrarys to be used during test execution by providing these objects to the `SaplUnitTestFixture`.
+
+[source,java]
+----
+    private SaplTestFixture fixture;
+
+    @BeforeEach
+    void setUp() throws InitializationException {
+        fixture = new SaplUnitTestFixture("policyStreaming")
+                //.registerPIP(...)
+                .registerFunctionLibrary(new TemporalFunctionLibrary());
+    }
+----
+
+
+=== Policy-Integration-Tests
+
+Instead of testing a single SAPL document, you can test all policies together via the PDP interface just like when you're using a PDP embedded in your application or a SAPL server implementation.
+
+For this you create a `SaplIntegrationTestFixture` again for example in the `@BeforeStep` of your JUnit test case. Likewise you can register PIPs and FunctionLibraries in addition to a combining algorithm.
+
+
+[source,java]
+----
+	private SaplTestFixture fixture;
+	
+	@BeforeEach
+	void setUp() {
+		fixture = new SaplIntegrationTestFixture("policiesIT")
+			.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY);
+	}
+----
+
+
+
+=== Writing your test case
+
+The Step-Builder-Pattern is used for defining the concrete test case. It consists of the following four steps:
+
+* Given-Step: Define mocks for attributes and functions
+
+* When-Step: Specify the `AuthorizationSubscription`
+
+* Expect-Step: Define expectations for generated `AuthorizationDecision`
+
+* Verify-Step: Verify the generated `AuthorizationDecision`
+
+
+image::StepBuilderPatternForSaplTest_English.svg[Step Builder Pattern]
+
+Starting with constructTestCaseWithMocks() or constructTestCase() called on your fixture, the test case definition process is started at the Given-Step or the When-Step.
+
+==== Given-Step
+
+*Mocking of functions*:
+
+* via the `givenFunction` methods you can mock a function returning the `Val` specified in the method parameters for every call. 
+** you can specify a single value
++
+[source,java]
+----
+.givenFunction("time.dayOfWeek", Val.of("SATURDAY"))
+----
+
+** a single value only returned when the paramters of the function call match some expectations
++
+[source,java]
+----
+.givenFunction("corp.subjectConverter", Val.of("ROLE_ADMIN"), 
+	whenParameters(is(Val.of("USER")), is(Val.of("nikolai"))))
+----
+** or a Lambda-Expression evaluating the parameters of the function call
++
+[source,java]
+----
+.givenFunction("company.complexFunction", (FunctionCall call) -> {
+
+	//probably you should check for number and type of parameters first
+	Double param0 = call.getArgument(0).get().asDouble();
+	Double param1 = call.getArgument(1).get().asDouble();
+
+	return param0 % param1 == 0 ? Val.of(true) : Val.of(false);
+})
+----
+** and verify the number of calls to this mock
++
+[source,java]
+----
+.givenFunction("time.dayOfWeek", Val.of("SATURDAY"), times(1))
+----
+
+* via the `givenFunctionOnce` methods you can specify a `Val` or multiple `Val`-Objects which are emitted once (in a sequence) when this mocked function is called
+
+** a single value
++
+[source,java]
+----
+.givenFunctionOnce("time.localSecond", Val.of(4))
+.givenFunctionOnce("time.localSecond", Val.of(5))
+----
+                
+** or a sequence of values
++
+[source,java]
+----
+.givenFunctionOnce("time.localSecond", Val.of(3), Val.of(4), Val.of(5))
+----
+
+*Mocking of attributes*:
+
+* via the `givenAttribute` methods you can mock an attribute
+** to return one or more `Val`
++
+[source,java]
+----
+.givenAttribute("clock.ticker", timestamp0, timestamp1, timestamp2)
+----
+
+** to return a sequence of `Val` in an interval of `Duration`. Do not forget to call the `withVirtualTime` method to use the virtual time feature of Project Reactor
++
+[source,java]
+----
+.withVirtualTime()
+.givenAttribute("clock.ticker", Duration.ofSeconds(10), timestamp0, timestamp1, timestamp2, timestamp3, timestamp4, timestamp5)
+----
+The virtual time feature can be used with real time-based PIPs registrated at the fixture level. But be aware that virtual time is "no silver bullet" to cite the https://projectreactor.io/docs/core/release/reference/#_manipulating_time[Project Reactor Reference Guide]. It says further that "[v]irtual time also gets very limited with infinite sequences, which might hog the thread on which both the sequence and its verification run."
+
+** to mark an attribute to be mocked and specify return values in a sequence next to your expectations
++
+[source,java]
+----
+.givenAttribute("company.pip1")
+.givenAttribute("company.pip2")
+.when(AuthorizationSubscription.of("User1", "read", "heartBeatData"))
+.thenAttribute("company.pip1", Val.of(1))
+.thenAttribute("company.pip2", Val.of("foo"))
+.expectNextPermit()
+.thenAttribute("company.pip2", Val.of("bar"))
+.expectNextNotApplicable()
+----
+
+You can check out further mock types or overloaded methods https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-test/src/main/java/io/sapl/test/steps/GivenStep.java[here].
+
+==== When-Step
+
+In the next step you define the `AuthorizationSubscription` for the policy evaluation.
+
+* pass an `AuthorizationSubscription` created via it's factory methods
++
+[source,java]
+----
+.when(AuthorizationSubscription.of("willi", "read", "something"))                
+----
+
+* pass a JSON-String to be parsed to an `AuthorizationSubscription` via the framework
++
+[source,java]
+----
+.when("{\"subject\":\"willi\", \"action\":\"read\", \"resource\":\"something\", \"environment\":{}}")
+----
+
+* pass a `JsonNode` object of the Jackson-Framework (https://fasterxml.github.io/jackson-databind/javadoc/2.7/com/fasterxml/jackson/databind/JsonNode.html[Reference])
++
+[source,java]
+----
+JsonNode authzSub = mapper.createObjectNode()
+    .put("subject", "willi")
+	.put("action", "read")
+	.put("resource", "something")
+	.put("environment", "test");
+...
+	.when(authzSub)
+----
+
+==== Expect-Step
+
+Define the expected `AuthorizationDecision` in this step.
+
+* check only the Decision via
++
+[source,java]
+----
+.expectPermit()
+.expectDeny()
+.expectIndeterminate()
+.expectNotApplicable()
+----
+
+* pass a `AuthorizationDecision` object to be checked for equality
++
+[source,java]
+----
+ObjectNode obligation = mapper.createObjectNode();
+obligation.put("type", "logAccess");
+obligation.put("message", "Willi has accessed patient data (id=56) as an administrator.");
+ArrayNode obligations = mapper.createArrayNode();
+obligations.add(obligation);
+		
+AuthorizationDecision decision = new AuthorizationDecision(Decision.PERMIT).withObligations(obligations);
+
+...
+
+	.expect(decision)
+----
+* use a Predicate-Callback to manually define checks
++
+[source,java]
+----
+.expect((AuthorizationDecision dec) -> {
+	// some complex and custom assertions
+	if(dec.getObligations().isEmpty()) {
+		return true;
+	}
+	return false;
+})
+----
+* use Hamcrest Matcher prodivded by the sapl-hamcrest modul to express complex expectations on the decision, obligations, advices or resources of the `AuthorizationDecision`
++
+[source,java]
+----
+.expect(
+	allOf(
+		isPermit(),		
+		hasObligationContainingKeyValue("type", "logAccess"),
+		isResourceMatching((JsonNode resource) -> resource.get("id").asText().equals("56"))
+		...
+	)
+)
+----
++
+All avaliable `Matcher<AuthorizationDecision>` can be find https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-hamcrest/src/main/java/io/sapl/hamcrest/Matchers.java#L104[here]
+
+All of these methods come with additional methods ( for example `expectNextPermit`) to define multiple expectations for testing of stream-based policies.
+[source,java]
+----
+.expectNextPermit(3)
+----
+
+
+You can check out all available methods https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-test/src/main/java/io/sapl/test/steps/ExpectStep.jav[here]. 
+
+==== Verify-Step
+
+At the end of every test case definition you call the `verify` method to evaluate the policy/policies and verify the expectations.
+
+=== Examples
+
+In the following you can find a full and minimal example of a SAPL unit test.
+[source,java]
+----
+public class B_PolicyWithSimpleFunctionTest {
+
+	private SaplTestFixture fixture;
+	
+	@BeforeEach
+	void setUp() {
+		fixture = new SaplUnitTestFixture("policyWithSimpleFunction.sapl");
+	}
+	
+	@Test
+	void test() {
+        fixture.constructTestCaseWithMocks()
+                .givenFunction("time.dayOfWeek", Val.of("SATURDAY"), times(1))
+                .when(AuthorizationSubscription.of("willi", "read", "something"))
+                .expectPermit()
+                .verify();	
+	}
+}
+----
+
+A lot of additional examples showcasing the various features of this SAPL test framework can be found in the demo project https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-testing/src/test/java/io/sapl/test[here]
+
+=== Code-Coverage Reports via the SAPL-Maven-Plugin
+
+For measuring the policy code coverage of your SAPL policies you can use the sapl-maven-plugin to analyze the coverage and generate reports in various formats.
+
+Currently three coverage criteria are supported:
+
+- *PolicySet Hit Coverage*: Measures the percentage of PolicySets which were at least once applicable to an `AuthorizationSubscription` in your tests.
+
+- *Policy Hit Coverage*: Measures the percentage of Policies which were at least once applicable to an `AuthorizationSubscription` in your tests.
+
+- *Condition Hit Coverage*: Measures the percentage of conditions  evaluated to true or false during your tests. Twice the number of conditions is taken and compared with the number of positively and negatively evaluated conditions.
+
+Simply add the following configuration to your `pom.xml`
+[source,xml]
+----
+<plugin>
+	<groupId>io.sapl</groupId>
+	<artifactId>sapl-maven-plugin</artifactId>
+	<configuration>
+		<policyHitRatio>100</policyHitRatio>
+		<policyConditionHitRatio>50</policyConditionHitRatio>
+	</configuration>
+	<executions>
+		<execution>
+			<id>coverage</id>
+			<goals>
+				<goal>enable-coverage-collection</goal>
+				<goal>report-coverage-information</goal>
+			</goals>
+		</execution>
+		
+	</executions>
+</plugin>
+----
+
+The plugin can be configured via the following paramters:
+
+* *coverageEnabled*: When set to false, this parameter disables the execution of the sapl-maven-plugin (defaultValue = true).
+* *policyPath*: Defines the path on the classpath to the folder containing the policies under test. Specify the same path used in your `SaplIntegrationTestFixture` or the parent folder of the path to your SAPL documents in the `SaplUnitTestFixture` (defaultValue = policies).
+* *outputDir*: Set this parameter to the path where generated reports should be written to (per default the maven build output directory is used).
+* *policySetHitRatio*: A value between 0 - 100 to define the ratio of PolicySets your tests should cover. If this ratio isn't fulfilled the sapl-maven-plugin is going to stop the maven lifecycle. (defaultValue = 0)
+* *policyHitRatio*: A value between 0 - 100 to define the ratio of Policies your tests should cover. If this ratio isn't fulfilled the sapl-maven-plugin is going to stop the maven lifecycle (defaultValue = 0).
+* *policyConditionHitRatio*: A value between 0 - 100 to define the ratio of condition results your tests should cover. If this ratio isn't fulfilled the sapl-maven-plugin is going to stop the maven lifecycle (defaultValue = 0).
+* *enableSonarReport*: When set to true a coverage report with the https://monteverdi.informatik.uni-freiburg.de/sonar/documentation/analysis/generic-test/[Sonarqube Generic Coverage Format] is generated. This format is currently not useable as SonarQube does not import generic coverage data for languages unknown to SonarQube. Currently there is no SonarQube Lanaguage Plugin for SAPL (defaultValue = false).
+* *enableHtmlReport*: When set to true a HTML coverage report is created. This report is similar to JaCoCo reports showing colorized line coverage and number of covered branches for conditions in a line. The path to the `index.html` on the filesystem is printed in the maven log. Terminals like Powershell allow you to click on these paths and open the report directly in your browser (defaultValue = true).
+
+
+== Appendix: Formal EBNF grammar
+The SAPL syntax is described by the following grammar provided in Extended Backus–Naur form:
+
+------
+include::sapl-grammar.ebnf[SAPL-Grammar]
+------
