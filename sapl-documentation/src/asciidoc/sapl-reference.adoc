@@ -1797,7 +1797,9 @@ For this you create a `SaplIntegrationTestFixture` again for example in the `@Be
 	@BeforeEach
 	void setUp() {
 		fixture = new SaplIntegrationTestFixture("policiesIT")
-			.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY);
+            .withPDPPolicyCombiningAlgorithm(
+				PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY
+			);
 	}
 ----
 
@@ -1972,7 +1974,7 @@ AuthorizationDecision decision = new AuthorizationDecision(Decision.PERMIT).with
 
 	.expect(decision)
 ----
-* use a Predicate-Callback to manually define checks
+* use a predicate function to manually define checks
 +
 [source,java]
 ----
@@ -2038,7 +2040,7 @@ public class B_PolicyWithSimpleFunctionTest {
 }
 ----
 
-A lot of additional examples showcasing the various features of this SAPL test framework can be found in the demo project https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-testing/src/test/java/io/sapl/test[here]
+A lot of additional examples showcasing the various features of this SAPL test framework can be found in the demo project https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-testing/src/test/java/io/sapl/test[here].
 
 === Code-Coverage Reports via the SAPL-Maven-Plugin
 
