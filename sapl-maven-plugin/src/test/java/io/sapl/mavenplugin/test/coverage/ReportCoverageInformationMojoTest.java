@@ -1,22 +1,12 @@
 package io.sapl.mavenplugin.test.coverage;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyFloat;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.plugin.testing.AbstractMojoTestCase;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import io.sapl.mavenplugin.test.coverage.helper.CoverageAPIHelper;
 import io.sapl.mavenplugin.test.coverage.helper.CoverageRatioCalculator;
@@ -29,6 +19,14 @@ import io.sapl.mavenplugin.test.coverage.report.sonar.SonarLineCoverageReportGen
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
+
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugin.testing.AbstractMojoTestCase;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
@@ -267,10 +265,11 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 		
-		assertThrows(MojoFailureException.class, () -> mojo.execute());
+		mojo.execute();
 		
 		verifyReporterAreCalled();
-		
+
+		Mockito.verify(log).info("All coverage criteria passed");
 		Mockito.verify(log).info("There are no PolicySets to hit");
 		Mockito.verify(log).info("There are no Policies to hit");
 		Mockito.verify(log).info("There are no PolicyConditions to hit");

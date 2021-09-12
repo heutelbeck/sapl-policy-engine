@@ -3,16 +3,6 @@ package io.sapl.mavenplugin.test.coverage;
 import java.nio.file.Path;
 import java.util.Collection;
 
-import javax.inject.Inject;
-
-import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.LifecyclePhase;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
-
 import io.sapl.mavenplugin.test.coverage.helper.CoverageAPIHelper;
 import io.sapl.mavenplugin.test.coverage.helper.CoverageRatioCalculator;
 import io.sapl.mavenplugin.test.coverage.helper.CoverageTargetHelper;
@@ -25,6 +15,16 @@ import io.sapl.mavenplugin.test.coverage.report.sonar.SonarLineCoverageReportGen
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
+
+import javax.inject.Inject;
+
+import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 
 @Mojo(name = "report-coverage-information", defaultPhase = LifecyclePhase.VERIFY)
 public class ReportCoverageInformationMojo extends AbstractMojo {
@@ -168,10 +168,10 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	private boolean checkPolicySetRatio(Collection<PolicySetHit> targets, float ratio) {
 		if (targets.isEmpty()) {
 			getLog().info("There are no PolicySets to hit");
-		} else {
-
-			getLog().info("Policy Set Hit Ratio is: " + ratio);
+			return true;
 		}
+		
+		getLog().info("Policy Set Hit Ratio is: " + ratio);
 
 		if (ratio < policySetHitRatio) {
 			getLog().error("Policy Set Hit Ratio not fulfilled - Expected greater or equal " + policySetHitRatio
@@ -185,9 +185,10 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	private boolean checkPolicyRatio(Collection<PolicyHit> targets, float ratio) {
 		if (targets.isEmpty()) {
 			getLog().info("There are no Policies to hit");
-		} else {
-			getLog().info("Policy Hit Ratio is: " + ratio);
+			return true;
 		}
+		
+		getLog().info("Policy Hit Ratio is: " + ratio);
 
 		if (ratio < policyHitRatio) {
 			getLog().error("Policy Hit Ratio not fulfilled - Expected greater or equal " + policyHitRatio + " but got "
@@ -201,9 +202,10 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	private boolean checkPolicyConditionRatio(Collection<PolicyConditionHit> targets, float ratio) {
 		if (targets.isEmpty()) {
 			getLog().info("There are no PolicyConditions to hit");
-		} else {
-			getLog().info("Policy Condition Hit Ratio is: " + ratio);
+			return true;
 		}
+		
+		getLog().info("Policy Condition Hit Ratio is: " + ratio);
 
 		if (ratio < policyConditionHitRatio) {
 			getLog().error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal "
