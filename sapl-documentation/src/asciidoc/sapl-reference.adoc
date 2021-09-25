@@ -1762,7 +1762,23 @@ Each attribute function must have exactly one parameter which can be annotated w
 
 == Testing your SAPL policies
 
-Version 2.0.0 of the SAPL policy introduces a framework to test SAPL policies. This framework supports unit tests of a single SAPL document or policy integration test of all of your SAPL policies via the PDP interface.
+Version 2.0.0 of the SAPL policy engine introduces a framework to test SAPL policies. This framework supports unit tests of a single SAPL document or policy integration test of all of your SAPL policies via the PDP interface.
+
+=== Usage scenarios
+
+With the SAPL testframework you can test SAPL policies no matter if you use SAPL via a embedded PDP in your application or via a central SAPL server.
+
+==== Embedded PDP
+
+If you're using a embedded PDP in your application, you can treat your SAPL policy tests like your "normal" unit and integration tests. Organize them next to these tests and execute them identically via the Maven lifecycle on your local workstation or in your CI pipeline.
+
+==== SAPL-Server
+
+The following https://github.com/heutelbeck/sapl-server-lt-gitops-example[Repo] is showcasing a deployment pipeline with SAPL policy tests in a https://www.weave.works/blog/gitops-operations-by-pull-request[GitOps]-Style for the headless SAPL-Server-LT.
+Here every change to the policies is introduced via a pull request on the main branch. For every pull request the CI pipeline executes the policy tests and breaks the pipeline run, if policy tests are failing.
+If a pull request is merged on the main branch, the policies are automatically synced to the SAPL-Server-LT instance.
+
+Currently there is no support for writing SAPL test cases via the SAPL DSL - only in Java. So it's not possible to use the SAPL test framework when deploying SAPL-Server-Implementations with GUI-based PAP (SAPL-Server-CE or SAPL-Server-EE).
 
 === Unit-Tests
 
@@ -1895,6 +1911,7 @@ Starting with constructTestCaseWithMocks() or constructTestCase() called on your
 .withVirtualTime()
 .givenAttribute("clock.ticker", Duration.ofSeconds(10), timestamp0, timestamp1, timestamp2, timestamp3, timestamp4, timestamp5)
 ----
+[WARNING]
 The virtual time feature can be used with real time-based PIPs registrated at the fixture level. But be aware that virtual time is "no silver bullet" to cite the https://projectreactor.io/docs/core/release/reference/#_manipulating_time[Project Reactor Reference Guide]. It says further that "[v]irtual time also gets very limited with infinite sequences, which might hog the thread on which both the sequence and its verification run."
 
 ** to mark an attribute to be mocked and specify return values in a sequence next to your expectations
