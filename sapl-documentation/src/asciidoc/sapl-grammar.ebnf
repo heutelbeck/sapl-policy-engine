@@ -34,7 +34,7 @@ basic-expression    = ( value | "@" | ID | function-call
                       | ( "::", value ) ];
 function-call       = ID, { ".", ID }, "(", [ expression, 
                       {",", expression } ], ")" ;
-selection-step      = key-step | index-step | wildcard-step |
+selection-step      = key-step | index-step | wildcard-step
                     | rec-descent-step | rec-wildcard-step
                     | slicing-step | expression-step | condition-step
                     | union-step | attr-finder-step
@@ -54,7 +54,8 @@ expression-step     = "[", "(", expression, ")", "]";
 condition-step      = "[", "?", "(", expression, ")", "]";
 union-step          = "[", NUMBER, ",", NUMBER, { ",", NUMBER }, "]"
                     | "[", ID, ",", ID, { ",", ID }, "]";
-attr-finder-step    = ".", "<", ID, { ".", ID }, ">";
+attr-finder-step    = ".", "<", ID, { ".", ID }, "(", [ expression, 
+                      {",", expression } ], ")", ">";
 filter              = [ "each" ], filter-function
                     | "{", filter-statement, { ",", filter-statement }, "}";
 filter-statement    = [ "each" ], "@", {selection-step}, ":", filter-function;
@@ -66,7 +67,14 @@ object              = "{", [ STRING, ":", expression,
                       { ",", STRING, ":", expression } ], "}";
 array               = "[", [ expression, { ",", expression } ], "]" ;
 ID                  = ( LETTER | "_" | "$" ), { LETTER | DIGIT | "_" | "$" };
-LETTER              = "A" | "B" | ... | "Z" | "a" | "b" | ... | "z" ;
+LETTER              = "A" | "B" | "C" | "D" | "E" | "F" | "G"
+                    | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+                    | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+                    | "V" | "W" | "X" | "Y" | "Z" 
+                    | "a" | "b" | "c" | "d" | "e" | "f" | "g"
+                    | "h" | "i" | "j" | "k" | "l" | "m" | "n"
+                    | "o" | "p" | "q" | "r" | "s" | "t" | "u"
+                    | "v" | "w" | "x" | "y" | "z";
 DIGIT               = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 STRING              = '"', ? any character except " ?, '"'
                     | "'", ? any character except ' ?, "'";
