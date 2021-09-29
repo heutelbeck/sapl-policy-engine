@@ -7,6 +7,6 @@ import io.sapl.spring.pep.PolicyEnforcementPoint;
 
 @Configuration
 @Import(PolicyEnforcementPoint.class)
-public class PolicyEnforcementPointAutoconfiguration {
+public class PolicyEnforcementPointAutoConfiguration {
 
 }
