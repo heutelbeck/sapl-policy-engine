@@ -1,5 +1,5 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   io.sapl.spring.config.FilterPEPAutoConfiguration,\
   io.sapl.spring.config.ObjectMapperAutoConfiguration,\
-  io.sapl.spring.config.PolicyEnforcementPointAutoConfiguration,\
-  io.sapl.spring.config.MethodSecurityAutoConfiguration
+  io.sapl.spring.config.ConstraintsHandlerAutoconfiguration,\
+  io.sapl.spring.config.PolicyEnforcementPointAutoconfiguration

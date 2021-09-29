@@ -15,24 +15,27 @@
  */
 package io.sapl.spring.config;
 
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Role;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ConstraintHandlerService;
-import io.sapl.spring.pep.PolicyEnforcementFilterPEP;
+import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.filter.PolicyEnforcementFilterPEP;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
+@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 public class FilterPEPAutoConfiguration {
 	@Bean
 	@ConditionalOnProperty("io.sapl.policyEnforcementFilter")
 	public PolicyEnforcementFilterPEP policyEnforcementFilter(PolicyDecisionPoint pdp,
-			ConstraintHandlerService constraintHandlers, ObjectMapper mapper) {
+			ReactiveConstraintEnforcementService constraintHandlers, ObjectMapper mapper) {
 		log.info("PolicyEnforcementFilter enabled.");
 		return new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
 	}

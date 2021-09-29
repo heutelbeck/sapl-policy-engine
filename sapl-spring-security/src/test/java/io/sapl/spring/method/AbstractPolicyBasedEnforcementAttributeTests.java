@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.expression.Expression;
 
+import io.sapl.spring.method.attributes.AbstractPolicyBasedEnforcementAttribute;
+
 class AbstractPolicyBasedEnforcementAttributeTests {
 
 	@Test
@@ -37,7 +39,7 @@ class AbstractPolicyBasedEnforcementAttributeTests {
 
 	@Test
 	void whenPassingNull_thenExpressionsAreNull() {
-		var sut = new AbstractPolicyBasedEnforcementAttributeMock((String) null, null, null, null);
+		var sut = new AbstractPolicyBasedEnforcementAttributeMock((String) null, null, null, null, null);
 		assertAll(() -> assertThat(sut.getSubjectExpression(), is(nullValue())),
 				() -> assertThat(sut.getActionExpression(), is(nullValue())),
 				() -> assertThat(sut.getResourceExpression(), is(nullValue())),
@@ -47,7 +49,7 @@ class AbstractPolicyBasedEnforcementAttributeTests {
 	@Test
 	void whenExpressions_thenExpressionsAreSet() {
 		var sut = new AbstractPolicyBasedEnforcementAttributeMock("19 + 1", "1 ne 1", "2 > 1 ? 'a' : 'b'",
-				"workersHolder.salaryByWorkers['John']");
+				"workersHolder.salaryByWorkers['John']", null);
 		assertAll(() -> assertThat(sut.getSubjectExpression(), is(notNullValue())),
 				() -> assertThat(sut.getActionExpression(), is(notNullValue())),
 				() -> assertThat(sut.getResourceExpression(), is(notNullValue())),
@@ -57,7 +59,7 @@ class AbstractPolicyBasedEnforcementAttributeTests {
 	@Test
 	void whenExpressionsSet_thenToStringcontainsThem() {
 		var sut = new AbstractPolicyBasedEnforcementAttributeMock("19 + 1", "1 ne 1", "2 > 1 ? 'a' : 'b'",
-				"workersHolder.salaryByWorkers['John']");
+				"workersHolder.salaryByWorkers['John']", null);
 		var stringValue = sut.toString();
 		assertAll(() -> assertThat(stringValue, containsString("19 + 1")),
 				() -> assertThat(stringValue, containsString("1 ne 1")),
@@ -67,13 +69,13 @@ class AbstractPolicyBasedEnforcementAttributeTests {
 
 	protected static class AbstractPolicyBasedEnforcementAttributeMock extends AbstractPolicyBasedEnforcementAttribute {
 		public AbstractPolicyBasedEnforcementAttributeMock(String subjectExpression, String actionExpression,
-				String resourceExpression, String environmentExpression) {
-			super(subjectExpression, actionExpression, resourceExpression, environmentExpression);
+				String resourceExpression, String environmentExpression, Class<?> genericsType) {
+			super(subjectExpression, actionExpression, resourceExpression, environmentExpression, genericsType);
 		}
 
 		public AbstractPolicyBasedEnforcementAttributeMock(Expression subjectExpression, Expression actionExpression,
-				Expression resourceExpression, Expression environmentExpression) {
-			super(subjectExpression, actionExpression, resourceExpression, environmentExpression);
+				Expression resourceExpression, Expression environmentExpression, Class<?> genericsType) {
+			super(subjectExpression, actionExpression, resourceExpression, environmentExpression, genericsType);
 		}
 	}
 }

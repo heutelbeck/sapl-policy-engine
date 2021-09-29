@@ -7,24 +7,22 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.testing.SilentLog;
+import org.apache.maven.plugin.testing.stubs.MavenProjectStub;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.SaplPackage;
 import io.sapl.mavenplugin.test.coverage.SaplTestException;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.plugin.testing.SilentLog;
-import org.apache.maven.plugin.testing.stubs.MavenProjectStub;
-import org.eclipse.emf.ecore.impl.EClassImpl;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import io.sapl.mavenplugin.test.coverage.model.CoverageTargets;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
-import org.mockito.Mockito;
 
 public class CoverageTargetHelperTest {
 	

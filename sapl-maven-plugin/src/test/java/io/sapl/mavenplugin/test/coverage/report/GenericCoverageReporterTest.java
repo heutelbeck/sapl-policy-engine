@@ -10,7 +10,6 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 
-import io.sapl.grammar.sapl.Policy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

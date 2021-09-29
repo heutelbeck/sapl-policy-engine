@@ -13,6 +13,10 @@ import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
+import io.sapl.spring.method.attributes.PreEnforceAttribute;
+import io.sapl.spring.method.blocking.PreInvocationEnforcementAdvice;
+import io.sapl.spring.method.blocking.PreInvocationEnforcementAdviceVoter;
+
 class PreInvocationEnforcementAdviceVoterTests {
 
 	@Test
@@ -27,7 +31,7 @@ class PreInvocationEnforcementAdviceVoterTests {
 	void whenPresentedWithSupported_thenItSaysSo() {
 		var advice = mock(PreInvocationEnforcementAdvice.class);
 		var sut = new PreInvocationEnforcementAdviceVoter(advice);
-		assertThat(sut.supports(mock(PolicyBasedPreInvocationEnforcementAttribute.class))).isTrue();
+		assertThat(sut.supports(mock(PreEnforceAttribute.class))).isTrue();
 		assertThat(sut.supports(MethodInvocation.class)).isTrue();
 	}
 
@@ -44,7 +48,7 @@ class PreInvocationEnforcementAdviceVoterTests {
 		when(advice.before(any(), any(), any())).thenReturn(true);
 		var sut = new PreInvocationEnforcementAdviceVoter(advice);
 		var attributes = new ArrayList<ConfigAttribute>();
-		attributes.add(mock(PolicyBasedPreInvocationEnforcementAttribute.class));
+		attributes.add(mock(PreEnforceAttribute.class));
 		var vote = sut.vote(mock(Authentication.class), mock(MethodInvocation.class), attributes);
 		assertThat(vote).isEqualTo(AccessDecisionVoter.ACCESS_GRANTED);
 	}
@@ -56,7 +60,7 @@ class PreInvocationEnforcementAdviceVoterTests {
 		var sut = new PreInvocationEnforcementAdviceVoter(advice);
 		var attributes = new ArrayList<ConfigAttribute>();
 		attributes.add(mock(ConfigAttribute.class));
-		attributes.add(mock(PolicyBasedPreInvocationEnforcementAttribute.class));
+		attributes.add(mock(PreEnforceAttribute.class));
 		var vote = sut.vote(mock(Authentication.class), mock(MethodInvocation.class), attributes);
 		assertThat(vote).isEqualTo(AccessDecisionVoter.ACCESS_DENIED);
 	}

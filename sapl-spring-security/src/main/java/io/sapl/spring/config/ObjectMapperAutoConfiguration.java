@@ -15,6 +15,16 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 
+/**
+ * This configuration provides a Jackson ObjectMapper bean, if missing.
+ * 
+ * In addition, the JDK8 Module is added for properly handling Optional and
+ * serializers for HttpServletRequest and MethodInvocation are added.
+ * 
+ * These serializers are used in building authorization subscriptions, if no
+ * explicit values for the fields of the subscription (e.g., action, resource)
+ * are provided.
+ */
 @Configuration
 public class ObjectMapperAutoConfiguration {
 

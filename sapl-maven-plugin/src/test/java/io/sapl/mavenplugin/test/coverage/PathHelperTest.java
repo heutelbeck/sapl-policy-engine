@@ -1,13 +1,13 @@
 package io.sapl.mavenplugin.test.coverage;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.nio.file.Path;
+
 import org.apache.maven.plugin.logging.Log;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-
-import java.nio.file.Path;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class PathHelperTest {
     private Log log;

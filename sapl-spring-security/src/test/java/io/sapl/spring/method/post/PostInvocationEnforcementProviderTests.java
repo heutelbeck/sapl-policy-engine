@@ -14,6 +14,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
+import io.sapl.spring.method.attributes.PostEnforceAttribute;
+import io.sapl.spring.method.blocking.PostInvocationEnforcementAdvice;
+import io.sapl.spring.method.blocking.PostInvocationEnforcementProvider;
+
 class PostInvocationEnforcementProviderTests {
 
 	@Test
@@ -28,7 +32,7 @@ class PostInvocationEnforcementProviderTests {
 	void whenPostsentedWithSupported_thenItSaysSo() {
 		var advice = mock(PostInvocationEnforcementAdvice.class);
 		var sut = new PostInvocationEnforcementProvider(advice);
-		assertThat(sut.supports(mock(PolicyBasedPostInvocationEnforcementAttribute.class))).isTrue();
+		assertThat(sut.supports(mock(PostEnforceAttribute.class))).isTrue();
 		assertThat(sut.supports(MethodInvocation.class)).isTrue();
 	}
 
@@ -46,7 +50,7 @@ class PostInvocationEnforcementProviderTests {
 		when(advice.after(any(), any(), any(), any())).thenReturn("changed return object");
 		var sut = new PostInvocationEnforcementProvider(advice);
 		var attributes = new ArrayList<ConfigAttribute>();
-		attributes.add(mock(PolicyBasedPostInvocationEnforcementAttribute.class));
+		attributes.add(mock(PostEnforceAttribute.class));
 		var vote = sut.decide(mock(Authentication.class), mock(MethodInvocation.class), attributes,
 				"original return object");
 		assertThat(vote).isEqualTo("changed return object");
@@ -59,7 +63,7 @@ class PostInvocationEnforcementProviderTests {
 		var sut = new PostInvocationEnforcementProvider(advice);
 		var attributes = new ArrayList<ConfigAttribute>();
 		attributes.add(mock(ConfigAttribute.class));
-		attributes.add(mock(PolicyBasedPostInvocationEnforcementAttribute.class));
+		attributes.add(mock(PostEnforceAttribute.class));
 		assertThrows(AccessDeniedException.class, () -> sut.decide(mock(Authentication.class),
 				mock(MethodInvocation.class), attributes, "original return object"));
 	}

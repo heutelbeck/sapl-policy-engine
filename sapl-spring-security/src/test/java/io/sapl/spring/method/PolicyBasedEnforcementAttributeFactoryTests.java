@@ -17,6 +17,8 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.ParseException;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 
+import io.sapl.spring.method.attributes.PolicyBasedEnforcementAttributeFactory;
+
 class PolicyBasedEnforcementAttributeFactoryTests {
 
 	@Test
@@ -26,8 +28,8 @@ class PolicyBasedEnforcementAttributeFactoryTests {
 		when(handler.getExpressionParser()).thenReturn(parser);
 		var sut = new PolicyBasedEnforcementAttributeFactory(handler);
 		verify(handler, times(0)).getExpressionParser();
-		sut.createPostInvocationAttribute("19 + 1", "1 ne 1", "2 > 1 ? 'a' : 'b'",
-				"workersHolder.salaryByWorkers['John']");
+		sut.createPostEnforceAttribute("19 + 1", "1 ne 1", "2 > 1 ? 'a' : 'b'", "workersHolder.salaryByWorkers['John']",
+				null);
 		verify(handler, times(1)).getExpressionParser();
 	}
 
@@ -38,8 +40,8 @@ class PolicyBasedEnforcementAttributeFactoryTests {
 		when(handler.getExpressionParser()).thenReturn(parser);
 		when(parser.parseExpression(any())).thenThrow(new ParseException(0, "BAD PARSING"));
 		var sut = new PolicyBasedEnforcementAttributeFactory(handler);
-		assertThrows(IllegalArgumentException.class, () -> sut.createPostInvocationAttribute("19 + 1", "1 ne 1",
-				"2 > 1 ? 'a' : 'b'", "workersHolder.salaryByWorkers['John']"));
+		assertThrows(IllegalArgumentException.class, () -> sut.createPostEnforceAttribute("19 + 1", "1 ne 1",
+				"2 > 1 ? 'a' : 'b'", "workersHolder.salaryByWorkers['John']", null));
 	}
 
 	@Test
@@ -49,8 +51,8 @@ class PolicyBasedEnforcementAttributeFactoryTests {
 		when(handler.getExpressionParser()).thenReturn(parser);
 		when(parser.parseExpression(any())).thenThrow(new ParseException(0, "BAD PARSING"));
 		var sut = new PolicyBasedEnforcementAttributeFactory(handler);
-		assertThrows(IllegalArgumentException.class, () -> sut.createPreInvocationAttribute("19 + 1", "1 ne 1",
-				"2 > 1 ? 'a' : 'b'", "workersHolder.salaryByWorkers['John']"));
+		assertThrows(IllegalArgumentException.class, () -> sut.createPreEnforceAttribute("19 + 1", "1 ne 1",
+				"2 > 1 ? 'a' : 'b'", "workersHolder.salaryByWorkers['John']", null));
 	}
 
 	@Test
@@ -60,8 +62,8 @@ class PolicyBasedEnforcementAttributeFactoryTests {
 		when(handler.getExpressionParser()).thenReturn(parser);
 		when(parser.parseExpression(any())).thenReturn(mock(Expression.class));
 		var sut = new PolicyBasedEnforcementAttributeFactory(handler);
-		var attribute = sut.createPreInvocationAttribute("19 + 1", "1 ne 1", "2 > 1 ? 'a' : 'b'",
-				"workersHolder.salaryByWorkers['John']");
+		var attribute = sut.createPreEnforceAttribute("19 + 1", "1 ne 1", "2 > 1 ? 'a' : 'b'",
+				"workersHolder.salaryByWorkers['John']", null);
 		assertAll(() -> assertThat(attribute.getSubjectExpression(), notNullValue()),
 				() -> assertThat(attribute.getActionExpression(), notNullValue()),
 				() -> assertThat(attribute.getResourceExpression(), notNullValue()),
@@ -75,8 +77,8 @@ class PolicyBasedEnforcementAttributeFactoryTests {
 		when(handler.getExpressionParser()).thenReturn(parser);
 		when(parser.parseExpression(any())).thenReturn(mock(Expression.class));
 		var sut = new PolicyBasedEnforcementAttributeFactory(handler);
-		var attribute = sut.createPostInvocationAttribute("19 + 1", "1 ne 1", "2 > 1 ? 'a' : 'b'",
-				"workersHolder.salaryByWorkers['John']");
+		var attribute = sut.createPostEnforceAttribute("19 + 1", "1 ne 1", "2 > 1 ? 'a' : 'b'",
+				"workersHolder.salaryByWorkers['John']", null);
 		assertAll(() -> assertThat(attribute.getSubjectExpression(), notNullValue()),
 				() -> assertThat(attribute.getActionExpression(), notNullValue()),
 				() -> assertThat(attribute.getResourceExpression(), notNullValue()),
@@ -87,7 +89,7 @@ class PolicyBasedEnforcementAttributeFactoryTests {
 	void whenPreFactoryWithEmptyExpression_thenAllOfThemAreNull() {
 		var handler = mock(MethodSecurityExpressionHandler.class);
 		var sut = new PolicyBasedEnforcementAttributeFactory(handler);
-		var attribute = sut.createPreInvocationAttribute("", "", "", "");
+		var attribute = sut.createPreEnforceAttribute("", "", "", "", null);
 		assertAll(() -> assertThat(attribute.getSubjectExpression(), nullValue()),
 				() -> assertThat(attribute.getActionExpression(), nullValue()),
 				() -> assertThat(attribute.getResourceExpression(), nullValue()),
@@ -98,7 +100,7 @@ class PolicyBasedEnforcementAttributeFactoryTests {
 	void whenPostFactoryWithEmptyExpressions_thenAllOfThemAreNull() {
 		var handler = mock(MethodSecurityExpressionHandler.class);
 		var sut = new PolicyBasedEnforcementAttributeFactory(handler);
-		var attribute = sut.createPostInvocationAttribute("", "", "", "");
+		var attribute = sut.createPostEnforceAttribute("", "", "", "", null);
 		assertAll(() -> assertThat(attribute.getSubjectExpression(), nullValue()),
 				() -> assertThat(attribute.getActionExpression(), nullValue()),
 				() -> assertThat(attribute.getResourceExpression(), nullValue()),
@@ -109,7 +111,7 @@ class PolicyBasedEnforcementAttributeFactoryTests {
 	void whenPreFactoryWithNullExpression_thenAllOfThemAreNull() {
 		var handler = mock(MethodSecurityExpressionHandler.class);
 		var sut = new PolicyBasedEnforcementAttributeFactory(handler);
-		var attribute = sut.createPreInvocationAttribute(null, null, null, null);
+		var attribute = sut.createPreEnforceAttribute(null, null, null, null, null);
 		assertAll(() -> assertThat(attribute.getSubjectExpression(), nullValue()),
 				() -> assertThat(attribute.getActionExpression(), nullValue()),
 				() -> assertThat(attribute.getResourceExpression(), nullValue()),
@@ -120,7 +122,7 @@ class PolicyBasedEnforcementAttributeFactoryTests {
 	void whenPostFactoryWithNullExpressions_thenAllOfThemAreNull() {
 		var handler = mock(MethodSecurityExpressionHandler.class);
 		var sut = new PolicyBasedEnforcementAttributeFactory(handler);
-		var attribute = sut.createPostInvocationAttribute(null, null, null, null);
+		var attribute = sut.createPostEnforceAttribute(null, null, null, null, null);
 		assertAll(() -> assertThat(attribute.getSubjectExpression(), nullValue()),
 				() -> assertThat(attribute.getActionExpression(), nullValue()),
 				() -> assertThat(attribute.getResourceExpression(), nullValue()),

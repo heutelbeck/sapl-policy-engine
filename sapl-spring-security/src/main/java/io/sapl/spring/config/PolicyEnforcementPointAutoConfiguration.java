@@ -1,10 +1,12 @@
 package io.sapl.spring.config;
 
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+
+import io.sapl.spring.pep.PolicyEnforcementPoint;
 
 @Configuration
-@ComponentScan({ "io.sapl.spring.constraints", "io.sapl.spring.pep" })
-public class PolicyEnforcementPointAutoConfiguration {
+@Import(PolicyEnforcementPoint.class)
+public class PolicyEnforcementPointAutoconfiguration {
 
 }

@@ -47,15 +47,15 @@ public class RemotePDPAutoConfiguration {
 			log.warn("INSECURE SSL SETTINGS! This demo uses an insecure SslContext for "
 					+ "testing purposes only. It will accept all certificates. "
 					+ "This is only for testing local servers with self-signed certificates easily. "
-					+ "NEVER USE SUCH A CONFIGURATION IN PRODUCTION!");
+					+ "NEVER USE THIS A CONFIGURATION IN PRODUCTION!");
 			var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
 			return new RemotePolicyDecisionPoint(configuration.getHost(), configuration.getKey(),
 					configuration.getSecret(), sslContext);
 
-		} else {
-			return new RemotePolicyDecisionPoint(configuration.getHost(), configuration.getKey(),
-					configuration.getSecret());
 		}
+
+		return new RemotePolicyDecisionPoint(configuration.getHost(), configuration.getKey(),
+				configuration.getSecret());
 	}
 
 }

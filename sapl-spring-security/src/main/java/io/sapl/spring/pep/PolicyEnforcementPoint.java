@@ -15,7 +15,6 @@
  */
 package io.sapl.spring.pep;
 
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,7 +27,7 @@ import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ConstraintHandlerService;
+import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -43,7 +42,7 @@ import reactor.core.publisher.Flux;
 public class PolicyEnforcementPoint {
 
 	private final PolicyDecisionPoint pdp;
-	private final ConstraintHandlerService constraintHandlers;
+	private final ReactiveConstraintEnforcementService constraintHandlers;
 	private final ObjectMapper mapper;
 
 	/**
@@ -130,15 +129,11 @@ public class PolicyEnforcementPoint {
 						"PDP returned a new resource value. This PEP cannot handle resource replacement. Thus, deny access.");
 				return authzDecision.withDecision(Decision.DENY);
 			}
-			try {
-				constraintHandlers.handleObligations(authzDecision);
-				constraintHandlers.handleAdvices(authzDecision);
-				return authzDecision;
-			} catch (AccessDeniedException e) {
-				log.debug("PEP failed to fulfill PDP obligations ({}). Access denied by policy enforcement point.",
-						e.getLocalizedMessage());
+			if (!constraintHandlers.handleForBlockingMethodInvocationOrAccessDenied(authzDecision)) {
+				log.debug("PEP failed to fulfill PDP obligations. Access denied by policy enforcement point.");
 				return authzDecision.withDecision(Decision.DENY);
 			}
+			return authzDecision;
 		}).distinctUntilChanged();
 	}
 
@@ -232,18 +227,15 @@ public class PolicyEnforcementPoint {
 		final String subscriptionId = identifiableAuthzDecision.getAuthorizationSubscriptionId();
 		final AuthorizationDecision authzDecision = identifiableAuthzDecision.getAuthorizationDecision();
 
+		if (!constraintHandlers.handleForBlockingMethodInvocationOrAccessDenied(authzDecision)) {
+			log.debug("PEP failed to fulfill PDP obligations. Access denied by policy enforcement point.");
+			return new IdentifiableAuthorizationDecision(subscriptionId, authzDecision.withDecision(Decision.DENY));
+		}
+
 		if (authzDecision.getDecision() != Decision.PERMIT)
 			return new IdentifiableAuthorizationDecision(subscriptionId, authzDecision.withDecision(Decision.DENY));
 
-		try {
-			constraintHandlers.handleObligations(authzDecision);
-			constraintHandlers.handleAdvices(authzDecision);
-			return identifiableAuthzDecision;
-		} catch (AccessDeniedException e) {
-			log.debug("PEP failed to fulfill PDP obligations ({}). Access denied by policy enforcement point.",
-					e.getLocalizedMessage());
-			return new IdentifiableAuthorizationDecision(subscriptionId, authzDecision.withDecision(Decision.DENY));
-		}
+		return identifiableAuthzDecision;
 	}
 
 }
