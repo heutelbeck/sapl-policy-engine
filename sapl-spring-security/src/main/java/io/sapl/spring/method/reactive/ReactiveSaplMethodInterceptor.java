@@ -35,8 +35,8 @@ import io.sapl.spring.method.attributes.PreEnforceAttribute;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -91,8 +91,8 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 		return interceptWithPrePostEnforce(invocation, preEnforceAttribute, postEnforceAttribute);
 	}
 
-	private Object interceptWithPrePostEnforce(MethodInvocation invocation, PreEnforceAttribute preEnforceAttribute,
-			PostEnforceAttribute postEnforceAttribute) {
+	private Publisher<?> interceptWithPrePostEnforce(MethodInvocation invocation,
+			PreEnforceAttribute preEnforceAttribute, PostEnforceAttribute postEnforceAttribute) {
 		var returnType = invocation.getMethod().getReturnType();
 
 		if (Flux.class.isAssignableFrom(returnType))
@@ -102,7 +102,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 	}
 
 	private Flux<AuthorizationDecision> preEnforceDecisions(MethodInvocation invocation,
-			PreEnforceAttribute preEnforceAttribute) {
+			EnforcementAttribute preEnforceAttribute) {
 		return ReactiveSecurityContextHolder.getContext().map(SecurityContext::getAuthentication)
 				.defaultIfEmpty(this.anonymous).map(buildAuthorizationSubscription(invocation, preEnforceAttribute))
 				.flatMapMany(authzSubscription -> pdp.decide(authzSubscription));
@@ -220,13 +220,10 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 		return false;
 	}
 
+	@SneakyThrows
 	@SuppressWarnings("unchecked")
 	private static <T extends Publisher<?>> T proceed(final MethodInvocation invocation) {
-		try {
-			return (T) invocation.proceed();
-		} catch (Throwable throwable) {
-			throw Exceptions.propagate(throwable);
-		}
+		return (T) invocation.proceed();
 	}
 
 	private static <T> T findAttribute(Collection<ConfigAttribute> config, Class<T> clazz) {
