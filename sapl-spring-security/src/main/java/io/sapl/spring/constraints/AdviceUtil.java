@@ -29,7 +29,7 @@ public class AdviceUtil {
 		});
 	}
 
-	public static <T> Optional<LongConsumer> advice(LongConsumer consumer) {
+	public static Optional<LongConsumer> advice(LongConsumer consumer) {
 		if (consumer == null)
 			return Optional.empty();
 
@@ -42,7 +42,7 @@ public class AdviceUtil {
 		});
 	}
 
-	public static <T> Optional<Runnable> advice(Runnable runnable) {
+	public static Optional<Runnable> advice(Runnable runnable) {
 		if (runnable == null)
 			return Optional.empty();
 

@@ -44,7 +44,7 @@ public class EnforceAttribute extends PreEnforceAttribute {
 		var sb = new StringBuilder();
 		var str = super.toString();
 		sb.append(str.substring(0, str.length() - 1));
-		sb.append(", mode=").append(enforcementMode.toString()).append(']');
+		sb.append(", mode=").append(enforcementMode).append(']');
 		return sb.toString();
 	}
 }

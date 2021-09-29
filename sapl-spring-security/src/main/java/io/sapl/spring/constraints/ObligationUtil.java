@@ -58,7 +58,7 @@ public class ObligationUtil {
 		});
 	}
 
-	public static <T> Optional<LongConsumer> obligation(LongConsumer consumer) {
+	public static Optional<LongConsumer> obligation(LongConsumer consumer) {
 		if (consumer == null)
 			return Optional.empty();
 
@@ -71,7 +71,7 @@ public class ObligationUtil {
 		});
 	}
 
-	public static <T> Optional<Runnable> obligation(Runnable runnable) {
+	public static Optional<Runnable> obligation(Runnable runnable) {
 		if (runnable == null)
 			return Optional.empty();
 

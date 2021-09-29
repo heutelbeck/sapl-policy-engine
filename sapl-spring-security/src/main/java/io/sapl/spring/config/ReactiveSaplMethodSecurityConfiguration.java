@@ -118,8 +118,10 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 
 	@Override
 	public void setImportMetadata(AnnotationMetadata importMetadata) {
-		this.advisorOrder = (int) importMetadata
-				.getAnnotationAttributes(EnableReactiveSaplMethodSecurity.class.getName()).get("order");
+		var annotationAttributes = importMetadata
+				.getAnnotationAttributes(EnableReactiveSaplMethodSecurity.class.getName());
+		if (annotationAttributes != null)
+			this.advisorOrder = (int) annotationAttributes.get("order");
 	}
 
 	@Autowired(required = false)

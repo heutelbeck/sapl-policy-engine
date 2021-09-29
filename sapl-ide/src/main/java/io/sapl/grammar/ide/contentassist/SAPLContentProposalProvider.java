@@ -28,6 +28,7 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
+
 import io.sapl.grammar.sapl.impl.ConditionImpl;
 import io.sapl.grammar.sapl.impl.PolicyBodyImpl;
 import io.sapl.grammar.sapl.impl.ValueDefinitionImpl;
@@ -93,7 +94,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 				return;
 
 		case "step":
-			if (handleStepProposals(feature, context, acceptor))
+			if (handleStepProposals(feature))
 				return;
 		}
 
@@ -103,9 +104,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		super._createProposals(assignment, context, acceptor);
 	}
 
-	private boolean handleStepProposals(String feature, ContentAssistContext context,
-			IIdeContentProposalAcceptor acceptor) {
-		if (feature.equals("id"))
+	private boolean handleStepProposals(String feature) {
+		if ("id".equals(feature))
 			return true;
 		return false;
 	}
@@ -146,7 +146,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		// remove the import keyword
 		importStatement = importStatement.substring(IMPORT_KEYWORD.length());
 		// remove all new lines
-		importStatement = importStatement.replace("\n", " ").trim();
+		importStatement = importStatement.replace('\n', ' ').trim();
 		// remove all spaces we're only interested in statement e.g. "clock.now"
 		importStatement = importStatement.replace(" ", "");
 		// look up proposals
@@ -162,7 +162,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			return true;
 
 		// try to resolve for available variables
-		if (feature.equals("value")) {
+		if ("value".equals(feature)) {
 
 			// try to move up to the policy body and
 			// keep outer condition object as reference
@@ -204,13 +204,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private boolean handlePolicyProposals(String feature, ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
-		if (feature.equals("saplname")) {
+		if ("saplname".equals(feature)) {
 			var entry = getProposalCreator().createProposal("\"\"", context);
 			entry.setKind(ContentAssistEntry.KIND_TEXT);
 			entry.setDescription("policy name");
 			acceptor.accept(entry, 0);
 			return true;
-		} else if (feature.equals("body")) {
+		} else if ("body".equals(feature)) {
 			addSimpleProposals(authzSubProposals, context, acceptor);
 		}
 		return false;

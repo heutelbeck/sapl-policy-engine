@@ -187,7 +187,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 		return authorizationDecisions.take(1, true).switchMap(decision -> {
 			Flux<Object> finalResourceAccessPoint = resourceAccessPoint;
 
-			if (!decision.getDecision().equals(Decision.PERMIT))
+			if (Decision.PERMIT != decision.getDecision())
 				finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
 			else if (decision.getResource().isPresent()) {
 				try {
