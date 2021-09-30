@@ -82,7 +82,7 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 				attributeFactory);
 		SaplMethodSecurityMetadataSource sapl = new SaplMethodSecurityMetadataSource(
 				new PolicyBasedEnforcementAttributeFactory(methodSecurityExpressionHandler));
-		return new DelegatingMethodSecurityMetadataSource(Arrays.asList(prePostSource, sapl));
+		return new DelegatingMethodSecurityMetadataSource(Arrays.asList(sapl, prePostSource));
 	}
 
 	@Bean

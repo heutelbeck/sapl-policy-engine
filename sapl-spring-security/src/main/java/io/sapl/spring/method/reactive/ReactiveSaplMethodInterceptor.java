@@ -108,22 +108,54 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 
 	private Mono<?> interceptMonoWithPreAndPostEnforce(MethodInvocation invocation,
 			PreEnforceAttribute preEnforceAttribute, PostEnforceAttribute postEnforceAttribute) {
-		@SuppressWarnings("unchecked") // Type is checked warning is false positive
-		Flux<Object> wrappedResourceAccessPoint = Flux.from((Mono<Object>) proceed(invocation));
+		Mono<?> wrappedResourceAccessPoint = (Mono<?>) proceed(invocation);
 
 		if (preEnforceAttribute != null) {
 			log.trace("Method interception detected @PreEnforce annotation on a method returning a Mono.");
 			var preEnforceAuthorizationDecisions = preEnforceDecisions(invocation, preEnforceAttribute);
-			wrappedResourceAccessPoint = preEnforceOneDecisionOnResourceAccessPoint(wrappedResourceAccessPoint,
-					preEnforceAuthorizationDecisions, preEnforceAttribute.getGenericsType());
+			wrappedResourceAccessPoint = preEnforceOneDecisionOnResourceAccessPoint(
+					Flux.from(wrappedResourceAccessPoint), preEnforceAuthorizationDecisions,
+					preEnforceAttribute.getGenericsType()).next();
 		}
 
 		if (postEnforceAttribute != null) {
 			log.trace("Method interception detected @PostEnforce annotation on a method returning a Mono.");
-			throw new UnsupportedOperationException("@PostEnforce not implemented.");
+			wrappedResourceAccessPoint = postEnforceOneDecisionOnResourceAccessPoint(wrappedResourceAccessPoint,
+					invocation, postEnforceAttribute);
 		}
 
-		return wrappedResourceAccessPoint.next();
+		return wrappedResourceAccessPoint;
+	}
+
+	private Mono<?> postEnforceOneDecisionOnResourceAccessPoint(Mono<?> resourceAccessPoint,
+			MethodInvocation invocation, PostEnforceAttribute postEnforceAttribute) {
+		return resourceAccessPoint.flatMap(result -> {
+			Mono<AuthorizationDecision> dec = postEnforceDecision(invocation, postEnforceAttribute, result);
+			return dec.flatMap(decision -> {
+				Flux<Object> finalResourceAccessPoint = Flux.just(result);
+				if (Decision.PERMIT != decision.getDecision())
+					finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
+				else if (decision.getResource().isPresent()) {
+					try {
+						finalResourceAccessPoint = Flux.just(mapper.treeToValue(decision.getResource().get(),
+								postEnforceAttribute.getGenericsType()));
+					} catch (JsonProcessingException e) {
+						finalResourceAccessPoint = Flux.error(new AccessDeniedException(String.format(
+								"Access Denied. Error replacing flux contents by resource from PDPs decision: %s",
+								e.getMessage())));
+					}
+				}
+				return constraintHandlerService
+						.enforceConstraintsOnResourceAccessPoint(decision, finalResourceAccessPoint).next();
+			});
+		});
+	}
+
+	private Mono<AuthorizationDecision> postEnforceDecision(MethodInvocation invocation,
+			PostEnforceAttribute postEnforceAttribute, Object returnedObject) {
+		return subscriptionBuilder
+				.reactiveConstructAuthorizationSubscription(invocation, postEnforceAttribute, returnedObject)
+				.flatMapMany(authzSubscription -> pdp.decide(authzSubscription)).next();
 	}
 
 	private Object interceptWithEnforce(MethodInvocation invocation, EnforceAttribute enforceAttribute) {
@@ -210,10 +242,9 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 	}
 
 	private static <T> T findAttribute(Collection<ConfigAttribute> config, Class<T> clazz) {
-		for (var attribute : config) {
+		for (var attribute : config)
 			if (clazz.isAssignableFrom(attribute.getClass()))
 				return clazz.cast(attribute);
-		}
 		return null;
 	}
 

@@ -62,14 +62,22 @@ public class AuthorizationSubscriptionBuilderService {
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
 			EnforcementAttribute attribute) {
 		return Mono.deferContextual(contextView -> {
-			return constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView);
+			return constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
+					Optional.empty());
+		});
+	}
+
+	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
+			EnforcementAttribute attribute, Object returnedObject) {
+		return Mono.deferContextual(contextView -> {
+			return constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
+					Optional.ofNullable(returnedObject));
 		});
 	}
 
 	private Mono<? extends AuthorizationSubscription> constructAuthorizationSubscriptionFromContextView(
-			MethodInvocation methodInvocation, EnforcementAttribute attribute, ContextView contextView) {
-		contextView.stream().forEach(entry -> log.error("key: '{}' value: '{}'", entry.getKey(), entry.getValue()));
-
+			MethodInvocation methodInvocation, EnforcementAttribute attribute, ContextView contextView,
+			Optional<Object> returnedObject) {
 		Optional<ServerWebExchange> serverWebExchange = contextView.getOrEmpty(ServerWebExchange.class);
 		Optional<ServerHttpRequest> serverHttpRequest = serverWebExchange.map(ServerWebExchange::getRequest);
 		log.info("request        : {}", serverHttpRequest);
@@ -79,16 +87,18 @@ public class AuthorizationSubscriptionBuilderService {
 				.map(ctx -> ctx.map(SecurityContext::getAuthentication).defaultIfEmpty(ANONYMOUS))
 				.orElse(Mono.just(ANONYMOUS));
 		log.info("authn: {}", authentication);
-		return authentication.map(
-				authn -> constructAuthorizationSubscription(authn, serverHttpRequest, methodInvocation, attribute));
+		return authentication.map(authn -> constructAuthorizationSubscription(authn, serverHttpRequest,
+				methodInvocation, attribute, returnedObject));
 	}
 
 	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
 			Optional<ServerHttpRequest> serverHttpRequest, MethodInvocation methodInvocation,
-			EnforcementAttribute attribute) {
+			EnforcementAttribute attribute, Optional<Object> returnedObject) {
 		lazyLoadDependencies();
 
 		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
+		returnedObject.ifPresent(returnObject -> expressionHandler.setReturnObject(returnObject, evaluationCtx));
+
 		var subject = retrieveSubject(authentication, attribute, evaluationCtx);
 		var action = retrieveAction(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
 		var resource = retrieveResource(methodInvocation, attribute, evaluationCtx);
