@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -14,6 +15,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
+import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 
 /**
  * This configuration provides a Jackson ObjectMapper bean, if missing.
@@ -41,6 +43,7 @@ public class ObjectMapperAutoConfiguration {
 			var module = new SimpleModule();
 			module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
 			module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
+			module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
 			mapper.registerModule(module);
 			mapper.registerModule(new Jdk8Module());
 		}

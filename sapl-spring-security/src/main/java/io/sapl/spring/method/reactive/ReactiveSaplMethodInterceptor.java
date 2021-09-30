@@ -2,7 +2,6 @@ package io.sapl.spring.method.reactive;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
-import java.util.function.Function;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -13,18 +12,12 @@ import org.springframework.security.access.expression.method.MethodSecurityExpre
 import org.springframework.security.access.method.MethodSecurityMetadataSource;
 import org.springframework.security.access.prepost.PostInvocationAttribute;
 import org.springframework.security.access.prepost.PreInvocationAttribute;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.util.Assert;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
@@ -63,9 +56,6 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 	@NonNull
 	private final AuthorizationSubscriptionBuilderService subscriptionBuilder;
 
-	private Authentication anonymous = new AnonymousAuthenticationToken("key", "anonymous",
-			AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
-
 	@Override
 	public Object invoke(final MethodInvocation invocation) throws Throwable {
 		log.trace("Intercepted: {}.{}", invocation.getClass().getSimpleName(), invocation.getMethod().getName());
@@ -103,8 +93,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 
 	private Flux<AuthorizationDecision> preEnforceDecisions(MethodInvocation invocation,
 			EnforcementAttribute preEnforceAttribute) {
-		return ReactiveSecurityContextHolder.getContext().map(SecurityContext::getAuthentication)
-				.defaultIfEmpty(this.anonymous).map(buildAuthorizationSubscription(invocation, preEnforceAttribute))
+		return subscriptionBuilder.reactiveConstructAuthorizationSubscription(invocation, preEnforceAttribute)
 				.flatMapMany(authzSubscription -> pdp.decide(authzSubscription));
 	}
 
@@ -204,12 +193,6 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 					// be accessed by the client.
 					.onErrorStop();
 		});
-	}
-
-	private Function<Authentication, AuthorizationSubscription> buildAuthorizationSubscription(
-			MethodInvocation methodInvocation, EnforcementAttribute attribute) {
-		return authentication -> subscriptionBuilder.constructAuthorizationSubscription(authentication,
-				methodInvocation, attribute);
 	}
 
 	private boolean hasAnyAttributeOfType(Collection<ConfigAttribute> config, Class<?>... attributes) {

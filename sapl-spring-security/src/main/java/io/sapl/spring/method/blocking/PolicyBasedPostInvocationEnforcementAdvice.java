@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.method.post;
+package io.sapl.spring.method.blocking;
 
 import java.util.Optional;
 
@@ -29,8 +29,6 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
 import io.sapl.spring.method.attributes.PostEnforceAttribute;
-import io.sapl.spring.method.blocking.AbstractPolicyBasedInvocationEnforcementAdvice;
-import io.sapl.spring.method.blocking.PostInvocationEnforcementAdvice;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
 

@@ -25,7 +25,6 @@ public class ReactiveConstraintEnforcementService {
 
 	public Flux<Object> enforceConstraintsOnResourceAccessPoint(AuthorizationDecision decision,
 			Flux<Object> resourceAccessPoint) {
-
 		var wrapped = resourceAccessPoint;
 		if (decision.getObligations().isPresent()) {
 			for (var constraint : decision.getObligations().get()) {
@@ -35,7 +34,7 @@ public class ReactiveConstraintEnforcementService {
 				if (handlers.isEmpty())
 					return Flux.error(new AccessDeniedException("No handler for obligation: " + constraint.asText()));
 				for (var handler : handlers) {
-					wrapped = handler.applyObligation(resourceAccessPoint, constraint);
+					wrapped = handler.applyObligation(wrapped, constraint);
 				}
 			}
 		}
@@ -45,9 +44,9 @@ public class ReactiveConstraintEnforcementService {
 						.filter(handlerService -> handlerService.isResponsible(constraint))
 						.collect(Collectors.toList());
 				if (handlers.isEmpty())
-					log.info("No handler for advice: {}", constraint.asText());
+					log.info("No handler for advice: {}", constraint);
 				for (var handler : handlers) {
-					wrapped = handler.applyAdvice(resourceAccessPoint, constraint);
+					wrapped = handler.applyAdvice(wrapped, constraint);
 				}
 			}
 		}
@@ -98,9 +97,8 @@ public class ReactiveConstraintEnforcementService {
 					throw new AccessDeniedException("No handler for obligation: " + constraint.asText());
 
 				for (var handler : handlers) {
-					if(returnType == null) 
-						throw new AccessDeniedException(
-								"Generics type not specified in annotation.");
+					if (returnType == null)
+						throw new AccessDeniedException("Generics type not specified in annotation.");
 					var handlerFunction = handler.postBlockingMethodInvocation(constraint);
 					if (handlerFunction == null)
 						throw new AccessDeniedException(
@@ -118,9 +116,8 @@ public class ReactiveConstraintEnforcementService {
 				if (handlers.isEmpty())
 					log.warn("No handler for advice: {}", constraint.asText());
 				for (var handler : handlers) {
-					if(returnType == null) 
-						throw new AccessDeniedException(
-								"Generics type not specified in annotation.");
+					if (returnType == null)
+						throw new AccessDeniedException("Generics type not specified in annotation.");
 					var handlerFunction = handler.postBlockingMethodInvocation(constraint);
 					if (handlerFunction == null)
 						log.warn("No handler implemented for advice when responsibilioty was indicated: {}",

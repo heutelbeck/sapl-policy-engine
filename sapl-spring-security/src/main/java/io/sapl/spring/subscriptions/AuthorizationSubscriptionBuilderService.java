@@ -9,10 +9,15 @@ import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.server.ServerWebExchange;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,14 +27,21 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.attributes.EnforcementAttribute;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
+import reactor.util.context.ContextView;
 
 /**
  * This class contains the logic for SpEL expression evaluation and retrieving
  * request information from the application context or method invocation.
  */
+@Slf4j
 @RequiredArgsConstructor
 public class AuthorizationSubscriptionBuilderService {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
+			AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
+
 	private final MethodSecurityExpressionHandler expressionHandler;
 	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
 	private ObjectMapper mapper;
@@ -47,12 +59,50 @@ public class AuthorizationSubscriptionBuilderService {
 		return constructAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
 	}
 
+	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
+			EnforcementAttribute attribute) {
+		return Mono.deferContextual(contextView -> {
+			return constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView);
+		});
+	}
+
+	private Mono<? extends AuthorizationSubscription> constructAuthorizationSubscriptionFromContextView(
+			MethodInvocation methodInvocation, EnforcementAttribute attribute, ContextView contextView) {
+		contextView.stream().forEach(entry -> log.error("key: '{}' value: '{}'", entry.getKey(), entry.getValue()));
+
+		Optional<ServerWebExchange> serverWebExchange = contextView.getOrEmpty(ServerWebExchange.class);
+		Optional<ServerHttpRequest> serverHttpRequest = serverWebExchange.map(ServerWebExchange::getRequest);
+		log.info("request        : {}", serverHttpRequest);
+		Optional<Mono<SecurityContext>> securityContext = contextView.getOrEmpty(SecurityContext.class);
+		log.info("securitycontext: {}", securityContext);
+		Mono<Authentication> authentication = securityContext
+				.map(ctx -> ctx.map(SecurityContext::getAuthentication).defaultIfEmpty(ANONYMOUS))
+				.orElse(Mono.just(ANONYMOUS));
+		log.info("authn: {}", authentication);
+		return authentication.map(
+				authn -> constructAuthorizationSubscription(authn, serverHttpRequest, methodInvocation, attribute));
+	}
+
+	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
+			Optional<ServerHttpRequest> serverHttpRequest, MethodInvocation methodInvocation,
+			EnforcementAttribute attribute) {
+		lazyLoadDependencies();
+
+		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
+		var subject = retrieveSubject(authentication, attribute, evaluationCtx);
+		var action = retrieveAction(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
+		var resource = retrieveResource(methodInvocation, attribute, evaluationCtx);
+		var environment = retrieveEnvironment(attribute, evaluationCtx);
+		return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
+				mapper.valueToTree(resource), mapper.valueToTree(environment));
+	}
+
 	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
 			MethodInvocation methodInvocation, EnforcementAttribute attribute, EvaluationContext evaluationCtx) {
 		lazyLoadDependencies();
 
 		var subject = retrieveSubject(authentication, attribute, evaluationCtx);
-		var action = retrieveAction(methodInvocation, attribute, evaluationCtx);
+		var action = retrieveAction(methodInvocation, attribute, evaluationCtx, retrieveRequestObject());
 		var resource = retrieveResource(methodInvocation, attribute, evaluationCtx);
 		var environment = retrieveEnvironment(attribute, evaluationCtx);
 		return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
@@ -109,16 +159,16 @@ public class AuthorizationSubscriptionBuilderService {
 		return Optional.ofNullable(httpRequest);
 	}
 
-	private Object retrieveAction(MethodInvocation mi, EnforcementAttribute attr, EvaluationContext ctx) {
+	private Object retrieveAction(MethodInvocation mi, EnforcementAttribute attr, EvaluationContext ctx,
+			Optional<?> requestObject) {
 		if (attr.getActionExpression() == null)
-			return retrieveAction(mi);
+			return retrieveAction(mi, requestObject);
 		return evaluateToJson(attr.getActionExpression(), ctx);
 	}
 
-	private Object retrieveAction(MethodInvocation mi) {
+	private Object retrieveAction(MethodInvocation mi, Optional<?> requestObject) {
 		var actionNode = mapper.createObjectNode();
-		var httpServletRequest = retrieveRequestObject();
-		httpServletRequest.ifPresent(servletRequest -> actionNode.set("http", mapper.valueToTree(servletRequest)));
+		requestObject.ifPresent(request -> actionNode.set("http", mapper.valueToTree(request)));
 		actionNode.set("java", mapper.valueToTree(mi));
 
 		var array = JSON.arrayNode();

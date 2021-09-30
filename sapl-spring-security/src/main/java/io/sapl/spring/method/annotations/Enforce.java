@@ -90,6 +90,6 @@ public @interface Enforce {
 	 */
 	EnforcementMode mode() default EnforcementMode.ONCE;
 
-	Class<?> genericsType();
+	Class<?> genericsType() default Object.class;
 
 }

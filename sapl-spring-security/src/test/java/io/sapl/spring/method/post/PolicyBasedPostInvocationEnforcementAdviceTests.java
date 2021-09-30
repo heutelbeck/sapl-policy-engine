@@ -31,6 +31,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
 import io.sapl.spring.method.attributes.PostEnforceAttribute;
+import io.sapl.spring.method.blocking.PolicyBasedPostInvocationEnforcementAdvice;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;

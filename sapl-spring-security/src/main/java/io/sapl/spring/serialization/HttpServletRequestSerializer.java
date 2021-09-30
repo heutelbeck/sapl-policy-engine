@@ -94,6 +94,7 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 		writeCookies(value, gen);
 		writeLocales(value, gen);
 		writeParameters(value, gen);
+		gen.writeEndObject();
 	}
 
 	private void writeHeaders(HttpServletRequest value, JsonGenerator gen) throws IOException {
@@ -116,13 +117,16 @@ public class HttpServletRequestSerializer extends JsonSerializer<HttpServletRequ
 	}
 
 	private void writeCookies(HttpServletRequest value, JsonGenerator gen) throws IOException {
-		if (value.getCookies() != null) {
-			gen.writeArrayFieldStart(COOKIES);
-			for (Cookie cookie : value.getCookies()) {
-				gen.writeObject(cookie);
-			}
-			gen.writeEndArray();
+		if (value.getCookies() == null)
+			return;
+		gen.writeArrayFieldStart(COOKIES);
+		for (Cookie cookie : value.getCookies()) {
+			gen.writeStartObject();
+			gen.writeObjectField("name", cookie.getName());
+			gen.writeObjectField("value", cookie.getValue());
+			gen.writeEndObject();
 		}
+		gen.writeEndArray();
 	}
 
 	private void writeLocales(HttpServletRequest value, JsonGenerator gen) throws IOException {
