@@ -3,10 +3,10 @@
 io.sapl:
   pdp.embedded:
     pdp-config-type: FILESYSTEM
+    # folder in which the configuration and policies reside on the system
     config-path: ~/sapl/policies
     policies-path: ~/sapl/policies
   server-lt:
-    # folder in which the configuration and policies reside on the system
     key: YJidgyT2mfdkbmL
     # BCrypt encoded client-secret (raw secret: Fa4zvYQdiwHZVXh)
     # Authorization: Basic WUppZGd5VDJtZmRrYm1MOkZhNHp2WVFkaXdIWlZYaA==
