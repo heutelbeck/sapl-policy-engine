@@ -37,215 +37,236 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 
-    private static final Class<?>[] SAPL_ATTRIBUTES = {EnforceAttribute.class, PreEnforceAttribute.class,
-            PostEnforceAttribute.class};
-    private static final Class<?>[] SPRING_ATTRIBUTES = {PostInvocationAttribute.class, PreInvocationAttribute.class};
+	private static final Class<?>[] SAPL_ATTRIBUTES = { EnforceAttribute.class, PreEnforceAttribute.class,
+			PostEnforceAttribute.class };
+	private static final Class<?>[] SPRING_ATTRIBUTES = { PostInvocationAttribute.class, PreInvocationAttribute.class };
 
-    @NonNull
-    private final MethodInterceptor springMethodSecurityInterceptor;
-    @NonNull
-    private final MethodSecurityMetadataSource source;
-    @NonNull
-    private final MethodSecurityExpressionHandler handler;
-    @NonNull
-    private final PolicyDecisionPoint pdp;
-    @NonNull
-    private final ReactiveConstraintEnforcementService constraintHandlerService;
-    @NonNull
-    private final ObjectMapper mapper;
-    @NonNull
-    private final AuthorizationSubscriptionBuilderService subscriptionBuilder;
+	@NonNull
+	private final MethodInterceptor springMethodSecurityInterceptor;
+	@NonNull
+	private final MethodSecurityMetadataSource source;
+	@NonNull
+	private final MethodSecurityExpressionHandler handler;
+	@NonNull
+	private final PolicyDecisionPoint pdp;
+	@NonNull
+	private final ReactiveConstraintEnforcementService constraintHandlerService;
+	@NonNull
+	private final ObjectMapper mapper;
+	@NonNull
+	private final AuthorizationSubscriptionBuilderService subscriptionBuilder;
 
-    @Override
-    public Object invoke(final MethodInvocation invocation) throws Throwable {
-        log.trace("Intercepted: {}.{}", invocation.getClass().getSimpleName(), invocation.getMethod().getName());
+	@Override
+	public Object invoke(final MethodInvocation invocation) throws Throwable {
+		log.trace("Intercepted: {}.{}", invocation.getClass().getSimpleName(), invocation.getMethod().getName());
 
-        var targetClass = invocation.getThis().getClass();
-        var method = invocation.getMethod();
-        var attributes = source.getAttributes(method, targetClass);
+		var targetClass = invocation.getThis().getClass();
+		var method = invocation.getMethod();
+		var attributes = source.getAttributes(method, targetClass);
 
-        if (noSaplAnnotationsPresent(attributes))
-            return delegateToSpringSecurityInterceptor(invocation);
+		if (noSaplAnnotationsPresent(attributes))
+			return delegateToSpringSecurityInterceptor(invocation);
 
-        failIfTheAnnotatedMethodIsNotOfReactiveType(method);
-        failIfBothSaplAndSpringAnnotationsArePresent(attributes, method);
-        failIfEnforceIsCombinedWithPreEnforceOrPostEnforce(attributes, method);
-        failIfPostEnforceIsOnAMethodNotReturningAMono(attributes, method);
+		failIfTheAnnotatedMethodIsNotOfReactiveType(method);
+		failIfBothSaplAndSpringAnnotationsArePresent(attributes, method);
+		failIfEnforceIsCombinedWithPreEnforceOrPostEnforce(attributes, method);
+		failIfPostEnforceIsOnAMethodNotReturningAMono(attributes, method);
 
-        var enforceAttribute = findAttribute(attributes, EnforceAttribute.class);
-        if (enforceAttribute != null)
-            return interceptWithEnforce(invocation, enforceAttribute);
+		var enforceAttribute = findAttribute(attributes, EnforceAttribute.class);
+		if (enforceAttribute != null)
+			return interceptWithEnforce(invocation, enforceAttribute);
 
-        var preEnforceAttribute = findAttribute(attributes, PreEnforceAttribute.class);
-        var postEnforceAttribute = findAttribute(attributes, PostEnforceAttribute.class);
-        return interceptWithPrePostEnforce(invocation, preEnforceAttribute, postEnforceAttribute);
-    }
+		var preEnforceAttribute = findAttribute(attributes, PreEnforceAttribute.class);
+		var postEnforceAttribute = findAttribute(attributes, PostEnforceAttribute.class);
+		return interceptWithPrePostEnforce(invocation, preEnforceAttribute, postEnforceAttribute);
+	}
 
-    private Publisher<?> interceptWithPrePostEnforce(MethodInvocation invocation,
-                                                     PreEnforceAttribute preEnforceAttribute, PostEnforceAttribute postEnforceAttribute) {
-        var returnType = invocation.getMethod().getReturnType();
+	private Flux<?> interceptWithEnforceTillDeny(MethodInvocation invocation, EnforcementAttribute attribute) {
+		var decisions = preEnforceDecisions(invocation, attribute);
+		Flux<AuthorizationDecision> sharedDecisions = decisions.publish().refCount(2);
+		Flux<AuthorizationDecision> firstDecision = sharedDecisions.take(1);
+		Flux<AuthorizationDecision> follwoingDecisions = sharedDecisions.skip(1);
+		var resourceAccessPoint = (Flux<Object>) proceed(invocation);
+		Flux<?> initialFlux = preEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, firstDecision,
+				attribute.getGenericsType());
+		return Flux.merge(initialFlux);
+	}
 
-        if (Flux.class.isAssignableFrom(returnType))
-            return interceptFluxWithPreEnforce(invocation, preEnforceAttribute);
+	private Publisher<?> interceptWithEnforceDropWhileDenied(MethodInvocation invocation,
+			PreEnforceAttribute preEnforceAttribute) {
+		return null;
+	}
 
-        return interceptMonoWithPreAndPostEnforce(invocation, preEnforceAttribute, postEnforceAttribute);
-    }
+	private Publisher<?> interceptWithEnforceContinuable(MethodInvocation invocation,
+			PreEnforceAttribute preEnforceAttribute) {
+		return null;
+	}
 
-    private Flux<AuthorizationDecision> preEnforceDecisions(MethodInvocation invocation,
-                                                            EnforcementAttribute preEnforceAttribute) {
-        return subscriptionBuilder.reactiveConstructAuthorizationSubscription(invocation, preEnforceAttribute)
-                .flatMapMany(pdp::decide);
-    }
+	private Publisher<?> interceptWithPrePostEnforce(MethodInvocation invocation,
+			PreEnforceAttribute preEnforceAttribute, PostEnforceAttribute postEnforceAttribute) {
+		var returnType = invocation.getMethod().getReturnType();
 
-    private Flux<?> interceptFluxWithPreEnforce(MethodInvocation invocation, PreEnforceAttribute preEnforceAttribute) {
-        log.trace("Method interception detected @PreEnforce annotation on a method returning a Flux.");
-        var preEnforceAuthorizationDecisions = preEnforceDecisions(invocation, preEnforceAttribute);
-        @SuppressWarnings("unchecked") // Type is checked warning is false positive
-        var resourceAccessPoint = (Flux<Object>) proceed(invocation);
-        return preEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, preEnforceAuthorizationDecisions,
-                preEnforceAttribute.getGenericsType());
-    }
+		if (Flux.class.isAssignableFrom(returnType))
+			return interceptFluxWithPreEnforce(invocation, preEnforceAttribute);
 
-    private Mono<?> interceptMonoWithPreAndPostEnforce(MethodInvocation invocation,
-                                                       PreEnforceAttribute preEnforceAttribute, PostEnforceAttribute postEnforceAttribute) {
-        Mono<?> wrappedResourceAccessPoint = (Mono<?>) proceed(invocation);
+		return interceptMonoWithPreAndPostEnforce(invocation, preEnforceAttribute, postEnforceAttribute);
+	}
 
-        if (preEnforceAttribute != null) {
-            log.trace("Method interception detected @PreEnforce annotation on a method returning a Mono.");
-            var preEnforceAuthorizationDecisions = preEnforceDecisions(invocation, preEnforceAttribute);
-            wrappedResourceAccessPoint = preEnforceOneDecisionOnResourceAccessPoint(
-                    Flux.from(wrappedResourceAccessPoint), preEnforceAuthorizationDecisions,
-                    preEnforceAttribute.getGenericsType()).next();
-        }
+	private Flux<AuthorizationDecision> preEnforceDecisions(MethodInvocation invocation,
+			EnforcementAttribute attribute) {
+		return subscriptionBuilder.reactiveConstructAuthorizationSubscription(invocation, attribute)
+				.flatMapMany(authzSubscription -> pdp.decide(authzSubscription));
+	}
 
-        if (postEnforceAttribute != null) {
-            log.trace("Method interception detected @PostEnforce annotation on a method returning a Mono.");
-            wrappedResourceAccessPoint = postEnforceOneDecisionOnResourceAccessPoint(wrappedResourceAccessPoint,
-                    invocation, postEnforceAttribute);
-        }
+	private Flux<?> interceptFluxWithPreEnforce(MethodInvocation invocation, PreEnforceAttribute preEnforceAttribute) {
+		log.trace("Method interception detected @PreEnforce annotation on a method returning a Flux.");
+		var preEnforceAuthorizationDecisions = preEnforceDecisions(invocation, preEnforceAttribute);
+		@SuppressWarnings("unchecked") // Type is checked warning is false positive
+		var resourceAccessPoint = (Flux<Object>) proceed(invocation);
+		return preEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, preEnforceAuthorizationDecisions,
+				preEnforceAttribute.getGenericsType());
+	}
 
-        return wrappedResourceAccessPoint;
-    }
+	private Mono<?> interceptMonoWithPreAndPostEnforce(MethodInvocation invocation,
+			PreEnforceAttribute preEnforceAttribute, PostEnforceAttribute postEnforceAttribute) {
+		Mono<?> wrappedResourceAccessPoint = (Mono<?>) proceed(invocation);
 
-    private Mono<?> postEnforceOneDecisionOnResourceAccessPoint(Mono<?> resourceAccessPoint,
-                                                                MethodInvocation invocation, PostEnforceAttribute postEnforceAttribute) {
-        return resourceAccessPoint.flatMap(result -> {
-            Mono<AuthorizationDecision> dec = postEnforceDecision(invocation, postEnforceAttribute, result);
-            return dec.flatMap(decision -> {
-                Flux<Object> finalResourceAccessPoint = Flux.just(result);
-                if (Decision.PERMIT != decision.getDecision())
-                    finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
-                else if (decision.getResource().isPresent()) {
-                    try {
-                        finalResourceAccessPoint = Flux.just(mapper.treeToValue(decision.getResource().get(),
-                                postEnforceAttribute.getGenericsType()));
-                    } catch (JsonProcessingException e) {
-                        finalResourceAccessPoint = Flux.error(new AccessDeniedException(String.format(
-                                "Access Denied. Error replacing flux contents by resource from PDPs decision: %s",
-                                e.getMessage())));
-                    }
-                }
-                return constraintHandlerService
-                        .enforceConstraintsOnResourceAccessPoint(decision, finalResourceAccessPoint).next();
-            });
-        });
-    }
+		if (preEnforceAttribute != null) {
+			log.trace("Method interception detected @PreEnforce annotation on a method returning a Mono.");
+			var preEnforceAuthorizationDecisions = preEnforceDecisions(invocation, preEnforceAttribute);
+			wrappedResourceAccessPoint = preEnforceOneDecisionOnResourceAccessPoint(
+					Flux.from(wrappedResourceAccessPoint), preEnforceAuthorizationDecisions,
+					preEnforceAttribute.getGenericsType()).next();
+		}
 
-    private Mono<AuthorizationDecision> postEnforceDecision(MethodInvocation invocation,
-                                                            PostEnforceAttribute postEnforceAttribute, Object returnedObject) {
-        return subscriptionBuilder
-                .reactiveConstructAuthorizationSubscription(invocation, postEnforceAttribute, returnedObject)
-                .flatMapMany(authzSubscription -> pdp.decide(authzSubscription)).next();
-    }
+		if (postEnforceAttribute != null) {
+			log.trace("Method interception detected @PostEnforce annotation on a method returning a Mono.");
+			wrappedResourceAccessPoint = postEnforceOneDecisionOnResourceAccessPoint(wrappedResourceAccessPoint,
+					invocation, postEnforceAttribute);
+		}
 
-    private Object interceptWithEnforce(MethodInvocation invocation, EnforceAttribute enforceAttribute) {
-        log.trace("Method annotated with @Enforce: {}", enforceAttribute);
-        throw new UnsupportedOperationException("@Enforce not implemented.");
-    }
+		return wrappedResourceAccessPoint;
+	}
 
-    private Object delegateToSpringSecurityInterceptor(final MethodInvocation invocation) throws Throwable {
-        return springMethodSecurityInterceptor.invoke(invocation);
-    }
+	private Mono<?> postEnforceOneDecisionOnResourceAccessPoint(Mono<?> resourceAccessPoint,
+			MethodInvocation invocation, PostEnforceAttribute postEnforceAttribute) {
+		return resourceAccessPoint.flatMap(result -> {
+			Mono<AuthorizationDecision> dec = postEnforceDecision(invocation, postEnforceAttribute, result);
+			return dec.flatMap(decision -> {
+				Flux<Object> finalResourceAccessPoint = Flux.just(result);
+				if (Decision.PERMIT != decision.getDecision())
+					finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
+				else if (decision.getResource().isPresent()) {
+					try {
+						finalResourceAccessPoint = Flux.just(mapper.treeToValue(decision.getResource().get(),
+								postEnforceAttribute.getGenericsType()));
+					} catch (JsonProcessingException e) {
+						finalResourceAccessPoint = Flux.error(new AccessDeniedException(String.format(
+								"Access Denied. Error replacing flux contents by resource from PDPs decision: %s",
+								e.getMessage())));
+					}
+				}
+				return constraintHandlerService
+						.enforceConstraintsOnResourceAccessPoint(decision, finalResourceAccessPoint).next();
+			});
+		});
+	}
 
-    private boolean noSaplAnnotationsPresent(Collection<ConfigAttribute> attributes) {
-        return !hasAnyAttributeOfType(attributes, SAPL_ATTRIBUTES);
-    }
+	private Mono<AuthorizationDecision> postEnforceDecision(MethodInvocation invocation,
+			PostEnforceAttribute postEnforceAttribute, Object returnedObject) {
+		return subscriptionBuilder
+				.reactiveConstructAuthorizationSubscription(invocation, postEnforceAttribute, returnedObject)
+				.flatMapMany(authzSubscription -> pdp.decide(authzSubscription)).next();
+	}
 
-    private void failIfPostEnforceIsOnAMethodNotReturningAMono(Collection<ConfigAttribute> attributes, Method method) {
-        var returnType = method.getReturnType();
-        var hasPostEnforceAttribute = hasAnyAttributeOfType(attributes, PostEnforceAttribute.class);
-        var methodReturnsMono = Mono.class.isAssignableFrom(returnType);
-        var ifPostEnforceThenItIsAMono = !hasPostEnforceAttribute || methodReturnsMono;
-        Assert.state(ifPostEnforceThenItIsAMono,
-                () -> "The returnType " + returnType + " on " + method + " must be a Mono for @PostEnforce.");
-    }
+	private Object interceptWithEnforce(MethodInvocation invocation, EnforceAttribute enforceAttribute) {
+		log.trace("Method annotated with @Enforce: {}", enforceAttribute);
+		throw new UnsupportedOperationException("@Enforce not implemented.");
+	}
 
-    private void failIfTheAnnotatedMethodIsNotOfReactiveType(Method method) {
-        var returnType = method.getReturnType();
-        var hasReactiveReturnType = Publisher.class.isAssignableFrom(returnType);
-        Assert.state(hasReactiveReturnType, () -> "The returnType " + returnType + " on " + method
-                + " must be org.reactivestreams.Publisher (i.e. Mono / Flux) in order to support Reactor Context. ");
-    }
+	private Object delegateToSpringSecurityInterceptor(final MethodInvocation invocation) throws Throwable {
+		return springMethodSecurityInterceptor.invoke(invocation);
+	}
 
-    private void failIfBothSaplAndSpringAnnotationsArePresent(Collection<ConfigAttribute> attributes, Method method) {
-        var noSpringAttributesPresent = !hasAnyAttributeOfType(attributes, SPRING_ATTRIBUTES);
-        Assert.state(noSpringAttributesPresent, () -> "The method " + method
-                + " is annotated by both at least one SAPL annotation (@Enfore, @PreEnforce, @PostEnforce) and at least one Spring method security annotation (@PreAuthorize, @PostAuthorize, @PostFilter). Please only make use of one type of annotation exclusively.");
-    }
+	private boolean noSaplAnnotationsPresent(Collection<ConfigAttribute> attributes) {
+		return !hasAnyAttributeOfType(attributes, SAPL_ATTRIBUTES);
+	}
 
-    private void failIfEnforceIsCombinedWithPreEnforceOrPostEnforce(Collection<ConfigAttribute> attributes,
-                                                                    Method method) {
-        var hasEnforceAttribute = hasAnyAttributeOfType(attributes, EnforceAttribute.class);
-        var hasPreOrPostEnforceAttribute = hasAnyAttributeOfType(attributes, PreEnforceAttribute.class,
-                PostEnforceAttribute.class);
-        var onlyHasOneTypeOfAnnotationOrNone = !(hasEnforceAttribute && hasPreOrPostEnforceAttribute);
-        Assert.state(onlyHasOneTypeOfAnnotationOrNone, () -> "The method " + method
-                + " is annotated by both @Enfore and one of @PreEnforce or @PostEnforce. Please select one mode exclusively.");
-    }
+	private void failIfPostEnforceIsOnAMethodNotReturningAMono(Collection<ConfigAttribute> attributes, Method method) {
+		var returnType = method.getReturnType();
+		var hasPostEnforceAttribute = hasAnyAttributeOfType(attributes, PostEnforceAttribute.class);
+		var methodReturnsMono = Mono.class.isAssignableFrom(returnType);
+		var ifPostEnforceThenItIsAMono = !hasPostEnforceAttribute || methodReturnsMono;
+		Assert.state(ifPostEnforceThenItIsAMono,
+				() -> "The returnType " + returnType + " on " + method + " must be a Mono for @PostEnforce.");
+	}
 
-    private Flux<Object> preEnforceOneDecisionOnResourceAccessPoint(Flux<Object> resourceAccessPoint,
-                                                                    Flux<AuthorizationDecision> authorizationDecisions, Class<?> clazz) {
-        return authorizationDecisions.take(1, true).switchMap(decision -> {
-            Flux<Object> finalResourceAccessPoint = resourceAccessPoint;
+	private void failIfTheAnnotatedMethodIsNotOfReactiveType(Method method) {
+		var returnType = method.getReturnType();
+		var hasReactiveReturnType = Publisher.class.isAssignableFrom(returnType);
+		Assert.state(hasReactiveReturnType, () -> "The returnType " + returnType + " on " + method
+				+ " must be org.reactivestreams.Publisher (i.e. Mono / Flux) in order to support Reactor Context. ");
+	}
 
-            if (Decision.PERMIT != decision.getDecision())
-                finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
-            else if (decision.getResource().isPresent()) {
-                try {
-                    finalResourceAccessPoint = Flux.just(mapper.treeToValue(decision.getResource().get(), clazz));
-                } catch (JsonProcessingException e) {
-                    finalResourceAccessPoint = Flux.error(new AccessDeniedException(String.format(
-                            "Access Denied. Error replacing flux contents by resource from PDPs decision: %s",
-                            e.getMessage())));
-                }
-            }
-            return constraintHandlerService.enforceConstraintsOnResourceAccessPoint(decision, finalResourceAccessPoint)
-                    // onErrorStop is required to avert an onErrorContinue attack on the RAP. If
-                    // this is omitted and a downstream consumer does onErrorContinue, the RAP may
-                    // be accessed by the client.
-                    .onErrorStop();
-        });
-    }
+	private void failIfBothSaplAndSpringAnnotationsArePresent(Collection<ConfigAttribute> attributes, Method method) {
+		var noSpringAttributesPresent = !hasAnyAttributeOfType(attributes, SPRING_ATTRIBUTES);
+		Assert.state(noSpringAttributesPresent, () -> "The method " + method
+				+ " is annotated by both at least one SAPL annotation (@Enfore, @PreEnforce, @PostEnforce) and at least one Spring method security annotation (@PreAuthorize, @PostAuthorize, @PostFilter). Please only make use of one type of annotation exclusively.");
+	}
 
-    private boolean hasAnyAttributeOfType(Collection<ConfigAttribute> config, Class<?>... attributes) {
-        for (var attribute : config)
-            for (var clazz : attributes)
-                if (clazz.isAssignableFrom(attribute.getClass()))
-                    return true;
-        return false;
-    }
+	private void failIfEnforceIsCombinedWithPreEnforceOrPostEnforce(Collection<ConfigAttribute> attributes,
+			Method method) {
+		var hasEnforceAttribute = hasAnyAttributeOfType(attributes, EnforceAttribute.class);
+		var hasPreOrPostEnforceAttribute = hasAnyAttributeOfType(attributes, PreEnforceAttribute.class,
+				PostEnforceAttribute.class);
+		var onlyHasOneTypeOfAnnotationOrNone = !(hasEnforceAttribute && hasPreOrPostEnforceAttribute);
+		Assert.state(onlyHasOneTypeOfAnnotationOrNone, () -> "The method " + method
+				+ " is annotated by both @Enfore and one of @PreEnforce or @PostEnforce. Please select one mode exclusively.");
+	}
 
-    @SneakyThrows
-    @SuppressWarnings("unchecked")
-    private static <T extends Publisher<?>> T proceed(final MethodInvocation invocation) {
-        return (T) invocation.proceed();
-    }
+	private Flux<Object> preEnforceOneDecisionOnResourceAccessPoint(Flux<Object> resourceAccessPoint,
+			Flux<AuthorizationDecision> authorizationDecisions, Class<?> clazz) {
+		return authorizationDecisions.take(1, true).switchMap(decision -> {
+			Flux<Object> finalResourceAccessPoint = resourceAccessPoint;
 
-    private static <T> T findAttribute(Collection<ConfigAttribute> config, Class<T> clazz) {
-        for (var attribute : config)
-            if (clazz.isAssignableFrom(attribute.getClass()))
-                return clazz.cast(attribute);
-        return null;
-    }
+			if (Decision.PERMIT != decision.getDecision())
+				finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
+			else if (decision.getResource().isPresent()) {
+				try {
+					finalResourceAccessPoint = Flux.just(mapper.treeToValue(decision.getResource().get(), clazz));
+				} catch (JsonProcessingException e) {
+					finalResourceAccessPoint = Flux.error(new AccessDeniedException(String.format(
+							"Access Denied. Error replacing flux contents by resource from PDPs decision: %s",
+							e.getMessage())));
+				}
+			}
+			return constraintHandlerService.enforceConstraintsOnResourceAccessPoint(decision, finalResourceAccessPoint)
+					// onErrorStop is required to avert an onErrorContinue attack on the RAP. If
+					// this is omitted and a downstream consumer does onErrorContinue, the RAP may
+					// be accessed by the client.
+					.onErrorStop();
+		});
+	}
+
+	private boolean hasAnyAttributeOfType(Collection<ConfigAttribute> config, Class<?>... attributes) {
+		for (var attribute : config)
+			for (var clazz : attributes)
+				if (clazz.isAssignableFrom(attribute.getClass()))
+					return true;
+		return false;
+	}
+
+	@SneakyThrows
+	@SuppressWarnings("unchecked")
+	private static <T extends Publisher<?>> T proceed(final MethodInvocation invocation) {
+		return (T) invocation.proceed();
+	}
+
+	private static <T> T findAttribute(Collection<ConfigAttribute> config, Class<T> clazz) {
+		for (var attribute : config)
+			if (clazz.isAssignableFrom(attribute.getClass()))
+				return clazz.cast(attribute);
+		return null;
+	}
 
 }
