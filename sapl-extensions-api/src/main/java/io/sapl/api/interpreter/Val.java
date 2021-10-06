@@ -38,7 +38,6 @@ import reactor.core.publisher.Mono;
 
 public class Val {
 
-	private static final String LONG_ACCESS_TYPE_MISMATCH_S = "Long access type mismatch %s";
 	static final String ERROR_TEXT = "ERROR";
 	static final String UNDEFINED_TEXT = "undefined";
 	static final String UNKNOWN_ERROR = "Unknown Error";
@@ -392,20 +391,6 @@ public class Val {
 		return value.toString();
 	}
 
-	public long getLong() {
-		if (isLong())
-			return value.longValue();
-
-		throw new PolicyEvaluationException(LONG_ACCESS_TYPE_MISMATCH_S, typeOf(this));
-	}
-
-	public int getInt() {
-		if (isInt())
-			return value.intValue();
-
-		throw new PolicyEvaluationException(LONG_ACCESS_TYPE_MISMATCH_S, typeOf(this));
-	}
-	
 	public static Val requireBoolean(Val value) {
 		if (!value.isBoolean()) {
 			return Val.error(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(value));
