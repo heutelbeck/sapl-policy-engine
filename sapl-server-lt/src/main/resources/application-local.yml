@@ -29,6 +29,6 @@ server:
 # configure  logger
 logging.level:
   # set to TRACE to see how the PDP is coming to its decisions
-  io.sapl: TRACE
+  io.sapl: DEBUG
   # turned off for localhost self-signed to suppress useless error logs. Turn it on in production.
   reactor.netty.tcp.TcpServer: OFF 

@@ -1760,6 +1760,10 @@ public static JsonNode userprofile(
 +
 Each attribute function must have exactly one parameter which can be annotated with any number of `@Array`, `@Bool`, `@Int`, `@JsonObject`, `@Long`, `@Number` and `@Text`. The annotations describe which types are allowed for the argument passed (in case of multiple annotations each of these types is allowed).
 
+== Deploying Custom Function Libraries and Attribute Finders
+
+
+
 == Testing your SAPL policies
 
 Version 2.0.0 of the SAPL policy engine introduces a framework to test SAPL policies. This framework supports unit tests of a single SAPL document or policy integration test of all of your SAPL policies via the PDP interface.
