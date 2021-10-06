@@ -1692,13 +1692,15 @@ Functions are organized in function libraries. Each function library has a _name
 
 Functions can be used in any part of a SAPL document, especially in the target expression. Thus their output should only depend on the input arguments and they should not access external resources. Functions do not have access to environment variables.
 
-=== The Standard Function Library
-
-SAPL will come with a standard function library providing the most important functions.
+SAPL will comes with a standard function library providing some basic functions.
 
 === Custom Function Libraries
 
+For a more in-depth look at the process of creating a custom function library, please refer to the demo project. It will walk you through the entire process and contains extensive examples: https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension .
+
 The standard functions can be extended by custom functions. Function libraries available in SAPL documents are collected in the PDP's function context. The embedded PDP provides an `AnnotationFunctionContext` where Java classes with annotations can be provided as function libraries:
+
+SAPL functions must not perform any IO operations. Functions are to be used as "immediate" data transformation functions.
 
 - To be recognized as a function library, a class has to be annotated with `@FunctionLibrary`. The optional annotation attribute `name` contains the library's name as it will be available in SAPL policies. The attribute value has to be a string consisting of one or more identifiers separated by periods. If the attribute is missing, the name of the Java class is used. The optional annotation attribute `description` contains a string describing the library for documentation purposes.
 +
@@ -1712,13 +1714,12 @@ public class SampleFunctionLibrary {
 +
 [source,java]
 @Function(docs = "returns the length")
-public static JsonNode length(
-		@Text parameter
-) {
+public static Val length(@Text Val parameter) {
     ...
 }
 +
 Each parameter can be annotated with any number of `@Array`, `@Bool`, `@Int`, `@JsonObject`, `@Long`, `@Number` and `@Text`. The annotations describe which types are allowed for the parameter (in case of multiple annotations, each of these types is allowed).
+
 
 == Attribute Finders
 
@@ -1726,43 +1727,38 @@ Attribute finders are used to receive attributes which are not included in the a
 
 Attribute finders are organized in libraries as well and follow the same naming conventions as functions, including the use of imports. An attribute finder library constitutes a PIP (e.g., `user`) and can contain any number of attributes (e.g., `age`). They are called by a selection step applied to any value, e.g., `subject.<user.age>`. The attribute finder step receives the previous selection result (in the example: `subject`) and returns the requested attribute.
 
-The concept of attribute finders can be used in a flexible manner: There may be finders which take an object (like in the example above, `subject.<user.age>`) as well as attribute finders which expect a primitive value (e.g., `subject.id.<user.age>` with `id` being a number). In addition attribute finders may also return an object which can be traversed in future selection steps (e.g., `subject.<user.profile>.age`). It is even possible to join multiple attribute finder steps in one expression (e.g., `subject.<user.profile>.supervisor.<user.profile>.age`). 
+The concept of attribute finders can be used in a flexible manner: There may be finders which take an object (like in the example above, `subject.<user.age>`) as well as attribute finders which expect a primitive value (e.g., `subject.id.<user.age>` with `id` being a number). In addition attribute finders may also return an object which can be traversed in subsequent selection steps (e.g., `subject.<user.profile>.age`). It is even possible to join multiple attribute finder steps in one expression (e.g., `subject.<user.profile>.supervisor.<user.profile>.age`). 
 
-Optionally, an attribute finder may be supplied with a list of parameters: `.<finder.name(p1,p2,...)>`.
+Optionally, an attribute finder may be supplied with a list of parameters: `x.<finder.name(p1,p2,...)>`. Also, here nesting is possible. Thus `x.<finder.name(p1.<finder.name2>,p2,...)>` is a legal construct.
+
+Further, attribute finders may be used without any leading value `<finder.name(p1,p2,...)>`. These are called environment attributes.
+
+The way to ready a statement with an attribute finder is as follows. For `subject.<groups.membership("studygroup")>` you would say "get the attribute `group.membership` with parameter `"studygroup"` of subject".
 
 Attribute finders often receive the information from external data sources such as files, databases or HTTP requests which may take a certain amount of time. Therefore they must not be used in a target expression. Attribute finders can access environment variables.
 
-=== The Standard Attribute Finders
-
-Most attribute finders will be specific to an organization or an environment. E.g., a hospital might provide information about medical units, doctors and patients and use specific attribute finders for this information. Yet SAPL will offer a number of general purpose attribute finders.
-
 === Custom Attribute Finders
 
-Attribute finders are functions which take exactly one argument and return any value. Each attribute finder library (also called PIP) has to be known to the PDP. The embedded PDP provides an `AnnotationAttributeContext` which takes Java classes as PIPs.
+For a more in-depth look at the process of creating a custom PIP, please refer to the demo project. It will walk you through the entire process and contains extensive examples: https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension .
 
-- To be recognized as a PIP, the class has to be annotated with `@PolicyInformationPoint`. The optional annotation attribute `name` contains the PIP's name as it will be available in SAPL policies. The attribute value is a string consisting of one or more identifiers separated by periods. If the attribute is missing, the name of the Java class is used. The optional annotation attribute `description` contains a string describing the PIP for documentation purposes.
+Attribute finders are functions which potentially take a left hand argument (i.e., the Object of which the attribute is to be determined), a Map of variables defined in the current evaluation scope and an optional list of incoming parameter Streams. 
+
+In SAPL a PolicyInformationPoint is an instance of a class which supplies a set of such functions. To declare functions and classes to be attributes or PIPs, SAPL uses annotations. Each PIP class has to be known to the PDP. The embedded PDP provides an `AnnotationAttributeContext` which takes arbitrary Java classes as PIPs. To be recognized as a PIP, the class has to be annotated with `@PolicyInformationPoint`. The optional annotation attribute `name` contains the PIP's name as it will be available in SAPL policies. If the attribute is missing, the name of the Java class is used. The optional annotation attribute `description` contains a string describing the PIP for documentation purposes.
 +
 [source,java]
-@PolicyInformationPoint(name = "user", description = "a sample pip")
+@PolicyInformationPoint(name = "user", description = "This the documentation of the PIP")
 public class SampleUserPIP {
 	...
 }
 
-- The annotation `@Attribute` identifies an attribute finder, i.e., a function returning an attribute. An optional annotation attribute `name` can contain a name for the attribute. The attribute has to be a string containing an identifier. By default, the name of the function will be used. The annotation attribute `docs` can contain a string describing the attribute.
+The individual attributes supplied by the PIP are identified by adding the annotation `@Attribute`. An optional annotation attribute `name` can contain a name for the attribute. The attribute has to be a string containing an identifier. By default, the name of the function will be used. The annotation attribute `docs` can contain a string describing the attribute.
 +
 [source,java]
 @Attribute(name = "profile", docs = "returns user profile as JSON")
-public static JsonNode userprofile(
-		@Number id
-) {
+public Flux<Val> userprofile(@Number leftHandObjectOfTheAttribute, Map<String, JsonNode> variablesInCurrentEvaluationContext, Flux<Val> parameter1, Flux<Val> parameter2) {
     ...
 }
 +
-Each attribute function must have exactly one parameter which can be annotated with any number of `@Array`, `@Bool`, `@Int`, `@JsonObject`, `@Long`, `@Number` and `@Text`. The annotations describe which types are allowed for the argument passed (in case of multiple annotations each of these types is allowed).
-
-== Deploying Custom Function Libraries and Attribute Finders
-
-
 
 == Testing your SAPL policies
 
@@ -1770,7 +1766,7 @@ Version 2.0.0 of the SAPL policy engine introduces a framework to test SAPL poli
 
 === Usage scenarios
 
-With the SAPL testframework you can test SAPL policies no matter if you use SAPL via a embedded PDP in your application or via a central SAPL server.
+With the SAPL test framework you can test SAPL policies no matter if you use SAPL via a embedded PDP in your application or via a central SAPL server.
 
 ==== Embedded PDP
 
