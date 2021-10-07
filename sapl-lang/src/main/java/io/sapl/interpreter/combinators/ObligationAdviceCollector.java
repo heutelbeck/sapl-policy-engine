@@ -30,16 +30,16 @@ public class ObligationAdviceCollector {
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	final Map<Decision, ArrayNode> obligations = new EnumMap<>(Decision.class);
-	final Map<Decision, ArrayNode> advices = new EnumMap<>(Decision.class);
+	final Map<Decision, ArrayNode> advice = new EnumMap<>(Decision.class);
 
 	public ObligationAdviceCollector() {
 		obligations.put(Decision.DENY, JSON.arrayNode());
 		obligations.put(Decision.PERMIT, JSON.arrayNode());
-		advices.put(Decision.DENY, JSON.arrayNode());
-		advices.put(Decision.PERMIT, JSON.arrayNode());
+		advice.put(Decision.DENY, JSON.arrayNode());
+		advice.put(Decision.PERMIT, JSON.arrayNode());
 	}
 
-	public void registerDecisionsObligationsAndAdvices(AuthorizationDecision authzDecision) {
+	public void registerDecisionsObligationsAndAdvice(AuthorizationDecision authzDecision) {
 		if (authzDecision.getDecision() != Decision.PERMIT && authzDecision.getDecision() != Decision.DENY)
 			return;
 		registerObligationIfPresent(authzDecision);
@@ -47,8 +47,8 @@ public class ObligationAdviceCollector {
 	}
 
 	private void registerAdviceIfPresent(AuthorizationDecision authzDecision) {
-		if (authzDecision.getAdvices().isPresent())
-			advices.get(authzDecision.getDecision()).addAll(authzDecision.getAdvices().get());
+		if (authzDecision.getAdvice().isPresent())
+			advice.get(authzDecision.getDecision()).addAll(authzDecision.getAdvice().get());
 	}
 
 	private void registerObligationIfPresent(AuthorizationDecision authzDecision) {
@@ -57,7 +57,7 @@ public class ObligationAdviceCollector {
 	}
 
 	public void add(AuthorizationDecision authzDecision) {
-		registerDecisionsObligationsAndAdvices(authzDecision);
+		registerDecisionsObligationsAndAdvice(authzDecision);
 	}
 
 	public Optional<ArrayNode> getObligations(Decision decision) {
@@ -66,9 +66,9 @@ public class ObligationAdviceCollector {
 		return Optional.empty();
 	}
 
-	public Optional<ArrayNode> getAdvices(Decision decision) {
-		if ((decision == Decision.PERMIT || decision == Decision.DENY) && advices.get(decision).size() > 0)
-			return Optional.of(advices.get(decision));
+	public Optional<ArrayNode> getAdvice(Decision decision) {
+		if ((decision == Decision.PERMIT || decision == Decision.DENY) && advice.get(decision).size() > 0)
+			return Optional.of(advice.get(decision));
 		return Optional.empty();
 	}
 

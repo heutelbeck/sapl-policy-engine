@@ -83,7 +83,7 @@ public class ReactiveConstraintEnforcementServiceTests {
 		when(mockHandler.isResponsible(any())).thenReturn(false);
 
 		var advice = arrayOf(CONSTRAINT);
-		var authzDecision = AuthorizationDecision.PERMIT.withAdvices(advice);
+		var authzDecision = AuthorizationDecision.PERMIT.withAdvice(advice);
 		Flux<Object> resourceAccessPoint = Flux.just(1, 2, 3);
 
 		var constraintEnforcementService = new ReactiveConstraintEnforcementService(List.of(mockHandler));
@@ -132,7 +132,7 @@ public class ReactiveConstraintEnforcementServiceTests {
 		when(mockHandler.onSubscribe(any())).thenReturn(mockOnSubscribtionConsumer);
 
 		var obligations = arrayOf(CONSTRAINT);
-		var authzDecision = AuthorizationDecision.PERMIT.withAdvices(obligations);
+		var authzDecision = AuthorizationDecision.PERMIT.withAdvice(obligations);
 		Flux<Object> resourceAccessPoint = Flux.just(1, 2, 3);
 
 		var constraintEnforcementService = new ReactiveConstraintEnforcementService(List.of(mockHandler));

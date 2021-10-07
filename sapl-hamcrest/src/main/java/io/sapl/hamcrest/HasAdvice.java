@@ -34,9 +34,9 @@ public class HasAdvice extends TypeSafeDiagnosingMatcher<AuthorizationDecision> 
 
 	@Override
 	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		if(decision.getAdvices().isEmpty())
+		if(decision.getAdvice().isEmpty())
 		{
-			mismatchDescription.appendText("decision didn't contain any advices");
+			mismatchDescription.appendText("decision didn't contain any advice");
 			return false;
 		}
 		
@@ -46,7 +46,7 @@ public class HasAdvice extends TypeSafeDiagnosingMatcher<AuthorizationDecision> 
 		
 		boolean containsAdvice = false;
 		
-        for(JsonNode node : decision.getAdvices().get()) {
+        for(JsonNode node : decision.getAdvice().get()) {
         	if(this.jsonMatcher.get().matches(node))
         		containsAdvice = true;
         };

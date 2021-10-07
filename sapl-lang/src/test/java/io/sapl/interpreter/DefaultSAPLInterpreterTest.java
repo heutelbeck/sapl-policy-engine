@@ -637,7 +637,7 @@ class DefaultSAPLInterpreterTest {
 		expectedAdvice.add(JSON.nullNode());
 		var expected = Optional.of(expectedAdvice);
 		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, evaluationCtx))
-				.assertNext(actual -> assertThat(actual.getAdvices(), is(expected))).verifyComplete();
+				.assertNext(actual -> assertThat(actual.getAdvice(), is(expected))).verifyComplete();
 	}
 
 	@Test

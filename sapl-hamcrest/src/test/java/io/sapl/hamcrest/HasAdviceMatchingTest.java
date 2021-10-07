@@ -29,9 +29,9 @@ class HasAdviceMatchingTest {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
-		ArrayNode advices = mapper.createArrayNode();
-		advices.add(advice);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(advices));
+		ArrayNode adviceArray = mapper.createArrayNode();
+		adviceArray.add(advice);
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(adviceArray));
 
 		
 		assertThat(dec, is(matcher));
@@ -45,9 +45,9 @@ class HasAdviceMatchingTest {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
-		ArrayNode advices = mapper.createArrayNode();
-		advices.add(advice);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(advices));
+		ArrayNode adviceArray = mapper.createArrayNode();
+		adviceArray.add(advice);
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(adviceArray));
 
 		
 		assertThat(dec, not(is(matcher)));
@@ -66,7 +66,7 @@ class HasAdviceMatchingTest {
 	}
 	
 	@Test
-	public void test_emptyAdvices() {
+	public void test_emptyAdvice() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
 		var matcher = Matchers.hasAdviceMatching(pred);
 		assertThat(new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty()), not(is(matcher)));

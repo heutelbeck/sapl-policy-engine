@@ -208,7 +208,7 @@ class DenyUnlessPermitTest {
 		advice.add(JSON.textNode("advice2"));
 
 		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvice());
 	}
 
 	@Test
@@ -241,7 +241,7 @@ class DenyUnlessPermitTest {
 		advice.add(JSON.textNode("advice2"));
 
 		assertEquals(Optional.of(advice), INTERPRETER
-				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvices());
+				.evaluate(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, evaluationCtx).blockFirst().getAdvice());
 	}
 
 }

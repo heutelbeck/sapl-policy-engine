@@ -31,7 +31,7 @@ class PolicyEnforcementFilterPEPTests {
 //		var filterChain = mock(FilterChain.class);
 //		sut.doFilter(request, response, filterChain);
 //		verify(filterChain, times(1)).doFilter(any(), any());
-//		verify(constraintHandlers, times(1)).handleAdvices(any());
+//		verify(constraintHandlers, times(1)).handleAdvice(any());
 //		verify(constraintHandlers, times(1)).handleObligations(any());
 //	}
 //
@@ -46,7 +46,7 @@ class PolicyEnforcementFilterPEPTests {
 //		var response = new MockHttpServletResponse();
 //		var filterChain = mock(FilterChain.class);
 //		assertThrows(AccessDeniedException.class, () -> sut.doFilter(request, response, filterChain));
-//		verify(constraintHandlers, times(1)).handleAdvices(any());
+//		verify(constraintHandlers, times(1)).handleAdvice(any());
 //		verify(constraintHandlers, times(1)).handleObligations(any());
 //	}
 //
@@ -72,7 +72,7 @@ class PolicyEnforcementFilterPEPTests {
 //		var filterChain = mock(FilterChain.class);
 //		assertThrows(AccessDeniedException.class, () -> sut.doFilter(request, response, filterChain));
 //		verify(filterChain, times(0)).doFilter(any(), any());
-//		verify(constraintHandlers, times(1)).handleAdvices(any());
+//		verify(constraintHandlers, times(1)).handleAdvice(any());
 //		verify(constraintHandlers, times(1)).handleObligations(any());
 //	}
 //
@@ -86,7 +86,7 @@ class PolicyEnforcementFilterPEPTests {
 //		var filterChain = mock(FilterChain.class);
 //		assertThrows(AccessDeniedException.class, () -> sut.doFilter(request, response, filterChain));
 //		verify(filterChain, times(0)).doFilter(any(), any());
-//		verify(constraintHandlers, times(1)).handleAdvices(any());
+//		verify(constraintHandlers, times(1)).handleAdvice(any());
 //		verify(constraintHandlers, times(1)).handleObligations(any());
 //	}
 //
@@ -100,7 +100,7 @@ class PolicyEnforcementFilterPEPTests {
 //		var filterChain = mock(FilterChain.class);
 //		assertThrows(AccessDeniedException.class, () -> sut.doFilter(request, response, filterChain));
 //		verify(filterChain, times(0)).doFilter(any(), any());
-//		verify(constraintHandlers, times(1)).handleAdvices(any());
+//		verify(constraintHandlers, times(1)).handleAdvice(any());
 //		verify(constraintHandlers, times(1)).handleObligations(any());
 //	}
 

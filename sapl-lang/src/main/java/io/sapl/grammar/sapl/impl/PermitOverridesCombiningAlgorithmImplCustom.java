@@ -78,7 +78,7 @@ public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverrides
 			}
 		}
 		var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
-				collector.getAdvices(entitlement));
+				collector.getAdvice(entitlement));
 		log.debug("| |-- {} Combined AuthorizationDecision: {}", finalDecision.getDecision(), finalDecision);
 		return finalDecision;
 	}

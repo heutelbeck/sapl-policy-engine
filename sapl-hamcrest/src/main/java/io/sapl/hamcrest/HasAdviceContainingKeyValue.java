@@ -39,17 +39,17 @@ public class HasAdviceContainingKeyValue extends TypeSafeDiagnosingMatcher<Autho
 
 	@Override
 	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		if(decision.getAdvices().isEmpty())
+		if(decision.getAdvice().isEmpty())
 		{
-			mismatchDescription.appendText("decision didn't contain any advices");
+			mismatchDescription.appendText("decision didn't contain any advice");
 			return false;
 		}
 		
 		
 		boolean containsAdvice = false;
 		
-		//iterate over all advices
-        for(JsonNode advice : decision.getAdvices().get()) {
+		//iterate over all advice
+        for(JsonNode advice : decision.getAdvice().get()) {
         	var iterator = advice.fields();
         	//iterate over fields in this advice
         	while (iterator.hasNext()) {
@@ -68,7 +68,7 @@ public class HasAdviceContainingKeyValue extends TypeSafeDiagnosingMatcher<Autho
 		if(containsAdvice) {
 			return true;
 		} else {
-			mismatchDescription.appendText("no entry in all advices matched");
+			mismatchDescription.appendText("no entry in advice matched");
 			return false;
 		}
 	}

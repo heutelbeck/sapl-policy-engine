@@ -27,9 +27,9 @@ class HasAdviceTest {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
-		ArrayNode advices = mapper.createArrayNode();
-		advices.add(advice);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(advices));
+		ArrayNode adviceArray = mapper.createArrayNode();
+		adviceArray.add(advice);
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(adviceArray));
 	
 		var matcher = hasAdvice(advice);
 		
@@ -41,12 +41,12 @@ class HasAdviceTest {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
-		ArrayNode advices = mapper.createArrayNode();
-		advices.add(advice);
+		ArrayNode adviceArray = mapper.createArrayNode();
+		adviceArray.add(advice);
 		
 		ObjectNode expectedadvice = mapper.createObjectNode();
 		expectedadvice.put("xxx", "xxx");
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(advices));
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(adviceArray));
 	
 		var matcher = hasAdvice(expectedadvice);
 		
@@ -80,9 +80,9 @@ class HasAdviceTest {
 		var matcher = hasAdvice(expectedAdvice);
 		ObjectNode actualAdvice = mapper.createObjectNode();
 		actualAdvice.put("foo", 1f);
-		ArrayNode actualAdvices = mapper.createArrayNode();
-		actualAdvices.add(actualAdvice);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(actualAdvices));
+		ArrayNode actualAdviceArray = mapper.createArrayNode();
+		actualAdviceArray.add(actualAdvice);
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(actualAdviceArray));
 		assertThat(dec, is(matcher));
 	}
 	
@@ -91,9 +91,9 @@ class HasAdviceTest {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode actualAdvice = mapper.createObjectNode();
 		actualAdvice.put("foo", 1);
-		ArrayNode actualAdvices = mapper.createArrayNode();
-		actualAdvices.add(actualAdvice);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(actualAdvices));
+		ArrayNode actualAdviceArray = mapper.createArrayNode();
+		actualAdviceArray.add(actualAdvice);
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(actualAdviceArray));
 
 		var sut = new HasAdvice();
 		

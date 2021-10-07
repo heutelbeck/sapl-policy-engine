@@ -23,7 +23,7 @@ class AuthorizationDecisionTest {
 	void defaultConstructorResultsInNoEntriesAndIndeterminate() {
 		var decision = new AuthorizationDecision();
 		assertAll(() -> assertEquals(Decision.INDETERMINATE, decision.getDecision()),
-				() -> assertThat(decision.getAdvices(), is(emptyOptional())),
+				() -> assertThat(decision.getAdvice(), is(emptyOptional())),
 				() -> assertThat(decision.getObligations(), is(emptyOptional())),
 				() -> assertThat(decision.getResource(), is(emptyOptional())));
 	}
@@ -32,7 +32,7 @@ class AuthorizationDecisionTest {
 	void decisionConstructorResultsInNoEntries() {
 		var decision = new AuthorizationDecision(Decision.DENY);
 		assertAll(() -> assertEquals(Decision.DENY, decision.getDecision()),
-				() -> assertThat(decision.getAdvices(), is(emptyOptional())),
+				() -> assertThat(decision.getAdvice(), is(emptyOptional())),
 				() -> assertThat(decision.getObligations(), is(emptyOptional())),
 				() -> assertThat(decision.getResource(), is(emptyOptional())));
 	}
@@ -40,17 +40,17 @@ class AuthorizationDecisionTest {
 	@Test
 	void decisionConstructorNull() {
 		assertThrows(NullPointerException.class, () -> {
-			new AuthorizationDecision(null).withAdvices(null);
+			new AuthorizationDecision(null).withAdvice(null);
 		});
 	}
 
 	@Test
-	void withAdvicesNull() {
+	void withAdviceNull() {
 		assertThrows(NullPointerException.class, () -> {
-			new AuthorizationDecision().withAdvices(null);
+			new AuthorizationDecision().withAdvice(null);
 		});
 	}
-	
+
 	@Test
 	void withDecisionNull() {
 		assertThrows(NullPointerException.class, () -> {
@@ -59,18 +59,18 @@ class AuthorizationDecisionTest {
 	}
 
 	@Test
-	void withAdvicesEmpty() {
-		var advices = JSON.arrayNode();
-		var decision = new AuthorizationDecision().withAdvices(advices);
-		assertThat(decision.getAdvices(), is(emptyOptional()));
+	void withAdviceEmpty() {
+		var advice = JSON.arrayNode();
+		var decision = new AuthorizationDecision().withAdvice(advice);
+		assertThat(decision.getAdvice(), is(emptyOptional()));
 	}
 
 	@Test
-	void withAdvicesPresent() {
-		var advices = JSON.arrayNode();
-		advices.add(JSON.numberNode(0));
-		var decision = new AuthorizationDecision().withAdvices(advices);
-		assertThat(decision.getAdvices(), is(optionalWithValue(is(jsonArray(contains(jsonInt(0)))))));
+	void withAdvicePresent() {
+		var advice = JSON.arrayNode();
+		advice.add(JSON.numberNode(0));
+		var decision = new AuthorizationDecision().withAdvice(advice);
+		assertThat(decision.getAdvice(), is(optionalWithValue(is(jsonArray(contains(jsonInt(0)))))));
 	}
 
 	@Test

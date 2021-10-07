@@ -79,7 +79,7 @@ public class PolicyImplCustom extends PolicyImpl {
 
 	private Function<? super AuthorizationDecision, Publisher<? extends AuthorizationDecision>> addAdvice(
 			EvaluationContext evaluationCtx) {
-		return previousDecision -> evaluateAdvices(evaluationCtx).map(advice -> {
+		return previousDecision -> evaluateAdvice(evaluationCtx).map(advice -> {
 			if (advice.isError()) {
 				log.debug("| |- Error in advice evaluation. INDETERMINATE: " + advice.getMessage());
 				return AuthorizationDecision.INDETERMINATE;
@@ -92,7 +92,7 @@ public class PolicyImplCustom extends PolicyImpl {
 			log.debug("| |- Got advice: {}", adviceValue);
 			var adviceArray = Val.JSON.arrayNode();
 			adviceArray.add(adviceValue);
-			return previousDecision.withAdvices(adviceArray);
+			return previousDecision.withAdvice(adviceArray);
 		}).defaultIfEmpty(previousDecision);
 	}
 
@@ -118,7 +118,7 @@ public class PolicyImplCustom extends PolicyImpl {
 		return getObligation().evaluate(evaluationCtx, Val.UNDEFINED);
 	}
 
-	private Flux<Val> evaluateAdvices(EvaluationContext evaluationCtx) {
+	private Flux<Val> evaluateAdvice(EvaluationContext evaluationCtx) {
 		if (getAdvice() == null) {
 			return Flux.empty();
 		}

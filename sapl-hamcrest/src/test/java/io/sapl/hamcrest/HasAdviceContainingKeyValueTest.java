@@ -27,11 +27,11 @@ class HasAdviceContainingKeyValueTest {
 		ObjectNode advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
 		advice.put("key", "value");
-		ArrayNode advices = mapper.createArrayNode();
-		advices.add(advice);
+		ArrayNode adviceArray = mapper.createArrayNode();
+		adviceArray.add(advice);
 
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
-				Optional.empty(), Optional.of(advices));
+				Optional.empty(), Optional.of(adviceArray));
 
 		var sut = Matchers.hasAdviceContainingKeyValue("key", jsonText("value"));
 
@@ -44,11 +44,11 @@ class HasAdviceContainingKeyValueTest {
 		ObjectNode advice = mapper.createObjectNode();
 		advice.put("foo", "bar");
 		advice.put("key", "value");
-		ArrayNode advices = mapper.createArrayNode();
-		advices.add(advice);
+		ArrayNode adviceArray = mapper.createArrayNode();
+		adviceArray.add(advice);
 
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
-				Optional.empty(), Optional.of(advices));
+				Optional.empty(), Optional.of(adviceArray));
 
 		var sut = Matchers.hasAdviceContainingKeyValue("xxx", jsonText("yyy"));
 

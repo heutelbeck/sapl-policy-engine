@@ -149,7 +149,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
 					.append("DECISION: ").append(iad.getAuthorizationDecision().getDecision()).append(" | ")
 					.append("RESOURCE: ").append(iad.getAuthorizationDecision().getResource()).append(" | ")
 					.append("OBLIGATIONS: ").append(iad.getAuthorizationDecision().getObligations()).append(" | ")
-					.append("ADVICE: ").append(iad.getAuthorizationDecision().getAdvices()).append(']');
+					.append("ADVICE: ").append(iad.getAuthorizationDecision().getAdvice()).append(']');
 		}
 		sb.append("\n}");
 		return sb.toString();

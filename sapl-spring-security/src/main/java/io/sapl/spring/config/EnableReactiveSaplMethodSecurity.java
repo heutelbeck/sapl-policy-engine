@@ -44,7 +44,7 @@ public @interface EnableReactiveSaplMethodSecurity {
 
 	/**
 	 * Indicate the ordering of the execution of the security advisor when multiple
-	 * advices are applied at a specific joinpoint. The default is
+	 * advice is applied at a specific joinpoint. The default is
 	 * {@link Ordered#LOWEST_PRECEDENCE}.
 	 * 
 	 * @return the order the security advisor should be applied

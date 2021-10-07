@@ -224,7 +224,7 @@ EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDec
 ----
 
 . Add some policy sets or policies to `"~/sapl"`. Both policy sets and policies are files with the extension `.sapl`. E.g., you could add the following policy:
-
++
 [source]
 ----
 policy "test_policy"
@@ -232,7 +232,7 @@ permit subject == "admin"
 ----
 
 . Obtain a decision using the PDP's `decide` method.
-
++
 [source,Java,linenums]
 ----
 var subscription = AuthorizationSubscription.of("admin", "an_action", "a_resource");
@@ -391,7 +391,7 @@ All of them accept `POST` requests and `application/json` and they produce `appl
 
 A PEP which is a client to the SSE PDP API encountering connectivity issues or errors must interpret this as an INDETERMINATE decision and thus deny access during this time of uncertainty and take appropriate steps to reconnect with the PDP, using a matching back-off strategy to not overload the PDP. 
 
-A PEP must determine if it can enforce obligations before granting access. It must enforce obligation upon granting access at the point in time (e.g., before or after granting access) implied by the semantics of the obligation, and it should enforce advices at their appropriate point in time when possible.
+A PEP must determine if it can enforce obligations before granting access. It must enforce obligation upon granting access at the point in time (e.g., before or after granting access) implied by the semantics of the obligation, and it should enforce any advice at their appropriate point in time when possible.
 
 Upon subscription the PDP server will respond with an unbound stream of decisions. The client must close the connection to stop receiving decision events. A connection termination by the server is a error state and must be handled as discussed.
 
@@ -2003,7 +2003,7 @@ AuthorizationDecision decision = new AuthorizationDecision(Decision.PERMIT).with
 	return false;
 })
 ----
-* use Hamcrest Matcher prodivded by the sapl-hamcrest modul to express complex expectations on the decision, obligations, advices or resources of the `AuthorizationDecision`
+* use Hamcrest Matcher provided by the sapl-hamcrest modul to express complex expectations on the decision, obligations, advice or resources of the `AuthorizationDecision`
 +
 [source,java]
 ----
