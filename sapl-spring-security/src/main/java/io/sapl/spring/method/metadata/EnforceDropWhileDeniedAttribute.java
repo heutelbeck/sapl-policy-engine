@@ -13,21 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.method.attributes;
+package io.sapl.spring.method.metadata;
 
 import org.springframework.expression.Expression;
 
-public class PostEnforceAttribute extends AbstractPolicyBasedEnforcementAttribute
-		implements PostInvocationEnforcementAttribute {
+public class EnforceDropWhileDeniedAttribute extends AbstractSaplAttribute {
 
 	private static final long serialVersionUID = -3012177291107121964L;
 
-	public PostEnforceAttribute(String subjectExpression, String actionExpression, String resourceExpression,
-			String environmentExpression, Class<?> genericsType) {
-		super(subjectExpression, actionExpression, resourceExpression, environmentExpression, genericsType);
-	}
-
-	public PostEnforceAttribute(Expression subjectExpression, Expression actionExpression,
+	public EnforceDropWhileDeniedAttribute(Expression subjectExpression, Expression actionExpression,
 			Expression resourceExpression, Expression environmentExpression, Class<?> genericsType) {
 		super(subjectExpression, actionExpression, resourceExpression, environmentExpression, genericsType);
 	}

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.method.annotations;
+package io.sapl.spring.method.metadata;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -32,14 +32,41 @@ import java.lang.annotation.Target;
 @Target({ ElementType.METHOD, ElementType.TYPE })
 public @interface PreEnforce {
 
+	/**
+	 * @return the Spring-EL expression to whose evaluation result is to be used as
+	 *         the subject in the authorization subscription to the PDP. If empty,
+	 *         the PEP attempts to derive a best guess to describe the subject based
+	 *         on the current Principal.
+	 */
 	String subject() default "";
 
+	/**
+	 * @return the Spring-EL expression to whose evaluation result is to be used as
+	 *         the action in the authorization subscription to the PDP. If empty,
+	 *         the PEP attempts to derive a best guess to describe the action based
+	 *         on reflection.
+	 */
 	String action() default "";
 
+	/**
+	 * @return the Spring-EL expression to whose evaluation result is to be used as
+	 *         the action in the authorization subscription to the PDP. If empty,
+	 *         the PEP attempts to derive a best guess to describe the resource
+	 *         based on reflection.
+	 */
 	String resource() default "";
 
+	/**
+	 * @return the Spring-EL expression to whose evaluation result is to be used as
+	 *         the action in the authorization subscription to the PDP. If empty, no
+	 *         environment is set in the subscription.
+	 */
 	String environment() default "";
 
+	/**
+	 * @return the type of the generics parameter of the return type being secured.
+	 *         Helps due to Java type erasure at runtime. Defaults to Object.class
+	 */
 	Class<?> genericsType() default Object.class;
 
 }

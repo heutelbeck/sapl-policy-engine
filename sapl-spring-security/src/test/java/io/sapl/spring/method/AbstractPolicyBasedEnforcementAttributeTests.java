@@ -11,20 +11,21 @@ import static org.mockito.Mockito.mock;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.expression.Expression;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
 
-import io.sapl.spring.method.attributes.AbstractPolicyBasedEnforcementAttribute;
+import io.sapl.spring.method.metadata.AbstractSaplAttribute;
 
 class AbstractPolicyBasedEnforcementAttributeTests {
 
 	@Test
 	void whenCalled_thenGetAtributeAlwaysNull() {
-		var sut = mock(AbstractPolicyBasedEnforcementAttribute.class, Mockito.CALLS_REAL_METHODS);
+		var sut = mock(AbstractSaplAttribute.class, Mockito.CALLS_REAL_METHODS);
 		assertThat(sut.getAttribute(), is(nullValue()));
 	}
 
 	@Test
 	void whenToStringCalled_thenStringContainsTheThreeKeywords() {
-		var sut = mock(AbstractPolicyBasedEnforcementAttribute.class, Mockito.CALLS_REAL_METHODS);
+		var sut = mock(AbstractSaplAttribute.class, Mockito.CALLS_REAL_METHODS);
 		var stringValue = sut.toString();
 		assertAll(() -> assertThat(stringValue, containsString("subject")),
 				() -> assertThat(stringValue, containsString("action")),
@@ -39,7 +40,7 @@ class AbstractPolicyBasedEnforcementAttributeTests {
 
 	@Test
 	void whenPassingNull_thenExpressionsAreNull() {
-		var sut = new AbstractPolicyBasedEnforcementAttributeMock((String) null, null, null, null, null);
+		var sut = new AbstractPolicyBasedEnforcementAttributeMock(null, null, null, null, null);
 		assertAll(() -> assertThat(sut.getSubjectExpression(), is(nullValue())),
 				() -> assertThat(sut.getActionExpression(), is(nullValue())),
 				() -> assertThat(sut.getResourceExpression(), is(nullValue())),
@@ -48,8 +49,8 @@ class AbstractPolicyBasedEnforcementAttributeTests {
 
 	@Test
 	void whenExpressions_thenExpressionsAreSet() {
-		var sut = new AbstractPolicyBasedEnforcementAttributeMock("19 + 1", "1 ne 1", "2 > 1 ? 'a' : 'b'",
-				"workersHolder.salaryByWorkers['John']", null);
+		var sut = new AbstractPolicyBasedEnforcementAttributeMock(toExpression("19 + 1"), toExpression("1 ne 1"),
+				toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), null);
 		assertAll(() -> assertThat(sut.getSubjectExpression(), is(notNullValue())),
 				() -> assertThat(sut.getActionExpression(), is(notNullValue())),
 				() -> assertThat(sut.getResourceExpression(), is(notNullValue())),
@@ -58,8 +59,8 @@ class AbstractPolicyBasedEnforcementAttributeTests {
 
 	@Test
 	void whenExpressionsSet_thenToStringcontainsThem() {
-		var sut = new AbstractPolicyBasedEnforcementAttributeMock("19 + 1", "1 ne 1", "2 > 1 ? 'a' : 'b'",
-				"workersHolder.salaryByWorkers['John']", null);
+		var sut = new AbstractPolicyBasedEnforcementAttributeMock(toExpression("19 + 1"), toExpression("1 ne 1"),
+				toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), null);
 		var stringValue = sut.toString();
 		assertAll(() -> assertThat(stringValue, containsString("19 + 1")),
 				() -> assertThat(stringValue, containsString("1 ne 1")),
@@ -67,15 +68,16 @@ class AbstractPolicyBasedEnforcementAttributeTests {
 				() -> assertThat(stringValue, containsString("workersHolder.salaryByWorkers['John']")));
 	}
 
-	protected static class AbstractPolicyBasedEnforcementAttributeMock extends AbstractPolicyBasedEnforcementAttribute {
-		public AbstractPolicyBasedEnforcementAttributeMock(String subjectExpression, String actionExpression,
-				String resourceExpression, String environmentExpression, Class<?> genericsType) {
-			super(subjectExpression, actionExpression, resourceExpression, environmentExpression, genericsType);
-		}
+	private static Expression toExpression(String expression) {
+		return new SpelExpressionParser().parseExpression(expression);
+	}
+
+	protected static class AbstractPolicyBasedEnforcementAttributeMock extends AbstractSaplAttribute {
 
 		public AbstractPolicyBasedEnforcementAttributeMock(Expression subjectExpression, Expression actionExpression,
 				Expression resourceExpression, Expression environmentExpression, Class<?> genericsType) {
 			super(subjectExpression, actionExpression, resourceExpression, environmentExpression, genericsType);
 		}
+
 	}
 }

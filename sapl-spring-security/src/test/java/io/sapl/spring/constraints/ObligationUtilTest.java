@@ -16,11 +16,7 @@ import java.util.function.Function;
 import java.util.function.LongConsumer;
 
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 import org.springframework.security.access.AccessDeniedException;
-
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class ObligationUtilTest {
@@ -93,7 +89,8 @@ public class ObligationUtilTest {
 	void when_functionIsNotNullButReturnsNull_then_wrappedFunctionInvokesOriginalFunctionAndAccessDenied() {
 		Function function = mock(Function.class);
 		when(function.apply(any())).thenReturn(null);
-		assertThrows(AccessDeniedException.class, () -> ((Function) ObligationUtil.obligation(function).get()).apply(null));
+		assertThrows(AccessDeniedException.class,
+				() -> ((Function) ObligationUtil.obligation(function).get()).apply(null));
 		verify(function, times(1)).apply(any());
 	}
 
@@ -109,7 +106,8 @@ public class ObligationUtilTest {
 	void when_functionFails_then_errorIsWrappedInAccessDeniedException() {
 		Function function = mock(Function.class);
 		when(function.apply(any())).thenThrow(new IllegalStateException(HANDLER_FAILURE));
-		assertThrows(AccessDeniedException.class, () -> ((Function) ObligationUtil.obligation(function).get()).apply(null));
+		assertThrows(AccessDeniedException.class,
+				() -> ((Function) ObligationUtil.obligation(function).get()).apply(null));
 	}
 
 	@Test
@@ -135,39 +133,6 @@ public class ObligationUtilTest {
 		Runnable runnable = mock(Runnable.class);
 		doThrow(new IllegalStateException(HANDLER_FAILURE)).when(runnable).run();
 		assertThrows(AccessDeniedException.class, () -> ObligationUtil.obligation(runnable).get().run());
-	}
-
-	@Test
-	void when_functionIsNull_then_flatMapReturnEmpty() {
-		assertTrue(ObligationUtil.flatMapObligation((Function) null).isEmpty());
-	}
-
-	@Test
-	void when_functionIsNotNull_then_flatMapReturnOptionalOfFunction() {
-		Function function = mock(Function.class);
-		assertTrue(ObligationUtil.flatMapObligation(function).isPresent());
-	}
-
-	@Test
-	void when_functionIsNotNullButReturnsNull_then_flatMapInvokingTheWrappedFunctionInvokesOriginalFunctionAndAccessDenied() {
-		Function function = mock(Function.class);
-		when(function.apply(any())).thenReturn(null);
-
-		var result = (Publisher) ((Function) ObligationUtil.flatMapObligation(function).get()).apply(null);
-		StepVerifier.create(result).expectError(AccessDeniedException.class).verify();
-
-		verify(function, times(1)).apply(any());
-	}
-
-	@Test
-	void when_functionIsNotNull_then_flatMapInvokingTheWrappedFunction() {
-		Function function = mock(Function.class);
-		when(function.apply(any())).thenReturn(Flux.empty());
-
-		var result = (Publisher) ((Function) ObligationUtil.flatMapObligation(function).get()).apply(null);
-		StepVerifier.create(result).verifyComplete();
-
-		verify(function, times(1)).apply(any());
 	}
 
 }

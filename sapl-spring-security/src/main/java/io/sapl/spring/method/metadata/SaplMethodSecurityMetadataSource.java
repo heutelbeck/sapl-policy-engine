@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.method.attributes;
+package io.sapl.spring.method.metadata;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -26,9 +26,6 @@ import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.access.method.AbstractMethodSecurityMetadataSource;
 import org.springframework.util.ClassUtils;
 
-import io.sapl.spring.method.annotations.Enforce;
-import io.sapl.spring.method.annotations.PostEnforce;
-import io.sapl.spring.method.annotations.PreEnforce;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class SaplMethodSecurityMetadataSource extends AbstractMethodSecurityMetadataSource {
 
-	private final SaplEnforcementAttributeFactory attributeFactory;
+	private final SaplAttributeFactory attributeFactory;
 
 	@Override
 	public Collection<ConfigAttribute> getAllConfigAttributes() {
@@ -45,31 +42,42 @@ public class SaplMethodSecurityMetadataSource extends AbstractMethodSecurityMeta
 
 	@Override
 	public Collection<ConfigAttribute> getAttributes(Method method, Class<?> targetClass) {
-		if (method.getDeclaringClass() == Object.class) {
+		if (method.getDeclaringClass() == Object.class)
 			return Collections.emptyList();
-		}
 
 		var attributes = new ArrayList<ConfigAttribute>(3);
 
 		var preEnforce = findAnnotation(method, targetClass, PreEnforce.class);
 		if (preEnforce != null) {
 			log.trace("@PreEnforce on {}.{}: {}", targetClass.getSimpleName(), method.getName(), preEnforce);
-			attributes.add(attributeFactory.createPreEnforceAttribute(preEnforce.subject(), preEnforce.action(),
-					preEnforce.resource(), preEnforce.environment(), preEnforce.genericsType()));
+			attributes.add(attributeFactory.attributeFrom(preEnforce));
 		}
 
 		var postEnforce = findAnnotation(method, targetClass, PostEnforce.class);
 		if (postEnforce != null) {
 			log.trace("@PostEnforce on {}.{}: {}", targetClass.getSimpleName(), method.getName(), postEnforce);
-			attributes.add(attributeFactory.createPostEnforceAttribute(postEnforce.subject(), postEnforce.action(),
-					postEnforce.resource(), postEnforce.environment(), postEnforce.genericsType()));
+			attributes.add(attributeFactory.attributeFrom(postEnforce));
 		}
 
-		var enforce = findAnnotation(method, targetClass, Enforce.class);
-		if (enforce != null) {
-			log.trace("@Enforce on {}.{}: {}", targetClass.getSimpleName(), method.getName(), enforce);
-			attributes.add(attributeFactory.createEnforceAttribute(enforce.subject(), enforce.action(),
-					enforce.resource(), enforce.environment(), enforce.mode(), enforce.genericsType()));
+		var enforceTillDenied = findAnnotation(method, targetClass, EnforceTillDenied.class);
+		if (enforceTillDenied != null) {
+			log.trace("@EnforceTillDenied on {}.{}: {}", targetClass.getSimpleName(), method.getName(),
+					enforceTillDenied);
+			attributes.add(attributeFactory.attributeFrom(enforceTillDenied));
+		}
+
+		var enforceDropWhileDenied = findAnnotation(method, targetClass, EnforceDropWhileDenied.class);
+		if (enforceDropWhileDenied != null) {
+			log.trace("@EnforceDropWhileDenied on {}.{}: {}", targetClass.getSimpleName(), method.getName(),
+					enforceTillDenied);
+			attributes.add(attributeFactory.attributeFrom(enforceDropWhileDenied));
+		}
+
+		var enforceRecoverableIfDenied = findAnnotation(method, targetClass, EnforceRecoverableIfDenied.class);
+		if (enforceRecoverableIfDenied != null) {
+			log.trace("@EnforceRecoverableIfDenied on {}.{}: {}", targetClass.getSimpleName(), method.getName(),
+					enforceTillDenied);
+			attributes.add(attributeFactory.attributeFrom(enforceRecoverableIfDenied));
 		}
 
 		attributes.trimToSize();
@@ -79,8 +87,9 @@ public class SaplMethodSecurityMetadataSource extends AbstractMethodSecurityMeta
 
 	/**
 	 * See
-	 * {@link org.springframework.security.access.prepost.PrePostAnnotationSecurityMetadataSource #findAnnotation(Method, Class)}
-	 * the logic is the same as for @PreAuthorize and @PostAuthorize.
+	 * {@link org.springframework.security.access.prepost.PrePostAnnotationSecurityMetadataSource
+	 * #findAnnotation(Method, Class)} the logic is the same as for @PreAuthorize
+	 * and @PostAuthorize.
 	 */
 	private <A extends Annotation> A findAnnotation(Method method, Class<?> targetClass, Class<A> annotationClass) {
 		// The method may be on an interface, but we need attributes from the target

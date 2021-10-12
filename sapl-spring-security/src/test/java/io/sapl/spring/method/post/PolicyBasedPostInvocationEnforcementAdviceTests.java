@@ -30,8 +30,8 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
-import io.sapl.spring.method.attributes.PostEnforceAttribute;
-import io.sapl.spring.method.blocking.PolicyBasedPostInvocationEnforcementAdvice;
+import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
+import io.sapl.spring.method.metadata.PostEnforceAttribute;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
@@ -80,17 +80,17 @@ class PolicyBasedPostInvocationEnforcementAdviceTests {
 
 	@Test
 	void whenCreated_thenNotNull() {
-		var sut = new PolicyBasedPostInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		assertThat(sut, notNullValue());
 	}
 
 	@Test
 	void whenAfterAndDecideIsPermit_thenReturnOriginalReturnObject() {
-		var sut = new PolicyBasedPostInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
-		var attribute = new PostEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PostEnforceAttribute(null, null, null, null, null);
 		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 		assertThat(sut.after(authentication, methodInvocation, attribute, originalReturnObject),
@@ -99,10 +99,10 @@ class PolicyBasedPostInvocationEnforcementAdviceTests {
 
 	@Test
 	void whenAfterAndDecideIsDeny_thenThrowAccessDeniedException() {
-		var sut = new PolicyBasedPostInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
-		var attribute = new PostEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PostEnforceAttribute(null, null, null, null, null);
 		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
 		assertThrows(AccessDeniedException.class,
@@ -111,10 +111,10 @@ class PolicyBasedPostInvocationEnforcementAdviceTests {
 
 	@Test
 	void whenAfterBeforeAndDecideNotApplicable_thenThrowAccessDeniedException() {
-		var sut = new PolicyBasedPostInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
-		var attribute = new PostEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PostEnforceAttribute(null, null, null, null, null);
 		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class)))
 				.thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
@@ -124,10 +124,10 @@ class PolicyBasedPostInvocationEnforcementAdviceTests {
 
 	@Test
 	void whenAfterAndDecideIsIndeterminate_thenThrowAccessDeniedException() {
-		var sut = new PolicyBasedPostInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
-		var attribute = new PostEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PostEnforceAttribute(null, null, null, null, null);
 		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class)))
 				.thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
@@ -137,10 +137,10 @@ class PolicyBasedPostInvocationEnforcementAdviceTests {
 
 	@Test
 	void whenAfterAndDecideIsEmpty_thenThrowAccessDeniedException() {
-		var sut = new PolicyBasedPostInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
-		var attribute = new PostEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PostEnforceAttribute(null, null, null, null, null);
 		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
 		assertThrows(AccessDeniedException.class,
@@ -149,10 +149,10 @@ class PolicyBasedPostInvocationEnforcementAdviceTests {
 
 	@Test
 	void whenAfterAndDecideISPermitWithResource_thenReturnTheReplacementObject() {
-		var sut = new PolicyBasedPostInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
-		var attribute = new PostEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PostEnforceAttribute(null, null, null, null, null);
 		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		var expectedReturnObject = CHANGED_RETURN_OBJECT;
 		when(pdp.decide(any(AuthorizationSubscription.class)))
@@ -163,10 +163,10 @@ class PolicyBasedPostInvocationEnforcementAdviceTests {
 
 	@Test
 	void whenAfterAndDecideISPermitWithResourceOfBadType_thenThrowAccessDeniedException() {
-		var sut = new PolicyBasedPostInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
-		var attribute = new PostEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PostEnforceAttribute(null, null, null, null, null);
 		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
 		var replacementResource = JSON.arrayNode();
 		when(pdp.decide(any(AuthorizationSubscription.class)))
@@ -175,26 +175,12 @@ class PolicyBasedPostInvocationEnforcementAdviceTests {
 				() -> sut.after(authentication, methodInvocation, attribute, originalReturnObject));
 	}
 
-//	@Test
-//	void whenBeforeAndDecidePermitAndObligationsFail_thenThrowAccessDeniedException() {
-//		var sut = new PolicyBasedPostInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
-//				objectMapperFactory);
-//		var methodInvocation = MethodInvocationUtils.create(new TestClass(), DO_SOMETHING);
-//		var attribute = new PostEnforceAttribute((String) null, null, null, null);
-//		var originalReturnObject = ORIGINAL_RETURN_OBJECT;
-//		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-//		doThrow(new AccessDeniedException("FAILED OBLIGATION")).when(constraintHandlers)
-//				.handleObligations(any(AuthorizationDecision.class));
-//		assertThrows(AccessDeniedException.class,
-//				() -> sut.after(authentication, methodInvocation, attribute, originalReturnObject));
-//	}
-
 	@Test
 	void whenAfterAndDecideISPermitWithResourceAndMethodReturnsOptional_thenReturnTheReplacementObject() {
-		var sut = new PolicyBasedPostInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomethingOptional");
-		var attribute = new PostEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PostEnforceAttribute(null, null, null, null, null);
 		var originalReturnObject = Optional.of(ORIGINAL_RETURN_OBJECT);
 		var expectedReturnObject = Optional.of(CHANGED_RETURN_OBJECT);
 		when(pdp.decide(any(AuthorizationSubscription.class)))

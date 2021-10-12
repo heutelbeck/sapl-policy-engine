@@ -5,11 +5,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
 
-import org.reactivestreams.Publisher;
 import org.springframework.security.access.AccessDeniedException;
 
 import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class ObligationUtil {
@@ -39,22 +37,6 @@ public class ObligationUtil {
 			} catch (Throwable e) {
 				throw new AccessDeniedException("Error during obligation handling: " + e.getMessage(), e);
 			}
-		});
-	}
-
-	public static <T> Optional<Function<T, Publisher<T>>> flatMapObligation(Function<T, Publisher<T>> function) {
-		if (function == null)
-			return Optional.empty();
-
-		return Optional.of(t -> {
-			var original = function.apply(t);
-			Publisher<T> result = null;
-			if (original == null)
-				result = Flux.error(new IllegalStateException("Handler function must not return null"));
-			else
-				result = original;
-			return Flux.from(result).onErrorMap(
-					e -> new AccessDeniedException("Error during obligation handling: " + e.getMessage(), e));
 		});
 	}
 

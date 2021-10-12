@@ -13,7 +13,6 @@ import java.util.function.Function;
 import java.util.function.LongConsumer;
 
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class AbstractConstraintHandlerTest {
 	private final static ObjectMapper MAPPER = new ObjectMapper();
@@ -332,36 +330,6 @@ public class AbstractConstraintHandlerTest {
 	}
 
 	@Test
-	void when_onNextFlatMap_fluxIsChanged() {
-		Flux<Object> spy = spy(Flux.just(1, 2, 3));
-
-		var service = new AbstractConstraintHandler(0) {
-
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
-
-			@Override
-			public <T> Function<T, Publisher<T>> onNextFlatMap(JsonNode constraint) {
-				return t -> Mono.just(t);
-			}
-
-		};
-		service.applyObligation(spy, CONSTRAINT);
-		verify(spy, times(0)).doOnSubscribe(any());
-		verify(spy, times(0)).doOnNext(any());
-		verify(spy, times(0)).doOnError(any());
-		verify(spy, times(0)).doOnComplete(any());
-		verify(spy, times(0)).doAfterTerminate(any());
-		verify(spy, times(0)).doOnCancel(any());
-		verify(spy, times(0)).doOnRequest(any());
-		verify(spy, times(0)).map(any());
-		verify(spy, times(0)).onErrorMap(any());
-		verify(spy, times(1)).flatMap(any());
-	}
-
-	@Test
 	void when_onErrorMap_fluxIsChanged() {
 		Flux<Object> spy = spy(Flux.just(1, 2, 3));
 
@@ -660,36 +628,6 @@ public class AbstractConstraintHandlerTest {
 		verify(spy, times(1)).map(any());
 		verify(spy, times(0)).onErrorMap(any());
 		verify(spy, times(0)).flatMap(any());
-	}
-
-	@Test
-	void when_onNextFlatMap_fluxIsChanged_forAdvice() {
-		Flux<Object> spy = spy(Flux.just(1, 2, 3));
-
-		var service = new AbstractConstraintHandler(0) {
-
-			@Override
-			public boolean isResponsible(JsonNode constraint) {
-				return true;
-			}
-
-			@Override
-			public <T> Function<T, Publisher<T>> onNextFlatMap(JsonNode constraint) {
-				return t -> Mono.just(t);
-			}
-
-		};
-		service.applyAdvice(spy, CONSTRAINT);
-		verify(spy, times(0)).doOnSubscribe(any());
-		verify(spy, times(0)).doOnNext(any());
-		verify(spy, times(0)).doOnError(any());
-		verify(spy, times(0)).doOnComplete(any());
-		verify(spy, times(0)).doAfterTerminate(any());
-		verify(spy, times(0)).doOnCancel(any());
-		verify(spy, times(0)).doOnRequest(any());
-		verify(spy, times(0)).map(any());
-		verify(spy, times(0)).onErrorMap(any());
-		verify(spy, times(1)).flatMap(any());
 	}
 
 	@Test

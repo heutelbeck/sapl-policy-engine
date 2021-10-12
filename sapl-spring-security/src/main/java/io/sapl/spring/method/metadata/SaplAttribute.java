@@ -13,21 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.method.blocking;
+package io.sapl.spring.method.metadata;
 
-import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.aop.framework.AopInfrastructureBean;
-import org.springframework.security.core.Authentication;
-
-import io.sapl.spring.method.attributes.PostEnforceAttribute;
+import org.springframework.expression.Expression;
+import org.springframework.security.access.ConfigAttribute;
 
 /**
- * Performs policy enforcement and authorization logic after a method is
- * invoked.
+ * Interface for attributes which are created from @PreEnforce @PostEnforce
+ * annotations.
  */
-public interface PostInvocationEnforcementAdvice extends AopInfrastructureBean {
+public interface SaplAttribute extends ConfigAttribute {
 
-	Object after(Authentication authentication, MethodInvocation mi, PostEnforceAttribute pia,
-			Object returnedObject);
+	Expression getSubjectExpression();
+	Expression getActionExpression();
+	Expression getResourceExpression();
+	Expression getEnvironmentExpression();
+	Class<?> getGenericsType();
 
 }

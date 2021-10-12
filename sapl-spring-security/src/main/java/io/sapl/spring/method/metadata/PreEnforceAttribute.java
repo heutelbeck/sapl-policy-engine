@@ -13,21 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.method.attributes;
+package io.sapl.spring.method.metadata;
 
 import org.springframework.expression.Expression;
-import org.springframework.security.access.ConfigAttribute;
 
-/**
- * Interface for attributes which are created from @PreEnforce @PostEnforce
- * annotations.
- */
-public interface EnforcementAttribute extends ConfigAttribute {
+public class PreEnforceAttribute extends AbstractSaplAttribute {
 
-	Expression getSubjectExpression();
-	Expression getActionExpression();
-	Expression getResourceExpression();
-	Expression getEnvironmentExpression();
-	Class<?> getGenericsType();
+	private static final long serialVersionUID = 2046032680569217119L;
+
+	public PreEnforceAttribute(Expression subjectExpression, Expression actionExpression, Expression resourceExpression,
+			Expression environmentExpression, Class<?> genericsType) {
+		super(subjectExpression, actionExpression, resourceExpression, environmentExpression, genericsType);
+	}
 
 }

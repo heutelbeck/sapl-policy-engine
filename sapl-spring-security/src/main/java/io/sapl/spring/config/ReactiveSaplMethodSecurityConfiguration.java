@@ -41,8 +41,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
-import io.sapl.spring.method.attributes.PolicyBasedEnforcementAttributeFactory;
-import io.sapl.spring.method.attributes.SaplMethodSecurityMetadataSource;
+import io.sapl.spring.method.metadata.SaplAttributeFactory;
+import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
@@ -81,7 +81,7 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 		PrePostAnnotationSecurityMetadataSource prePostSource = new PrePostAnnotationSecurityMetadataSource(
 				attributeFactory);
 		SaplMethodSecurityMetadataSource sapl = new SaplMethodSecurityMetadataSource(
-				new PolicyBasedEnforcementAttributeFactory(methodSecurityExpressionHandler));
+				new SaplAttributeFactory(methodSecurityExpressionHandler));
 		return new DelegatingMethodSecurityMetadataSource(Arrays.asList(sapl, prePostSource));
 	}
 

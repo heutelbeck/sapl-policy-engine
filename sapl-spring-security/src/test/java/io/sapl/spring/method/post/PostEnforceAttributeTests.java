@@ -6,7 +6,7 @@ import static org.mockito.Mockito.mock;
 import org.junit.jupiter.api.Test;
 import org.springframework.expression.Expression;
 
-import io.sapl.spring.method.attributes.PostEnforceAttribute;
+import io.sapl.spring.method.metadata.PostEnforceAttribute;
 
 class PostEnforceAttributeTests {
 
@@ -16,8 +16,4 @@ class PostEnforceAttributeTests {
 				mock(Expression.class), Object.class)).isNotNull();
 	}
 
-	@Test
-	void whenConstructorWithStrings_thenCallSupperSuccessfully() {
-		assertThat(new PostEnforceAttribute((String) null, null, null, null, Object.class)).isNotNull();
-	}
 }

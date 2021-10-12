@@ -15,6 +15,7 @@
  */
 package io.sapl.spring.method.blocking;
 
+import org.springframework.aop.framework.AopInfrastructureBean;
 import org.springframework.beans.factory.ObjectFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,7 +30,7 @@ import lombok.RequiredArgsConstructor;
  * care of lazy loading dependencies.
  */
 @RequiredArgsConstructor
-public abstract class AbstractPolicyBasedInvocationEnforcementAdvice {
+public abstract class AbstractPolicyEnforcementPoint implements AopInfrastructureBean {
 
 	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
 	protected final ObjectFactory<ReactiveConstraintEnforcementService> constraintEnforcementServiceFactory;

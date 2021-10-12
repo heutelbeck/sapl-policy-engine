@@ -22,15 +22,13 @@ import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
-import io.sapl.spring.method.attributes.PreEnforceAttribute;
+import io.sapl.spring.method.metadata.PreEnforceAttribute;
+import lombok.RequiredArgsConstructor;
 
-public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<MethodInvocation> {
+@RequiredArgsConstructor
+public class PreEnforcePolicyEnforcementPointVoter implements AccessDecisionVoter<MethodInvocation> {
 
-	private final PreInvocationEnforcementAdvice preAdvice;
-
-	public PreInvocationEnforcementAdviceVoter(PreInvocationEnforcementAdvice pre) {
-		preAdvice = pre;
-	}
+	private final PreEnforcePolicyEnforcementPoint preEnforcePEP;
 
 	@Override
 	public boolean supports(ConfigAttribute attribute) {
@@ -44,25 +42,20 @@ public class PreInvocationEnforcementAdviceVoter implements AccessDecisionVoter<
 
 	@Override
 	public int vote(Authentication authentication, MethodInvocation method, Collection<ConfigAttribute> attributes) {
-		PreEnforceAttribute preAttr = findPreInvocationEnforcementAttribute(attributes);
+		var preAttr = findPreInvocationEnforcementAttribute(attributes);
 
-		if (preAttr == null) {
-			// No matching attribute found => abstain
+		if (preAttr == null)
 			return ACCESS_ABSTAIN;
-		}
 
-		var permitted = preAdvice.before(authentication, method, preAttr);
+		var permitted = preEnforcePEP.before(authentication, method, preAttr);
 
 		return permitted ? ACCESS_GRANTED : ACCESS_DENIED;
 	}
 
-	private PreEnforceAttribute findPreInvocationEnforcementAttribute(
-			Collection<ConfigAttribute> config) {
-		for (ConfigAttribute attribute : config) {
-			if (attribute instanceof PreEnforceAttribute) {
+	private PreEnforceAttribute findPreInvocationEnforcementAttribute(Collection<ConfigAttribute> config) {
+		for (ConfigAttribute attribute : config)
+			if (attribute instanceof PreEnforceAttribute)
 				return (PreEnforceAttribute) attribute;
-			}
-		}
 		return null;
 	}
 

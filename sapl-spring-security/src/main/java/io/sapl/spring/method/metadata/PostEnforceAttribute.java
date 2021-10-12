@@ -13,16 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.method.attributes;
+package io.sapl.spring.method.metadata;
 
-import io.sapl.spring.method.blocking.PreInvocationEnforcementAdvice;
+import org.springframework.expression.Expression;
 
-/**
- * Marker interface for attributes which are created from @PreEnforce
- * annotations.
- * <p>
- * Consumed by a {@link PreInvocationEnforcementAdvice}.
- */
-public interface PreInvocationEnforcementAttribute extends EnforcementAttribute {
+public class PostEnforceAttribute extends AbstractSaplAttribute {
+
+	private static final long serialVersionUID = -3012177291107121964L;
+
+	public PostEnforceAttribute(Expression subjectExpression, Expression actionExpression,
+			Expression resourceExpression, Expression environmentExpression, Class<?> genericsType) {
+		super(subjectExpression, actionExpression, resourceExpression, environmentExpression, genericsType);
+	}
 
 }

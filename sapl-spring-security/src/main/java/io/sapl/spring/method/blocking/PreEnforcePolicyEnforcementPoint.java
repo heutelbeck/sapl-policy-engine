@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
-import io.sapl.spring.method.attributes.PreEnforceAttribute;
+import io.sapl.spring.method.metadata.PreEnforceAttribute;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,10 +32,9 @@ import lombok.extern.slf4j.Slf4j;
  * Method pre-invocation handling based on a SAPL policy decision point.
  */
 @Slf4j
-public class PolicyBasedPreInvocationEnforcementAdvice extends AbstractPolicyBasedInvocationEnforcementAdvice
-		implements PreInvocationEnforcementAdvice {
+public class PreEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementPoint {
 
-	public PolicyBasedPreInvocationEnforcementAdvice(ObjectFactory<PolicyDecisionPoint> pdpFactory,
+	public PreEnforcePolicyEnforcementPoint(ObjectFactory<PolicyDecisionPoint> pdpFactory,
 			ObjectFactory<ReactiveConstraintEnforcementService> constraintHandlerFactory,
 			ObjectFactory<ObjectMapper> objectMapperFactory,
 			ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
@@ -44,8 +43,6 @@ public class PolicyBasedPreInvocationEnforcementAdvice extends AbstractPolicyBas
 
 	public boolean before(Authentication authentication, MethodInvocation methodInvocation,
 			PreEnforceAttribute attribute) {
-		// Lazy loading to decouple infrastructure initialization from domain
-		// initialization. Else, beans may become non eligible for BeanPostProcessors
 		lazyLoadDependencies();
 
 		var authzSubscription = subscriptionBuilder.constructAuthorizationSubscription(authentication, methodInvocation,

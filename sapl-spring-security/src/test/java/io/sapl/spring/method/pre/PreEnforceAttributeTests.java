@@ -6,7 +6,7 @@ import static org.mockito.Mockito.mock;
 import org.junit.jupiter.api.Test;
 import org.springframework.expression.Expression;
 
-import io.sapl.spring.method.attributes.PreEnforceAttribute;
+import io.sapl.spring.method.metadata.PreEnforceAttribute;
 
 class PreEnforceAttributeTests {
 
@@ -16,8 +16,4 @@ class PreEnforceAttributeTests {
 				mock(Expression.class), Object.class)).isNotNull();
 	}
 
-	@Test
-	void whenConstructorWithStrings_thenCallSupperSuccessfully() {
-		assertThat(new PreEnforceAttribute((String) null, null, null, null, Object.class)).isNotNull();
-	}
 }

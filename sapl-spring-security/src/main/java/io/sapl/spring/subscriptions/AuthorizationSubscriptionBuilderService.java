@@ -25,7 +25,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.spring.method.attributes.EnforcementAttribute;
+import io.sapl.spring.method.metadata.SaplAttribute;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -47,20 +47,20 @@ public class AuthorizationSubscriptionBuilderService {
 	private ObjectMapper mapper;
 
 	public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
-			MethodInvocation methodInvocation, EnforcementAttribute attribute, Object returnObject) {
+			MethodInvocation methodInvocation, SaplAttribute attribute, Object returnObject) {
 		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
 		expressionHandler.setReturnObject(returnObject, evaluationCtx);
 		return constructAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
 	}
 
 	public AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
-			MethodInvocation methodInvocation, EnforcementAttribute attribute) {
+			MethodInvocation methodInvocation, SaplAttribute attribute) {
 		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
 		return constructAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
 	}
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
-			EnforcementAttribute attribute) {
+			SaplAttribute attribute) {
 		return Mono.deferContextual(contextView -> {
 			return constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
 					Optional.empty());
@@ -68,7 +68,7 @@ public class AuthorizationSubscriptionBuilderService {
 	}
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
-			EnforcementAttribute attribute, Object returnedObject) {
+			SaplAttribute attribute, Object returnedObject) {
 		return Mono.deferContextual(contextView -> {
 			return constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
 					Optional.ofNullable(returnedObject));
@@ -76,7 +76,7 @@ public class AuthorizationSubscriptionBuilderService {
 	}
 
 	private Mono<? extends AuthorizationSubscription> constructAuthorizationSubscriptionFromContextView(
-			MethodInvocation methodInvocation, EnforcementAttribute attribute, ContextView contextView,
+			MethodInvocation methodInvocation, SaplAttribute attribute, ContextView contextView,
 			Optional<Object> returnedObject) {
 		Optional<ServerWebExchange> serverWebExchange = contextView.getOrEmpty(ServerWebExchange.class);
 		Optional<ServerHttpRequest> serverHttpRequest = serverWebExchange.map(ServerWebExchange::getRequest);
@@ -93,7 +93,7 @@ public class AuthorizationSubscriptionBuilderService {
 
 	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
 			Optional<ServerHttpRequest> serverHttpRequest, MethodInvocation methodInvocation,
-			EnforcementAttribute attribute, Optional<Object> returnedObject) {
+			SaplAttribute attribute, Optional<Object> returnedObject) {
 		lazyLoadDependencies();
 
 		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
@@ -108,7 +108,7 @@ public class AuthorizationSubscriptionBuilderService {
 	}
 
 	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
-			MethodInvocation methodInvocation, EnforcementAttribute attribute, EvaluationContext evaluationCtx) {
+			MethodInvocation methodInvocation, SaplAttribute attribute, EvaluationContext evaluationCtx) {
 		lazyLoadDependencies();
 
 		var subject = retrieveSubject(authentication, attribute, evaluationCtx);
@@ -124,7 +124,7 @@ public class AuthorizationSubscriptionBuilderService {
 			mapper = objectMapperFactory.getObject();
 	}
 
-	private Object retrieveSubject(Authentication authentication, EnforcementAttribute attr, EvaluationContext ctx) {
+	private Object retrieveSubject(Authentication authentication, SaplAttribute attr, EvaluationContext ctx) {
 		if (attr.getSubjectExpression() == null) {
 			var subject = mapper.valueToTree(authentication);
 			// sanitize the authentication depending on the application context, the
@@ -169,7 +169,7 @@ public class AuthorizationSubscriptionBuilderService {
 		return Optional.ofNullable(httpRequest);
 	}
 
-	private Object retrieveAction(MethodInvocation mi, EnforcementAttribute attr, EvaluationContext ctx,
+	private Object retrieveAction(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx,
 			Optional<?> requestObject) {
 		if (attr.getActionExpression() == null)
 			return retrieveAction(mi, requestObject);
@@ -194,7 +194,7 @@ public class AuthorizationSubscriptionBuilderService {
 		return actionNode;
 	}
 
-	private Object retrieveResource(MethodInvocation mi, EnforcementAttribute attr, EvaluationContext ctx) {
+	private Object retrieveResource(MethodInvocation mi, SaplAttribute attr, EvaluationContext ctx) {
 		if (attr.getResourceExpression() == null)
 			return retrieveResource(mi);
 		return evaluateToJson(attr.getResourceExpression(), ctx);
@@ -210,7 +210,7 @@ public class AuthorizationSubscriptionBuilderService {
 		return resourceNode;
 	}
 
-	private Object retrieveEnvironment(EnforcementAttribute attr, EvaluationContext ctx) {
+	private Object retrieveEnvironment(SaplAttribute attr, EvaluationContext ctx) {
 		if (attr.getEnvironmentExpression() == null)
 			return null;
 		return evaluateToJson(attr.getEnvironmentExpression(), ctx);

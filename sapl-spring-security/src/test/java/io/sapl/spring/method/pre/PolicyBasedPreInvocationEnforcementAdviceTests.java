@@ -26,8 +26,8 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
-import io.sapl.spring.method.attributes.PreEnforceAttribute;
-import io.sapl.spring.method.blocking.PolicyBasedPreInvocationEnforcementAdvice;
+import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
+import io.sapl.spring.method.metadata.PreEnforceAttribute;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
@@ -60,33 +60,34 @@ class PolicyBasedPreInvocationEnforcementAdviceTests {
 		mapper.registerModule(module);
 		objectMapperFactory = () -> mapper;
 		authentication = new UsernamePasswordAuthenticationToken("principal", "credentials");
-		subscriptionBuilder = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), objectMapperFactory);
+		subscriptionBuilder = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
+				objectMapperFactory);
 		subscriptionBuilderFactory = () -> subscriptionBuilder;
 	}
 
 	@Test
 	void whenCreated_thenNotNull() {
-		var sut = new PolicyBasedPreInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		assertThat(sut, notNullValue());
 	}
 
 	@Test
 	void whenBeforeAndDecideDeny_thenReturnFalse() {
-		var sut = new PolicyBasedPreInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute = new PreEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PreEnforceAttribute(null, null, null, null, null);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
 		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
 	}
 
 	@Test
 	void whenBeforeAndDecidePermit_thenReturnTrue() {
-		var sut = new PolicyBasedPreInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute = new PreEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PreEnforceAttribute(null, null, null, null, null);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 		when(constraintHandlers.handleForBlockingMethodInvocationOrAccessDenied(any(AuthorizationDecision.class)))
 				.thenReturn(true);
@@ -95,10 +96,10 @@ class PolicyBasedPreInvocationEnforcementAdviceTests {
 
 	@Test
 	void whenBeforeAndDecideNotApplicable_thenReturnFalse() {
-		var sut = new PolicyBasedPreInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute = new PreEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PreEnforceAttribute(null, null, null, null, null);
 		when(pdp.decide(any(AuthorizationSubscription.class)))
 				.thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
 		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
@@ -106,10 +107,10 @@ class PolicyBasedPreInvocationEnforcementAdviceTests {
 
 	@Test
 	void whenBeforeAndDecideIndeterminate_thenReturnFalse() {
-		var sut = new PolicyBasedPreInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute = new PreEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PreEnforceAttribute(null, null, null, null, null);
 		when(pdp.decide(any(AuthorizationSubscription.class)))
 				.thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
 		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
@@ -117,36 +118,24 @@ class PolicyBasedPreInvocationEnforcementAdviceTests {
 
 	@Test
 	void whenBeforeAndDecideEmpty_thenReturnFalse() {
-		var sut = new PolicyBasedPreInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute = new PreEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PreEnforceAttribute(null, null, null, null, null);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
 		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
 	}
 
 	@Test
 	void whenBeforeAndDecidePermitWithResource_thenReturnFalse() {
-		var sut = new PolicyBasedPreInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-		var attribute = new PreEnforceAttribute((String) null, null, null, null, null);
+		var attribute = new PreEnforceAttribute(null, null, null, null, null);
 		when(pdp.decide(any(AuthorizationSubscription.class)))
 				.thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.arrayNode())));
 		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
 	}
-
-//	@Test
-//	void whenBeforeAndDecidePermitAndObligationsFail_thenReturnFalse() {
-//		var sut = new PolicyBasedPreInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
-//				objectMapperFactory);
-//		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
-//		var attribute = new PreEnforceAttribute((String) null, null, null, null);
-//		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-//		doThrow(new AccessDeniedException("FAILED OBLIGATION")).when(constraintHandlers)
-//				.handleObligations(any(AuthorizationDecision.class));
-//		assertThat(sut.before(authentication, methodInvocation, attribute), is(false));
-//	}
 
 	static class TestClass {
 		public void doSomething() {

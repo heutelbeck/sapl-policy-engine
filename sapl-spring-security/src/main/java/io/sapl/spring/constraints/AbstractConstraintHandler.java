@@ -1,15 +1,12 @@
 package io.sapl.spring.constraints;
 
 import static io.sapl.spring.constraints.AdviceUtil.advice;
-import static io.sapl.spring.constraints.AdviceUtil.flatMapAdvice;
-import static io.sapl.spring.constraints.ObligationUtil.flatMapObligation;
 import static io.sapl.spring.constraints.ObligationUtil.obligation;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
 
-import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -44,7 +41,6 @@ public abstract class AbstractConstraintHandler implements Comparable<AbstractCo
 		wrapped = obligation(onRequest(constraint)).map(wrapped::doOnRequest).orElse(wrapped);
 		wrapped = obligation(onNextMap(constraint)).map(wrapped::map).orElse(wrapped);
 		wrapped = obligation(onErrorMap(constraint)).map(wrapped::onErrorMap).orElse(wrapped);
-		wrapped = flatMapObligation(onNextFlatMap(constraint)).map(wrapped::flatMap).orElse(wrapped);
 		return wrapped;
 	}
 
@@ -59,7 +55,6 @@ public abstract class AbstractConstraintHandler implements Comparable<AbstractCo
 		wrapped = advice(onRequest(constraint)).map(wrapped::doOnRequest).orElse(wrapped);
 		wrapped = advice(onNextMap(constraint)).map(wrapped::map).orElse(wrapped);
 		wrapped = advice(onErrorMap(constraint)).map(wrapped::onErrorMap).orElse(wrapped);
-		wrapped = flatMapAdvice(onNextFlatMap(constraint)).map(wrapped::flatMap).orElse(wrapped);
 		return wrapped;
 	}
 
@@ -100,10 +95,6 @@ public abstract class AbstractConstraintHandler implements Comparable<AbstractCo
 	}
 
 	public <T> Function<T, T> onNextMap(JsonNode constraint) {
-		return null;
-	}
-
-	public <T> Function<T, Publisher<T>> onNextFlatMap(JsonNode constraint) {
 		return null;
 	}
 

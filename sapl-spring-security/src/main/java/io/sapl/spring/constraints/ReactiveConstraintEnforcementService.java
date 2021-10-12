@@ -5,12 +5,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.pdp.AuthorizationDecision;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 @Slf4j
@@ -123,6 +125,99 @@ public class ReactiveConstraintEnforcementService {
 		}
 
 		return mappedReturnObject;
+	}
+
+	public boolean handlePreSubscriptionConstraints(AuthorizationDecision authorizationDecision) {
+		System.out.println("apply on preSubscription: " + authorizationDecision);
+		return true;
+	}
+
+	public Object handleOnNextConstraints(AuthorizationDecision authorizationDecision, Object value) {
+		Object transformedValue = handleOnNextObligations(authorizationDecision, value);
+		return handleOnNextAdvice(authorizationDecision, transformedValue);
+	}
+
+	private Object handleOnNextAdvice(AuthorizationDecision authorizationDecision, Object value) {
+		if (authorizationDecision.getAdvice().isEmpty())
+			return value;
+
+		var returnValue = value;
+		var advice = authorizationDecision.getAdvice().get();
+		for (var individualAdvice : advice) {
+			for (var handler : handlerServices) {
+				if (handler.isResponsible(individualAdvice)) {
+					try {
+						var handlerFunction = handler.onNext(individualAdvice);
+						if (handlerFunction != null)
+							handlerFunction.accept(value);
+					} catch (Throwable t) {
+						Exceptions.throwIfFatal(t);
+						log.warn("Failed to execute onNext constraint handler ({}). value={} advice={} error={}",
+								handler.getClass().getSimpleName(), value, individualAdvice, t.getMessage());
+					}
+					try {
+						var handlerFunction = handler.onNextMap(individualAdvice);
+						if (handlerFunction != null)
+							returnValue = handlerFunction.apply(returnValue);
+					} catch (Throwable t) {
+						Exceptions.throwIfFatal(t);
+						log.warn(
+								"Failed to execute onNextMap constraint handler ({}). value={} returnValue={} advice={} error={}",
+								handler.getClass().getSimpleName(), value, returnValue, individualAdvice,
+								t.getMessage());
+					}
+				}
+			}
+		}
+		return returnValue;
+	}
+
+	private Object handleOnNextObligations(AuthorizationDecision authorizationDecision, Object value) {
+		if (authorizationDecision.getObligations().isEmpty())
+			return value;
+
+		var returnValue = value;
+		var obligations = authorizationDecision.getObligations().get();
+		for (var obligation : obligations) {
+			for (var handler : handlerServices) {
+				if (handler.isResponsible(obligation)) {
+					try {
+						var handlerFunction = handler.onNext(obligation);
+						if (handlerFunction != null)
+							handlerFunction.accept(value);
+					} catch (Throwable t) {
+						throw new AccessDeniedException(String.format(
+								"Failed to execute onNext constraint handler (%s). value=%s obligation=%s error=%s",
+								handler.getClass().getSimpleName(), value, obligation, t.getMessage()));
+					}
+					try {
+						var handlerFunction = handler.onNextMap(obligation);
+						if (handlerFunction != null)
+							returnValue = handlerFunction.apply(returnValue);
+					} catch (Throwable t) {
+						throw new AccessDeniedException(String.format(
+								"Failed to execute onNextMap constraint handler (%s). value=%s returnValue=%s  obligation=%s error=%s",
+								handler.getClass().getSimpleName(), value, returnValue, obligation, t.getMessage()));
+					}
+				}
+			}
+		}
+		return returnValue;
+	}
+
+	public void handleOnCompleteConstraints(AuthorizationDecision authorizationDecision) {
+		System.out.println("apply on complete: " + authorizationDecision);
+		// TODO Auto-generated method stub
+	}
+
+	public void handleOnCancelConstraints(AuthorizationDecision authorizationDecision) {
+		System.out.println("apply on cancel: " + authorizationDecision);
+		// TODO Auto-generated method stub
+	}
+
+	public Throwable handleOnErrorConstraints(AuthorizationDecision authorizationDecision, Throwable error) {
+		System.out.println("apply on error: " + authorizationDecision);
+		return error;
 	}
 
 }

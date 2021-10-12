@@ -16,11 +16,6 @@ import java.util.function.Function;
 import java.util.function.LongConsumer;
 
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class AdviceUtilTest {
@@ -134,48 +129,6 @@ public class AdviceUtilTest {
 		Runnable runnable = mock(Runnable.class);
 		doThrow(new IllegalStateException(HANDLER_FAILURE)).when(runnable).run();
 		assertDoesNotThrow(() -> AdviceUtil.advice(runnable).get().run());
-	}
-
-	@Test
-	void when_functionIsNull_then_flatMapReturnEmpty() {
-		assertTrue(AdviceUtil.flatMapAdvice((Function) null).isEmpty());
-	}
-
-	@Test
-	void when_functionIsNotNull_then_flatMapReturnOptionalOfFunction() {
-		Function function = mock(Function.class);
-		assertTrue(AdviceUtil.flatMapAdvice(function).isPresent());
-	}
-
-	@Test
-	void when_functionIsNotNullButReturnsNull_then_flatMapInvokingTheWrappedFunctionInvokesOriginalFunctionFallsBackToIdentity() {
-		Function<String, Publisher<String>> function = mock(Function.class);
-		when(function.apply(any())).thenReturn(null);
-		var result = (Publisher<String>) ((Function<String, Publisher<String>>) AdviceUtil.flatMapAdvice(function).get())
-				.apply("INPUT");
-		StepVerifier.create(result).expectNext("INPUT").verifyComplete();
-		verify(function, times(1)).apply(any());
-	}
-	
-	@Test
-	void when_functionIsNotNullButPublisherHasError_then_flatMapInvokingTheWrappedFunctionInvokesOriginalFunctionFallsBackToIdentity() {
-		Function<String, Publisher<String>> function = mock(Function.class);
-		when(function.apply(any())).thenReturn(Mono.error(new IllegalStateException(HANDLER_FAILURE)));
-		var result = (Publisher<String>) ((Function<String, Publisher<String>>) AdviceUtil.flatMapAdvice(function).get())
-				.apply("INPUT");
-		StepVerifier.create(result).expectNext("INPUT").verifyComplete();
-		verify(function, times(1)).apply(any());
-	}
-
-	@Test
-	void when_functionIsNotNull_then_flatMapInvokingTheWrappedFunction() {
-		Function function = mock(Function.class);
-		when(function.apply(any())).thenReturn(Flux.empty());
-
-		var result = (Publisher) ((Function) AdviceUtil.flatMapAdvice(function).get()).apply(null);
-		StepVerifier.create(result).verifyComplete();
-
-		verify(function, times(1)).apply(any());
 	}
 
 }

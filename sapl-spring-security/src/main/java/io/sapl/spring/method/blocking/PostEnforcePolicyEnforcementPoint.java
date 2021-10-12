@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
-import io.sapl.spring.method.attributes.PostEnforceAttribute;
+import io.sapl.spring.method.metadata.PostEnforceAttribute;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,10 +36,9 @@ import lombok.extern.slf4j.Slf4j;
  * Method post-invocation handling based on a SAPL policy decision point.
  */
 @Slf4j
-public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBasedInvocationEnforcementAdvice
-		implements PostInvocationEnforcementAdvice {
+public class PostEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementPoint {
 
-	public PolicyBasedPostInvocationEnforcementAdvice(ObjectFactory<PolicyDecisionPoint> pdpFactory,
+	public PostEnforcePolicyEnforcementPoint(ObjectFactory<PolicyDecisionPoint> pdpFactory,
 			ObjectFactory<ReactiveConstraintEnforcementService> constraintHandlerFactory,
 			ObjectFactory<ObjectMapper> objectMapperFactory,
 			ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
@@ -49,8 +48,6 @@ public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBa
 	@SuppressWarnings("unchecked") // is actually checked, warning is false positive
 	public Object after(Authentication authentication, MethodInvocation methodInvocation,
 			PostEnforceAttribute postEnforceAttribute, Object returnedObject) {
-		// Lazy loading to decouple infrastructure initialization from domain
-		// initialization. Else, beans may become not eligible for BeanPostProcessors
 		lazyLoadDependencies();
 
 		var returnOptional = false;
@@ -99,7 +96,6 @@ public class PolicyBasedPostInvocationEnforcementAdvice extends AbstractPolicyBa
 
 		return constraintEnforcementService.handleAfterBlockingMethodInvocation(authzDecision, returnedObject,
 				returnType);
-
 	}
 
 }

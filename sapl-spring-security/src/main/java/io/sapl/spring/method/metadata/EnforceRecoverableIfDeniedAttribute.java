@@ -13,22 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.method.attributes;
+package io.sapl.spring.method.metadata;
 
 import org.springframework.expression.Expression;
 
-public class PreEnforceAttribute extends AbstractPolicyBasedEnforcementAttribute
-		implements PreInvocationEnforcementAttribute {
+public class EnforceRecoverableIfDeniedAttribute extends AbstractSaplAttribute {
 
-	private static final long serialVersionUID = 2046032680569217119L;
+	private static final long serialVersionUID = -3012177291107121964L;
 
-	public PreEnforceAttribute(String subjectExpression, String actionExpression, String resourceExpression,
-			String environmentExpression, Class<?> genericsType) {
-		super(subjectExpression, actionExpression, resourceExpression, environmentExpression, genericsType);
-	}
-
-	public PreEnforceAttribute(Expression subjectExpression, Expression actionExpression, Expression resourceExpression,
-			Expression environmentExpression, Class<?> genericsType) {
+	public EnforceRecoverableIfDeniedAttribute(Expression subjectExpression, Expression actionExpression,
+			Expression resourceExpression, Expression environmentExpression, Class<?> genericsType) {
 		super(subjectExpression, actionExpression, resourceExpression, environmentExpression, genericsType);
 	}
 

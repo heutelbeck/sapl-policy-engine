@@ -1,4 +1,4 @@
-package io.sapl.spring.method.annotations;
+package io.sapl.spring.method.metadata;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -8,8 +8,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * The @Enforce annotation establishes a reactive policy enforcement point
- * (PEP). The PEP is only applicable to methods returning a
+ * The @EnforceDropWhileDenied annotation establishes a reactive policy
+ * enforcement point (PEP). The PEP is only applicable to methods returning a
  * {@link org.reactivestreams.Publisher Publisher}, i.e., a {link
  * reactor.core.publisher.Flux Flux} or a {@link reactor.core.publisher.Mono
  * Mono}.
@@ -20,28 +20,13 @@ import java.lang.annotation.Target;
  * The established PEP also wires in matching handlers for obligations and
  * advice into the matching signal paths of the publisher.
  * 
- * The annotation supports two enforcement modes:
+ * Subscribe to the resource after the first decision, make it a hot source.
+ * Filter out all events from the data stream wile the most recent decision is
+ * not PERMIT.
  * 
- * <ul>
- * <li>{@link EnforcementMode.ONCE}: The PEP will only consume the first
- * decision sent by the PDP and enforce the decision and its obligations and
- * advice throughout the entire lifecyle of the publisher.</li>
- * <li>{@link EnforcementMode.UNTIL_DENY}: The PEP will stay subscribed to the
- * decisions of the PDP the decision and its obligations and advice throughout
- * the entire lifecyle of the publisher or until access is denied, when an
- * {@link org.springframework.security.access.AccessDeniedException
- * AccessDeniedException} is raised.</li>
- * <li>{@link EnforcementMode.FILTER_UNLESS_PERMIT}: The PEP will stay
- * subscribed to the decisions of the PDP the decision and its obligations and
- * advice throughout the entire lifecyle of the publisher or until access is
- * denied. The PEP will subscribe to the underlying Publisher (resource access
- * point) immediately but will drop all onNext signals until the first PERMIT is
- * received from the PEP. When a the PEP returns a different decision than
- * PERMIT, all onNext signals will be dropped until a PERMIT is received. This
- * mode never raises an
- * {@link org.springframework.security.access.AccessDeniedException
- * AccessDeniedException}.</li>
- * </ul>
+ * Keep the subscription alive as long as the client does.
+ * 
+ * The client is not aware of access denied events.
  * 
  * The parameters subject, action, resource, and environment can be used to
  * explicitly set the corresponding keys in the SAPL authorization subscription,
@@ -52,7 +37,7 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.TYPE })
-public @interface Enforce {
+public @interface EnforceDropWhileDenied {
 
 	/**
 	 * @return the Spring-EL expression to whose evaluation result is to be used as
@@ -86,10 +71,8 @@ public @interface Enforce {
 	String environment() default "";
 
 	/**
-	 * @return the enforcement mode to use. The default is ONCE.
+	 * @return the type of the generics parameter of the return type being secured.
+	 *         Helps due to Java type erasure at runtime. Defaults to Object.class
 	 */
-	EnforcementMode mode() default EnforcementMode.ONCE;
-
 	Class<?> genericsType() default Object.class;
-
 }

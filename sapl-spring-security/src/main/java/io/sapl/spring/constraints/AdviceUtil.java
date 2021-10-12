@@ -5,12 +5,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
 
-import org.reactivestreams.Publisher;
-
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import reactor.core.Exceptions;
 
 @Slf4j
 @UtilityClass
@@ -24,6 +21,7 @@ public class AdviceUtil {
 			try {
 				consumer.accept(t);
 			} catch (Throwable e) {
+				Exceptions.throwIfFatal(e);
 				log.info("Error during advice handling: " + e.getMessage(), e);
 			}
 		});
@@ -37,6 +35,7 @@ public class AdviceUtil {
 			try {
 				consumer.accept(t);
 			} catch (Throwable e) {
+				Exceptions.throwIfFatal(e);
 				log.info("Error during advice handling: " + e.getMessage(), e);
 			}
 		});
@@ -50,6 +49,7 @@ public class AdviceUtil {
 			try {
 				runnable.run();
 			} catch (Throwable e) {
+				Exceptions.throwIfFatal(e);
 				log.info("Error during advice handling: " + e.getMessage(), e);
 			}
 		});
@@ -68,24 +68,10 @@ public class AdviceUtil {
 				}
 				return result;
 			} catch (Throwable e) {
+				Exceptions.throwIfFatal(e);
 				log.info("Fallback to identity. Error during advice handling: " + e.getMessage(), e);
 				return t;
 			}
-		});
-	}
-
-	public static <T> Optional<Function<T, Publisher<T>>> flatMapAdvice(Function<T, Publisher<T>> function) {
-		if (function == null)
-			return Optional.empty();
-
-		return Optional.of(t -> {
-			var result = function.apply(t);
-			if (result == null)
-				return Mono.just(t);
-			return Flux.from(result)
-					.doOnError(
-							e -> log.info("Fallback to identity. Error during advice handling: " + e.getMessage(), e))
-					.onErrorReturn(t);
 		});
 	}
 

@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.method.attributes;
+package io.sapl.spring.method.metadata;
 
 import org.springframework.expression.Expression;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.security.access.ConfigAttribute;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Superclass for the SAPL ConfigAttributes, taking care of initializing SpEL
@@ -28,34 +27,16 @@ import lombok.Getter;
  */
 @Getter
 @EqualsAndHashCode
-public abstract class AbstractPolicyBasedEnforcementAttribute implements ConfigAttribute {
+@RequiredArgsConstructor
+public abstract class AbstractSaplAttribute implements SaplAttribute {
 
 	private static final long serialVersionUID = -2697854599354396960L;
-
-	private static final SpelExpressionParser PARSER = new SpelExpressionParser();
 
 	private final Expression subjectExpression;
 	private final Expression actionExpression;
 	private final Expression resourceExpression;
 	private final Expression environmentExpression;
 	private final Class<?> genericsType;
-
-	protected AbstractPolicyBasedEnforcementAttribute(String subjectExpression, String actionExpression,
-			String resourceExpression, String environmentExpression, Class<?> genericsType) {
-		this(subjectExpression == null ? null : PARSER.parseExpression(subjectExpression),
-				actionExpression == null ? null : PARSER.parseExpression(actionExpression),
-				resourceExpression == null ? null : PARSER.parseExpression(resourceExpression),
-				environmentExpression == null ? null : PARSER.parseExpression(environmentExpression), genericsType);
-	}
-
-	protected AbstractPolicyBasedEnforcementAttribute(Expression subjectExpression, Expression actionExpression,
-			Expression resourceExpression, Expression environmentExpression, Class<?> genericsType) {
-		this.subjectExpression = subjectExpression;
-		this.actionExpression = actionExpression;
-		this.resourceExpression = resourceExpression;
-		this.environmentExpression = environmentExpression;
-		this.genericsType = genericsType;
-	}
 
 	/*
 	 * (non-Javadoc)

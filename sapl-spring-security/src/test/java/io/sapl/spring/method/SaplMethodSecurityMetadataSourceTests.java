@@ -18,25 +18,23 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 
-import io.sapl.spring.method.annotations.PostEnforce;
-import io.sapl.spring.method.annotations.PreEnforce;
-import io.sapl.spring.method.attributes.PolicyBasedEnforcementAttributeFactory;
-import io.sapl.spring.method.attributes.PostEnforceAttribute;
-import io.sapl.spring.method.attributes.PreEnforceAttribute;
-import io.sapl.spring.method.attributes.SaplEnforcementAttributeFactory;
-import io.sapl.spring.method.attributes.SaplMethodSecurityMetadataSource;
+import io.sapl.spring.method.metadata.PostEnforce;
+import io.sapl.spring.method.metadata.PostEnforceAttribute;
+import io.sapl.spring.method.metadata.PreEnforce;
+import io.sapl.spring.method.metadata.PreEnforceAttribute;
+import io.sapl.spring.method.metadata.SaplAttributeFactory;
+import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 
-//@SuppressWarnings("unused")
 class SaplMethodSecurityMetadataSourceTests {
 
-	private SaplEnforcementAttributeFactory attributeFactory;
+	private SaplAttributeFactory attributeFactory;
 
 	@BeforeEach
 	void beforeEach() {
 		var parser = new SpelExpressionParser();
 		var handler = mock(MethodSecurityExpressionHandler.class);
 		when(handler.getExpressionParser()).thenReturn(parser);
-		attributeFactory = new PolicyBasedEnforcementAttributeFactory(handler);
+		attributeFactory = new SaplAttributeFactory(handler);
 	}
 
 	@Test

@@ -22,20 +22,17 @@ import org.springframework.security.access.AfterInvocationProvider;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
-import io.sapl.spring.method.attributes.PostEnforceAttribute;
-import io.sapl.spring.method.attributes.PostInvocationEnforcementAttribute;
+import io.sapl.spring.method.metadata.PostEnforceAttribute;
+import lombok.RequiredArgsConstructor;
 
-public class PostInvocationEnforcementProvider implements AfterInvocationProvider {
+@RequiredArgsConstructor
+public class PostEnforcePolicyEnforcementPointProvider implements AfterInvocationProvider {
 
-	private final PostInvocationEnforcementAdvice postAdvice;
-
-	public PostInvocationEnforcementProvider(PostInvocationEnforcementAdvice postAdvice) {
-		this.postAdvice = postAdvice;
-	}
+	private final PostEnforcePolicyEnforcementPoint postPEP;
 
 	@Override
 	public boolean supports(ConfigAttribute attribute) {
-		return attribute instanceof PostInvocationEnforcementAttribute;
+		return attribute instanceof PostEnforceAttribute;
 	}
 
 	@Override
@@ -46,21 +43,17 @@ public class PostInvocationEnforcementProvider implements AfterInvocationProvide
 	@Override
 	public Object decide(Authentication authentication, Object object, Collection<ConfigAttribute> attributes,
 			Object returnedObject) {
-		PostEnforceAttribute pia = findPostInvocationEnforcementAttribute(attributes);
-		if (pia == null) {
+		var pia = findPostInvocationEnforcementAttribute(attributes);
+		if (pia == null)
 			return returnedObject;
-		} else {
-			return postAdvice.after(authentication, (MethodInvocation) object, pia, returnedObject);
-		}
+
+		return postPEP.after(authentication, (MethodInvocation) object, pia, returnedObject);
 	}
 
-	private PostEnforceAttribute findPostInvocationEnforcementAttribute(
-			Collection<ConfigAttribute> config) {
-		for (ConfigAttribute attribute : config) {
-			if (supports(attribute)) {
+	private PostEnforceAttribute findPostInvocationEnforcementAttribute(Collection<ConfigAttribute> config) {
+		for (var attribute : config)
+			if (supports(attribute))
 				return (PostEnforceAttribute) attribute;
-			}
-		}
 		return null;
 	}
 

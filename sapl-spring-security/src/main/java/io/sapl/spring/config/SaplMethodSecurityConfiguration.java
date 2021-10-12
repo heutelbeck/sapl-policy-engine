@@ -38,12 +38,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
-import io.sapl.spring.method.attributes.PolicyBasedEnforcementAttributeFactory;
-import io.sapl.spring.method.attributes.SaplMethodSecurityMetadataSource;
-import io.sapl.spring.method.blocking.PolicyBasedPostInvocationEnforcementAdvice;
-import io.sapl.spring.method.blocking.PolicyBasedPreInvocationEnforcementAdvice;
-import io.sapl.spring.method.blocking.PostInvocationEnforcementProvider;
-import io.sapl.spring.method.blocking.PreInvocationEnforcementAdviceVoter;
+import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
+import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
+import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointProvider;
+import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointVoter;
+import io.sapl.spring.method.metadata.SaplAttributeFactory;
+import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -86,9 +86,9 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 
 		decisionVoters.addAll(((AbstractAccessDecisionManager) baseManager).getDecisionVoters());
 
-		var policyAdvice = new PolicyBasedPreInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var policyAdvice = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
-		decisionVoters.add(new PreInvocationEnforcementAdviceVoter(policyAdvice));
+		decisionVoters.add(new PreEnforcePolicyEnforcementPointVoter(policyAdvice));
 		var manager = new AffirmativeBased(decisionVoters);
 		manager.setAllowIfAllAbstainDecisions(true);
 		return manager;
@@ -97,9 +97,9 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 	@Override
 	protected AfterInvocationManager afterInvocationManager() {
 		log.debug("Blocking SAPL method level after-invocation security activated.");
-		var advice = new PolicyBasedPostInvocationEnforcementAdvice(pdpFactory, constraintHandlerFactory,
+		var advice = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				objectMapperFactory, subscriptionBuilderFactory);
-		var provider = new PostInvocationEnforcementProvider(advice);
+		var provider = new PostEnforcePolicyEnforcementPointProvider(advice);
 
 		var baseManager = super.afterInvocationManager();
 		if (baseManager == null) {
@@ -127,7 +127,7 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 	@Override
 	protected MethodSecurityMetadataSource customMethodSecurityMetadataSource() {
 		log.debug("SAPL MethodSecurityMetadataSource deployed.");
-		return new SaplMethodSecurityMetadataSource(new PolicyBasedEnforcementAttributeFactory(getExpressionHandler()));
+		return new SaplMethodSecurityMetadataSource(new SaplAttributeFactory(getExpressionHandler()));
 	}
 
 }
