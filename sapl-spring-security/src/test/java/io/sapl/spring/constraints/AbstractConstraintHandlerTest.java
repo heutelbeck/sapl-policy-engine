@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.LongConsumer;
 
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscription;
@@ -218,7 +217,7 @@ public class AbstractConstraintHandlerTest {
 			}
 
 			@Override
-			public Runnable onAfterTerminate(JsonNode constraint) {
+			public Runnable afterTerminate(JsonNode constraint) {
 				return () -> {
 				};
 			}
@@ -280,7 +279,7 @@ public class AbstractConstraintHandlerTest {
 			}
 
 			@Override
-			public LongConsumer onRequest(JsonNode constraint) {
+			public Consumer<Long> onRequest(JsonNode constraint) {
 				return __ -> {
 				};
 			}
@@ -519,7 +518,7 @@ public class AbstractConstraintHandlerTest {
 			}
 
 			@Override
-			public Runnable onAfterTerminate(JsonNode constraint) {
+			public Runnable afterTerminate(JsonNode constraint) {
 				return () -> {
 				};
 			}
@@ -581,7 +580,7 @@ public class AbstractConstraintHandlerTest {
 			}
 
 			@Override
-			public LongConsumer onRequest(JsonNode constraint) {
+			public Consumer<Long> onRequest(JsonNode constraint) {
 				return __ -> {
 				};
 			}

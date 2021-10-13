@@ -36,9 +36,10 @@ public abstract class AbstractConstraintHandler implements Comparable<AbstractCo
 		wrapped = obligation(onNext(constraint)).map(wrapped::doOnNext).orElse(wrapped);
 		wrapped = obligation(onError(constraint)).map(wrapped::doOnError).orElse(wrapped);
 		wrapped = obligation(onComplete(constraint)).map(wrapped::doOnComplete).orElse(wrapped);
-		wrapped = obligation(onAfterTerminate(constraint)).map(wrapped::doAfterTerminate).orElse(wrapped);
+		wrapped = obligation(onTerminate(constraint)).map(wrapped::doOnTerminate).orElse(wrapped);
+		wrapped = obligation(afterTerminate(constraint)).map(wrapped::doAfterTerminate).orElse(wrapped);
 		wrapped = obligation(onCancel(constraint)).map(wrapped::doOnCancel).orElse(wrapped);
-		wrapped = obligation(onRequest(constraint)).map(wrapped::doOnRequest).orElse(wrapped);
+		wrapped = obligation(onRequest(constraint)).map(this::adaptOnRequest).map(wrapped::doOnRequest).orElse(wrapped);
 		wrapped = obligation(onNextMap(constraint)).map(wrapped::map).orElse(wrapped);
 		wrapped = obligation(onErrorMap(constraint)).map(wrapped::onErrorMap).orElse(wrapped);
 		return wrapped;
@@ -50,12 +51,17 @@ public abstract class AbstractConstraintHandler implements Comparable<AbstractCo
 		wrapped = advice(onNext(constraint)).map(wrapped::doOnNext).orElse(wrapped);
 		wrapped = advice(onError(constraint)).map(wrapped::doOnError).orElse(wrapped);
 		wrapped = advice(onComplete(constraint)).map(wrapped::doOnComplete).orElse(wrapped);
-		wrapped = advice(onAfterTerminate(constraint)).map(wrapped::doAfterTerminate).orElse(wrapped);
+		wrapped = advice(onTerminate(constraint)).map(wrapped::doOnTerminate).orElse(wrapped);
+		wrapped = advice(afterTerminate(constraint)).map(wrapped::doAfterTerminate).orElse(wrapped);
 		wrapped = advice(onCancel(constraint)).map(wrapped::doOnCancel).orElse(wrapped);
-		wrapped = advice(onRequest(constraint)).map(wrapped::doOnRequest).orElse(wrapped);
+		wrapped = advice(onRequest(constraint)).map(this::adaptOnRequest).map(wrapped::doOnRequest).orElse(wrapped);
 		wrapped = advice(onNextMap(constraint)).map(wrapped::map).orElse(wrapped);
 		wrapped = advice(onErrorMap(constraint)).map(wrapped::onErrorMap).orElse(wrapped);
 		return wrapped;
+	}
+
+	private LongConsumer adaptOnRequest(Consumer<? super Long> x) {
+		return l -> x.accept(l);
 	}
 
 	public boolean preBlockingMethodInvocationOrOnAccessDenied(JsonNode constraint) {
@@ -82,7 +88,11 @@ public abstract class AbstractConstraintHandler implements Comparable<AbstractCo
 		return null;
 	}
 
-	public Runnable onAfterTerminate(JsonNode constraint) {
+	public Runnable afterTerminate(JsonNode constraint) {
+		return null;
+	}
+
+	public Runnable onTerminate(JsonNode constraint) {
 		return null;
 	}
 
@@ -90,7 +100,7 @@ public abstract class AbstractConstraintHandler implements Comparable<AbstractCo
 		return null;
 	}
 
-	public LongConsumer onRequest(JsonNode constraint) {
+	public Consumer<Long> onRequest(JsonNode constraint) {
 		return null;
 	}
 

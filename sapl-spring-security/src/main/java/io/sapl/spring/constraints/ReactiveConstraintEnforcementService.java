@@ -3,12 +3,18 @@ package io.sapl.spring.constraints;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import lombok.extern.slf4j.Slf4j;
@@ -127,97 +133,170 @@ public class ReactiveConstraintEnforcementService {
 		return mappedReturnObject;
 	}
 
-	public boolean handlePreSubscriptionConstraints(AuthorizationDecision authorizationDecision) {
-		System.out.println("apply on preSubscription: " + authorizationDecision);
-		return true;
-	}
-
-	public Object handleOnNextConstraints(AuthorizationDecision authorizationDecision, Object value) {
-		Object transformedValue = handleOnNextObligations(authorizationDecision, value);
-		return handleOnNextAdvice(authorizationDecision, transformedValue);
-	}
-
-	private Object handleOnNextAdvice(AuthorizationDecision authorizationDecision, Object value) {
-		if (authorizationDecision.getAdvice().isEmpty())
-			return value;
-
-		var returnValue = value;
-		var advice = authorizationDecision.getAdvice().get();
-		for (var individualAdvice : advice) {
-			for (var handler : handlerServices) {
-				if (handler.isResponsible(individualAdvice)) {
-					try {
-						var handlerFunction = handler.onNext(individualAdvice);
-						if (handlerFunction != null)
-							handlerFunction.accept(value);
-					} catch (Throwable t) {
-						Exceptions.throwIfFatal(t);
-						log.warn("Failed to execute onNext constraint handler ({}). value={} advice={} error={}",
-								handler.getClass().getSimpleName(), value, individualAdvice, t.getMessage());
-					}
-					try {
-						var handlerFunction = handler.onNextMap(individualAdvice);
-						if (handlerFunction != null)
-							returnValue = handlerFunction.apply(returnValue);
-					} catch (Throwable t) {
-						Exceptions.throwIfFatal(t);
-						log.warn(
-								"Failed to execute onNextMap constraint handler ({}). value={} returnValue={} advice={} error={}",
-								handler.getClass().getSimpleName(), value, returnValue, individualAdvice,
-								t.getMessage());
-					}
-				}
-			}
-		}
-		return returnValue;
-	}
-
-	private Object handleOnNextObligations(AuthorizationDecision authorizationDecision, Object value) {
-		if (authorizationDecision.getObligations().isEmpty())
-			return value;
-
-		var returnValue = value;
-		var obligations = authorizationDecision.getObligations().get();
-		for (var obligation : obligations) {
-			for (var handler : handlerServices) {
-				if (handler.isResponsible(obligation)) {
-					try {
-						var handlerFunction = handler.onNext(obligation);
-						if (handlerFunction != null)
-							handlerFunction.accept(value);
-					} catch (Throwable t) {
-						throw new AccessDeniedException(String.format(
-								"Failed to execute onNext constraint handler (%s). value=%s obligation=%s error=%s",
-								handler.getClass().getSimpleName(), value, obligation, t.getMessage()));
-					}
-					try {
-						var handlerFunction = handler.onNextMap(obligation);
-						if (handlerFunction != null)
-							returnValue = handlerFunction.apply(returnValue);
-					} catch (Throwable t) {
-						throw new AccessDeniedException(String.format(
-								"Failed to execute onNextMap constraint handler (%s). value=%s returnValue=%s  obligation=%s error=%s",
-								handler.getClass().getSimpleName(), value, returnValue, obligation, t.getMessage()));
-					}
-				}
-			}
-		}
-		return returnValue;
+	public void handleOnSubscribeConstraints(AuthorizationDecision authorizationDecision, Subscription subscription) {
+		handleConsumerConstraints(authorizationDecision, (handler, constraint) -> handler.onSubscribe(constraint),
+				"onSubscribe", subscription);
 	}
 
 	public void handleOnCompleteConstraints(AuthorizationDecision authorizationDecision) {
-		System.out.println("apply on complete: " + authorizationDecision);
-		// TODO Auto-generated method stub
+		handleRunnableConstraints(authorizationDecision, (handler, constraint) -> handler.onComplete(constraint),
+				"onComplete");
 	}
 
 	public void handleOnCancelConstraints(AuthorizationDecision authorizationDecision) {
-		System.out.println("apply on cancel: " + authorizationDecision);
-		// TODO Auto-generated method stub
+		handleRunnableConstraints(authorizationDecision, (handler, constraint) -> handler.onCancel(constraint),
+				"onCancel");
+	}
+
+	public void handleOnTerminateConstraints(AuthorizationDecision authorizationDecision) {
+		handleRunnableConstraints(authorizationDecision, (handler, constraint) -> handler.onTerminate(constraint),
+				"onTerminate");
+	}
+
+	public void handleAfterTerminateConstraints(AuthorizationDecision authorizationDecision) {
+		handleRunnableConstraints(authorizationDecision, (handler, constraint) -> handler.afterTerminate(constraint),
+				"afterTerminate");
+	}
+
+	public void handleOnRequestConstraints(AuthorizationDecision authorizationDecision, Long value) {
+		handleConsumerConstraints(authorizationDecision, (handler, constraint) -> handler.onRequest(constraint),
+				"onRequest", value);
+	}
+
+	public Object handleOnNextConstraints(AuthorizationDecision authorizationDecision, Object value) {
+		handleConsumerConstraints(authorizationDecision, (handler, constraint) -> handler.onNext(constraint), "onNext",
+				value);
+		return handleTransformingConstraints(authorizationDecision,
+				(handler, constraint) -> handler.onNextMap(constraint), "onNextMap", value);
 	}
 
 	public Throwable handleOnErrorConstraints(AuthorizationDecision authorizationDecision, Throwable error) {
-		System.out.println("apply on error: " + authorizationDecision);
-		return error;
+		handleConsumerConstraints(authorizationDecision, (handler, constraint) -> handler.onError(constraint),
+				"onError", error);
+		return handleTransformingConstraints(authorizationDecision,
+				(handler, constraint) -> handler.onErrorMap(constraint), "onErrorMap", error);
 	}
 
+	private void handleRunnableConstraints(AuthorizationDecision authorizationDecision,
+			BiFunction<AbstractConstraintHandler, JsonNode, Runnable> handlerSource, String signalName) {
+		handleRunnableConstraints(authorizationDecision.getObligations(), handlerSource, signalName, true);
+		handleRunnableConstraints(authorizationDecision.getAdvice(), handlerSource, signalName, false);
+	}
+
+	private void handleRunnableConstraints(Optional<ArrayNode> constraints,
+			BiFunction<AbstractConstraintHandler, JsonNode, Runnable> handlerSource, String signalName,
+			boolean isObligation) {
+		if (constraints.isEmpty())
+			return;
+		var constraintArray = constraints.get();
+		for (var constraint : constraintArray) {
+			var handlerFound = false;
+			for (var handler : handlerServices) {
+				if (!handler.isResponsible(constraint))
+					continue;
+				handlerFound = true;
+				try {
+					var handlerFunction = handlerSource.apply(handler, constraint);
+					if (handlerFunction != null)
+						handlerFunction.run();
+				} catch (Throwable t) {
+					var message = String.format(
+							"Failed to execute %s constraint handler (%s). constraint=%s isObligation=%s error=%s",
+							signalName, handler.getClass().getSimpleName(), constraint, isObligation, t.getMessage());
+					logAndThrowIfObligationOrFatal(t, message, isObligation);
+				}
+			}
+			if (!handlerFound)
+				logNoHandlerFoundAndThrowIfObligation(constraint, isObligation);
+		}
+	}
+
+	private <T> void handleConsumerConstraints(AuthorizationDecision authorizationDecision,
+			BiFunction<AbstractConstraintHandler, JsonNode, Consumer<T>> handlerSource, String signalName, T value) {
+		handleConsumerConstraints(authorizationDecision.getObligations(), handlerSource, signalName, value, true);
+		handleConsumerConstraints(authorizationDecision.getAdvice(), handlerSource, signalName, value, false);
+	}
+
+	private <T> void handleConsumerConstraints(Optional<ArrayNode> constraints,
+			BiFunction<AbstractConstraintHandler, JsonNode, Consumer<T>> handlerSource, String signalName, T value,
+			boolean isObligation) {
+		if (constraints.isEmpty())
+			return;
+		var constraintArray = constraints.get();
+		for (var constraint : constraintArray) {
+			var handlerFound = false;
+			for (var handler : handlerServices) {
+				if (!handler.isResponsible(constraint))
+					continue;
+				handlerFound = true;
+				try {
+					var handlerFunction = handlerSource.apply(handler, constraint);
+					if (handlerFunction != null)
+						handlerFunction.accept(value);
+				} catch (Throwable t) {
+					var message = String.format(
+							"Failed to execute %s constraint handler (%s). constraint=%s value=%s isObligation=%s error=%s",
+							signalName, handler.getClass().getSimpleName(), constraint, value, isObligation,
+							t.getMessage());
+					logAndThrowIfObligationOrFatal(t, message, isObligation);
+				}
+			}
+			if (!handlerFound)
+				logNoHandlerFoundAndThrowIfObligation(constraint, isObligation);
+		}
+	}
+
+	private <T> T handleTransformingConstraints(AuthorizationDecision authorizationDecision,
+			BiFunction<AbstractConstraintHandler, JsonNode, Function<T, T>> handlerSource, String signalName, T value) {
+		T transformedValue = handleTransformingConstraints(authorizationDecision.getObligations(), handlerSource,
+				signalName, value, true);
+		return handleTransformingConstraints(authorizationDecision.getAdvice(), handlerSource, signalName,
+				transformedValue, false);
+	}
+
+	private <T> T handleTransformingConstraints(Optional<ArrayNode> constraints,
+			BiFunction<AbstractConstraintHandler, JsonNode, Function<T, T>> handlerSource, String signalName, T value,
+			boolean isObligation) {
+		if (constraints.isEmpty())
+			return value;
+		var returnValue = value;
+		var constraintArray = constraints.get();
+		for (var constraint : constraintArray) {
+			var handlerFound = false;
+			for (var handler : handlerServices) {
+				if (!handler.isResponsible(constraint))
+					continue;
+				handlerFound = true;
+				try {
+					var handlerFunction = handlerSource.apply(handler, constraint);
+					if (handlerFunction != null)
+						returnValue = handlerFunction.apply(returnValue);
+
+				} catch (Throwable t) {
+					var message = String.format(
+							"Failed to execute %s constraint handler (%s). constraint=%s value=%s returnValue=%s isObligation=%s error=%s",
+							signalName, handler.getClass().getSimpleName(), constraint, value, returnValue,
+							isObligation, t.getMessage());
+					logAndThrowIfObligationOrFatal(t, message, isObligation);
+				}
+			}
+			if (!handlerFound)
+				logNoHandlerFoundAndThrowIfObligation(constraint, isObligation);
+		}
+		return returnValue;
+	}
+
+	private void logAndThrowIfObligationOrFatal(Throwable t, String message, boolean isObligation) {
+		log.warn(message);
+		Exceptions.throwIfFatal(t);
+		if (isObligation)
+			throw new AccessDeniedException(message, t);
+	}
+
+	private void logNoHandlerFoundAndThrowIfObligation(JsonNode constraint, boolean isObligation) {
+		var message = String.format("Unable to find handler for constraint %s", constraint.asText());
+		log.warn(message);
+		if (isObligation)
+			throw new AccessDeniedException(message);
+	}
 }

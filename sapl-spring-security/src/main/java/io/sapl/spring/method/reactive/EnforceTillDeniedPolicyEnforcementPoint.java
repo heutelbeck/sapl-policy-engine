@@ -4,7 +4,6 @@ import static java.util.function.Predicate.not;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
@@ -17,6 +16,21 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.util.context.ContextView;
 
+/**
+ * The EnforceTillDeniedPolicyEnforcementPoint implements continuous policy
+ * enforcement on a Flux resource access point.
+ * 
+ * If the initial decision of the PDP is not PERMIT, an AccessDeniedException is
+ * signaled downstream without subscribing to resource access point.
+ * 
+ * After an initial PERMIT, the PEP subscribes to the resource access point and
+ * forwards events downstream until a non-PERMIT decision from the PDP is
+ * received. Then, an AccessDeniedException is signaled downstream and the PDP
+ * and resource access point subscriptions are cancelled.
+ * 
+ * Whenever a decision is received, the handling of obligations and advice are
+ * updated accordingly.
+ */
 public class EnforceTillDeniedPolicyEnforcementPoint extends Flux<Object> {
 
 	private Flux<AuthorizationDecision> decisions;
@@ -49,70 +63,71 @@ public class EnforceTillDeniedPolicyEnforcementPoint extends Flux<Object> {
 		context = actual.currentContext();
 		sink = new EnforcementSink();
 		resourceAccessPoint = resourceAccessPoint.contextWrite(context);
-		Flux.create(sink).doOnSubscribe(startEnforcing(sink)).doOnCancel(handleCancel(sink))
+		Flux.create(sink).doOnCancel(this::handleCancel).doOnRequest(this::handleRequest)
+				.doOnTerminate(this::handleOnTerminate).doAfterTerminate(this::handleAfterTerminate)
 				.onErrorMap(AccessDeniedException.class,
 						error -> constraintsService.handleOnErrorConstraints(latestDecision.get(), error))
 				.onErrorStop().subscribe(actual);
+		startEnforcing();
 	}
 
-	private Consumer<Subscription> startEnforcing(EnforcementSink sink) {
-		return s -> decisionsSubscription
-				.set(decisions.log().doOnNext(handleNextDecision(sink)).contextWrite(context).subscribe());
+	private void startEnforcing() {
+		decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());
 	}
 
-	private Consumer<AuthorizationDecision> handleNextDecision(EnforcementSink sink) {
-		return decision -> {
-			var previousDecision = latestDecision.getAndSet(decision);
+	private void handleNextDecision(AuthorizationDecision decision) {
+		var previousDecision = latestDecision.getAndSet(decision);
 
-			if (decision.getDecision() != Decision.PERMIT) {
-				sink.error(new AccessDeniedException("Access Denied by PDP"));
-				disposeDecisionsAndResourceAccessPoint();
-				return;
-			}
-
-			if (previousDecision == null)
-				dataSubscription.set(wrapResourceAccessPointAndSubcribe(decision, sink));
-		};
-	}
-
-	private Disposable wrapResourceAccessPointAndSubcribe(AuthorizationDecision initialPermit, EnforcementSink sink) {
-		if (constraintsService.handlePreSubscriptionConstraints(initialPermit))
-			return resourceAccessPoint.doOnNext(handleNext(sink)).doOnComplete(handleComplete(sink))
-					.doOnError(handleError(sink)).subscribe();
-
-		sink.error(new AccessDeniedException("Access Denied. Obligations could not be fulfilled."));
-		disposeUndisposedIfPresent(decisionsSubscription);
-		return null;
-	}
-
-	private Consumer<? super Object> handleNext(EnforcementSink sink) {
-		return value -> {
-			var transformedValue = constraintsService.handleOnNextConstraints(latestDecision.get(), value);
-			if (transformedValue != null)
-				sink.next(transformedValue);
-		};
-	}
-
-	private Runnable handleComplete(EnforcementSink sink) {
-		return () -> {
-			constraintsService.handleOnCompleteConstraints(latestDecision.get());
-			sink.complete();
+		if (decision.getDecision() != Decision.PERMIT) {
+			sink.error(new AccessDeniedException("Access Denied by PDP"));
 			disposeDecisionsAndResourceAccessPoint();
-		};
+			return;
+		}
+
+		if (previousDecision == null)
+			dataSubscription.set(wrapResourceAccessPointAndSubcribe());
 	}
 
-	private Runnable handleCancel(EnforcementSink sink) {
-		return () -> {
-			constraintsService.handleOnCancelConstraints(latestDecision.get());
-			disposeDecisionsAndResourceAccessPoint();
-		};
+	private Disposable wrapResourceAccessPointAndSubcribe() {
+		return resourceAccessPoint.doOnSubscribe(this::handleSubscribe).doOnNext(this::handleNext)
+				.doOnComplete(this::handleComplete).doOnError(this::handleError).subscribe();
 	}
 
-	private Consumer<? super Throwable> handleError(EnforcementSink sink) {
-		return error -> {
-			var transformedError = constraintsService.handleOnErrorConstraints(latestDecision.get(), error);
-			sink.error(transformedError);
-		};
+	private void handleSubscribe(Subscription s) {
+		constraintsService.handleOnSubscribeConstraints(latestDecision.get(), s);
+	}
+
+	private void handleNext(Object value) {
+		var transformedValue = constraintsService.handleOnNextConstraints(latestDecision.get(), value);
+		if (transformedValue != null)
+			sink.next(transformedValue);
+	}
+
+	private void handleRequest(Long value) {
+		constraintsService.handleOnRequestConstraints(latestDecision.get(), value);
+	}
+
+	private void handleOnTerminate() {
+		constraintsService.handleOnTerminateConstraints(latestDecision.get());
+	}
+
+	private void handleAfterTerminate() {
+		constraintsService.handleAfterTerminateConstraints(latestDecision.get());
+	}
+
+	private void handleComplete() {
+		constraintsService.handleOnCompleteConstraints(latestDecision.get());
+		sink.complete();
+		disposeDecisionsAndResourceAccessPoint();
+	}
+
+	private void handleCancel() {
+		constraintsService.handleOnCancelConstraints(latestDecision.get());
+		disposeDecisionsAndResourceAccessPoint();
+	}
+
+	private void handleError(Throwable error) {
+		sink.error(constraintsService.handleOnErrorConstraints(latestDecision.get(), error));
 	}
 
 	private void disposeDecisionsAndResourceAccessPoint() {
@@ -123,4 +138,5 @@ public class EnforceTillDeniedPolicyEnforcementPoint extends Flux<Object> {
 	private void disposeUndisposedIfPresent(AtomicReference<Disposable> atomicDisposable) {
 		Optional.ofNullable(atomicDisposable.get()).filter(not(Disposable::isDisposed)).ifPresent(Disposable::dispose);
 	}
+
 }
