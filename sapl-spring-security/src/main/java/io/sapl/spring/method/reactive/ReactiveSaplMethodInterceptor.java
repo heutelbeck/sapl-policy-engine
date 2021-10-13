@@ -84,7 +84,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 
 		var enforceDropWhileDeniedAttribute = findAttribute(attributes, EnforceDropWhileDeniedAttribute.class);
 		if (enforceDropWhileDeniedAttribute != null)
-			throw new UnsupportedOperationException("EnforceDropWhileDeniedAttribute unimplemented");
+			return interceptWithEnforceDropWhileDeniedPEP(invocation, enforceDropWhileDeniedAttribute);
 
 		var enforceRecoverableIfDeniedAttribute = findAttribute(attributes, EnforceRecoverableIfDeniedAttribute.class);
 		if (enforceRecoverableIfDeniedAttribute != null)
@@ -95,10 +95,19 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 		return interceptWithPrePostEnforce(invocation, preEnforceAttribute, postEnforceAttribute);
 	}
 
-	private Flux<?> interceptWithEnforceTillDeniedPEP(MethodInvocation invocation, SaplAttribute attribute) {
+	private Flux<?> interceptWithEnforceTillDeniedPEP(MethodInvocation invocation,
+			EnforceTillDeniedAttribute attribute) {
 		var decisions = preSubscriptionDecisions(invocation, attribute);
 		var resourceAccessPoint = ((Flux<?>) proceed(invocation));
 		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint, constraintHandlerService);
+	}
+
+	private Flux<?> interceptWithEnforceDropWhileDeniedPEP(MethodInvocation invocation,
+			EnforceDropWhileDeniedAttribute attribute) {
+		var decisions = preSubscriptionDecisions(invocation, attribute);
+		var resourceAccessPoint = ((Flux<?>) proceed(invocation));
+		return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint,
+				constraintHandlerService);
 	}
 
 	private Publisher<?> interceptWithPrePostEnforce(MethodInvocation invocation,
