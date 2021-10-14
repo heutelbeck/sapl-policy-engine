@@ -27,4 +27,3 @@ phantomjsdriver.log
 node_modules/
 **/package.json
 **/package-lock.json
-sapl-spring-security/src/test/java/io/sapl/scratchpad/**

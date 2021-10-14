@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
@@ -35,7 +34,6 @@ import reactor.util.context.ContextView;
  * This class contains the logic for SpEL expression evaluation and retrieving
  * request information from the application context or method invocation.
  */
-@Slf4j
 @RequiredArgsConstructor
 public class AuthorizationSubscriptionBuilderService {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -80,20 +78,17 @@ public class AuthorizationSubscriptionBuilderService {
 			Optional<Object> returnedObject) {
 		Optional<ServerWebExchange> serverWebExchange = contextView.getOrEmpty(ServerWebExchange.class);
 		Optional<ServerHttpRequest> serverHttpRequest = serverWebExchange.map(ServerWebExchange::getRequest);
-		log.info("request        : {}", serverHttpRequest);
 		Optional<Mono<SecurityContext>> securityContext = contextView.getOrEmpty(SecurityContext.class);
-		log.info("securitycontext: {}", securityContext);
 		Mono<Authentication> authentication = securityContext
 				.map(ctx -> ctx.map(SecurityContext::getAuthentication).defaultIfEmpty(ANONYMOUS))
 				.orElse(Mono.just(ANONYMOUS));
-		log.info("authn: {}", authentication);
 		return authentication.map(authn -> constructAuthorizationSubscription(authn, serverHttpRequest,
 				methodInvocation, attribute, returnedObject));
 	}
 
 	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
-			Optional<ServerHttpRequest> serverHttpRequest, MethodInvocation methodInvocation,
-			SaplAttribute attribute, Optional<Object> returnedObject) {
+			Optional<ServerHttpRequest> serverHttpRequest, MethodInvocation methodInvocation, SaplAttribute attribute,
+			Optional<Object> returnedObject) {
 		lazyLoadDependencies();
 
 		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);

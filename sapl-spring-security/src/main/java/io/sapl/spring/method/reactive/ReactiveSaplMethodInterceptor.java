@@ -67,8 +67,6 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 		var method = invocation.getMethod();
 		var attributes = source.getAttributes(method, targetClass);
 
-		log.error("ATTRIBUTES: {}", attributes);
-
 		if (noSaplAnnotationsPresent(attributes))
 			return delegateToSpringSecurityInterceptor(invocation);
 
@@ -88,11 +86,19 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 
 		var enforceRecoverableIfDeniedAttribute = findAttribute(attributes, EnforceRecoverableIfDeniedAttribute.class);
 		if (enforceRecoverableIfDeniedAttribute != null)
-			throw new UnsupportedOperationException("EnforceRecoverableIfDeniedAttribute unimplemented");
+			return interceptWithEnforceRecoverableIfDeniedPEP(invocation, enforceRecoverableIfDeniedAttribute);
 
 		var preEnforceAttribute = findAttribute(attributes, PreEnforceAttribute.class);
 		var postEnforceAttribute = findAttribute(attributes, PostEnforceAttribute.class);
 		return interceptWithPrePostEnforce(invocation, preEnforceAttribute, postEnforceAttribute);
+	}
+
+	private Object interceptWithEnforceRecoverableIfDeniedPEP(MethodInvocation invocation,
+			EnforceRecoverableIfDeniedAttribute attribute) {
+		var decisions = preSubscriptionDecisions(invocation, attribute);
+		var resourceAccessPoint = ((Flux<?>) proceed(invocation));
+		return EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint,
+				constraintHandlerService);
 	}
 
 	private Flux<?> interceptWithEnforceTillDeniedPEP(MethodInvocation invocation,
