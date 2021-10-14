@@ -93,23 +93,20 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 		return interceptWithPrePostEnforce(invocation, preEnforceAttribute, postEnforceAttribute);
 	}
 
-	private Object interceptWithEnforceRecoverableIfDeniedPEP(MethodInvocation invocation,
-			EnforceRecoverableIfDeniedAttribute attribute) {
+	private Object interceptWithEnforceRecoverableIfDeniedPEP(MethodInvocation invocation, SaplAttribute attribute) {
 		var decisions = preSubscriptionDecisions(invocation, attribute);
 		var resourceAccessPoint = ((Flux<?>) proceed(invocation));
 		return EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint,
 				constraintHandlerService);
 	}
 
-	private Flux<?> interceptWithEnforceTillDeniedPEP(MethodInvocation invocation,
-			EnforceTillDeniedAttribute attribute) {
+	private Flux<?> interceptWithEnforceTillDeniedPEP(MethodInvocation invocation, SaplAttribute attribute) {
 		var decisions = preSubscriptionDecisions(invocation, attribute);
 		var resourceAccessPoint = ((Flux<?>) proceed(invocation));
 		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint, constraintHandlerService);
 	}
 
-	private Flux<?> interceptWithEnforceDropWhileDeniedPEP(MethodInvocation invocation,
-			EnforceDropWhileDeniedAttribute attribute) {
+	private Flux<?> interceptWithEnforceDropWhileDeniedPEP(MethodInvocation invocation, SaplAttribute attribute) {
 		var decisions = preSubscriptionDecisions(invocation, attribute);
 		var resourceAccessPoint = ((Flux<?>) proceed(invocation));
 		return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint,

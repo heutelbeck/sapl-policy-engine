@@ -1,4 +1,4 @@
-package io.sapl.spring.method.post;
+package io.sapl.spring.method.blocking;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -30,14 +30,13 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
-import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.metadata.PostEnforceAttribute;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import reactor.core.publisher.Flux;
 
-class PolicyBasedPostInvocationEnforcementAdviceTests {
+class PostEnforcePolicyEnforcementPointTests {
 
 	private static final String DO_SOMETHING = "doSomething";
 

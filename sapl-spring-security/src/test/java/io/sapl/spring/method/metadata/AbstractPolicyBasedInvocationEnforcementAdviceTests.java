@@ -1,4 +1,4 @@
-package io.sapl.spring.method;
+package io.sapl.spring.method.metadata;
 
 class AbstractPolicyBasedInvocationEnforcementAdviceTests {
 

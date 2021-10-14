@@ -1,4 +1,4 @@
-package io.sapl.spring.method;
+package io.sapl.spring.method.metadata;
 
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
 import static org.hamcrest.CoreMatchers.is;
@@ -17,13 +17,6 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
-
-import io.sapl.spring.method.metadata.PostEnforce;
-import io.sapl.spring.method.metadata.PostEnforceAttribute;
-import io.sapl.spring.method.metadata.PreEnforce;
-import io.sapl.spring.method.metadata.PreEnforceAttribute;
-import io.sapl.spring.method.metadata.SaplAttributeFactory;
-import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 
 class SaplMethodSecurityMetadataSourceTests {
 

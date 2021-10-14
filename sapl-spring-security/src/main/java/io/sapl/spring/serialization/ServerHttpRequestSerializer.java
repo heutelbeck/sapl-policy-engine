@@ -20,9 +20,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.springframework.boot.jackson.JsonComponent;
-import org.springframework.http.HttpCookie;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.util.MultiValueMap;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -65,16 +63,21 @@ public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpReques
 		gen.writeStringField(SCHEME, value.getURI().getScheme());
 		gen.writeStringField(SERVER_NAME, value.getURI().getHost());
 		gen.writeNumberField(SERVER_PORT, value.getURI().getPort());
-		gen.writeStringField(REMOTE_ADDRESS, value.getRemoteAddress().toString());
-		gen.writeStringField(REMOTE_HOST, value.getRemoteAddress().getHostString());
-		gen.writeNumberField(REMOTE_PORT, value.getRemoteAddress().getPort());
-		gen.writeStringField(LOCAL_NAME, value.getLocalAddress().getHostString());
-		gen.writeStringField(LOCAL_ADDRESS, value.getLocalAddress().toString());
-		gen.writeNumberField(LOCAL_PORT, value.getLocalAddress().getPort());
+		if (value.getRemoteAddress() != null) {
+			gen.writeStringField(REMOTE_ADDRESS, value.getRemoteAddress().toString());
+			gen.writeStringField(REMOTE_HOST, value.getRemoteAddress().getHostString());
+			gen.writeNumberField(REMOTE_PORT, value.getRemoteAddress().getPort());
+		}
+		if (value.getLocalAddress() != null) {
+			gen.writeStringField(LOCAL_NAME, value.getLocalAddress().getHostString());
+			gen.writeStringField(LOCAL_ADDRESS, value.getLocalAddress().toString());
+			gen.writeNumberField(LOCAL_PORT, value.getLocalAddress().getPort());
+		}
 		gen.writeStringField(METHOD, value.getMethodValue());
-		gen.writeStringField(CONTEXT_PATH, value.getPath().toString());
-		gen.writeStringField(REQUESTED_URI, value.getURI().toString());
-
+		if (value.getPath() != null)
+			gen.writeStringField(CONTEXT_PATH, value.getPath().toString());
+		if (value.getURI() != null)
+			gen.writeStringField(REQUESTED_URI, value.getURI().toString());
 		writeHeaders(value, gen);
 		writeCookies(value, gen);
 		writeParameters(value, gen);
@@ -96,12 +99,8 @@ public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpReques
 	}
 
 	private void writeCookies(ServerHttpRequest value, JsonGenerator gen) throws IOException {
-		MultiValueMap<String, HttpCookie> cookies = value.getCookies();
-		if (cookies == null)
-			return;
-
 		gen.writeArrayFieldStart(COOKIES);
-		for (var entry : cookies.entrySet()) {
+		for (var entry : value.getCookies().entrySet()) {
 			for (var cookie : entry.getValue()) {
 				gen.writeStartObject();
 				gen.writeObjectField("name", cookie.getName());

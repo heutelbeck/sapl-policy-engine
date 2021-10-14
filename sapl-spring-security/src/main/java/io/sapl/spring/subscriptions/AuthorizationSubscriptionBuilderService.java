@@ -81,7 +81,7 @@ public class AuthorizationSubscriptionBuilderService {
 		Optional<Mono<SecurityContext>> securityContext = contextView.getOrEmpty(SecurityContext.class);
 		Mono<Authentication> authentication = securityContext
 				.map(ctx -> ctx.map(SecurityContext::getAuthentication).defaultIfEmpty(ANONYMOUS))
-				.orElse(Mono.just(ANONYMOUS));
+				.orElseGet(() -> Mono.just(ANONYMOUS));
 		return authentication.map(authn -> constructAuthorizationSubscription(authn, serverHttpRequest,
 				methodInvocation, attribute, returnedObject));
 	}

@@ -1,4 +1,4 @@
-package io.sapl.spring.method.pre;
+package io.sapl.spring.method.blocking;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -26,14 +26,13 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
-import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.metadata.PreEnforceAttribute;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import reactor.core.publisher.Flux;
 
-class PolicyBasedPreInvocationEnforcementAdviceTests {
+class PreEnforcePolicyEnforcementPointTests {
 
 	public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 

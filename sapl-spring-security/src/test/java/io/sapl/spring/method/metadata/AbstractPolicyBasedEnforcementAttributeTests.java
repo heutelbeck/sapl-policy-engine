@@ -1,4 +1,4 @@
-package io.sapl.spring.method;
+package io.sapl.spring.method.metadata;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -12,8 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
-
-import io.sapl.spring.method.metadata.AbstractSaplAttribute;
 
 class AbstractPolicyBasedEnforcementAttributeTests {
 

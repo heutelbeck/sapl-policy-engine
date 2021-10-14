@@ -1,4 +1,4 @@
-package io.sapl.spring.method;
+package io.sapl.spring.method.metadata;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -18,10 +18,6 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.ParseException;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
-
-import io.sapl.spring.method.metadata.PostEnforce;
-import io.sapl.spring.method.metadata.PreEnforce;
-import io.sapl.spring.method.metadata.SaplAttributeFactory;
 
 class PolicyBasedEnforcementAttributeFactoryTests {
 

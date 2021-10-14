@@ -1,4 +1,4 @@
-package io.sapl.spring.method.pre;
+package io.sapl.spring.method.blocking;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -13,11 +13,9 @@ import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
-import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
-import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointVoter;
 import io.sapl.spring.method.metadata.PreEnforceAttribute;
 
-class PreInvocationEnforcementAdviceVoterTests {
+class PreEnforcePolicyEnforcementPointVoterTests {
 
 	@Test
 	void whenPresentedWithNonSupported_thenItSaysSo() {

@@ -1,4 +1,4 @@
-package io.sapl.spring.method.post;
+package io.sapl.spring.method.blocking;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -14,11 +14,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
 
-import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
-import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointProvider;
 import io.sapl.spring.method.metadata.PostEnforceAttribute;
 
-class PostInvocationEnforcementProviderTests {
+class PostEnforcePolicyEnforcementPointProviderTests {
 
 	@Test
 	void whenPostsentedWithNonSupported_thenItSaysSo() {
