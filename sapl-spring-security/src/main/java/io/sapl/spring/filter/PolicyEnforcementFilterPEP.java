@@ -61,6 +61,9 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 		if (authzDecision == null)
 			throw new AccessDeniedException("No decision from PDP.");
 
+		if (authzDecision.getResource().isPresent())
+			throw new AccessDeniedException("PDP requested resource replacement. This is not possible in Filterchain.");
+
 		if (!constraintEnforcementService.handleForBlockingMethodInvocationOrAccessDenied(authzDecision))
 			throw new AccessDeniedException("Not all obligations could be handled.");
 

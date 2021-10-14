@@ -13,7 +13,7 @@ import org.mockito.Mockito;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
-class AbstractPolicyBasedEnforcementAttributeTests {
+class AbstractSaplAttributeTests {
 
 	@Test
 	void whenCalled_thenGetAtributeAlwaysNull() {
@@ -22,18 +22,27 @@ class AbstractPolicyBasedEnforcementAttributeTests {
 	}
 
 	@Test
-	void whenToStringCalled_thenStringContainsTheThreeKeywords() {
-		var sut = mock(AbstractSaplAttribute.class, Mockito.CALLS_REAL_METHODS);
+	void whenToStringCalled_thenStringContainsTheKeywords() {
+		var sut = new AbstractPolicyBasedEnforcementAttributeMock(null, null, null, null, null);
 		var stringValue = sut.toString();
 		assertAll(() -> assertThat(stringValue, containsString("subject")),
 				() -> assertThat(stringValue, containsString("action")),
 				() -> assertThat(stringValue, containsString("resource")),
+				() -> assertThat(stringValue, containsString("genericsType")),
 				() -> assertThat(stringValue, containsString("environment")));
 	}
 
 	@Test
-	void whenPassingStrings_thenExpressionsAreParsedAndSet() {
-
+	void whenPassingNonNull_thenStringContainsTheKeywords() {
+		var sut = new AbstractPolicyBasedEnforcementAttributeMock(toExpression("19 + 1"), toExpression("1 ne 1"),
+				toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"),
+				Integer.class);
+		var stringValue = sut.toString();
+		assertAll(() -> assertThat(stringValue, containsString("subject")),
+				() -> assertThat(stringValue, containsString("action")),
+				() -> assertThat(stringValue, containsString("resource")),
+				() -> assertThat(stringValue, containsString("genericsType")),
+				() -> assertThat(stringValue, containsString("environment")));
 	}
 
 	@Test
@@ -42,6 +51,7 @@ class AbstractPolicyBasedEnforcementAttributeTests {
 		assertAll(() -> assertThat(sut.getSubjectExpression(), is(nullValue())),
 				() -> assertThat(sut.getActionExpression(), is(nullValue())),
 				() -> assertThat(sut.getResourceExpression(), is(nullValue())),
+				() -> assertThat(sut.getGenericsType(), is(nullValue())),
 				() -> assertThat(sut.getEnvironmentExpression(), is(nullValue())));
 	}
 

@@ -24,6 +24,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -76,6 +77,24 @@ class PolicyEnforcementFilterPEPTests {
 		var filterChain = mock(FilterChain.class);
 		assertThrows(AccessDeniedException.class, () -> sut.doFilter(request, response, filterChain));
 		verify(constraintHandlers, times(1)).handleForBlockingMethodInvocationOrAccessDenied(any());
+	}
+
+	@Test
+	@WithMockUser
+	void whenPermitAndResourceSet_thenAccessDeniedException() throws IOException, ServletException {
+		var sut = new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
+		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisionFluxOnePermitWithResource());
+		var request = new MockHttpServletRequest();
+		var response = new MockHttpServletResponse();
+		var filterChain = mock(FilterChain.class);
+		assertThrows(AccessDeniedException.class, () -> sut.doFilter(request, response, filterChain));
+		verify(constraintHandlers, times(0)).handleForBlockingMethodInvocationOrAccessDenied(any());
+	}
+
+	public Flux<AuthorizationDecision> decisionFluxOnePermitWithResource() {
+		var json = JsonNodeFactory.instance;
+		var resource = json.numberNode(10000L);
+		return Flux.just(AuthorizationDecision.PERMIT.withResource(resource));
 	}
 
 	@Test

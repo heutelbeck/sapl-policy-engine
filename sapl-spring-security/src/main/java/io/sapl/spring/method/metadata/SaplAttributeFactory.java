@@ -73,8 +73,9 @@ public class SaplAttributeFactory implements AopInfrastructureBean {
 	}
 
 	/**
-	 * Delay the lookup of the {@link ExpressionParser} to prevent SEC-2136 This is
-	 * analog to the original spring security implementation
+	 * Delay the lookup of the {@link ExpressionParser} to prevent SEC-2136.
+	 * 
+	 * This is analog to the original spring security implementation
 	 * 
 	 * @return the parser
 	 */

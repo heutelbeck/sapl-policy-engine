@@ -213,6 +213,60 @@ class SaplMethodSecurityMetadataSourceTests {
 						is(pojo(Expression.class).where("getExpressionString", is("'onMethod'"))))));
 	}
 
+	@Test
+	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceTillDenied()
+			throws NoSuchMethodException, SecurityException {
+
+		class TestClass {
+			@EnforceTillDenied(subject = "'onMethod'")
+			public void doSomething() {
+			}
+		}
+
+		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var method = TestClass.class.getMethod("doSomething");
+		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
+		assertThat((EnforceTillDeniedAttribute) attributes.get(0),
+				is(pojo(EnforceTillDeniedAttribute.class).where("getSubjectExpression",
+						is(pojo(Expression.class).where("getExpressionString", is("'onMethod'"))))));
+	}
+
+	@Test
+	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceDropWhileDenied()
+			throws NoSuchMethodException, SecurityException {
+
+		class TestClass {
+			@EnforceDropWhileDenied(subject = "'onMethod'")
+			public void doSomething() {
+			}
+		}
+
+		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var method = TestClass.class.getMethod("doSomething");
+		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
+		assertThat((EnforceDropWhileDeniedAttribute) attributes.get(0),
+				is(pojo(EnforceDropWhileDeniedAttribute.class).where("getSubjectExpression",
+						is(pojo(Expression.class).where("getExpressionString", is("'onMethod'"))))));
+	}
+
+	@Test
+	void whenAnnotationOnMethod_ThenReturnsOnMetodForEnforceRecoverableIfDenied()
+			throws NoSuchMethodException, SecurityException {
+
+		class TestClass {
+			@EnforceRecoverableIfDenied(subject = "'onMethod'")
+			public void doSomething() {
+			}
+		}
+
+		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
+		var method = TestClass.class.getMethod("doSomething");
+		List<ConfigAttribute> attributes = new ArrayList<>(sut.getAttributes(method, TestClass.class));
+		assertThat((EnforceRecoverableIfDeniedAttribute) attributes.get(0),
+				is(pojo(EnforceRecoverableIfDeniedAttribute.class).where("getSubjectExpression",
+						is(pojo(Expression.class).where("getExpressionString", is("'onMethod'"))))));
+	}
+
 	interface DefaultMethodInterface {
 		@PostEnforce(subject = "'onDefaultInterfaceMethod'")
 		default void doSomething() {
