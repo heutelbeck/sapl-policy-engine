@@ -63,21 +63,25 @@ public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpReques
 		gen.writeStringField(SCHEME, value.getURI().getScheme());
 		gen.writeStringField(SERVER_NAME, value.getURI().getHost());
 		gen.writeNumberField(SERVER_PORT, value.getURI().getPort());
-		if (value.getRemoteAddress() != null) {
-			gen.writeStringField(REMOTE_ADDRESS, value.getRemoteAddress().toString());
-			gen.writeStringField(REMOTE_HOST, value.getRemoteAddress().getHostString());
-			gen.writeNumberField(REMOTE_PORT, value.getRemoteAddress().getPort());
+		var remoteAddress = value.getRemoteAddress();
+		if (remoteAddress != null) {
+			gen.writeStringField(REMOTE_ADDRESS, remoteAddress.toString());
+			gen.writeStringField(REMOTE_HOST, remoteAddress.getHostString());
+			gen.writeNumberField(REMOTE_PORT, remoteAddress.getPort());
 		}
+		var localAddress = value.getLocalAddress();
 		if (value.getLocalAddress() != null) {
-			gen.writeStringField(LOCAL_NAME, value.getLocalAddress().getHostString());
-			gen.writeStringField(LOCAL_ADDRESS, value.getLocalAddress().toString());
-			gen.writeNumberField(LOCAL_PORT, value.getLocalAddress().getPort());
+			gen.writeStringField(LOCAL_NAME, localAddress.getHostString());
+			gen.writeStringField(LOCAL_ADDRESS, localAddress.toString());
+			gen.writeNumberField(LOCAL_PORT, localAddress.getPort());
 		}
 		gen.writeStringField(METHOD, value.getMethodValue());
-		if (value.getPath() != null)
-			gen.writeStringField(CONTEXT_PATH, value.getPath().toString());
-		if (value.getURI() != null)
-			gen.writeStringField(REQUESTED_URI, value.getURI().toString());
+		var path = value.getPath();
+		if (path != null)
+			gen.writeStringField(CONTEXT_PATH, path.toString());
+		var uri = value.getURI();
+		if (uri != null)
+			gen.writeStringField(REQUESTED_URI, uri.toString());
 		writeHeaders(value, gen);
 		writeCookies(value, gen);
 		writeParameters(value, gen);
@@ -99,8 +103,12 @@ public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpReques
 	}
 
 	private void writeCookies(ServerHttpRequest value, JsonGenerator gen) throws IOException {
+		var cookies = value.getCookies();
+		if (cookies.isEmpty())
+			return;
+
 		gen.writeArrayFieldStart(COOKIES);
-		for (var entry : value.getCookies().entrySet()) {
+		for (var entry : cookies.entrySet()) {
 			for (var cookie : entry.getValue()) {
 				gen.writeStartObject();
 				gen.writeObjectField("name", cookie.getName());
