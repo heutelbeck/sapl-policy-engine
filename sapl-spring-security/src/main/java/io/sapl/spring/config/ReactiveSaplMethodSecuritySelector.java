@@ -7,27 +7,31 @@ import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.AdviceModeImportSelector;
 import org.springframework.context.annotation.AutoProxyRegistrar;
 
+/**
+ * Adds ReactiveSaplMethodSecurityConfiguration to the imports
+ * if @EnableReactiveSaplMethodSecurity is present.
+ */
 public class ReactiveSaplMethodSecuritySelector extends AdviceModeImportSelector<EnableReactiveSaplMethodSecurity> {
 
-		@Override
-		protected String[] selectImports(AdviceMode adviceMode) {
-			if (adviceMode == AdviceMode.PROXY) {
-				return getProxyImports();
-			}
-			throw new IllegalStateException("AdviceMode " + adviceMode + " is not supported");
+	@Override
+	protected String[] selectImports(AdviceMode adviceMode) {
+		if (adviceMode == AdviceMode.PROXY) {
+			return getProxyImports();
 		}
-
-		/**
-		 * Return the imports to use if the {@link AdviceMode} is set to
-		 * {@link AdviceMode#PROXY}.
-		 * <p>
-		 * Take care of adding the necessary JSR-107 import if it is available.
-		 */
-		private String[] getProxyImports() {
-			List<String> result = new ArrayList<>();
-			result.add(AutoProxyRegistrar.class.getName());
-			result.add(ReactiveSaplMethodSecurityConfiguration.class.getName());
-			return result.toArray(new String[0]);
-		}
-
+		throw new IllegalStateException("AdviceMode " + adviceMode + " is not supported");
 	}
+
+	/**
+	 * Return the imports to use if the {@link AdviceMode} is set to
+	 * {@link AdviceMode#PROXY}.
+	 * <p>
+	 * Take care of adding the necessary JSR-107 import if it is available.
+	 */
+	private String[] getProxyImports() {
+		List<String> result = new ArrayList<>();
+		result.add(AutoProxyRegistrar.class.getName());
+		result.add(ReactiveSaplMethodSecurityConfiguration.class.getName());
+		return result.toArray(new String[0]);
+	}
+
+}

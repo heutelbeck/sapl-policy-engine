@@ -11,11 +11,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
 @Documented
-@Import(ReactiveSaplMethodSecuritySelector.class)
 @Configuration
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Import(ReactiveSaplMethodSecuritySelector.class)
 public @interface EnableReactiveSaplMethodSecurity {
 
 	/**

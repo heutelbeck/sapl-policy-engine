@@ -21,7 +21,6 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.Role;
@@ -51,30 +50,24 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 
-		var req = (HttpServletRequest) request;
 		var authentication = SecurityContextHolder.getContext().getAuthentication();
-		var subscription = buildRequest(authentication, req, req);
-
-		log.debug("PEP filter for: '{}' - {} Subscription: {}", subscription.getResource().get("requestedURI"),
-				subscription.getResource().get("requestURL"), subscription);
+		var subscription = AuthorizationSubscription.of(authentication, request, request, mapper);
 		var authzDecision = pdp.decide(subscription).blockFirst();
-		log.debug("PDP decision  : '{}' {}", authzDecision != null ? authzDecision.getDecision() : null, authzDecision);
+
+		log.trace("Filter: contextPath='{}' decison='{}' subscription='{}' fullDecision='{}'",
+				request.getServletContext().getContextPath(),
+				authzDecision != null ? authzDecision.getDecision() : null, authzDecision, subscription, authzDecision);
 
 		if (authzDecision == null)
-			throw new AccessDeniedException("PDP decision enpty.");
+			throw new AccessDeniedException("No decision from PDP.");
 
 		if (!constraintEnforcementService.handleForBlockingMethodInvocationOrAccessDenied(authzDecision))
-			throw new AccessDeniedException("Error handling obligations.");
+			throw new AccessDeniedException("Not all obligations could be handled.");
 
 		if (authzDecision.getDecision() != Decision.PERMIT)
-			throw new AccessDeniedException(String.format("PDP decision: %s", authzDecision.getDecision()));
+			throw new AccessDeniedException("Access denied by PDP.");
 
-		chain.doFilter(req, response);
-	}
-
-	private AuthorizationSubscription buildRequest(Object subject, Object action, Object resource) {
-		return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
-				mapper.valueToTree(resource), null);
+		chain.doFilter(request, response);
 	}
 
 }

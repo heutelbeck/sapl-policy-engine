@@ -48,6 +48,10 @@ import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Sets up automatic PEP generation for Methods with reactive return types. Bean
+ * can be customized by sub classing.
+ */
 @RequiredArgsConstructor
 @Configuration(proxyBeanMethods = false)
 public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
