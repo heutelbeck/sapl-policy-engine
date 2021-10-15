@@ -65,12 +65,8 @@ public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpReques
 			gen.writeNumberField(LOCAL_PORT, localAddress.getPort());
 		}
 		gen.writeStringField(METHOD, value.getMethodValue());
-		var path = value.getPath();
-		if (path != null)
-			gen.writeStringField(CONTEXT_PATH, path.toString());
-		var uri = value.getURI();
-		if (uri != null)
-			gen.writeStringField(REQUESTED_URI, uri.toString());
+		gen.writeStringField(CONTEXT_PATH, String.valueOf(value.getPath()));
+		gen.writeStringField(REQUESTED_URI, String.valueOf(value.getURI()));
 		writeHeaders(value, gen);
 		writeCookies(value, gen);
 		writeParameters(value, gen);
