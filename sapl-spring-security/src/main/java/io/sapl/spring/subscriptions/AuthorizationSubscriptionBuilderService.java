@@ -119,7 +119,7 @@ public class AuthorizationSubscriptionBuilderService {
 			mapper = objectMapperFactory.getObject();
 	}
 
-	private Object retrieveSubject(Authentication authentication, SaplAttribute attr, EvaluationContext ctx) {
+	private JsonNode retrieveSubject(Authentication authentication, SaplAttribute attr, EvaluationContext ctx) {
 		if (attr.getSubjectExpression() != null)
 			return evaluateToJson(attr.getSubjectExpression(), ctx);
 
