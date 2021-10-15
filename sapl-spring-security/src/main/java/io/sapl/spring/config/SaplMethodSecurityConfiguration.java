@@ -61,15 +61,12 @@ import lombok.extern.slf4j.Slf4j;
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfiguration {
 
-	private static final String INCOMPATIBLE_ACCESS_DECISION_MANAGER = "The AccessDecisionManager provided by the GlobalMethodSecurityConfiguration is not an instance of AbstractAccessDecisionManager. Thus, all decision voters defined there coiuld be be dropped resulting in an insecure configuration. The reason for this is likely a new incompatible spring-security version. The actual class used was: %s";
-	private static final String INCOMPATIBLE_AFTER_INVOCATION_MANAGER = "The AfterInvocationManager provided by the GlobalMethodSecurityConfiguration is not an instance of AfterInvocationProviderManager. Thus, all decision voters defined there coiuld be be dropped resulting in an insecure configuration. The reason for this is likely a new incompatible spring-security version. The actual class used was: %s";
-
 	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
 	protected final ObjectFactory<ReactiveConstraintEnforcementService> constraintHandlerFactory;
 	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
 	protected final ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
 
-	@Bean 
+	@Bean
 	protected AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService() {
 		return new AuthorizationSubscriptionBuilderService(getExpressionHandler(), objectMapperFactory);
 	}
@@ -79,10 +76,6 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 		log.debug("Blocking SAPL method level pre-invocation security activated.");
 		var baseManager = super.accessDecisionManager();
 		var decisionVoters = new ArrayList<AccessDecisionVoter<?>>();
-
-		if (!AbstractAccessDecisionManager.class.isAssignableFrom(baseManager.getClass()))
-			throw new IllegalStateException(
-					String.format(INCOMPATIBLE_ACCESS_DECISION_MANAGER, baseManager.getClass().getName()));
 
 		decisionVoters.addAll(((AbstractAccessDecisionManager) baseManager).getDecisionVoters());
 
@@ -97,8 +90,8 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 	@Override
 	protected AfterInvocationManager afterInvocationManager() {
 		log.debug("Blocking SAPL method level after-invocation security activated.");
-		var advice = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				objectMapperFactory, subscriptionBuilderFactory);
+		var advice = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory, objectMapperFactory,
+				subscriptionBuilderFactory);
 		var provider = new PostEnforcePolicyEnforcementPointProvider(advice);
 
 		var baseManager = super.afterInvocationManager();
@@ -109,10 +102,6 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 			invocationProviderManager.setProviders(afterInvocationProviders);
 			return invocationProviderManager;
 		}
-
-		if (!AfterInvocationProviderManager.class.isAssignableFrom(baseManager.getClass()))
-			throw new IllegalStateException(
-					String.format(INCOMPATIBLE_AFTER_INVOCATION_MANAGER, baseManager.getClass().getName()));
 
 		var invocationProviderManager = (AfterInvocationProviderManager) baseManager;
 		List<AfterInvocationProvider> originalProviders = invocationProviderManager.getProviders();

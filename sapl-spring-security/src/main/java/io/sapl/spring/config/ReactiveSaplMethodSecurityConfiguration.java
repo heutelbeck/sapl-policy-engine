@@ -113,7 +113,7 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
-		DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+		var handler = new DefaultMethodSecurityExpressionHandler();
 		if (this.grantedAuthorityDefaults != null) {
 			handler.setDefaultRolePrefix(this.grantedAuthorityDefaults.getRolePrefix());
 		}
