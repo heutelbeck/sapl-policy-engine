@@ -120,24 +120,21 @@ public class AuthorizationSubscriptionBuilderService {
 	}
 
 	private Object retrieveSubject(Authentication authentication, SaplAttribute attr, EvaluationContext ctx) {
-		if (attr.getSubjectExpression() == null) {
-			var subject = mapper.valueToTree(authentication);
-			// sanitize the authentication depending on the application context, the
-			// authentication may still contain credentials information, which should not be
-			// send over the wire to the PDP
-			if (subject instanceof ObjectNode) {
-				ObjectNode object = (ObjectNode) subject;
-				object.remove("credentials");
-				if (object.has("principal")) {
-					var principal = object.get("principal");
-					if (principal instanceof ObjectNode) {
-						((ObjectNode) principal).remove("password");
-					}
-				}
-			}
-			return subject;
-		}
-		return evaluateToJson(attr.getSubjectExpression(), ctx);
+		if (attr.getSubjectExpression() != null)
+			return evaluateToJson(attr.getSubjectExpression(), ctx);
+
+		ObjectNode subject = mapper.valueToTree(authentication);
+
+		// sanitize the authentication depending on the application context, the
+		// authentication may still contain credentials information, which should not be
+		// send over the wire to the PDP
+
+		subject.remove("credentials");
+		var principal = subject.get("principal");
+		if (principal instanceof ObjectNode)
+			((ObjectNode) principal).remove("password");
+
+		return subject;
 	}
 
 	private JsonNode evaluateToJson(Expression expr, EvaluationContext ctx) {
@@ -174,18 +171,21 @@ public class AuthorizationSubscriptionBuilderService {
 	private Object retrieveAction(MethodInvocation mi, Optional<?> requestObject) {
 		var actionNode = mapper.createObjectNode();
 		requestObject.ifPresent(request -> actionNode.set("http", mapper.valueToTree(request)));
-		actionNode.set("java", mapper.valueToTree(mi));
-
-		var array = JSON.arrayNode();
-		for (Object o : mi.getArguments()) {
-			try {
-				var json = mapper.valueToTree(o);
-				array.add(json);
-			} catch (IllegalArgumentException e) {
-				array.add(JSON.nullNode());
+		var java = (ObjectNode) mapper.valueToTree(mi);
+		var arguments = mi.getArguments();
+		if (arguments.length > 0) {
+			var array = JSON.arrayNode();
+			for (Object o : arguments) {
+				try {
+					array.add(mapper.valueToTree(o));
+				} catch (IllegalArgumentException e) {
+					// drop of not mappable to JSON
+				}
 			}
+			if (array.size() > 0)
+				java.set("arguments", array);
 		}
-		actionNode.set("arguments", array);
+		actionNode.set("java", java);
 		return actionNode;
 	}
 
