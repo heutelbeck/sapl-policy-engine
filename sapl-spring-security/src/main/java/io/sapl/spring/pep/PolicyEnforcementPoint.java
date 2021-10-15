@@ -120,9 +120,8 @@ public class PolicyEnforcementPoint {
 					authzSubscription.getEnvironment());
 			log.debug("AUTHZ_DECISION : {} - {}", authzDecision.getDecision(), authzDecision);
 
-			if (authzDecision.getDecision() != Decision.PERMIT) {
+			if (authzDecision.getDecision() != Decision.PERMIT)
 				return authzDecision.withDecision(Decision.DENY);
-			}
 
 			if (!supportResourceTransformation && authzDecision.getResource().isPresent()) {
 				log.debug(
@@ -133,6 +132,7 @@ public class PolicyEnforcementPoint {
 				log.debug("PEP failed to fulfill PDP obligations. Access denied by policy enforcement point.");
 				return authzDecision.withDecision(Decision.DENY);
 			}
+
 			return authzDecision;
 		}).distinctUntilChanged();
 	}
