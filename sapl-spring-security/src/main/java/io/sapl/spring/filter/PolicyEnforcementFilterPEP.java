@@ -56,7 +56,7 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 
 		log.trace("Filter: contextPath='{}' decison='{}' subscription='{}' fullDecision='{}'",
 				request.getServletContext().getContextPath(),
-				authzDecision != null ? authzDecision.getDecision() : null, authzDecision, subscription, authzDecision);
+				authzDecision != null ? authzDecision.getDecision() : null, subscription, authzDecision);
 
 		if (authzDecision == null)
 			throw new AccessDeniedException("No decision from PDP.");

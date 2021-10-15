@@ -179,8 +179,6 @@ public class ReactiveConstraintEnforcementService {
 
 	private void handleRunnableConstraints(AuthorizationDecision authorizationDecision,
 			BiFunction<AbstractConstraintHandler, JsonNode, Runnable> handlerSource, String signalName) {
-		// System.out.println("~~~ " + signalName + " ---- " + authorizationDecision);
-
 		handleRunnableConstraints(authorizationDecision.getObligations(), handlerSource, signalName, true);
 		handleRunnableConstraints(authorizationDecision.getAdvice(), handlerSource, signalName, false);
 	}
@@ -216,7 +214,6 @@ public class ReactiveConstraintEnforcementService {
 
 	private <T> void handleConsumerConstraints(AuthorizationDecision authorizationDecision,
 			BiFunction<AbstractConstraintHandler, JsonNode, Consumer<T>> handlerSource, String signalName, T value) {
-//		System.out.println("~~~ " + signalName + " ---- " + authorizationDecision);
 		handleConsumerConstraints(authorizationDecision.getObligations(), handlerSource, signalName, value, true);
 		handleConsumerConstraints(authorizationDecision.getAdvice(), handlerSource, signalName, value, false);
 	}
@@ -252,8 +249,6 @@ public class ReactiveConstraintEnforcementService {
 
 	private <T> T handleTransformingConstraints(AuthorizationDecision authorizationDecision,
 			BiFunction<AbstractConstraintHandler, JsonNode, Function<T, T>> handlerSource, String signalName, T value) {
-//		System.out.println("~~~ " + signalName + " ---- " + authorizationDecision);
-
 		T transformedValue = handleTransformingConstraints(authorizationDecision.getObligations(), handlerSource,
 				signalName, value, true);
 		return handleTransformingConstraints(authorizationDecision.getAdvice(), handlerSource, signalName,
@@ -281,8 +276,8 @@ public class ReactiveConstraintEnforcementService {
 				} catch (Throwable t) {
 					var message = String.format(
 							"Failed to execute %s constraint handler (%s). constraint=%s value=%s returnValue=%s isObligation=%s error=%s",
-							signalName, handler.getClass().getName(), constraint, value, returnValue,
-							isObligation, t.getMessage());
+							signalName, handler.getClass().getName(), constraint, value, returnValue, isObligation,
+							t.getMessage());
 					logAndThrowIfObligationOrFatal(t, message, isObligation);
 				}
 			}
