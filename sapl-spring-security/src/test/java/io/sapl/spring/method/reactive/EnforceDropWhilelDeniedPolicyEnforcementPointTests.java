@@ -27,7 +27,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
-public class EnforceTillDeniedPolicyEnforcementPointTests {
+public class EnforceDropWhilelDeniedPolicyEnforcementPointTests {
 
 	@BeforeAll
 	public static void beforeAll() {
@@ -42,7 +42,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
 		var decisions = Flux.just(AuthorizationDecision.PERMIT);
 		var data = Flux.just(1, 2, 3);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 		sut.blockLast();
 		assertThrows(IllegalStateException.class, () -> sut.blockLast());
 	}
@@ -52,7 +52,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
 		var decisions = Flux.just(AuthorizationDecision.PERMIT);
 		var data = Flux.just(1, 2, 3);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 		StepVerifier.create(sut).expectNext(1, 2, 3).verifyComplete();
 	}
 
@@ -66,40 +66,47 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
 		var decisions = Flux.just(AuthorizationDecision.PERMIT).repeat().delayElements(Duration.ofMillis(5L));
 		var data = Flux.just(1, 2, 3).delayElements(Duration.ofMillis(30L));
-		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 	}
 
 	@Test
-	void when_onlyOneDeny_thenNoSignalsAndAccessDenied() {
+	void when_onlyOneDeny_thenNoSignalsAndCompletesWithSource() {
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
 		var decisions = Flux.just(AuthorizationDecision.DENY);
 		var data = Flux.just(1, 2, 3);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
-		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		StepVerifier.create(sut).verifyComplete();
 	}
 
 	@Test
-	void when_onlyOneDeny_thenNoSignalsAndAccessDeniedOnErrorContinueDoesNotLeakData() {
-		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
-		var decisions = Flux.just(AuthorizationDecision.DENY);
-		var data = Flux.just(1, 2, 3);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
-		StepVerifier.create(sut.onErrorContinue((a, b) -> {
-		})).expectError(AccessDeniedException.class).verify();
+	void when_firstPermitThenDeny_thenSignalsPassThroughTillDeniedThenDrop() {
+		StepVerifier.withVirtualTime(this::scenario_firstPermitThenDeny_thenSignalsPassThroughTillDeniedThenDrop)
+				.thenAwait(Duration.ofMillis(200L)).expectNext(1, 2).verifyComplete();
 	}
 
-	@Test
-	void when_firstPermitThenDeny_thenSignalsPassThroughTillDenied() {
-		StepVerifier.withVirtualTime(this::scenario_firstPermitThenDeny_thenSignalsPassThroughTillDenied)
-				.thenAwait(Duration.ofMillis(200L)).expectNext(1, 2).expectError(AccessDeniedException.class).verify();
-	}
-
-	private Flux<Object> scenario_firstPermitThenDeny_thenSignalsPassThroughTillDenied() {
+	private Flux<Object> scenario_firstPermitThenDeny_thenSignalsPassThroughTillDeniedThenDrop() {
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
 		var decisions = Flux.just(AuthorizationDecision.PERMIT, AuthorizationDecision.DENY)
 				.delayElements(Duration.ofMillis(50L));
 		var data = Flux.just(1, 2, 3).delayElements(Duration.ofMillis(20L));
-		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+	}
+
+	@Test
+	void when_firstPermitThenDeny_thenSignalsPassThroughTillDeniedThenDropUntilNewPermit() {
+		StepVerifier
+				.withVirtualTime(
+						this::scenario_firstPermitThenDeny_thenSignalsPassThroughTillDeniedThenDropUntilNewPermit)
+				.thenAwait(Duration.ofMillis(2000L)).expectNext(0, 1, 4, 5, 6, 7, 8, 9).verifyComplete();
+	}
+
+	private Flux<Object> scenario_firstPermitThenDeny_thenSignalsPassThroughTillDeniedThenDropUntilNewPermit() {
+		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
+		var decisions = Flux
+				.just(AuthorizationDecision.PERMIT, AuthorizationDecision.DENY, AuthorizationDecision.PERMIT)
+				.delayElements(Duration.ofMillis(50L));
+		var data = Flux.range(0, 10).delayElements(Duration.ofMillis(20L));
+		return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 	}
 
 	@Test
@@ -128,7 +135,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var decisions = decisionFluxWithChangeingAdvice().delayElements(Duration.ofMillis(270L));
 		var data = Flux.range(0, 10).delayElements(Duration.ofMillis(50L));
-		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
 	}
 
@@ -158,7 +165,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 		StepVerifier.create(sut).expectNext(0, 2, 4, 6, 8).verifyComplete();
 
 	}
@@ -181,7 +188,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 		StepVerifier.create(sut.take(5)).expectNext(0, 1, 2, 3, 4).verifyComplete();
 		verify(handler, times(1)).onRequest(any());
 		verify(handler, times(1)).onCancel(any());
@@ -213,7 +220,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 				throw new RuntimeException("ILLEGAL");
 			return x;
 		});
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4)
 				.expectErrorMatches(error -> error instanceof IOException && "LEGAL".equals(error.getMessage()))
@@ -223,13 +230,15 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 	}
 
 	@Test
-	void when_onNextObligationFails_thenAccessDenied() {
+	void when_onNextObligationFails_thenAccessDeniedAndMatchingElementIsDropped() {
 		var handler = spy(new AbstractConstraintHandler(1) {
 
 			@Override
-			public <T> Consumer<T> onNext(JsonNode constraint) {
+			@SuppressWarnings("unchecked")
+			public Consumer<Integer> onNext(JsonNode constraint) {
 				return t -> {
-					throw new RuntimeException("I FAILED TO OBLIGE");
+					if (t == 5)
+						throw new RuntimeException("I FAILED TO OBLIGE");
 				};
 			}
 
@@ -242,14 +251,14 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var decisions = decisionFluxOnePermitWithObligation();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
-		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
-		verify(handler, times(1)).onNext(any());
+		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 6, 7, 8, 9).verifyComplete();
+		verify(handler, times(10)).onNext(any());
 	}
 
 	@Test
-	void when_onErrorObligationFails_thenAccessDenied() {
+	void when_onErrorObligationFails_thenAccessDeniedAndCompleteAsWeCannotRecoverFromDownstreamErrorsAnyhow() {
 		var handler = spy(new AbstractConstraintHandler(1) {
 
 			@Override
@@ -272,14 +281,28 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 				throw new RuntimeException("ILLEGAL");
 			return x;
 		});
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4).expectError(AccessDeniedException.class).verify();
-		verify(handler, times(2)).onError(any());
+		verify(handler, times(1)).onError(any());
+	}
+	@Test
+	void when_upstreamError_thenTerminateWithError() {
+
+		var decisions = Flux.just(AuthorizationDecision.PERMIT);
+		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
+		var data = Flux.range(0, 10).map(x -> {
+			if (x == 5)
+				throw new RuntimeException("ILLEGAL");
+			return x;
+		});
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+
+		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4).expectError(RuntimeException.class).verify();
 	}
 
 	@Test
-	void when_onSubscribeObligationFails_thenAccessDenied() {
+	void when_onSubscribeObligationFails_thenAllSignalsAreDropped() {
 		var handler = spy(new AbstractConstraintHandler(1) {
 
 			@Override
@@ -298,14 +321,42 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var decisions = decisionFluxOnePermitWithObligation();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
-		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
+		StepVerifier.create(sut).verifyComplete();
 		verify(handler, times(1)).onSubscribe(any());
 	}
 
 	@Test
-	void when_onRequestObligationFails_thenAccessDenied() {
+	void when_onSubscribeObligationFailsForFirstDecisionButSucceedsForSecond_thenAllSignalsSent() {
+		var handler = spy(new AbstractConstraintHandler(1) {
+
+			@Override
+			public Consumer<? super Subscription> onSubscribe(JsonNode constraint) {
+				return t -> {
+					// Fail the first one
+					if (constraint.asLong() == 10000L)
+						throw new RuntimeException("I FAILED TO OBLIGE");
+				};
+			}
+
+			@Override
+			public boolean isResponsible(JsonNode constraint) {
+				return true;
+			}
+
+		});
+		var decisions = decisionFluxWithChangeingAdvice();
+		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
+		var data = Flux.range(0, 10);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+
+		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
+		verify(handler, times(1)).onSubscribe(any());
+	}
+
+	@Test
+	void when_onRequestObligationFails_thenImplicitlyAccessDeniedAndMessagesDropped() {
 		var handler = spy(new AbstractConstraintHandler(1) {
 
 			@Override
@@ -324,9 +375,9 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var decisions = decisionFluxOnePermitWithObligation();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
-		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
+		StepVerifier.create(sut).verifyComplete();
 		verify(handler, times(1)).onSubscribe(any());
 	}
 
@@ -350,14 +401,14 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var decisions = decisionFluxOnePermitWithObligation();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
 		StepVerifier.create(sut.take(1)).expectNext(0).verifyComplete();
 		verify(handler, times(1)).onCancel(any());
 	}
 
 	@Test
-	void when_onCompleteObligationFails_thenAccessDenied() {
+	void when_onCompleteObligationFails_thenImplicitlyAccessDeniedButNothingHappensAsDenyHereOnlyDropsMessages() {
 		var handler = spy(new AbstractConstraintHandler(1) {
 
 			@Override
@@ -376,10 +427,9 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var decisions = decisionFluxOnePermitWithObligation();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
-		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).expectError(AccessDeniedException.class)
-				.verify();
+		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 		verify(handler, times(1)).onComplete(any());
 	}
 
@@ -403,7 +453,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var decisions = decisionFluxOnePermitWithAdvice();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 		verify(handler, times(10)).onNext(any());
@@ -433,7 +483,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 				throw new RuntimeException("ILLEGAL");
 			return x;
 		});
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4).expectErrorMatches(err -> err.getMessage().equals("ILLEGAL"))
 				.verify();
@@ -460,7 +510,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var decisions = decisionFluxOnePermitWithAdvice();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 		verify(handler, times(1)).onSubscribe(any());
@@ -486,7 +536,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var decisions = decisionFluxOnePermitWithAdvice();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 		verify(handler, times(1)).onSubscribe(any());
@@ -512,7 +562,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var decisions = decisionFluxOnePermitWithAdvice();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 	}
@@ -537,40 +587,29 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var decisions = decisionFluxOnePermitWithAdvice();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
 		StepVerifier.create(sut).expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 		verify(handler, times(1)).onComplete(any());
 	}
 
 	@Test
-	void when_onNextObligationFailsByMissing_thenAccessDenied() {
+	void when_onNextObligationFailsByMissing_thenAccessDeniedImplicitlyAndMessagesAreDropped() {
 		var decisions = decisionFluxOnePermitWithObligation();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
-		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
+		StepVerifier.create(sut).verifyComplete();
 	}
 
 	@Test
-	void when_onSubscribeObligationFailsByMissing_thenAccessDenied() {
+	void when_onSubscribeObligationFailsByMissing_thenSignalsDropped() {
 		var decisions = decisionFluxOnePermitWithObligation();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
-
-		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
-	}
-
-	@Test
-	void when_onRequestObligationFailsByMissing_thenAccessDenied() {
-		var decisions = decisionFluxOnePermitWithObligation();
-		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
-		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
-
-		StepVerifier.create(sut).expectError(AccessDeniedException.class).verify();
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		StepVerifier.create(sut).verifyComplete();
 	}
 
 	@Test
@@ -593,7 +632,7 @@ public class EnforceTillDeniedPolicyEnforcementPointTests {
 		var decisions = decisionFluxOnePermitWithObligation();
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var data = Flux.range(0, 10);
-		Flux<Object> sut = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
+		Flux<Object> sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService);
 
 		StepVerifier.create(sut.take(1)).expectNext(0).verifyComplete();
 		verify(handler, times(1)).onCancel(any());

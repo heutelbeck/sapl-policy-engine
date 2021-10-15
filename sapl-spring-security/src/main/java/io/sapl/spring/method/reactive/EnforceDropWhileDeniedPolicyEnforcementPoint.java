@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.reactivestreams.Subscription;
-import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
@@ -53,8 +52,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint extends Flux<Object> {
 			ReactiveConstraintEnforcementService constraintsService) {
 		var pep = new EnforceDropWhileDeniedPolicyEnforcementPoint(decisions, resourceAccessPoint, constraintsService);
 		return pep.doOnTerminate(pep::handleOnTerminate).doAfterTerminate(pep::handleAfterTerminate)
-				.onErrorMap(AccessDeniedException.class, pep::handleAccessDenied).doOnCancel(pep::handleCancel)
-				.onErrorStop();
+				.doOnCancel(pep::handleCancel).onErrorStop();
 	}
 
 	@Override
@@ -85,7 +83,11 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint extends Flux<Object> {
 		try {
 			constraintsService.handleOnSubscribeConstraints(latestDecision.get(), s);
 		} catch (Throwable t) {
-			handleNextDecision(AuthorizationDecision.DENY);
+			// This means that we handle it as if there was no decision yet.
+			// We dispose of the resourceAccessPoint and remove the lastDecision
+			Optional.ofNullable(dataSubscription.getAndSet(null)).filter(not(Disposable::isDisposed))
+					.ifPresent(Disposable::dispose);
+			handleNextDecision(null);
 		}
 	}
 
@@ -107,8 +109,11 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint extends Flux<Object> {
 			if (transformedValue != null)
 				sink.next(transformedValue);
 		} catch (Throwable t) {
-			handleNextDecision(AuthorizationDecision.DENY);
+			// NOOP drop only the element with the failed obligation
+			// doing handleNextDecision(AuthorizationDecision.DENY); would drop all
+			// subsequent messages, even if the constraint handler would succeed on them.
 		}
+
 	}
 
 	private void handleRequest(Long value) {
@@ -155,14 +160,6 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint extends Flux<Object> {
 			sink.error(t);
 			handleNextDecision(AuthorizationDecision.DENY);
 			disposeDecisionsAndResourceAccessPoint();
-		}
-	}
-
-	private Throwable handleAccessDenied(Throwable error) {
-		try {
-			return constraintsService.handleOnErrorConstraints(latestDecision.get(), error);
-		} catch (Throwable t) {
-			return error;
 		}
 	}
 
