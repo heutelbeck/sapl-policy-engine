@@ -27,7 +27,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
-public class EnforceDropWhilelDeniedPolicyEnforcementPointTests {
+public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 
 	@BeforeAll
 	public static void beforeAll() {

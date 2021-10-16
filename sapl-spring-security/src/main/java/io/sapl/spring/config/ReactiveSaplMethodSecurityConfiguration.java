@@ -43,6 +43,8 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
 import io.sapl.spring.method.metadata.SaplAttributeFactory;
 import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
+import io.sapl.spring.method.reactive.PostEnforcePolicyEnforcementPoint;
+import io.sapl.spring.method.reactive.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
@@ -93,14 +95,32 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	ReactiveSaplMethodInterceptor securityMethodInterceptor(MethodSecurityMetadataSource source,
 			MethodSecurityExpressionHandler handler,
-			AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService) {
+			AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
+			PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
+			PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
 		var springSecurityPostAdvice = new ExpressionBasedPostInvocationAdvice(handler);
 		var springSecurityPreAdvice = new ExpressionBasedPreInvocationAdvice();
 		springSecurityPreAdvice.setExpressionHandler(handler);
 		var springPrePostInterceptor = new PrePostAdviceReactiveMethodInterceptor(source, springSecurityPreAdvice,
 				springSecurityPostAdvice);
 		return new ReactiveSaplMethodInterceptor(springPrePostInterceptor, source, handler, pdp,
-				constraintHandlerService, mapper, authorizationSubscriptionBuilderService);
+				constraintHandlerService, mapper, authorizationSubscriptionBuilderService,
+				preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
+	}
+
+	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	protected PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint(
+			ReactiveConstraintEnforcementService constraintHandlerService, ObjectMapper mapper) {
+		return new PreEnforcePolicyEnforcementPoint(constraintHandlerService, mapper);
+	}
+
+	@Bean
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	protected PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint(PolicyDecisionPoint pdp,
+			ReactiveConstraintEnforcementService constraintHandlerService, ObjectMapper mapper,
+			AuthorizationSubscriptionBuilderService subscriptionBuilder) {
+		return new PostEnforcePolicyEnforcementPoint(pdp, constraintHandlerService, mapper, subscriptionBuilder);
 	}
 
 	@Bean

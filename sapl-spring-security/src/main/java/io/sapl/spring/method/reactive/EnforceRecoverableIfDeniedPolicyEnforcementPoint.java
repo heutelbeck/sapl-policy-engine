@@ -12,9 +12,9 @@ import org.springframework.security.access.AccessDeniedException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import lombok.SneakyThrows;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.util.context.ContextView;
 import reactor.util.function.Tuple2;
@@ -58,14 +58,16 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint
 		var pep = new EnforceRecoverableIfDeniedPolicyEnforcementPoint(decisions, resourceAccessPoint,
 				constraintsService);
 		return pep.doOnTerminate(pep::handleOnTerminate).doAfterTerminate(pep::handleAfterTerminate)
-				.map(pep::handleAccessDenied).doOnCancel(pep::handleCancel).onErrorStop().map(tuple -> {
-					if (tuple.getT2().isEmpty())
-						return tuple.getT1().get();
-					var error = tuple.getT2().get();
-					if (error instanceof AccessDeniedException)
-						throw (AccessDeniedException) error;
-					throw Exceptions.bubble(error);
-				});
+				.map(pep::handleAccessDenied).doOnCancel(pep::handleCancel).onErrorStop()
+				.map(EnforceRecoverableIfDeniedPolicyEnforcementPoint::extractPayloadOrError);
+	}
+
+	@SneakyThrows
+	private static Object extractPayloadOrError(Tuple2<Optional<Object>, Optional<Throwable>> tuple) {
+		if (tuple.getT2().isEmpty())
+			return tuple.getT1().get();
+		var error = tuple.getT2().get();
+		throw error;
 	}
 
 	@Override
@@ -99,7 +101,13 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint
 		try {
 			constraintsService.handleOnSubscribeConstraints(latestDecision.get(), s);
 		} catch (Throwable t) {
-			handleNextDecision(AuthorizationDecision.DENY);
+			// This means that we handle it as if there was no decision yet.
+			// We dispose of the resourceAccessPoint and remove the lastDecision
+			sink.next(Tuples.of(Optional.empty(), Optional.of(t)));
+			Optional.ofNullable(dataSubscription.getAndSet(null)).filter(not(Disposable::isDisposed))
+					.ifPresent(Disposable::dispose);
+			handleNextDecision(null);
+			// Signal this initial failure downstream, allowing to end or to recover.
 		}
 	}
 
@@ -121,7 +129,12 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint
 			if (transformedValue != null)
 				sink.next(Tuples.of(Optional.of(transformedValue), Optional.empty()));
 		} catch (Throwable t) {
-			handleNextDecision(AuthorizationDecision.DENY);
+			// Signal error but drop only the element with the failed obligation
+			// doing handleNextDecision(AuthorizationDecision.DENY); would drop all
+			// subsequent messages, even if the constraint handler would succeed on then.
+			// Do not signal original error, as this may leak information in message.
+			sink.next(Tuples.of(Optional.empty(),
+					Optional.of(new AccessDeniedException("Failed to handle onNext obligation."))));
 		}
 	}
 
@@ -146,10 +159,10 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint
 			return;
 		try {
 			constraintsService.handleOnCompleteConstraints(latestDecision.get());
-			sink.complete();
 		} catch (Throwable t) {
-			sink.complete();
+			// NOOP stream is finished nothing more to protect.
 		}
+		sink.complete();
 		disposeDecisionsAndResourceAccessPoint();
 	}
 
@@ -157,7 +170,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint
 		try {
 			constraintsService.handleOnCancelConstraints(latestDecision.get());
 		} catch (Throwable t) {
-			// NOOP
+			// NOOP stream is finished nothing more to protect.
 		}
 		disposeDecisionsAndResourceAccessPoint();
 	}
@@ -174,12 +187,16 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint
 
 	private Tuple2<Optional<Object>, Optional<Throwable>> handleAccessDenied(
 			Tuple2<Optional<Object>, Optional<Throwable>> tuple) {
-		if (tuple.getT2().isEmpty() || !(tuple.getT2().get() instanceof AccessDeniedException)) {
+		if (tuple.getT1().isPresent())
 			return tuple;
-		}
+
+		var error = tuple.getT2().get();
+		if (!(error instanceof AccessDeniedException))
+			return tuple;
+
 		try {
-			return Tuples.of(Optional.empty(), Optional
-					.of(constraintsService.handleOnErrorConstraints(latestDecision.get(), tuple.getT2().get())));
+			var transformedError = constraintsService.handleOnErrorConstraints(latestDecision.get(), error);
+			return Tuples.of(Optional.empty(), Optional.of(transformedError));
 		} catch (Throwable t) {
 			return tuple;
 		}

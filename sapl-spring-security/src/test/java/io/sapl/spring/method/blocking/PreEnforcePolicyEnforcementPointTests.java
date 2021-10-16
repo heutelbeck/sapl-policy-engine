@@ -5,6 +5,8 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import javax.servlet.http.HttpServletRequest;
@@ -65,16 +67,31 @@ class PreEnforcePolicyEnforcementPointTests {
 	}
 
 	@Test
+	void when_triggeredTwice_factoriesOnlyCalledOnce() {
+		@SuppressWarnings("unchecked")
+		var mock = (ObjectFactory<ReactiveConstraintEnforcementService>) mock(ObjectFactory.class);
+		when(mock.getObject()).thenReturn(constraintHandlers);
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, mock, objectMapperFactory,
+				subscriptionBuilderFactory);
+		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
+		var attribute = new PreEnforceAttribute(null, null, null, null, null);
+		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
+		sut.before(authentication, methodInvocation, attribute);
+		sut.before(authentication, methodInvocation, attribute);
+		verify(mock, times(1)).getObject();
+	}
+
+	@Test
 	void whenCreated_thenNotNull() {
-		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				objectMapperFactory, subscriptionBuilderFactory);
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory, objectMapperFactory,
+				subscriptionBuilderFactory);
 		assertThat(sut, notNullValue());
 	}
 
 	@Test
 	void whenBeforeAndDecideDeny_thenReturnFalse() {
-		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				objectMapperFactory, subscriptionBuilderFactory);
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory, objectMapperFactory,
+				subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
 		var attribute = new PreEnforceAttribute(null, null, null, null, null);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
@@ -83,8 +100,8 @@ class PreEnforcePolicyEnforcementPointTests {
 
 	@Test
 	void whenBeforeAndDecidePermit_thenReturnTrue() {
-		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				objectMapperFactory, subscriptionBuilderFactory);
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory, objectMapperFactory,
+				subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
 		var attribute = new PreEnforceAttribute(null, null, null, null, null);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
@@ -95,8 +112,8 @@ class PreEnforcePolicyEnforcementPointTests {
 
 	@Test
 	void whenBeforeAndDecideNotApplicable_thenReturnFalse() {
-		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				objectMapperFactory, subscriptionBuilderFactory);
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory, objectMapperFactory,
+				subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
 		var attribute = new PreEnforceAttribute(null, null, null, null, null);
 		when(pdp.decide(any(AuthorizationSubscription.class)))
@@ -106,8 +123,8 @@ class PreEnforcePolicyEnforcementPointTests {
 
 	@Test
 	void whenBeforeAndDecideIndeterminate_thenReturnFalse() {
-		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				objectMapperFactory, subscriptionBuilderFactory);
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory, objectMapperFactory,
+				subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
 		var attribute = new PreEnforceAttribute(null, null, null, null, null);
 		when(pdp.decide(any(AuthorizationSubscription.class)))
@@ -117,8 +134,8 @@ class PreEnforcePolicyEnforcementPointTests {
 
 	@Test
 	void whenBeforeAndDecideEmpty_thenReturnFalse() {
-		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				objectMapperFactory, subscriptionBuilderFactory);
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory, objectMapperFactory,
+				subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
 		var attribute = new PreEnforceAttribute(null, null, null, null, null);
 		when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
@@ -127,8 +144,8 @@ class PreEnforcePolicyEnforcementPointTests {
 
 	@Test
 	void whenBeforeAndDecidePermitWithResource_thenReturnFalse() {
-		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				objectMapperFactory, subscriptionBuilderFactory);
+		var sut = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory, objectMapperFactory,
+				subscriptionBuilderFactory);
 		var methodInvocation = MethodInvocationUtils.create(new TestClass(), "doSomething");
 		var attribute = new PreEnforceAttribute(null, null, null, null, null);
 		when(pdp.decide(any(AuthorizationSubscription.class)))

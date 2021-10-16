@@ -111,7 +111,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint extends Flux<Object> {
 		} catch (Throwable t) {
 			// NOOP drop only the element with the failed obligation
 			// doing handleNextDecision(AuthorizationDecision.DENY); would drop all
-			// subsequent messages, even if the constraint handler would succeed on them.
+			// subsequent messages, even if the constraint handler would succeed on then.
 		}
 
 	}
