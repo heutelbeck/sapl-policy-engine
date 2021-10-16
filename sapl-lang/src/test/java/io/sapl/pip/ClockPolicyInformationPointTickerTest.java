@@ -15,8 +15,6 @@
  */
 package io.sapl.pip;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
@@ -37,28 +35,26 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
 
 public class ClockPolicyInformationPointTickerTest {
 
-    private static final Val SYSTEM_TIMEZONE_VAL = Val.of(ZoneId.systemDefault().toString());
+    private static final Flux<Val> SYSTEM_DEFAULT_TIMEZONE_FLUX = Flux.just(Val.of(TimeZone.getDefault().toString()));
 
     @Test
     void test_streamingPolicyWithVirtualTime() throws InitializationException {
 
         final ClockPolicyInformationPoint clockPip = new ClockPolicyInformationPoint();
-        StepVerifier.withVirtualTime(() -> clockPip.ticker(Val.UNDEFINED, Collections.emptyMap(), Flux.just(Val.of(2)))).expectSubscription()
+        StepVerifier.withVirtualTime(() -> clockPip.ticker(Val.UNDEFINED, Collections.emptyMap(), Flux.just(Val.of(2000L)))).expectSubscription()
                 .assertNext(val -> assertThat(val.isError(), is(false)))
                 .expectNoEvent(Duration.ofSeconds(2))
                 .thenAwait()
@@ -81,7 +77,7 @@ public class ClockPolicyInformationPointTickerTest {
     @Test
     public void ticker() {
         final ClockPolicyInformationPoint clockPip = new ClockPolicyInformationPoint();
-        StepVerifier.withVirtualTime(() -> clockPip.ticker(Val.UNDEFINED, Collections.emptyMap(), Flux.just(Val.of(30L)))).expectSubscription()
+        StepVerifier.withVirtualTime(() -> clockPip.ticker(Val.UNDEFINED, Collections.emptyMap(), Flux.just(Val.of(30000L)))).expectSubscription()
                 .expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
                     /* the first node is provided some nano seconds after its creation */
                 })
@@ -118,18 +114,6 @@ public class ClockPolicyInformationPointTickerTest {
     }
 
     @Test
-    void testConvertToZoneId() {
-        var jsonNodeMock = mock(JsonNode.class);
-        when(jsonNodeMock.asText()).thenReturn(null);
-
-        var clockPip = new ClockPolicyInformationPoint();
-        var now = clockPip.now(Val.of(jsonNodeMock), Collections.emptyMap()).blockFirst();
-
-        assertThat(now, notNullValue());
-        assertThat(now.getValType(), is(JsonNodeType.STRING.toString()));
-    }
-
-    @Test
     void testClockAfter() throws Exception {
         var clockPip = new ClockPolicyInformationPoint();
 
@@ -151,7 +135,7 @@ public class ClockPolicyInformationPointTickerTest {
                 }
             });
 
-            StepVerifier.withVirtualTime(() -> clockPip.after(SYSTEM_TIMEZONE_VAL, Collections.emptyMap(), Flux.just(time)))
+            StepVerifier.withVirtualTime(() -> clockPip.nowIsAfter(Val.UNDEFINED, Collections.emptyMap(), Flux.just(time), SYSTEM_DEFAULT_TIMEZONE_FLUX))
                     .expectSubscription()
                     .thenAwait(Duration.ofDays(1L))
                     .consumeNextWith(val -> {
@@ -197,7 +181,7 @@ public class ClockPolicyInformationPointTickerTest {
                 }
             });
 
-            StepVerifier.withVirtualTime(() -> clockPip.before(SYSTEM_TIMEZONE_VAL, Collections.emptyMap(), Flux.just(time)))
+            StepVerifier.withVirtualTime(() -> clockPip.nowIsBefore(Val.UNDEFINED, Collections.emptyMap(), Flux.just(time), SYSTEM_DEFAULT_TIMEZONE_FLUX))
                     .expectSubscription()
                     .thenAwait(Duration.ofDays(1L))
                     .consumeNextWith(val -> {
@@ -232,7 +216,10 @@ public class ClockPolicyInformationPointTickerTest {
     void nowTest() {
         var clockPip = new ClockPolicyInformationPoint();
         var now = OffsetDateTime.now().truncatedTo(ChronoUnit.MINUTES);
-        var nowInSystemTimeZone = clockPip.now(SYSTEM_TIMEZONE_VAL, Collections.emptyMap()).blockFirst().getText();
+        // var nowInSystemTimeZone = clockPip.now(SYSTEM_TIMEZONE_VAL, Collections.emptyMap()).blockFirst().getText();
+        var nowInSystemTimeZone = clockPip.ticker(Val.UNDEFINED, Collections.emptyMap(), Flux.just(Val.of(1000L)), SYSTEM_DEFAULT_TIMEZONE_FLUX)
+                .blockFirst().getText();
+
         var offsetDateTime = DateTimeFormatter.ISO_DATE_TIME.parse(nowInSystemTimeZone, OffsetDateTime::from).truncatedTo(ChronoUnit.MINUTES);
 
         assertThat(offsetDateTime.compareTo(now), is(0));
@@ -241,7 +228,7 @@ public class ClockPolicyInformationPointTickerTest {
     @Test
     void millisTest() {
         var clockPip = new ClockPolicyInformationPoint();
-        var millis = clockPip.millis(SYSTEM_TIMEZONE_VAL, Collections.emptyMap()).blockFirst().get().numberValue().longValue();
+        var millis = clockPip.millis(Val.UNDEFINED, Collections.emptyMap(), SYSTEM_DEFAULT_TIMEZONE_FLUX).blockFirst().get().numberValue().longValue();
 
         assertThat(millis, is(greaterThanOrEqualTo(Instant.EPOCH.toEpochMilli())));
         assertThat(millis, is(lessThanOrEqualTo(System.currentTimeMillis())));
@@ -252,7 +239,7 @@ public class ClockPolicyInformationPointTickerTest {
         var clockPip = new ClockPolicyInformationPoint();
         var timerSeconds = 30L;
 
-        StepVerifier.withVirtualTime(() -> clockPip.timer(Val.NULL, Collections.emptyMap(), Flux.just(Val.of(timerSeconds))))
+        StepVerifier.withVirtualTime(() -> clockPip.trueIn(Val.NULL, Collections.emptyMap(), Flux.just(Val.of(timerSeconds))))
                 .expectSubscription()
                 .consumeNextWith(val -> {
                     assertThat(val.getBoolean(), is(false));

@@ -25,6 +25,8 @@ public class Schedules {
 
         private static long secondsInOneDay = Duration.ofDays(1L).getSeconds();
 
+        //TODO provide scheduler as constructor arg
+
         private final LocalTime referenceTime;
         private final LocalTime currentTime;
         private ScheduleListener listener;
@@ -69,6 +71,7 @@ public class Schedules {
                 listener.schedulerDisposed();
         }
     }
+
 
     @Value
     public static class ScheduleListener {

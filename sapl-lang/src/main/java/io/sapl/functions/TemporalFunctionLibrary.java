@@ -83,6 +83,33 @@ public class TemporalFunctionLibrary {
     private static final String PARAMETER_NOT_AN_ISO_8601_OFFSET_STRING = "Parameter not a zone id from the IANA Time Zone Database";
     private static final String PARAMETER_NOT_AN_IANA_ZONE_STRING = "Parameter not an ISO-8601 formatted offset";
 
+    private static final String DURATION_OF_SECONDS = "durationOfSeconds(SECONDS): Assumes, that SECONDS is a number. Returns the respective value in milliseconds";
+    private static final String DURATION_OF_MINUTES = "durationOfSeconds(MINUTES): Assumes, that MINUTES is a number. Returns the respective value in milliseconds";
+    private static final String DURATION_OF_HOURS = "durationOfSeconds(HOURS): Assumes, that HOURS is a number. Returns the respective value in milliseconds";
+    private static final String DURATION_OF_DAYS = "durationOfSeconds(DAYS): Assumes, that DAYS is a number. Returns the respective value in milliseconds";
+
+    /* ######## DURATION ######## */
+
+    @Function(docs = DURATION_OF_SECONDS)
+    public static Val durationOfSeconds(@Number Val seconds) {
+        return Val.of(longValue(seconds) * 1000);
+    }
+
+    @Function(docs = DURATION_OF_MINUTES)
+    public static Val durationOfMinutes(@Number Val minutes) {
+        return Val.of(longValue(minutes) * 60 * 1000);
+    }
+
+    @Function(docs = DURATION_OF_HOURS)
+    public static Val durationOfHours(@Number Val hours) {
+        return Val.of(longValue(hours) * 60 * 60 * 1000);
+    }
+
+    @Function(docs = DURATION_OF_DAYS)
+    public static Val durationOfDays(@Number Val days) {
+        return Val.of(longValue(days) * 24 * 60 * 60 * 1000);
+    }
+
     /* ######## INSTANT/UTC COMPARISON ######## */
 
     @Function(docs = BEFORE_DOC)
@@ -436,6 +463,11 @@ public class TemporalFunctionLibrary {
             return ZoneId.of(zoneIdStr, ZoneId.SHORT_IDS);
         }
         return ZoneId.of(zoneIdStr);
+    }
+
+    private static long longValue(Val numberVal) {
+        requireValue(numberVal, Val::isNumber);
+        return numberVal.get().longValue();
     }
 
 }

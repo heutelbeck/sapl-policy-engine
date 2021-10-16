@@ -32,6 +32,7 @@ import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pip.ClockPolicyInformationPoint;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
@@ -73,10 +74,15 @@ class TemporalFunctionLibraryTest {
         authzSubscriptionObj = MAPPER.readValue(authzSubscription, AuthorizationSubscription.class);
     }
 
+    private Val clockNow(Val zone) {
+        return new ClockPolicyInformationPoint().ticker(Val.UNDEFINED, Collections.emptyMap(), Flux.just(Val.of(2000L)), Flux.just(zone))
+                .blockFirst();
+    }
+
     @Test
     void nowPlus10Nanos() {
         var zoneId = Val.of("UTC");
-        var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
+        var now = clockNow(zoneId);
         var plus10 = TemporalFunctionLibrary.plusNanos(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).plusNanos(10).toString();
         assertThat(plus10, is(val(expected)));
@@ -85,7 +91,7 @@ class TemporalFunctionLibraryTest {
     @Test
     void nowPlus10Millis() {
         var zoneId = Val.of("UTC");
-        var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
+        var now = clockNow(zoneId);
         var plus10 = TemporalFunctionLibrary.plusMillis(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).plusMillis(10).toString();
         assertThat(plus10, is(val(expected)));
@@ -94,7 +100,7 @@ class TemporalFunctionLibraryTest {
     @Test
     void nowPlus10Seconds() {
         var zoneId = Val.of("UTC");
-        var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
+        var now = clockNow(zoneId);
         var plus10 = TemporalFunctionLibrary.plusSeconds(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).plusSeconds(10).toString();
         assertThat(plus10, is(val(expected)));
@@ -103,7 +109,7 @@ class TemporalFunctionLibraryTest {
     @Test
     void nowMinus10Nanos() {
         var zoneId = Val.of("UTC");
-        var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
+        var now = clockNow(zoneId);
         var plus10 = TemporalFunctionLibrary.minusNanos(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).minusNanos(10).toString();
         assertThat(plus10, is(val(expected)));
@@ -112,7 +118,7 @@ class TemporalFunctionLibraryTest {
     @Test
     void nowMinus10Millis() {
         var zoneId = Val.of("UTC");
-        var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
+        var now = clockNow(zoneId);
         var plus10 = TemporalFunctionLibrary.minusMillis(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).minusMillis(10).toString();
         assertThat(plus10, is(val(expected)));
@@ -121,7 +127,7 @@ class TemporalFunctionLibraryTest {
     @Test
     void nowMinus10Seconds() {
         var zoneId = Val.of("UTC");
-        var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
+        var now = clockNow(zoneId);
         var plus10 = TemporalFunctionLibrary.minusSeconds(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).minusSeconds(10).toString();
         assertThat(plus10, is(val(expected)));
@@ -130,7 +136,7 @@ class TemporalFunctionLibraryTest {
     @Test
     void dayOfWeekFrom() {
         var zoneId = Val.of("UTC");
-        var now = new ClockPolicyInformationPoint().now(zoneId, Collections.emptyMap()).blockFirst();
+        var now = clockNow(zoneId);
         var dayOfWeek = TemporalFunctionLibrary.dayOfWeek(now);
         var expected = DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)).toString();
         assertThat(dayOfWeek, is(val(expected)));
