@@ -191,13 +191,19 @@ public class ClockPolicyInformationPoint {
                 .map(this::negateVal);
     }
 
-    @Attribute(docs = "TODO")
+    @Attribute(docs = "Set-up a periodic toggle. The 'initialValue' is returned directly. After the defined 'authorizedTimeInMillis' the negated value is returned. " +
+            "After the given 'unauthorizedTimeInMillis', the original value is returned again. " +
+            "By providing a 'startTime', an initial offset can be specified." +
+            "All times are interpreted using the systems default time zone.")
     public Flux<Val> periodicToggleSystem(Val leftHand, Map<String, JsonNode> variables, Flux<Val> initialValue, Flux<Val> authorizedTimeInMillis,
                                           Flux<Val> unauthorizedTimeInMillis, Flux<Val> startTime) {
         return periodicToggle(leftHand, variables, initialValue, authorizedTimeInMillis, unauthorizedTimeInMillis, startTime, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
-    @Attribute(docs = "TODO")
+    @Attribute(docs = "Set-up a periodic toggle. The 'initialValue' is returned directly. After the defined 'authorizedTimeInMillis' the negated value is returned. " +
+            "After the given 'unauthorizedTimeInMillis', the original value is returned again. " +
+            "By providing a 'startTime', an initial offset can be specified." +
+            "'timeZone' is used to set the preferred time zone.")
     public Flux<Val> periodicToggle(Val leftHand, Map<String, JsonNode> variables, Flux<Val> initialValue, Flux<Val> authorizedTimeInMillis,
                                     Flux<Val> unauthorizedTimeInMillis, Flux<Val> startTime, Flux<Val> timeZone) {
         enforceUndefinedLeftHand(leftHand);
@@ -209,10 +215,6 @@ public class ClockPolicyInformationPoint {
                     var offset = toOffset(convertToZoneId(tuple.getT5()), periodStartLocalTime);
                     var adjustedPeriodStart = periodStartLocalTime.atOffset(localOffset).withOffsetSameInstant(offset)
                             .toLocalTime();
-
-                    // System.out.println("start: " + adjustedPeriodStart + ", initial: " + initialValue.blockFirst()
-                    //         .getBoolean() + ", authTime: " + authorizedTimeInMillis.blockFirst().get()
-                    //         .longValue() + ", unauthTime: " + unauthorizedTimeInMillis.blockFirst().get().longValue());
 
                     return Flux.create(sink -> PeriodProducer.builder()
                             .initiallyAuthorized(tuple.getT1().getBoolean())
@@ -229,7 +231,6 @@ public class ClockPolicyInformationPoint {
         if (objects.length != 5) throw new IllegalArgumentException("exactly 5 arguments must be provided");
         for (Object object : objects) {
             if (!(object instanceof Val)) throw new IllegalArgumentException("argument must be of type Val");
-
         }
 
         return Tuples.of((Val) objects[0], (Val) objects[1], (Val) objects[2], (Val) objects[3], (Val) objects[4]);
@@ -243,7 +244,6 @@ public class ClockPolicyInformationPoint {
     private Val negateVal(Val val) {
         return Val.of(!val.getBoolean());
     }
-
 
     private ZoneOffset toOffset(ZoneId zoneId, LocalTime localTime) {
         return zoneId.getRules().getOffset(LocalDate.now().atTime(localTime));
