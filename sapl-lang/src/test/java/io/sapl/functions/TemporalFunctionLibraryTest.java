@@ -50,7 +50,6 @@ import static io.sapl.hamcrest.Matchers.val;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-//TODO: tests für sämtliche neue funktionen schreiben
 class TemporalFunctionLibraryTest {
 
     static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
@@ -260,7 +259,7 @@ class TemporalFunctionLibraryTest {
 
     @Test
     void policyWithMatchingTemporalBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where time.before(\"UTC\".<clock.now>, time.plusSeconds(\"UTC\".<clock.now>, 10));";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where time.before(|<clock.ticker(3,\"UTC\")>, time.plusSeconds(|<clock.ticker(3,\"UTC\")>, 10));";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
 
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
@@ -268,14 +267,14 @@ class TemporalFunctionLibraryTest {
 
     @Test
     void policyWithNonMatchingTemporalBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where time.after(\"UTC\".<clock.now>, time.plusSeconds(\"UTC\".<clock.now>, 10));";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where time.after(|<clock.ticker(3,\"UTC\")>, time.plusSeconds(|<clock.ticker(3,\"UTC\")>, 10));";
         var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithDayOfWeekBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where time.dayOfWeek(\"UTC\".<clock.now>) == \"SUNDAY\";";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where time.dayOfWeek(|<clock.ticker(3,\"UTC\")>) == \"SUNDAY\";";
         AuthorizationDecision expectedAuthzDecision;
         if (DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)) == DayOfWeek.SUNDAY) {
             expectedAuthzDecision = AuthorizationDecision.PERMIT;
@@ -287,40 +286,38 @@ class TemporalFunctionLibraryTest {
 
     @Test
     void policyWithLocalDateTimeBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localDateTime(\"UTC\".<clock.now>)) in [16, 19];";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localDateTime(|<clock.ticker(3,\"UTC\")>)) in [16, 19];";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalTimeBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localTime(\"UTC\".<clock.now>)) in [5, 8];";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localTime(|<clock.ticker(3,\"UTC\")>)) in [5, 8];";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalHourBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where var hour = time.localHour(\"UTC\".<clock.now>); hour >= 0 && hour <= 23;";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where var hour = time.localHour(|<clock.ticker(3,\"UTC\")>); hour >= 0 && hour <= 23;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalMinuteBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where var minute = time.localMinute(\"UTC\".<clock.now>); minute >= 0 && minute <= 59;";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where var minute = time.localMinute(|<clock.ticker(3,\"UTC\")>); minute >= 0 && minute <= 59;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalSecondBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where var second = time.localSecond(\"UTC\".<clock.now>); second >= 0 && second <= 59;";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where var second = time.localSecond(|<clock.ticker(3,\"UTC\")>); second >= 0 && second <= 59;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
-
-
 
 
 
