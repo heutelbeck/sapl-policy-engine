@@ -69,11 +69,11 @@ public class Periods {
         private void initializeScheduler(Duration delayToFirstPeriod, Duration delayToSecondPeriod, long loopDurationInMillis) {
             var firstPeriodScheduler = Schedulers.single().schedulePeriodically(
                     () -> listener.publishCurrentPeriodValue(initiallyAuthorized),
-                    delayToFirstPeriod.getSeconds(), loopDurationInMillis, TimeUnit.MILLISECONDS);
+                    delayToFirstPeriod.toMillis(), loopDurationInMillis, TimeUnit.MILLISECONDS);
 
             var secondPeriodScheduler = Schedulers.single().schedulePeriodically(
                     () -> listener.publishCurrentPeriodValue(!initiallyAuthorized),
-                    delayToSecondPeriod.getSeconds(), loopDurationInMillis, TimeUnit.MILLISECONDS);
+                    delayToSecondPeriod.toMillis(), loopDurationInMillis, TimeUnit.MILLISECONDS);
 
             if (firstPeriodScheduler.isDisposed() && secondPeriodScheduler.isDisposed())
                 listener.schedulerDisposed();

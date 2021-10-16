@@ -37,7 +37,6 @@ import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -321,61 +320,9 @@ class TemporalFunctionLibraryTest {
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
-    @Test
-    void policyWithMillisBody() {
-        var policyDefinition = "policy \"test\" " +
-                "   permit action == \"read\" " +
-                "   where " +
-                "       var millis = \"UTC\".<clock.millis>; " +
-                "       var instant = time.ofEpochMillis(millis); " +
-                "       time.validUTC(instant);";
-        var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-        assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-    }
 
-    @Test
-    void policyWithTimeZoneBody() {
-        var policyDefinition = "policy \"test\" " +
-                "   permit action == \"read\" " +
-                "   where " +
-                "       var timeZone = \"system\".<clock.timeZone>; " +
-                "       standard.length(timeZone) > 0; ";
 
-        var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-        assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-    }
 
-    @Test
-    void policyWithTimerBody() {
-        var policyDefinition = "policy \"test\" " +
-                "   permit action == \"read\" " +
-                "   where " +
-                "      \"system\".<clock.timer(5)>; ";
-
-        StepVerifier.withVirtualTime(() -> INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT))
-                .expectSubscription()
-                .consumeNextWith(authzDecision -> {
-                    assertThat(authzDecision, is(AuthorizationDecision.NOT_APPLICABLE));
-                })
-                .expectNoEvent(Duration.ofSeconds(5))
-                .thenAwait(Duration.ofSeconds(5))
-                .consumeNextWith(authzDecision -> {
-                    assertThat(authzDecision, is(AuthorizationDecision.PERMIT));
-                })
-                .expectComplete().verify();
-    }
-
-    @Test
-    void policyWithClockAfterBody() {
-        var policyDefinition = "policy \"test\" " +
-                "   permit action == \"read\" " +
-                "   where " +
-                "       var after =\"system\".|<clock.after(\"00:00\")>; " +
-                "       var before =\"system\".|<clock.before(\"23:59\")>; " +
-                "       after && before;";
-        var expectedAuthzDecision = AuthorizationDecision.PERMIT;
-        assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
-    }
 
     private void assertThatPolicyEvaluatesTo(String policyDefinition, AuthorizationDecision expectedAuthzDecision) {
         StepVerifier.create(INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT))

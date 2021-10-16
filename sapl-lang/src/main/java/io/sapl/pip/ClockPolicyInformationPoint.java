@@ -25,6 +25,7 @@ import io.sapl.pip.Periods.PeriodProducer;
 import io.sapl.pip.Schedules.ScheduleListener;
 import io.sapl.pip.Schedules.ScheduleProducer;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink.OverflowStrategy;
 import reactor.core.publisher.Mono;
@@ -39,9 +40,9 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @NoArgsConstructor
 @PolicyInformationPoint(name = ClockPolicyInformationPoint.NAME, description = ClockPolicyInformationPoint.DESCRIPTION)
 public class ClockPolicyInformationPoint {
@@ -50,11 +51,11 @@ public class ClockPolicyInformationPoint {
 
     public static final String DESCRIPTION = "Policy Information Point and attributes for retrieving current date and time information";
 
-    private static final Flux<Val> SYSTEM_DEFAULT_TIMEZONE_FLUX = Flux.just(Val.of(TimeZone.getDefault().toString()));
+    private static final Flux<Val> SYSTEM_DEFAULT_TIMEZONE_FLUX = Flux.just(Val.of(ZoneId.systemDefault().toString()));
 
 
     @Attribute(docs = "Returns the current date and time in the systems default time zone as an  millisecond-based instant, measured from 1970-01-01T00:00Z (UTC).")
-    public Flux<Val> millis(Val leftHand, Map<String, JsonNode> variables) {
+    public Flux<Val> millisSystem(Val leftHand, Map<String, JsonNode> variables) {
         return millis(leftHand, variables, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
@@ -75,7 +76,7 @@ public class ClockPolicyInformationPoint {
 
 
     @Attribute(docs = "Emits the current date and time every x milliseconds in the systems defaults time zone. x is the passed number value.")
-    public Flux<Val> ticker(Val leftHand, Map<String, JsonNode> variables, Flux<Val> intervallInMillis) {
+    public Flux<Val> tickerSystem(Val leftHand, Map<String, JsonNode> variables, Flux<Val> intervallInMillis) {
         return ticker(leftHand, variables, intervallInMillis, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
@@ -104,7 +105,7 @@ public class ClockPolicyInformationPoint {
     }
 
     @Attribute(docs = "Returns true if the local clock is after the provided time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsAfter(Val leftHand, Map<String, JsonNode> variables, Flux<Val> time) {
+    public Flux<Val> nowIsAfterSystem(Val leftHand, Map<String, JsonNode> variables, Flux<Val> time) {
         return nowIsAfter(leftHand, variables, time, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
@@ -131,7 +132,7 @@ public class ClockPolicyInformationPoint {
     }
 
     @Attribute(docs = "Returns true if the local clock is before the provided time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsBefore(Val leftHand, Map<String, JsonNode> variables, Flux<Val> time) {
+    public Flux<Val> nowIsBeforeSystem(Val leftHand, Map<String, JsonNode> variables, Flux<Val> time) {
         return nowIsBefore(leftHand, variables, time, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
@@ -142,7 +143,7 @@ public class ClockPolicyInformationPoint {
     }
 
     @Attribute(docs = "Returns true if the local clock is before the provided start time and before the end time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsBetween(Val leftHand, Map<String, JsonNode> variables, Flux<Val> start, Flux<Val> end) {
+    public Flux<Val> nowIsBetweenSystem(Val leftHand, Map<String, JsonNode> variables, Flux<Val> start, Flux<Val> end) {
         return nowIsBetween(leftHand, variables, start, end, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
@@ -158,6 +159,8 @@ public class ClockPolicyInformationPoint {
         if ((!nowIsAfterVal.isBoolean()) || (!nowIsBeforeVal.isBoolean())) throw new RuntimeException("values must be of type boolean");
 
         var nowIsBetween = nowIsAfterVal.getBoolean() && nowIsBeforeVal.getBoolean();
+
+        log.info("combining nowIsAfter({}) and nowIsBefore({}) to nowIsBetween({})", nowIsAfterVal.getBoolean(), nowIsBeforeVal.getBoolean(), nowIsBetween);
 
         return Val.of(nowIsBetween);
     }
@@ -189,8 +192,8 @@ public class ClockPolicyInformationPoint {
     }
 
     @Attribute(docs = "TODO")
-    public Flux<Val> periodicToggle(Val leftHand, Map<String, JsonNode> variables, Flux<Val> initialValue, Flux<Val> authorizedTimeInMillis,
-                                    Flux<Val> unauthorizedTimeInMillis, Flux<Val> startTime) {
+    public Flux<Val> periodicToggleSystem(Val leftHand, Map<String, JsonNode> variables, Flux<Val> initialValue, Flux<Val> authorizedTimeInMillis,
+                                          Flux<Val> unauthorizedTimeInMillis, Flux<Val> startTime) {
         return periodicToggle(leftHand, variables, initialValue, authorizedTimeInMillis, unauthorizedTimeInMillis, startTime, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
@@ -206,6 +209,10 @@ public class ClockPolicyInformationPoint {
                     var offset = toOffset(convertToZoneId(tuple.getT5()), periodStartLocalTime);
                     var adjustedPeriodStart = periodStartLocalTime.atOffset(localOffset).withOffsetSameInstant(offset)
                             .toLocalTime();
+
+                    // System.out.println("start: " + adjustedPeriodStart + ", initial: " + initialValue.blockFirst()
+                    //         .getBoolean() + ", authTime: " + authorizedTimeInMillis.blockFirst().get()
+                    //         .longValue() + ", unauthTime: " + unauthorizedTimeInMillis.blockFirst().get().longValue());
 
                     return Flux.create(sink -> PeriodProducer.builder()
                             .initiallyAuthorized(tuple.getT1().getBoolean())
@@ -229,7 +236,8 @@ public class ClockPolicyInformationPoint {
     }
 
     private void enforceUndefinedLeftHand(Val val) {
-        throw new IllegalArgumentException("left hand value must be undefined but is of type" + val.getValType());
+        if (val.isDefined())
+            throw new IllegalArgumentException("left hand value must be undefined but is of type" + val.getValType());
     }
 
     private Val negateVal(Val val) {
