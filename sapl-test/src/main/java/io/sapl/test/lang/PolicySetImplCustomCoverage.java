@@ -5,6 +5,7 @@ import io.sapl.grammar.sapl.impl.PolicySetImplCustom;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.coverage.api.model.PolicySetHit;
+
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
@@ -22,7 +23,7 @@ public class PolicySetImplCustomCoverage extends PolicySetImplCustom {
 			//record policySet hit if policySet matches
 			if(matches.isBoolean() && matches.getBoolean()) {
 				PolicySetHit hit = new PolicySetHit(getSaplName());
-				log.trace("Hit PolicySet: " + hit);
+				log.trace("| | | | |-- Hit PolicySet: " + hit);
 				this.hitRecorder.recordPolicySetHit(hit);
 			}
 		});

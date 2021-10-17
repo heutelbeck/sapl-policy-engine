@@ -3,8 +3,6 @@ package io.sapl.test.unit;
 import java.util.LinkedList;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -18,6 +16,9 @@ import io.sapl.test.steps.AttributeMockReturnValues;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.StepsDefaultImpl;
 import io.sapl.test.steps.WhenStep;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -65,7 +66,7 @@ class StepBuilder {
 		Steps(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
 			this.document = document;
 			this.mockingFunctionContext = new MockingFunctionContext(funcCtx);
-			this.mockingAttributeContext = new MockingAttributeContext(attrCtx, this.numberOfExpectSteps);
+			this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
 			this.variables = variables;
 			this.mockedAttributeValues = new LinkedList<>();
 		}

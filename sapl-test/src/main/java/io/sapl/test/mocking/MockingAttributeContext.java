@@ -18,6 +18,7 @@ import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.steps.NumberOfExpectSteps;
+
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -40,18 +41,16 @@ public class MockingAttributeContext implements AttributeContext {
 	 */
 	private final Map<String, AttributeMock> registeredMocks;
 	private final Map<String, PolicyInformationPointDocumentation> pipDocumentations;
-	private final NumberOfExpectSteps numberOfExpectSteps;
 
 	/**
 	 * Constructor of MockingAttributeContext
 	 * @param unmockedAttributeContext unmocked "normal" AttributeContext do delegate unmocked attribute calls
 	 * @param numberOfExpectSteps {@link NumberOfExpectSteps} to convert infinite streams to finite ones via a .take(numberOfExpectSteps) call. "null" if no conversion to a finite stream should happen.
 	 */
-	public MockingAttributeContext(AttributeContext unmockedAttributeContext, NumberOfExpectSteps numberOfExpectSteps) {
+	public MockingAttributeContext(AttributeContext unmockedAttributeContext) {
 		this.unmockedAttributeContext = unmockedAttributeContext;
 		this.registeredMocks = new HashMap<String, AttributeMock>();
 		this.pipDocumentations = new HashMap<>();
-		this.numberOfExpectSteps = numberOfExpectSteps;
 	}
 
 	@Override
@@ -87,17 +86,11 @@ public class MockingAttributeContext implements AttributeContext {
 	public Flux<Val> evaluate(String attribute, Val value, EvaluationContext ctx, Arguments arguments) {
 		AttributeMock mock = this.registeredMocks.get(attribute);
 		if (mock != null) {
-			log.debug("Evaluate mocked attribute \"{}\"", attribute);
-			return mock.evaluate();
+			log.debug("| | | | |-- Evaluate mocked attribute \"{}\"", attribute);
+			return mock.evaluate().doOnNext((val) -> log.trace("| | | | |-- AttributeMock returned: " + val.toString()));
 		} else {
-			log.debug("Delegate attribute \"{}\" to unmocked attribute context", attribute);
-			if(this.numberOfExpectSteps != null) {
-				log.trace("Covert infinite stream of attribute \"{}\" to finite by taking the first {} Val's", attribute, this.numberOfExpectSteps.getNumberOfExpectSteps());
-				return this.unmockedAttributeContext.evaluate(attribute, value, ctx, arguments)
-						.take(this.numberOfExpectSteps.getNumberOfExpectSteps());				
-			} else {
-				return this.unmockedAttributeContext.evaluate(attribute, value, ctx, arguments);
-			}
+			log.debug("| | | | |-- Delegate attribute \"{}\" to unmocked attribute context", attribute);
+			return this.unmockedAttributeContext.evaluate(attribute, value, ctx, arguments);
 		}
 	}
 
@@ -122,7 +115,6 @@ public class MockingAttributeContext implements AttributeContext {
 			throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));
 		} else {
 			AttributeMockTestPublisher mock = new AttributeMockTestPublisher(fullname);
-			mock.markMock();
 			this.registeredMocks.put(fullname, mock);
 
 			addNewPIPDocumentation(fullname, mock);
@@ -131,10 +123,16 @@ public class MockingAttributeContext implements AttributeContext {
 
 	public void mockEmit(String fullname, Val returns) {
 		AttributeMock mock = this.registeredMocks.get(fullname);
-		if (mock == null || !(mock instanceof AttributeMockTestPublisher)) {
+		
+		if (mock == null) {
 			throw new SaplTestException(String.format(ERROR_NOT_MARKED_DYNAMIC_MOCK, fullname, fullname));
-		} else {
+		}
+		
+		if (mock instanceof AttributeMockTestPublisher) {
 			((AttributeMockTestPublisher)mock).mockEmit(returns);
+			return;
+		} else {	
+			throw new SaplTestException(String.format(ERROR_NOT_MARKED_DYNAMIC_MOCK, fullname, fullname));
 		}
 	}
 	

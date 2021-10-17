@@ -2,9 +2,6 @@ package io.sapl.test.lang;
 
 import java.util.function.Function;
 
-import org.eclipse.emf.ecore.EObject;
-import org.reactivestreams.Publisher;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Policy;
@@ -14,6 +11,10 @@ import io.sapl.grammar.sapl.impl.PolicyBodyImplCustom;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
+
+import org.eclipse.emf.ecore.EObject;
+import org.reactivestreams.Publisher;
+
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
@@ -55,7 +56,7 @@ public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 				// because of implementation of super method and switchMap -> this is executed on the actual statementId-1 
 				int actualStatementId = this.currentStatementId - 1;
 				PolicyConditionHit hit = new PolicyConditionHit(policySetId, policyId, actualStatementId, result.getT1().getBoolean());
-				log.trace("hit PolicyCondition: " + hit);
+				log.trace("| | | | |-- Hit PolicyCondition: " + hit);
 				this.hitRecorder.recordPolicyConditionHit(hit);
 			}
 		});

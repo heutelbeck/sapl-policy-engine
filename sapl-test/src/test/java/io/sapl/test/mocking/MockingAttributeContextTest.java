@@ -8,11 +8,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
@@ -20,6 +15,12 @@ import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.unit.TestPIP;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
 import reactor.test.StepVerifier;
 
 public class MockingAttributeContextTest {
@@ -30,7 +31,7 @@ public class MockingAttributeContextTest {
 	@BeforeEach
 	void setup() {
 		this.unmockedCtx = Mockito.mock(AnnotationAttributeContext.class);
-		this.ctx = new MockingAttributeContext(unmockedCtx, null);
+		this.ctx = new MockingAttributeContext(unmockedCtx);
 	}
 
 	@Test
@@ -139,7 +140,7 @@ public class MockingAttributeContextTest {
 	@Test
 	void test_mockEmit_UnmockedAttribute() {
 		AttributeContext unmockedCtx = new AnnotationAttributeContext();
-		MockingAttributeContext ctx = new MockingAttributeContext(unmockedCtx, null);
+		MockingAttributeContext ctx = new MockingAttributeContext(unmockedCtx);
 
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
 				.isThrownBy(() -> ctx.mockEmit("foo.bar", Val.of(1)));
