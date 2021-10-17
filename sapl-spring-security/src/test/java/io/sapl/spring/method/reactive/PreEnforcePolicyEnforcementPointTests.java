@@ -32,11 +32,11 @@ public class PreEnforcePolicyEnforcementPointTests {
 	void when_Deny_ErrorIsRaisedAndStreamCompleteEvenWithOnErrorContinue() {
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
 		var mapper = new ObjectMapper();
-		var decsions = Flux.just(AuthorizationDecision.DENY);
+		var decisions = Flux.just(AuthorizationDecision.DENY);
 		Flux<Object> resourceAccessPoint = Flux.just(1, 2, 3);
 		var onErrorContinue = errorAndCauseConsumer();
 		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decsions,
+		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decisions,
 				resourceAccessPoint, Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue))
@@ -54,11 +54,11 @@ public class PreEnforcePolicyEnforcementPointTests {
 	void when_Permit_AccessIsGranted() {
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
 		var mapper = new ObjectMapper();
-		var decsions = Flux.just(AuthorizationDecision.PERMIT);
+		var decisions = Flux.just(AuthorizationDecision.PERMIT);
 		Flux<Object> resourceAccessPoint = Flux.just(1, 2, 3);
 		var onErrorContinue = errorAndCauseConsumer();
 		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decsions,
+		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decisions,
 				resourceAccessPoint, Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue)).expectNext(1, 2, 3)
@@ -85,11 +85,11 @@ public class PreEnforcePolicyEnforcementPointTests {
 		});
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var mapper = new ObjectMapper();
-		var decsions = decisionFluxOnePermitWithObligation();
+		var decisions = decisionFluxOnePermitWithObligation();
 		Flux<Object> resourceAccessPoint = Flux.just(1, 2, 3);
 		var onErrorContinue = errorAndCauseConsumer();
 		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decsions,
+		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decisions,
 				resourceAccessPoint, Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue)).expectNext(1, 2, 3)
@@ -118,11 +118,11 @@ public class PreEnforcePolicyEnforcementPointTests {
 		});
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var mapper = new ObjectMapper();
-		var decsions = decisionFluxOnePermitWithObligation();
+		var decisions = decisionFluxOnePermitWithObligation();
 		Flux<Object> resourceAccessPoint = Flux.just(1, 2, 3);
 		var onErrorContinue = errorAndCauseConsumer();
 		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decsions,
+		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decisions,
 				resourceAccessPoint, Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue)).expectNext(10001, 10002, 10003)
@@ -153,11 +153,11 @@ public class PreEnforcePolicyEnforcementPointTests {
 		});
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of(handler));
 		var mapper = new ObjectMapper();
-		var decsions = decisionFluxOnePermitWithObligation();
+		var decisions = decisionFluxOnePermitWithObligation();
 		Flux<Object> resourceAccessPoint = Flux.just(1, 2, 3);
 		var onErrorContinue = errorAndCauseConsumer();
 		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decsions,
+		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decisions,
 				resourceAccessPoint, Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue)).expectNext(10001)
@@ -186,12 +186,12 @@ public class PreEnforcePolicyEnforcementPointTests {
 		var mapper = new ObjectMapper();
 		var obligations = JSON.arrayNode();
 		obligations.add(JSON.numberNode(420));
-		var decsions = Flux
+		var decisions = Flux
 				.just(AuthorizationDecision.PERMIT.withObligations(obligations).withResource(JSON.numberNode(69)));
 		Flux<Object> resourceAccessPoint = Flux.just(1, 2, 3);
 		var onErrorContinue = errorAndCauseConsumer();
 		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decsions,
+		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decisions,
 				resourceAccessPoint, Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue)).expectNext(489).verifyComplete();
@@ -205,11 +205,11 @@ public class PreEnforcePolicyEnforcementPointTests {
 	void when_PermitWithResource_and_typeMismatch_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() {
 		var constraintsService = new ReactiveConstraintEnforcementService(List.of());
 		var mapper = new ObjectMapper();
-		var decsions = Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("I CAUSE A TYPE MISMATCH")));
+		var decisions = Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("I CAUSE A TYPE MISMATCH")));
 		Flux<Object> resourceAccessPoint = Flux.just(1, 2, 3);
 		var onErrorContinue = errorAndCauseConsumer();
 		var doOnError = errorConsumer();
-		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decsions,
+		var sut = new PreEnforcePolicyEnforcementPoint(constraintsService, mapper).enforce(decisions,
 				resourceAccessPoint, Integer.class);
 
 		StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue))

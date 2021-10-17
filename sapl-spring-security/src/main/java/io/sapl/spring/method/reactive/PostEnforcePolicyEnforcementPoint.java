@@ -43,7 +43,8 @@ public class PostEnforcePolicyEnforcementPoint {
 					}
 				}
 				return constraintHandlerService
-						.enforceConstraintsOnResourceAccessPoint(decision, finalResourceAccessPoint).next();
+						.enforceConstraintsOnResourceAccessPoint(decision, finalResourceAccessPoint).onErrorStop()
+						.next();
 			});
 		});
 	}
