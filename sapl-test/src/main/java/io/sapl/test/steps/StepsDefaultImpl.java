@@ -101,7 +101,6 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
     @Override
     public GivenOrWhenStep givenAttribute(String importName, Val... returns) {
-        // this.mockingAttributeContext.loadAttributeMock(importName, returns);
         this.mockingAttributeContext.markAttributeMock(importName);
         this.mockedAttributeValues.add(AttributeMockReturnValues.of(importName, List.of(returns)));
         return this;
@@ -164,50 +163,55 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
     @Override
     public VerifyStep expectPermit() {
-        return this.expect(isPermit());
+        return this.expect(isPermit(), "AuthorizationDecision.PERMIT");
     }
 
     @Override
     public VerifyStep expectDeny() {
-        return this.expect(isDeny());
+        return this.expect(isDeny(), "AuthorizationDecision.DENY");
     }
 
     @Override
     public VerifyStep expectIndeterminate() {
-        return this.expect(isIndeterminate());
+        return this.expect(isIndeterminate(), "AuthorizationDecision.INDETERMINATE");
     }
 
     @Override
     public VerifyStep expectNotApplicable() {
-        return this.expect(isNotApplicable());
+        return this.expect(isNotApplicable(), "AuthorizationDecision.NOT_APPLICABLE");
     }
 
     @Override
     public VerifyStep expect(AuthorizationDecision authDec) {
-        this.steps = this.steps.expectNext(authDec);
         this.numberOfExpectSteps.addExpectStep();
-        return this;
+        this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec.toString()));
+		return this;
     }
 
     @Override
     public VerifyStep expect(Predicate<AuthorizationDecision> pred) {
-        this.steps = this.steps.expectNextMatches(pred);
         this.numberOfExpectSteps.addExpectStep();
+        this.steps = this.steps.expectNextMatches(pred).as(getDebugMessage("predicate evaluating to true"));
         return this;
     }
 
     @Override
     public VerifyStep expect(Matcher<AuthorizationDecision> matcher) {
-        this.steps = this.steps.expectNextMatches(dec -> matcher.matches(dec));
+        return this.expect(matcher, matcher.toString());
+    }
+    
+    private VerifyStep expect(Matcher<AuthorizationDecision> matcher, String message) {
         this.numberOfExpectSteps.addExpectStep();
+        this.steps = this.steps.expectNextMatches(dec -> matcher.matches(dec)).as(getDebugMessage(message));
         return this;
     }
+    
 
     // #
 
     @Override
     public ExpectOrVerifyStep expectNextPermit() {
-        return this.expectNext(isPermit());
+        return this.expectNextPermit(1);
     }
 
     @Override
@@ -216,14 +220,14 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
             throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
         }
         for (int i = 0; i < count; i++) {
-            this.expectNext(isPermit());
+            this.expectNext(isPermit(), "AuthorizationDecision.PERMIT");
         }
         return this;
     }
 
     @Override
     public ExpectOrVerifyStep expectNextDeny() {
-        return this.expectNext(isDeny());
+        return this.expectNextDeny(1);
     }
 
     @Override
@@ -232,14 +236,14 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
             throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
         }
         for (int i = 0; i < count; i++) {
-        	this.expectNext(isDeny());
+        	this.expectNext(isDeny(), "AuthorizationDecision.DENY");
         }
         return this;
     }
 
     @Override
     public ExpectOrVerifyStep expectNextIndeterminate() {
-        return this.expectNext(isIndeterminate());
+        return this.expectNextIndeterminate(1);
     }
 
     @Override
@@ -248,14 +252,14 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
             throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
         }
         for (int i = 0; i < count; i++) {
-        	this.expectNext(isIndeterminate());
+        	this.expectNext(isIndeterminate(), "AuthorizationDecision.INDETERMINATE");
         }
         return this;
     }
 
     @Override
     public ExpectOrVerifyStep expectNextNotApplicable() {
-    	return this.expectNext(isNotApplicable()); 
+    	return this.expectNextNotApplicable(1); 
     }
 
     @Override
@@ -264,29 +268,34 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
             throw new SaplTestException(ERROR_EXPECT_NEXT_0_OR_NEGATIVE);
         }
         for (int i = 0; i < count; i++) {
-        	 this.expectNext(isNotApplicable()); 
+        	 this.expectNext(isNotApplicable(), "AuthorizationDecision.NOT_APPLICABLE"); 
         }
         return this;
     }
 
     @Override
     public ExpectOrVerifyStep expectNext(AuthorizationDecision authDec) {
-        this.steps = this.steps.expectNext(authDec);
         this.numberOfExpectSteps.addExpectStep();
-        return this;
-    }
-
-    @Override
-    public ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher) {
-        this.steps = this.steps.expectNextMatches(dec -> matcher.matches(dec));
-        this.numberOfExpectSteps.addExpectStep();
+        this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec.toString()));
         return this;
     }
 
     @Override
     public ExpectOrVerifyStep expectNext(Predicate<AuthorizationDecision> pred) {
-        this.steps = this.steps.expectNextMatches(pred);
         this.numberOfExpectSteps.addExpectStep();
+        this.steps = this.steps.expectNextMatches(pred).as(getDebugMessage("predicate evaluating to true"));
+        return this;
+    }
+
+    @Override
+    public ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher) {
+        return this.expectNext(matcher, matcher.toString());
+    }
+    
+    
+    private ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher, String message) {
+        this.numberOfExpectSteps.addExpectStep();
+        this.steps = this.steps.expectNextMatches(dec -> matcher.matches(dec)).as(getDebugMessage(message));
         return this;
     }
 
@@ -320,5 +329,28 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
         this.mockingAttributeContext.assertVerifications();
         this.mockingFunctionContext.assertVerifications();
 
+    }
+    
+    
+
+    private String getDebugMessage(String endOfMessage) {
+    	StringBuilder builder = new StringBuilder();
+    	switch (this.numberOfExpectSteps.getNumberOfExpectSteps()) {
+    	case 1:
+    		builder.append("1st");
+    		break;
+    	case 2:
+    		builder.append("2nd");
+    		break;
+    	case 3: 
+    		builder.append("3rd");
+    		break;
+		default:
+			builder.append(this.numberOfExpectSteps.getNumberOfExpectSteps() + "th");
+    	}
+    	
+    	builder.append(" expect step failed: Expected " + endOfMessage);
+    	
+    	return builder.toString();
     }
 }
