@@ -40,9 +40,7 @@ public class PreEnforcePolicyEnforcementPoint {
 							e.getMessage())));
 				}
 			}
-			// onErrorStop is required to counter an onErrorContinue attack on the RAP. If
-			// this is omitted and a downstream consumer does onErrorContinue, the RAP may
-			// be accessed by the client.
+			// onErrorStop is required to counter an onErrorContinue attack on the PEP/RAP.
 			return constraintHandlerService.enforceConstraintsOnResourceAccessPoint(decision, finalResourceAccessPoint)
 					.onErrorStop();
 		};
