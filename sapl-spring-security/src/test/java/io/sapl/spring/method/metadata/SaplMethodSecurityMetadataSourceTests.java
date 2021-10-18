@@ -37,7 +37,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenInspectedISObjectr_ThenReturnsEmptycollection() throws NoSuchMethodException, SecurityException {
+	void whenInspectedIsObject_ThenReturnsEmptycollection() throws NoSuchMethodException, SecurityException {
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
 		var method = Object.class.getMethod("toString");
 		assertThat(sut.getAttributes(method, Object.class), is(empty()));
