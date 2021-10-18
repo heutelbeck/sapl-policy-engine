@@ -88,6 +88,25 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	}
 
 	/**
+	 * Convenience method to add an authorization subscription without environment
+	 * data. Calls
+	 * {@link #addAuthorizationSubscription(String, Object, Object, Object)
+	 * addAuthorizationSubscription(subscriptionId, subject, action, resource,
+	 * null)}.
+	 * 
+	 * @param subscriptionId the id identifying the authorization subscription to be
+	 *                       added.
+	 * @param authzSub       an authorization subscription.
+	 * @return this {@code MultiAuthorizationSubscription} instance to support
+	 *         chaining of multiple calls to {@code addAuthorizationSubscription}.
+	 */
+	public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId,
+			AuthorizationSubscription subscription) {
+		return addAuthorizationSubscription(subscriptionId, subscription.getSubject(), subscription.getAction(),
+				subscription.getResource(), subscription.getEnvironment());
+	}
+
+	/**
 	 * Adds the authorization subscription defined by the given subject, action,
 	 * resource and environment. The given {@code subscriptionId} is associated with
 	 * the according decision to allow the recipient of the PDP decision to

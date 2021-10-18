@@ -87,6 +87,18 @@ class MultiAuthorizationSubscriptionTest {
 	}
 
 	@Test
+	void addTwoSubscriptionsViaBasicSubscriptionTest() {
+		var subscription = new MultiAuthorizationSubscription()
+				.addAuthorizationSubscription(ID, AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE))
+				.addAuthorizationSubscription(ID2, AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE2));
+		assertAll(() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID), notNullValue()),
+				() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID).getResource(),
+						is(jsonText(RESOURCE))),
+				() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID2), notNullValue()),
+				() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID2).getResource(),
+						is(jsonText(RESOURCE2))));
+	}
+	@Test
 	void addSameIdTwiceFailsTest() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION, RESOURCE)
