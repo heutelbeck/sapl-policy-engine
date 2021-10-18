@@ -25,7 +25,7 @@ public class StepsDefaultImplTestImpl extends StepsDefaultImpl {
 	StepsDefaultImplTestImpl(String document, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
 		this.document = new DefaultSAPLInterpreter().parse(document);
 		this.mockingFunctionContext = new MockingFunctionContext(funcCtx);
-		this.mockingAttributeContext = new MockingAttributeContext(attrCtx, this.numberOfExpectSteps);
+		this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
 		this.variables = variables;
 		this.mockedAttributeValues = new LinkedList<>();
 	}

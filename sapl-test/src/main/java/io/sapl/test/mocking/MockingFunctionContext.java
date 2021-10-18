@@ -12,14 +12,15 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
-import org.hamcrest.number.OrderingComparison;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.verification.TimesCalledVerification;
+
+import org.hamcrest.number.OrderingComparison;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -81,10 +82,12 @@ public class MockingFunctionContext implements FunctionContext {
 	public Val evaluate(String function, Val... parameters) {
 		FunctionMock mock = this.registeredMocks.get(function);
 		if (mock != null) {
-			log.debug("Evaluate mocked function \"{}\"", function);
-			return mock.evaluateFunctionCall(new FunctionCallSimple(parameters));
+			log.debug("| | | | |-- Evaluate mocked function \"{}\"", function);
+			var result = mock.evaluateFunctionCall(new FunctionCallSimple(parameters));
+			log.trace("| | | | |-- FunctionMock returned: " + result.toString());
+			return result;
 		} else {
-			log.debug("Delegate function \"{}\" to unmocked function context", function);
+			log.debug("| | | | |-- Delegate function \"{}\" to unmocked function context", function);
 			return this.unmockedFunctionContext.evaluate(function, parameters);
 		}
 	}

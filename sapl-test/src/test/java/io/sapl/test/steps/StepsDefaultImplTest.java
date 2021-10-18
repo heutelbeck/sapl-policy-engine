@@ -86,7 +86,7 @@ class StepsDefaultImplTest {
 	
 		@BeforeEach
 	    void setUp() {
-			this.attrCtx = new MockingAttributeContext(Mockito.mock(AnnotationAttributeContext.class), null);
+			this.attrCtx = new MockingAttributeContext(Mockito.mock(AnnotationAttributeContext.class));
 			this.funcCtx = new MockingFunctionContext(Mockito.mock(AnnotationFunctionContext.class));
 			this.variables = new HashMap<>();
 	    }

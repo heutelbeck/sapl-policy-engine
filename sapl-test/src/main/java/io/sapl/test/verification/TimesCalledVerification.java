@@ -8,7 +8,7 @@ import org.hamcrest.Matcher;
  *
  */
 public class TimesCalledVerification implements MockingVerification {
-	private static final String ERROR_TIMES_VERIFICATION = "Error verifiying the expected number of calls to the mock \"%s\": ";
+	private static final String ERROR_TIMES_VERIFICATION = "Error verifiying the expected number of calls to the mock \"%s\" - Expected: \"%s\" - got: \"%s\"";
 		
 	Matcher<Integer> matcher;
 	 
@@ -28,7 +28,7 @@ public class TimesCalledVerification implements MockingVerification {
 		if(verificationFailedMessage != null && !verificationFailedMessage.isEmpty()) {
 			message = verificationFailedMessage;
 		} else {
-			message = String.format(ERROR_TIMES_VERIFICATION, mockRunInformation.getFullname());
+			message = String.format(ERROR_TIMES_VERIFICATION, mockRunInformation.getFullname(), this.matcher.toString(), mockRunInformation.getTimesCalled());
 		}
 		
 		Assertions.assertThat(this.matcher.matches(mockRunInformation.getTimesCalled())).as(message).isTrue();

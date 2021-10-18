@@ -2,12 +2,7 @@ package io.sapl.hamcrest;
 
 import static com.spotify.hamcrest.jackson.IsJsonBoolean.jsonBoolean;
 import static com.spotify.hamcrest.jackson.IsJsonNull.jsonNull;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonBigDecimal;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonBigInteger;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonDouble;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonFloat;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonInt;
-import static com.spotify.hamcrest.jackson.IsJsonNumber.jsonLong;
+import static com.spotify.hamcrest.jackson.IsJsonNumber.*;
 import static com.spotify.hamcrest.jackson.IsJsonText.jsonText;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
 import static org.hamcrest.core.Is.is;
@@ -17,14 +12,15 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.function.Predicate;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
+
 import org.hamcrest.Matcher;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -141,6 +137,10 @@ public class Matchers {
 		return new HasObligation(jsonObject(node));
 	}
 	
+	public static Matcher<AuthorizationDecision> hasObligation(String value) {
+		return new HasObligation(jsonText(value));
+	}
+	
 	public static Matcher<AuthorizationDecision> hasObligation(Matcher<? super JsonNode> matcher) {
 		return new HasObligation(matcher);
 	}
@@ -163,6 +163,10 @@ public class Matchers {
 	
 	public static Matcher<AuthorizationDecision> hasAdvice(ObjectNode node) {
 		return new HasAdvice(jsonObject(node));
+	}
+	
+	public static Matcher<AuthorizationDecision> hasAdvice(String value) {
+		return new HasAdvice(jsonText(value));
 	}
 	
 	public static Matcher<AuthorizationDecision> hasAdvice(Matcher<? super JsonNode> matcher) {

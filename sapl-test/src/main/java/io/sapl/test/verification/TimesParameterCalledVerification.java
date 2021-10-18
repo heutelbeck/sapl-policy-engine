@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 
-import org.hamcrest.Matcher;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.verification.MockRunInformation.CallWithMetadata;
+
+import org.hamcrest.Matcher;
 
 /**
  * Verify that this mock was called n times.
@@ -59,7 +59,7 @@ public class TimesParameterCalledVerification implements MockingVerification {
 		if(verificationFailedMessage != null && !verificationFailedMessage.isEmpty()) {
 			assertErrorMessage = verificationFailedMessage;
 		} else {
-			assertErrorMessage = constructErrorMessage(mockRunInformation.getFullname(), this.wantedArgs);
+			assertErrorMessage = constructErrorMessage(mockRunInformation.getFullname(), this.wantedArgs, callsForParameter, verification);
 		}
 		
 		this.verification.verify(callsForParameter, assertErrorMessage); 
@@ -67,7 +67,7 @@ public class TimesParameterCalledVerification implements MockingVerification {
 	}
 	
 	
-	private String constructErrorMessage(String fullname, Iterable<Matcher<Val>> wantedArgs) {
+	private String constructErrorMessage(String fullname, Iterable<Matcher<Val>> wantedArgs, MockRunInformation callsForParameter, TimesCalledVerification verification) {
 		StringBuilder builder = new StringBuilder("Error verifiying the expected number of calls to the mock \"" + fullname + "\" for parameters [");
 		
 		for(Matcher<Val> matcher : wantedArgs) {
@@ -76,6 +76,8 @@ public class TimesParameterCalledVerification implements MockingVerification {
 		
 		builder.deleteCharAt(builder.length() - 1);
 		builder.append(']');
+		
+		builder.append(" - Expected: " + verification.toString() + " - got: " + callsForParameter.getTimesCalled());
 		
 		return builder.toString();
 	}
