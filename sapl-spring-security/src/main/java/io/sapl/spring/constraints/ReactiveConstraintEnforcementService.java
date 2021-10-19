@@ -98,7 +98,7 @@ public class ReactiveConstraintEnforcementService {
 				var handlers = getHandlersResponsibleForConstraint(constraint);
 
 				if (handlers.isEmpty())
-					throw new AccessDeniedException("No handler for obligation: " + constraint.asText());
+					logNoHandlerFoundAndThrowIfObligation(constraint, true);
 
 				for (var handler : handlers) {
 					if (returnType == null)
@@ -107,7 +107,12 @@ public class ReactiveConstraintEnforcementService {
 					if (handlerFunction == null)
 						throw new AccessDeniedException(
 								"Obligation handler indicated that it can handle the obligation, but does not implement postBlockingMethodInvocation.");
-					mappedReturnObject = handlerFunction.apply(returnType.cast(returnedObject));
+					try {
+						mappedReturnObject = handlerFunction.apply(returnType.cast(returnedObject));
+					} catch (Throwable t) {
+						logAndThrowIfObligationOrFatal(t,
+								String.format("Handler failed for obligation: '%s'", constraint.asText()), true);
+					}
 				}
 			}
 		}
@@ -116,16 +121,24 @@ public class ReactiveConstraintEnforcementService {
 			for (var constraint : decision.getAdvice().get()) {
 				var handlers = getHandlersResponsibleForConstraint(constraint);
 				if (handlers.isEmpty())
-					log.warn("No handler for advice: {}", constraint.asText());
+					logNoHandlerFoundAndThrowIfObligation(constraint, false);
+				
 				for (var handler : handlers) {
-					if (returnType == null)
-						throw new AccessDeniedException("Generics type not specified in annotation.");
+					if (returnType == null) {
+						log.warn("Generics type not specified in annotation. Cannot handle advice.");
+						continue;
+					}
 					var handlerFunction = handler.postBlockingMethodInvocation(constraint);
 					if (handlerFunction == null)
 						log.warn("No handler implemented for advice when responsibilioty was indicated: {}",
 								constraint.asText());
 					else
-						mappedReturnObject = handlerFunction.apply(returnType.cast(mappedReturnObject));
+						try {
+							mappedReturnObject = handlerFunction.apply(returnType.cast(mappedReturnObject));
+						} catch (Throwable t) {
+							logAndThrowIfObligationOrFatal(t,
+									String.format("Handler failed for advice: '%s'", constraint), false);
+						}
 				}
 			}
 		}
