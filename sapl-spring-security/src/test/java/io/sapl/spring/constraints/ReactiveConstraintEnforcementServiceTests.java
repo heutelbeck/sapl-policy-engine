@@ -2,6 +2,7 @@ package io.sapl.spring.constraints;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -9,12 +10,15 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -276,8 +280,8 @@ public class ReactiveConstraintEnforcementServiceTests {
 	@Test
 	void when_handleAfterBlockingMethodInvocation_withAdvice_noHandler_then_returnOriginalValue() {
 		var sut = new ReactiveConstraintEnforcementService(List.of());
-		var actual = sut.handleAfterBlockingMethodInvocation(
-				AuthorizationDecision.PERMIT.withAdvice(someConstraint()), 1, Integer.class);
+		var actual = sut.handleAfterBlockingMethodInvocation(AuthorizationDecision.PERMIT.withAdvice(someConstraint()),
+				1, Integer.class);
 		assertThat(actual, is(1));
 	}
 
@@ -289,8 +293,8 @@ public class ReactiveConstraintEnforcementServiceTests {
 			throw new IllegalStateException("I FAILED TO OBLIGE");
 		});
 		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
-		var actual = sut.handleAfterBlockingMethodInvocation(
-				AuthorizationDecision.PERMIT.withAdvice(someConstraint()), 1, Integer.class);
+		var actual = sut.handleAfterBlockingMethodInvocation(AuthorizationDecision.PERMIT.withAdvice(someConstraint()),
+				1, Integer.class);
 		assertThat(actual, is(1));
 	}
 
@@ -299,8 +303,8 @@ public class ReactiveConstraintEnforcementServiceTests {
 		var mockHandler = mock(AbstractConstraintHandler.class);
 		when(mockHandler.isResponsible(any())).thenReturn(true);
 		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
-		var actual = sut.handleAfterBlockingMethodInvocation(
-				AuthorizationDecision.PERMIT.withAdvice(someConstraint()), 1, Integer.class);
+		var actual = sut.handleAfterBlockingMethodInvocation(AuthorizationDecision.PERMIT.withAdvice(someConstraint()),
+				1, Integer.class);
 		assertThat(actual, is(1));
 	}
 
@@ -311,9 +315,482 @@ public class ReactiveConstraintEnforcementServiceTests {
 		var expected = 42;
 		when(mockHandler.postBlockingMethodInvocation(any())).thenReturn(__ -> expected);
 		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
-		var actual = sut.handleAfterBlockingMethodInvocation(
-				AuthorizationDecision.PERMIT.withAdvice(someConstraint()), 1, Integer.class);
+		var actual = sut.handleAfterBlockingMethodInvocation(AuthorizationDecision.PERMIT.withAdvice(someConstraint()),
+				1, Integer.class);
 		assertThat(actual, is(expected));
+	}
+
+	@Test
+	void when_handleRunnableConstraints_withObligation_noHandler_then_AccessDenied() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint())));
+	}
+
+	@Test
+	void when_handleRunnableConstraints_withObligation_handlerFailing_then_AccessDenied() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onComplete(any())).thenThrow(new IllegalStateException("I FAILED TO OBLIGE"));
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint())));
+	}
+
+	@Test
+	void when_handleRunnableConstraints_withObligation_noMatchingHandler_then_AccessDenied() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(false);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint())));
+	}
+
+	@Test
+	@Disabled
+	void when_handleRunnableConstraints_withObligation_matchingHandlerReturnsNull_then_AccessDenied() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onComplete(any())).thenReturn(null);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint())));
+	}
+
+	@Test
+	void when_handleRunnableConstraints_withObligation_matchingHandlerSuccess_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onComplete(any())).thenReturn(() -> {
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(
+				() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint())));
+	}
+
+	@Test
+	void when_handleOnCancelConstraints_withObligation_matchingHandlerSuccess_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onCancel(any())).thenReturn(() -> {
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(
+				() -> sut.handleOnCancelConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint())));
+	}
+
+	@Test
+	void when_handleRunnableConstraints_withObligation_matchingHandlerFails_then_AccessDenied() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onComplete(any())).thenThrow(new IllegalStateException("I FAILED TO OBLIGE"));
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint())));
+	}
+
+	@Test
+	void when_handleRunnableConstraints_withNoConstraints_noHandler_then_Success() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		assertDoesNotThrow(() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT));
+	}
+
+	@Test
+	void when_handleRunnableConstraintsOnCancel_withNoConstraints_noHandler_then_Success() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		assertDoesNotThrow(() -> sut.handleOnCancelConstraints(AuthorizationDecision.PERMIT));
+	}
+
+	@Test
+	void when_handleOnTerminateConstraints_withNoConstraints_noHandler_then_Success() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		assertDoesNotThrow(() -> sut.handleOnTerminateConstraints(AuthorizationDecision.PERMIT));
+	}
+
+	@Test
+	void when_handleOnTerminateConstraints_withObligation_matchingHandlerSuccess_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onTerminate(any())).thenReturn(() -> {
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(
+				() -> sut.handleOnTerminateConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint())));
+	}
+
+	@Test
+	void when_handleAfterTerminateConstraints_withNoConstraints_noHandler_then_Success() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		assertDoesNotThrow(() -> sut.handleAfterTerminateConstraints(AuthorizationDecision.PERMIT));
+	}
+
+	@Test
+	void when_handleAfterTerminateConstraints_withObligation_matchingHandlerSuccess_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.afterTerminate(any())).thenReturn(() -> {
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(() -> sut
+				.handleAfterTerminateConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint())));
+	}
+
+	@Test
+	void when_handleTransformingConstraints_withObligation_noHandler_then_AccessDenied() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnNextConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()), 1));
+	}
+
+	@Test
+	void when_handleTransformingConstraints_withObligation_handlerFailing_then_AccessDenied() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onNextMap(any())).thenThrow(new IllegalStateException("I FAILED TO OBLIGE"));
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnNextConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()), 1));
+	}
+
+	@Test
+	void when_handleTransformingConstraints_withObligation_noMatchingHandler_then_AccessDenied() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(false);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnNextConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()), 1));
+	}
+
+	@Test
+	@Disabled
+	void when_handleTransformingConstraints_withObligation_matchingHandlerReturnsNull_then_AccessDenied() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onNextMap(any())).thenReturn(null);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnNextConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()), 1));
+	}
+
+	@Test
+	void when_handleTransformingConstraints_withObligation_matchingHandlerSuccess_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onNextMap(any())).thenReturn(__ -> 2);
+		when(mockHandler.onNext(any())).thenReturn(__ -> {
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		var actual = sut.handleOnNextConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()), 1);
+		assertThat(actual, is(2));
+	}
+
+	@Test
+	void when_handleTransformingConstraints_withObligation_matchingHandlerFails_then_AccessDenied() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onNextMap(any())).thenReturn(__ -> {
+			throw new IllegalStateException("I FAILED TO OBLIGE");
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnNextConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()), 1));
+	}
+
+	@Test
+	void when_handleTransformingConstraints_withNoConstraints_noHandler_then_Success() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		var actual = sut.handleOnNextConstraints(AuthorizationDecision.PERMIT, 1);
+		assertThat(actual, is(1));
+	}
+
+	@Test
+	void when_handleOnErrorConstraints_withNoConstraints_noHandler_then_Success() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		var expected = new IOException();
+		var actual = sut.handleOnErrorConstraints(AuthorizationDecision.PERMIT, expected);
+		assertThat(actual, is(expected));
+	}
+
+	@Test
+	void when_handleOnErrorConstraints_withObligation_matchingHandlerSuccess_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		var expected = new IllegalArgumentException("TRANSFORMED");
+		when(mockHandler.onErrorMap(any())).thenReturn(__ -> expected);
+		when(mockHandler.onError(any())).thenReturn(__ -> {
+		});
+		var original = new IOException();
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		var actual = sut.handleOnErrorConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()),
+				original);
+		assertThat(actual, is(expected));
+	}
+
+	@Test
+	void when_handleConsumerConstraints_withObligation_handlerFailing_then_AccessDenied() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onSubscribe(any())).thenReturn(__ -> {
+			throw new IllegalStateException("I FAILED TO OBLIGE");
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnSubscribeConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()),
+						mock(Subscription.class)));
+	}
+
+	@Test
+	void when_handleConsumerConstraints_withObligation_noMatchingHandler_then_AccessDenied() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(false);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnSubscribeConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()),
+						mock(Subscription.class)));
+	}
+
+	@Test
+	@Disabled
+	void when_handleConsumerConstraints_withObligation_matchingHandlerReturnsNull_then_AccessDenied() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onSubscribe(any())).thenReturn(null);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnSubscribeConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()),
+						mock(Subscription.class)));
+	}
+
+	@Test
+	void when_handleConsumerConstraints_withObligation_matchingHandlerSuccess_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onSubscribe(any())).thenReturn(__ -> {
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(() -> sut.handleOnSubscribeConstraints(
+				AuthorizationDecision.PERMIT.withObligations(someConstraint()), mock(Subscription.class)));
+	}
+
+	@Test
+	void when_handleConsumerConstraints_withObligation_matchingHandlerFails_then_AccessDenied() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onSubscribe(any())).thenReturn(__ -> {
+			throw new IllegalStateException("I FAILED TO OBLIGE");
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnSubscribeConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()),
+						mock(Subscription.class)));
+	}
+
+	@Test
+	void when_handleConsumerConstraints_withNoConstraints_noHandler_then_Success() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		assertDoesNotThrow(
+				() -> sut.handleOnSubscribeConstraints(AuthorizationDecision.PERMIT, mock(Subscription.class)));
+	}
+
+	@Test
+	void when_handleOnRequestConstraints_withNoConstraints_noHandler_then_Success() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		assertDoesNotThrow(() -> sut.handleOnRequestConstraints(AuthorizationDecision.PERMIT, 1L));
+	}
+
+	@Test
+	void when_handleOnRequestConstraints_withObligation_matchingHandlerSuccess_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onRequest(any())).thenReturn(__ -> {
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(() -> sut
+				.handleOnRequestConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()), 1L));
+	}
+
+	@Test
+	void when_handleConsumerConstraints_withObligation_noHandler_then_AccessDenied() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		assertThrows(AccessDeniedException.class,
+				() -> sut.handleOnSubscribeConstraints(AuthorizationDecision.PERMIT.withObligations(someConstraint()),
+						mock(Subscription.class)));
+	}
+
+	@Test
+	void when_handleRunnableConstraints_withAdvice_noHandler_then_Success() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		assertDoesNotThrow(
+				() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT.withAdvice(someConstraint())));
+	}
+
+	@Test
+	void when_handleRunnableConstraints_withAdvice_handlerFailing_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onComplete(any())).thenThrow(new IllegalStateException("I FAILED TO OBLIGE"));
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(
+				() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT.withAdvice(someConstraint())));
+	}
+
+	@Test
+	void when_handleRunnableConstraints_withAdvice_noMatchingHandler_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(false);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(
+				() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT.withAdvice(someConstraint())));
+	}
+
+	@Test
+	void when_handleRunnableConstraints_withAdvice_matchingHandlerReturnsNull_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onComplete(any())).thenReturn(null);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(
+				() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT.withAdvice(someConstraint())));
+	}
+
+	@Test
+	void when_handleRunnableConstraints_withAdvice_matchingHandlerSuccess_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onComplete(any())).thenReturn(() -> {
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(
+				() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT.withAdvice(someConstraint())));
+	}
+
+	@Test
+	void when_handleRunnableConstraints_withAdvice_matchingHandlerFails_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onComplete(any())).thenThrow(new IllegalStateException("I FAILED TO OBLIGE"));
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(
+				() -> sut.handleOnCompleteConstraints(AuthorizationDecision.PERMIT.withAdvice(someConstraint())));
+	}
+
+	@Test
+	void when_handleTransformingConstraints_withAdvice_noHandler_then_SuccessOriginalValue() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		var actual = sut.handleOnNextConstraints(AuthorizationDecision.PERMIT.withAdvice(someConstraint()), 1);
+		assertThat(actual, is(1));
+	}
+
+	@Test
+	void when_handleTransformingConstraints_withAdvice_handlerFailing_then_SuccessOriginalValue() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onNextMap(any())).thenThrow(new IllegalStateException("I FAILED TO OBLIGE"));
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		var actual = sut.handleOnNextConstraints(AuthorizationDecision.PERMIT.withAdvice(someConstraint()), 1);
+		assertThat(actual, is(1));
+	}
+
+	@Test
+	void when_handleTransformingConstraints_withAdvice_noMatchingHandler_then_SuccessOriginalValue() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(false);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		var actual = sut.handleOnNextConstraints(AuthorizationDecision.PERMIT.withAdvice(someConstraint()), 1);
+		assertThat(actual, is(1));
+	}
+
+	@Test
+	void when_handleTransformingConstraints_withAdvice_matchingHandlerReturnsNull_then_SuccessOriginalValue() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onNextMap(any())).thenReturn(null);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		var actual = sut.handleOnNextConstraints(AuthorizationDecision.PERMIT.withAdvice(someConstraint()), 1);
+		assertThat(actual, is(1));
+	}
+
+	@Test
+	void when_handleTransformingConstraints_withAdvice_matchingHandlerSuccess_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onNextMap(any())).thenReturn(__ -> 2);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		var actual = sut.handleOnNextConstraints(AuthorizationDecision.PERMIT.withAdvice(someConstraint()), 1);
+		assertThat(actual, is(2));
+	}
+
+	@Test
+	void when_handleTransformingConstraints_withAdvice_matchingHandlerFails_then_SuccessOriginalValue() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onNextMap(any())).thenReturn(__ -> {
+			throw new IllegalStateException("I FAILED TO OBLIGE");
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		var actual = sut.handleOnNextConstraints(AuthorizationDecision.PERMIT.withAdvice(someConstraint()), 1);
+		assertThat(actual, is(1));
+	}
+
+	@Test
+	void when_handleConsumerConstraints_withAdvice_handlerFailing_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onSubscribe(any())).thenReturn(__ -> {
+			throw new IllegalStateException("I FAILED TO OBLIGE");
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(() -> sut.handleOnSubscribeConstraints(
+				AuthorizationDecision.PERMIT.withAdvice(someConstraint()), mock(Subscription.class)));
+	}
+
+	@Test
+	void when_handleConsumerConstraints_withAdvice_noMatchingHandler_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(false);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(() -> sut.handleOnSubscribeConstraints(
+				AuthorizationDecision.PERMIT.withAdvice(someConstraint()), mock(Subscription.class)));
+	}
+
+	@Test
+	void when_handleConsumerConstraints_withObligation_matchingHandlerReturnsNull_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onSubscribe(any())).thenReturn(null);
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(() -> sut.handleOnSubscribeConstraints(
+				AuthorizationDecision.PERMIT.withAdvice(someConstraint()), mock(Subscription.class)));
+	}
+
+	@Test
+	void when_handleConsumerConstraints_withAdvice_matchingHandlerSuccess_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onSubscribe(any())).thenReturn(__ -> {
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(() -> sut.handleOnSubscribeConstraints(
+				AuthorizationDecision.PERMIT.withAdvice(someConstraint()), mock(Subscription.class)));
+	}
+
+	@Test
+	void when_handleConsumerConstraints_withAdvice_matchingHandlerFails_then_Success() {
+		var mockHandler = mock(AbstractConstraintHandler.class);
+		when(mockHandler.isResponsible(any())).thenReturn(true);
+		when(mockHandler.onSubscribe(any())).thenReturn(__ -> {
+			throw new IllegalStateException("I FAILED TO OBLIGE");
+		});
+		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
+		assertDoesNotThrow(() -> sut.handleOnSubscribeConstraints(
+				AuthorizationDecision.PERMIT.withAdvice(someConstraint()), mock(Subscription.class)));
+	}
+
+	@Test
+	void when_handleConsumerConstraints_withAdvice_noHandler_then_Success() {
+		var sut = new ReactiveConstraintEnforcementService(List.of());
+		assertDoesNotThrow(() -> sut.handleOnSubscribeConstraints(
+				AuthorizationDecision.PERMIT.withAdvice(someConstraint()), mock(Subscription.class)));
 	}
 
 	@Test
@@ -321,8 +798,8 @@ public class ReactiveConstraintEnforcementServiceTests {
 		var mockHandler = mock(AbstractConstraintHandler.class);
 		when(mockHandler.isResponsible(any())).thenReturn(true);
 		var sut = new ReactiveConstraintEnforcementService(List.of(mockHandler));
-		var actual = sut.handleAfterBlockingMethodInvocation(
-				AuthorizationDecision.PERMIT.withAdvice(someConstraint()), 1, null);
+		var actual = sut.handleAfterBlockingMethodInvocation(AuthorizationDecision.PERMIT.withAdvice(someConstraint()),
+				1, null);
 		assertThat(actual, is(1));
 	}
 

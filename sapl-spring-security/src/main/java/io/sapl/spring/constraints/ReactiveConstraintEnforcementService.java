@@ -122,7 +122,7 @@ public class ReactiveConstraintEnforcementService {
 				var handlers = getHandlersResponsibleForConstraint(constraint);
 				if (handlers.isEmpty())
 					logNoHandlerFoundAndThrowIfObligation(constraint, false);
-				
+
 				for (var handler : handlers) {
 					if (returnType == null) {
 						log.warn("Generics type not specified in annotation. Cannot handle advice.");
@@ -285,7 +285,6 @@ public class ReactiveConstraintEnforcementService {
 					var handlerFunction = handlerSource.apply(handler, constraint);
 					if (handlerFunction != null)
 						returnValue = handlerFunction.apply(returnValue);
-
 				} catch (Throwable t) {
 					var message = String.format(
 							"Failed to execute %s constraint handler (%s). constraint=%s value=%s returnValue=%s isObligation=%s error=%s",
