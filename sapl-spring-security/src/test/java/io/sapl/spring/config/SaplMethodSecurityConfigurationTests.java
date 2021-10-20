@@ -28,7 +28,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints2.ConstraintEnforcementService;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 
 class SaplMethodSecurityConfigurationTests {
@@ -37,8 +37,7 @@ class SaplMethodSecurityConfigurationTests {
 	void whenRan_thenFilterBeansArePresent() {
 		new ApplicationContextRunner().withUserConfiguration(NoPrePostEnablingCongiguration.class)
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-				.withBean(ReactiveConstraintEnforcementService.class,
-						() -> mock(ReactiveConstraintEnforcementService.class))
+				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(MethodInterceptor.class);
@@ -49,8 +48,7 @@ class SaplMethodSecurityConfigurationTests {
 	void whenRanWithPrePost_thenFilterBeansArePresent() {
 		new ApplicationContextRunner().withUserConfiguration(PrePostEnablingCongiguration.class)
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-				.withBean(ReactiveConstraintEnforcementService.class,
-						() -> mock(ReactiveConstraintEnforcementService.class))
+				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(MethodInterceptor.class);
@@ -61,7 +59,7 @@ class SaplMethodSecurityConfigurationTests {
 	@EnableGlobalMethodSecurity(prePostEnabled = true)
 	public static class PrePostEnablingCongiguration extends SaplMethodSecurityConfiguration {
 		public PrePostEnablingCongiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
-				ObjectFactory<ReactiveConstraintEnforcementService> constraintHandlerFactory,
+				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
 				ObjectFactory<ObjectMapper> objectMapperFactory,
 				ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
 			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
@@ -72,7 +70,7 @@ class SaplMethodSecurityConfigurationTests {
 	@EnableGlobalMethodSecurity()
 	public static class NoPrePostEnablingCongiguration extends SaplMethodSecurityConfiguration {
 		public NoPrePostEnablingCongiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
-				ObjectFactory<ReactiveConstraintEnforcementService> constraintHandlerFactory,
+				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
 				ObjectFactory<ObjectMapper> objectMapperFactory,
 				ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
 			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);

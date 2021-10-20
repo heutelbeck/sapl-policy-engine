@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints2.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.SaplAttributeFactory;
 import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 import io.sapl.spring.method.reactive.PostEnforcePolicyEnforcementPoint;
@@ -111,16 +112,16 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	protected PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint(
-			ReactiveConstraintEnforcementService constraintHandlerService, ObjectMapper mapper) {
-		return new PreEnforcePolicyEnforcementPoint(constraintHandlerService, mapper);
+			ConstraintEnforcementService constraintHandlerService) {
+		return new PreEnforcePolicyEnforcementPoint(constraintHandlerService);
 	}
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	protected PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint(PolicyDecisionPoint pdp,
-			ReactiveConstraintEnforcementService constraintHandlerService, ObjectMapper mapper,
+			ConstraintEnforcementService constraintHandlerService,
 			AuthorizationSubscriptionBuilderService subscriptionBuilder) {
-		return new PostEnforcePolicyEnforcementPoint(pdp, constraintHandlerService, mapper, subscriptionBuilder);
+		return new PostEnforcePolicyEnforcementPoint(pdp, constraintHandlerService, subscriptionBuilder);
 	}
 
 	@Bean

@@ -18,10 +18,8 @@ package io.sapl.spring.method.blocking;
 import org.springframework.aop.framework.AopInfrastructureBean;
 import org.springframework.beans.factory.ObjectFactory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints2.ConstraintEnforcementService;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
 
@@ -33,12 +31,10 @@ import lombok.RequiredArgsConstructor;
 public abstract class AbstractPolicyEnforcementPoint implements AopInfrastructureBean {
 
 	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
-	protected final ObjectFactory<ReactiveConstraintEnforcementService> constraintEnforcementServiceFactory;
-	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
+	protected final ObjectFactory<ConstraintEnforcementService> constraintEnforcementServiceFactory;
 	protected final ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
 	protected PolicyDecisionPoint pdp;
-	protected ReactiveConstraintEnforcementService constraintEnforcementService;
-	protected ObjectMapper mapper;
+	protected ConstraintEnforcementService constraintEnforcementService;
 	protected AuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	/**
@@ -52,9 +48,6 @@ public abstract class AbstractPolicyEnforcementPoint implements AopInfrastructur
 
 		if (constraintEnforcementService == null)
 			constraintEnforcementService = constraintEnforcementServiceFactory.getObject();
-		
-		if (mapper == null)
-			mapper = objectMapperFactory.getObject();
 
 		if (subscriptionBuilder == null)
 			subscriptionBuilder = subscriptionBuilderFactory.getObject();

@@ -40,6 +40,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints2.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PreEnforceAttribute;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
@@ -56,6 +57,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
 				.withBean(ReactiveConstraintEnforcementService.class,
 						() -> mock(ReactiveConstraintEnforcementService.class))
+				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(MethodSecurityMetadataSourceAdvisor.class);
@@ -73,6 +75,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
 				.withBean(ReactiveConstraintEnforcementService.class,
 						() -> mock(ReactiveConstraintEnforcementService.class))
+				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(MethodSecurityMetadataSourceAdvisor.class);
@@ -89,6 +92,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
 				.withBean(ReactiveConstraintEnforcementService.class,
 						() -> mock(ReactiveConstraintEnforcementService.class))
+				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> {
 					var mapper = new ObjectMapper();
 					SimpleModule module = new SimpleModule();

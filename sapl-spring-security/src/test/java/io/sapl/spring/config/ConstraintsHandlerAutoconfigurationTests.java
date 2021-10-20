@@ -17,18 +17,37 @@ package io.sapl.spring.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import javax.servlet.http.HttpServletRequest;
+
+import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.serialization.HttpServletRequestSerializer;
+import io.sapl.spring.serialization.MethodInvocationSerializer;
+import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 
 class ConstraintsHandlerAutoconfigurationTests {
 
 	@Test
 	void whenRan_thenMapperIsAvailableAndModulesAreRegistered() {
 		var contextRunner = new ApplicationContextRunner()
-				.withConfiguration(AutoConfigurations.of(ConstraintsHandlerAutoconfiguration.class));
+				.withConfiguration(AutoConfigurations.of(ConstraintsHandlerAutoconfiguration.class))
+				.withBean(ObjectMapper.class, () -> {
+					var mapper = new ObjectMapper();
+					SimpleModule module = new SimpleModule();
+					module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
+					module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
+					module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
+					mapper.registerModule(module);
+					return mapper;
+				});
 		contextRunner.run(context -> {
 			assertThat(context).hasNotFailed();
 			assertThat(context).hasSingleBean(ReactiveConstraintEnforcementService.class);

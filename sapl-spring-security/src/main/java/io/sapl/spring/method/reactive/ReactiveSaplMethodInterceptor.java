@@ -115,13 +115,14 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 				constraintHandlerService);
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Publisher<?> interceptWithPrePostEnforce(MethodInvocation invocation,
 			PreEnforceAttribute preEnforceAttribute, PostEnforceAttribute postEnforceAttribute) {
-		Flux<Object> wrappedResourceAccessPoint = Flux.from(proceed(invocation));
+		var wrappedResourceAccessPoint = Flux.from(proceed(invocation));
 		if (preEnforceAttribute != null) {
 			var decisions = preSubscriptionDecisions(invocation, preEnforceAttribute);
-			wrappedResourceAccessPoint = preEnforcePolicyEnforcementPoint.enforce(decisions, wrappedResourceAccessPoint,
-					preEnforceAttribute.getGenericsType());
+			wrappedResourceAccessPoint = preEnforcePolicyEnforcementPoint.enforce(decisions,
+					(Flux) wrappedResourceAccessPoint, preEnforceAttribute.getGenericsType());
 		}
 		if (postEnforceAttribute != null)
 			return postEnforcePolicyEnforcementPoint.postEnforceOneDecisionOnResourceAccessPoint(

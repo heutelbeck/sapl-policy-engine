@@ -37,7 +37,7 @@ import org.springframework.security.config.annotation.method.configuration.Globa
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints2.ConstraintEnforcementService;
 import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointProvider;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
@@ -62,7 +62,7 @@ import lombok.extern.slf4j.Slf4j;
 public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfiguration {
 
 	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
-	protected final ObjectFactory<ReactiveConstraintEnforcementService> constraintHandlerFactory;
+	protected final ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory;
 	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
 	protected final ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
 
@@ -80,7 +80,7 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 		decisionVoters.addAll(((AbstractAccessDecisionManager) baseManager).getDecisionVoters());
 
 		var policyAdvice = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				objectMapperFactory, subscriptionBuilderFactory);
+				subscriptionBuilderFactory);
 		decisionVoters.add(new PreEnforcePolicyEnforcementPointVoter(policyAdvice));
 		var manager = new AffirmativeBased(decisionVoters);
 		manager.setAllowIfAllAbstainDecisions(true);
@@ -90,7 +90,7 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 	@Override
 	protected AfterInvocationManager afterInvocationManager() {
 		log.debug("Blocking SAPL method level after-invocation security activated.");
-		var advice = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory, objectMapperFactory,
+		var advice = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var provider = new PostEnforcePolicyEnforcementPointProvider(advice);
 

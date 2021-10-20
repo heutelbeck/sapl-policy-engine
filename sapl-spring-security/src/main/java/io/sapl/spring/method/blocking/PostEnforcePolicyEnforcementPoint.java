@@ -22,15 +22,13 @@ import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints2.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PostEnforceAttribute;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 /**
  * Method post-invocation handling based on a SAPL policy decision point.
@@ -39,63 +37,60 @@ import lombok.extern.slf4j.Slf4j;
 public class PostEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementPoint {
 
 	public PostEnforcePolicyEnforcementPoint(ObjectFactory<PolicyDecisionPoint> pdpFactory,
-			ObjectFactory<ReactiveConstraintEnforcementService> constraintHandlerFactory,
-			ObjectFactory<ObjectMapper> objectMapperFactory,
+			ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
 			ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
-		super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
+		super(pdpFactory, constraintHandlerFactory, subscriptionBuilderFactory);
 	}
 
 	@SuppressWarnings("unchecked") // is actually checked, warning is false positive
 	public Object after(Authentication authentication, MethodInvocation methodInvocation,
 			PostEnforceAttribute postEnforceAttribute, Object returnedObject) {
+		log.debug("Attribute        : {}", postEnforceAttribute);
+
 		lazyLoadDependencies();
 
 		var returnOptional = false;
 		var returnedObjectForAuthzSubscription = returnedObject;
+		Flux<Object> resourceAccessPoint;
 		Class<?> returnType;
 		if (returnedObject instanceof Optional) {
-			returnedObjectForAuthzSubscription = ((Optional<Object>) returnedObject).get();
-			returnType = ((Optional<Object>) returnedObject).get().getClass();
 			returnOptional = true;
-		} else
+			var optObject = (Optional<Object>) returnedObject;
+			if (optObject.isPresent()) {
+				returnedObjectForAuthzSubscription = ((Optional<Object>) returnedObject).get();
+				returnType = ((Optional<Object>) returnedObject).get().getClass();
+				resourceAccessPoint = Flux.just(returnedObjectForAuthzSubscription);
+			} else {
+				returnedObjectForAuthzSubscription = null;
+				returnType = postEnforceAttribute.getGenericsType();
+				resourceAccessPoint = Flux.empty();
+			}
+		} else {
 			returnType = methodInvocation.getMethod().getReturnType();
+			resourceAccessPoint = Flux.just(returnedObject);
+		}
 
 		var authzSubscription = subscriptionBuilder.constructAuthorizationSubscriptionWithReturnObject(authentication,
 				methodInvocation, postEnforceAttribute, returnedObjectForAuthzSubscription);
-		log.debug("ATTRIBUTE: {} - {}", postEnforceAttribute, postEnforceAttribute.getClass());
-		log.debug("SUBSCRIPTION  :\n - ACTION={}\n - RESOURCE={}\n - SUBJ={}\n - ENV={}", authzSubscription.getAction(),
-				authzSubscription.getResource(), authzSubscription.getSubject(), authzSubscription.getEnvironment());
+		log.debug("AuthzSubscription: {}", authzSubscription);
 
 		var authzDecision = pdp.decide(authzSubscription).blockFirst();
-		log.debug("AUTH_DECISION : {} - {}", authzDecision == null ? "null" : authzDecision.getDecision(),
-				authzDecision);
+		log.debug("AuthzDecision    : {}", authzDecision);
 
 		if (authzDecision == null)
 			throw new AccessDeniedException("No decision by PDP");
 
-		if (authzDecision.getDecision() != Decision.PERMIT) {
-			constraintEnforcementService.handleForBlockingMethodInvocationOrAccessDenied(authzDecision);
-			throw new AccessDeniedException("Access denied by PDP");
-		}
+		if (authzDecision.getDecision() != Decision.PERMIT)
+			resourceAccessPoint = Flux.error(new AccessDeniedException("Access denied by PDP"));
 
-		if (authzDecision.getResource().isPresent()) {
-			try {
-				var returnValue = mapper.treeToValue(authzDecision.getResource().get(), returnType);
-				if (returnOptional)
-					returnedObject = Optional.of(returnValue);
-				else
-					returnedObject = returnValue;
-			} catch (JsonProcessingException e) {
-				log.trace("Transformed result cannot be mapped to expected return type. {}",
-						authzDecision.getResource().get());
-				throw new AccessDeniedException(
-						"Returned resource of authzDecision cannot be mapped back to return value. Access not permitted by policy enforcement point.",
-						e);
-			}
-		}
+		@SuppressWarnings("rawtypes")
+		var result = constraintEnforcementService.enforceConstraintsOfDecisionOnResourceAccessPoint(authzDecision,
+				(Flux) resourceAccessPoint, returnType).blockFirst();
 
-		return constraintEnforcementService.handleAfterBlockingMethodInvocation(authzDecision, returnedObject,
-				returnType);
+		if (returnOptional)
+			return Optional.ofNullable(result);
+
+		return result;
 	}
 
 }

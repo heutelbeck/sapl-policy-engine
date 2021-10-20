@@ -32,7 +32,7 @@ public class ReactiveConstraintEnforcementService {
 		Collections.sort(this.handlerServices);
 	}
 
-	public Flux<Object> enforceConstraintsOnResourceAccessPoint(AuthorizationDecision decision,
+	public Flux<Object> REMOVE_ME_enforceConstraintsOnResourceAccessPoint(AuthorizationDecision decision,
 			Flux<Object> resourceAccessPoint) {
 		var wrapped = resourceAccessPoint;
 		if (decision.getObligations().isPresent()) {

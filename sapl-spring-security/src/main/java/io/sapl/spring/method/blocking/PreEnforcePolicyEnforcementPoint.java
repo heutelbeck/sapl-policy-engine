@@ -17,16 +17,16 @@ package io.sapl.spring.method.blocking;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints2.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PreEnforceAttribute;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 /**
  * Method pre-invocation handling based on a SAPL policy decision point.
@@ -35,37 +35,44 @@ import lombok.extern.slf4j.Slf4j;
 public class PreEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementPoint {
 
 	public PreEnforcePolicyEnforcementPoint(ObjectFactory<PolicyDecisionPoint> pdpFactory,
-			ObjectFactory<ReactiveConstraintEnforcementService> constraintHandlerFactory,
-			ObjectFactory<ObjectMapper> objectMapperFactory,
+			ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
 			ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
-		super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
+		super(pdpFactory, constraintHandlerFactory, subscriptionBuilderFactory);
 	}
 
 	public boolean before(Authentication authentication, MethodInvocation methodInvocation,
 			PreEnforceAttribute attribute) {
+		log.debug("Attribute        : {}", attribute);
+
 		lazyLoadDependencies();
 
 		var authzSubscription = subscriptionBuilder.constructAuthorizationSubscription(authentication, methodInvocation,
 				attribute);
-		log.trace("AuthzSubscription: {}", authzSubscription);
+		log.debug("AuthzSubscription: {}", authzSubscription);
 		var authzDecision = pdp.decide(authzSubscription).blockFirst();
-		log.trace("Decision         : {} - {}", authzDecision == null ? "null" : authzDecision.getDecision(),
-				authzDecision);
+		log.debug("AuthzDecision    : {}", authzDecision);
 
 		if (authzDecision == null)
 			return false;
 
 		if (authzDecision.getResource().isPresent()) {
-			log.warn("Cannot handle a authorization decision declaring a new resource in @PreEnforce. Deny access!");
+			log.warn(
+					"Cannot handle a authorization decision declaring a new resource in blocking @PreEnforce. Deny access!");
 			return false;
 		}
 
-		if (authzDecision.getDecision() != Decision.PERMIT) {
-			constraintEnforcementService.handleForBlockingMethodInvocationOrAccessDenied(authzDecision);
+		try {
+			constraintEnforcementService
+					.enforceConstraintsOfDecisionOnResourceAccessPoint(authzDecision, Flux.empty(), Object.class)
+					.blockFirst();
+		} catch (AccessDeniedException e) {
 			return false;
 		}
 
-		return constraintEnforcementService.handleForBlockingMethodInvocationOrAccessDenied(authzDecision);
+		if (authzDecision.getDecision() != Decision.PERMIT)
+			return false;
+
+		return true;
 	}
 
 }
