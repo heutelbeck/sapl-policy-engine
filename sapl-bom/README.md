@@ -19,4 +19,4 @@ How to use the BOM:
 	</dependencyManagement>
 ```
 	
-Also make sure to correctly declare the SAPL Maven repository as described here: <https://github.com/heutelbeck/packages>.
+If you are using a SNAPSHOT release, make sure to add the snapshot repository as described here: <https://github.com/heutelbeck/sapl-policy-engine/blob/master/README.md>.
