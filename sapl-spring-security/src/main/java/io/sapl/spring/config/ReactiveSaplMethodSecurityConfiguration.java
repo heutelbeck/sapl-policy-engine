@@ -40,8 +40,7 @@ import org.springframework.security.config.core.GrantedAuthorityDefaults;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
-import io.sapl.spring.constraints2.ConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.SaplAttributeFactory;
 import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 import io.sapl.spring.method.reactive.PostEnforcePolicyEnforcementPoint;
@@ -62,7 +61,7 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 	@NonNull
 	private final PolicyDecisionPoint pdp;
 	@NonNull
-	private final ReactiveConstraintEnforcementService constraintHandlerService;
+	private final ConstraintEnforcementService constraintHandlerService;
 	@NonNull
 	private final ObjectMapper mapper;
 

@@ -37,7 +37,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.EnforceDropWhileDenied;
 import io.sapl.spring.method.metadata.EnforceRecoverableIfDenied;
 import io.sapl.spring.method.metadata.EnforceTillDenied;
@@ -60,7 +60,7 @@ public class ReactiveSaplMethodInterceptorTests {
 	private MethodSecurityMetadataSource metadataSource;
 	private MethodSecurityExpressionHandler handler;
 	private PolicyDecisionPoint pdp;
-	private ReactiveConstraintEnforcementService constraintHandlerService;
+	private ConstraintEnforcementService constraintHandlerService;
 	private ObjectMapper mapper;
 	private AuthorizationSubscriptionBuilderService subscriptionBuilder;
 	private PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint;
@@ -79,7 +79,7 @@ public class ReactiveSaplMethodInterceptorTests {
 
 		pdp = mock(PolicyDecisionPoint.class);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		constraintHandlerService = mock(ReactiveConstraintEnforcementService.class);
+		constraintHandlerService = mock(ConstraintEnforcementService.class);
 		mapper = new ObjectMapper();
 		SimpleModule module = new SimpleModule();
 		module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
@@ -122,12 +122,9 @@ public class ReactiveSaplMethodInterceptorTests {
 		var testInstance = new TestClass();
 		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "monoInteger",
 				() -> testInstance.monoInteger(), null, null);
-		Flux<Object> expected = Flux.just(2);
-		when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(expected);
-		var actual = defaultSut.invoke(invocation);
-		assertThat(actual, is(expected));
-		StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
-
+		when(preEnforcePolicyEnforcementPoint.enforce(any(), any(), any())).thenReturn(Flux.just(2));
+		var actual = (Mono<Integer>) defaultSut.invoke(invocation);
+		StepVerifier.create(actual).expectNext(2).verifyComplete();
 		verify(preEnforcePolicyEnforcementPoint, times(1)).enforce(any(), any(), any());
 	}
 
@@ -276,7 +273,7 @@ public class ReactiveSaplMethodInterceptorTests {
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	void when_onlyEnforceTillDenied_then_enforceTillDeniedPEPIsCalled() throws Throwable {
 		class TestClass {
 			@EnforceTillDenied
@@ -291,16 +288,17 @@ public class ReactiveSaplMethodInterceptorTests {
 
 		try (MockedStatic<EnforceTillDeniedPolicyEnforcementPoint> mockPEP = Mockito
 				.mockStatic(EnforceTillDeniedPolicyEnforcementPoint.class)) {
-			mockPEP.when(() -> EnforceTillDeniedPolicyEnforcementPoint.of(any(), any(), any())).thenReturn(expected);
+			mockPEP.when(() -> EnforceTillDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
+					.thenReturn(expected);
 			var actual = defaultSut.invoke(invocation);
 			assertThat(actual, is(expected));
 			StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
-			mockPEP.verify(() -> EnforceTillDeniedPolicyEnforcementPoint.of(any(), any(), any()), times(1));
+			mockPEP.verify(() -> EnforceTillDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()), times(1));
 		}
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	void when_onlyEnforceDropWhileDenied_then_enforceDropWhileDeniedPEPIsCalled() throws Throwable {
 		class TestClass {
 			@EnforceDropWhileDenied
@@ -315,17 +313,17 @@ public class ReactiveSaplMethodInterceptorTests {
 
 		try (MockedStatic<EnforceDropWhileDeniedPolicyEnforcementPoint> mockPEP = Mockito
 				.mockStatic(EnforceDropWhileDeniedPolicyEnforcementPoint.class)) {
-			mockPEP.when(() -> EnforceDropWhileDeniedPolicyEnforcementPoint.of(any(), any(), any()))
+			mockPEP.when(() -> EnforceDropWhileDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
 					.thenReturn(expected);
 			var actual = defaultSut.invoke(invocation);
 			assertThat(actual, is(expected));
 			StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
-			mockPEP.verify(() -> EnforceDropWhileDeniedPolicyEnforcementPoint.of(any(), any(), any()), times(1));
+			mockPEP.verify(() -> EnforceDropWhileDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()), times(1));
 		}
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	void when_onlyEnforceRevocerableIfDenied_then_enforceRecoverableIfDeniedPEPIsCalled() throws Throwable {
 		class TestClass {
 			@EnforceRecoverableIfDenied
@@ -340,12 +338,13 @@ public class ReactiveSaplMethodInterceptorTests {
 
 		try (MockedStatic<EnforceRecoverableIfDeniedPolicyEnforcementPoint> mockPEP = Mockito
 				.mockStatic(EnforceRecoverableIfDeniedPolicyEnforcementPoint.class)) {
-			mockPEP.when(() -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any()))
+			mockPEP.when(() -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()))
 					.thenReturn(expected);
 			var actual = defaultSut.invoke(invocation);
 			assertThat(actual, is(expected));
 			StepVerifier.create((Flux<Integer>) actual).expectNext(2).verifyComplete();
-			mockPEP.verify(() -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any()), times(1));
+			mockPEP.verify(() -> EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(any(), any(), any(), any()),
+					times(1));
 		}
 	}
 

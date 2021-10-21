@@ -28,7 +28,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints2.ConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 
 class SaplMethodSecurityConfigurationTests {

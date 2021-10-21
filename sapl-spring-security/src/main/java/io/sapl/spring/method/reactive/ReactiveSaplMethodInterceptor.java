@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.EnforceDropWhileDeniedAttribute;
 import io.sapl.spring.method.metadata.EnforceRecoverableIfDeniedAttribute;
 import io.sapl.spring.method.metadata.EnforceTillDeniedAttribute;
@@ -51,7 +51,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 	@NonNull
 	private final PolicyDecisionPoint pdp;
 	@NonNull
-	private final ReactiveConstraintEnforcementService constraintHandlerService;
+	private final ConstraintEnforcementService constraintHandlerService;
 	@NonNull
 	private final ObjectMapper mapper;
 	@NonNull
@@ -95,30 +95,35 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 		return interceptWithPrePostEnforce(invocation, preEnforceAttribute, postEnforceAttribute);
 	}
 
-	private Object interceptWithEnforceRecoverableIfDeniedPEP(MethodInvocation invocation, SaplAttribute attribute) {
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private Flux<?> interceptWithEnforceRecoverableIfDeniedPEP(MethodInvocation invocation, SaplAttribute attribute) {
 		var decisions = preSubscriptionDecisions(invocation, attribute);
-		var resourceAccessPoint = ((Flux<?>) proceed(invocation));
+		var resourceAccessPoint = (Flux) proceed(invocation);
 		return EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint,
-				constraintHandlerService);
+				constraintHandlerService, attribute.getGenericsType());
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Flux<?> interceptWithEnforceTillDeniedPEP(MethodInvocation invocation, SaplAttribute attribute) {
 		var decisions = preSubscriptionDecisions(invocation, attribute);
-		var resourceAccessPoint = ((Flux<?>) proceed(invocation));
-		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint, constraintHandlerService);
+		var resourceAccessPoint = (Flux) proceed(invocation);
+		return EnforceTillDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint, constraintHandlerService,
+				attribute.getGenericsType());
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Flux<?> interceptWithEnforceDropWhileDeniedPEP(MethodInvocation invocation, SaplAttribute attribute) {
 		var decisions = preSubscriptionDecisions(invocation, attribute);
-		var resourceAccessPoint = ((Flux<?>) proceed(invocation));
-		return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint,
-				constraintHandlerService);
+		var resourceAccessPoint = (Flux) proceed(invocation);
+		return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, resourceAccessPoint, constraintHandlerService,
+				attribute.getGenericsType());
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Publisher<?> interceptWithPrePostEnforce(MethodInvocation invocation,
 			PreEnforceAttribute preEnforceAttribute, PostEnforceAttribute postEnforceAttribute) {
-		var wrappedResourceAccessPoint = Flux.from(proceed(invocation));
+		var resourceAccessPoint = proceed(invocation);
+		var wrappedResourceAccessPoint = Flux.from(resourceAccessPoint);
 		if (preEnforceAttribute != null) {
 			var decisions = preSubscriptionDecisions(invocation, preEnforceAttribute);
 			wrappedResourceAccessPoint = preEnforcePolicyEnforcementPoint.enforce(decisions,
@@ -127,6 +132,9 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 		if (postEnforceAttribute != null)
 			return postEnforcePolicyEnforcementPoint.postEnforceOneDecisionOnResourceAccessPoint(
 					wrappedResourceAccessPoint.next(), invocation, postEnforceAttribute);
+
+		if (resourceAccessPoint instanceof Mono)
+			return wrappedResourceAccessPoint.next();
 
 		return wrappedResourceAccessPoint;
 	}

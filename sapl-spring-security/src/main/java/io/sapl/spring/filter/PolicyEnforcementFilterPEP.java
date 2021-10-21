@@ -33,9 +33,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -43,7 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 
 	private final PolicyDecisionPoint pdp;
-	private final ReactiveConstraintEnforcementService constraintEnforcementService;
+	private final ConstraintEnforcementService constraintEnforcementService;
 	private final ObjectMapper mapper;
 
 	@Override
@@ -64,8 +65,12 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 		if (authzDecision.getResource().isPresent())
 			throw new AccessDeniedException("PDP requested resource replacement. This is not possible in Filterchain.");
 
-		if (!constraintEnforcementService.handleForBlockingMethodInvocationOrAccessDenied(authzDecision))
+		try {
+			constraintEnforcementService.bundleFor(authzDecision, Object.class).wrap(Flux.empty()).blockLast();
+		} catch (AccessDeniedException e) {
+			log.debug("PEP failed to fulfill PDP obligations. Access denied by policy enforcement point.");
 			throw new AccessDeniedException("Not all obligations could be handled.");
+		}
 
 		if (authzDecision.getDecision() != Decision.PERMIT)
 			throw new AccessDeniedException("Access denied by PDP.");

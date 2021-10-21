@@ -3,11 +3,10 @@ package io.sapl.spring.config;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
-import io.sapl.spring.constraints2.ConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 
 @Configuration
-@Import(value = { ReactiveConstraintEnforcementService.class, ConstraintEnforcementService.class })
+@Import(value = { ConstraintEnforcementService.class })
 public class ConstraintsHandlerAutoconfiguration {
 
 }

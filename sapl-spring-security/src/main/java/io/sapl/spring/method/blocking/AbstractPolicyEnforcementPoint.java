@@ -19,7 +19,7 @@ import org.springframework.aop.framework.AopInfrastructureBean;
 import org.springframework.beans.factory.ObjectFactory;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints2.ConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
 

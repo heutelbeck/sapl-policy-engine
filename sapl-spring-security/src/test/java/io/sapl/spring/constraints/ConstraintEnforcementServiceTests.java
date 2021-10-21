@@ -1,4 +1,4 @@
-package io.sapl.spring.constraints2;
+package io.sapl.spring.constraints;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;

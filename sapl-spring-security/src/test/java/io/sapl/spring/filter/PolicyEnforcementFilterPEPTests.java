@@ -2,6 +2,7 @@ package io.sapl.spring.filter;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,7 +30,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintHandlerBundle;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import reactor.core.publisher.Flux;
 
@@ -39,7 +41,8 @@ class PolicyEnforcementFilterPEPTests {
 
 	private ObjectMapper mapper;
 	private PolicyDecisionPoint pdp;
-	private ReactiveConstraintEnforcementService constraintHandlers;
+	private ConstraintEnforcementService constraintHandlers;
+	private ConstraintHandlerBundle<?> bundle;
 
 	@BeforeEach
 	void setUpMocks() {
@@ -48,7 +51,9 @@ class PolicyEnforcementFilterPEPTests {
 		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
 		mapper.registerModule(module);
 		pdp = mock(PolicyDecisionPoint.class);
-		constraintHandlers = mock(ReactiveConstraintEnforcementService.class);
+		constraintHandlers = mock(ConstraintEnforcementService.class);
+		bundle = mock(ConstraintHandlerBundle.class);
+		doReturn(bundle).when(constraintHandlers).bundleFor(any(), any());
 	}
 
 	@Test
@@ -56,13 +61,13 @@ class PolicyEnforcementFilterPEPTests {
 	void whenPermit_thenNoException() throws IOException, ServletException {
 		var sut = new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		when(constraintHandlers.handleForBlockingMethodInvocationOrAccessDenied(any())).thenReturn(true);
+		doReturn(Flux.empty()).when(bundle).wrap(any());
 		var request = new MockHttpServletRequest();
 		var response = new MockHttpServletResponse();
 		var filterChain = mock(FilterChain.class);
 		sut.doFilter(request, response, filterChain);
 		verify(filterChain, times(1)).doFilter(any(), any());
-		verify(constraintHandlers, times(1)).handleForBlockingMethodInvocationOrAccessDenied(any());
+		verify(bundle, times(1)).wrap(any());
 	}
 
 	@Test
@@ -70,13 +75,13 @@ class PolicyEnforcementFilterPEPTests {
 	void whenPermitAndObligationFails_thenAccessDeniedException() throws IOException, ServletException {
 		var sut = new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		when(constraintHandlers.handleForBlockingMethodInvocationOrAccessDenied(any())).thenReturn(false);
+		doReturn(Flux.error(new AccessDeniedException("ERROR"))).when(bundle).wrap(any());
 
 		var request = new MockHttpServletRequest();
 		var response = new MockHttpServletResponse();
 		var filterChain = mock(FilterChain.class);
 		assertThrows(AccessDeniedException.class, () -> sut.doFilter(request, response, filterChain));
-		verify(constraintHandlers, times(1)).handleForBlockingMethodInvocationOrAccessDenied(any());
+		verify(bundle, times(1)).wrap(any());
 	}
 
 	@Test
@@ -88,7 +93,7 @@ class PolicyEnforcementFilterPEPTests {
 		var response = new MockHttpServletResponse();
 		var filterChain = mock(FilterChain.class);
 		assertThrows(AccessDeniedException.class, () -> sut.doFilter(request, response, filterChain));
-		verify(constraintHandlers, times(0)).handleForBlockingMethodInvocationOrAccessDenied(any());
+		verify(bundle, times(0)).wrap(any());
 	}
 
 	public Flux<AuthorizationDecision> decisionFluxOnePermitWithResource() {
@@ -113,13 +118,13 @@ class PolicyEnforcementFilterPEPTests {
 	void whenDeny_thenAccessDeniedException() throws IOException, ServletException {
 		var sut = new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.DENY));
-		when(constraintHandlers.handleForBlockingMethodInvocationOrAccessDenied(any())).thenReturn(true);
+		doReturn(Flux.empty()).when(bundle).wrap(any());
 		var request = new MockHttpServletRequest();
 		var response = new MockHttpServletResponse();
 		var filterChain = mock(FilterChain.class);
 		assertThrows(AccessDeniedException.class, () -> sut.doFilter(request, response, filterChain));
 		verify(filterChain, times(0)).doFilter(any(), any());
-		verify(constraintHandlers, times(1)).handleForBlockingMethodInvocationOrAccessDenied(any());
+		verify(bundle, times(1)).wrap(any());
 	}
 
 	@Test
@@ -127,13 +132,13 @@ class PolicyEnforcementFilterPEPTests {
 	void whenIndeterminate_thenAccessDeniedException() throws IOException, ServletException {
 		var sut = new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
-		when(constraintHandlers.handleForBlockingMethodInvocationOrAccessDenied(any())).thenReturn(true);
+		doReturn(Flux.empty()).when(bundle).wrap(any());
 		var request = new MockHttpServletRequest();
 		var response = new MockHttpServletResponse();
 		var filterChain = mock(FilterChain.class);
 		assertThrows(AccessDeniedException.class, () -> sut.doFilter(request, response, filterChain));
 		verify(filterChain, times(0)).doFilter(any(), any());
-		verify(constraintHandlers, times(1)).handleForBlockingMethodInvocationOrAccessDenied(any());
+		verify(bundle, times(1)).wrap(any());
 	}
 
 	@Test
@@ -141,13 +146,13 @@ class PolicyEnforcementFilterPEPTests {
 	void whenNotApplicable_thenAccessDeniedException() throws IOException, ServletException {
 		var sut = new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
-		when(constraintHandlers.handleForBlockingMethodInvocationOrAccessDenied(any())).thenReturn(true);
+		doReturn(Flux.empty()).when(bundle).wrap(any());
 		var request = new MockHttpServletRequest();
 		var response = new MockHttpServletResponse();
 		var filterChain = mock(FilterChain.class);
 		assertThrows(AccessDeniedException.class, () -> sut.doFilter(request, response, filterChain));
 		verify(filterChain, times(0)).doFilter(any(), any());
-		verify(constraintHandlers, times(1)).handleForBlockingMethodInvocationOrAccessDenied(any());
+		verify(bundle, times(1)).wrap(any());
 	}
 
 }

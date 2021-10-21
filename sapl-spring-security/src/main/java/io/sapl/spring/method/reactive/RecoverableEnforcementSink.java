@@ -5,22 +5,23 @@ import java.util.function.Consumer;
 
 import reactor.core.publisher.FluxSink;
 import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
-public class RecoverableEnforcementSink implements Consumer<FluxSink<Tuple2<Optional<Object>, Optional<Throwable>>>> {
+public class RecoverableEnforcementSink<T> implements Consumer<FluxSink<Tuple2<Optional<T>, Optional<Throwable>>>> {
 
-	private FluxSink<Tuple2<Optional<Object>, Optional<Throwable>>> fluxSink;
+	private FluxSink<Tuple2<Optional<T>, Optional<Throwable>>> fluxSink;
 
 	@Override
-	public void accept(FluxSink<Tuple2<Optional<Object>, Optional<Throwable>>> fluxSink) {
+	public void accept(FluxSink<Tuple2<Optional<T>, Optional<Throwable>>> fluxSink) {
 		this.fluxSink = fluxSink;
 	}
 
-	public void next(Tuple2<Optional<Object>, Optional<Throwable>> event) {
-		fluxSink.next(event);
+	public void next(T value) {
+		fluxSink.next(Tuples.of(Optional.of(value), Optional.empty()));
 	}
 
 	public void error(Throwable e) {
-		fluxSink.error(e);
+		fluxSink.next(Tuples.of(Optional.empty(), Optional.of(e)));
 	}
 
 	public void complete() {

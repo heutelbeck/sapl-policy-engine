@@ -4,16 +4,16 @@ import java.util.function.Consumer;
 
 import reactor.core.publisher.FluxSink;
 
-public class EnforcementSink implements Consumer<FluxSink<Object>> {
+public class EnforcementSink<T> implements Consumer<FluxSink<T>> {
 
-	private FluxSink<Object> fluxSink;
+	private FluxSink<T> fluxSink;
 
 	@Override
-	public void accept(FluxSink<Object> fluxSink) {
+	public void accept(FluxSink<T> fluxSink) {
 		this.fluxSink = fluxSink;
 	}
 
-	public void next(Object event) {
+	public void next(T event) {
 		fluxSink.next(event);
 	}
 

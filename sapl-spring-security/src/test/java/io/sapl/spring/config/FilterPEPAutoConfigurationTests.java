@@ -25,7 +25,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.filter.PolicyEnforcementFilterPEP;
 
 class FilterPEPAutoConfigurationTests {
@@ -36,10 +36,9 @@ class FilterPEPAutoConfigurationTests {
 	@Test
 	void whenPropertyPresent_thenFilterBeansIsPresent() {
 		contextRunner.withPropertyValues("io.sapl.policyEnforcementFilter=true")
-		.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-		.withBean(ReactiveConstraintEnforcementService.class, () -> mock(ReactiveConstraintEnforcementService.class))
-		.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class))
-				.run(context -> {
+				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
+				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
+				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(PolicyEnforcementFilterPEP.class);
 				});
