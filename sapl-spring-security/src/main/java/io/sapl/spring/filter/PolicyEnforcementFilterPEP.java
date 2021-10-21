@@ -68,8 +68,7 @@ public class PolicyEnforcementFilterPEP extends GenericFilterBean {
 		try {
 			constraintEnforcementService.bundleFor(authzDecision, Object.class).wrap(Flux.empty()).blockLast();
 		} catch (AccessDeniedException e) {
-			log.debug("PEP failed to fulfill PDP obligations. Access denied by policy enforcement point.");
-			throw new AccessDeniedException("Not all obligations could be handled.");
+			throw new AccessDeniedException("Not all obligations could be handled.", e);
 		}
 
 		if (authzDecision.getDecision() != Decision.PERMIT)

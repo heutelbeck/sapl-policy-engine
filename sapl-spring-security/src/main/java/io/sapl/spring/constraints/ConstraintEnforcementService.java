@@ -227,7 +227,7 @@ public class ConstraintEnforcementService {
 		};
 	}
 
-	private <T> Function<LongConsumer, LongConsumer> failLongConsumerOnlyIfObligationOrFatal(boolean isObligation) {
+	private Function<LongConsumer, LongConsumer> failLongConsumerOnlyIfObligationOrFatal(boolean isObligation) {
 		return consumer -> value -> {
 			try {
 				consumer.accept(value);
