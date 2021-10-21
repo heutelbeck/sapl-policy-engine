@@ -181,7 +181,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 		try {
 			constraintHandler.get().handleOnCancelConstraints();
 		} catch (Throwable t) {
-			log.error("Failed to handle obligation during onCancel. Error is dropped and Flux is canceled. "
+			log.warn("Failed to handle obligation during onCancel. Error is dropped and Flux is canceled. "
 					+ "No information is leaked, however take actions to mitigate error.", t);
 		}
 		disposeDecisionsAndResourceAccessPoint();

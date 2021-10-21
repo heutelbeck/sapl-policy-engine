@@ -857,7 +857,7 @@ public class ConstraintEnforcementServiceTests {
 				Flux.just(3));
 		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
 				Integer.class);
-		StepVerifier.create(wrapped.log()).expectNext(1).expectError(IllegalArgumentException.class).verify();
+		StepVerifier.create(wrapped).expectNext(1).expectError(IllegalArgumentException.class).verify();
 		verify(provider, times(1)).apply(any());
 	}
 
@@ -973,7 +973,7 @@ public class ConstraintEnforcementServiceTests {
 		var resourceAccessPoint = Flux.just(1, 2, 3);
 		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
 				Integer.class);
-		assertThrows(RuntimeException.class, () -> wrapped.log().blockLast());
+		assertThrows(RuntimeException.class, () -> wrapped.blockLast());
 	}
 
 	@Test
