@@ -25,6 +25,7 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * This service can be used to establish a policy enforcement point at any
@@ -37,28 +38,19 @@ public class PolicyEnforcementPoint {
 	private final PolicyDecisionPoint pdp;
 	private final ConstraintEnforcementService constraintEnforcementService;
 
-	public boolean isPermitted(AuthorizationSubscription authzSubscription) {
+	public Mono<Boolean> isPermitted(AuthorizationSubscription authzSubscription) {
 		return pdp.decide(authzSubscription).next().defaultIfEmpty(AuthorizationDecision.DENY)
-				.map(this::enforceDecision).block();
+				.flatMap(this::enforceDecision);
 	}
 
-	private boolean enforceDecision(AuthorizationDecision authzDecision) {
-
+	private Mono<Boolean> enforceDecision(AuthorizationDecision authzDecision) {
 		if (authzDecision.getResource().isPresent())
-			return false;
+			return Mono.just(false);
 
-		try {
-			constraintEnforcementService
-					.enforceConstraintsOfDecisionOnResourceAccessPoint(authzDecision, Flux.empty(), Object.class)
-					.blockLast();
-		} catch (AccessDeniedException e) {
-			return false;
-		}
-
-		if (authzDecision.getDecision() != Decision.PERMIT)
-			return false;
-
-		return true;
+		return constraintEnforcementService
+				.enforceConstraintsOfDecisionOnResourceAccessPoint(authzDecision, Flux.empty(), Object.class)
+				.then(Mono.just(authzDecision.getDecision() == Decision.PERMIT))
+				.onErrorReturn(AccessDeniedException.class, false);
 	}
 
 }

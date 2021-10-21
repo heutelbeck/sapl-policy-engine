@@ -36,7 +36,7 @@ class PolicyEnforcementPointTests {
 		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
 				.thenReturn(Flux.empty());
 		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
-		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource"));
+		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource")).block();
 		assertThat(actual, is(true));
 	}
 
@@ -46,7 +46,7 @@ class PolicyEnforcementPointTests {
 		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
 				.thenReturn(Flux.empty());
 		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
-		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource"));
+		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource")).block();
 		assertThat(actual, is(false));
 	}
 
@@ -56,7 +56,7 @@ class PolicyEnforcementPointTests {
 		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
 				.thenReturn(Flux.empty());
 		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
-		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource"));
+		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource")).block();
 		assertThat(actual, is(false));
 	}
 
@@ -66,7 +66,7 @@ class PolicyEnforcementPointTests {
 		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
 				.thenReturn(Flux.empty());
 		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
-		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource"));
+		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource")).block();
 		assertThat(actual, is(true));
 	}
 
@@ -76,7 +76,7 @@ class PolicyEnforcementPointTests {
 		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
 				.thenReturn(Flux.error(new AccessDeniedException("FAILED OBLIGATION")));
 		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
-		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource"));
+		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource")).block();
 		assertThat(actual, is(false));
 	}
 
@@ -87,7 +87,7 @@ class PolicyEnforcementPointTests {
 		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
 				.thenReturn(Flux.error(new AccessDeniedException("FAILED OBLIGATION")));
 		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
-		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource"));
+		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource")).block();
 		assertThat(actual, is(false));
 	}
 
