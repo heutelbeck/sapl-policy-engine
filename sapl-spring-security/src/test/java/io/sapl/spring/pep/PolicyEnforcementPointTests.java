@@ -51,6 +51,16 @@ class PolicyEnforcementPointTests {
 	}
 
 	@Test
+	void whenNoDecision_thenDeny() {
+		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.empty());
+		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
+				.thenReturn(Flux.empty());
+		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
+		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource"));
+		assertThat(actual, is(false));
+	}
+
+	@Test
 	void whenPermitAndObligationsSucceed_thenPermit() {
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisionFluxOnePermitWithObligation());
 		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
