@@ -2,201 +2,91 @@ package io.sapl.spring.pep;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.constraints.ConstraintHandlerBundle;
-import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
 
 class PolicyEnforcementPointTests {
 	public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-	private ObjectMapper mapper;
 	private PolicyDecisionPoint pdp;
 	private ConstraintEnforcementService constraintHandlers;
-	private ConstraintHandlerBundle<?> bundle;
 
 	@BeforeEach
 	void setUpMocks() {
-		mapper = new ObjectMapper();
-		SimpleModule module = new SimpleModule();
-		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
-		mapper.registerModule(module);
 		pdp = mock(PolicyDecisionPoint.class);
 		constraintHandlers = mock(ConstraintEnforcementService.class);
-		bundle = mock(ConstraintHandlerBundle.class);
-		doReturn(bundle).when(constraintHandlers).bundleFor(any(), any());
-
 	}
 
 	@Test
 	void whenPermitAndNoObligations_thenPermit() {
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers, mapper);
-		doReturn(Flux.empty()).when(bundle).wrap(any());
-		StepVerifier.create(pep.enforce("subject", "action", "resource")).expectNext(Decision.PERMIT).thenCancel()
-				.verify();
+		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
+				.thenReturn(Flux.empty());
+		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
+		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource"));
+		assertThat(actual, is(true));
 	}
 
 	@Test
-	void whenDeny_thenDeny() {
+	void whenDenyAndNoObligations_thenDeny() {
 		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.DENY));
-		doReturn(Flux.empty()).when(bundle).wrap(any());
-		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers, mapper);
-		StepVerifier.create(pep.enforce("subject", "action", "resource")).expectNext(Decision.DENY).thenCancel()
-				.verify();
+		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
+				.thenReturn(Flux.empty());
+		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
+		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource"));
+		assertThat(actual, is(false));
 	}
 
 	@Test
-	void whenNotApplicable_thenDeny() {
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
-		doReturn(Flux.empty()).when(bundle).wrap(any());
-		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers, mapper);
-		StepVerifier.create(pep.enforce("subject", "action", "resource")).expectNext(Decision.DENY).thenCancel()
-				.verify();
+	void whenPermitAndObligationsSucceed_thenPermit() {
+		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisionFluxOnePermitWithObligation());
+		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
+				.thenReturn(Flux.empty());
+		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
+		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource"));
+		assertThat(actual, is(true));
 	}
 
 	@Test
-	void whenIndeterminate_thenIndeterminate() {
-		doReturn(Flux.empty()).when(bundle).wrap(any());
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
-		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers, mapper);
-		StepVerifier.create(pep.enforce("subject", "action", "resource")).expectNext(Decision.DENY).thenCancel()
-				.verify();
+	void whenPermitAndObligationsFail_thenDeny() {
+		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisionFluxOnePermitWithObligation());
+		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
+				.thenReturn(Flux.error(new AccessDeniedException("FAILED OBLIGATION")));
+		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
+		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource"));
+		assertThat(actual, is(false));
 	}
 
 	@Test
-	void whenPermitAndAndObligationsFulfilled_thenPermit() {
-		var obligations = JSON.arrayNode();
-		obligations.add("obligation1");
-		obligations.add("obligation2");
-		var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
-
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
-		doReturn(Flux.error(new AccessDeniedException("ERROR"))).when(bundle).wrap(any());
-
-		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers, mapper);
-		StepVerifier.create(pep.enforce("subject", "action", "resource")).expectNext(Decision.DENY).thenCancel()
-				.verify();
+	void whenPermitAndResource_thenDeny() {
+		when(pdp.decide((AuthorizationSubscription) any()))
+				.thenReturn(Flux.just(AuthorizationDecision.DENY.withResource(JSON.textNode("CAUSES FAIL"))));
+		when(constraintHandlers.enforceConstraintsOfDecisionOnResourceAccessPoint(any(), any(), any()))
+				.thenReturn(Flux.error(new AccessDeniedException("FAILED OBLIGATION")));
+		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers);
+		var actual = pep.isPermitted(AuthorizationSubscription.of("subject", "action", "resource"));
+		assertThat(actual, is(false));
 	}
 
-	@Test
-	void whenDecisionHasResourceAndPEPDoesNotSupportTransform_thenDeny() {
-		var decision = AuthorizationDecision.PERMIT.withResource(JSON.textNode("transformed resource"));
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
-		doReturn(Flux.empty()).when(bundle).wrap(any());
-		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers, mapper);
-		StepVerifier.create(pep.enforce("subject", "action", "resource")).expectNext(Decision.DENY).thenCancel()
-				.verify();
-	}
-
-	@Test
-	void whenDecisionHasResourceAndPEPDoesSupportTransform_thenPermit() {
-		var decision = AuthorizationDecision.PERMIT.withResource(JSON.textNode("transformed resource"));
-		when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
-		doReturn(Flux.empty()).when(bundle).wrap(any());
-		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers, mapper);
-		StepVerifier.create(pep.filterEnforce("subject", "action", "resource")).expectNext(decision).thenCancel()
-				.verify();
-	}
-
-	@Test
-	@Disabled
-	void whenFilterEnforcingAll_thenPermitsWithFulfilledObligationsStayAndWithFailedObligationsTurnToDeny() {
-		var subscription = new MultiAuthorizationSubscription();
-		subscription.addAuthorizationSubscription("id1", "subject", "action1", "resource", "environment");
-		subscription.addAuthorizationSubscription("id2", "subject", "action1", "resource", "environment");
-		var obligations1 = JSON.arrayNode();
-		obligations1.add("obligation1");
-		var decision1 = AuthorizationDecision.PERMIT.withObligations(obligations1);
-		var obligations2 = JSON.arrayNode();
-		obligations2.add("obligation2");
-		var decision2 = AuthorizationDecision.PERMIT.withObligations(obligations2);
-
-		var pdpMultiDecision = new MultiAuthorizationDecision();
-		pdpMultiDecision.setAuthorizationDecisionForSubscriptionWithId("id1", decision1);
-		pdpMultiDecision.setAuthorizationDecisionForSubscriptionWithId("id2", decision2);
-		when(pdp.decideAll((MultiAuthorizationSubscription) any())).thenReturn(Flux.just(pdpMultiDecision));
-//		doAnswer(i -> {
-//			var decision = (AuthorizationDecision) i.getArgument(0);
-//			if (decision.getObligations().isPresent()
-//					&& decision.getObligations().get().get(0).asText().equals("obligation2"))
-//				return false;
-//			return true;
-//		}).when(bundle).wrap(any(AuthorizationDecision.class));
-
-		doReturn(Flux.error(new AccessDeniedException("ERROR"))).when(bundle).wrap(any());
-
-		var alteredDecision2 = AuthorizationDecision.DENY.withObligations(obligations2);
-		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers, mapper);
-		StepVerifier.create(pep.filterEnforceAll(subscription)).assertNext(actual -> {
-			assertThat(actual.getAuthorizationDecisionForSubscriptionWithId("id1"), is(decision1));
-			assertThat(actual.getAuthorizationDecisionForSubscriptionWithId("id2"), is(alteredDecision2));
-		}).thenCancel().verify();
-	}
-
-	@Test
-	void whenFilterEnforcingAll_thenNonPermitsAreDeny() {
-		var subscription = new MultiAuthorizationSubscription();
-		subscription.addAuthorizationSubscription("id1", "subject", "action1", "resource", "environment");
-		subscription.addAuthorizationSubscription("id2", "subject", "action1", "resource", "environment");
-		var decision1 = AuthorizationDecision.INDETERMINATE;
-		var decision2 = AuthorizationDecision.NOT_APPLICABLE;
-
-		var pdpMultiDecision = new MultiAuthorizationDecision();
-		pdpMultiDecision.setAuthorizationDecisionForSubscriptionWithId("id1", decision1);
-		pdpMultiDecision.setAuthorizationDecisionForSubscriptionWithId("id2", decision2);
-		when(pdp.decideAll((MultiAuthorizationSubscription) any())).thenReturn(Flux.just(pdpMultiDecision));
-		doReturn(Flux.empty()).when(bundle).wrap(any());
-
-		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers, mapper);
-		StepVerifier.create(pep.filterEnforceAll(subscription)).assertNext(actual -> {
-			assertThat(actual.getAuthorizationDecisionForSubscriptionWithId("id1"), is(AuthorizationDecision.DENY));
-			assertThat(actual.getAuthorizationDecisionForSubscriptionWithId("id2"), is(AuthorizationDecision.DENY));
-		}).thenCancel().verify();
-	}
-
-	@Test
-	void whenFilterEnforcing_thenNonPermitsAreDenyAndPermitStays() {
-		var subscription = new MultiAuthorizationSubscription();
-		subscription.addAuthorizationSubscription("id1", "subject", "action1", "resource", "environment");
-		subscription.addAuthorizationSubscription("id2", "subject", "action1", "resource", "environment");
-		var decision1 = new IdentifiableAuthorizationDecision("id1", AuthorizationDecision.PERMIT);
-		var decision2 = new IdentifiableAuthorizationDecision("id2", AuthorizationDecision.NOT_APPLICABLE);
-
-		var expectedDecision1 = decision1;
-		var expectedDecision2 = new IdentifiableAuthorizationDecision("id2", AuthorizationDecision.DENY);
-
-		when(pdp.decide((MultiAuthorizationSubscription) any())).thenReturn(Flux.just(decision1, decision2));
-		doReturn(Flux.empty()).when(bundle).wrap(any());
-
-		var pep = new PolicyEnforcementPoint(pdp, constraintHandlers, mapper);
-		assertThat(pep.filterEnforce(subscription).take(2).collectList().block(),
-				containsInAnyOrder(expectedDecision2, expectedDecision1));
+	private Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
+		var json = JsonNodeFactory.instance;
+		var plus10000 = json.numberNode(10000L);
+		var obligation = json.arrayNode();
+		obligation.add(plus10000);
+		return Flux.just(AuthorizationDecision.PERMIT.withObligations(obligation));
 	}
 
 }
