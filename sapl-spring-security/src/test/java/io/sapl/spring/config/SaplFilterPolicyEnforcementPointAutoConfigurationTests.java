@@ -26,12 +26,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.filter.PolicyEnforcementFilterPEP;
+import io.sapl.spring.filter.SaplFilterPolicyEnforcementPoint;
 
-class FilterPEPAutoConfigurationTests {
+class SaplFilterPolicyEnforcementPointAutoConfigurationTests {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(FilterPEPAutoConfiguration.class));
+			.withConfiguration(AutoConfigurations.of(SaplFilterPolicyEnforcementPointAutoConfiguration.class));
 
 	@Test
 	void whenPropertyPresent_thenFilterBeansIsPresent() {
@@ -40,7 +40,7 @@ class FilterPEPAutoConfigurationTests {
 				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(PolicyEnforcementFilterPEP.class);
+					assertThat(context).hasSingleBean(SaplFilterPolicyEnforcementPoint.class);
 				});
 	}
 
@@ -48,7 +48,7 @@ class FilterPEPAutoConfigurationTests {
 	void whenNoPropertyPresent_thenFilterBeansIsMissing() {
 		contextRunner.run(context -> {
 			assertThat(context).hasNotFailed();
-			assertThat(context).doesNotHaveBean(PolicyEnforcementFilterPEP.class);
+			assertThat(context).doesNotHaveBean(SaplFilterPolicyEnforcementPoint.class);
 		});
 	}
 

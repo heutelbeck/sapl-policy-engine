@@ -87,7 +87,7 @@ public class ReactiveSaplMethodInterceptorTests {
 		module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
 		mapper.registerModule(module);
 		subscriptionBuilder = mock(AuthorizationSubscriptionBuilderService.class);
-		when(subscriptionBuilder.reactiveConstructAuthorizationSubscription(any(), any()))
+		when(subscriptionBuilder.reactiveConstructAuthorizationSubscription(any(MethodInvocation.class), any()))
 				.thenReturn(Mono.just(AuthorizationSubscription.of("the subject", "the action", "the resource")));
 		preEnforcePolicyEnforcementPoint = mock(PreEnforcePolicyEnforcementPoint.class);
 		postEnforcePolicyEnforcementPoint = mock(PostEnforcePolicyEnforcementPoint.class);

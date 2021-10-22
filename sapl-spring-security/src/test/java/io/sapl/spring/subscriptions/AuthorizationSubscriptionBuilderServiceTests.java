@@ -6,6 +6,8 @@ import static com.spotify.hamcrest.jackson.JsonMatchers.jsonNull;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -38,6 +40,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.util.MethodInvocationUtils;
+import org.springframework.security.web.server.authorization.AuthorizationContext;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ServerWebExchange;
@@ -74,6 +77,31 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 		defaultBuilderUnderTest = new AuthorizationSubscriptionBuilderService(
 				new DefaultMethodSecurityExpressionHandler(), () -> mapper);
 		invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null, null);
+	}
+
+	@Test
+	void when_usedForAuthorizationContext_nullContext_Fails() {
+		@SuppressWarnings("unchecked")
+		var mockFactory = (ObjectFactory<ObjectMapper>) mock(ObjectFactory.class);
+		when(mockFactory.getObject()).thenReturn(mapper);
+		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
+				mockFactory);
+		assertThrows(NullPointerException.class,
+				() -> sut.reactiveConstructAuthorizationSubscription(Mono.just(authentication), null).block());
+	}
+
+	@Test
+	void when_usedForAuthorizationContext_subscriptionReturns() {
+		@SuppressWarnings("unchecked")
+		var mockFactory = (ObjectFactory<ObjectMapper>) mock(ObjectFactory.class);
+		when(mockFactory.getObject()).thenReturn(mapper);
+		MockServerHttpRequest request = MockServerHttpRequest.get("/requestpath").build();
+		MockServerWebExchange exchange = MockServerWebExchange.from(request);
+		AuthorizationContext context = new AuthorizationContext(exchange);
+		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
+				mockFactory);
+		var actual = sut.reactiveConstructAuthorizationSubscription(Mono.just(authentication), context).block();
+		assertThat(actual, is(not(nullValue())));
 	}
 
 	@Test

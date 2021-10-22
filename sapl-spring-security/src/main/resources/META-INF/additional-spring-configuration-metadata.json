@@ -1,0 +1,5 @@
+{"properties": [{
+  "name": "io.sapl.policyEnforcementFilter",
+  "type": "java.lang.Boolean",
+  "description": "Setting this property to TRUE will activate the SaplFilterPolicyEnforcementPoint FilterBean in the application context."
+}]}

@@ -15,6 +15,8 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.web.server.authorization.AuthorizationContext;
+import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ServerWebExchange;
@@ -26,6 +28,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.SaplAttribute;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
@@ -34,6 +37,7 @@ import reactor.util.context.ContextView;
  * This class contains the logic for SpEL expression evaluation and retrieving
  * request information from the application context or method invocation.
  */
+@Service
 @RequiredArgsConstructor
 public class AuthorizationSubscriptionBuilderService {
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
@@ -63,6 +67,14 @@ public class AuthorizationSubscriptionBuilderService {
 			return constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
 					Optional.empty());
 		});
+	}
+
+	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
+			Mono<Authentication> authentication, @NonNull AuthorizationContext context) {
+		lazyLoadDependencies();
+		var request = context.getExchange().getRequest();
+		return authentication.defaultIfEmpty(ANONYMOUS)
+				.map(authn -> AuthorizationSubscription.of(authn, request, request, mapper));
 	}
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,

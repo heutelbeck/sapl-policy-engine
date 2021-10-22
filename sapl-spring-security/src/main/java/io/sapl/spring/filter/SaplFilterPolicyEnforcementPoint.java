@@ -41,7 +41,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 @RequiredArgsConstructor
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-public class PolicyEnforcementFilterPEP extends GenericFilterBean {
+public class SaplFilterPolicyEnforcementPoint extends GenericFilterBean {
 
 	private final PolicyDecisionPoint pdp;
 	private final ConstraintEnforcementService constraintEnforcementService;

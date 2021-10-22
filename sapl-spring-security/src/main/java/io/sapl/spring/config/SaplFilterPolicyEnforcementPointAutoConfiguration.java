@@ -25,18 +25,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.filter.PolicyEnforcementFilterPEP;
+import io.sapl.spring.filter.SaplFilterPolicyEnforcementPoint;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-public class FilterPEPAutoConfiguration {
+public class SaplFilterPolicyEnforcementPointAutoConfiguration {
 	@Bean
 	@ConditionalOnProperty("io.sapl.policyEnforcementFilter")
-	public PolicyEnforcementFilterPEP policyEnforcementFilter(PolicyDecisionPoint pdp,
+	public SaplFilterPolicyEnforcementPoint policyEnforcementFilter(PolicyDecisionPoint pdp,
 			ConstraintEnforcementService constraintHandlers, ObjectMapper mapper) {
 		log.info("PolicyEnforcementFilter enabled.");
-		return new PolicyEnforcementFilterPEP(pdp, constraintHandlers, mapper);
+		return new SaplFilterPolicyEnforcementPoint(pdp, constraintHandlers, mapper);
 	}
 }
