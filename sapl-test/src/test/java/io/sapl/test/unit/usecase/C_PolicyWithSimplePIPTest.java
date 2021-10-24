@@ -1,7 +1,7 @@
 package io.sapl.test.unit.usecase;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import static io.sapl.hamcrest.Matchers.val;
+import static io.sapl.test.Imports.whenParentValue;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -9,6 +9,9 @@ import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import io.sapl.test.unit.TestPIP;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class C_PolicyWithSimplePIPTest {
 
@@ -35,6 +38,18 @@ public class C_PolicyWithSimplePIPTest {
 		
 		fixture.registerPIP(new TestPIP())
 			.constructTestCase()
+			.when(AuthorizationSubscription.of("willi", "read", "something"))
+			.expectPermit()
+			.verify();
+		
+	}	
+	
+	
+	@Test
+	void test_policyWithSimplePIP_mockedWhenParameters() throws InitializationException {
+		
+		fixture.constructTestCaseWithMocks()
+			.givenAttribute("test.upper", whenParentValue(val("willi")), Val.of("WILLI"))
 			.when(AuthorizationSubscription.of("willi", "read", "something"))
 			.expectPermit()
 			.verify();

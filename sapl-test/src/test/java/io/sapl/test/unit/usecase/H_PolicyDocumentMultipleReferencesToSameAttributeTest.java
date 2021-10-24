@@ -1,7 +1,7 @@
 package io.sapl.test.unit.usecase;
 
 import static io.sapl.hamcrest.Matchers.*;
-import static io.sapl.test.Imports.whenParameters;
+import static io.sapl.test.Imports.whenFunctionParams;
 import static org.hamcrest.CoreMatchers.allOf;
 
 import io.sapl.api.interpreter.Val;
@@ -44,12 +44,12 @@ public class H_PolicyDocumentMultipleReferencesToSameAttributeTest {
 
 		fixture.constructTestCaseWithMocks()
 			.givenAttribute("clock.now", Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5), Val.of(6))
-			.givenFunction("time.localSecond", Val.of(1), whenParameters(val(1)))
-			.givenFunction("time.localSecond", Val.of(15), whenParameters(val(2)))
-			.givenFunction("time.localSecond", Val.of(25), whenParameters(val(3)))
-			.givenFunction("time.localSecond", Val.of(35), whenParameters(val(4)))
-			.givenFunction("time.localSecond", Val.of(45), whenParameters(val(5)))
-			.givenFunction("time.localSecond", Val.of(55), whenParameters(val(6)))
+			.givenFunction("time.localSecond", whenFunctionParams(val(1)), Val.of(1))
+			.givenFunction("time.localSecond", whenFunctionParams(val(2)), Val.of(15))
+			.givenFunction("time.localSecond", whenFunctionParams(val(3)), Val.of(25))
+			.givenFunction("time.localSecond", whenFunctionParams(val(4)), Val.of(35))
+			.givenFunction("time.localSecond", whenFunctionParams(val(5)), Val.of(45))
+			.givenFunction("time.localSecond", whenFunctionParams(val(6)), Val.of(55))
 			.when(AuthorizationSubscription.of("WILLI", "read", "something"))
 			.expectNext(allOf(isPermit(), hasObligation("A")))
 			.expectNext(allOf(isPermit(), hasObligation("A")))

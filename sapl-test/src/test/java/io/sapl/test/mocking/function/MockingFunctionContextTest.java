@@ -1,7 +1,6 @@
-package io.sapl.test.mocking;
+package io.sapl.test.mocking.function;
 
-import static io.sapl.test.Imports.times;
-import static io.sapl.test.Imports.whenParameters;
+import static io.sapl.test.Imports.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,18 +9,20 @@ import static org.mockito.Mockito.when;
 import java.util.Collection;
 import java.util.List;
 
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.mocking.function.FunctionMockAlwaysSameValue;
+import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.unit.TestPIP;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 public class MockingFunctionContextTest {
 
@@ -64,7 +65,7 @@ public class MockingFunctionContextTest {
 	void test_alreadyDefinedMock_NotFunctionMockAlwaysSameForParameters() {
 		this.ctx.loadFunctionMockAlwaysSameValue("foo.bar", Val.of(1));
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
-		.isThrownBy(() -> this.ctx.loadFunctionMockAlwaysSameValueForParameters("foo.bar", Val.of(1), whenParameters(is(Val.of(1)))));
+		.isThrownBy(() -> this.ctx.loadFunctionMockAlwaysSameValueForParameters("foo.bar", Val.of(1), whenFunctionParams(is(Val.of(1)))));
 	}
 	
 	@Test
@@ -86,8 +87,8 @@ public class MockingFunctionContextTest {
 		ctx.loadFunctionMockValueFromFunction("foo.abc",  (call) -> Val.of("1"), times(1));
 		ctx.loadFunctionMockAlwaysSameValue("xxx.xxx", Val.of(1));
 		ctx.loadFunctionMockAlwaysSameValue("xxx.yyy", Val.of(1), times(1));
-		ctx.loadFunctionMockAlwaysSameValueForParameters("foo.123", Val.of(1), whenParameters());
-		ctx.loadFunctionMockAlwaysSameValueForParameters("foo.456", Val.of(1), whenParameters(), times(1));
+		ctx.loadFunctionMockAlwaysSameValueForParameters("foo.123", Val.of(1), whenFunctionParams());
+		ctx.loadFunctionMockAlwaysSameValueForParameters("foo.456", Val.of(1), whenFunctionParams(), times(1));
 		ctx.loadFunctionMockOnceReturnValue("foo.789", Val.of(1));
 		ctx.loadFunctionMockReturnsSequence("foo.987", new Val[] {Val.of(1)});
 

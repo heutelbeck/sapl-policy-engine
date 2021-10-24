@@ -1,6 +1,7 @@
-package io.sapl.test.mocking;
+package io.sapl.test.mocking.function;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.TimesCalledVerification;
 
@@ -22,8 +23,8 @@ public class FunctionMockAlwaysSameValue implements FunctionMock {
 	}
 	
 	@Override
-	public Val evaluateFunctionCall(FunctionCall functionCall) {
-		this.mockRunInformation.saveCall(functionCall);
+	public Val evaluateFunctionCall(Val... parameter) {
+		this.mockRunInformation.saveCall(new MockCall(parameter));
 		return this.alwaysMockReturnValue;
 	}
 

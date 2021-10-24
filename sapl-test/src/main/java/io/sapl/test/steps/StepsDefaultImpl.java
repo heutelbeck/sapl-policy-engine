@@ -13,10 +13,11 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.mocking.FunctionCall;
-import io.sapl.test.mocking.FunctionParameters;
-import io.sapl.test.mocking.MockingAttributeContext;
-import io.sapl.test.mocking.MockingFunctionContext;
+import io.sapl.test.mocking.attribute.MockingAttributeContext;
+import io.sapl.test.mocking.attribute.models.AttributeParameters;
+import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
+import io.sapl.test.mocking.function.MockingFunctionContext;
+import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
 
 import org.hamcrest.Matcher;
@@ -73,13 +74,13 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
     }
 
     @Override
-    public GivenOrWhenStep givenFunction(String importName, Val returns, FunctionParameters parameter) {
+    public GivenOrWhenStep givenFunction(String importName, FunctionParameters parameter, Val returns) {
         this.mockingFunctionContext.loadFunctionMockAlwaysSameValueForParameters(importName, returns, parameter);
         return this;
     }
 
     @Override
-    public GivenOrWhenStep givenFunction(String importName, Val returns, FunctionParameters parameters,
+    public GivenOrWhenStep givenFunction(String importName, FunctionParameters parameters, Val returns,
                                          TimesCalledVerification verification) {
         this.mockingFunctionContext.loadFunctionMockAlwaysSameValueForParameters(importName, returns, parameters,
                 verification);
@@ -87,13 +88,13 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
     }
 
     @Override
-    public GivenOrWhenStep givenFunction(String importName, Function<FunctionCall, Val> returns) {
+    public GivenOrWhenStep givenFunction(String importName, Function<Val[], Val> returns) {
         this.mockingFunctionContext.loadFunctionMockValueFromFunction(importName, returns);
         return this;
     }
 
     @Override
-    public GivenOrWhenStep givenFunction(String importName, Function<FunctionCall, Val> returns,
+    public GivenOrWhenStep givenFunction(String importName, Function<Val[], Val> returns,
                                          TimesCalledVerification verification) {
         this.mockingFunctionContext.loadFunctionMockValueFromFunction(importName, returns, verification);
         return this;
@@ -119,6 +120,20 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
     public GivenOrWhenStep givenAttribute(String importName) {
         this.mockingAttributeContext.markAttributeMock(importName);
         return this;
+    }
+    
+
+    @Override
+    public GivenOrWhenStep givenAttribute(String importName, AttributeParentValueMatcher parentValueMatcher, Val returns) {
+    	this.mockingAttributeContext.loadAttributeMockForParentValue(importName, parentValueMatcher, returns);
+    	return this;
+    }
+    
+    @Override
+    public GivenOrWhenStep givenAttribute(String importName, AttributeParameters parameters, Val returns) {
+    	this.mockingAttributeContext.loadAttributeMockForParentValueAndArguments(importName, parameters, returns);
+    	return this;
+    	
     }
 
     @Override

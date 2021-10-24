@@ -1,4 +1,4 @@
-package io.sapl.test.mocking;
+package io.sapl.test.mocking.function;
 
 import static io.sapl.test.Imports.times;
 
@@ -17,6 +17,7 @@ import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
 
 import org.hamcrest.number.OrderingComparison;
@@ -83,7 +84,7 @@ public class MockingFunctionContext implements FunctionContext {
 		FunctionMock mock = this.registeredMocks.get(function);
 		if (mock != null) {
 			log.debug("| | | | |-- Evaluate mocked function \"{}\"", function);
-			var result = mock.evaluateFunctionCall(new FunctionCallSimple(parameters));
+			var result = mock.evaluateFunctionCall(parameters);
 			log.trace("| | | | |-- FunctionMock returned: " + result.toString());
 			return result;
 		} else {
@@ -178,11 +179,11 @@ public class MockingFunctionContext implements FunctionContext {
 		}
 	}
 
-	public void loadFunctionMockValueFromFunction(String fullname, Function<FunctionCall, Val> returns) {
+	public void loadFunctionMockValueFromFunction(String fullname, Function<Val[], Val> returns) {
 		this.loadFunctionMockValueFromFunction(fullname, returns, times(OrderingComparison.greaterThanOrEqualTo(1)));
 	}
 
-	public void loadFunctionMockValueFromFunction(String fullname, Function<FunctionCall, Val> returns,
+	public void loadFunctionMockValueFromFunction(String fullname, Function<Val[], Val> returns,
 			TimesCalledVerification verification) {
 		checkImportName(fullname);
 

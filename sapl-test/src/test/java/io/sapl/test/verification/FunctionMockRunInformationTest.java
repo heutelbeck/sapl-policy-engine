@@ -1,13 +1,12 @@
 package io.sapl.test.verification;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.mocking.MockCall;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.mocking.FunctionCall;
-import io.sapl.test.mocking.FunctionCallSimple;
-
-public class MockRunInformationTest {
+public class FunctionMockRunInformationTest {
 
 	@Test
 	void test_initialization() {
@@ -23,7 +22,7 @@ public class MockRunInformationTest {
 	@Test
 	void test_increase() {
 		String fullname = "foo";
-		FunctionCall call = new FunctionCallSimple(Val.of("foo"));
+		MockCall call = new MockCall(Val.of("foo"));
 		MockRunInformation mock = new MockRunInformation(fullname);
 		
 		mock.saveCall(call);

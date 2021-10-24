@@ -1,6 +1,6 @@
 package io.sapl.test.steps;
 
-import static io.sapl.hamcrest.Matchers.anyVal;
+import static io.sapl.hamcrest.Matchers.*;
 import static io.sapl.test.Imports.*;
 
 import java.util.HashMap;
@@ -16,8 +16,8 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.mocking.MockingAttributeContext;
-import io.sapl.test.mocking.MockingFunctionContext;
+import io.sapl.test.mocking.attribute.MockingAttributeContext;
+import io.sapl.test.mocking.function.MockingFunctionContext;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -93,20 +93,70 @@ class StepsDefaultImplTest {
 
 
 	    @Test
-	    void test_mockFunction_withParameters_withTimesVerification() throws InitializationException {
+	    void test_mockFunction_withParameters_withTimesVerification() {
 	    	StepsDefaultImpl steps = new StepsDefaultImplTestImpl(Policy_SimpleFunction, attrCtx, funcCtx, variables);
-	        steps.givenFunction("time.dayOfWeek", Val.of("SATURDAY"), whenParameters(anyVal()), times(1))
+	        steps.givenFunction("time.dayOfWeek", whenFunctionParams(anyVal()), Val.of("SATURDAY"), times(1))
                 .when(AuthorizationSubscription.of("willi", "read", "something"))
                 .expectPermit()
                 .verify();
 	    }
 	    
 	    @Test
-	    void test_mockFunction_Function_withTimesVerification() throws InitializationException {
+	    void test_mockFunction_Function_withTimesVerification() {
 	    	StepsDefaultImpl steps = new StepsDefaultImplTestImpl(Policy_SimpleFunction, attrCtx, funcCtx, variables);
 	        steps.givenFunction("time.dayOfWeek", (call) -> Val.of("SATURDAY"), times(1))
                 .when(AuthorizationSubscription.of("willi", "read", "something"))
                 .expectPermit()
+                .verify();
+	    }
+	    
+	    
+		private String Policy_Attribute_WithAttributeAsParentValue = 
+				"policy \"policy\"\r\n"
+				+ "permit\r\n"
+				+ "where\r\n"
+				+ "  var test = true;\r\n"
+				+ "  test.<pip.attribute1>.<pip.attribute2> < 50;";
+
+	    @Test
+	    void test_mockAttribute_withParentValue() {
+	    	StepsDefaultImpl steps = new StepsDefaultImplTestImpl(Policy_Attribute_WithAttributeAsParentValue, attrCtx, funcCtx, variables);
+	        steps
+	        	.givenAttribute("pip.attribute1", Val.of(true), Val.of(false))
+	        	.givenAttribute("pip.attribute2", parentValue(val(true)), thenReturn(Val.of(0)))
+	        	.givenAttribute("pip.attribute2", parentValue(val(false)), thenReturn(Val.of(99)))
+                .when(AuthorizationSubscription.of("willi", "read", "something"))
+                .expectNextPermit()
+                .expectNextNotApplicable()
+                .verify();
+	    }
+	    
+	    
+		private String Policy_Attribute_WithAttributeAsParentValueAndArguments = 
+				"policy \"policy\"\r\n"
+				+ "permit\r\n"
+				+ "where\r\n"
+				+ "  var parentValue = true;\r\n"
+				+ "  parentValue.<pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;";
+
+	    
+	    @Test
+	    void test_mockAttribute_withParentValueAndArguments() {
+	    	StepsDefaultImpl steps = new StepsDefaultImplTestImpl(Policy_Attribute_WithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
+	        steps
+	        	.givenAttribute("pip.attribute1")
+	        	.givenAttribute("pip.attribute2")
+	        	.givenAttribute("pip.attributeWithParams", whenAttributeParams(parentValue(val(true)), arguments(val(2), val(2))), thenReturn(Val.of(true)))
+	        	.givenAttribute("pip.attributeWithParams", whenAttributeParams(parentValue(val(true)), arguments(val(2), val(1))), thenReturn(Val.of(false)))
+	        	.givenAttribute("pip.attributeWithParams", whenAttributeParams(parentValue(val(true)), arguments(val(1), val(2))), thenReturn(Val.of(false)))
+                .when(AuthorizationSubscription.of("willi", "read", "something"))
+                .thenAttribute("pip.attribute1", Val.of(1))
+                .thenAttribute("pip.attribute2", Val.of(2))
+                .expectNextNotApplicable()
+                .thenAttribute("pip.attribute1", Val.of(2))
+                .expectNextPermit()
+                .thenAttribute("pip.attribute2", Val.of(1))
+                .expectNextNotApplicable()
                 .verify();
 	    }
 	    

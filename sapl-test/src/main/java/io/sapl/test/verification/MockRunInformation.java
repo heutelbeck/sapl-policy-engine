@@ -3,11 +3,13 @@ package io.sapl.test.verification;
 import java.util.LinkedList;
 import java.util.List;
 
-import io.sapl.test.mocking.FunctionCall;
+import io.sapl.test.mocking.MockCall;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 public class MockRunInformation {
+
 	private final String fullname;
 	private List<CallWithMetadata> timesCalled;
 	
@@ -28,15 +30,15 @@ public class MockRunInformation {
 		return this.timesCalled;
 	}
 	
-	public void saveCall(FunctionCall call) {
+	public void saveCall(MockCall call) {
 		this.timesCalled.add(new CallWithMetadata(false, call));
 	}
 	
-	
 	@Data
 	@AllArgsConstructor
-	static class CallWithMetadata {
+	public static class CallWithMetadata {
 		private boolean isUsed;
-		private FunctionCall call; 
+		private MockCall call; 
 	}
+
 }

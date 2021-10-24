@@ -1,15 +1,20 @@
-package io.sapl.test.mocking;
+package io.sapl.test.mocking.attribute;
 
 import static io.sapl.test.Imports.times;
 
 import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.MockingVerification;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
 import reactor.core.publisher.Flux;
 
 public class AttributeMockTiming implements AttributeMock {
@@ -37,8 +42,10 @@ public class AttributeMockTiming implements AttributeMock {
 	}
 
 	@Override
-	public Flux<Val> evaluate() {
-		this.mockRunInformation.saveCall(new FunctionCallSimple());
+	public Flux<Val> evaluate(Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args) {
+		//ignore arguments
+		
+		this.mockRunInformation.saveCall(new MockCall());
 
 		if (this.returnValues == null || this.timing == null) {
 			throw new SaplTestException("Undefined internal state. Please report a bug to the library authors!");

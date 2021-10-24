@@ -6,33 +6,28 @@ import java.util.List;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
-
-public class FunctionCallSimple implements FunctionCall {
+public class MockCall {
 	
 	private static final String ERROR_INVLID_ARGUMENT_INDEX = "Requested index %d for function call parameters but there are only %d parameters. Did you forget to check with \"getNumberOfArguments()\"";
 
-	private Val[] parameters;
+	private Val[] parameter;
 	
-	public FunctionCallSimple(Val... parameters) {
-		this.parameters = parameters;
+	public MockCall(Val... parameter) {
+		this.parameter = parameter;
 	}
 	
-	@Override
 	public int getNumberOfArguments() {
-		return this.parameters.length;
+		return this.parameter.length;
 	}
 
-	@Override
 	public Val getArgument(int index) {
-		if(index > this.parameters.length - 1) {
+		if(index > this.parameter.length - 1) {
 			throw new SaplTestException(String.format(ERROR_INVLID_ARGUMENT_INDEX, index, getNumberOfArguments()));
 		}
-		return this.parameters[index];
+		return this.parameter[index];
 	}
 
-	@Override
 	public List<Val> getListOfArguments() {
-		return Collections.unmodifiableList(Arrays.asList(this.parameters));
+		return Collections.unmodifiableList(Arrays.asList(this.parameter));
 	}
-
 }

@@ -1,11 +1,12 @@
-package io.sapl.test.mocking;
+package io.sapl.test.mocking.function;
 
 import static io.sapl.test.Imports.times;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.mocking.function.FunctionMockAlwaysSameValue;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import io.sapl.api.interpreter.Val;
 
 public class FunctionMockAlwaysSameValueTest {
 
@@ -14,19 +15,15 @@ public class FunctionMockAlwaysSameValueTest {
 	@Test
 	void test() {
 		FunctionMockAlwaysSameValue mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(1));
-		FunctionCall call = new FunctionCallSimple(Val.of(1));
-		Assertions.assertThat(mock.evaluateFunctionCall(call)).isEqualTo(alwaysReturnValue);
+		Assertions.assertThat(mock.evaluateFunctionCall(Val.of(1))).isEqualTo(alwaysReturnValue);
 	}
 	
 	@Test
 	void test_multipleTimes() {
 		FunctionMockAlwaysSameValue mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(3));
-		FunctionCall call1 = new FunctionCallSimple(Val.of(1));
-		Assertions.assertThat(mock.evaluateFunctionCall(call1)).isEqualTo(alwaysReturnValue);
-		FunctionCall call2 = new FunctionCallSimple(Val.of(2));
-		Assertions.assertThat(mock.evaluateFunctionCall(call2)).isEqualTo(alwaysReturnValue);
-		FunctionCall call3 = new FunctionCallSimple(Val.of(3));
-		Assertions.assertThat(mock.evaluateFunctionCall(call3)).isEqualTo(alwaysReturnValue);
+		Assertions.assertThat(mock.evaluateFunctionCall(Val.of(1))).isEqualTo(alwaysReturnValue);
+		Assertions.assertThat(mock.evaluateFunctionCall(Val.of(2))).isEqualTo(alwaysReturnValue);
+		Assertions.assertThat(mock.evaluateFunctionCall(Val.of(3))).isEqualTo(alwaysReturnValue);
 		
 		boolean isAssertionErrorThrown = false;
 		try {

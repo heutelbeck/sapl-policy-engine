@@ -1,8 +1,9 @@
-package io.sapl.test.mocking;
+package io.sapl.test.mocking.function;
 
 import java.util.function.Function;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.TimesCalledVerification;
 
@@ -11,11 +12,11 @@ public class FunctionMockFunctionResult implements FunctionMock {
 	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION = "You already defined a Mock for %s which is always returning a specified value from your lambda-Expression";
 		
 	private final String fullname;
-	Function<FunctionCall, Val> returnValue;
+	Function<Val[], Val> returnValue;
 	private TimesCalledVerification timesCalledVerification;
 	private final MockRunInformation mockRunInformation;
 	
-	public FunctionMockFunctionResult(String fullname, Function<FunctionCall, Val> returns, TimesCalledVerification verification) {
+	public FunctionMockFunctionResult(String fullname, Function<Val[], Val> returns, TimesCalledVerification verification) {
 		this.fullname = fullname;
 		this.returnValue = returns;
 		this.timesCalledVerification = verification;
@@ -24,9 +25,9 @@ public class FunctionMockFunctionResult implements FunctionMock {
 	}
 	
 	@Override
-	public Val evaluateFunctionCall(FunctionCall functionCall) {
-		this.mockRunInformation.saveCall(functionCall);
-		return this.returnValue.apply(functionCall);
+	public Val evaluateFunctionCall(Val... parameter) {
+		this.mockRunInformation.saveCall(new MockCall(parameter));
+		return this.returnValue.apply(parameter);
 	}
 
 	@Override

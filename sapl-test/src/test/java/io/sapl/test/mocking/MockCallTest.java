@@ -1,16 +1,16 @@
 package io.sapl.test.mocking;
 
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 
-public class FunctionCallSimpleTest {
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+public class MockCallTest {
 
 	@Test
 	void test() {
-		FunctionCall call = new FunctionCallSimple(Val.of("foo"));
+		MockCall call = new MockCall(Val.of("foo"));
 		
 		
 		Assertions.assertThat(call.getNumberOfArguments()).isEqualTo(1);
@@ -20,7 +20,7 @@ public class FunctionCallSimpleTest {
 	
 	@Test
 	void test_invalidIndex() {
-		FunctionCall call = new FunctionCallSimple(Val.of("foo"));
+		MockCall call = new MockCall(Val.of("foo"));
 		
 		
 		Assertions.assertThat(call.getNumberOfArguments()).isEqualTo(1);
@@ -30,7 +30,7 @@ public class FunctionCallSimpleTest {
 	
 	@Test
 	void test_modifyParameterList() {
-		FunctionCall call = new FunctionCallSimple(Val.of("foo"));
+		MockCall call = new MockCall(Val.of("foo"));
 		
 		
 		Assertions.assertThatExceptionOfType(UnsupportedOperationException.class)

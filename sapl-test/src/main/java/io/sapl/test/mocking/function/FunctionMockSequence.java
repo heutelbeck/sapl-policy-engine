@@ -1,4 +1,4 @@
-package io.sapl.test.mocking;
+package io.sapl.test.mocking.function;
 
 import static io.sapl.test.Imports.times;
 
@@ -7,6 +7,7 @@ import java.util.LinkedList;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 
 public class FunctionMockSequence implements FunctionMock {
@@ -27,8 +28,8 @@ public class FunctionMockSequence implements FunctionMock {
 	}
 	
 	@Override
-	public Val evaluateFunctionCall(FunctionCall functionCall) {
-		this.mockRunInformation.saveCall(functionCall);
+	public Val evaluateFunctionCall(Val... parameter) {
+		this.mockRunInformation.saveCall(new MockCall(parameter));
 		
 		if(this.listMockReturnValues.size() > 0) {
 			//if so, take the first element from the fifo list and return this val
