@@ -20,7 +20,6 @@ public class PolicySetImplCustomCoverage extends PolicySetImplCustom {
 	@Override
 	public Mono<Val> matches(EvaluationContext ctx) {
 		return super.matches(ctx).doOnNext(matches -> {
-			//record policySet hit if policySet matches
 			if(matches.isBoolean() && matches.getBoolean()) {
 				PolicySetHit hit = new PolicySetHit(getSaplName());
 				log.trace("| | | | |-- Hit PolicySet: " + hit);

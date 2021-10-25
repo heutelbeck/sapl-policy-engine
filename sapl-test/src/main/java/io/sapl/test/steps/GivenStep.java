@@ -61,8 +61,8 @@ public interface GivenStep {
 		 * Example:
          * <pre>
          * {@code
-		 *	.givenFunction("time.dayOfWeekFrom", Val.of("MONDAY"), whenParameters(argThat(Val.of(0)), anyVal()))
-		 *	.givenFunction("time.dayOfWeekFrom", Val.of("TUESDAY"),	whenParameters(argThat(Val.of(0)), argThat(Val.of("foo"))))
+		 *	.givenFunction("time.dayOfWeekFrom", whenFunctionParams(val(0), val("foo")), Val.of("MONDAY"))
+		 *	.givenFunction("time.dayOfWeekFrom", whenFunctionParams(val(0), anyVal()), Val.of("TUESDAY"))
 		 * }
 		 * </pre>
 		 * 
@@ -82,8 +82,8 @@ public interface GivenStep {
 		 * Example:
          * <pre>
          * {@code
-		 *	.givenFunction("time.dayOfWeekFrom", Val.of("MONDAY"), whenParameters(argThat(Val.of(0)), anyVal()), times(3))
-		 *	.givenFunction("time.dayOfWeekFrom", Val.of("TUESDAY"),	whenParameters(argThat(Val.of(0)), argThat(Val.of("foo"))), times(3))
+		 *	.givenFunction("time.dayOfWeekFrom", whenFunctionParams(val(0), val("foo")), Val.of("MONDAY"), times(3))
+		 *	.givenFunction("time.dayOfWeekFrom", whenFunctionParams(val(0), anyVal()), Val.of("TUESDAY"), times(3))
 		 * }
 		 * </pre>
 		 * 
@@ -161,6 +161,15 @@ public interface GivenStep {
         
 		/**
 		 * Mock the return value of a PIP in the SAPL policy when the parentValue matches the expectation
+		 * 
+		 * Example:
+         * <pre>
+         * {@code
+		 *	.givenAttribute("test.upper", whenParentValue(val("willi")), thenReturn(Val.of("WILLI")))
+		 * }
+		 * </pre>
+		 * 
+		 * 
 		 * @param importName the reference in the SAPL policy to the PIP
 		 * @param parameters only return the specified {@link Val} if the parameters of the call to the attribute match the expectations. Use {@link Imports#whenAttributeParams(Matcher)}
 		 * @param returns the mocked return value
@@ -170,6 +179,15 @@ public interface GivenStep {
         
         /**
 		 * Mock the return value of a PIP in the SAPL policy when the parentValue matches the expectation and return the returnValue when the latest combined argument values are matching the expectations
+		 * 
+		 * 
+		 * Example:
+         * <pre>
+         * {@code
+	     *	.givenAttribute("pip.attributeWithParams", whenAttributeParams(parentValue(val(true)), arguments(val(2), val(2))), thenReturn(Val.of(true)))
+		 * }
+		 * </pre>
+		 * 
 		 * @param importName the reference in the SAPL policy to the PIP
 		 * @param parameters only return the specified {@link Val} if the parameters of the call to the attribute match the expectations. Use {@link Imports#whenAttributeParams(org.hamcrest.Matcher, org.hamcrest.Matcher...)}
 		 * @param returns the mocked return value

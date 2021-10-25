@@ -67,13 +67,13 @@ public class MockingFunctionContext implements FunctionContext {
 	@Override
 	public Collection<String> providedFunctionsOfLibrary(String libName) {
 		Set<String> set = new HashSet<>();
-		// read all mocked functions for functionName
+
 		for (String fullName : this.registeredMocks.keySet()) {
 			String[] splitted = fullName.split(Pattern.quote(NAME_DELIMITER));
 			if (splitted[0].equals(libName))
 				set.add(splitted[1]);
 		}
-		// read all not mocked functions for pipName
+
 		set.addAll(this.unmockedFunctionContext.providedFunctionsOfLibrary(libName));
 
 		return set;
@@ -115,7 +115,6 @@ public class MockingFunctionContext implements FunctionContext {
 			TimesCalledVerification verification) {
 		checkImportName(fullname);
 
-		// add mock
 		FunctionMock mock = this.registeredMocks.get(fullname);
 		if (this.registeredMocks.containsKey(fullname)) {
 			throw new SaplTestException(mock.getErrorMessageForCurrentMode());
@@ -134,7 +133,6 @@ public class MockingFunctionContext implements FunctionContext {
 	public void loadFunctionMockReturnsSequence(String fullname, Val[] mockReturnValue) {
 		checkImportName(fullname);
 
-		// add mock
 		FunctionMock mock = this.registeredMocks.get(fullname);
 		if (mock != null) {
 			if (mock instanceof FunctionMockSequence) {
@@ -161,7 +159,6 @@ public class MockingFunctionContext implements FunctionContext {
 			FunctionParameters parameter, TimesCalledVerification verification) {
 		checkImportName(fullname);
 
-		// add mock
 		FunctionMock mock = this.registeredMocks.get(fullname);
 		if (mock != null) {
 			if (mock instanceof FunctionMockAlwaysSameForParameters) {
@@ -187,7 +184,6 @@ public class MockingFunctionContext implements FunctionContext {
 			TimesCalledVerification verification) {
 		checkImportName(fullname);
 
-		// add mock
 		FunctionMock mock = this.registeredMocks.get(fullname);
 		if (mock != null) {
 			throw new SaplTestException(mock.getErrorMessageForCurrentMode());
@@ -224,7 +220,6 @@ public class MockingFunctionContext implements FunctionContext {
 			functionDocs.getDocumentation().put(functionName, "Mocked Function");
 			this.functionDocumentations.put(libName, functionDocs);
 		}
-
 	}
 
 	@Override

@@ -76,13 +76,13 @@ public class MockingAttributeContext implements AttributeContext {
 	@Override
 	public Collection<String> providedFunctionsOfLibrary(String pipName) {
 		Set<String> set = new HashSet<>();
-		// read all mocked functions for pipName
+
 		for (String fullName : this.registeredMocks.keySet()) {
 			String[] splitted = fullName.split(Pattern.quote(NAME_DELIMITER));
 			if (splitted[0].equals(pipName))
 				set.add(splitted[1]);
 		}
-		// read all unmocked functions for pipName
+
 		set.addAll(this.unmockedAttributeContext.providedFunctionsOfLibrary(pipName));
 
 		return set;

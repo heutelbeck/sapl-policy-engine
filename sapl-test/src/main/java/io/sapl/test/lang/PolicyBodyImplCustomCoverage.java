@@ -41,7 +41,6 @@ public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 	protected Flux<Tuple2<Val, EvaluationContext>> evaluateCondition(Val previousResult, Condition condition,
 			EvaluationContext ctx) {
 		return super.evaluateCondition(previousResult, condition, ctx).doOnNext(result -> {
-			// record policy condition hit
 			if(result.getT1().isBoolean()) {
 				String policySetId = "";
 				String policyId = "";		

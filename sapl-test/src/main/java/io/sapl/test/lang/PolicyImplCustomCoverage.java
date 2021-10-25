@@ -24,9 +24,7 @@ public class PolicyImplCustomCoverage extends PolicyImplCustom {
 
 	@Override
 	public Mono<Val> matches(EvaluationContext ctx) {
-		//if this is the policy under unit test return "normal" result
 		return super.matches(ctx).doOnNext(matches -> {
-			//and record policy hit if policy matches
 			if(matches.isBoolean() && matches.getBoolean()) {
 				String policySetId = "";
 				EObject eContainer = eContainer();
