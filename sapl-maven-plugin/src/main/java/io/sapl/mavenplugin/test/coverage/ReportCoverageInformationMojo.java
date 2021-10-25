@@ -30,7 +30,6 @@ import org.apache.maven.project.MavenProject;
 public class ReportCoverageInformationMojo extends AbstractMojo {
 
 	@Parameter(defaultValue = "${project}", required = true, readonly = true)
-	//@Component
 	private MavenProject project;
 
 	@Parameter(defaultValue = "true")
@@ -85,7 +84,6 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 			return;
 		}
 
-		// read available targets & hits
 		Collection<SaplDocument> documents = readSaplDocuments();
 		CoverageTargets targets = readAvailableTargets(documents);
 		CoverageTargets hits = readHits();
@@ -111,20 +109,17 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 		getLog().info("");
 		getLog().info("");
 
-		// generate coverage report
 		if (enableSonarReport || enableHtmlReport) {
-			// create generic report information
+
 			var genericDocumentCoverage = reporter.calcDocumentCoverage(documents, hits);
 
 			if (enableSonarReport) {
-				// write to sonar specific report format
 				sonarReporter.generateSonarLineCoverageReport(genericDocumentCoverage, getLog(),
 						PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()),
 						this.policyPath, this.project.getBasedir());
 			}
 
 			if (enableHtmlReport) {
-				// create HTML report
 				Path indexHtml = htmlReporter.generateHtmlReport(genericDocumentCoverage, getLog(),
 						PathHelper.resolveBaseDir(outputDir, project.getBuild().getDirectory(), getLog()),
 						actualPolicySetHitRatio, actualPolicyHitRatio, actualPolicyConditionHitRatio);
@@ -135,7 +130,13 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
 		getLog().info("");
 		getLog().info("");
-		// break lifecycle if ratio is not fulfilled
+		
+		breakLifecycleIfRatiosNotFulfilled(isPolicySetRatioFulfilled, isPolicyRatioFulfilled,
+				isPolicyConditionRatioFulfilled);
+	}
+
+	private void breakLifecycleIfRatiosNotFulfilled(boolean isPolicySetRatioFulfilled, boolean isPolicyRatioFulfilled,
+			boolean isPolicyConditionRatioFulfilled) throws MojoFailureException {
 		if (isPolicySetRatioFulfilled && isPolicyRatioFulfilled && isPolicyConditionRatioFulfilled) {
 			getLog().info("All coverage criteria passed");
 			getLog().info("");

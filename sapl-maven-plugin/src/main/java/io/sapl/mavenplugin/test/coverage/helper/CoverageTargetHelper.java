@@ -4,9 +4,6 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicyElement;
@@ -20,17 +17,18 @@ import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 @Named
 @Singleton
 public class CoverageTargetHelper {
 
 	public CoverageTargets getCoverageTargets(Collection<SaplDocument> documents) {
-		// Initialize
 		List<PolicySetHit> availablePolicySetHitTargets = new LinkedList<>();
 		List<PolicyHit> availablePolicyHitTargets = new LinkedList<>();
 		List<PolicyConditionHit> availablePolicyConditionHitTargets = new LinkedList<>();
 
-		// Evaluate
 		for (SaplDocument saplDoc : documents) {
 			PolicyElement element = saplDoc.getSaplDocument().getPolicyElement();
 
@@ -42,11 +40,6 @@ public class CoverageTargetHelper {
 			} else {
 				throw new SaplTestException("Error: Unknown Subtype of " + PolicyElement.class);
 			}
-
-			/*
-			 * if (element instanceof PolicySet) { } else if (element instanceof Policy) { }
-			 * else { }
-			 */
 		}
 
 		return new CoverageTargets(List.copyOf(availablePolicySetHitTargets), List.copyOf(availablePolicyHitTargets),

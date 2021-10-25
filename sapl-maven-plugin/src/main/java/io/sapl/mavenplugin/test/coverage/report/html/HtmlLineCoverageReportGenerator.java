@@ -1,25 +1,6 @@
 package io.sapl.mavenplugin.test.coverage.report.html;
 
-import static j2html.TagCreator.a;
-import static j2html.TagCreator.attrs;
-import static j2html.TagCreator.body;
-import static j2html.TagCreator.div;
-import static j2html.TagCreator.each;
-import static j2html.TagCreator.h1;
-import static j2html.TagCreator.head;
-import static j2html.TagCreator.html;
-import static j2html.TagCreator.img;
-import static j2html.TagCreator.li;
-import static j2html.TagCreator.link;
-import static j2html.TagCreator.main;
-import static j2html.TagCreator.meta;
-import static j2html.TagCreator.nav;
-import static j2html.TagCreator.ol;
-import static j2html.TagCreator.p;
-import static j2html.TagCreator.rawHtml;
-import static j2html.TagCreator.script;
-import static j2html.TagCreator.textarea;
-import static j2html.TagCreator.title;
+import static j2html.TagCreator.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -34,10 +15,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.maven.plugin.logging.Log;
-
 import io.sapl.mavenplugin.test.coverage.PathHelper;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
+
+import org.apache.maven.plugin.logging.Log;
+
 import j2html.attributes.Attribute;
 import j2html.tags.ContainerTag;
 import j2html.tags.EmptyTag;
@@ -48,13 +30,18 @@ public class HtmlLineCoverageReportGenerator {
 
 	public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Log log, Path basedir,
 			float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio) {
+		
 		Path index = generateMainSite(policySetHitRatio, policyHitRatio, policyConditionHitRatio, documents, basedir,
 				log);
+		
 		generateCustomCSS(basedir, log);
+		
 		copyAssets(basedir, log);
+		
 		for (var doc : documents) {
 			generatePolicySite(doc, basedir, log);
 		}
+		
 		return index;
 
 	}

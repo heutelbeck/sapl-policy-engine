@@ -6,18 +6,18 @@ import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.Collection;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-
-import org.apache.maven.plugin.logging.Log;
-
 import io.sapl.mavenplugin.test.coverage.PathHelper;
 import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentLineCoverageInformation;
 import io.sapl.mavenplugin.test.coverage.report.sonar.model.Coverage;
 import io.sapl.mavenplugin.test.coverage.report.sonar.model.ObjectFactory;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+
+import org.apache.maven.plugin.logging.Log;
 
 public class SonarLineCoverageReportGenerator {
 	private ObjectFactory FACTORY = new ObjectFactory();
@@ -55,7 +55,6 @@ public class SonarLineCoverageReportGenerator {
 		 * The path on the classpath "target/test-classes/policies/policySimple.sapl is
 		 * getting ignored because unknown to sonarqube
 		 */
-		// sonarFile.setPath(doc.getPathToDocument().toString());
 		sonarFile.setPath(mavenBaseDir.toPath().resolve("src").resolve("main").resolve("resources").resolve(policyPath)
 				.resolve(doc.getPathToDocument().getFileName()).toString());
 

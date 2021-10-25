@@ -6,9 +6,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.xtext.nodemodel.INode;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicyElement;
@@ -24,11 +21,16 @@ import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
+import org.eclipse.xtext.nodemodel.INode;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+
 public class GenericCoverageReporter {
 	private static final String ERROR_UNEXPECTED_ENUM_VALUE = "Unexpected Enum-Value \"%s\". Please consider reporting this bug to the library authors!";
 	
 	public List<SaplDocumentCoverageInformation> calcDocumentCoverage(Collection<SaplDocument> documents, CoverageTargets hits) {
+		
 		List<SaplDocumentCoverageInformation> documentsWithCoveringInfo = new LinkedList<>();
+		
 		for (SaplDocument saplDoc : documents) {
 			var coveredDoc = new SaplDocumentCoverageInformation(saplDoc.getPathToDocument(), saplDoc.getLineCount());
 
@@ -46,6 +48,7 @@ public class GenericCoverageReporter {
 
 			documentsWithCoveringInfo.add(coveredDoc);
 		}
+		
 		return documentsWithCoveringInfo;
 	}
 	
