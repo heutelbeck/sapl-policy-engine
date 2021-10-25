@@ -1854,8 +1854,8 @@ Starting with constructTestCaseWithMocks() or constructTestCase() called on your
 +
 [source,java]
 ----
-.givenFunction("corp.subjectConverter", Val.of("ROLE_ADMIN"), 
-	whenParameters(is(Val.of("USER")), is(Val.of("nikolai"))))
+.givenFunction("corp.subjectConverter", 
+	whenFunctionParams(is(Val.of("USER")), is(Val.of("nikolai"))), Val.of("ROLE_ADMIN"))
 ----
 ** or a Lambda-Expression evaluating the parameters of the function call
 +
@@ -1926,6 +1926,20 @@ The virtual time feature can be used with real time-based PIPs registrated at th
 .expectNextPermit()
 .thenAttribute("company.pip2", Val.of("bar"))
 .expectNextNotApplicable()
+----
+
+** to mock an attribute depending on the parent value
++
+[source,java]
+----
+.givenAttribute("test.upper", whenParentValue(val("willi")), thenReturn(Val.of("WILLI")))
+----
+
+** to mock an attribute depending on the parent value and every value the arguments are called for
++
+[source,java]
+----
+.givenAttribute("pip.attributeWithParams", whenAttributeParams(parentValue(val(true)), arguments(val(2), val(2))), thenReturn(Val.of(true)))
 ----
 
 You can check out further mock types or overloaded methods https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-test/src/main/java/io/sapl/test/steps/GivenStep.java[here].
