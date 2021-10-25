@@ -1,4 +1,4 @@
-package io.sapl.test.mocking;
+package io.sapl.test.mocking.function.models;
 
 import java.util.Arrays;
 import java.util.List;

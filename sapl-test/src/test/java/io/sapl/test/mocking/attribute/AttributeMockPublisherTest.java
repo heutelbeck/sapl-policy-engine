@@ -1,4 +1,4 @@
-package io.sapl.test.mocking;
+package io.sapl.test.mocking.attribute;
 
 import io.sapl.api.interpreter.Val;
 
@@ -7,13 +7,13 @@ import org.junit.jupiter.api.Test;
 
 import reactor.test.StepVerifier;
 
-public class AttributeMockTestPublisherTest {
+public class AttributeMockPublisherTest {
 
 	@Test
 	void test() {
-		AttributeMockTestPublisher mock = new AttributeMockTestPublisher("foo.bar");
+		AttributeMockPublisher mock = new AttributeMockPublisher("foo.bar");
 
-		StepVerifier.create(mock.evaluate())
+		StepVerifier.create(mock.evaluate(null, null, null))
 			.then(() -> mock.mockEmit(Val.of(1)))
 			.expectNext(Val.of(1))
 			.thenCancel().verify();
@@ -23,7 +23,7 @@ public class AttributeMockTestPublisherTest {
 	
 	@Test
 	void test_errorMessage() {
-		AttributeMockTestPublisher mock = new AttributeMockTestPublisher("test.test");
+		AttributeMockPublisher mock = new AttributeMockPublisher("test.test");
 		Assertions.assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
 	}
 

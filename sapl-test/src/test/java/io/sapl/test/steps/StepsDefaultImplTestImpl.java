@@ -11,8 +11,8 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.test.mocking.MockingAttributeContext;
-import io.sapl.test.mocking.MockingFunctionContext;
+import io.sapl.test.mocking.attribute.MockingAttributeContext;
+import io.sapl.test.mocking.function.MockingFunctionContext;
 
 import com.fasterxml.jackson.databind.JsonNode;
 

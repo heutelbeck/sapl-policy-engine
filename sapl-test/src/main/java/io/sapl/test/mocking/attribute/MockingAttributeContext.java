@@ -1,4 +1,4 @@
-package io.sapl.test.mocking;
+package io.sapl.test.mocking.attribute;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -6,18 +6,24 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
+import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.mocking.attribute.models.AttributeParameters;
+import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
 import io.sapl.test.steps.NumberOfExpectSteps;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -76,7 +82,7 @@ public class MockingAttributeContext implements AttributeContext {
 			if (splitted[0].equals(pipName))
 				set.add(splitted[1]);
 		}
-		// read all not mocked functions for pipName
+		// read all unmocked functions for pipName
 		set.addAll(this.unmockedAttributeContext.providedFunctionsOfLibrary(pipName));
 
 		return set;
@@ -87,7 +93,17 @@ public class MockingAttributeContext implements AttributeContext {
 		AttributeMock mock = this.registeredMocks.get(attribute);
 		if (mock != null) {
 			log.debug("| | | | |-- Evaluate mocked attribute \"{}\"", attribute);
-			return mock.evaluate().doOnNext((val) -> log.trace("| | | | |-- AttributeMock returned: " + val.toString()));
+			
+			Val parentValue = value;
+			Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
+			List<Flux<Val>> args = new LinkedList<Flux<Val>>();
+			if (arguments != null) {
+				for (Expression argument : arguments.getArgs()) {
+					args.add(argument.evaluate(ctx, Val.UNDEFINED));
+				}
+			}			
+			
+			return mock.evaluate(parentValue, variables, args).doOnNext((val) -> log.trace("| | | | |-- AttributeMock returned: " + val.toString()));
 		} else {
 			log.debug("| | | | |-- Delegate attribute \"{}\" to unmocked attribute context", attribute);
 			return this.unmockedAttributeContext.evaluate(attribute, value, ctx, arguments);
@@ -110,11 +126,10 @@ public class MockingAttributeContext implements AttributeContext {
 	public void markAttributeMock(String fullname) {
 		checkImportName(fullname);
 
-		// add mock
 		if (this.registeredMocks.containsKey(fullname)) {
 			throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));
 		} else {
-			AttributeMockTestPublisher mock = new AttributeMockTestPublisher(fullname);
+			AttributeMockPublisher mock = new AttributeMockPublisher(fullname);
 			this.registeredMocks.put(fullname, mock);
 
 			addNewPIPDocumentation(fullname, mock);
@@ -124,22 +139,55 @@ public class MockingAttributeContext implements AttributeContext {
 	public void mockEmit(String fullname, Val returns) {
 		AttributeMock mock = this.registeredMocks.get(fullname);
 		
-		if (mock == null) {
-			throw new SaplTestException(String.format(ERROR_NOT_MARKED_DYNAMIC_MOCK, fullname, fullname));
-		}
-		
-		if (mock instanceof AttributeMockTestPublisher) {
-			((AttributeMockTestPublisher)mock).mockEmit(returns);
+		if (mock != null && mock instanceof AttributeMockPublisher) {
+			((AttributeMockPublisher)mock).mockEmit(returns);
 			return;
 		} else {	
 			throw new SaplTestException(String.format(ERROR_NOT_MARKED_DYNAMIC_MOCK, fullname, fullname));
+		}
+	}
+
+	public void loadAttributeMockForParentValue(String fullname, AttributeParentValueMatcher parentValueMatcher, Val returns) {
+		checkImportName(fullname);
+
+		AttributeMock mock = this.registeredMocks.get(fullname);
+		if (mock != null) {
+			if(mock instanceof AttributeMockForParentValue) {
+				((AttributeMockForParentValue) mock).loadMockForParentValue(parentValueMatcher, returns);
+			} else {
+				throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));				
+			}
+		} else {
+			AttributeMockForParentValue newMock = new AttributeMockForParentValue(fullname);
+			newMock.loadMockForParentValue(parentValueMatcher, returns);
+			this.registeredMocks.put(fullname, newMock);
+
+			addNewPIPDocumentation(fullname, newMock);
+		}
+	}
+	
+	public void loadAttributeMockForParentValueAndArguments(String fullname, AttributeParameters parameters, Val returns) {
+		checkImportName(fullname);
+
+		AttributeMock mock = this.registeredMocks.get(fullname);
+		if (mock != null) {
+			if(mock instanceof AttributeMockForParentValueAndArguments) {
+				((AttributeMockForParentValueAndArguments) mock).loadMockForParentValueAndArguments(parameters, returns);
+			} else {
+				throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));				
+			}
+		} else {
+			AttributeMockForParentValueAndArguments newMock = new AttributeMockForParentValueAndArguments(fullname);
+			newMock.loadMockForParentValueAndArguments(parameters, returns);
+			this.registeredMocks.put(fullname, newMock);
+
+			addNewPIPDocumentation(fullname, newMock);
 		}
 	}
 	
 	public void loadAttributeMock(String fullname, Duration timing, Val... returns) {
 		checkImportName(fullname);
 
-		// add mock
 		if (this.registeredMocks.containsKey(fullname)) {
 			throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));
 		} else {
