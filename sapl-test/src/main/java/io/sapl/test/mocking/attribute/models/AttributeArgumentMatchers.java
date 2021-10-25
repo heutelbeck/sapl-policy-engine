@@ -5,9 +5,9 @@ import io.sapl.api.interpreter.Val;
 import org.hamcrest.Matcher;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 
-@Data
+@Getter
 @AllArgsConstructor
 public class AttributeArgumentMatchers {
 	private Matcher<Val>[] matchers;

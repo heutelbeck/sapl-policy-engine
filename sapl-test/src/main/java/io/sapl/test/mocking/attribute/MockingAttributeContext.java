@@ -139,7 +139,7 @@ public class MockingAttributeContext implements AttributeContext {
 	public void mockEmit(String fullname, Val returns) {
 		AttributeMock mock = this.registeredMocks.get(fullname);
 		
-		if (mock != null && mock instanceof AttributeMockPublisher) {
+		if (mock instanceof AttributeMockPublisher) {
 			((AttributeMockPublisher)mock).mockEmit(returns);
 			return;
 		} else {	

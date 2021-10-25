@@ -1,5 +1,6 @@
 package io.sapl.test.mocking.attribute;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -110,8 +111,8 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 	}
 
 	private void checkAtLeastOneMatchingMockReturnValueExists(
-			List<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues) {
-		if(matchingParameterSpecificMockReturnValues.size() == 0) {
+			Collection<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues) {
+		if(matchingParameterSpecificMockReturnValues.isEmpty()) {
 			throw new SaplTestException(ERROR_NO_MATCHING_PARENTVALUE);
 		}
 	}
