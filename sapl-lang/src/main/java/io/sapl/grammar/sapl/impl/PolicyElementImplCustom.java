@@ -18,10 +18,8 @@ package io.sapl.grammar.sapl.impl;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
-@Slf4j
 public class PolicyElementImplCustom extends PolicyElementImpl {
 
 	private static final String CONDITION_NOT_BOOLEAN = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
@@ -46,18 +44,14 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
 	 */
 	@Override
 	public Mono<Val> matches(EvaluationContext ctx) {
-		log.trace("| | |-- PolicyElement test match '{}'", getSaplName());
 		final Expression targetExpression = getTargetExpression();
 		if (targetExpression == null) {
-			log.trace("| | | |-- MATCH (no target expression, matches all)");
 			return Mono.just(Val.TRUE);
 		}
 		return targetExpression.evaluate(ctx, Val.UNDEFINED).next().defaultIfEmpty(Val.FALSE).flatMap(result -> {
 			if (result.isError() || !result.isBoolean()) {
-				log.trace("| | | |-- ERROR in target expression did not evaluate to boolean. Was: {}", result);
 				return Val.errorMono(CONDITION_NOT_BOOLEAN, result);
 			}
-			log.trace("| | | |-- {}", result.get().asBoolean() ? "MATCH" : "NO MATCH");
 			return Mono.just(result);
 		});
 	}

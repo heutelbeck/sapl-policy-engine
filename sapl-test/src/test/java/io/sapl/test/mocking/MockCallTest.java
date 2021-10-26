@@ -15,11 +15,11 @@
  */
 package io.sapl.test.mocking;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.SaplTestException;
-
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
 
 public class MockCallTest {
 

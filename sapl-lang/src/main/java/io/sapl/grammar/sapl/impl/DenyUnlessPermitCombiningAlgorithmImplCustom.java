@@ -73,7 +73,7 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
 		}
 		var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
 				collector.getAdvice(entitlement));
-		log.debug("| |-- {} Combined AuthorizationDecision: {}", finalDecision.getDecision(), finalDecision);
+		log.debug("  |- **{}** Combined {}", finalDecision.getDecision(), finalDecision);
 		return finalDecision;
 	}
 

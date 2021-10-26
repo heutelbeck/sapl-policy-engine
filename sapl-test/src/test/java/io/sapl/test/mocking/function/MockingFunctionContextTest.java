@@ -15,7 +15,8 @@
  */
 package io.sapl.test.mocking.function;
 
-import static io.sapl.test.Imports.*;
+import static io.sapl.test.Imports.times;
+import static io.sapl.test.Imports.whenFunctionParams;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,20 +25,18 @@ import static org.mockito.Mockito.when;
 import java.util.Collection;
 import java.util.List;
 
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.mocking.function.FunctionMockAlwaysSameValue;
-import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.unit.TestPIP;
-
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 public class MockingFunctionContextTest {
 

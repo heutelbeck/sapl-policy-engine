@@ -55,15 +55,13 @@ public class GenericInMemoryIndexedPolicyRetrievalPoint implements PolicyRetriev
 
 	private void logMatching(PolicyRetrievalResult result) {
 		if (result.getMatchingDocuments().isEmpty()) {
-			log.trace("|-- Matching documents: NONE");
+			log.debug("  |- Matching documents: NONE");
 		}
 		else {
-			log.trace("|-- Matching documents:");
+			log.debug("  |- Matching documents:");
 			for (AuthorizationDecisionEvaluable doc : result.getMatchingDocuments()) {
-				log.trace("| |-- * {} ({})",
-						(doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getSaplName() : doc.toString(),
-						(doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getClass().getSimpleName()
-								: doc.toString());
+				log.debug("  |  * '{}'",
+						(doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getSaplName() : doc.toString());
 			}
 		}
 	}

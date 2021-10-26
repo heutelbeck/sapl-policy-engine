@@ -15,15 +15,15 @@
  */
 package io.sapl.test.mocking.function;
 
-import static io.sapl.test.Imports.*;
+import static io.sapl.test.Imports.times;
+import static io.sapl.test.Imports.whenFunctionParams;
 import static org.hamcrest.CoreMatchers.is;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.mocking.function.FunctionMockAlwaysSameForParameters;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
 
 public class FunctionMockAlwaysSameForParametersTest {
 

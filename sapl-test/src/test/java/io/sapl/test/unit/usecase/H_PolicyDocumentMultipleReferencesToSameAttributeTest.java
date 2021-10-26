@@ -15,17 +15,19 @@
  */
 package io.sapl.test.unit.usecase;
 
-import static io.sapl.hamcrest.Matchers.*;
+import static io.sapl.hamcrest.Matchers.hasObligation;
+import static io.sapl.hamcrest.Matchers.isPermit;
+import static io.sapl.hamcrest.Matchers.val;
 import static io.sapl.test.Imports.whenFunctionParams;
 import static org.hamcrest.CoreMatchers.allOf;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 public class H_PolicyDocumentMultipleReferencesToSameAttributeTest {
 

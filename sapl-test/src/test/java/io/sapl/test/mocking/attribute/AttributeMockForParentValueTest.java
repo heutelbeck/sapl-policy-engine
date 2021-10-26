@@ -18,13 +18,12 @@ package io.sapl.test.mocking.attribute;
 import static io.sapl.hamcrest.Matchers.val;
 import static io.sapl.test.Imports.parentValue;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.SaplTestException;
-
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
 import reactor.test.StepVerifier;
 
 class AttributeMockForParentValueTest {

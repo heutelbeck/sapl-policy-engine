@@ -15,16 +15,17 @@
  */
 package io.sapl.test.unit.usecase;
 
+import static io.sapl.test.Imports.times;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import static io.sapl.test.Imports.times;
 
 public class B_PolicyWithSimpleFunctionTest {
 

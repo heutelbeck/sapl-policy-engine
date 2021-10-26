@@ -19,11 +19,10 @@ import static io.sapl.test.Imports.times;
 
 import java.util.function.Function;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.mocking.function.FunctionMockFunctionResult;
-
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import io.sapl.api.interpreter.Val;
 
 public class FunctionMockFunctionResultTest {
 

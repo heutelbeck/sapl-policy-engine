@@ -15,12 +15,11 @@
  */
 package io.sapl.test.mocking.function;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.mocking.function.FunctionMockSequence;
-
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
 
 public class FunctionMockSequenceTest {
 

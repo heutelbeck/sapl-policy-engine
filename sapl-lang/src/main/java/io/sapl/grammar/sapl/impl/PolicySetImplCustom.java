@@ -36,26 +36,29 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	/**
 	 * Evaluates the body of the policy set within the given evaluation context and
 	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
-	 * @param ctx the evaluation context in which the policy set's body is evaluated. It
-	 * must contain
-	 * <ul>
-	 * <li>the attribute context</li>
-	 * <li>the function context</li>
-	 * <li>the variable context holding the four authorization subscription variables
-	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
-	 * from the PDP configuration</li>
-	 * <li>the import mapping for functions and attribute finders</li>
-	 * </ul>
+	 * 
+	 * @param ctx the evaluation context in which the policy set's body is
+	 *            evaluated. It must contain
+	 *            <ul>
+	 *            <li>the attribute context</li>
+	 *            <li>the function context</li>
+	 *            <li>the variable context holding the four authorization
+	 *            subscription variables 'subject', 'action', 'resource' and
+	 *            'environment' combined with system variables from the PDP
+	 *            configuration</li>
+	 *            <li>the import mapping for functions and attribute finders</li>
+	 *            </ul>
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
 	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
 		if (!policyNamesAreUnique()) {
-			log.debug("| |- Policy Set '{}'. Policy names are not uniqe. INDETERMINATE", saplName);
+			log.debug("  |- INDETERMINATE (Set) '{}'. (Policy names not uniqe)", saplName);
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
 		return Flux.just(Tuples.of(Val.TRUE, ctx)).switchMap(evaluateValueDefinitions(0)).switchMap(this::evalPolicies)
-				.doOnNext(authzDecision -> log.debug("| |- Policy Set '{}' evaluates to: {}", saplName, authzDecision));
+				.doOnNext(authzDecision -> log.debug("  |- {} (Set) '{}' {}", authzDecision.getDecision(), saplName,
+						authzDecision));
 	}
 
 	// TODO: move into validation at parse time, remove from evaluation
@@ -111,8 +114,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 				try {
 					var scopedCtx = ctx.withEnvironmentVariable(valueDefinition.getName(), evaluatedValue.get());
 					return Flux.just(Tuples.of(Val.TRUE, scopedCtx));
-				}
-				catch (PolicyEvaluationException e) {
+				} catch (PolicyEvaluationException e) {
 					return Flux.just(Tuples.of(Val.error(e), ctx));
 				}
 			}

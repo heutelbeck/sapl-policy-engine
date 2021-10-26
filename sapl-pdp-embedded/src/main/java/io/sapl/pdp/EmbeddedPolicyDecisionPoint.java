@@ -47,8 +47,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	@Override
 	public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-		log.trace("|--------------------------------->");
-		log.trace("|-- PDP AuthorizationSubscription: {}", authzSubscription);
+		log.debug("- START DECISION: {}", authzSubscription);
 		return configurationProvider.pdpConfiguration().switchMap(decideSubscription(authzSubscription))
 				.distinctUntilChanged();
 	}

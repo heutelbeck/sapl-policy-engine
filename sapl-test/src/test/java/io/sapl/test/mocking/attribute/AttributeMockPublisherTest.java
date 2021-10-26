@@ -15,11 +15,10 @@
  */
 package io.sapl.test.mocking.attribute;
 
-import io.sapl.api.interpreter.Val;
-
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import io.sapl.api.interpreter.Val;
 import reactor.test.StepVerifier;
 
 public class AttributeMockPublisherTest {

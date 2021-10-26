@@ -15,11 +15,11 @@
  */
 package io.sapl.test.verification;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.mocking.MockCall;
-
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.mocking.MockCall;
 
 public class FunctionMockRunInformationTest {
 

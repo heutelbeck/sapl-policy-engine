@@ -17,11 +17,10 @@ package io.sapl.test.mocking.function;
 
 import static io.sapl.test.Imports.times;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.mocking.function.FunctionMockAlwaysSameValue;
-
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import io.sapl.api.interpreter.Val;
 
 public class FunctionMockAlwaysSameValueTest {
 

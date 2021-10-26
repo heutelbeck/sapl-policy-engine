@@ -17,14 +17,16 @@ package io.sapl.test.verification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.number.OrderingComparison.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.mocking.MockCall;
+import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
+import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.mocking.MockCall;
 
 public class TimesCalledVerificationTest {
 

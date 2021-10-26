@@ -17,13 +17,11 @@ package io.sapl.test.mocking.attribute;
 
 import java.time.Duration;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.mocking.attribute.AttributeMockTiming;
-
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
 import reactor.test.StepVerifier;
 
 public class AttributeMockTimingTest {

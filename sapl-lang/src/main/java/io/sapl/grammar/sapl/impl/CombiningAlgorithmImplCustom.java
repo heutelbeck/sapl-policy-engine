@@ -23,6 +23,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.Policy;
+import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.extern.slf4j.Slf4j;
@@ -36,11 +37,10 @@ public class CombiningAlgorithmImplCustom extends CombiningAlgorithmImpl {
 	@Override
 	public Flux<AuthorizationDecision> combineMatchingDocuments(PolicyRetrievalResult policyRetrievalResult,
 			EvaluationContext evaluationCtx) {
-		log.debug("|-- Combining matching documents");
 		var matchingSaplDocuments = policyRetrievalResult.getMatchingDocuments();
 		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (AuthorizationDecisionEvaluable document : matchingSaplDocuments) {
-			log.debug("| |-- Evaluate: {} ", document);
+			log.debug("  |- Evaluate: {} ", (document instanceof SAPL) ? ((SAPL) document).getPolicyElement().getSaplName() : document.toString());
 			authzDecisionFluxes.add(document.evaluate(evaluationCtx));
 		}
 		if (matchingSaplDocuments.isEmpty()) {

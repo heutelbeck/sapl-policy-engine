@@ -16,7 +16,9 @@
 package io.sapl.test.mocking.attribute;
 
 import static io.sapl.hamcrest.Matchers.val;
-import static io.sapl.test.Imports.*;
+import static io.sapl.test.Imports.arguments;
+import static io.sapl.test.Imports.parentValue;
+import static io.sapl.test.Imports.whenAttributeParams;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -25,6 +27,12 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+
+import org.assertj.core.api.Assertions;
+import org.eclipse.emf.common.util.BasicEList;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
@@ -37,13 +45,6 @@ import io.sapl.pip.ClockPolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.unit.TestPIP;
-
-import org.assertj.core.api.Assertions;
-import org.eclipse.emf.common.util.BasicEList;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 

@@ -18,6 +18,8 @@ package io.sapl.test.steps;
 import java.util.LinkedList;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -28,9 +30,6 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.test.mocking.attribute.MockingAttributeContext;
 import io.sapl.test.mocking.function.MockingFunctionContext;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 

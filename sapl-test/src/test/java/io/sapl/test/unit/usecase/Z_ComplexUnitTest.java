@@ -15,19 +15,23 @@
  */
 package io.sapl.test.unit.usecase;
 
-import static io.sapl.hamcrest.Matchers.*;
+import static io.sapl.hamcrest.Matchers.anyVal;
+import static io.sapl.hamcrest.Matchers.hasObligationMatching;
+import static io.sapl.hamcrest.Matchers.isPermit;
+import static io.sapl.hamcrest.Matchers.isResourceMatching;
 import static io.sapl.test.Imports.whenFunctionParams;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.is;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+
+import org.junit.jupiter.api.BeforeEach;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
-
-import org.junit.jupiter.api.BeforeEach;
 
 public class Z_ComplexUnitTest {
 

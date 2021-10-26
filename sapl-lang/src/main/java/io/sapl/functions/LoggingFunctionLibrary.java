@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @FunctionLibrary(name = LoggingFunctionLibrary.NAME, description = LoggingFunctionLibrary.DESCRIPTION)
 public class LoggingFunctionLibrary {
 
-	private static final String TEMPLATE = "| | | |-- [LOG] {} {}";
+	private static final String TEMPLATE = "  |     [LOG] {} {}";
 
 	public static final String NAME = "log";
 
