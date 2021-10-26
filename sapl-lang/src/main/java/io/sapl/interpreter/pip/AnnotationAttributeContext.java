@@ -43,14 +43,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
  * This Class holds the different attribute finders and PIPs as a context during
  * evaluation.
  */
-@Slf4j
 @NoArgsConstructor
 public class AnnotationAttributeContext implements AttributeContext {
 
@@ -118,7 +116,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 		}
 		catch (PolicyEvaluationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
 				| IllegalParameterType e) {
-			log.error(e.getMessage());
 			return Flux.just(Val.error(e));
 		}
 	}

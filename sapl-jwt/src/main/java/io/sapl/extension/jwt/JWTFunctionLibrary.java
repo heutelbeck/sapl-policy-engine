@@ -62,7 +62,6 @@ public class JWTFunctionLibrary {
 			var jsonToken = JSON.objectNode();
 			jsonToken.set("header", mapper.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
 			jsonToken.set("payload", mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class));
-			jsonToken.set("signature", mapper.convertValue(signedJwt.getSignature().toJSONString(), JsonNode.class));
 			return Val.of(jsonToken);
 		}
 		catch (ParseException e) {

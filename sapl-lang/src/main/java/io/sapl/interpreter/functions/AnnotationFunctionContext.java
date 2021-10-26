@@ -36,12 +36,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Context to hold functions libraries during policy evaluation.
  */
-@Slf4j
 @NoArgsConstructor
 public class AnnotationFunctionContext implements FunctionContext {
 
@@ -77,7 +75,6 @@ public class AnnotationFunctionContext implements FunctionContext {
 
 	@Override
 	public Val evaluate(String function, Val... parameters) {
-		log.trace("Evaluating function: {}({})", function, parameters);
 		var metadata = functions.get(function);
 		if (metadata == null)
 			return Val.error(UNKNOWN_FUNCTION, function);

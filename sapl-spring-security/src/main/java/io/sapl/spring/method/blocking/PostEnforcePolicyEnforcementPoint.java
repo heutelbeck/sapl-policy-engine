@@ -45,7 +45,7 @@ public class PostEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcement
 	@SuppressWarnings("unchecked") // is actually checked, warning is false positive
 	public Object after(Authentication authentication, MethodInvocation methodInvocation,
 			PostEnforceAttribute postEnforceAttribute, Object returnedObject) {
-		log.debug("Attribute        : {}", postEnforceAttribute);
+		log.trace("Attribute        : {}", postEnforceAttribute);
 
 		lazyLoadDependencies();
 

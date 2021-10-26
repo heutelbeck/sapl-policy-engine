@@ -42,8 +42,7 @@ The expression `jwt.parseJwt(subject.token)` will return a value containing the 
       "iss":"http://auth-server:9000",
       "exp":1635283602,
       "iat":1635283302
-   },
-   "signature":"\"eYnJ7Rr7o6T3wiOx7K9DuPbf5CFzwVbWP28iQ6HZlIsNzeKnqosY-ShiJYB8roni826v32-_2LPVLLw8ZAxF4-2RhS_0A9FHeg-kPP-5uGdRAaORTAeXfH2EayxbJkssJZF76rHyUupDW9D9Ya_PYIqo38VmylaRXk-5MiP4FoRCR5eLj7LbeM6-UpwToICeB8b_IZsvy2RWgNgnLeBpqA8O2zaK-DABFP-drulMLTBEfos65MMog0Q_X0wgIm2B0kBkCOgWqHGT66H65k_sbmdFygAwzAOKq_2ZsVhswBtS5hV7TJrNlnc7-C4LNhhFVSSYRQkAEChmUrBOuUJQlg\""
+   }
 }
 ```
 
