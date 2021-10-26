@@ -12,6 +12,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
 import io.sapl.spring.serialization.MethodInvocationSerializer;
@@ -43,9 +44,10 @@ public class ObjectMapperAutoConfiguration {
 			var module = new SimpleModule();
 			module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
 			module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-			module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
+			module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());			
 			mapper.registerModule(module);
 			mapper.registerModule(new Jdk8Module());
+			mapper.registerModule(new JavaTimeModule());
 		}
 	}
 

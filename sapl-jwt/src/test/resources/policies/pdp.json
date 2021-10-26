@@ -1,0 +1,9 @@
+{
+	"algorithm": "DENY_UNLESS_PERMIT",
+	"variables": {
+		"publicKeyServer": {
+			  "uri": "http://localhost:8090/public-key/{id}"
+			, "method": "POST"
+		}
+	}
+}

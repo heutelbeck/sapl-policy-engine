@@ -74,9 +74,9 @@
 		<lombok.version>1.18.22</lombok.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
-		<springboot.version>2.5.5</springboot.version>
+		<springboot.version>2.5.6</springboot.version>
 		<mockito.version>3.11.2</mockito.version>
-		<vaadin.version>14.6.9</vaadin.version>
+		<vaadin.version>14.7.2</vaadin.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
@@ -95,6 +95,7 @@
 		<module>sapl-test</module>
 		<module>sapl-coverage-api</module>
 		<module>sapl-maven-plugin</module>
+		<module>sapl-jwt</module>
 		<module>sapl-pdp-embedded</module>
 		<module>sapl-pdp-remote</module>
 		<module>sapl-spring-pdp-embedded</module>
