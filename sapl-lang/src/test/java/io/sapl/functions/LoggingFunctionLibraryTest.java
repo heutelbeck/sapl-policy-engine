@@ -26,38 +26,64 @@ import io.sapl.api.interpreter.Val;
 class LoggingFunctionLibraryTest {
 
 	@Test
-	void debugIsInstantiable() {
+	void isInstantiable() {
 		assertThat(new LoggingFunctionLibrary(), is(notNullValue()));
 	}
 
 	@Test
-	void debugIsIdentity() {
-		assertThat(LoggingFunctionLibrary.debug(Val.of("message"), Val.TRUE), is(Val.TRUE));
+	void debugSpyIsIdentity() {
+		assertThat(LoggingFunctionLibrary.debugSpy(Val.of("message"), Val.FALSE), is(Val.FALSE));
 	}
 
 	@Test
-	void infoIsIdentity() {
-		assertThat(LoggingFunctionLibrary.info(Val.of("message"), Val.TRUE), is(Val.TRUE));
+	void infoSpyIsIdentity() {
+		assertThat(LoggingFunctionLibrary.infoSpy(Val.of("message"), Val.FALSE), is(Val.FALSE));
 	}
 
 	@Test
-	void infoIsIdentity4UndefinedAsWell() {
-		assertThat(LoggingFunctionLibrary.info(Val.of("message"), Val.UNDEFINED), is(Val.UNDEFINED));
+	void warnSpyIsIdentity() {
+		assertThat(LoggingFunctionLibrary.warnSpy(Val.of("message"), Val.FALSE), is(Val.FALSE));
 	}
 
 	@Test
-	void warnIsIdentity() {
-		assertThat(LoggingFunctionLibrary.warn(Val.of("message"), Val.TRUE), is(Val.TRUE));
+	void traceSpyIsIdentity() {
+		assertThat(LoggingFunctionLibrary.traceSpy(Val.of("message"), Val.FALSE), is(Val.FALSE));
 	}
 
 	@Test
-	void traceIsIdentity() {
-		assertThat(LoggingFunctionLibrary.trace(Val.of("message"), Val.TRUE), is(Val.TRUE));
+	void errorSpyIsIdentity() {
+		assertThat(LoggingFunctionLibrary.errorSpy(Val.of("message"), Val.FALSE), is(Val.FALSE));
+	}
+
+
+	@Test
+	void debugIsTrue() {
+		assertThat(LoggingFunctionLibrary.debug(Val.of("message"), Val.FALSE), is(Val.TRUE));
 	}
 
 	@Test
-	void errorIsIdentity() {
-		assertThat(LoggingFunctionLibrary.error(Val.of("message"), Val.TRUE), is(Val.TRUE));
+	void infoIsTrue() {
+		assertThat(LoggingFunctionLibrary.info(Val.of("message"), Val.FALSE), is(Val.TRUE));
 	}
 
+	@Test
+	void infoIsTrueForUndefinedAsWell() {
+		assertThat(LoggingFunctionLibrary.info(Val.of("message"), Val.UNDEFINED), is(Val.TRUE));
+	}
+
+	@Test
+	void warnIsTrue() {
+		assertThat(LoggingFunctionLibrary.warn(Val.of("message"), Val.FALSE), is(Val.TRUE));
+	}
+
+	@Test
+	void traceIsTrue() {
+		assertThat(LoggingFunctionLibrary.trace(Val.of("message"), Val.FALSE), is(Val.TRUE));
+	}
+
+	@Test
+	void errorIsTrue() {
+		assertThat(LoggingFunctionLibrary.error(Val.of("message"), Val.FALSE), is(Val.TRUE));
+	}
+	
 }

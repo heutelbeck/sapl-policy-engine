@@ -51,7 +51,7 @@ public class IsDecision extends TypeSafeDiagnosingMatcher<AuthorizationDecision>
 			return true;
 		}
 		else {
-			mismatchDescription.appendText("was decision of " + this.expectedDecision.get().name());
+			mismatchDescription.appendText("was decision of " + decision.getDecision().name());
 			return false;
 		}
 	}

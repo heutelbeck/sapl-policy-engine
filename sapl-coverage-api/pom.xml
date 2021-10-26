@@ -27,26 +27,19 @@
 	</parent>
 	<artifactId>sapl-coverage-api</artifactId>
 	<name>SAPL Coverage API</name>
-	<description>Small API used in sapl-test &amp; sapl-maven-plugin to collect coverage information</description>
+	<description>API used in sapl-test and the sapl-maven-plugin to collect coverage information.</description>
 
 	<dependencies>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<scope>provided</scope>
-		</dependency>
-		<!-- Logging -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-simple</artifactId>
-			<scope>test</scope>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<scope>provided</scope>
 		</dependency>
-		
-		
+				
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.assertj</groupId>
@@ -63,5 +56,11 @@
 			<artifactId>mockito-inline</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 </project>
