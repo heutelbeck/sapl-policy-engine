@@ -31,39 +31,39 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 
 class CanonicalMatchingContextTest {
 
-    private EvaluationContext subscriptionScopedEvaluationContext;
+	private EvaluationContext subscriptionScopedEvaluationContext;
 
-    @BeforeEach
-    void setUp() {
-        subscriptionScopedEvaluationContext = new EvaluationContext(new AnnotationAttributeContext(),
-                new AnnotationFunctionContext(), new HashMap<>());
+	@BeforeEach
+	void setUp() {
+		subscriptionScopedEvaluationContext = new EvaluationContext(new AnnotationAttributeContext(),
+				new AnnotationFunctionContext(), new HashMap<>());
 
-    }
+	}
 
-    @Test
-    void test_is_referenced() {
-        var candidates = new Bitmask();
-        var predicate = new Predicate(new Bool(true));
+	@Test
+	void test_is_referenced() {
+		var candidates = new Bitmask();
+		var predicate = new Predicate(new Bool(true));
 
-        var matchingCtx = new CanonicalIndexMatchingContext(0, subscriptionScopedEvaluationContext);
+		var matchingCtx = new CanonicalIndexMatchingContext(0, subscriptionScopedEvaluationContext);
 
-        assertFalse(matchingCtx.isPredicateReferencedInCandidates(predicate));
+		assertFalse(matchingCtx.isPredicateReferencedInCandidates(predicate));
 
-        predicate.getConjunctions().set(5);
-        assertFalse(matchingCtx.isPredicateReferencedInCandidates(predicate));
+		predicate.getConjunctions().set(5);
+		assertFalse(matchingCtx.isPredicateReferencedInCandidates(predicate));
 
-        candidates.set(5);
-        matchingCtx.addCandidates(candidates);
-        assertTrue(matchingCtx.isPredicateReferencedInCandidates(predicate));
-    }
+		candidates.set(5);
+		matchingCtx.addCandidates(candidates);
+		assertTrue(matchingCtx.isPredicateReferencedInCandidates(predicate));
+	}
 
-    @Test
-    void testAreAllFunctionsEliminated() {
-        var matchingCtx = new CanonicalIndexMatchingContext(2, subscriptionScopedEvaluationContext);
+	@Test
+	void testAreAllFunctionsEliminated() {
+		var matchingCtx = new CanonicalIndexMatchingContext(2, subscriptionScopedEvaluationContext);
 
-        matchingCtx.increaseNumberOfEliminatedFormulasForConjunction(0, 42);
-        assertThat(matchingCtx.areAllFunctionsEliminated(0, 42), is(true));
-        assertThat(matchingCtx.areAllFunctionsEliminated(0, 41), is(false));
-    }
+		matchingCtx.increaseNumberOfEliminatedFormulasForConjunction(0, 42);
+		assertThat(matchingCtx.areAllFunctionsEliminated(0, 42), is(true));
+		assertThat(matchingCtx.areAllFunctionsEliminated(0, 41), is(false));
+	}
 
 }

@@ -25,8 +25,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 
-public class HasObligationMatching extends TypeSafeDiagnosingMatcher<AuthorizationDecision>  {
-	
+public class HasObligationMatching extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
+
 	private final Predicate<? super JsonNode> predicate;
 
 	public HasObligationMatching(Predicate<? super JsonNode> jsonPredicate) {
@@ -41,22 +41,23 @@ public class HasObligationMatching extends TypeSafeDiagnosingMatcher<Authorizati
 
 	@Override
 	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		if(decision.getObligations().isEmpty())
-		{
+		if (decision.getObligations().isEmpty()) {
 			mismatchDescription.appendText("decision didn't contain any obligations");
 			return false;
 		}
-		
+
 		boolean containsObligation = false;
-		
-        for(JsonNode node : decision.getObligations().get()) {
-        	if(this.predicate.test(node))
-        		containsObligation = true;
-        };
-        
-		if(containsObligation) {
+
+		for (JsonNode node : decision.getObligations().get()) {
+			if (this.predicate.test(node))
+				containsObligation = true;
+		}
+		;
+
+		if (containsObligation) {
 			return true;
-		} else {
+		}
+		else {
 			mismatchDescription.appendText("no obligation matched");
 			return false;
 		}

@@ -50,9 +50,11 @@ public class CoverageTargetHelper {
 			if (element.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 				addPolicySetToResult((PolicySet) element, availablePolicySetHitTargets, availablePolicyHitTargets,
 						availablePolicyConditionHitTargets);
-			} else if (element.eClass().equals(SaplPackage.Literals.POLICY)) {
+			}
+			else if (element.eClass().equals(SaplPackage.Literals.POLICY)) {
 				addPolicyToResult((Policy) element, "", availablePolicyHitTargets, availablePolicyConditionHitTargets);
-			} else {
+			}
+			else {
 				throw new SaplTestException("Error: Unknown Subtype of " + PolicyElement.class);
 			}
 		}
@@ -60,8 +62,6 @@ public class CoverageTargetHelper {
 		return new CoverageTargets(List.copyOf(availablePolicySetHitTargets), List.copyOf(availablePolicyHitTargets),
 				List.copyOf(availablePolicyConditionHitTargets));
 	}
-
-	
 
 	private void addPolicySetToResult(PolicySet policySet, Collection<PolicySetHit> availablePolicySetHitTargets,
 			Collection<PolicyHit> availablePolicyHitTargets,
@@ -98,6 +98,5 @@ public class CoverageTargetHelper {
 			availablePolicyConditionHitTargets.add(new PolicyConditionHit(policySetId, policyId, position, false));
 		}
 	}
-
 
 }

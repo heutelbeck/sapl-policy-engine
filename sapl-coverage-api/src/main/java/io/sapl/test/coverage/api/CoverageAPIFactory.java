@@ -30,9 +30,10 @@ public class CoverageAPIFactory {
 	public static CoverageHitReader constructCoverageHitReader(Path basedir) {
 		return new CoverageHitAPIFile(basedir);
 	}
-	
+
 	/**
-	 * Constructs a CoverageHitRecorder implementation and create empty Coverage-Hit-Files if they don't exist
+	 * Constructs a CoverageHitRecorder implementation and create empty Coverage-Hit-Files
+	 * if they don't exist
 	 * @param basedir where to write the hit files
 	 * @return {@link CoverageHitRecorder}
 	 */
@@ -41,4 +42,5 @@ public class CoverageAPIFactory {
 		recorder.createCoverageHitFiles();
 		return recorder;
 	}
+
 }

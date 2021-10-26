@@ -37,25 +37,21 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 	private static final String ERROR_MESSAGE_POLICY_PATH_NULL = "Null is not allowed for the Path pointing to the policies folder.";
 
 	private String pathToPoliciesFolder;
-	
+
 	private PolicyDocumentCombiningAlgorithm pdpAlgorithm = null;
-	
+
 	private Map<String, JsonNode> pdpVariables = null;
 
 	/**
 	 * Fixture for constructing a integration test case
-	 * 
-	 * @param policyPath path relativ to your classpath (relativ from
-	 *                   src/main/resources, ...) to the folder containing the sapl
-	 *                   documents. If your policies are located at
-	 *                   src/main/resources/yourspecialdir you only have to specify
-	 *                   "yourspecialdir".
+	 * @param policyPath path relativ to your classpath (relativ from src/main/resources,
+	 * ...) to the folder containing the sapl documents. If your policies are located at
+	 * src/main/resources/yourspecialdir you only have to specify "yourspecialdir".
 	 */
 	public SaplIntegrationTestFixture(String policyPath) {
 		this.pathToPoliciesFolder = policyPath;
 	}
 
-	
 	/**
 	 * set {@link PolicyDocumentCombiningAlgorithm} for this policy integration test
 	 * @param alg the {@link PolicyDocumentCombiningAlgorithm} to be used
@@ -65,17 +61,16 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 		this.pdpAlgorithm = alg;
 		return this;
 	}
-	
+
 	/**
 	 * set the Variables-{@link Map} normally loaded from the pdp.json file
 	 * @param variables a {@link Map} of variables
 	 * @return
 	 */
-	public SaplIntegrationTestFixture withPDPVariables(Map<String,JsonNode> variables) {
+	public SaplIntegrationTestFixture withPDPVariables(Map<String, JsonNode> variables) {
 		this.pdpVariables = variables;
 		return this;
 	}
-
 
 	@Override
 	public GivenStep constructTestCaseWithMocks() {
@@ -104,6 +99,8 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	private VariablesAndCombinatorSource constructPDPConfig() {
 
-		return new ClasspathVariablesAndCombinatorSource(this.pathToPoliciesFolder, new ObjectMapper(), this.pdpAlgorithm, this.pdpVariables);
+		return new ClasspathVariablesAndCombinatorSource(this.pathToPoliciesFolder, new ObjectMapper(),
+				this.pdpAlgorithm, this.pdpVariables);
 	}
+
 }

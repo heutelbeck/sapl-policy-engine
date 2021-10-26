@@ -34,15 +34,14 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
 /**
- * A multi-subscription holds a list of subjects, a list of actions, a list of
- * resources, a list of environments (which are the elements of a
- * {@link AuthorizationSubscription SAPL authorization subscription}) and a map
- * holding subscription IDs and corresponding
- * {@link AuthorizationSubscriptionElements authorization subscription
- * elements}. It provides methods to
- * {@link #addAuthorizationSubscription(String, Object, Object, Object, Object)
- * add} single authorization subscriptions and to {@link #iterator() iterate}
- * over all the authorization subscriptions.
+ * A multi-subscription holds a list of subjects, a list of actions, a list of resources,
+ * a list of environments (which are the elements of a {@link AuthorizationSubscription
+ * SAPL authorization subscription}) and a map holding subscription IDs and corresponding
+ * {@link AuthorizationSubscriptionElements authorization subscription elements}. It
+ * provides methods to
+ * {@link #addAuthorizationSubscription(String, Object, Object, Object, Object) add}
+ * single authorization subscriptions and to {@link #iterator() iterate} over all the
+ * authorization subscriptions.
  *
  * @see AuthorizationSubscription
  */
@@ -55,32 +54,30 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 
 	@NotEmpty
 	List<Object> subjects = new ArrayList<>();
+
 	@NotEmpty
 	List<Object> actions = new ArrayList<>();
+
 	@NotEmpty
 	List<Object> resources = new ArrayList<>();
+
 	@NotEmpty
 	List<Object> environments = new ArrayList<>();
+
 	@NotEmpty
 	Map<String, AuthorizationSubscriptionElements> authorizationSubscriptions = new HashMap<>();
 
 	/**
-	 * Convenience method to add an authorization subscription without environment
-	 * data. Calls
-	 * {@link #addAuthorizationSubscription(String, Object, Object, Object)
-	 * addAuthorizationSubscription(subscriptionId, subject, action, resource,
-	 * null)}.
-	 * 
+	 * Convenience method to add an authorization subscription without environment data.
+	 * Calls {@link #addAuthorizationSubscription(String, Object, Object, Object)
+	 * addAuthorizationSubscription(subscriptionId, subject, action, resource, null)}.
 	 * @param subscriptionId the id identifying the authorization subscription to be
-	 *                       added.
-	 * @param subject        the subject of the authorization subscription to be
-	 *                       added.
-	 * @param action         the action of the authorization subscription to be
-	 *                       added.
-	 * @param resource       the resource of the authorization subscription to be
-	 *                       added.
-	 * @return this {@code MultiAuthorizationSubscription} instance to support
-	 *         chaining of multiple calls to {@code addAuthorizationSubscription}.
+	 * added.
+	 * @param subject the subject of the authorization subscription to be added.
+	 * @param action the action of the authorization subscription to be added.
+	 * @param resource the resource of the authorization subscription to be added.
+	 * @return this {@code MultiAuthorizationSubscription} instance to support chaining of
+	 * multiple calls to {@code addAuthorizationSubscription}.
 	 */
 	public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId, Object subject,
 			Object action, Object resource) {
@@ -88,17 +85,14 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	}
 
 	/**
-	 * Convenience method to add an authorization subscription without environment
-	 * data. Calls
-	 * {@link #addAuthorizationSubscription(String, Object, Object, Object)
-	 * addAuthorizationSubscription(subscriptionId, subject, action, resource,
-	 * null)}.
-	 * 
+	 * Convenience method to add an authorization subscription without environment data.
+	 * Calls {@link #addAuthorizationSubscription(String, Object, Object, Object)
+	 * addAuthorizationSubscription(subscriptionId, subject, action, resource, null)}.
 	 * @param subscriptionId the id identifying the authorization subscription to be
-	 *                       added.
-	 * @param authzSub       an authorization subscription.
-	 * @return this {@code MultiAuthorizationSubscription} instance to support
-	 *         chaining of multiple calls to {@code addAuthorizationSubscription}.
+	 * added.
+	 * @param authzSub an authorization subscription.
+	 * @return this {@code MultiAuthorizationSubscription} instance to support chaining of
+	 * multiple calls to {@code addAuthorizationSubscription}.
 	 */
 	public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId,
 			AuthorizationSubscription subscription) {
@@ -107,23 +101,18 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	}
 
 	/**
-	 * Adds the authorization subscription defined by the given subject, action,
-	 * resource and environment. The given {@code subscriptionId} is associated with
-	 * the according decision to allow the recipient of the PDP decision to
-	 * correlate subscription/decision pairs.
-	 * 
+	 * Adds the authorization subscription defined by the given subject, action, resource
+	 * and environment. The given {@code subscriptionId} is associated with the according
+	 * decision to allow the recipient of the PDP decision to correlate
+	 * subscription/decision pairs.
 	 * @param subscriptionId the id identifying the authorization subscription to be
-	 *                       added.
-	 * @param subject        the subject of the authorization subscription to be
-	 *                       added.
-	 * @param action         the action of the authorization subscription to be
-	 *                       added.
-	 * @param resource       the resource of the authorization subscription to be
-	 *                       added.
-	 * @param environment    the environment of the authorization subscription to be
-	 *                       added.
-	 * @return this {@code MultiAuthorizationSubscription} instance to support
-	 *         chaining of multiple calls to {@code addAuthorizationSubscription}.
+	 * added.
+	 * @param subject the subject of the authorization subscription to be added.
+	 * @param action the action of the authorization subscription to be added.
+	 * @param resource the resource of the authorization subscription to be added.
+	 * @param environment the environment of the authorization subscription to be added.
+	 * @return this {@code MultiAuthorizationSubscription} instance to support chaining of
+	 * multiple calls to {@code addAuthorizationSubscription}.
 	 */
 	public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
 			Object action, Object resource, Object environment) {
@@ -151,21 +140,18 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	}
 
 	/**
-	 * @return {@code true} if this multi-subscription holds at least one
-	 *         authorization subscription, {@code false} otherwise.
+	 * @return {@code true} if this multi-subscription holds at least one authorization
+	 * subscription, {@code false} otherwise.
 	 */
 	public boolean hasAuthorizationSubscriptions() {
 		return !authorizationSubscriptions.isEmpty();
 	}
 
 	/**
-	 * Returns the authorization subscription related to the given ID or
-	 * {@code null} if this multi-subscription contains no such ID.
-	 * 
-	 * @param subscriptionId the ID of the authorization subscription to be
-	 *                       returned.
-	 * @return the authorization subscription related to the given ID or
-	 *         {@code null}.
+	 * Returns the authorization subscription related to the given ID or {@code null} if
+	 * this multi-subscription contains no such ID.
+	 * @param subscriptionId the ID of the authorization subscription to be returned.
+	 * @return the authorization subscription related to the given ID or {@code null}.
 	 */
 	public AuthorizationSubscription getAuthorizationSubscriptionWithId(String subscriptionId) {
 		final AuthorizationSubscriptionElements subscriptionElements = authorizationSubscriptions.get(subscriptionId);
@@ -177,9 +163,8 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 
 	/**
 	 * @return an {@link Iterator iterator} providing access to the
-	 *         {@link IdentifiableAuthorizationSubscription identifiable
-	 *         authorization subscriptions} created from the data held by this
-	 *         multi-subscription.
+	 * {@link IdentifiableAuthorizationSubscription identifiable authorization
+	 * subscriptions} created from the data held by this multi-subscription.
 	 */
 	@Override
 	public Iterator<IdentifiableAuthorizationSubscription> iterator() {

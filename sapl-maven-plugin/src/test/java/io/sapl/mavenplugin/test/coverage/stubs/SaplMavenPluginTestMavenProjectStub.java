@@ -29,16 +29,14 @@ public class SaplMavenPluginTestMavenProjectStub extends MavenProjectStub {
 
 	public SaplMavenPluginTestMavenProjectStub() {
 		MavenXpp3Reader pomReader = new MavenXpp3Reader();
-        Model model;
-        try
-        {
-            model = pomReader.read( ReaderFactory.newXmlReader( new File( getBasedir(), "pom.xml" ) ) );
-            setModel( model );
-        }
-        catch ( Exception e )
-        {
-            throw new RuntimeException( e );
-        }
+		Model model;
+		try {
+			model = pomReader.read(ReaderFactory.newXmlReader(new File(getBasedir(), "pom.xml")));
+			setModel(model);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		setGroupId(model.getGroupId());
 		setArtifactId(model.getArtifactId());
@@ -46,30 +44,29 @@ public class SaplMavenPluginTestMavenProjectStub extends MavenProjectStub {
 		setName(model.getName());
 		setUrl(model.getUrl());
 		setPackaging(model.getPackaging());
-		
 
 		Build build = new Build();
-        build.setFinalName( model.getArtifactId() );
-        build.setDirectory( getBasedir() + "/target" );
-        build.setSourceDirectory( getBasedir() + "/src/main/java" );
-        build.setOutputDirectory( getBasedir() + "/target/classes" );
-        build.setTestSourceDirectory( getBasedir() + "/src/test/java" );
-        build.setTestOutputDirectory( getBasedir() + "/target/test-classes" );
-        setBuild( build );
+		build.setFinalName(model.getArtifactId());
+		build.setDirectory(getBasedir() + "/target");
+		build.setSourceDirectory(getBasedir() + "/src/main/java");
+		build.setOutputDirectory(getBasedir() + "/target/classes");
+		build.setTestSourceDirectory(getBasedir() + "/src/test/java");
+		build.setTestOutputDirectory(getBasedir() + "/target/test-classes");
+		setBuild(build);
 
-        List<String> compileSourceRoots = new ArrayList<>();
-        compileSourceRoots.add( getBasedir() + "/src/main/java" );
-        setCompileSourceRoots( compileSourceRoots );
+		List<String> compileSourceRoots = new ArrayList<>();
+		compileSourceRoots.add(getBasedir() + "/src/main/java");
+		setCompileSourceRoots(compileSourceRoots);
 
-        List<String> testCompileSourceRoots = new ArrayList<>();
-        testCompileSourceRoots.add( getBasedir() + "/src/test/java" );
-        setTestCompileSourceRoots( testCompileSourceRoots );
+		List<String> testCompileSourceRoots = new ArrayList<>();
+		testCompileSourceRoots.add(getBasedir() + "/src/test/java");
+		setTestCompileSourceRoots(testCompileSourceRoots);
 	}
-	
-    /** {@inheritDoc} */
-    @Override
-	public File getBasedir()
-    {
-        return new File( super.getBasedir() + "/src/test/resources/pom/" );
-    }
+
+	/** {@inheritDoc} */
+	@Override
+	public File getBasedir() {
+		return new File(super.getBasedir() + "/src/test/resources/pom/");
+	}
+
 }

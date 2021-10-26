@@ -445,4 +445,5 @@ class SaplAttributeFactoryTests {
 			}
 		};
 	}
+
 }

@@ -36,8 +36,7 @@ class PolicyEnforcementPointAutoConfigurationTests {
 				.withConfiguration(AutoConfigurations.of(PolicyEnforcementPointAutoConfiguration.class))
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
 				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
-				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class))
-				.run(context -> {
+				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(PolicyEnforcementPoint.class);
 				});

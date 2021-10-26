@@ -55,7 +55,8 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 			for (var item : ((ArrayNode) node)) {
 				collect(item, results);
 			}
-		} else if (node.isObject()) {
+		}
+		else if (node.isObject()) {
 			if (node.has(id)) {
 				results.add(node.get(id));
 			}
@@ -107,14 +108,16 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 											FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
 											Val.of(object), statement.isEach())
 									.map(val -> Tuples.of(field.getKey(), val)));
-				} else {
+				}
+				else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					fieldFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
 							.applyFilterStatement(Val.of(field.getValue()), ctx, relativeNode, stepId + 1, statement)
 							.map(val -> Tuples.of(field.getKey(), val)));
 				}
-			} else {
+			}
+			else {
 				log.trace("field not matching. Do recusive search for first match.");
 				fieldFluxes.add(
 						applyKeyStepFilterStatement(id, Val.of(field.getValue()), ctx, relativeNode, stepId, statement)
@@ -138,7 +141,8 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 				log.trace("array element is an object. apply this step to the object.");
 				elementFluxes.add(
 						applyFilterStatementToObject(id, (ObjectNode) element, ctx, relativeNode, stepId, statement));
-			} else {
+			}
+			else {
 				log.trace("array element not an object. Do recusive search for first match.");
 				elementFluxes
 						.add(applyKeyStepFilterStatement(id, Val.of(element), ctx, relativeNode, stepId, statement));

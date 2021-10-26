@@ -34,9 +34,11 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import reactor.core.publisher.Flux;
 
 class PolicyEnforcementPointTests {
+
 	public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private PolicyDecisionPoint pdp;
+
 	private ConstraintEnforcementService constraintHandlers;
 
 	@BeforeEach

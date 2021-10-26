@@ -60,28 +60,43 @@ import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import reactor.core.publisher.Flux;
 
 class PostEnforcePolicyEnforcementPointTests {
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private static final String DO_SOMETHING = "doSomething";
+
 	private static final String ORIGINAL_RETURN_OBJECT = "original return object";
+
 	private static final String CHANGED_RETURN_OBJECT = "changed return object";
 
 	ObjectFactory<PolicyDecisionPoint> pdpFactory;
+
 	ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory;
+
 	ObjectFactory<ObjectMapper> objectMapperFactory;
+
 	ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
 
 	PolicyDecisionPoint pdp;
+
 	ConstraintEnforcementService constraintHandlers;
+
 	Authentication authentication;
+
 	AuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	List<RunnableConstraintHandlerProvider> globalRunnableProviders;
+
 	List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders;
+
 	List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders;
+
 	List<RequestHandlerProvider> globalRequestHandlerProviders;
+
 	List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders;
+
 	List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
+
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
 	private ConstraintEnforcementService buildConstraintHandlerService(ObjectMapper mapper) {
@@ -250,6 +265,7 @@ class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	static class TestClass {
+
 		public String doSomething() {
 			return "I did something!";
 		}
@@ -257,6 +273,7 @@ class PostEnforcePolicyEnforcementPointTests {
 		public Optional<String> doSomethingOptional() {
 			return Optional.of("I did something!");
 		}
+
 	}
 
 }

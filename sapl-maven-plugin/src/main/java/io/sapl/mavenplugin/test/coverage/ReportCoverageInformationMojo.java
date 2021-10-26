@@ -72,11 +72,17 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	private boolean enableHtmlReport;
 
 	private SaplDocumentReader saplDocumentReader;
+
 	private CoverageTargetHelper coverageTargetHelper;
+
 	private CoverageAPIHelper coverageAPIHelper;
+
 	private CoverageRatioCalculator ratioCalculator;
+
 	private GenericCoverageReporter reporter;
+
 	private SonarLineCoverageReportGenerator sonarReporter;
+
 	private HtmlLineCoverageReportGenerator htmlReporter;
 
 	@Inject
@@ -145,7 +151,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
 		getLog().info("");
 		getLog().info("");
-		
+
 		breakLifecycleIfRatiosNotFulfilled(isPolicySetRatioFulfilled, isPolicyRatioFulfilled,
 				isPolicyConditionRatioFulfilled);
 	}
@@ -156,7 +162,8 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 			getLog().info("All coverage criteria passed");
 			getLog().info("");
 			getLog().info("");
-		} else {
+		}
+		else {
 			throw new MojoFailureException(
 					"One or more SAPL Coverage Ratios aren't fulfilled! Find further information above.");
 		}
@@ -170,7 +177,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	}
 
 	private CoverageTargets readAvailableTargets(Collection<SaplDocument> documents) {
-		return this.coverageTargetHelper.getCoverageTargets(documents); 	
+		return this.coverageTargetHelper.getCoverageTargets(documents);
 	}
 
 	private CoverageTargets readHits() {
@@ -186,14 +193,15 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 			getLog().info("There are no PolicySets to hit");
 			return true;
 		}
-		
+
 		getLog().info("Policy Set Hit Ratio is: " + ratio);
 
 		if (ratio < policySetHitRatio) {
 			getLog().error("Policy Set Hit Ratio not fulfilled - Expected greater or equal " + policySetHitRatio
 					+ " but got " + ratio);
 			return false;
-		} else {
+		}
+		else {
 			return true;
 		}
 	}
@@ -203,14 +211,15 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 			getLog().info("There are no Policies to hit");
 			return true;
 		}
-		
+
 		getLog().info("Policy Hit Ratio is: " + ratio);
 
 		if (ratio < policyHitRatio) {
 			getLog().error("Policy Hit Ratio not fulfilled - Expected greater or equal " + policyHitRatio + " but got "
 					+ ratio);
 			return false;
-		} else {
+		}
+		else {
 			return true;
 		}
 	}
@@ -220,15 +229,17 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 			getLog().info("There are no PolicyConditions to hit");
 			return true;
 		}
-		
+
 		getLog().info("Policy Condition Hit Ratio is: " + ratio);
 
 		if (ratio < policyConditionHitRatio) {
 			getLog().error("Policy Condition Hit Ratio not fulfilled - Expected greater or equal "
 					+ policyConditionHitRatio + " but got " + ratio);
 			return false;
-		} else {
+		}
+		else {
 			return true;
 		}
 	}
+
 }

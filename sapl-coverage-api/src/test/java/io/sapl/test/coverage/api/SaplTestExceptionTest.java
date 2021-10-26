@@ -25,15 +25,15 @@ class SaplTestExceptionTest {
 
 	@Test
 	void test() {
-		assertThrows(SaplTestException.class, () -> {	
+		assertThrows(SaplTestException.class, () -> {
 			throw new SaplTestException();
 		});
-		
-		assertThrows(SaplTestException.class, () -> {	
+
+		assertThrows(SaplTestException.class, () -> {
 			throw new SaplTestException("Test");
 		});
-		
-		assertThrows(SaplTestException.class, () -> {	
+
+		assertThrows(SaplTestException.class, () -> {
 			throw new SaplTestException("Test", new IOException());
 		});
 	}

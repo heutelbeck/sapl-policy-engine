@@ -74,7 +74,7 @@ class ResourcesPRPTest {
 	}
 
 	@Test
-	void doTest() throws InitializationException  {
+	void doTest() throws InitializationException {
 		var interpreter = new DefaultSAPLInterpreter();
 		var source = new ResourcesPrpUpdateEventSource("/policies", interpreter);
 		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(), source);
@@ -85,4 +85,5 @@ class ResourcesPRPTest {
 		prp.retrievePolicies(evaluationCtx).log(null, Level.INFO, SignalType.ON_NEXT).blockFirst();
 		prp.dispose();
 	}
+
 }

@@ -26,6 +26,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 public class PolicySetImplCustomCoverage extends PolicySetImplCustom {
+
 	private final CoverageHitRecorder hitRecorder;
 
 	PolicySetImplCustomCoverage(CoverageHitRecorder recorder) {
@@ -35,11 +36,12 @@ public class PolicySetImplCustomCoverage extends PolicySetImplCustom {
 	@Override
 	public Mono<Val> matches(EvaluationContext ctx) {
 		return super.matches(ctx).doOnNext(matches -> {
-			if(matches.isBoolean() && matches.getBoolean()) {
+			if (matches.isBoolean() && matches.getBoolean()) {
 				PolicySetHit hit = new PolicySetHit(getSaplName());
 				log.trace("| | | | |-- Hit PolicySet: " + hit);
 				this.hitRecorder.recordPolicySetHit(hit);
 			}
 		});
 	}
+
 }

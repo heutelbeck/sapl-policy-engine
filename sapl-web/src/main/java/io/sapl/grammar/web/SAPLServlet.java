@@ -50,4 +50,5 @@ public class SAPLServlet extends XtextServlet {
 		}
 		super.destroy();
 	}
+
 }

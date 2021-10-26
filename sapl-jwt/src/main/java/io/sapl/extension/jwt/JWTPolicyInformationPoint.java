@@ -50,14 +50,13 @@ import reactor.core.publisher.Mono;
 /**
  * Attributes obtained from Json Web Tokens (JWT)
  * <p>
- * Attributes depend on the JWT's validity, meaning they can change their state
- * over time according to the JWT's signature, maturity and expiration.
+ * Attributes depend on the JWT's validity, meaning they can change their state over time
+ * according to the JWT's signature, maturity and expiration.
  * <p>
- * Public keys must be fetched from the trusted authentication server for
- * validating signatures. For this purpose, the url and http method for fetching
- * public keys need to be specified in the {@code pdp.json} configuration file
- * as in the following example:
- * 
+ * Public keys must be fetched from the trusted authentication server for validating
+ * signatures. For this purpose, the url and http method for fetching public keys need to
+ * be specified in the {@code pdp.json} configuration file as in the following example:
+ *
  * <pre>
  * {@code {"algorithm": "DENY_UNLESS_PERMIT",
  *	"variables": {
@@ -144,10 +143,9 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * Constructor
-	 * 
 	 * @param jwtService provider of services for processing Json Web Tokens
-	 * @param mapper     object mapper for mapping objects to Json
-	 * @param builder    mutable builder for creating a web client
+	 * @param mapper object mapper for mapping objects to Json
+	 * @param builder mutable builder for creating a web client
 	 */
 	public JWTPolicyInformationPoint(JWTLibraryService jwtService, WebClient.Builder builder) {
 		this.jwtService = jwtService;
@@ -158,8 +156,7 @@ public class JWTPolicyInformationPoint {
 	 * A JWT's validity
 	 * <p>
 	 * The validity may change over time as it becomes mature and then expires.
-	 * 
-	 * @param value     object containing JWT
+	 * @param value object containing JWT
 	 * @param variables configuration variables
 	 * @return Flux representing the JWT's validity over time
 	 */
@@ -208,7 +205,6 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * helper function to allow mapping of public key to signature validation
-	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return Function to validate signature
 	 */
@@ -218,11 +214,10 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * verifies a jwt's content to match its signature decrypted with the public key
-	 * 
-	 * @param jwt       base64 encoded header.body.signature triplet
+	 * @param jwt base64 encoded header.body.signature triplet
 	 * @param publicKey key to decrypt the signature
-	 * @return Flux containing IMMATURE, VALID, and/or EXPIRED if signature is
-	 *         valid, UNTRUSTED otherwise
+	 * @return Flux containing IMMATURE, VALID, and/or EXPIRED if signature is valid,
+	 * UNTRUSTED otherwise
 	 */
 	private Flux<Val> doValidateSignatureAndTime(String jwt, RSAPublicKey publicKey) {
 
@@ -233,7 +228,8 @@ public class JWTPolicyInformationPoint {
 		JWSVerifier verifier = new RSASSAVerifier(publicKey);
 		try {
 			isVerified = signedJwt.verify(verifier);
-		} catch (JOSEException | IllegalStateException | NullPointerException e) {
+		}
+		catch (JOSEException | IllegalStateException | NullPointerException e) {
 			// erroneous signatures or data are treated same as failed verifications
 		}
 
@@ -247,7 +243,6 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * Verifies token validity based on time
-	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return Flux containing IMMATURE, VALID, and/or EXPIRED
 	 */
@@ -279,7 +274,8 @@ public class JWTPolicyInformationPoint {
 				return Flux.concat(Mono.just(Val.of(ValidityState.IMMATURE.toString())),
 						Mono.just(Val.of(ValidityState.VALID.toString()))
 								.delayElement(Duration.ofMillis(nbf.getTime() - now.getTime())));
-			} else {
+			}
+			else {
 				// the token is not valid yet but will be in future and then expire
 				return Flux.concat(Mono.just(Val.of(ValidityState.IMMATURE.toString())),
 						Mono.just(Val.of(ValidityState.VALID.toString()))
@@ -294,7 +290,8 @@ public class JWTPolicyInformationPoint {
 		if (exp == null) {
 			// the token is eternally valid (no expiration)
 			return Flux.just(Val.of(ValidityState.VALID.toString()));
-		} else {
+		}
+		else {
 			// the token is valid now but will expire in future
 			return Flux.concat(Mono.just(Val.of(ValidityState.VALID.toString())),
 					Mono.just(Val.of(ValidityState.EXPIRED.toString()))
@@ -305,7 +302,6 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * Verifies token to be parseable and well formed JWT
-	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return true if the token is a proper JWT
 	 */
@@ -326,7 +322,6 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * checks if token contains all required claims
-	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return true if the token contains all required claims
 	 */
@@ -367,7 +362,6 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * checks if claims meet requirements
-	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return true all claims meet requirements
 	 */
@@ -384,7 +378,8 @@ public class JWTPolicyInformationPoint {
 		// verify type of authorities
 		try {
 			claims.getStringListClaim(JWTLibraryService.AUTHORITIES_KEY);
-		} catch (ParseException e) {
+		}
+		catch (ParseException e) {
 			return false;
 		}
 
@@ -394,7 +389,6 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * Extracts key ID from jwt's header
-	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return key ID
 	 */
@@ -404,9 +398,8 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * Fetches public key from remote authentication server
-	 * 
-	 * @param kid                    ID of public key to fetch
-	 * @param publicKeyURI           uri to request the public key
+	 * @param kid ID of public key to fetch
+	 * @param publicKeyURI uri to request the public key
 	 * @param publicKeyRequestMethod HTTP request method: GET or POST
 	 * @return public key or empty
 	 */
@@ -416,7 +409,8 @@ public class JWTPolicyInformationPoint {
 		if ("post".equalsIgnoreCase(publicKeyRequestMethod)) {
 			// POST request
 			response = webClient.post().uri(publicKeyURI, kid).retrieve();
-		} else {
+		}
+		else {
 			// default GET request
 			response = webClient.get().uri(publicKeyURI, kid).retrieve();
 		}
@@ -431,7 +425,6 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * decodes a Base64 encoded string into bytes
-	 * 
 	 * @param base64 encoded string
 	 * @return bytes
 	 */
@@ -443,14 +436,14 @@ public class JWTPolicyInformationPoint {
 		try {
 			byte[] bytes = Base64.getUrlDecoder().decode(base64);
 			return Optional.of(bytes);
-		} catch (IllegalArgumentException e) {
+		}
+		catch (IllegalArgumentException e) {
 			return Optional.empty();
 		}
 	}
 
 	/**
 	 * generates an RSAPublicKey from an X509EncodedKeySpec
-	 * 
 	 * @param x509Key an X509EncodedKeySpec object
 	 * @return the RSAPublicKey object
 	 */
@@ -459,7 +452,8 @@ public class JWTPolicyInformationPoint {
 			KeyFactory kf = KeyFactory.getInstance("RSA");
 			RSAPublicKey publicKey = (RSAPublicKey) kf.generatePublic(x509Key);
 			return Optional.of(publicKey);
-		} catch (NullPointerException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+		}
+		catch (NullPointerException | NoSuchAlgorithmException | InvalidKeySpecException e) {
 			return Optional.empty();
 		}
 	}

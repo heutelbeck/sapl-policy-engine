@@ -25,19 +25,19 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 
 public class IsDecision extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
-	
+
 	private Optional<Decision> expectedDecision;
-	
+
 	public IsDecision(Decision expected) {
 		super(AuthorizationDecision.class);
 		this.expectedDecision = Optional.of(Objects.requireNonNull(expected));
 	}
-	
+
 	public IsDecision() {
 		super(AuthorizationDecision.class);
 		this.expectedDecision = Optional.empty();
 	}
-	
+
 	@Override
 	public void describeTo(Description description) {
 		description.appendText("the decision is ");
@@ -49,7 +49,8 @@ public class IsDecision extends TypeSafeDiagnosingMatcher<AuthorizationDecision>
 	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
 		if (this.expectedDecision.isEmpty() || this.expectedDecision.get() == decision.getDecision()) {
 			return true;
-		} else {
+		}
+		else {
 			mismatchDescription.appendText("was decision of " + this.expectedDecision.get().name());
 			return false;
 		}

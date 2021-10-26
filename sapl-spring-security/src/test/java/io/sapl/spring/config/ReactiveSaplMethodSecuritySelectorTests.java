@@ -38,4 +38,5 @@ public class ReactiveSaplMethodSecuritySelectorTests {
 		assertThat(actual, is(arrayContainingInAnyOrder("org.springframework.context.annotation.AutoProxyRegistrar",
 				"io.sapl.spring.config.ReactiveSaplMethodSecurityConfiguration")));
 	}
+
 }

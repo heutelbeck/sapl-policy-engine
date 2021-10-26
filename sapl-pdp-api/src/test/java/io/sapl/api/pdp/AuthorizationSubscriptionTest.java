@@ -26,8 +26,11 @@ import org.junit.jupiter.api.Test;
 class AuthorizationSubscriptionTest {
 
 	private static final String ENVIRONMENT = "ENVIRONMENT";
+
 	private static final String RESOURCE = "RESOURCE";
+
 	private static final String ACTION = "ACTION";
+
 	private static final String SUBJECT = "SUBJECT";
 
 	@Test

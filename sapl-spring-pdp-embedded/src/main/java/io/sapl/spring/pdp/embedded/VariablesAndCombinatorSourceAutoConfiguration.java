@@ -47,4 +47,5 @@ public class VariablesAndCombinatorSourceAutoConfiguration {
 
 		return new ResourcesVariablesAndCombinatorSource(pdpProperties.getConfigPath());
 	}
+
 }

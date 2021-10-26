@@ -36,29 +36,29 @@ public class Imports {
 	public static FunctionParameters whenFunctionParams(Matcher<Val>... matcher) {
 		return new FunctionParameters(matcher);
 	}
-	
-	public static AttributeParameters whenAttributeParams(AttributeParentValueMatcher parentValueMatcher, AttributeArgumentMatchers argumentMatchers) {
+
+	public static AttributeParameters whenAttributeParams(AttributeParentValueMatcher parentValueMatcher,
+			AttributeArgumentMatchers argumentMatchers) {
 		return new AttributeParameters(parentValueMatcher, argumentMatchers);
 	}
-	
+
 	public static AttributeParentValueMatcher whenParentValue(Matcher<Val> matcher) {
 		return new AttributeParentValueMatcher(matcher);
 	}
-	
+
 	public static AttributeParentValueMatcher parentValue(Matcher<Val> matcher) {
 		return new AttributeParentValueMatcher(matcher);
 	}
-	
+
 	@SafeVarargs
 	public static AttributeArgumentMatchers arguments(Matcher<Val>... argumentMatcher) {
 		return new AttributeArgumentMatchers(argumentMatcher);
 	}
-	
+
 	public static Val thenReturn(Val val) {
 		return val;
 	}
 
-	
 	/**
 	 * see {@link TimesCalledVerification}
 	 * @param wantedNumberOfInvocations
@@ -67,7 +67,7 @@ public class Imports {
 	public static TimesCalledVerification times(int wantedNumberOfInvocations) {
 		return new TimesCalledVerification(comparesEqualTo(wantedNumberOfInvocations));
 	}
-	
+
 	/**
 	 * see {@link TimesCalledVerification}
 	 * @param matcher
@@ -76,8 +76,7 @@ public class Imports {
 	public static TimesCalledVerification times(Matcher<Integer> matcher) {
 		return new TimesCalledVerification(matcher);
 	}
-	
-	
+
 	/**
 	 * see {@link TimesCalledVerification}
 	 * @param matcher
@@ -86,7 +85,7 @@ public class Imports {
 	public static TimesCalledVerification never() {
 		return new TimesCalledVerification(comparesEqualTo(0));
 	}
-	
+
 	/**
 	 * see {@link TimesCalledVerification}
 	 * @param matcher
@@ -95,5 +94,5 @@ public class Imports {
 	public static TimesCalledVerification anyTimes() {
 		return new TimesCalledVerification(any(Integer.class));
 	}
-}
 
+}

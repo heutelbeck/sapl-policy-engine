@@ -43,79 +43,83 @@ import java.util.function.Function;
 @Slf4j
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
-    private static final String DUMMY_RESOURCE_URI = "policy:/apolicy.sapl";
-    private static final String PARSING_ERRORS = "Parsing errors: %s";
+	private static final String DUMMY_RESOURCE_URI = "policy:/apolicy.sapl";
 
-    private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
+	private static final String PARSING_ERRORS = "Parsing errors: %s";
 
-    @Override
-    public SAPL parse(String saplDefinition) {
-        return parse(new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8)));
-    }
+	private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
 
-    @Override
-    public SAPL parse(InputStream saplInputStream) {
-        return loadAsResource(saplInputStream);
-    }
+	@Override
+	public SAPL parse(String saplDefinition) {
+		return parse(new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8)));
+	}
 
-    @Override
-    public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDefinition,
-                                                EvaluationContext evaluationCtx) {
-        final SAPL saplDocument;
-        try {
-            saplDocument = parse(saplDefinition);
-        } catch (PolicyEvaluationException e) {
-            log.error("Error in policy parsing: {}", e.getMessage());
-            return Flux.just(AuthorizationDecision.INDETERMINATE);
-        }
-        var subscriptionScopedEvaluationCtx = evaluationCtx.forAuthorizationSubscription(authzSubscription);
-        return saplDocument.matches(subscriptionScopedEvaluationCtx).flux()
-                .switchMap(evaluateBodyIfMatching(saplDocument, subscriptionScopedEvaluationCtx));
+	@Override
+	public SAPL parse(InputStream saplInputStream) {
+		return loadAsResource(saplInputStream);
+	}
 
-    }
+	@Override
+	public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDefinition,
+			EvaluationContext evaluationCtx) {
+		final SAPL saplDocument;
+		try {
+			saplDocument = parse(saplDefinition);
+		}
+		catch (PolicyEvaluationException e) {
+			log.error("Error in policy parsing: {}", e.getMessage());
+			return Flux.just(AuthorizationDecision.INDETERMINATE);
+		}
+		var subscriptionScopedEvaluationCtx = evaluationCtx.forAuthorizationSubscription(authzSubscription);
+		return saplDocument.matches(subscriptionScopedEvaluationCtx).flux()
+				.switchMap(evaluateBodyIfMatching(saplDocument, subscriptionScopedEvaluationCtx));
 
-    private Function<? super Val, Publisher<? extends AuthorizationDecision>> evaluateBodyIfMatching(
-            final SAPL saplDocument, EvaluationContext subscriptionScopedEvaluationCtx) {
-        return match -> {
-            if (match.isError())
-                return Flux.just(AuthorizationDecision.INDETERMINATE);
-            if (match.getBoolean()) {
-                return saplDocument.evaluate(subscriptionScopedEvaluationCtx);
-            }
-            return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
-        };
-    }
+	}
 
-    @Override
-    public DocumentAnalysisResult analyze(String policyDefinition) {
-        SAPL saplDocument;
-        try {
-            saplDocument = parse(policyDefinition);
-        } catch (PolicyEvaluationException e) {
-            return new DocumentAnalysisResult(false, "", null, e.getMessage());
-        }
-        return new DocumentAnalysisResult(true, saplDocument.getPolicyElement().getSaplName(),
-                typeOfDocument(saplDocument), "");
-    }
+	private Function<? super Val, Publisher<? extends AuthorizationDecision>> evaluateBodyIfMatching(
+			final SAPL saplDocument, EvaluationContext subscriptionScopedEvaluationCtx) {
+		return match -> {
+			if (match.isError())
+				return Flux.just(AuthorizationDecision.INDETERMINATE);
+			if (match.getBoolean()) {
+				return saplDocument.evaluate(subscriptionScopedEvaluationCtx);
+			}
+			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
+		};
+	}
 
-    private DocumentType typeOfDocument(SAPL saplDocument) {
-        return saplDocument.getPolicyElement() instanceof PolicySet ? DocumentType.POLICY_SET : DocumentType.POLICY;
-    }
+	@Override
+	public DocumentAnalysisResult analyze(String policyDefinition) {
+		SAPL saplDocument;
+		try {
+			saplDocument = parse(policyDefinition);
+		}
+		catch (PolicyEvaluationException e) {
+			return new DocumentAnalysisResult(false, "", null, e.getMessage());
+		}
+		return new DocumentAnalysisResult(true, saplDocument.getPolicyElement().getSaplName(),
+				typeOfDocument(saplDocument), "");
+	}
 
-    private static SAPL loadAsResource(InputStream policyInputStream) {
-        final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-        final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
+	private DocumentType typeOfDocument(SAPL saplDocument) {
+		return saplDocument.getPolicyElement() instanceof PolicySet ? DocumentType.POLICY_SET : DocumentType.POLICY;
+	}
 
-        try {
-            resource.load(policyInputStream, resourceSet.getLoadOptions());
-        } catch (IOException | WrappedException e) {
-            throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
-        }
+	private static SAPL loadAsResource(InputStream policyInputStream) {
+		final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
+		final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
 
-        if (!resource.getErrors().isEmpty()) {
-            throw new PolicyEvaluationException(PARSING_ERRORS, resource.getErrors());
-        }
-        return (SAPL) resource.getContents().get(0);
-    }
+		try {
+			resource.load(policyInputStream, resourceSet.getLoadOptions());
+		}
+		catch (IOException | WrappedException e) {
+			throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
+		}
+
+		if (!resource.getErrors().isEmpty()) {
+			throw new PolicyEvaluationException(PARSING_ERRORS, resource.getErrors());
+		}
+		return (SAPL) resource.getContents().get(0);
+	}
 
 }

@@ -25,49 +25,50 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 class PathHelperTest {
-    private Log log;
-    
-    @BeforeEach
-    void setup() {
-        log = Mockito.mock(Log.class);
-    }
-    
-    @Test
-    public void test_customConfigBaseDir() {
-        
-        String configBaseDir = "test";
-        String projectBuildDir = "target";
 
-        Path expectedPath = Path.of("test", "sapl-coverage");
-        
-        Path result = PathHelper.resolveBaseDir(configBaseDir, projectBuildDir, this.log);
-        
-        assertEquals(expectedPath, result);
-    }
+	private Log log;
 
-    @Test
-    public void test_customConfigBaseDir_Empty() {
+	@BeforeEach
+	void setup() {
+		log = Mockito.mock(Log.class);
+	}
 
-        String configBaseDir = "";
-        String projectBuildDir = "target";
+	@Test
+	public void test_customConfigBaseDir() {
 
-        Path expectedPath = Path.of("target", "sapl-coverage");
+		String configBaseDir = "test";
+		String projectBuildDir = "target";
 
-        Path result = PathHelper.resolveBaseDir(configBaseDir, projectBuildDir, this.log);
+		Path expectedPath = Path.of("test", "sapl-coverage");
 
-        assertEquals(expectedPath, result);
-    }
+		Path result = PathHelper.resolveBaseDir(configBaseDir, projectBuildDir, this.log);
 
-    @Test
-    public void test_customConfigBaseDir_Null() {
+		assertEquals(expectedPath, result);
+	}
 
-        String projectBuildDir = "target";
+	@Test
+	public void test_customConfigBaseDir_Empty() {
 
-        Path expectedPath = Path.of("target", "sapl-coverage");
+		String configBaseDir = "";
+		String projectBuildDir = "target";
 
-        Path result = PathHelper.resolveBaseDir(null, projectBuildDir, this.log);
+		Path expectedPath = Path.of("target", "sapl-coverage");
 
-        assertEquals(expectedPath, result);
-    }
+		Path result = PathHelper.resolveBaseDir(configBaseDir, projectBuildDir, this.log);
+
+		assertEquals(expectedPath, result);
+	}
+
+	@Test
+	public void test_customConfigBaseDir_Null() {
+
+		String projectBuildDir = "target";
+
+		Path expectedPath = Path.of("target", "sapl-coverage");
+
+		Path result = PathHelper.resolveBaseDir(null, projectBuildDir, this.log);
+
+		assertEquals(expectedPath, result);
+	}
 
 }

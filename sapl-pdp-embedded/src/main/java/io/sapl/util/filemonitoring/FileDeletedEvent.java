@@ -21,5 +21,7 @@ import lombok.Value;
 
 @Value
 public class FileDeletedEvent implements FileEvent {
-    File file;
+
+	File file;
+
 }

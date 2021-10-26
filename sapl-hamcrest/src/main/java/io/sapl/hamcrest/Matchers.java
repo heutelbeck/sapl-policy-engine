@@ -40,6 +40,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class Matchers {
+
 	public static Matcher<Val> val() {
 		return new IsVal();
 	}
@@ -78,8 +79,8 @@ public class Matchers {
 
 	public static Matcher<Val> valFalse() {
 		return val(false);
-	}	
-	
+	}
+
 	public static Matcher<Val> anyVal() {
 		return new IsVal();
 	}
@@ -95,7 +96,7 @@ public class Matchers {
 	public static Matcher<Val> val(Matcher<? super JsonNode> jsonMatcher) {
 		return new IsVal(jsonMatcher);
 	}
-	
+
 	public static Matcher<Val> valError() {
 		return new IsValError(is(anything()));
 	}
@@ -111,100 +112,103 @@ public class Matchers {
 	public static Matcher<Val> valUndefined() {
 		return new IsValUndefined();
 	}
-	
+
 	public static Matcher<AuthorizationDecision> isPermit() {
 		return new IsDecision(Decision.PERMIT);
 	}
-	
+
 	public static Matcher<AuthorizationDecision> isDeny() {
 		return new IsDecision(Decision.DENY);
 	}
-	
+
 	public static Matcher<AuthorizationDecision> isNotApplicable() {
 		return new IsDecision(Decision.NOT_APPLICABLE);
 	}
-	
+
 	public static Matcher<AuthorizationDecision> isIndeterminate() {
 		return new IsDecision(Decision.INDETERMINATE);
 	}
-	
+
 	public static Matcher<AuthorizationDecision> anyDecision() {
 		return new IsDecision();
 	}
-	
+
 	public static Matcher<AuthorizationDecision> hasObligationMatching(Predicate<? super JsonNode> predicate) {
 		return new HasObligationMatching(predicate);
 	}
-	
-	public static Matcher<AuthorizationDecision> hasObligationContainingKeyValue(String key, Matcher<? super JsonNode> value) {
+
+	public static Matcher<AuthorizationDecision> hasObligationContainingKeyValue(String key,
+			Matcher<? super JsonNode> value) {
 		return new HasObligationContainingKeyValue(key, value);
 	}
-	
+
 	public static Matcher<AuthorizationDecision> hasObligationContainingKeyValue(String key, String value) {
 		return new HasObligationContainingKeyValue(key, jsonText(value));
 	}
-	
+
 	public static Matcher<AuthorizationDecision> hasObligationContainingKeyValue(String key) {
 		return new HasObligationContainingKeyValue(key);
 	}
-	
+
 	public static Matcher<AuthorizationDecision> hasObligation(ObjectNode node) {
 		return new HasObligation(jsonObject(node));
 	}
-	
+
 	public static Matcher<AuthorizationDecision> hasObligation(String value) {
 		return new HasObligation(jsonText(value));
 	}
-	
+
 	public static Matcher<AuthorizationDecision> hasObligation(Matcher<? super JsonNode> matcher) {
 		return new HasObligation(matcher);
 	}
-		
+
 	public static Matcher<AuthorizationDecision> hasAdviceMatching(Predicate<? super JsonNode> predicate) {
 		return new HasAdviceMatching(predicate);
 	}
 
-	public static Matcher<AuthorizationDecision> hasAdviceContainingKeyValue(String key, Matcher<? super JsonNode> value) {
+	public static Matcher<AuthorizationDecision> hasAdviceContainingKeyValue(String key,
+			Matcher<? super JsonNode> value) {
 		return new HasAdviceContainingKeyValue(key, value);
 	}
-	
+
 	public static Matcher<AuthorizationDecision> hasAdviceContainingKeyValue(String key, String value) {
 		return new HasAdviceContainingKeyValue(key, jsonText(value));
 	}
-	
+
 	public static Matcher<AuthorizationDecision> hasAdviceContainingKeyValue(String key) {
 		return new HasAdviceContainingKeyValue(key);
 	}
-	
+
 	public static Matcher<AuthorizationDecision> hasAdvice(ObjectNode node) {
 		return new HasAdvice(jsonObject(node));
 	}
-	
+
 	public static Matcher<AuthorizationDecision> hasAdvice(String value) {
 		return new HasAdvice(jsonText(value));
 	}
-	
+
 	public static Matcher<AuthorizationDecision> hasAdvice(Matcher<? super JsonNode> matcher) {
 		return new HasAdvice(matcher);
 	}
-	
+
 	public static Matcher<AuthorizationDecision> isResource(ObjectNode node) {
 		return new IsResource(jsonObject(node));
 	}
-	
+
 	public static Matcher<AuthorizationDecision> isResource(Matcher<? super JsonNode> matcher) {
 		return new IsResource(matcher);
 	}
-	
+
 	public static Matcher<AuthorizationDecision> isResource() {
 		return new IsResource();
 	}
-	
+
 	public static Matcher<AuthorizationDecision> anyResource() {
 		return new IsResource();
 	}
-	
+
 	public static Matcher<AuthorizationDecision> isResourceMatching(Predicate<? super JsonNode> predicate) {
 		return new IsResourceMatching(predicate);
 	}
+
 }

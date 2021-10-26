@@ -39,11 +39,11 @@ import io.sapl.pip.ClockPolicyInformationPoint;
 public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 
 	private AttributeContext attributeContext;
+
 	private FunctionContext funtionContext;
 
 	/**
 	 * The default constructor registers the default libraries.
-	 * 
 	 * @throws InitializationException
 	 */
 	public DefaultLibraryAttributeFinder() throws InitializationException {
@@ -56,9 +56,8 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 	}
 
 	/**
-	 * Creates a new finder based on the libraries and functions that are registered
-	 * in the provided evaluation context.
-	 * 
+	 * Creates a new finder based on the libraries and functions that are registered in
+	 * the provided evaluation context.
 	 * @param evaluationContext
 	 */
 	public DefaultLibraryAttributeFinder(EvaluationContext evaluationContext) {
@@ -74,7 +73,8 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 		List<String> steps;
 		if (identifier.isBlank()) {
 			steps = new ArrayList<>();
-		} else {
+		}
+		else {
 			steps = Arrays.asList(identifier.split("\\."));
 		}
 
@@ -87,7 +87,8 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 
 		if (stepCount == 0) {
 			return getAvailableLibraries();
-		} else if (stepCount == 1) {
+		}
+		else if (stepCount == 1) {
 			Set<String> availableLibraries = new HashSet<>();
 			String needle = steps.get(0);
 			for (String library : getAvailableLibraries()) {
@@ -95,7 +96,8 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 					availableLibraries.add(library);
 			}
 			return availableLibraries;
-		} else {
+		}
+		else {
 			Set<String> availableFunctions = new HashSet<>();
 			String currentLibrary = steps.get(0);
 			String needle = "";
@@ -122,4 +124,5 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 		availableFunctions.addAll(funtionContext.providedFunctionsOfLibrary(library));
 		return availableFunctions;
 	}
+
 }

@@ -105,4 +105,5 @@ public class DefaultLibraryAttributeFinderTests {
 
 		assertThat(availableAttributes.contains(expectedFunction), is(true));
 	}
+
 }

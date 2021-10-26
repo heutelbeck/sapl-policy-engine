@@ -23,12 +23,13 @@ import org.hamcrest.Matcher;
  *
  */
 public class TimesCalledVerification implements MockingVerification {
+
 	private static final String ERROR_TIMES_VERIFICATION = "Error verifiying the expected number of calls to the mock \"%s\" - Expected: \"%s\" - got: \"%s\"";
-		
+
 	Matcher<Integer> matcher;
-	 
+
 	public TimesCalledVerification(Matcher<Integer> matcher) {
-		 this.matcher = matcher;
+		this.matcher = matcher;
 	}
 
 	@Override
@@ -38,14 +39,17 @@ public class TimesCalledVerification implements MockingVerification {
 
 	@Override
 	public void verify(MockRunInformation mockRunInformation, String verificationFailedMessage) {
-		
+
 		String message = "";
-		if(verificationFailedMessage != null && !verificationFailedMessage.isEmpty()) {
+		if (verificationFailedMessage != null && !verificationFailedMessage.isEmpty()) {
 			message = verificationFailedMessage;
-		} else {
-			message = String.format(ERROR_TIMES_VERIFICATION, mockRunInformation.getFullname(), this.matcher.toString(), mockRunInformation.getTimesCalled());
 		}
-		
+		else {
+			message = String.format(ERROR_TIMES_VERIFICATION, mockRunInformation.getFullname(), this.matcher.toString(),
+					mockRunInformation.getTimesCalled());
+		}
+
 		Assertions.assertThat(this.matcher.matches(mockRunInformation.getTimesCalled())).as(message).isTrue();
 	}
+
 }

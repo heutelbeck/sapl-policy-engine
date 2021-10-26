@@ -42,6 +42,7 @@ import reactor.core.publisher.Flux;
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private final PDPConfigurationProvider configurationProvider;
+
 	private final PolicyRetrievalPoint policyRetrievalPoint;
 
 	@Override
@@ -59,7 +60,8 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 				return Flux.just(pdpConfiguration.getPdpScopedEvaluationContext())
 						.map(createSubsctiptionScope(authzSubscription))
 						.switchMap(retrieveAndCombineDocuments(pdpConfiguration));
-			} else {
+			}
+			else {
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
 			}
 		};
@@ -78,7 +80,8 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 			if (policyRetrievalResult.isPrpValidState()) {
 				return pdpConfiguration.getDocumentsCombinator().combineMatchingDocuments(policyRetrievalResult,
 						subscriptionScopedEvaluationContext);
-			} else {
+			}
+			else {
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
 			}
 		};

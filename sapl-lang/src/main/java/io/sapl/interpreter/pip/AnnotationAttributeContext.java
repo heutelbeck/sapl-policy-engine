@@ -55,23 +55,33 @@ import reactor.core.publisher.Flux;
 public class AnnotationAttributeContext implements AttributeContext {
 
 	private static final int REQUIRED_NUMBER_OF_PARAMETERS = 2;
+
 	private static final String NAME_DELIMITER = ".";
+
 	private static final String ATTRIBUTE_NAME_COLLISION_PIP_CONTAINS_MULTIPLE_ATTRIBUTE_METHODS_WITH_NAME = "Attribute name collision. PIP contains multiple attribute methods with name %s";
+
 	private static final String CLASS_HAS_NO_POLICY_INFORMATION_POINT_ANNOTATION = "Provided class has no @PolicyInformationPoint annotation.";
+
 	private static final String UNKNOWN_ATTRIBUTE = "Unknown attribute %s";
+
 	private static final String BAD_NUMBER_OF_PARAMETERS = "Bad number of parameters for attribute finder. Attribute finders are supposed to have at least one Val and one Map<String, JsonNode> as parameters. The method had %d parameters";
+
 	private static final String FIRST_PARAMETER_OF_METHOD_MUST_BE_A_VALUE = "First parameter of method must be a Value. Was: %s";
+
 	private static final String ADDITIONAL_PARAMETER_OF_METHOD_MUST_BE_A_FLUX_OF_VALUES = "Additional parameters of the method must be Flux<Val>. Was: %s.";
+
 	private static final String SECOND_PARAMETER_OF_METHOD_MUST_BE_A_MAP = "Second parameter of method must be a Map<String, JsonNode>. Was: %s";
+
 	private static final String RETURN_TYPE_MUST_BE_FLUX_OF_VALUES = "The return type of an attribute finder must be Flux<Val>. Was: %s";
 
 	private final Map<String, Collection<String>> attributeNamesByPipName = new HashMap<>();
+
 	private final Map<String, AttributeFinderMetadata> attributeMetadataByAttributeName = new HashMap<>();
+
 	private final Collection<PolicyInformationPointDocumentation> pipDocumentations = new LinkedList<>();
 
 	/**
 	 * Create the attribute context from a list of PIPs
-	 * 
 	 * @param policyInformationPoints a list of PIPs
 	 * @throws InitializationException when loading the PIPs fails
 	 */
@@ -105,8 +115,9 @@ public class AnnotationAttributeContext implements AttributeContext {
 				argObjects[i++] = argument.evaluate(ctx, Val.UNDEFINED);
 			}
 			return (Flux<Val>) method.invoke(pip, argObjects);
-		} catch (PolicyEvaluationException | IllegalAccessException | IllegalArgumentException
-				| InvocationTargetException | IllegalParameterType e) {
+		}
+		catch (PolicyEvaluationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+				| IllegalParameterType e) {
 			log.error(e.getMessage());
 			return Flux.just(Val.error(e));
 		}
@@ -240,8 +251,10 @@ public class AnnotationAttributeContext implements AttributeContext {
 	@Data
 	@AllArgsConstructor
 	public static class AttributeFinderMetadata {
+
 		@NonNull
 		Object policyInformationPoint;
+
 		@NonNull
 		Method function;
 

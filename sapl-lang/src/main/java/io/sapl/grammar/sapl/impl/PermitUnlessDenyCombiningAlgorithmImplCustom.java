@@ -31,24 +31,25 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * This generous algorithm is used if the decision should be PERMIT except for
- * there is a DENY. It ensures that any decision is either DENY or PERMIT.
- * 
+ * This generous algorithm is used if the decision should be PERMIT except for there is a
+ * DENY. It ensures that any decision is either DENY or PERMIT.
+ *
  * It works as follows:
- * 
- * If any policy document evaluates to DENY or if there is a transformation
- * uncertainty (multiple policies evaluate to PERMIT and at least one of them
- * has a transformation statement), the decision is DENY.
- * 
+ *
+ * If any policy document evaluates to DENY or if there is a transformation uncertainty
+ * (multiple policies evaluate to PERMIT and at least one of them has a transformation
+ * statement), the decision is DENY.
+ *
  * Otherwise the decision is PERMIT.
  */
 @Slf4j
 public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDenyCombiningAlgorithmImpl {
+
 	@Override
 	protected AuthorizationDecision combineDecisions(AuthorizationDecision[] decisions, boolean errorsInTarget) {
-		if (decisions.length == 0) 
+		if (decisions.length == 0)
 			return AuthorizationDecision.PERMIT;
-		
+
 		var entitlement = PERMIT;
 		var collector = new ObligationAdviceCollector();
 		Optional<JsonNode> resource = Optional.empty();
@@ -64,7 +65,8 @@ public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDe
 					// this the overall result is basically INDETERMINATE.
 					// However, DENY overrides with this algorithm.
 					entitlement = DENY;
-				} else {
+				}
+				else {
 					resource = decision.getResource();
 				}
 			}
@@ -79,4 +81,5 @@ public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDe
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		return doCombinePolicies(policies, ctx);
 	}
+
 }

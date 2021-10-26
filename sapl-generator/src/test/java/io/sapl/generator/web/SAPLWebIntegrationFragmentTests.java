@@ -38,7 +38,8 @@ class SAPLWebIntegrationFragmentTests {
 		WebProjectConfig webProjectConfig;
 		if (needsAssets) {
 			webProjectConfig = new TestWebProjectConfig();
-		} else {
+		}
+		else {
 			webProjectConfig = new WebProjectConfig();
 		}
 		XtextProjectConfig projectConfig = new XtextProjectConfig();
@@ -204,4 +205,5 @@ class SAPLWebIntegrationFragmentTests {
 		if (nonWords.contains("-"))
 			fail("Dash in in non word keyword list.");
 	}
+
 }

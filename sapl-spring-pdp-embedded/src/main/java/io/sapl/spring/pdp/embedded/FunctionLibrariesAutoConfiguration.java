@@ -45,4 +45,5 @@ public class FunctionLibrariesAutoConfiguration {
 	public LoggingFunctionLibrary loggingFunctionLibrary() {
 		return new LoggingFunctionLibrary();
 	}
+
 }

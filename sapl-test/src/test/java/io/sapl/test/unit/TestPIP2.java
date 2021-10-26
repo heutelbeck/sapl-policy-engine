@@ -35,7 +35,7 @@ public class TestPIP2 {
 	@Attribute
 	public Flux<Val> upper(@Text Val value, Map<String, JsonNode> variables) {
 		return Flux.just(Val.of("Willi"), Val.of("WIlli"), Val.of("WILli"), Val.of("WILLi"), Val.of("WILLI"));
-		//return Flux.just(Val.of(value.get().asText().toUpperCase()));
+		// return Flux.just(Val.of(value.get().asText().toUpperCase()));
 	}
 
 }

@@ -60,12 +60,14 @@ public class PostEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcement
 				returnedObjectForAuthzSubscription = ((Optional<Object>) returnedObject).get();
 				returnType = ((Optional<Object>) returnedObject).get().getClass();
 				resourceAccessPoint = Flux.just(returnedObjectForAuthzSubscription);
-			} else {
+			}
+			else {
 				returnedObjectForAuthzSubscription = null;
 				returnType = postEnforceAttribute.getGenericsType();
 				resourceAccessPoint = Flux.empty();
 			}
-		} else {
+		}
+		else {
 			returnType = methodInvocation.getMethod().getReturnType();
 			resourceAccessPoint = Flux.just(returnedObject);
 		}

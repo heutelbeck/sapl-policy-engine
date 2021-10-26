@@ -65,7 +65,8 @@ public class PreEnforcePolicyEnforcementPoint extends AbstractPolicyEnforcementP
 			constraintEnforcementService
 					.enforceConstraintsOfDecisionOnResourceAccessPoint(authzDecision, Flux.empty(), Object.class)
 					.blockFirst();
-		} catch (AccessDeniedException e) {
+		}
+		catch (AccessDeniedException e) {
 			return false;
 		}
 

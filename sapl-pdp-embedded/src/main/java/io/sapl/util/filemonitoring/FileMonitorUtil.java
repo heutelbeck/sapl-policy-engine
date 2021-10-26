@@ -52,14 +52,16 @@ public class FileMonitorUtil {
 			emitter.onDispose(() -> {
 				try {
 					monitor.stop();
-				} catch (Exception e) {
+				}
+				catch (Exception e) {
 					emitter.error(e);
 				}
 			});
 
 			try {
 				monitor.start();
-			} catch (Exception e) {
+			}
+			catch (Exception e) {
 				emitter.error(e);
 			}
 		});

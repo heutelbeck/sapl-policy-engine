@@ -15,7 +15,6 @@
  */
 package io.sapl.prp;
 
-
 import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
@@ -27,42 +26,46 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class GenericInMemoryIndexedPolicyRetrievalPoint implements PolicyRetrievalPoint, Disposable {
 
-    private final Flux<ImmutableParsedDocumentIndex> index;
-    private final Disposable indexSubscription;
-    private final PrpUpdateEventSource eventSource;
+	private final Flux<ImmutableParsedDocumentIndex> index;
 
-    public GenericInMemoryIndexedPolicyRetrievalPoint(ImmutableParsedDocumentIndex seedIndex,
-                                                      PrpUpdateEventSource eventSource) {
-        this.eventSource = eventSource;
-        index = Flux.from(eventSource.getUpdates()).scan(seedIndex, ImmutableParsedDocumentIndex::apply).skip(1L)
-                .share().cache(1);
-        // initial subscription, so that the index starts building upon startup
-        indexSubscription = Flux.from(index).subscribe();
-    }
+	private final Disposable indexSubscription;
 
-    @Override
-    public Flux<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext) {
-        return Flux.from(index).flatMap(idx -> idx.retrievePolicies(subscriptionScopedEvaluationContext))
-                .doOnNext(this::logMatching);
-    }
+	private final PrpUpdateEventSource eventSource;
 
-    @Override
-    public void dispose() {
-        indexSubscription.dispose();
-        eventSource.dispose();
-    }
+	public GenericInMemoryIndexedPolicyRetrievalPoint(ImmutableParsedDocumentIndex seedIndex,
+			PrpUpdateEventSource eventSource) {
+		this.eventSource = eventSource;
+		index = Flux.from(eventSource.getUpdates()).scan(seedIndex, ImmutableParsedDocumentIndex::apply).skip(1L)
+				.share().cache(1);
+		// initial subscription, so that the index starts building upon startup
+		indexSubscription = Flux.from(index).subscribe();
+	}
 
-    private void logMatching(PolicyRetrievalResult result) {
-        if (result.getMatchingDocuments().isEmpty()) {
-            log.trace("|-- Matching documents: NONE");
-        } else {
-            log.trace("|-- Matching documents:");
-            for (AuthorizationDecisionEvaluable doc : result.getMatchingDocuments()) {
-                log.trace("| |-- * {} ({})",
-                        (doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getSaplName() : doc.toString(),
-                        (doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getClass().getSimpleName() : doc.toString());
-            }
-        }
-    }
+	@Override
+	public Flux<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext) {
+		return Flux.from(index).flatMap(idx -> idx.retrievePolicies(subscriptionScopedEvaluationContext))
+				.doOnNext(this::logMatching);
+	}
+
+	@Override
+	public void dispose() {
+		indexSubscription.dispose();
+		eventSource.dispose();
+	}
+
+	private void logMatching(PolicyRetrievalResult result) {
+		if (result.getMatchingDocuments().isEmpty()) {
+			log.trace("|-- Matching documents: NONE");
+		}
+		else {
+			log.trace("|-- Matching documents:");
+			for (AuthorizationDecisionEvaluable doc : result.getMatchingDocuments()) {
+				log.trace("| |-- * {} ({})",
+						(doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getSaplName() : doc.toString(),
+						(doc instanceof SAPL) ? ((SAPL) doc).getPolicyElement().getClass().getSimpleName()
+								: doc.toString());
+			}
+		}
+	}
 
 }

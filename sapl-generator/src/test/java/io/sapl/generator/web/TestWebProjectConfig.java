@@ -25,4 +25,5 @@ public class TestWebProjectConfig extends WebProjectConfig {
 	public IXtextGeneratorFileSystemAccess getAssets() {
 		return new XtextGeneratorFileSystemAccess("", false);
 	}
+
 }

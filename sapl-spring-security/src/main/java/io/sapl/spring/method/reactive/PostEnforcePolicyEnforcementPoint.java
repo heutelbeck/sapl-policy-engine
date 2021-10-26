@@ -32,7 +32,9 @@ import reactor.core.publisher.Mono;
 public class PostEnforcePolicyEnforcementPoint {
 
 	private final PolicyDecisionPoint pdp;
+
 	private final ConstraintEnforcementService constraintHandlerService;
+
 	private final AuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })

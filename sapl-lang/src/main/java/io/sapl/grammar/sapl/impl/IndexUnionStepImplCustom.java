@@ -29,13 +29,13 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of an index union step to a previous array value,
- * e.g. 'arr[4, 7, 11]'.
+ * Implements the application of an index union step to a previous array value, e.g.
+ * 'arr[4, 7, 11]'.
  *
  * Grammar: Step: '[' Subscript ']' ;
  *
- * Subscript returns Step: {IndexUnionStep} indices+=JSONNUMBER ','
- * indices+=JSONNUMBER (',' indices+=JSONNUMBER)* ;
+ * Subscript returns Step: {IndexUnionStep} indices+=JSONNUMBER ',' indices+=JSONNUMBER
+ * (',' indices+=JSONNUMBER)* ;
  */
 @Slf4j
 public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
@@ -69,7 +69,8 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 			var idx = index.intValue();
 			if (idx < 0) {
 				uniqueIndices.add(array.size() + idx);
-			} else {
+			}
+			else {
 				uniqueIndices.add(idx);
 			}
 		}
@@ -99,17 +100,20 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
 									FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
 									parentValue, statement.isEach()));
-				} else {
+				}
+				else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
 							.applyFilterStatement(Val.of(element), ctx, relativeNode, stepId + 1, statement));
 				}
-			} else {
+			}
+			else {
 				log.trace("[{}] not selected. Just return as is. Not affected by filtering.", i);
 				elementFluxes.add(Flux.just(Val.of(element)));
 			}
 		}
 		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
 	}
+
 }

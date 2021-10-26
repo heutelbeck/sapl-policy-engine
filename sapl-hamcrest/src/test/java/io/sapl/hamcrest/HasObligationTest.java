@@ -36,38 +36,39 @@ import io.sapl.api.pdp.Decision;
 
 class HasObligationTest {
 
-
 	@Test
-	public void test() {		
+	public void test() {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode obligation = mapper.createObjectNode();
 		obligation.put("foo", "bar");
 		ArrayNode obligations = mapper.createArrayNode();
 		obligations.add(obligation);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.of(obligations), Optional.empty());
-	
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+				Optional.of(obligations), Optional.empty());
+
 		var sut = hasObligation(obligation);
-		
+
 		assertThat(dec, is(sut));
 	}
-	
+
 	@Test
-	public void test_neg() {		
+	public void test_neg() {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode obligation = mapper.createObjectNode();
 		obligation.put("foo", "bar");
 		ArrayNode obligations = mapper.createArrayNode();
 		obligations.add(obligation);
-		
+
 		ObjectNode expectedObligation = mapper.createObjectNode();
 		expectedObligation.put("xxx", "xxx");
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.of(obligations), Optional.empty());
-	
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+				Optional.of(obligations), Optional.empty());
+
 		var sut = hasObligation(expectedObligation);
-		
+
 		assertThat(dec, not(is(sut)));
 	}
-	
+
 	@Test
 	public void test_nullDecision() {
 		ObjectMapper mapper = new ObjectMapper();
@@ -76,17 +77,18 @@ class HasObligationTest {
 		var sut = hasObligation(obligation);
 		assertThat(null, not(is(sut)));
 	}
-	
+
 	@Test
 	public void test_emptyObligation() {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectNode obligation = mapper.createObjectNode();
 		obligation.put("foo", "bar");
 		var sut = hasObligation(obligation);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty());
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+				Optional.empty());
 		assertThat(dec, not(is(sut)));
 	}
-	
+
 	@Test
 	public void test_numberEqualTest() {
 		ObjectMapper mapper = new ObjectMapper();
@@ -96,13 +98,14 @@ class HasObligationTest {
 		actualObligation.put("foo", 1f);
 		ArrayNode actualObligations = mapper.createArrayNode();
 		actualObligations.add(actualObligation);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.of(actualObligations), Optional.empty());
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+				Optional.of(actualObligations), Optional.empty());
 
 		var sut = hasObligation(expectedObligation);
-		
+
 		assertThat(dec, is(sut));
 	}
-	
+
 	@Test
 	public void test_emptyMatcher() {
 		ObjectMapper mapper = new ObjectMapper();
@@ -110,18 +113,19 @@ class HasObligationTest {
 		actualObligation.put("foo", 1);
 		ArrayNode actualObligations = mapper.createArrayNode();
 		actualObligations.add(actualObligation);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations), null);
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations),
+				null);
 
 		var sut = new HasObligation();
-		
+
 		assertThat(dec, is(sut));
 	}
-	
+
 	@Test
 	public void test_nullJsonNode() {
-		assertThrows(NullPointerException.class, () -> hasObligation((ObjectNode)null));
+		assertThrows(NullPointerException.class, () -> hasObligation((ObjectNode) null));
 	}
-	
+
 	@Test
 	void testDescriptionForEmptyMatcher() {
 		var sut = new HasObligation();
@@ -129,12 +133,14 @@ class HasObligationTest {
 		sut.describeTo(description);
 		assertThat(description.toString(), is("the decision has an obligation equals any obligation"));
 	}
-	
+
 	@Test
 	void testDescriptionForMatcher() {
 		var sut = hasObligation(jsonText("value"));
 		final StringDescription description = new StringDescription();
 		sut.describeTo(description);
-		assertThat(description.toString(), is("the decision has an obligation equals a text node with value that is \"value\""));
+		assertThat(description.toString(),
+				is("the decision has an obligation equals a text node with value that is \"value\""));
 	}
+
 }

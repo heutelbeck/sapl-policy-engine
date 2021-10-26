@@ -124,4 +124,5 @@ class NaiveImmutableParsedDocumentIndexTest {
 		var result = index2.retrievePolicies(null).block();
 		assertThat(result.getMatchingDocuments().isEmpty(), is(false));
 	}
+
 }

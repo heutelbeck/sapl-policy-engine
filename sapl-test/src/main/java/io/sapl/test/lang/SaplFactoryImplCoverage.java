@@ -26,30 +26,27 @@ import lombok.extern.slf4j.Slf4j;
 public class SaplFactoryImplCoverage extends SaplFactoryImpl {
 
 	private CoverageHitRecorder recorder;
-	
+
 	public SaplFactoryImplCoverage(CoverageHitRecorder recorder) {
 		this.recorder = recorder;
 	}
-	
+
 	@Override
-	public PolicySet createPolicySet()
-	{
+	public PolicySet createPolicySet() {
 		log.trace("Creating PolicySet Subclass for test mode");
 		PolicySetImplCustomCoverage policySet = new PolicySetImplCustomCoverage(this.recorder);
 		return policySet;
 	}
 
 	@Override
-	public Policy createPolicy()
-	{
+	public Policy createPolicy() {
 		log.trace("Creating Policy Subclass for test mode");
 		PolicyImplCustomCoverage policy = new PolicyImplCustomCoverage(this.recorder);
 		return policy;
 	}
 
 	@Override
-	public PolicyBody createPolicyBody()
-	{
+	public PolicyBody createPolicyBody() {
 		log.trace("Creating PolicyBody Subclass for test mode");
 		PolicyBodyImplCustomCoverage body = new PolicyBodyImplCustomCoverage(this.recorder);
 		return body;

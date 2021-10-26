@@ -27,8 +27,9 @@ import reactor.core.publisher.Flux;
 public interface AttributeMock {
 
 	Flux<Val> evaluate(Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args);
-	
+
 	void assertVerifications();
-	
+
 	String getErrorMessageForCurrentMode();
+
 }

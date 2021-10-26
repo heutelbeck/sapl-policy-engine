@@ -45,10 +45,10 @@ class IsResourceMatchingTest {
 		ObjectNode resource = mapper.createObjectNode();
 		resource.put("foo", "bar");
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
-		
+
 		assertThat(dec, is(sut));
 	}
-	
+
 	@Test
 	public void test_neg() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("xxx");
@@ -58,17 +58,17 @@ class IsResourceMatchingTest {
 		ObjectNode resource = mapper.createObjectNode();
 		resource.put("foo", "bar");
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
-		
+
 		assertThat(dec, not(is(sut)));
 	}
-	
+
 	@Test
 	public void test_nullDecision() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
 		var sut = isResourceMatching(pred);
 		assertThat(null, not(is(sut)));
 	}
-	
+
 	@Test
 	public void test_resourceEmpty() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
@@ -76,12 +76,12 @@ class IsResourceMatchingTest {
 		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), null, null);
 		assertThat(dec, not(is(sut)));
 	}
-	
+
 	@Test
 	public void test_nullPredicate() {
 		assertThrows(NullPointerException.class, () -> isResourceMatching(null));
 	}
-	
+
 	@Test
 	void testDescriptionForMatcher() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");

@@ -46,12 +46,12 @@ class HasObligationMatchingTest {
 		obligation.put("foo", "bar");
 		ArrayNode obligations = mapper.createArrayNode();
 		obligations.add(obligation);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.of(obligations), Optional.empty());
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+				Optional.of(obligations), Optional.empty());
 
-		
 		assertThat(dec, is(matcher));
 	}
-	
+
 	@Test
 	public void test_neg() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("xxx");
@@ -62,31 +62,32 @@ class HasObligationMatchingTest {
 		obligation.put("foo", "bar");
 		ArrayNode obligations = mapper.createArrayNode();
 		obligations.add(obligation);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.of(obligations), Optional.empty());
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+				Optional.of(obligations), Optional.empty());
 
-		
 		assertThat(dec, not(is(matcher)));
 	}
-	
+
 	@Test
 	public void test_nullDecision() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
 		var matcher = Matchers.hasObligationMatching(pred);
 		assertThat(null, not(is(matcher)));
 	}
-	
+
 	@Test
 	public void test_nullPredicate() {
-		assertThrows(NullPointerException.class, () ->  Matchers.hasObligationMatching(null));
+		assertThrows(NullPointerException.class, () -> Matchers.hasObligationMatching(null));
 	}
-	
+
 	@Test
 	public void test_emptyObligation() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
 		var matcher = Matchers.hasObligationMatching(pred);
-		assertThat(new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty()), not(is(matcher)));
+		assertThat(new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty()),
+				not(is(matcher)));
 	}
-	
+
 	@Test
 	void testDescriptionForMatcher() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
@@ -95,4 +96,5 @@ class HasObligationMatchingTest {
 		sut.describeTo(description);
 		assertThat(description.toString(), is("the decision has an obligation matching the predicate"));
 	}
+
 }

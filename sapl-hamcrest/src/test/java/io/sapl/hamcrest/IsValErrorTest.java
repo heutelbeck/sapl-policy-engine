@@ -29,6 +29,7 @@ import io.sapl.api.interpreter.Val;
 class IsValErrorTest {
 
 	private static final String MESSAGE = "test message";
+
 	private static final String MESSAGE_MIXED_CASE = "TeSt MeSsAge";
 
 	@Test
@@ -68,4 +69,5 @@ class IsValErrorTest {
 		sut.describeTo(description);
 		assertThat(description.toString(), is("an error with message that is ANYTHING"));
 	}
+
 }

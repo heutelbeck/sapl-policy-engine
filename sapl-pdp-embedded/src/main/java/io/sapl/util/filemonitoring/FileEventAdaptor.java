@@ -25,20 +25,21 @@ import reactor.core.publisher.FluxSink;
 @RequiredArgsConstructor
 public class FileEventAdaptor extends FileAlterationListenerAdaptor {
 
-    private final FluxSink<FileEvent> emitter;
+	private final FluxSink<FileEvent> emitter;
 
-    @Override
-    public void onFileCreate(File file) {
-        emitter.next(new FileCreatedEvent(file));
-    }
+	@Override
+	public void onFileCreate(File file) {
+		emitter.next(new FileCreatedEvent(file));
+	}
 
-    @Override
-    public void onFileDelete(File file) {
-        emitter.next(new FileDeletedEvent(file));
-    }
+	@Override
+	public void onFileDelete(File file) {
+		emitter.next(new FileDeletedEvent(file));
+	}
 
-    @Override
-    public void onFileChange(File file) {
-        emitter.next(new FileChangedEvent(file));
-    }
+	@Override
+	public void onFileChange(File file) {
+		emitter.next(new FileChangedEvent(file));
+	}
+
 }

@@ -40,10 +40,11 @@ import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
 public class CoverageTargetHelperTest {
-	
+
 	private Collection<SaplDocument> documents;
+
 	private CoverageTargetHelper helper;
-	
+
 	@BeforeEach
 	public void setup() throws MojoExecutionException {
 		String policyPath = "policies";
@@ -53,10 +54,9 @@ public class CoverageTargetHelperTest {
 		this.documents = reader.retrievePolicyDocuments(new SilentLog(), project, policyPath);
 		this.helper = new CoverageTargetHelper();
 	}
-	
-	
+
 	@Test
-    public void testPolicyRetrieval() {
+	public void testPolicyRetrieval() {
 		CoverageTargets targets = helper.getCoverageTargets(this.documents);
 		assertEquals(1, targets.getPolicySets().size());
 		assertEquals(true, targets.isPolicySetHit(new PolicySetHit("testPolicies")));
@@ -76,10 +76,12 @@ public class CoverageTargetHelperTest {
 		SAPL newPolicyTypeSAPL = Mockito.mock(SAPL.class);
 		PolicyElement newPolicyTypePolicyElement = Mockito.mock(PolicyElement.class);
 		Mockito.when(newPolicyTypeSAPL.getPolicyElement()).thenReturn(newPolicyTypePolicyElement);
-		//return SaplPackage.Literals.POLICY_ELEMENT as synonym for a new unknown implementation of PolicyElement 
+		// return SaplPackage.Literals.POLICY_ELEMENT as synonym for a new unknown
+		// implementation of PolicyElement
 		Mockito.when(newPolicyTypePolicyElement.eClass()).thenReturn(SaplPackage.Literals.POLICY_ELEMENT);
 		SaplDocument newSaplTypeDocument = new SaplDocument(Path.of("test.sapl"), 5, newPolicyTypeSAPL);
-		
+
 		assertThrows(SaplTestException.class, () -> helper.getCoverageTargets(List.of(newSaplTypeDocument)));
-	}	
+	}
+
 }

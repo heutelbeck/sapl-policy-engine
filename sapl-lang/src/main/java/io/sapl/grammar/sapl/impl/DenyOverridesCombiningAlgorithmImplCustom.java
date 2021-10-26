@@ -33,23 +33,23 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * This algorithm is used if a DENY decision should prevail a PERMIT without
- * setting a default decision.
- * 
+ * This algorithm is used if a DENY decision should prevail a PERMIT without setting a
+ * default decision.
+ *
  * It works as follows:
- * 
+ *
  * - If any policy document evaluates to DENY, the decision is DENY.
- * 
+ *
  * - Otherwise:
- * 
- * a) If there is any INDETERMINATE or there is a transformation uncertainty
- * (multiple policies evaluate to PERMIT and at least one of them has a
- * transformation statement), the decision is INDETERMINATE.
- * 
+ *
+ * a) If there is any INDETERMINATE or there is a transformation uncertainty (multiple
+ * policies evaluate to PERMIT and at least one of them has a transformation statement),
+ * the decision is INDETERMINATE.
+ *
  * b) Otherwise:
- * 
+ *
  * i) If there is any PERMIT the decision is PERMIT.
- * 
+ *
  * ii) Otherwise the decision is NOT_APPLICABLE.
  */
 @Slf4j
@@ -87,7 +87,8 @@ public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesComb
 					if (entitlement != DENY) {
 						entitlement = INDETERMINATE;
 					}
-				} else {
+				}
+				else {
 					resource = decision.getResource();
 				}
 			}
@@ -102,4 +103,5 @@ public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesComb
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		return doCombinePolicies(policies, ctx);
 	}
+
 }

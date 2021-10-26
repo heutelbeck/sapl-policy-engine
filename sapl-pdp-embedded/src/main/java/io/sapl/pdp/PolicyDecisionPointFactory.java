@@ -47,6 +47,7 @@ import lombok.experimental.UtilityClass;
 public class PolicyDecisionPointFactory {
 
 	private static final String DEFAULT_FILE_LOCATION = "~/sapl/policies";
+
 	private static final String DEFAULT_RESOURCES_LOCATION = "/policies";
 
 	public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint() throws InitializationException {

@@ -23,5 +23,7 @@ import lombok.Value;
 
 @Value
 public class FunctionLibrariesDocumentation implements Serializable {
+
 	Collection<LibraryDocumentation> documentation;
+
 }

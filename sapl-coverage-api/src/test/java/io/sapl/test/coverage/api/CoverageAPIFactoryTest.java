@@ -32,27 +32,27 @@ class CoverageAPIFactoryTest {
 	void cleanup() {
 		TestFileHelper.deleteDirectory(Paths.get("target/tmp").toFile());
 	}
-	
+
 	@Test
 	void test() throws IOException {
 
 		Path hitDir = Paths.get("target/tmp/hits");
-		
+
 		Assertions.assertThat(countFilesInDir(hitDir)).isEqualTo(0);
-		
+
 		CoverageAPIFactory.constructCoverageHitRecorder(Paths.get("target/tmp"));
 
 		Assertions.assertThat(countFilesInDir(hitDir)).isEqualTo(3);
 	}
-	
+
 	private int countFilesInDir(Path path) throws IOException {
 		int count = 0;
-		if(!path.toFile().exists()) {
+		if (!path.toFile().exists()) {
 			return count;
 		}
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, "*.txt")) {
 			Iterator<Path> it = stream.iterator();
-			while(it.hasNext()) {
+			while (it.hasNext()) {
 				it.next();
 				count++;
 			}
@@ -60,10 +60,10 @@ class CoverageAPIFactoryTest {
 		return count;
 	}
 
-	
 	@Test
 	void test_reader() {
 		var object = CoverageAPIFactory.constructCoverageHitReader(Paths.get(""));
 		Assertions.assertThat(object).isNotNull();
 	}
+
 }

@@ -52,4 +52,5 @@ class PrpUpdateEventTest {
 		assertThat(empty.toString(), is("Update(type=null, documentName=NULL POLICY)"));
 		assertThat(valid.toString(), is("Update(type=PUBLISH, documentName='SAPL')"));
 	}
+
 }

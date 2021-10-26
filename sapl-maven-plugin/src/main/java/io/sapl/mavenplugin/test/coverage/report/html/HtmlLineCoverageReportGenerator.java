@@ -45,18 +45,18 @@ public class HtmlLineCoverageReportGenerator {
 
 	public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Log log, Path basedir,
 			float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio) {
-		
+
 		Path index = generateMainSite(policySetHitRatio, policyHitRatio, policyConditionHitRatio, documents, basedir,
 				log);
-		
+
 		generateCustomCSS(basedir, log);
-		
+
 		copyAssets(basedir, log);
-		
+
 		for (var doc : documents) {
 			generatePolicySite(doc, basedir, log);
 		}
-		
+
 		return index;
 
 	}
@@ -65,7 +65,7 @@ public class HtmlLineCoverageReportGenerator {
 			Collection<SaplDocumentCoverageInformation> documents, Path basedir, Log log) {
 
 		// @formatter:off
-		ContainerTag mainSite = 
+		ContainerTag mainSite =
 			html(
 				head(
 					meta().withCharset("utf-8"),
@@ -91,7 +91,7 @@ public class HtmlLineCoverageReportGenerator {
 						h1("SAPL Coverage Report").withStyle("padding: 1.25rem;"),
 
 						div(
-							div("SAPL Coverage Ratio").withClass("card-header"), 
+							div("SAPL Coverage Ratio").withClass("card-header"),
 							div(
 								p("PolicySet Hit Ratio: " + policySetHitRatio + "%"),
 								p("Policy Hit Ratio: " + policyHitRatio + "%"),
@@ -100,12 +100,12 @@ public class HtmlLineCoverageReportGenerator {
 						).withClass("card").withStyle("padding: 1.25rem"),
 
 						div(
-							div("Show coverage per SAPL document").withClass("card-header"), 
+							div("Show coverage per SAPL document").withClass("card-header"),
 							div(
 								div(
 									each(
 										documents,
-										document -> 
+										document ->
 											a(document.getPathToDocument().getFileName().toString())
 												.withHref("policies/" + document.getPathToDocument().getFileName().toString() + ".html")
 												.withClass("list-group-item list-group-item-action")
@@ -186,11 +186,11 @@ public class HtmlLineCoverageReportGenerator {
 			        ),
 			    body(
 			        main(attrs("#main.content"),
-	        			nav( 
+	        			nav(
         					ol(
     							li(
 									a("Home").withHref("../index.html")
-								).withClass("breadcrumb-item"), 
+								).withClass("breadcrumb-item"),
     							li(
 									filename
 								).withClass("breadcrumb-item active").attr(new Attribute("aria-current", "page"))
@@ -277,7 +277,8 @@ public class HtmlLineCoverageReportGenerator {
 		String fileContent = "";
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
 			fileContent = reader.lines().collect(Collectors.joining("\n"));
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error(String.format("Error reading file: \"%s\"", filename), e);
 		}
 		return fileContent;
@@ -286,7 +287,8 @@ public class HtmlLineCoverageReportGenerator {
 	private List<String> readPolicyDocument(Path filePath, Log log) {
 		try {
 			return Files.readAllLines(filePath);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error(String.format("Error reading file: \"%s\"", filePath.toString()), e);
 		}
 		return new LinkedList<>();
@@ -298,7 +300,8 @@ public class HtmlLineCoverageReportGenerator {
 				PathHelper.createFile(filePath);
 			}
 			Files.writeString(filePath, content);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error(String.format("Error writing file \"%s\"", filePath.toString()));
 		}
 	}
@@ -328,7 +331,8 @@ public class HtmlLineCoverageReportGenerator {
 			if (!targetFile.exists()) {
 				Files.copy(source, target);
 			}
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error(String.format("Error writing file \"%s\"", target.toString()));
 		}
 	}
@@ -364,8 +368,13 @@ public class HtmlLineCoverageReportGenerator {
 
 	@Data
 	static class HtmlPolicyLineModel {
+
 		String lineContent;
+
 		String cssClass;
+
 		String popoverContent;
+
 	}
+
 }

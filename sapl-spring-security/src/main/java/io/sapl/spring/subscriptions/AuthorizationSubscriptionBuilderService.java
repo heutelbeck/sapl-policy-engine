@@ -49,18 +49,22 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
 /**
- * This class contains the logic for SpEL expression evaluation and retrieving
- * request information from the application context or method invocation.
+ * This class contains the logic for SpEL expression evaluation and retrieving request
+ * information from the application context or method invocation.
  */
 @Service
 @RequiredArgsConstructor
 public class AuthorizationSubscriptionBuilderService {
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
 			AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 
 	private final MethodSecurityExpressionHandler expressionHandler;
+
 	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
+
 	private ObjectMapper mapper;
 
 	public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
@@ -167,7 +171,8 @@ public class AuthorizationSubscriptionBuilderService {
 	private JsonNode evaluateToJson(Expression expr, EvaluationContext ctx) {
 		try {
 			return mapper.valueToTree(expr.getValue(ctx));
-		} catch (EvaluationException e) {
+		}
+		catch (EvaluationException e) {
 			throw new IllegalArgumentException("Failed to evaluate expression '" + expr.getExpressionString() + "'", e);
 		}
 	}
@@ -205,7 +210,8 @@ public class AuthorizationSubscriptionBuilderService {
 			for (Object o : arguments) {
 				try {
 					array.add(mapper.valueToTree(o));
-				} catch (IllegalArgumentException e) {
+				}
+				catch (IllegalArgumentException e) {
 					// drop of not mappable to JSON
 				}
 			}

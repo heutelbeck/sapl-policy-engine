@@ -72,14 +72,23 @@ import reactor.test.StepVerifier;
 public class ReactiveSaplMethodInterceptorTests {
 
 	private MethodInterceptor springSecurityMethodInterceptor;
+
 	private MethodSecurityMetadataSource metadataSource;
+
 	private MethodSecurityExpressionHandler handler;
+
 	private PolicyDecisionPoint pdp;
+
 	private ConstraintEnforcementService constraintHandlerService;
+
 	private ObjectMapper mapper;
+
 	private AuthorizationSubscriptionBuilderService subscriptionBuilder;
+
 	private PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint;
+
 	private PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint;
+
 	private ReactiveSaplMethodInterceptor defaultSut;
 
 	@BeforeEach
@@ -114,10 +123,12 @@ public class ReactiveSaplMethodInterceptorTests {
 	@Test
 	void when_noSaplAnnotations_then_delegatedToSpringImplementation() throws Throwable {
 		class TestClass {
+
 			@SuppressWarnings("unused")
 			public Mono<Integer> monoInteger() {
 				return Mono.just(1);
 			}
+
 		}
 		var invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "monoInteger", null,
 				null);
@@ -129,10 +140,12 @@ public class ReactiveSaplMethodInterceptorTests {
 	@SuppressWarnings("unchecked")
 	void when_onlyPreEnforce_then_preEnforcePEPIsCalled() throws Throwable {
 		class TestClass {
+
 			@PreEnforce
 			public Mono<Integer> monoInteger() {
 				return Mono.just(1);
 			}
+
 		}
 		var testInstance = new TestClass();
 		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "monoInteger",
@@ -146,10 +159,12 @@ public class ReactiveSaplMethodInterceptorTests {
 	@Test
 	void when_nonReactiveType_then_fail() throws Throwable {
 		class TestClass {
+
 			@PreEnforce
 			public int integer() {
 				return 1;
 			}
+
 		}
 		var testInstance = new TestClass();
 		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "integer", () -> testInstance.integer(),
@@ -161,10 +176,12 @@ public class ReactiveSaplMethodInterceptorTests {
 	@Test
 	void when_postEnforceOnFlux_then_fail() throws Throwable {
 		class TestClass {
+
 			@PostEnforce
 			public Flux<Integer> fluxIntegrer() {
 				return Flux.just(1);
 			}
+
 		}
 		var testInstance = new TestClass();
 		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxIntegrer",
@@ -181,11 +198,13 @@ public class ReactiveSaplMethodInterceptorTests {
 		// behavior and returns attributes from more than one source
 
 		class TestClass {
+
 			@PreAuthorize(value = "")
 			@PreEnforce
 			public Flux<Integer> fluxInteger() {
 				return Flux.just(1);
 			}
+
 		}
 		var testInstance = new TestClass();
 		MethodInvocation invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
@@ -201,11 +220,13 @@ public class ReactiveSaplMethodInterceptorTests {
 	void when_prePostIsCombinedWithContiniousEnforce_then_fail() throws Throwable {
 
 		class TestClass {
+
 			@PreEnforce
 			@EnforceTillDenied
 			public Flux<Integer> fluxInteger() {
 				return Flux.just(1);
 			}
+
 		}
 
 		var testInstance = new TestClass();
@@ -222,12 +243,14 @@ public class ReactiveSaplMethodInterceptorTests {
 	void when_moreThanOneContiniousAnnotation_then_fail() throws Throwable {
 
 		class TestClass {
+
 			@EnforceTillDenied
 			@EnforceDropWhileDenied
 			@EnforceRecoverableIfDenied
 			public Flux<Integer> fluxInteger() {
 				return Flux.just(1);
 			}
+
 		}
 
 		var testInstance = new TestClass();
@@ -252,11 +275,13 @@ public class ReactiveSaplMethodInterceptorTests {
 				postEnforcePolicyEnforcementPoint);
 
 		class TestClass {
+
 			@PreAuthorize(value = "")
 			@PreEnforce
 			public Flux<Integer> fluxInteger() {
 				return Flux.just(1);
 			}
+
 		}
 		var testInstance = new TestClass();
 		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
@@ -269,10 +294,12 @@ public class ReactiveSaplMethodInterceptorTests {
 	@SuppressWarnings("unchecked")
 	void when_onlyPostEnforce_then_postEnforcePepIsCalled() throws Throwable {
 		class TestClass {
+
 			@PostEnforce
 			public Mono<Integer> monoInteger() {
 				return Mono.just(1);
 			}
+
 		}
 		var testInstance = new TestClass();
 		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "monoInteger",
@@ -291,10 +318,12 @@ public class ReactiveSaplMethodInterceptorTests {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	void when_onlyEnforceTillDenied_then_enforceTillDeniedPEPIsCalled() throws Throwable {
 		class TestClass {
+
 			@EnforceTillDenied
 			public Flux<Integer> fluxInteger() {
 				return Flux.just(1);
 			}
+
 		}
 		var testInstance = new TestClass();
 		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
@@ -316,10 +345,12 @@ public class ReactiveSaplMethodInterceptorTests {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	void when_onlyEnforceDropWhileDenied_then_enforceDropWhileDeniedPEPIsCalled() throws Throwable {
 		class TestClass {
+
 			@EnforceDropWhileDenied
 			public Flux<Integer> fluxInteger() {
 				return Flux.just(1);
 			}
+
 		}
 		var testInstance = new TestClass();
 		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
@@ -341,10 +372,12 @@ public class ReactiveSaplMethodInterceptorTests {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	void when_onlyEnforceRevocerableIfDenied_then_enforceRecoverableIfDeniedPEPIsCalled() throws Throwable {
 		class TestClass {
+
 			@EnforceRecoverableIfDenied
 			public Flux<Integer> fluxInteger() {
 				return Flux.just(1);
 			}
+
 		}
 		var testInstance = new TestClass();
 		var invocation = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",

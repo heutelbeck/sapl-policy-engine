@@ -26,18 +26,18 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 
-public class HasObligationContainingKeyValue extends TypeSafeDiagnosingMatcher<AuthorizationDecision>  {
-	
-	private final String key;
-	private final Optional<Matcher<? super JsonNode>> valueMatcher;
+public class HasObligationContainingKeyValue extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
+	private final String key;
+
+	private final Optional<Matcher<? super JsonNode>> valueMatcher;
 
 	public HasObligationContainingKeyValue(String key, Matcher<? super JsonNode> value) {
 		super(AuthorizationDecision.class);
 		this.key = Objects.requireNonNull(key);
 		this.valueMatcher = Optional.of(Objects.requireNonNull(value));
 	}
-	
+
 	public HasObligationContainingKeyValue(String key) {
 		super(AuthorizationDecision.class);
 		this.key = Objects.requireNonNull(key);
@@ -54,35 +54,36 @@ public class HasObligationContainingKeyValue extends TypeSafeDiagnosingMatcher<A
 
 	@Override
 	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		if(decision.getObligations().isEmpty())
-		{
+		if (decision.getObligations().isEmpty()) {
 			mismatchDescription.appendText("decision didn't contain any obligations");
 			return false;
 		}
-		
-		
+
 		boolean containsObligationKeyValue = false;
-		
-		//iterate over all obligations
-        for(JsonNode obligation : decision.getObligations().get()) {
-        	var iterator = obligation.fields();
-        	//iterate over fields in this obligation
-        	while (iterator.hasNext()) {
-        	    var entry = iterator.next();
-        	    //check if key/value exists
-        	    if(entry.getKey().equals(this.key))  {
-        	    	if(this.valueMatcher.isEmpty()) {
-        	    		containsObligationKeyValue = true;        	    		
-        	    	} else if(this.valueMatcher.get().matches(entry.getValue())) {
-        	    		containsObligationKeyValue = true;
-        	    	}
-        		}
-        	}
-        };
-        
-		if(containsObligationKeyValue) {
+
+		// iterate over all obligations
+		for (JsonNode obligation : decision.getObligations().get()) {
+			var iterator = obligation.fields();
+			// iterate over fields in this obligation
+			while (iterator.hasNext()) {
+				var entry = iterator.next();
+				// check if key/value exists
+				if (entry.getKey().equals(this.key)) {
+					if (this.valueMatcher.isEmpty()) {
+						containsObligationKeyValue = true;
+					}
+					else if (this.valueMatcher.get().matches(entry.getValue())) {
+						containsObligationKeyValue = true;
+					}
+				}
+			}
+		}
+		;
+
+		if (containsObligationKeyValue) {
 			return true;
-		} else {
+		}
+		else {
 			mismatchDescription.appendText("no entry in all obligations matched");
 			return false;
 		}

@@ -24,23 +24,27 @@ import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Base logic for PreEnforce and PostEnforce advice classes. Primarily takes
- * care of lazy loading dependencies.
+ * Base logic for PreEnforce and PostEnforce advice classes. Primarily takes care of lazy
+ * loading dependencies.
  */
 @RequiredArgsConstructor
 public abstract class AbstractPolicyEnforcementPoint implements AopInfrastructureBean {
 
 	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
+
 	protected final ObjectFactory<ConstraintEnforcementService> constraintEnforcementServiceFactory;
+
 	protected final ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
+
 	protected PolicyDecisionPoint pdp;
+
 	protected ConstraintEnforcementService constraintEnforcementService;
+
 	protected AuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	/**
-	 * Lazy loading of dependencies decouples security infrastructure from domain
-	 * logic in initialization. This avoids beans to become not eligible for Bean
-	 * post processing.
+	 * Lazy loading of dependencies decouples security infrastructure from domain logic in
+	 * initialization. This avoids beans to become not eligible for Bean post processing.
 	 */
 	protected void lazyLoadDependencies() {
 		if (pdp == null)

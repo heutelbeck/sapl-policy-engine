@@ -25,9 +25,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Holds a {@link AuthorizationDecision SAPL authorization decision} together
- * with the ID of the corresponding {@link AuthorizationSubscription SAPL
- * authorization subscription}.
+ * Holds a {@link AuthorizationDecision SAPL authorization decision} together with the ID
+ * of the corresponding {@link AuthorizationSubscription SAPL authorization subscription}.
  *
  * @see AuthorizationDecision
  * @see IdentifiableAuthorizationSubscription
@@ -40,6 +39,7 @@ public class IdentifiableAuthorizationDecision {
 
 	@JsonProperty(required = true)
 	String authorizationSubscriptionId;
+
 	@JsonProperty(required = true)
 	AuthorizationDecision authorizationDecision;
 

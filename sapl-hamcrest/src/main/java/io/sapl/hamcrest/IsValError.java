@@ -42,11 +42,12 @@ public class IsValError extends TypeSafeDiagnosingMatcher<Val> {
 		if (!item.isError()) {
 			mismatchDescription.appendText("a value that is ").appendValue(item);
 			return false;
-		} 
+		}
 		var message = item.getMessage();
 		if (stringMatcher.matches(message)) {
 			return true;
-		} else {
+		}
+		else {
 			mismatchDescription.appendText("was an error with a message that ");
 			stringMatcher.describeMismatch(message, mismatchDescription);
 			return false;

@@ -30,9 +30,13 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 public class VariableContext {
 
 	private static final String SUBJECT = "subject";
+
 	private static final String ACTION = "action";
+
 	private static final String RESOURCE = "resource";
+
 	private static final String ENVIRONMENT = "environment";
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private final Map<String, JsonNode> variables;
@@ -53,22 +57,26 @@ public class VariableContext {
 	private VariableContext loadSubscriptionVariables(AuthorizationSubscription authzSubscription) {
 		if (authzSubscription.getSubject() != null) {
 			variables.put(SUBJECT, authzSubscription.getSubject());
-		} else {
+		}
+		else {
 			variables.put(SUBJECT, JSON.nullNode());
 		}
 		if (authzSubscription.getAction() != null) {
 			variables.put(ACTION, authzSubscription.getAction());
-		} else {
+		}
+		else {
 			variables.put(ACTION, JSON.nullNode());
 		}
 		if (authzSubscription.getResource() != null) {
 			variables.put(RESOURCE, authzSubscription.getResource());
-		} else {
+		}
+		else {
 			variables.put(RESOURCE, JSON.nullNode());
 		}
 		if (authzSubscription.getEnvironment() != null) {
 			variables.put(ENVIRONMENT, authzSubscription.getEnvironment());
-		} else {
+		}
+		else {
 			variables.put(ENVIRONMENT, JSON.nullNode());
 		}
 		return this;

@@ -39,9 +39,11 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 
 	/**
 	 * Fixture for constructing a unit test case
-	 * @param saplDocumentName path relativ to your classpath to the sapl document. 
-	 * If your policies are located at the root of the classpath or in the standard path "policies/" in your resources folder you only have to specifiy the name of the .sapl file.
-	 * If your policies are located at some special place you have to configure a relativ path like "yourspecialdir/policies/mypolicy.sapl"
+	 * @param saplDocumentName path relativ to your classpath to the sapl document. If
+	 * your policies are located at the root of the classpath or in the standard path
+	 * "policies/" in your resources folder you only have to specifiy the name of the
+	 * .sapl file. If your policies are located at some special place you have to
+	 * configure a relativ path like "yourspecialdir/policies/mypolicy.sapl"
 	 */
 	public SaplUnitTestFixture(String saplDocumentName) {
 		this.saplDocumentName = saplDocumentName;
@@ -55,7 +57,6 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 		return StepBuilder.newBuilderAtGivenStep(readSaplDocument(), this.attributeCtx, this.functionCtx,
 				this.variables);
 	}
-
 
 	@Override
 	public WhenStep constructTestCase() {
@@ -78,7 +79,8 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 	private String constructFileEnding(String filename) {
 		if (this.saplDocumentName.endsWith(".sapl")) {
 			return filename;
-		} else {
+		}
+		else {
 			return filename + ".sapl";
 		}
 	}
@@ -87,8 +89,10 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 		Path path = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), filename);
 		try {
 			return Files.readString(path);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw Exceptions.propagate(e);
 		}
 	}
+
 }

@@ -33,14 +33,17 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 public class AttributeMockPublisher implements AttributeMock {
+
 	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE = "You already defined a Mock for %s which is returning specified values";
+
 	private final String fullname;
-	
-	
+
 	private Sinks.Many<Val> publisher;
+
 	private Flux<Val> returnFlux;
 
 	private final MockRunInformation mockRunInformation;
+
 	private final List<MockingVerification> listMockingVerifications;
 
 	public AttributeMockPublisher(String fullname) {
@@ -48,7 +51,7 @@ public class AttributeMockPublisher implements AttributeMock {
 		this.mockRunInformation = new MockRunInformation(fullname);
 		this.listMockingVerifications = new LinkedList<>();
 		this.listMockingVerifications.add(times(greaterThanOrEqualTo(1)));
-		
+
 		this.publisher = Sinks.many().replay().latest();
 		this.returnFlux = this.publisher.asFlux();
 
@@ -73,4 +76,5 @@ public class AttributeMockPublisher implements AttributeMock {
 	public String getErrorMessageForCurrentMode() {
 		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE, this.fullname);
 	}
+
 }

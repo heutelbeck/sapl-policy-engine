@@ -30,21 +30,22 @@ import reactor.core.publisher.Mono;
 
 class PredicateTest {
 
-    @Test
-    void testConstruction() {
-        var predicate = new Predicate(new Bool(true));
-        assertThat(predicate, is(notNullValue()));
-        assertThat(predicate.getBool().evaluate(), is(true));
-    }
+	@Test
+	void testConstruction() {
+		var predicate = new Predicate(new Bool(true));
+		assertThat(predicate, is(notNullValue()));
+		assertThat(predicate.getBool().evaluate(), is(true));
+	}
 
-    @Test
-    void testEvaluate() {
-        var contextMock = mock(EvaluationContext.class);
-        var boolMock = mock(Bool.class);
-        when(boolMock.evaluate(any())).thenReturn(Mono.just(Val.TRUE));
+	@Test
+	void testEvaluate() {
+		var contextMock = mock(EvaluationContext.class);
+		var boolMock = mock(Bool.class);
+		when(boolMock.evaluate(any())).thenReturn(Mono.just(Val.TRUE));
 
-        var predicate = new Predicate(boolMock);
-        var result = predicate.evaluate(contextMock).block();
-        assertThat(result.getBoolean(), is(true));
-    }
+		var predicate = new Predicate(boolMock);
+		var result = predicate.evaluate(contextMock).block();
+		assertThat(result.getBoolean(), is(true));
+	}
+
 }

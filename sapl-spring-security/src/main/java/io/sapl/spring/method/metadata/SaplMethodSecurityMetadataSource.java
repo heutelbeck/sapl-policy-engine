@@ -87,9 +87,8 @@ public class SaplMethodSecurityMetadataSource extends AbstractMethodSecurityMeta
 
 	/**
 	 * See
-	 * {@link org.springframework.security.access.prepost.PrePostAnnotationSecurityMetadataSource
-	 * #findAnnotation(Method, Class)} the logic is the same as for @PreAuthorize
-	 * and @PostAuthorize.
+	 * {@link org.springframework.security.access.prepost.PrePostAnnotationSecurityMetadataSource #findAnnotation(Method, Class)}
+	 * the logic is the same as for @PreAuthorize and @PostAuthorize.
 	 */
 	private <A extends Annotation> A findAnnotation(Method method, Class<?> targetClass, Class<A> annotationClass) {
 		// The method may be on an interface, but we need attributes from the target

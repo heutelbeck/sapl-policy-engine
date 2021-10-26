@@ -32,6 +32,7 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 public class CoverageHitRecorderTest {
 
 	private Path basedir;
+
 	private CoverageHitRecorder recorder;
 
 	@BeforeEach
@@ -50,11 +51,9 @@ public class CoverageHitRecorderTest {
 	@Test
 	void testCoverageRecording() throws Exception {
 		// arrange
-		Path FILE_PATH_POLICY_SET_HITS = this.basedir.resolve("hits")
-				.resolve("_policySetHits.txt");
+		Path FILE_PATH_POLICY_SET_HITS = this.basedir.resolve("hits").resolve("_policySetHits.txt");
 		Path FILE_PATH_POLICY_HITS = this.basedir.resolve("hits").resolve("_policyHits.txt");
-		Path FILE_PATH_POLICY_CONDITION_HITS = this.basedir.resolve("hits")
-				.resolve("_policyConditionHits.txt");
+		Path FILE_PATH_POLICY_CONDITION_HITS = this.basedir.resolve("hits").resolve("_policyConditionHits.txt");
 
 		// act
 		this.recorder.recordPolicySetHit(new PolicySetHit("set1"));
@@ -136,4 +135,5 @@ public class CoverageHitRecorderTest {
 		// assert
 		Assertions.assertThatNoException();
 	}
+
 }

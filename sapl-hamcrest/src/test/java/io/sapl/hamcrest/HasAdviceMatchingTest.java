@@ -46,12 +46,12 @@ class HasAdviceMatchingTest {
 		advice.put("foo", "bar");
 		ArrayNode adviceArray = mapper.createArrayNode();
 		adviceArray.add(advice);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(adviceArray));
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+				Optional.of(adviceArray));
 
-		
 		assertThat(dec, is(matcher));
 	}
-	
+
 	@Test
 	public void test_neg() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("xxx");
@@ -62,31 +62,32 @@ class HasAdviceMatchingTest {
 		advice.put("foo", "bar");
 		ArrayNode adviceArray = mapper.createArrayNode();
 		adviceArray.add(advice);
-		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(adviceArray));
+		AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+				Optional.of(adviceArray));
 
-		
 		assertThat(dec, not(is(matcher)));
 	}
-	
+
 	@Test
 	public void test_nullDecision() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
 		var matcher = Matchers.hasAdviceMatching(pred);
 		assertThat(null, not(is(matcher)));
 	}
-	
+
 	@Test
 	public void test_nullPredicate() {
-		assertThrows(NullPointerException.class, () ->  Matchers.hasAdviceMatching(null));
+		assertThrows(NullPointerException.class, () -> Matchers.hasAdviceMatching(null));
 	}
-	
+
 	@Test
 	public void test_emptyAdvice() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
 		var matcher = Matchers.hasAdviceMatching(pred);
-		assertThat(new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty()), not(is(matcher)));
+		assertThat(new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty()),
+				not(is(matcher)));
 	}
-	
+
 	@Test
 	void testDescriptionForMatcher() {
 		Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
@@ -95,4 +96,5 @@ class HasAdviceMatchingTest {
 		sut.describeTo(description);
 		assertThat(description.toString(), is("the decision has an advice matching the predicate"));
 	}
+
 }

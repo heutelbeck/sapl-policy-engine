@@ -23,9 +23,8 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the evaluation of functions.
  *
- * Grammar: {BasicFunction} fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments
- * steps+=Step*; {Arguments} '(' (args+=Expression (',' args+=Expression)*)?
- * ')';
+ * Grammar: {BasicFunction} fsteps+=ID ('.' fsteps+=ID)* arguments=Arguments steps+=Step*;
+ * {Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
  */
 public class BasicFunctionImplCustom extends BasicFunctionImpl {
 

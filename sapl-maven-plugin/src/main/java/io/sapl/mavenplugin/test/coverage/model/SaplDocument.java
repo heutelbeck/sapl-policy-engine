@@ -26,7 +26,9 @@ import lombok.Getter;
 public class SaplDocument {
 
 	private Path pathToDocument;
+
 	int lineCount;
+
 	private SAPL saplDocument;
-	
+
 }

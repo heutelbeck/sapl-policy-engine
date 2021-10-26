@@ -45,8 +45,11 @@ import lombok.extern.slf4j.Slf4j;
 public class PRPAutoConfiguration {
 
 	private final EmbeddedPDPProperties pdpProperties;
+
 	private final PrpUpdateEventSource eventSource;
+
 	private final FunctionContext functionContext;
+
 	private final AttributeContext attributeContext;
 
 	@Bean
@@ -57,7 +60,8 @@ public class PRPAutoConfiguration {
 		ImmutableParsedDocumentIndex seedIndex;
 		if (pdpProperties.getIndex() == IndexType.NAIVE) {
 			seedIndex = new NaiveImmutableParsedDocumentIndex();
-		} else {
+		}
+		else {
 			// This index type has to normalize function calls based on import statements
 			// Variables need not to be bound here. Thus, this hind of static PDP scoped
 			// evaluation context is sufficient. Variables will be bound later in the
@@ -67,4 +71,5 @@ public class PRPAutoConfiguration {
 		}
 		return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, eventSource);
 	}
+
 }

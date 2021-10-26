@@ -51,8 +51,8 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Sets up automatic PEP generation for Methods with reactive return types. Bean
- * can be customized by sub classing.
+ * Sets up automatic PEP generation for Methods with reactive return types. Bean can be
+ * customized by sub classing.
  */
 @RequiredArgsConstructor
 @Configuration(proxyBeanMethods = false)
@@ -60,8 +60,10 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 
 	@NonNull
 	private final PolicyDecisionPoint pdp;
+
 	@NonNull
 	private final ConstraintEnforcementService constraintHandlerService;
+
 	@NonNull
 	private final ObjectMapper mapper;
 
@@ -152,4 +154,5 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 	void setGrantedAuthorityDefaults(GrantedAuthorityDefaults grantedAuthorityDefaults) {
 		this.grantedAuthorityDefaults = grantedAuthorityDefaults;
 	}
+
 }

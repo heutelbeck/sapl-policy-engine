@@ -52,4 +52,5 @@ class IsValUndefinedTest {
 		sut.describeTo(description);
 		assertThat(description.toString(), is("undefined"));
 	}
+
 }

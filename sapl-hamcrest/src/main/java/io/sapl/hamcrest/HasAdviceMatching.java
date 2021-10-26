@@ -25,8 +25,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 
-public class HasAdviceMatching extends TypeSafeDiagnosingMatcher<AuthorizationDecision>  {
-	
+public class HasAdviceMatching extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
+
 	private final Predicate<? super JsonNode> predicate;
 
 	public HasAdviceMatching(Predicate<? super JsonNode> jsonPredicate) {
@@ -41,22 +41,23 @@ public class HasAdviceMatching extends TypeSafeDiagnosingMatcher<AuthorizationDe
 
 	@Override
 	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		if(decision.getAdvice().isEmpty())
-		{
+		if (decision.getAdvice().isEmpty()) {
 			mismatchDescription.appendText("decision didn't contain any advice");
 			return false;
 		}
 
 		boolean containsAdvice = false;
-		
-        for(JsonNode node : decision.getAdvice().get()) {
-        	if(this.predicate.test(node))
-        		containsAdvice = true;
-        };
-        
-		if(containsAdvice) {
+
+		for (JsonNode node : decision.getAdvice().get()) {
+			if (this.predicate.test(node))
+				containsAdvice = true;
+		}
+		;
+
+		if (containsAdvice) {
 			return true;
-		} else {
+		}
+		else {
 			mismatchDescription.appendText("no advice matched");
 			return false;
 		}

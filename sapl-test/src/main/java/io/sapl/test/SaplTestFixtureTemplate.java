@@ -27,9 +27,11 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 public abstract class SaplTestFixtureTemplate implements SaplTestFixture {
 
 	protected AnnotationAttributeContext attributeCtx = new AnnotationAttributeContext();
+
 	protected AnnotationFunctionContext functionCtx = new AnnotationFunctionContext();
+
 	protected Map<String, JsonNode> variables = new HashMap<String, JsonNode>(1);
-	
+
 	@Override
 	public SaplTestFixture registerPIP(Object pip) throws InitializationException {
 		this.attributeCtx.loadPolicyInformationPoint(pip);

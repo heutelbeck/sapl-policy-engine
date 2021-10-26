@@ -25,5 +25,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class AttributeArgumentMatchers {
+
 	private Matcher<Val>[] matchers;
+
 }

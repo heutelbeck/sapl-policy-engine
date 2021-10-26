@@ -40,7 +40,8 @@ public class ArrayUtil {
 			for (int i = from; i <= to; i++) {
 				array.add(i);
 			}
-		} else {
+		}
+		else {
 			for (int i = from; i >= to; i--) {
 				array.add(i);
 			}

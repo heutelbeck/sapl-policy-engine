@@ -118,10 +118,14 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 
 	@EnableReactiveSaplMethodSecurity
 	public static class SecurityCongiguration {
+
 	}
 
 	public static class TestClass {
+
 		public void publicVoid() {
 		}
+
 	}
+
 }

@@ -43,20 +43,23 @@ import lombok.extern.slf4j.Slf4j;
 public class MockingFunctionContext implements FunctionContext {
 
 	private static final String ERROR_MOCK_INVALID_FULLNAME = "Got invalid function reference containing more than one \".\" delimiter: \"%s\"";
+
 	private static final String ERROR_LOADING_LIB_NOT_SUPPORTED = "Loading a FunctionLibrary on a MockingFunctionContext is not supported";
+
 	private static final String NAME_DELIMITER = ".";
 
 	/**
-	 * Holds an FunctionContext implementation to delegate evaluations if this
-	 * function is not mocked
+	 * Holds an FunctionContext implementation to delegate evaluations if this function is
+	 * not mocked
 	 */
 	private final FunctionContext unmockedFunctionContext;
+
 	/**
-	 * Contains a Map of all registered mocks. Key is the String of the fullname of
-	 * the function Value is the {@link FunctionMock} deciding the {@link Val} to be
-	 * returned
+	 * Contains a Map of all registered mocks. Key is the String of the fullname of the
+	 * function Value is the {@link FunctionMock} deciding the {@link Val} to be returned
 	 */
 	private final Map<String, FunctionMock> registeredMocks;
+
 	private final Map<String, LibraryDocumentation> functionDocumentations;
 
 	public MockingFunctionContext(FunctionContext unmockedFunctionContext) {
@@ -70,10 +73,12 @@ public class MockingFunctionContext implements FunctionContext {
 		if (this.registeredMocks.containsKey(function)) {
 			log.trace("Function \"{}\" is mocked", function);
 			return Boolean.TRUE;
-		} else if (unmockedFunctionContext.isProvidedFunction(function)) {
+		}
+		else if (unmockedFunctionContext.isProvidedFunction(function)) {
 			log.trace("Function \"{}\" is provided by unmocked function context", function);
 			return Boolean.TRUE;
-		} else {
+		}
+		else {
 			log.trace("Function \"{}\" is NOT provided", function);
 			return Boolean.FALSE;
 		}
@@ -102,7 +107,8 @@ public class MockingFunctionContext implements FunctionContext {
 			var result = mock.evaluateFunctionCall(parameters);
 			log.trace("| | | | |-- FunctionMock returned: " + result.toString());
 			return result;
-		} else {
+		}
+		else {
 			log.debug("| | | | |-- Delegate function \"{}\" to unmocked function context", function);
 			return this.unmockedFunctionContext.evaluate(function, parameters);
 		}
@@ -133,7 +139,8 @@ public class MockingFunctionContext implements FunctionContext {
 		FunctionMock mock = this.registeredMocks.get(fullname);
 		if (this.registeredMocks.containsKey(fullname)) {
 			throw new SaplTestException(mock.getErrorMessageForCurrentMode());
-		} else {
+		}
+		else {
 			FunctionMock newMock = new FunctionMockAlwaysSameValue(fullname, mockReturnValue, verification);
 			this.registeredMocks.put(fullname, newMock);
 
@@ -152,10 +159,12 @@ public class MockingFunctionContext implements FunctionContext {
 		if (mock != null) {
 			if (mock instanceof FunctionMockSequence) {
 				((FunctionMockSequence) mock).loadMockReturnValue(mockReturnValue);
-			} else {
+			}
+			else {
 				throw new SaplTestException(mock.getErrorMessageForCurrentMode());
 			}
-		} else {
+		}
+		else {
 			FunctionMockSequence newMock = new FunctionMockSequence(fullname);
 			newMock.loadMockReturnValue(mockReturnValue);
 			this.registeredMocks.put(fullname, newMock);
@@ -179,10 +188,12 @@ public class MockingFunctionContext implements FunctionContext {
 			if (mock instanceof FunctionMockAlwaysSameForParameters) {
 				((FunctionMockAlwaysSameForParameters) mock).loadParameterSpecificReturnValue(mockReturnValue,
 						parameter, verification);
-			} else {
+			}
+			else {
 				throw new SaplTestException(mock.getErrorMessageForCurrentMode());
 			}
-		} else {
+		}
+		else {
 			FunctionMockAlwaysSameForParameters newMock = new FunctionMockAlwaysSameForParameters(fullname);
 			newMock.loadParameterSpecificReturnValue(mockReturnValue, parameter, verification);
 			this.registeredMocks.put(fullname, newMock);
@@ -202,7 +213,8 @@ public class MockingFunctionContext implements FunctionContext {
 		FunctionMock mock = this.registeredMocks.get(fullname);
 		if (mock != null) {
 			throw new SaplTestException(mock.getErrorMessageForCurrentMode());
-		} else {
+		}
+		else {
 			FunctionMock newMock = new FunctionMockFunctionResult(fullname, returns, verification);
 			this.registeredMocks.put(fullname, newMock);
 
@@ -229,7 +241,8 @@ public class MockingFunctionContext implements FunctionContext {
 		var existingDoc = this.functionDocumentations.get(libName);
 		if (existingDoc != null) {
 			existingDoc.getDocumentation().put(functionName, "Mocked Function");
-		} else {
+		}
+		else {
 			LibraryDocumentation functionDocs = new LibraryDocumentation(libName, "Mocked Function Library: " + libName,
 					mock);
 			functionDocs.getDocumentation().put(functionName, "Mocked Function");
@@ -239,6 +252,7 @@ public class MockingFunctionContext implements FunctionContext {
 
 	@Override
 	public Collection<String> getAvailableLibraries() {
-		 return this.registeredMocks.keySet();
+		return this.registeredMocks.keySet();
 	}
+
 }

@@ -49,15 +49,23 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 public class PreEnforcePolicyEnforcementPointTests {
+
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	private final static ObjectMapper MAPPER = new ObjectMapper();
 
 	List<RunnableConstraintHandlerProvider> globalRunnableProviders;
+
 	List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders;
+
 	List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders;
+
 	List<RequestHandlerProvider> globalRequestHandlerProviders;
+
 	List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders;
+
 	List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
+
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
 	@BeforeEach
@@ -262,4 +270,5 @@ public class PreEnforcePolicyEnforcementPointTests {
 	private Consumer<Throwable> errorConsumer() {
 		return (Consumer<Throwable>) mock(Consumer.class);
 	}
+
 }

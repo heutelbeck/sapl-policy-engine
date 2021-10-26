@@ -22,6 +22,9 @@ import lombok.Data;
 
 @Data(staticConstructor = "of")
 public class AttributeMockReturnValues {
+
 	private final String fullname;
+
 	private final List<Val> mockReturnValues;
+
 }

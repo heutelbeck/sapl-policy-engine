@@ -34,74 +34,86 @@ import java.util.concurrent.TimeUnit;
 @UtilityClass
 public class Schedules {
 
-    @Setter
-    @Builder
-    public static class ScheduleProducer {
+	@Setter
+	@Builder
+	public static class ScheduleProducer {
 
-        private static long secondsInOneDay = Duration.ofDays(1L).getSeconds();
+		private static long secondsInOneDay = Duration.ofDays(1L).getSeconds();
 
-        private final LocalTime referenceTime;
-        private final LocalTime currentTime;
-        private ScheduleListener listener;
+		private final LocalTime referenceTime;
 
-        void startScheduling() {
-            try {
-                var nextMidnight = LocalDate.now().plusDays(1L).atStartOfDay();
-                var nextReferenceTime = currentTime.isBefore(referenceTime)
-                        //if current time is before reference, the next reference is on the same day (today)
-                        ? LocalDate.now().atTime(referenceTime)
-                        //if referenceTime already passed today, the next reference is tomorrow
-                        : LocalDate.now().plusDays(1L).atTime(referenceTime);
+		private final LocalTime currentTime;
 
-                var todayAtCurrentTime = LocalDate.now().atTime(currentTime);
+		private ScheduleListener listener;
 
-                var delayToNextMidnight = Duration.ofSeconds(todayAtCurrentTime.until(nextMidnight, ChronoUnit.SECONDS));
-                log.debug("scheduling next Midnight ({}) with a delay of {}", nextMidnight, delayToNextMidnight);
-                var delayToNextReferenceTime = Duration.ofSeconds(todayAtCurrentTime.until(nextReferenceTime, ChronoUnit.SECONDS));
-                log.debug("scheduling next Reference-Time ({}) with a delay of {}", nextReferenceTime, delayToNextReferenceTime);
+		void startScheduling() {
+			try {
+				var nextMidnight = LocalDate.now().plusDays(1L).atStartOfDay();
+				var nextReferenceTime = currentTime.isBefore(referenceTime)
+						// if current time is before reference, the next reference is on
+						// the same day (today)
+						? LocalDate.now().atTime(referenceTime)
+						// if referenceTime already passed today, the next reference is
+						// tomorrow
+						: LocalDate.now().plusDays(1L).atTime(referenceTime);
 
-                initializeScheduler(delayToNextMidnight, delayToNextReferenceTime);
+				var todayAtCurrentTime = LocalDate.now().atTime(currentTime);
 
-                //emit first result immediately
-                listener.processResultChange(referenceTime);
-            } catch (Exception e) {
-                listener.processError(e);
-            }
-        }
+				var delayToNextMidnight = Duration
+						.ofSeconds(todayAtCurrentTime.until(nextMidnight, ChronoUnit.SECONDS));
+				log.debug("scheduling next Midnight ({}) with a delay of {}", nextMidnight, delayToNextMidnight);
+				var delayToNextReferenceTime = Duration
+						.ofSeconds(todayAtCurrentTime.until(nextReferenceTime, ChronoUnit.SECONDS));
+				log.debug("scheduling next Reference-Time ({}) with a delay of {}", nextReferenceTime,
+						delayToNextReferenceTime);
 
-        private void initializeScheduler(Duration delayToNextMidnight, Duration delayToNextReferenceTime) {
-            //schedule onMidnight at every start of the day, beginning after an initial delay
-            var midnightScheduler = Schedulers.single().schedulePeriodically(
-                    () -> listener.processResultChange(referenceTime),
-                    delayToNextMidnight.getSeconds(), secondsInOneDay, TimeUnit.SECONDS);
+				initializeScheduler(delayToNextMidnight, delayToNextReferenceTime);
 
-            //schedule onReferenceTime
-            var referenceScheduler = Schedulers.single().schedulePeriodically(
-                    () -> listener.processResultChange(referenceTime),
-                    delayToNextReferenceTime.getSeconds(), secondsInOneDay, TimeUnit.SECONDS);
+				// emit first result immediately
+				listener.processResultChange(referenceTime);
+			}
+			catch (Exception e) {
+				listener.processError(e);
+			}
+		}
 
-            if (midnightScheduler.isDisposed() && referenceScheduler.isDisposed())
-                listener.schedulerDisposed();
-        }
-    }
+		private void initializeScheduler(Duration delayToNextMidnight, Duration delayToNextReferenceTime) {
+			// schedule onMidnight at every start of the day, beginning after an initial
+			// delay
+			var midnightScheduler = Schedulers.single().schedulePeriodically(
+					() -> listener.processResultChange(referenceTime), delayToNextMidnight.getSeconds(),
+					secondsInOneDay, TimeUnit.SECONDS);
 
-    @Value
-    public static class ScheduleListener {
-        FluxSink<Val> sink;
+			// schedule onReferenceTime
+			var referenceScheduler = Schedulers.single().schedulePeriodically(
+					() -> listener.processResultChange(referenceTime), delayToNextReferenceTime.getSeconds(),
+					secondsInOneDay, TimeUnit.SECONDS);
 
-        void processResultChange(LocalTime localTimeRef) {
-            var currentTime = LocalTime.now();
-            log.debug("{} is after {} -> {}", currentTime, localTimeRef, currentTime.isAfter(localTimeRef));
-            sink.next(Val.of(currentTime.isAfter(localTimeRef)));
-        }
+			if (midnightScheduler.isDisposed() && referenceScheduler.isDisposed())
+				listener.schedulerDisposed();
+		}
 
-        void schedulerDisposed() {
-            sink.complete();
-        }
+	}
 
-        void processError(Throwable e) {
-            sink.error(e);
-        }
-    }
+	@Value
+	public static class ScheduleListener {
+
+		FluxSink<Val> sink;
+
+		void processResultChange(LocalTime localTimeRef) {
+			var currentTime = LocalTime.now();
+			log.debug("{} is after {} -> {}", currentTime, localTimeRef, currentTime.isAfter(localTimeRef));
+			sink.next(Val.of(currentTime.isAfter(localTimeRef)));
+		}
+
+		void schedulerDisposed() {
+			sink.complete();
+		}
+
+		void processError(Throwable e) {
+			sink.error(e);
+		}
+
+	}
 
 }

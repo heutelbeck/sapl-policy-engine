@@ -28,18 +28,19 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of an array slicing step to a previous array
- * value, e.g. 'arr[4:12:2]'.
+ * Implements the application of an array slicing step to a previous array value, e.g.
+ * 'arr[4:12:2]'.
  *
  * Grammar: Step: '[' Subscript ']' ;
  *
- * Subscript returns Step: {ArraySlicingStep} index=JSONNUMBER? ':'
- * to=JSONNUMBER? (':' step=JSONNUMBER)? ;
+ * Subscript returns Step: {ArraySlicingStep} index=JSONNUMBER? ':' to=JSONNUMBER? (':'
+ * step=JSONNUMBER)? ;
  */
 @Slf4j
 public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
 	private static final String STEP_ZERO = "Step must not be zero.";
+
 	private static final String INDEX_ACCESS_TYPE_MISMATCH = "Type mismatch. Accessing an JSON array index [%s] expects array value, but got: '%s'.";
 
 	@Override
@@ -122,13 +123,15 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
 									FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
 									parentValue, statement.isEach()));
-				} else {
+				}
+				else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
 							.applyFilterStatement(Val.of(element), ctx, relativeNode, stepId + 1, statement));
 				}
-			} else {
+			}
+			else {
 				log.trace("array element [{}] not selected. return as is", i);
 				elementFluxes.add(Flux.just(Val.of(element)));
 			}

@@ -45,9 +45,13 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import reactor.test.StepVerifier;
 
 class ValTest {
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	private static final String ERROR_MESSAGE = "Error Message";
+
 	private static final String MESSAGE_STRING_1 = "MESSAGE STRING 1";
+
 	private static final String MESSAGE_STRING_D = "MESSAGE STRING %d";
 
 	@Test
@@ -566,4 +570,5 @@ class ValTest {
 		assertAll(() -> assertThat(Val.of(10).map(json -> json.intValue() * 2), is(optionalWithValue(is(equalTo(20))))),
 				() -> assertThat(Val.UNDEFINED.map(json -> json), is(emptyOptional())));
 	}
+
 }

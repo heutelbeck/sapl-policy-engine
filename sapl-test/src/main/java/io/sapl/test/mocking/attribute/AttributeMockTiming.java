@@ -33,13 +33,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import reactor.core.publisher.Flux;
 
 public class AttributeMockTiming implements AttributeMock {
+
 	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE = "You already defined a Mock for %s which is returning specified values with a timing";
+
 	private final String fullname;
-	
+
 	private Val[] returnValues;
+
 	private Duration timing;
 
 	private final MockRunInformation mockRunInformation;
+
 	private final List<MockingVerification> listMockingVerifications;
 
 	public AttributeMockTiming(String fullname) {
@@ -58,15 +62,16 @@ public class AttributeMockTiming implements AttributeMock {
 
 	@Override
 	public Flux<Val> evaluate(Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args) {
-		//ignore arguments
-		
+		// ignore arguments
+
 		this.mockRunInformation.saveCall(new MockCall());
 
 		if (this.returnValues == null || this.timing == null) {
 			throw new SaplTestException("Undefined internal state. Please report a bug to the library authors!");
 		}
 
-		return Flux.interval(this.timing).map(number -> this.returnValues[number.intValue()]).take(this.returnValues.length);
+		return Flux.interval(this.timing).map(number -> this.returnValues[number.intValue()])
+				.take(this.returnValues.length);
 	}
 
 	@Override
@@ -78,4 +83,5 @@ public class AttributeMockTiming implements AttributeMock {
 	public String getErrorMessageForCurrentMode() {
 		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE, this.fullname);
 	}
+
 }

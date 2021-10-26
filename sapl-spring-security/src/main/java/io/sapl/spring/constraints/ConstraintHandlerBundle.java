@@ -29,15 +29,25 @@ import reactor.core.publisher.Mono;
 public class ConstraintHandlerBundle<T> {
 
 	List<Runnable> onDecisionHandlers = new LinkedList<>();
+
 	List<Runnable> onCancelHandlers = new LinkedList<>();
+
 	List<Runnable> onCompleteHandlers = new LinkedList<>();
+
 	List<Runnable> onTerminateHandlers = new LinkedList<>();
+
 	List<Runnable> afterTerminateHandlers = new LinkedList<>();
+
 	List<Consumer<Subscription>> onSubscribeHandlers = new LinkedList<>();
+
 	List<LongConsumer> onRequestHandlers = new LinkedList<>();
+
 	List<Consumer<T>> doOnNextHandlers = new LinkedList<>();
+
 	List<Function<T, T>> onNextMapHandlers = new LinkedList<>();
+
 	List<Consumer<Throwable>> doOnErrorHandlers = new LinkedList<>();
+
 	List<Function<Throwable, Throwable>> onErrorMapHandlers = new LinkedList<>();
 
 	public void handleOnSubscribeConstraints(Subscription s) {

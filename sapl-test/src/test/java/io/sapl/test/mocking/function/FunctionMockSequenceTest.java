@@ -24,8 +24,8 @@ import org.junit.jupiter.api.Test;
 
 public class FunctionMockSequenceTest {
 
-	private Val[] seq = new Val[] {Val.of(1), Val.of(2), Val.of(3)}; 
-	
+	private Val[] seq = new Val[] { Val.of(1), Val.of(2), Val.of(3) };
+
 	@Test
 	void test() {
 		FunctionMockSequence mock = new FunctionMockSequence("foo");
@@ -34,7 +34,7 @@ public class FunctionMockSequenceTest {
 		Assertions.assertThat(mock.evaluateFunctionCall(Val.of("not"))).isEqualTo(seq[1]);
 		Assertions.assertThat(mock.evaluateFunctionCall(Val.of("matter"))).isEqualTo(seq[2]);
 	}
-	
+
 	@Test
 	void test_tooMuchCalls() {
 		FunctionMockSequence mock = new FunctionMockSequence("foo");
@@ -43,26 +43,27 @@ public class FunctionMockSequenceTest {
 		Assertions.assertThat(mock.evaluateFunctionCall(Val.of("not"))).isEqualTo(seq[1]);
 		Assertions.assertThat(mock.evaluateFunctionCall(Val.of("matter"))).isEqualTo(seq[2]);
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
-			.isThrownBy(() -> mock.evaluateFunctionCall(Val.of("returnValueUndefined")));
+				.isThrownBy(() -> mock.evaluateFunctionCall(Val.of("returnValueUndefined")));
 	}
-	
+
 	@Test
 	void test_tooLessCalls() {
 		FunctionMockSequence mock = new FunctionMockSequence("foo");
 		mock.loadMockReturnValue(seq);
 		Assertions.assertThat(mock.evaluateFunctionCall(Val.of("do"))).isEqualTo(seq[0]);
 		Assertions.assertThat(mock.evaluateFunctionCall(Val.of("not"))).isEqualTo(seq[1]);
-		
+
 		boolean isAssertionErrorThrown = false;
 		try {
-			mock.assertVerifications();			
-		} catch(AssertionError e) {
+			mock.assertVerifications();
+		}
+		catch (AssertionError e) {
 			isAssertionErrorThrown = true;
 		}
-		
+
 		Assertions.assertThat(isAssertionErrorThrown).isTrue();
 	}
-	
+
 	@Test
 	void test_errorMessage() {
 		FunctionMockSequence mock = new FunctionMockSequence("foo");

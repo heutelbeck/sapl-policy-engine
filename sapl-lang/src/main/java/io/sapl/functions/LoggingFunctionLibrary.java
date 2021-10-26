@@ -26,12 +26,19 @@ import lombok.extern.slf4j.Slf4j;
 public class LoggingFunctionLibrary {
 
 	private static final String TEMPLATE = "| | | |-- [LOG] {} {}";
+
 	public static final String NAME = "log";
+
 	public static final String DESCRIPTION = "Utility functions for dumping data from policy evaluation on the PDP console for debugging of policies.";
+
 	private static final String DEBUG_DOC = "log(VALUE, MESSAGE): logs the value prepended with the message on the console at log level DEBUG. Function acts as identity form the perspective of the PDP.";
+
 	private static final String INFO_DOC = "log(VALUE, MESSAGE): logs the value prepended with the message on the console at log level INFO. Function acts as identity form the perspective of the PDP.";
+
 	private static final String ERROR_DOC = "log(VALUE, MESSAGE): logs the value prepended with the message on the console at log level ERROR. Function acts as identity form the perspective of the PDP.";
+
 	private static final String TRACE_DOC = "log(VALUE, MESSAGE): logs the value prepended with the message on the console at log level TRACE. Function acts as identity form the perspective of the PDP.";
+
 	private static final String WARN_DOC = "log(VALUE, MESSAGE): logs the value prepended with the message on the console at log level WARN. Function acts as identity form the perspective of the PDP.";
 
 	@Function(docs = INFO_DOC)

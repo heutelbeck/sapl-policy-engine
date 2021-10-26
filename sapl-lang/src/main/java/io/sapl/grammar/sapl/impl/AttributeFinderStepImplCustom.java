@@ -30,6 +30,7 @@ import reactor.core.publisher.Flux;
 public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
 	private static final String UNDEFINED_VALUE = "Undefined value handed over as parameter to policy information point";
+
 	private static final String EXTERNAL_ATTRIBUTE_IN_TARGET = "Attribute resolution error. Attribute '%s' is not allowed in target.";
 
 	@Override

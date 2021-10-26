@@ -46,20 +46,27 @@ import lombok.extern.slf4j.Slf4j;
 public class AnnotationFunctionContext implements FunctionContext {
 
 	private static final int VAR_ARGS = -1;
+
 	private static final String DOT = ".";
+
 	private static final String UNKNOWN_FUNCTION = "Unknown function %s";
+
 	private static final String ILLEGAL_NUMBER_OF_PARAMETERS = "Illegal number of parameters. Function expected %d but got %d";
+
 	private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION = "Provided class has no @FunctionLibrary annotation.";
+
 	private static final String ILLEGAL_PARAMETER_FOR_IMPORT = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
+
 	private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT = "Function does not return a Val. Cannot be loaded. Type was: %s.";
 
 	private final Collection<LibraryDocumentation> documentation = new LinkedList<>();
+
 	private final Map<String, FunctionMetadata> functions = new HashMap<>();
+
 	private final Map<String, Collection<String>> libraries = new HashMap<>();
 
 	/**
 	 * Create context from a list of function libraries.
-	 * 
 	 * @param libraries list of function libraries @ if loading libraries fails
 	 * @throws InitializationException
 	 */
@@ -90,7 +97,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 		for (int i = 0; i < parameters.length; i++) {
 			try {
 				ParameterTypeValidator.validateType(parameters[i], funParams[i]);
-			} catch (IllegalParameterType e) {
+			}
+			catch (IllegalParameterType e) {
 				return invokationExceptionToError(e, metadata, (Object[]) parameters);
 			}
 		}
@@ -101,7 +109,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 		for (Val parameter : parameters) {
 			try {
 				ParameterTypeValidator.validateType(parameter, funParams[0]);
-			} catch (IllegalParameterType e) {
+			}
+			catch (IllegalParameterType e) {
 				return invokationExceptionToError(e, metadata, (Object[]) parameters);
 			}
 		}
@@ -111,7 +120,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 	private Val invokeFunction(FunctionMetadata metadata, Object... parameters) {
 		try {
 			return (Val) metadata.getFunction().invoke(metadata.getLibrary(), parameters);
-		} catch (PolicyEvaluationException | IllegalAccessException | InvocationTargetException e) {
+		}
+		catch (PolicyEvaluationException | IllegalAccessException | InvocationTargetException e) {
 			return invokationExceptionToError(e, metadata, parameters);
 		}
 	}
@@ -169,7 +179,8 @@ public class AnnotationFunctionContext implements FunctionContext {
 			if (parameters == 1 && parameterType.isArray()
 					&& Val.class.isAssignableFrom(parameterType.getComponentType())) {
 				parameters = VAR_ARGS;
-			} else if (!Val.class.isAssignableFrom(parameterType)) {
+			}
+			else if (!Val.class.isAssignableFrom(parameterType)) {
 				throw new InitializationException(ILLEGAL_PARAMETER_FOR_IMPORT, parameterType.getName());
 			}
 		}
@@ -211,17 +222,22 @@ public class AnnotationFunctionContext implements FunctionContext {
 	@Data
 	@AllArgsConstructor
 	public static class FunctionMetadata {
+
 		@NonNull
 		String name;
+
 		@NonNull
 		Object library;
+
 		int parameterCardinality;
+
 		@NonNull
 		Method function;
 
 		public boolean isVarArgs() {
 			return parameterCardinality == VAR_ARGS;
 		}
+
 	}
 
 	@Override

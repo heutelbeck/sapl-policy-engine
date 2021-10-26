@@ -38,127 +38,126 @@ import static org.mockito.Mockito.when;
 
 class BoolTest {
 
-    Bool constantBool;
-    Bool expressionBool;
+	Bool constantBool;
 
-    @BeforeEach
-    void setUp() {
-        constantBool = new Bool(false);
+	Bool expressionBool;
 
-        var expressionMock = mock(Expression.class, RETURNS_DEEP_STUBS);
-        when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.TRUE));
-        expressionBool = new Bool(expressionMock, Collections.emptyMap());
-    }
+	@BeforeEach
+	void setUp() {
+		constantBool = new Bool(false);
 
-    @Test
-    void constructUsingConstantTest() {
-        assertThat(constantBool, is(notNullValue()));
-        assertThat(constantBool.isImmutable(), is(true));
-        assertThat(constantBool.hashCode(), not(is(0)));
-    }
+		var expressionMock = mock(Expression.class, RETURNS_DEEP_STUBS);
+		when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.TRUE));
+		expressionBool = new Bool(expressionMock, Collections.emptyMap());
+	}
 
-    @Test
-    void constructUsingExpressionTest() {
-        assertThat(expressionBool, is(notNullValue()));
-        assertThat(expressionBool.isImmutable(), is(false));
-    }
+	@Test
+	void constructUsingConstantTest() {
+		assertThat(constantBool, is(notNullValue()));
+		assertThat(constantBool.isImmutable(), is(true));
+		assertThat(constantBool.hashCode(), not(is(0)));
+	}
 
+	@Test
+	void constructUsingExpressionTest() {
+		assertThat(expressionBool, is(notNullValue()));
+		assertThat(expressionBool.isImmutable(), is(false));
+	}
 
-    @Test
-    @SuppressWarnings("unlikely-arg-type")
-    void equalsTest() {
-        assertThat(constantBool.equals(constantBool), is(true));
-        assertThat(expressionBool.equals(expressionBool), is(true));
-        assertThat(expressionBool.equals(constantBool), is(false));
+	@Test
+	@SuppressWarnings("unlikely-arg-type")
+	void equalsTest() {
+		assertThat(constantBool.equals(constantBool), is(true));
+		assertThat(expressionBool.equals(expressionBool), is(true));
+		assertThat(expressionBool.equals(constantBool), is(false));
 
-        assertThat(constantBool.equals(null), is(false));
-        assertThat(constantBool.equals(""), is(false));
+		assertThat(constantBool.equals(null), is(false));
+		assertThat(constantBool.equals(""), is(false));
 
-        assertThat(constantBool.equals(new Bool(false)), is(true));
-        assertThat(constantBool.equals(new Bool(true)), is(false));
+		assertThat(constantBool.equals(new Bool(false)), is(true));
+		assertThat(constantBool.equals(new Bool(true)), is(false));
 
-        try (MockedStatic<EquivalenceAndHashUtil> mock = mockStatic(EquivalenceAndHashUtil.class)) {
-            mock.when(() -> EquivalenceAndHashUtil.semanticHash(any(), any())).thenReturn(42);
+		try (MockedStatic<EquivalenceAndHashUtil> mock = mockStatic(EquivalenceAndHashUtil.class)) {
+			mock.when(() -> EquivalenceAndHashUtil.semanticHash(any(), any())).thenReturn(42);
 
-            var expressionMock = mock(Expression.class, RETURNS_DEEP_STUBS);
-            var otherExpressionBool = new Bool(expressionMock, Collections.emptyMap());
+			var expressionMock = mock(Expression.class, RETURNS_DEEP_STUBS);
+			var otherExpressionBool = new Bool(expressionMock, Collections.emptyMap());
 
-            assertThat(expressionBool.equals(otherExpressionBool), is(false));
-        }
+			assertThat(expressionBool.equals(otherExpressionBool), is(false));
+		}
 
-    }
+	}
 
-    @Test
-    void evaluate_immutable_bool() {
-        assertThat(constantBool.evaluate(), is(false));
-        assertThrows(IllegalStateException.class, () -> expressionBool.evaluate());
-    }
+	@Test
+	void evaluate_immutable_bool() {
+		assertThat(constantBool.evaluate(), is(false));
+		assertThrows(IllegalStateException.class, () -> expressionBool.evaluate());
+	}
 
+	@Test
+	void evaluating_bool_with_error_expression_should_return_error() {
+		var contextMock = mock(EvaluationContext.class);
+		when(contextMock.withImports(any())).thenReturn(contextMock);
 
-    @Test
-    void evaluating_bool_with_error_expression_should_return_error() {
-        var contextMock = mock(EvaluationContext.class);
-        when(contextMock.withImports(any())).thenReturn(contextMock);
+		var expressionMock = mock(Expression.class);
+		when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.error("error")));
 
-        var expressionMock = mock(Expression.class);
-        when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.error("error")));
+		var bool = new Bool(expressionMock, Collections.emptyMap());
+		var result = bool.evaluate(contextMock).block();
 
-        var bool = new Bool(expressionMock, Collections.emptyMap());
-        var result = bool.evaluate(contextMock).block();
+		assertThat(result.isError(), is(true));
+		assertThat(result.getMessage(), is("error"));
+	}
 
-        assertThat(result.isError(), is(true));
-        assertThat(result.getMessage(), is("error"));
-    }
+	@Test
+	void evaluating_bool_with_false_expression_should_return_false() {
+		var contextMock = mock(EvaluationContext.class);
+		when(contextMock.withImports(any())).thenReturn(contextMock);
 
+		var expressionMock = mock(Expression.class);
+		when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.FALSE));
 
-    @Test
-    void evaluating_bool_with_false_expression_should_return_false() {
-        var contextMock = mock(EvaluationContext.class);
-        when(contextMock.withImports(any())).thenReturn(contextMock);
+		var bool = new Bool(expressionMock, Collections.emptyMap());
+		var result = bool.evaluate(contextMock).block();
 
-        var expressionMock = mock(Expression.class);
-        when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.FALSE));
+		assertThat(result.isBoolean(), is(true));
+		assertThat(result.getBoolean(), is(false));
+	}
 
-        var bool = new Bool(expressionMock, Collections.emptyMap());
-        var result = bool.evaluate(contextMock).block();
+	@Test
+	void evaluating_bool_with_long_expression_should_return_error() {
+		var contextMock = mock(EvaluationContext.class);
+		when(contextMock.withImports(any())).thenReturn(contextMock);
 
-        assertThat(result.isBoolean(), is(true));
-        assertThat(result.getBoolean(), is(false));
-    }
+		var expressionMock = mock(Expression.class);
+		when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.of(0L)));
 
-    @Test
-    void evaluating_bool_with_long_expression_should_return_error() {
-        var contextMock = mock(EvaluationContext.class);
-        when(contextMock.withImports(any())).thenReturn(contextMock);
+		var bool = new Bool(expressionMock, Collections.emptyMap());
+		var result = bool.evaluate(contextMock).block();
 
-        var expressionMock = mock(Expression.class);
-        when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(Val.of(0L)));
+		assertThat(result.isBoolean(), is(false));
+		assertThat(result.isError(), is(true));
+	}
 
-        var bool = new Bool(expressionMock, Collections.emptyMap());
-        var result = bool.evaluate(contextMock).block();
+	@Test
+	void evaluating_bool_with_impossible_expression_should_return_impossible_value() {
+		var contextMock = mock(EvaluationContext.class);
+		when(contextMock.withImports(any())).thenReturn(contextMock);
 
-        assertThat(result.isBoolean(), is(false));
-        assertThat(result.isError(), is(true));
-    }
+		// condition coverage requires Val to be boolean and error at the same time ->
+		// impossible
+		var valMock = mock(Val.class);
+		when(valMock.isError()).thenReturn(true);
+		when(valMock.isBoolean()).thenReturn(true);
 
-    @Test
-    void evaluating_bool_with_impossible_expression_should_return_impossible_value() {
-        var contextMock = mock(EvaluationContext.class);
-        when(contextMock.withImports(any())).thenReturn(contextMock);
+		var expressionMock = mock(Expression.class);
+		when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(valMock));
 
-        //condition coverage requires Val to be boolean and error at the same time -> impossible
-        var valMock = mock(Val.class);
-        when(valMock.isError()).thenReturn(true);
-        when(valMock.isBoolean()).thenReturn(true);
+		var bool = new Bool(expressionMock, Collections.emptyMap());
+		var result = bool.evaluate(contextMock).block();
 
-        var expressionMock = mock(Expression.class);
-        when(expressionMock.evaluate(any(), any())).thenReturn(Flux.just(valMock));
-
-        var bool = new Bool(expressionMock, Collections.emptyMap());
-        var result = bool.evaluate(contextMock).block();
-
-        assertThat(result.isError(), is(true));
-        assertThat(result.isBoolean(), is(true));
-    }
+		assertThat(result.isError(), is(true));
+		assertThat(result.isBoolean(), is(true));
+	}
 
 }

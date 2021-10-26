@@ -40,10 +40,10 @@ public class PolicyImplCustomCoverage extends PolicyImplCustom {
 	@Override
 	public Mono<Val> matches(EvaluationContext ctx) {
 		return super.matches(ctx).doOnNext(matches -> {
-			if(matches.isBoolean() && matches.getBoolean()) {
+			if (matches.isBoolean() && matches.getBoolean()) {
 				String policySetId = "";
 				EObject eContainer = eContainer();
-				if(eContainer.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
+				if (eContainer.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 					policySetId = ((PolicySet) eContainer()).getSaplName();
 				}
 				PolicyHit hit = new PolicyHit(policySetId, getSaplName());
@@ -51,6 +51,7 @@ public class PolicyImplCustomCoverage extends PolicyImplCustom {
 				this.hitRecorder.recordPolicyHit(hit);
 			}
 		});
-		
+
 	}
+
 }

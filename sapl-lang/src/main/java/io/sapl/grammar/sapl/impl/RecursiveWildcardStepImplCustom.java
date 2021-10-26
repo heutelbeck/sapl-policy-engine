@@ -25,8 +25,8 @@ import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of a recursive wildcard step to a previous value,
- * e.g. 'obj..*' or 'arr..[*]'.
+ * Implements the application of a recursive wildcard step to a previous value, e.g.
+ * 'obj..*' or 'arr..[*]'.
  *
  * Grammar: Step: '..' ({RecursiveWildcardStep} ('*' | '[' '*' ']' )) ;
  */
@@ -56,7 +56,8 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 				}
 				collect(item, results);
 			}
-		} else if (node.isObject()) {
+		}
+		else if (node.isObject()) {
 			var iter = node.fields();
 			while (iter.hasNext()) {
 				var item = iter.next().getValue();
@@ -65,7 +66,8 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 				}
 				collect(item, results);
 			}
-		} else {
+		}
+		else {
 			results.add(node);
 		}
 		return results;

@@ -32,10 +32,10 @@ class CoverageRatioCalculatorTest {
 		var hits = List.of(new PolicySetHit("set1"));
 
 		var ratio = calculator.calculateRatio(targets, hits);
-		
-		assertEquals(50.0f, ratio);		
+
+		assertEquals(50.0f, ratio);
 	}
-	
+
 	@Test
 	void test_listOfHitsContainsElementsNotInAvailableTargets() {
 		var calculator = new CoverageRatioCalculator();
@@ -43,10 +43,10 @@ class CoverageRatioCalculatorTest {
 		var hits = List.of(new PolicySetHit("set1"), new PolicySetHit("set999"));
 
 		var ratio = calculator.calculateRatio(targets, hits);
-		
-		assertEquals(50.0f, ratio);		
+
+		assertEquals(50.0f, ratio);
 	}
-	
+
 	@Test
 	void test_EmptyTargetColletion() {
 		var calculator = new CoverageRatioCalculator();
@@ -58,7 +58,6 @@ class CoverageRatioCalculatorTest {
 		assertEquals(0f, ratio);
 	}
 
-	
 	@Test
 	void test_zeroHits() {
 		var calculator = new CoverageRatioCalculator();
@@ -68,6 +67,7 @@ class CoverageRatioCalculatorTest {
 		var ratio = calculator.calculateRatio(targets, hits);
 
 		assertEquals(0f, ratio);
-		
+
 	}
+
 }

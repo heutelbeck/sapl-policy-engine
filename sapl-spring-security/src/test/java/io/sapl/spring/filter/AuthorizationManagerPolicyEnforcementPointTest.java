@@ -42,6 +42,7 @@ public class AuthorizationManagerPolicyEnforcementPointTest {
 			.just(new TestingAuthenticationToken("user", "password", "ROLE_1", "ROLE_2"));
 
 	private AuthorizationManagerPolicyEnforcementPoint<AuthorizationContext> sut;
+
 	private PolicyEnforcementPoint pep;
 
 	@BeforeEach

@@ -42,7 +42,9 @@ import reactor.retry.Repeat;
 public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
 	private static final String DECIDE = "/api/pdp/decide";
+
 	private static final String MULTI_DECIDE = "/api/pdp/multi-decide";
+
 	private static final String MULTI_DECIDE_ALL = "/api/pdp/multi-decide-all";
 
 	private final WebClient client;
@@ -50,9 +52,11 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 	@Setter
 	@Getter
 	private int firstBackoffMillis = 500;
+
 	@Setter
 	@Getter
 	private int maxBackOffMillis = 5000;
+
 	@Setter
 	@Getter
 	private int backoffFactor = 2;

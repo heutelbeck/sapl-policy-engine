@@ -107,7 +107,7 @@ public class GenericCoverageReporterTest {
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(), List.of());
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -122,7 +122,7 @@ public class GenericCoverageReporterTest {
 		assertEquals(4, docs.get(0).getLine(4).getLineNumber());
 		assertEquals(LineCoveredValue.IRRELEVANT, docs.get(0).getLine(4).getCoveredValue());
 	}
-	
+
 	@Test
 	public void test_policySetWithTarget() {
 		// arrange
@@ -133,7 +133,7 @@ public class GenericCoverageReporterTest {
 		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(), List.of());
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -164,7 +164,7 @@ public class GenericCoverageReporterTest {
 		Mockito.when(mockPolicyElement.eClass()).thenReturn(SaplPackage.Literals.POLICY_BODY);
 
 		// act
-		//		// assert 
+		// // assert
 		assertThrows(SaplTestException.class, () -> reporter.calcDocumentCoverage(documents, hits));
 
 	}
@@ -179,7 +179,7 @@ public class GenericCoverageReporterTest {
 		CoverageTargets hits = new CoverageTargets(List.of(setHit), List.of(), List.of());
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -210,7 +210,7 @@ public class GenericCoverageReporterTest {
 				List.of(conditionHit1, conditionHit2));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -237,7 +237,7 @@ public class GenericCoverageReporterTest {
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -266,7 +266,7 @@ public class GenericCoverageReporterTest {
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -283,7 +283,7 @@ public class GenericCoverageReporterTest {
 		assertEquals(5, docs.get(0).getLine(5).getLineNumber());
 		assertEquals(LineCoveredValue.NEVER, docs.get(0).getLine(5).getCoveredValue());
 	}
-	
+
 	@Test
 	public void test_policyBodyValueDefinitionFULLY_notDependingOnFollowingCondition() {
 		// arrange
@@ -295,7 +295,7 @@ public class GenericCoverageReporterTest {
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -313,7 +313,6 @@ public class GenericCoverageReporterTest {
 		assertEquals(LineCoveredValue.PARTLY, docs.get(0).getLine(5).getCoveredValue());
 	}
 
-
 	@Test
 	public void test_policyBodyMultipleStatementsPerLine_markFullyWhenFully() {
 		// arrange
@@ -329,7 +328,7 @@ public class GenericCoverageReporterTest {
 				List.of(conditionHit1, conditionHit2, conditionHit3, conditionHit4));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -363,7 +362,7 @@ public class GenericCoverageReporterTest {
 				List.of(conditionHit1, conditionHit2, conditionHit3));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -396,11 +395,10 @@ public class GenericCoverageReporterTest {
 				List.of(conditionHit1, conditionHit2));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		// assert
 		assertThrows(SaplTestException.class, () -> reporter.calcDocumentCoverage(documents, hits));
 	}
-
 
 	@Test
 	public void test_policyBodyMultipleStatementsPerLine_markPartlyWhenFully() {
@@ -416,7 +414,7 @@ public class GenericCoverageReporterTest {
 				List.of(conditionHit1, conditionHit2, conditionHit3));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -449,7 +447,7 @@ public class GenericCoverageReporterTest {
 				List.of(conditionHit1, conditionHit2));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -477,16 +475,13 @@ public class GenericCoverageReporterTest {
 				.of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 1, true);
-		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit),
-				List.of(conditionHit1));
+		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		// assert
 		assertThrows(SaplTestException.class, () -> reporter.calcDocumentCoverage(documents, hits));
 	}
-
-
 
 	@Test
 	public void test_policyBodyMultipleStatementsPerLine_markNeverWhenFully() {
@@ -501,7 +496,7 @@ public class GenericCoverageReporterTest {
 				List.of(conditionHit1, conditionHit2));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -529,11 +524,10 @@ public class GenericCoverageReporterTest {
 				.of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, true);
-		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit),
-				List.of(conditionHit1));
+		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -560,11 +554,10 @@ public class GenericCoverageReporterTest {
 		Collection<SaplDocument> documents = List
 				.of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
 		PolicyHit policyHit = new PolicyHit("", "policy1");
-		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit),
-				List.of());
+		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of());
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -593,10 +586,11 @@ public class GenericCoverageReporterTest {
 		PolicyHit policyHit = new PolicyHit("", "policy1");
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, true);
 		PolicyConditionHit conditionHit2 = new PolicyConditionHit("", "policy1", 0, false);
-		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1, conditionHit2));
+		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit),
+				List.of(conditionHit1, conditionHit2));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -626,8 +620,8 @@ public class GenericCoverageReporterTest {
 		PolicyConditionHit conditionHit1 = new PolicyConditionHit("", "policy1", 0, true);
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
-		
-		// act 
+
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -647,10 +641,9 @@ public class GenericCoverageReporterTest {
 		assertEquals(1, docs.get(0).getLine(4).getCoveredBranches());
 	}
 
-
 	@Test
 	public void test_policyBodyMultipleStatementsPerLine_WithValue_markFullyWhenNever() {
-		//cannot be reached due to isLastStatementHit if clause
+		// cannot be reached due to isLastStatementHit if clause
 	}
 
 	@Test
@@ -669,7 +662,7 @@ public class GenericCoverageReporterTest {
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of(conditionHit1));
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert
@@ -689,7 +682,6 @@ public class GenericCoverageReporterTest {
 		assertEquals(1, docs.get(0).getLine(4).getCoveredBranches());
 	}
 
-
 	@Test
 	public void test_policyBodyMultipleStatementsPerLine_WithValue_markNeverWhenNever() {
 		// arrange
@@ -700,7 +692,7 @@ public class GenericCoverageReporterTest {
 		CoverageTargets hits = new CoverageTargets(List.of(), List.of(policyHit), List.of());
 		GenericCoverageReporter reporter = new GenericCoverageReporter();
 
-		// act 
+		// act
 		List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
 
 		// assert

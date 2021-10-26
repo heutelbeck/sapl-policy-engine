@@ -31,15 +31,15 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * This strict algorithm is used if the decision should be DENY except for there
- * is a PERMIT. It ensures that any decision is either DENY or PERMIT.
- * 
+ * This strict algorithm is used if the decision should be DENY except for there is a
+ * PERMIT. It ensures that any decision is either DENY or PERMIT.
+ *
  * It works as follows:
- * 
- * - If any policy document evaluates to PERMIT and there is no transformation
- * uncertainty (multiple policies evaluate to PERMIT and at least one of them
- * has a transformation statement), the decision is PERMIT.
- * 
+ *
+ * - If any policy document evaluates to PERMIT and there is no transformation uncertainty
+ * (multiple policies evaluate to PERMIT and at least one of them has a transformation
+ * statement), the decision is PERMIT.
+ *
  * - Otherwise the decision is DENY.
  */
 @Slf4j
@@ -65,7 +65,8 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
 					// this the overall result is basically INDETERMINATE.
 					// However, DENY overrides with this algorithm.
 					entitlement = DENY;
-				} else {
+				}
+				else {
 					resource = decision.getResource();
 				}
 			}
@@ -80,4 +81,5 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
 	public Flux<AuthorizationDecision> combinePolicies(List<Policy> policies, EvaluationContext ctx) {
 		return doCombinePolicies(policies, ctx);
 	}
+
 }

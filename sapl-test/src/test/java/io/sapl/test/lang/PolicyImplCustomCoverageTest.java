@@ -33,11 +33,11 @@ import io.sapl.test.coverage.api.model.PolicyHit;
 public class PolicyImplCustomCoverageTest {
 
 	CoverageHitRecorder recorder;
-	
+
 	private SAPLInterpreter INTERPRETER;
 
 	private EvaluationContext ctx;
-	
+
 	@BeforeEach
 	void setup() {
 		this.recorder = Mockito.mock(CoverageHitRecorder.class);
@@ -54,16 +54,16 @@ public class PolicyImplCustomCoverageTest {
 		Assertions.assertThat(policy.matches(ctx.forAuthorizationSubscription(authzSub)).block().getBoolean()).isTrue();
 		Mockito.verify(this.recorder, Mockito.times(1)).recordPolicyHit(Mockito.isA(PolicyHit.class));
 	}
-	
-	
+
 	@Test
 	void test_NotMatching() {
 		var policy = INTERPRETER.parse("policy \"p\" permit action == \"read\"");
 		AuthorizationSubscription authzSub = AuthorizationSubscription.of("willi", "write", "something");
-		Assertions.assertThat(policy.matches(ctx.forAuthorizationSubscription(authzSub)).block().getBoolean()).isFalse();
+		Assertions.assertThat(policy.matches(ctx.forAuthorizationSubscription(authzSub)).block().getBoolean())
+				.isFalse();
 		Mockito.verify(this.recorder, Mockito.never()).recordPolicyHit(Mockito.isA(PolicyHit.class));
 	}
-	
+
 	@Test
 	void test_matchesThrowsError() {
 		var policy = INTERPRETER.parse("policy \"p\" permit action.<pip.attr> == \"test\"");
@@ -72,5 +72,4 @@ public class PolicyImplCustomCoverageTest {
 		Mockito.verify(this.recorder, Mockito.never()).recordPolicyHit(Mockito.isA(PolicyHit.class));
 	}
 
-	
 }

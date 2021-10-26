@@ -28,8 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of an index step to a previous array value, e.g.
- * 'arr[2]'.
+ * Implements the application of an index step to a previous array value, e.g. 'arr[2]'.
  *
  * Grammar: Step: '[' Subscript ']' ;
  *
@@ -39,6 +38,7 @@ import reactor.core.publisher.Flux;
 public class IndexStepImplCustom extends IndexStepImpl {
 
 	private static final String TYPE_MISMATCH_CAN_ONLY_ACCESS_ARRAYS_BY_INDEX_GOT_S = "Type mismatch. Can only access arrays by index, got: %s";
+
 	private static final String INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D = "Index out of bounds. Index must be between 0 and %d, was: %d ";
 
 	@Override
@@ -73,7 +73,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 	}
 
 	public static Flux<Val> doApplyFilterStatement(BigDecimal index, Val parentValue, EvaluationContext ctx,
-												   Val relativeNode, int stepId, FilterStatement statement) {
+			Val relativeNode, int stepId, FilterStatement statement) {
 		log.trace("apply index step [{}] to: {}", index, parentValue);
 		if (!parentValue.isArray()) {
 			// this means the element does not get selected does not get filtered
@@ -98,17 +98,20 @@ public class IndexStepImplCustom extends IndexStepImpl {
 							FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
 									FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
 									parentValue, statement.isEach()));
-				} else {
+				}
+				else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					elementFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
 							.applyFilterStatement(Val.of(element), ctx, relativeNode, stepId + 1, statement));
 				}
-			} else {
+			}
+			else {
 				log.trace("[{}] not selected. Just return as is. Not affected by filtering.", i);
 				elementFluxes.add(Flux.just(Val.of(element)));
 			}
 		}
 		return Flux.combineLatest(elementFluxes, RepackageUtil::recombineArray);
 	}
+
 }

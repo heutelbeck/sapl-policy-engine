@@ -36,6 +36,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
 
 class MethodInvocationSerializerTests {
+
 	private ObjectMapper mapper = new ObjectMapper();
 
 	private JsonNode serialize(MethodInvocation invocation) throws IOException {
@@ -160,7 +161,7 @@ class MethodInvocationSerializerTests {
 	void whenNoModifiersVoid_thenMethodAndModifiersAreDescribedInJson() throws IOException {
 		var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "noModVoid");
 		var result = serialize(invocation);
-		//System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(result));
+		// System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(result));
 		assertThat(result,
 				is(jsonObject().where(MethodInvocationSerializer.NAME, is(jsonText("noModVoid")))
 						.where(MethodInvocationSerializer.DECLARING_TYPE_NAME, is(jsonText(TestClass.class.getName())))
@@ -168,9 +169,11 @@ class MethodInvocationSerializerTests {
 	}
 
 	public static abstract class AbstractTestClass {
+
 	}
 
 	public static class TestClass extends AbstractTestClass implements Serializable {
+
 		public void publicVoid() {
 		}
 
@@ -195,5 +198,7 @@ class MethodInvocationSerializerTests {
 
 		void noModVoid() {
 		}
+
 	}
+
 }

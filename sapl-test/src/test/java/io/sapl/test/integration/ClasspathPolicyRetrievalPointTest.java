@@ -45,17 +45,20 @@ import io.sapl.test.lang.TestSaplInterpreter;
 public class ClasspathPolicyRetrievalPointTest {
 
 	private static final AuthorizationSubscription EMPTY_SUBSCRIPTION = AuthorizationSubscription.of(null, null, null);
+
 	private CoverageHitRecorder recorder;
+
 	private SAPLInterpreter interpreter;
+
 	private EvaluationContext ctx;
-	
+
 	@BeforeEach
 	void setup() {
 		recorder = Mockito.mock(CoverageHitRecorder.class);
 		interpreter = new TestSaplInterpreter(recorder);
 		ctx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(), new HashMap<>());
 	}
-	
+
 	@Test
 	void test() {
 		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("policiesIT"), this.interpreter);
@@ -63,95 +66,94 @@ public class ClasspathPolicyRetrievalPointTest {
 		var prpResult = prp.retrievePolicies(ctx.forAuthorizationSubscription(authzSubscription)).blockFirst();
 		Assertions.assertThat(prpResult.getMatchingDocuments().size()).isEqualTo(2);
 	}
-	
+
 	@Test
 	void test_dispose() {
 		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("policiesIT"), this.interpreter);
 		prp.dispose();
 		Assertions.assertThatNoException();
 	}
-	
-	
+
 	@Test
 	void test_invalidPath() {
-		assertThrows(SaplTestException.class, () -> new ClasspathPolicyRetrievalPoint(Paths.get("notExisting"), this.interpreter));
+		assertThrows(SaplTestException.class,
+				() -> new ClasspathPolicyRetrievalPoint(Paths.get("notExisting"), this.interpreter));
 	}
-	
-	
-    @Test
-    void return_empty_result_when_no_documents_are_published() {
-    	PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it"), this.interpreter);
-        var evaluationCtx = ctx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
 
-        PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
+	@Test
+	void return_empty_result_when_no_documents_are_published() {
+		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it"), this.interpreter);
+		var evaluationCtx = ctx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
 
-        assertThat(result, notNullValue());
-        assertThat(result.getMatchingDocuments(), empty());
-        assertThat(result.isErrorsInTarget(), is(false));
-        assertThat(result.isPrpValidState(), is(true));
-    }
+		PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
 
-    @Test
-    void return_fail_fast_for_invalid_document() {
-        assertThrows(PolicyEvaluationException.class, () ->  new ClasspathPolicyRetrievalPoint(Paths.get("it/invalid"), this.interpreter));
-    }
+		assertThat(result, notNullValue());
+		assertThat(result.getMatchingDocuments(), empty());
+		assertThat(result.isErrorsInTarget(), is(false));
+		assertThat(result.isPrpValidState(), is(true));
+	}
 
-    @Test
-    void return_error_flag_when_evaluation_throws_exception() {
-    	PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/error"), this.interpreter);
-        var evaluationCtx = ctx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
+	@Test
+	void return_fail_fast_for_invalid_document() {
+		assertThrows(PolicyEvaluationException.class,
+				() -> new ClasspathPolicyRetrievalPoint(Paths.get("it/invalid"), this.interpreter));
+	}
 
-        PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
+	@Test
+	void return_error_flag_when_evaluation_throws_exception() {
+		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/error"), this.interpreter);
+		var evaluationCtx = ctx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
 
+		PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
 
-        assertThat(result, notNullValue());
-        assertThat(result.getMatchingDocuments(), empty());
-        assertThat(result.isErrorsInTarget(), is(true));
-        assertThat(result.isPrpValidState(), is(true));
-    }
+		assertThat(result, notNullValue());
+		assertThat(result.getMatchingDocuments(), empty());
+		assertThat(result.isErrorsInTarget(), is(true));
+		assertThat(result.isPrpValidState(), is(true));
+	}
 
-    @Test
-    void return_matching_document_for_valid_subscription() {
-    	PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/policies"), this.interpreter);
-    	
-        var authzSubscription1 = AuthorizationSubscription.of(null, "read", null);
-        PolicyRetrievalResult result1 = prp.retrievePolicies(ctx.forAuthorizationSubscription(authzSubscription1)).blockFirst();
+	@Test
+	void return_matching_document_for_valid_subscription() {
+		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/policies"), this.interpreter);
 
+		var authzSubscription1 = AuthorizationSubscription.of(null, "read", null);
+		PolicyRetrievalResult result1 = prp.retrievePolicies(ctx.forAuthorizationSubscription(authzSubscription1))
+				.blockFirst();
 
-        assertThat(result1, notNullValue());
-        assertThat(result1.getMatchingDocuments().size(), is(1));
-        assertThat(result1.isErrorsInTarget(), is(false));
+		assertThat(result1, notNullValue());
+		assertThat(result1.getMatchingDocuments().size(), is(1));
+		assertThat(result1.isErrorsInTarget(), is(false));
 
-        assertThat(result1.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get().getPolicyElement()
-                .getSaplName(), is("policy read"));
+		assertThat(result1.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get().getPolicyElement()
+				.getSaplName(), is("policy read"));
 
+		var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
-        var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "icecream");
+		PolicyRetrievalResult result2 = prp.retrievePolicies(ctx.forAuthorizationSubscription(authzSubscription2))
+				.blockFirst();
 
-        PolicyRetrievalResult result2 = prp.retrievePolicies(ctx.forAuthorizationSubscription(authzSubscription2)).blockFirst();
+		assertThat(result2, notNullValue());
+		assertThat(result2.getMatchingDocuments().size(), is(1));
+		assertThat(result2.isErrorsInTarget(), is(false));
+		assertThat(result2.isPrpValidState(), is(true));
 
-        assertThat(result2, notNullValue());
-        assertThat(result2.getMatchingDocuments().size(), is(1));
-        assertThat(result2.isErrorsInTarget(), is(false));
-        assertThat(result2.isPrpValidState(), is(true));
+		assertThat(result2.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get().getPolicyElement()
+				.getSaplName(), is("policy eat icecream"));
+	}
 
-        assertThat(result2.getMatchingDocuments().stream().map(doc -> (SAPL) doc).findFirst().get().getPolicyElement()
-                .getSaplName(), is("policy eat icecream"));
-    }
+	@Test
+	void return_empty_result_for_non_matching_subscription() {
+		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/policies"), this.interpreter);
+		var evaluationCtx = ctx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
 
-    @Test
-    void return_empty_result_for_non_matching_subscription() {
-    	PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/policies"), this.interpreter);
-        var evaluationCtx = ctx.forAuthorizationSubscription(EMPTY_SUBSCRIPTION);
+		PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
 
-        PolicyRetrievalResult result = prp.retrievePolicies(evaluationCtx).blockFirst();
+		assertThat(result, notNullValue());
+		assertThat(result.getMatchingDocuments(), empty());
+		assertThat(result.isErrorsInTarget(), is(false));
+		assertThat(result.isPrpValidState(), is(true));
+	}
 
-        assertThat(result, notNullValue());
-        assertThat(result.getMatchingDocuments(), empty());
-        assertThat(result.isErrorsInTarget(), is(false));
-        assertThat(result.isPrpValidState(), is(true));
-    }
-    
 	@Test
 	void test_matchingReturnsError() {
 		PolicyRetrievalPoint prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/error2"), this.interpreter);
@@ -159,4 +161,5 @@ public class ClasspathPolicyRetrievalPointTest {
 		var prpResult = prp.retrievePolicies(ctx.forAuthorizationSubscription(authzSubscription)).blockFirst();
 		Assertions.assertThat(prpResult.isErrorsInTarget()).isTrue();
 	}
+
 }

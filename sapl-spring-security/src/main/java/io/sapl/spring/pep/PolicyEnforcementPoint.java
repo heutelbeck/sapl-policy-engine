@@ -28,14 +28,15 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * This service can be used to establish a policy enforcement point at any
- * location in users code.
+ * This service can be used to establish a policy enforcement point at any location in
+ * users code.
  */
 @Service
 @RequiredArgsConstructor
 public class PolicyEnforcementPoint {
 
 	private final PolicyDecisionPoint pdp;
+
 	private final ConstraintEnforcementService constraintEnforcementService;
 
 	public Mono<Boolean> isPermitted(AuthorizationSubscription authzSubscription) {

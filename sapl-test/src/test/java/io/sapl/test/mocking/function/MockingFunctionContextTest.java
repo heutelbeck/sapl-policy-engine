@@ -42,6 +42,7 @@ import org.mockito.Mockito;
 public class MockingFunctionContextTest {
 
 	FunctionContext unmockedCtx;
+
 	MockingFunctionContext ctx;
 
 	@BeforeEach
@@ -53,44 +54,43 @@ public class MockingFunctionContextTest {
 	@Test
 	void test_invalidFullname() {
 		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> ctx.checkImportName("foo"));
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> ctx.checkImportName("foo.bar.xxx"));
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+				.isThrownBy(() -> ctx.checkImportName("foo.bar.xxx"));
 	}
 
 	@Test
 	void test_isProvided_False() {
 		Assertions.assertThat(this.ctx.isProvidedFunction("foo.bar")).isFalse();
 	}
-	
+
 	@Test
 	void test_FunctionMockAlwaysSameValue_duplicateRegistration() {
 		this.ctx.loadFunctionMockAlwaysSameValue("foo.bar", Val.of(1));
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
-			.isThrownBy(() -> this.ctx.loadFunctionMockAlwaysSameValue("foo.bar", Val.of(1)));
+				.isThrownBy(() -> this.ctx.loadFunctionMockAlwaysSameValue("foo.bar", Val.of(1)));
 	}
 
-	
 	@Test
 	void test_alreadyDefinedMock_NotFunctionMockSequence() {
 		this.ctx.loadFunctionMockAlwaysSameValue("foo.bar", Val.of(1));
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
-		.isThrownBy(() -> this.ctx.loadFunctionMockReturnsSequence("foo.bar", new Val[] {Val.of(1)}));
+				.isThrownBy(() -> this.ctx.loadFunctionMockReturnsSequence("foo.bar", new Val[] { Val.of(1) }));
 	}
-	
+
 	@Test
 	void test_alreadyDefinedMock_NotFunctionMockAlwaysSameForParameters() {
 		this.ctx.loadFunctionMockAlwaysSameValue("foo.bar", Val.of(1));
-		Assertions.assertThatExceptionOfType(SaplTestException.class)
-		.isThrownBy(() -> this.ctx.loadFunctionMockAlwaysSameValueForParameters("foo.bar", Val.of(1), whenFunctionParams(is(Val.of(1)))));
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> this.ctx
+				.loadFunctionMockAlwaysSameValueForParameters("foo.bar", Val.of(1), whenFunctionParams(is(Val.of(1)))));
 	}
-	
+
 	@Test
 	void test_FunctionMockValueFromFunction_duplicateRegistration() {
 		this.ctx.loadFunctionMockValueFromFunction("foo.bar", (call) -> Val.of(1));
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
-			.isThrownBy(() -> this.ctx.loadFunctionMockValueFromFunction("foo.bar", (call) -> Val.of(1)));
+				.isThrownBy(() -> this.ctx.loadFunctionMockValueFromFunction("foo.bar", (call) -> Val.of(1)));
 	}
-	
-	
+
 	@Test
 	void test_isProvided() {
 		when(unmockedCtx.isProvidedFunction("iii.iii")).thenReturn(true);
@@ -99,13 +99,13 @@ public class MockingFunctionContextTest {
 		when(unmockedCtx.providedFunctionsOfLibrary("iii")).thenReturn(List.of("iii", "iiii"));
 
 		ctx.loadFunctionMockValueFromFunction("foo.bar", (call) -> Val.of("1"));
-		ctx.loadFunctionMockValueFromFunction("foo.abc",  (call) -> Val.of("1"), times(1));
+		ctx.loadFunctionMockValueFromFunction("foo.abc", (call) -> Val.of("1"), times(1));
 		ctx.loadFunctionMockAlwaysSameValue("xxx.xxx", Val.of(1));
 		ctx.loadFunctionMockAlwaysSameValue("xxx.yyy", Val.of(1), times(1));
 		ctx.loadFunctionMockAlwaysSameValueForParameters("foo.123", Val.of(1), whenFunctionParams());
 		ctx.loadFunctionMockAlwaysSameValueForParameters("foo.456", Val.of(1), whenFunctionParams(), times(1));
 		ctx.loadFunctionMockOnceReturnValue("foo.789", Val.of(1));
-		ctx.loadFunctionMockReturnsSequence("foo.987", new Val[] {Val.of(1)});
+		ctx.loadFunctionMockReturnsSequence("foo.987", new Val[] { Val.of(1) });
 
 		Assertions.assertThat(ctx.isProvidedFunction("foo.bar")).isTrue();
 		Assertions.assertThat(ctx.isProvidedFunction("foo.abc")).isTrue();
@@ -117,7 +117,8 @@ public class MockingFunctionContextTest {
 		Assertions.assertThat(ctx.isProvidedFunction("foo.987")).isTrue();
 		Assertions.assertThat(ctx.isProvidedFunction("iii.iii")).isTrue();
 
-		Assertions.assertThat(ctx.providedFunctionsOfLibrary("foo")).containsAll(List.of("bar", "abc", "123", "456", "789", "987"));
+		Assertions.assertThat(ctx.providedFunctionsOfLibrary("foo"))
+				.containsAll(List.of("bar", "abc", "123", "456", "789", "987"));
 		Assertions.assertThat(ctx.providedFunctionsOfLibrary("xxx")).containsAll(List.of("xxx", "yyy"));
 		Assertions.assertThat(ctx.providedFunctionsOfLibrary("iii")).containsAll(List.of("iii", "iiii"));
 
@@ -147,15 +148,17 @@ public class MockingFunctionContextTest {
 		Assertions.assertThat(doc2.getName()).isEqualTo("test");
 		Assertions.assertThat(doc2.getDocumentation().containsKey("upper")).isTrue();
 	}
-	
+
 	@Test
-	void test_getAvailableLibraries_returnsAllAvailableLibraries() {	
+	void test_getAvailableLibraries_returnsAllAvailableLibraries() {
 		ctx.loadFunctionMockValueFromFunction("foo.bar", (call) -> Val.of("1"));
 		assertThat(this.ctx.getAvailableLibraries()).containsOnly("foo.bar");
-	}	
-	
+	}
+
 	@Test
 	void test_loadFunctionLibrary() {
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> this.ctx.loadLibrary(new TemporalFunctionLibrary()));
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+				.isThrownBy(() -> this.ctx.loadLibrary(new TemporalFunctionLibrary()));
 	}
+
 }

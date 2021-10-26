@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 public class JarUtilTest {
+
 	@Test
 	public void inferUrlOfRecourcesPathTest() {
 		var result = JarUtil.inferUrlOfRecourcesPath(getClass(), "/policies");

@@ -32,13 +32,15 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 /**
- * The Index Object has to be immutable to avoid race conditions. SAPL Objects
- * are assumed to be immutable.
+ * The Index Object has to be immutable to avoid race conditions. SAPL Objects are assumed
+ * to be immutable.
  */
 @Slf4j
 @ToString
 public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
+
 	private final Map<String, SAPL> documentsByName;
+
 	private final boolean consistent;
 
 	public NaiveImmutableParsedDocumentIndex() {
@@ -90,9 +92,11 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 		for (var update : event.getUpdates()) {
 			if (update.getType() == Type.CONSISTENT) {
 				newConsistencyState = true;
-			} else if (update.getType() == Type.INCONSISTENT) {
+			}
+			else if (update.getType() == Type.INCONSISTENT) {
 				newConsistencyState = false;
-			} else {
+			}
+			else {
 				applyUpdate(newDocuments, update);
 			}
 		}
@@ -104,7 +108,8 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 		var name = update.getDocument().getPolicyElement().getSaplName();
 		if (update.getType() == Type.UNPUBLISH) {
 			newDocuments.remove(name);
-		} else {
+		}
+		else {
 			newDocuments.put(name, update.getDocument());
 		}
 	}

@@ -23,8 +23,7 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the boolean value 'false'.
  *
- * Grammar: BooleanLiteral returns Value: {TrueLiteral} 'true' | {FalseLiteral}
- * 'false' ;
+ * Grammar: BooleanLiteral returns Value: {TrueLiteral} 'true' | {FalseLiteral} 'false' ;
  */
 public class FalseLiteralImplCustom extends FalseLiteralImpl {
 

@@ -71,4 +71,5 @@ class CanonicalIndexDataCreationStrategyTest {
 		assertThat(negativesGroupedByFormula, Matchers.contains(bool));
 		assertThat(boolToPredicateInfo.get(bool).getGroupedNumberOfNegatives(), is(1));
 	}
+
 }

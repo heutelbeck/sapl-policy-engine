@@ -71,22 +71,35 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 public class PostEnforcePolicyEnforcementPointTests {
+
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	private AuthorizationSubscriptionBuilderService subscriptionBuilderService;
+
 	private MethodInvocation invocation;
+
 	private ObjectMapper mapper;
+
 	private Mono<Integer> resourceAccessPoint;
+
 	private SaplAttributeFactory attributeFactory;
+
 	private PostEnforceAttribute defaultAttribute;
+
 	private PolicyDecisionPoint pdp;
 
 	List<RunnableConstraintHandlerProvider> globalRunnableProviders;
+
 	List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders;
+
 	List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders;
+
 	List<RequestHandlerProvider> globalRequestHandlerProviders;
+
 	List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders;
+
 	List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
+
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
 	@BeforeEach
@@ -335,12 +348,15 @@ public class PostEnforcePolicyEnforcementPointTests {
 	}
 
 	public static class TestClass {
+
 		public Mono<Integer> publicInteger() {
 			return Mono.just(420);
 		}
+
 	}
 
 	public static class BadForJackson {
+
 		@SuppressWarnings("unused")
 		private String bad;
 

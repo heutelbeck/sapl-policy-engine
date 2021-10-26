@@ -41,7 +41,8 @@ public class PreEnforcePolicyEnforcementPoint {
 			if (Decision.PERMIT != decision.getDecision())
 				finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
 
-			// onErrorStop is required to counter an onErrorContinue attack on the PEP/RAP.
+			// onErrorStop is required to counter an onErrorContinue attack on the
+			// PEP/RAP.
 			return constraintEnforcementService
 					.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, finalResourceAccessPoint, clazz)
 					.onErrorStop();

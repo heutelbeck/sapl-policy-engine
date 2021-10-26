@@ -53,4 +53,5 @@ public class PolicyHit {
 		String[] splitted = policyToStringResult.split(CoverageHitConfig.DELIMITER_MATCH_REGEX);
 		return new PolicyHit(splitted[0], splitted[1]);
 	}
+
 }

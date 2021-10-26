@@ -25,8 +25,8 @@ import reactor.core.publisher.Flux;
 /**
  * Checks for equality of two values.
  *
- * Grammar: Comparison returns Expression: Prefixed (({Equals.left=current}
- * '==') right=Prefixed)? ;
+ * Grammar: Comparison returns Expression: Prefixed (({Equals.left=current} '==')
+ * right=Prefixed)? ;
  */
 public class EqualsImplCustom extends EqualsImpl {
 

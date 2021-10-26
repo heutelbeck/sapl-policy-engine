@@ -55,19 +55,20 @@ class ClasspathHelperTest {
 				.withMessage("Error finding test.sapl or policies/test.sapl on the classpath!" + System.lineSeparator()
 						+ System.lineSeparator() + "We tried the following paths:" + System.lineSeparator());
 	}
-	
+
 	@Test
 	void test_NothingFound_WithClasspathURLs() throws MalformedURLException {
 		URLClassLoader classLoader = Mockito.mock(URLClassLoader.class);
 		Mockito.when(classLoader.getResource(Mockito.any())).thenReturn(null);
-		Mockito.when(classLoader.getURLs()).thenReturn(new URL[] {new URL("file://test")});
+		Mockito.when(classLoader.getURLs()).thenReturn(new URL[] { new URL("file://test") });
 
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
 				.isThrownBy(() -> ClasspathHelper.findPathOnClasspath(classLoader, "test.sapl"))
 				.withMessage("Error finding test.sapl or policies/test.sapl on the classpath!" + System.lineSeparator()
-						+ System.lineSeparator() + "We tried the following paths:" + System.lineSeparator() + "    - file://test");
+						+ System.lineSeparator() + "We tried the following paths:" + System.lineSeparator()
+						+ "    - file://test");
 	}
-	
+
 	@Test
 	void test_FoundInJar() throws MalformedURLException {
 		URLClassLoader classLoader = Mockito.mock(URLClassLoader.class);

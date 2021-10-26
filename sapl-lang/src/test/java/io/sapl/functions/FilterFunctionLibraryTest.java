@@ -50,11 +50,17 @@ import reactor.test.StepVerifier;
 class FilterFunctionLibraryTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
+
 	private static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
+
 	private static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext();
+
 	private static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+
 	private static final FilterFunctionLibrary LIBRARY = new FilterFunctionLibrary();
+
 	private static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
 			SYSTEM_VARIABLES);
 
@@ -200,4 +206,5 @@ class FilterFunctionLibraryTest {
 					assertThat(authzDecision, is(expectedAuthzDecision));
 				}).verifyComplete();
 	}
+
 }

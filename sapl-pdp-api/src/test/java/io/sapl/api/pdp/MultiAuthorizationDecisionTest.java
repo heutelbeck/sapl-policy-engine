@@ -30,8 +30,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 class MultiAuthorizationDecisionTest {
+
 	private static final String SUBSCRIPTION_ID = "SUBSCRIPTION-ID";
+
 	private static final String MULTI_AUTHORIZATION_DECISION = "MultiAuthorizationDecision";
+
 	private static final String ID = "ID";
 
 	@Test
@@ -131,4 +134,5 @@ class MultiAuthorizationDecisionTest {
 		var decision = MultiAuthorizationDecision.indeterminate();
 		assertEquals(Decision.INDETERMINATE, decision.getAuthorizationDecisionForSubscriptionWithId("").getDecision());
 	}
+
 }

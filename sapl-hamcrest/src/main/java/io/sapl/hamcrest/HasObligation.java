@@ -26,8 +26,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 
-public class HasObligation extends TypeSafeDiagnosingMatcher<AuthorizationDecision>  {
-	
+public class HasObligation extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
+
 	private final Optional<Matcher<? super JsonNode>> jsonMatcher;
 
 	public HasObligation(Matcher<? super JsonNode> jsonMatcher) {
@@ -39,8 +39,7 @@ public class HasObligation extends TypeSafeDiagnosingMatcher<AuthorizationDecisi
 		super(AuthorizationDecision.class);
 		this.jsonMatcher = Optional.empty();
 	}
-	
-	
+
 	@Override
 	public void describeTo(Description description) {
 		description.appendText("the decision has an obligation equals ");
@@ -50,28 +49,30 @@ public class HasObligation extends TypeSafeDiagnosingMatcher<AuthorizationDecisi
 
 	@Override
 	protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-		if(decision.getObligations().isEmpty())
-		{
+		if (decision.getObligations().isEmpty()) {
 			mismatchDescription.appendText("decision didn't contain any obligations");
 			return false;
 		}
-		
+
 		if (jsonMatcher.isEmpty()) {
 			return true;
-		} 
-		
+		}
+
 		boolean containsObligation = false;
-		
-        for(JsonNode node : decision.getObligations().get()) {
-        	if(this.jsonMatcher.get().matches(node))
-        		containsObligation = true;
-        };
-        
-		if(containsObligation) {
+
+		for (JsonNode node : decision.getObligations().get()) {
+			if (this.jsonMatcher.get().matches(node))
+				containsObligation = true;
+		}
+		;
+
+		if (containsObligation) {
 			return true;
-		} else {
+		}
+		else {
 			mismatchDescription.appendText("no obligation matched");
 			return false;
 		}
 	}
+
 }

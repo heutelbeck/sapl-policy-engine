@@ -51,9 +51,9 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * This configuration class adds blocking SAPL {@link @PreEnforce} and
  * {@link @PostEnforce} annotations to the global method security configuration.
- * 
- * Classes may extend this class to customize the defaults, but must be sure to
- * specify the {@link EnableGlobalMethodSecurity} annotation on the subclass.
+ *
+ * Classes may extend this class to customize the defaults, but must be sure to specify
+ * the {@link EnableGlobalMethodSecurity} annotation on the subclass.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -62,8 +62,11 @@ import lombok.extern.slf4j.Slf4j;
 public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfiguration {
 
 	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
+
 	protected final ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory;
+
 	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
+
 	protected final ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
 
 	@Bean

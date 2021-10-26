@@ -23,21 +23,22 @@ import javax.inject.Singleton;
 @Named
 @Singleton
 public class CoverageRatioCalculator {
-	
+
 	public <T> float calculateRatio(Collection<T> availableCoverageTargets, Collection<T> hitTargets) {
 		float targets = availableCoverageTargets.size();
 		int hits = 0;
-		
-		for(T hit : hitTargets) {
-			if(availableCoverageTargets.contains(hit)) {
+
+		for (T hit : hitTargets) {
+			if (availableCoverageTargets.contains(hit)) {
 				hits++;
 			}
 		}
-		
-		if(hitTargets.isEmpty() || hits == 0) {
+
+		if (hitTargets.isEmpty() || hits == 0) {
 			return 0;
 		}
-		
+
 		return (hits / targets) * 100;
 	}
+
 }

@@ -112,4 +112,5 @@ class StepApplyNullCheckAndErrorPropoagationTest {
 			step.applyFilterStatement(Val.UNDEFINED, CTX, Val.UNDEFINED, 0, null);
 		});
 	}
+
 }

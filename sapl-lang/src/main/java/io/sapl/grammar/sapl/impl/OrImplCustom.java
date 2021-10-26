@@ -23,8 +23,8 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the lazy boolean OR operator, written as '||' in Expressions.
  *
- * Grammar: Addition returns Expression: Multiplication (({Or.left=current}
- * '||') right=Multiplication)* ;
+ * Grammar: Addition returns Expression: Multiplication (({Or.left=current} '||')
+ * right=Multiplication)* ;
  */
 public class OrImplCustom extends OrImpl {
 

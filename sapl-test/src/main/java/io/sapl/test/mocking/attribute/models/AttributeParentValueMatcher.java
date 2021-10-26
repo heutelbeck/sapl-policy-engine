@@ -25,5 +25,7 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class AttributeParentValueMatcher {
+
 	private Matcher<Val> matcher;
+
 }

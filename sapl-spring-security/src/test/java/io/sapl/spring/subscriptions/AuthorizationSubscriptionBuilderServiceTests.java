@@ -74,8 +74,11 @@ import reactor.util.context.Context;
 public class AuthorizationSubscriptionBuilderServiceTests {
 
 	private Authentication authentication;
+
 	private AuthorizationSubscriptionBuilderService defaultBuilderUnderTest;
+
 	private MethodInvocation invocation;
+
 	private ObjectMapper mapper;
 
 	@BeforeEach
@@ -207,12 +210,12 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 				AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(anonymous, invocation, attribute);
 		// @formatter:off
-		assertAll(() -> assertThat(subscription.getSubject(), 
+		assertAll(() -> assertThat(subscription.getSubject(),
 						  is(jsonObject()
 								  .where("name", is(jsonText("anonymous")))
 								  .where("credentials", is(jsonMissing()))
 								  .where("principal", is(jsonText("anonymous"))))),
-				  () -> assertThat(subscription.getAction(), 
+				  () -> assertThat(subscription.getAction(),
 						  is(jsonObject()
 								  .where("java", is(jsonObject()
 										.where("name", jsonText("publicVoid"))))
@@ -345,12 +348,12 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 		var subscription = defaultBuilderUnderTest.reactiveConstructAuthorizationSubscription(invocation, attribute)
 				.block();
 		// @formatter:off
-		assertAll(() -> assertThat(subscription.getSubject(), 
+		assertAll(() -> assertThat(subscription.getSubject(),
 						  is(jsonObject()
 								  .where("name", is(jsonText("anonymous")))
 								  .where("credentials", is(jsonMissing()))
 								  .where("principal", is(jsonText("anonymous"))))),
-				  () -> assertThat(subscription.getAction(), 
+				  () -> assertThat(subscription.getAction(),
 						  is(jsonObject()
 								  .where("java", is(jsonObject()
 										.where("name", jsonText("publicVoid"))))
@@ -370,12 +373,12 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 		var subscription = defaultBuilderUnderTest
 				.reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject").block();
 		// @formatter:off
-		assertAll(() -> assertThat(subscription.getSubject(), 
+		assertAll(() -> assertThat(subscription.getSubject(),
 						  is(jsonObject()
 								  .where("name", is(jsonText("anonymous")))
 								  .where("credentials", is(jsonMissing()))
 								  .where("principal", is(jsonText("anonymous"))))),
-				  () -> assertThat(subscription.getAction(), 
+				  () -> assertThat(subscription.getAction(),
 						  is(jsonObject()
 								  .where("java", is(jsonObject()
 										.where("name", jsonText("publicVoid"))))
@@ -397,6 +400,7 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 	}
 
 	public static class TestClass {
+
 		public void publicVoid() {
 		}
 
@@ -405,11 +409,14 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 
 		public void publicVoidProblemArg(BadForJackson param) {
 		}
+
 	}
 
 	public static class BadForJackson {
+
 		@SuppressWarnings("unused")
 		private String bad;
+
 	}
 
 	static class MockSecurityContext implements SecurityContext {
@@ -431,4 +438,5 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 		}
 
 	}
+
 }

@@ -38,11 +38,13 @@ import reactor.core.Exceptions;
 @Named
 @Singleton
 public class SaplDocumentReader {
+
 	private static final String ERROR_PATH_NOT_FOUND = "Error reading coverage targets: Unable to find the directory \"%s\" on the classpath";
+
 	private static final String ERROR_PATH_WAS_FILE = "Error reading coverage targets: Unable to find policies at \"%s\" on the classpath. The path points to a file.";
 
-
-	public Collection<SaplDocument> retrievePolicyDocuments(Log log, MavenProject project, String policyPath) throws MojoExecutionException {
+	public Collection<SaplDocument> retrievePolicyDocuments(Log log, MavenProject project, String policyPath)
+			throws MojoExecutionException {
 		DefaultSAPLInterpreter interpreter = new DefaultSAPLInterpreter();
 
 		File policyDir = findPolicyDirOnClasspath(project, policyPath);
@@ -63,14 +65,14 @@ public class SaplDocumentReader {
 					fileContent = Files.readString(file.toPath());
 					int linecount = Files.readAllLines(file.toPath()).size();
 					saplDocuments.add(new SaplDocument(file.toPath(), linecount, interpreter.parse(fileContent)));
-				} catch (IOException e) {
+				}
+				catch (IOException e) {
 					log.error("Error reading file " + file.toString(), e);
 				}
 			}
 		}
 		return saplDocuments;
 	}
-	
 
 	private File findPolicyDirOnClasspath(MavenProject project, String policyPath) throws MojoExecutionException {
 
@@ -90,14 +92,17 @@ public class SaplDocumentReader {
 					break;
 				}
 			}
-		} catch (DependencyResolutionRequiredException e) {
+		}
+		catch (DependencyResolutionRequiredException e) {
 			throw Exceptions.propagate(e);
 		}
-		
-		if(result != null) {
+
+		if (result != null) {
 			return result;
-		} else {
+		}
+		else {
 			throw new MojoExecutionException("Error reading coverage targets: " + builder.toString());
 		}
 	}
+
 }

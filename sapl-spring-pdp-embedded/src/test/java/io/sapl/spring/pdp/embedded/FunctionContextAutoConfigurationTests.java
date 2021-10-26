@@ -70,9 +70,11 @@ class FunctionContextAutoConfigurationTests {
 
 	@FunctionLibrary
 	protected static class BadFunctionLibrary {
+
 		@Function
 		void iAmABadSignatureFunction(Integer i, Float f) {
 		}
+
 	}
 
 }

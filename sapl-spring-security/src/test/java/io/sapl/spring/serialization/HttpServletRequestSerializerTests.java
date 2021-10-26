@@ -43,6 +43,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
 
 class HttpServletRequestSerializerTests {
+
 	private ObjectMapper mapper = new ObjectMapper();
 
 	private JsonNode serialize(HttpServletRequest invocation) throws IOException {
@@ -287,4 +288,5 @@ class HttpServletRequestSerializerTests {
 						HttpServletRequestSerializer.LOCALES,
 						is(jsonArray(contains(jsonText(Locale.GERMAN.toString()), jsonText(Locale.UK.toString())))))));
 	}
+
 }

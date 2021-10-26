@@ -36,8 +36,8 @@ import io.sapl.api.validation.Text;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Service class to provide common functionality used by both functions and
- * attributes for evaluating Json Web Tokens
+ * Service class to provide common functionality used by both functions and attributes for
+ * evaluating Json Web Tokens
  */
 @RequiredArgsConstructor
 public class JWTLibraryService {
@@ -51,51 +51,49 @@ public class JWTLibraryService {
 	private final ObjectMapper mapper;
 
 	/**
-	 * converts base64 encoded header.body.signature triplet to signed Json Web
-	 * Token
-	 * 
+	 * converts base64 encoded header.body.signature triplet to signed Json Web Token
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return the signed token or null
 	 */
 	SignedJWT signedJwt(String jwt) {
 		try {
 			return SignedJWT.parse(jwt);
-		} catch (ParseException | NullPointerException e) {
+		}
+		catch (ParseException | NullPointerException e) {
 			return null;
 		}
 	}
 
 	/**
 	 * extracts header from JWT
-	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return header or null
 	 */
 	JWSHeader header(String jwt) {
 		try {
 			return signedJwt(jwt).getHeader();
-		} catch (NullPointerException e) {
+		}
+		catch (NullPointerException e) {
 			return null;
 		}
 	}
 
 	/**
 	 * extracts claims from JWT
-	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return claims or null
 	 */
 	JWTClaimsSet claims(String jwt) {
 		try {
 			return signedJwt(jwt).getJWTClaimsSet();
-		} catch (ParseException | NullPointerException e) {
+		}
+		catch (ParseException | NullPointerException e) {
 			return null;
 		}
 	}
 
 	/**
 	 * tests if a string is a base64 encoded header.body.signature triplet
-	 * 
 	 * @param jwt the string to test
 	 * @return true if the string could be parsed as a JWT
 	 */
@@ -103,17 +101,17 @@ public class JWTLibraryService {
 		try {
 			SignedJWT.parse(jwt);
 			return true;
-		} catch (ParseException | NullPointerException e) {
+		}
+		catch (ParseException | NullPointerException e) {
 			return false;
 		}
 	}
 
 	/**
 	 * Resolves a base64 encoded JWT from the source
-	 * 
 	 * @param source object containing JWT
 	 * @return JWT as base64 encoded header.body.signature triplet, or
-	 *         {@code Val.UNDEFINED} if no JWT could be resolved
+	 * {@code Val.UNDEFINED} if no JWT could be resolved
 	 */
 	public Val resolveToken(Val source) {
 
@@ -159,7 +157,6 @@ public class JWTLibraryService {
 
 	/**
 	 * converts a string to a list of original, lowercase, and uppercase strings
-	 * 
 	 * @param source the string to convert
 	 * @return list of three strings in original, lower, and upper case
 	 */
@@ -173,9 +170,8 @@ public class JWTLibraryService {
 
 	/**
 	 * Reads a single value from a token
-	 * 
 	 * @param token object containing JWT
-	 * @param name  key of the value to return
+	 * @param name key of the value to return
 	 * @return named value, or {@code Val.UNDEFINED} if the name is not specified
 	 */
 	public Val value(@Text @JsonObject Val token, @Text Val name) {
@@ -183,18 +179,17 @@ public class JWTLibraryService {
 			String jwt = resolveToken(token).getText();
 			String result = claims(jwt).getStringClaim(name.getText());
 			return Val.of(result);
-		} catch (ParseException | NullPointerException e) {
+		}
+		catch (ParseException | NullPointerException e) {
 			return Val.UNDEFINED;
 		}
 	}
 
 	/**
 	 * Reads a list of values from a token
-	 * 
 	 * @param token object containing JWT
-	 * @param name  key of the values to return
-	 * @return named list of values, or {@code Val.UNDEFINED} if the name is not
-	 *         specified
+	 * @param name key of the values to return
+	 * @return named list of values, or {@code Val.UNDEFINED} if the name is not specified
 	 */
 	public Val values(@Text @JsonObject Val token, @Text Val name) {
 		try {
@@ -205,17 +200,16 @@ public class JWTLibraryService {
 			}
 			JsonNode jsonNode = mapper.convertValue(result, JsonNode.class);
 			return Val.of(jsonNode);
-		} catch (ParseException e) {
+		}
+		catch (ParseException e) {
 			return Val.ofEmptyArray();
 		}
 	}
 
 	/**
 	 * Convenience function to read a token's issuer
-	 * 
 	 * @param token object containing JWT
-	 * @return the token's issuer, or {@code Val.UNDEFINED} if the issuer is not
-	 *         specified
+	 * @return the token's issuer, or {@code Val.UNDEFINED} if the issuer is not specified
 	 */
 	public Val issuer(@Text @JsonObject Val token) {
 		return value(token, Val.of(ISSUER_KEY));
@@ -223,10 +217,9 @@ public class JWTLibraryService {
 
 	/**
 	 * Convenience function to read a token's subject
-	 * 
 	 * @param token object containing JWT
 	 * @return the token's subject, or {@code Val.UNDEFINED} if the subject is not
-	 *         specified
+	 * specified
 	 */
 	public Val subject(@Text @JsonObject Val token) {
 		return value(token, Val.of(SUBJECT_KEY));
@@ -234,10 +227,9 @@ public class JWTLibraryService {
 
 	/**
 	 * Convenience function to read a token's authorities
-	 * 
 	 * @param token object containing JWT
 	 * @return list of granted authorities, or an empty array if no authorities are
-	 *         specified
+	 * specified
 	 */
 	public Val authorities(@Text @JsonObject Val token) {
 		return values(token, Val.of(AUTHORITIES_KEY));
@@ -245,7 +237,6 @@ public class JWTLibraryService {
 
 	/**
 	 * Provides access to a token's payload as Json node
-	 * 
 	 * @param token object containing JWT
 	 * @return the payload, or an empty object if the payload could not be parsed
 	 */
@@ -255,7 +246,8 @@ public class JWTLibraryService {
 			Payload payload = SignedJWT.parse(jwt).getPayload();
 			JsonNode jsonNode = mapper.readTree(payload.toString());
 			return Val.of(jsonNode);
-		} catch (ParseException | JsonProcessingException | NullPointerException e) {
+		}
+		catch (ParseException | JsonProcessingException | NullPointerException e) {
 			return Val.ofEmptyObject();
 		}
 	}

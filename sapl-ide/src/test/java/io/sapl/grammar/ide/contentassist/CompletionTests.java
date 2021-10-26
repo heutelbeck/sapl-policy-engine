@@ -32,26 +32,28 @@ import static org.junit.Assert.assertThat;
  */
 public class CompletionTests extends AbstractSaplLanguageServerTest {
 
-    protected void assertProposalsSimple(final Collection<String> expectedProposals,
-                                         final CompletionList completionList) {
-        var actualMethods = completionList.getItems().stream()
-                .map(CompletionItem::getLabel).collect(Collectors.toList());
-        assertThat(actualMethods.containsAll(expectedProposals), is(true));
-        // Collection<CompletionItem> completionItems = completionList.getItems();
-        // String actualProposalStr = completionItems.stream().map(CompletionItem::getLabel)
-        // 		.collect(Collectors.joining("\n"));
-        // String expectedProposalStr = String.join("\n", expectedProposals);
-        // assertEquals(expectedProposalStr, actualProposalStr);
-    }
+	protected void assertProposalsSimple(final Collection<String> expectedProposals,
+			final CompletionList completionList) {
+		var actualMethods = completionList.getItems().stream().map(CompletionItem::getLabel)
+				.collect(Collectors.toList());
+		assertThat(actualMethods.containsAll(expectedProposals), is(true));
+		// Collection<CompletionItem> completionItems = completionList.getItems();
+		// String actualProposalStr =
+		// completionItems.stream().map(CompletionItem::getLabel)
+		// .collect(Collectors.joining("\n"));
+		// String expectedProposalStr = String.join("\n", expectedProposals);
+		// assertEquals(expectedProposalStr, actualProposalStr);
+	}
 
-    protected void assertDoesNotContainProposals(final Collection<String> unwantedProposals,
-                                                 final CompletionList completionList) {
-        Collection<CompletionItem> completionItems = completionList.getItems();
-        Collection<String> availableProposals = completionItems.stream().map(CompletionItem::getLabel)
-                .collect(Collectors.toSet());
+	protected void assertDoesNotContainProposals(final Collection<String> unwantedProposals,
+			final CompletionList completionList) {
+		Collection<CompletionItem> completionItems = completionList.getItems();
+		Collection<String> availableProposals = completionItems.stream().map(CompletionItem::getLabel)
+				.collect(Collectors.toSet());
 
-        for (String unwantedProposal : unwantedProposals) {
-            assertThat(availableProposals, not(hasItem(unwantedProposal)));
-        }
-    }
+		for (String unwantedProposal : unwantedProposals) {
+			assertThat(availableProposals, not(hasItem(unwantedProposal)));
+		}
+	}
+
 }

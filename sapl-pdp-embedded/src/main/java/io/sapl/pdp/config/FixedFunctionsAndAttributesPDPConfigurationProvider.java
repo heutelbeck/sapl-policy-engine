@@ -31,7 +31,9 @@ import reactor.core.publisher.Flux;
 public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPConfigurationProvider {
 
 	private final AttributeContext attributeCtx;
+
 	private final FunctionContext functionCtx;
+
 	private final VariablesAndCombinatorSource variablesAndCombinatorSource;
 
 	@Override

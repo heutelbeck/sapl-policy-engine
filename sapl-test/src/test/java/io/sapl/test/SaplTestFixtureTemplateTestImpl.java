@@ -35,8 +35,9 @@ public class SaplTestFixtureTemplateTestImpl extends SaplTestFixtureTemplate {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	public Map<String, JsonNode> getVariablesMap() {
 		return this.variables;
 	}
+
 }

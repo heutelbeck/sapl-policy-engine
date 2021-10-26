@@ -56,8 +56,11 @@ import reactor.test.StepVerifier;
 public class ConstraintEnforcementServiceTests {
 
 	private final static ObjectMapper MAPPER = new ObjectMapper();
+
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	private final static JsonNode CONSTRAINT;
+
 	private final static ArrayNode ONE_CONSTRAINT;
 
 	static {
@@ -72,11 +75,17 @@ public class ConstraintEnforcementServiceTests {
 	}
 
 	List<RunnableConstraintHandlerProvider> globalRunnableProviders;
+
 	List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders;
+
 	List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders;
+
 	List<RequestHandlerProvider> globalRequestHandlerProviders;
+
 	List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders;
+
 	List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
+
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
 	@BeforeEach

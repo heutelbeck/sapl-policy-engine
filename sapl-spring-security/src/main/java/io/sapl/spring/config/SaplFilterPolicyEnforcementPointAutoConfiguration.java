@@ -32,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 @Configuration
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 public class SaplFilterPolicyEnforcementPointAutoConfiguration {
+
 	@Bean
 	@ConditionalOnProperty("io.sapl.policyEnforcementFilter")
 	public SaplFilterPolicyEnforcementPoint policyEnforcementFilter(PolicyDecisionPoint pdp,
@@ -39,4 +40,5 @@ public class SaplFilterPolicyEnforcementPointAutoConfiguration {
 		log.info("PolicyEnforcementFilter enabled.");
 		return new SaplFilterPolicyEnforcementPoint(pdp, constraintHandlers, mapper);
 	}
+
 }

@@ -35,34 +35,22 @@ public class StepBuilderTest {
 		SAPL document = interpreter.parse("policy \"test\" permit action == \"read\"");
 
 		AuthorizationSubscription authzSub = AuthorizationSubscription.of("willi", "not_matching", "something");
-		
-		StepBuilder.newBuilderAtWhenStep(document, 
-				new AnnotationAttributeContext(), 
-				new AnnotationFunctionContext(), 
-				new HashMap<>())
-			.when(authzSub)
-			.expectNotApplicable()
-			.verify();
-		
-		
+
+		StepBuilder.newBuilderAtWhenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
+				new HashMap<>()).when(authzSub).expectNotApplicable().verify();
+
 	}
-	
+
 	@Test
 	void test_matchResultNotBoolean() {
 		SAPL document = Mockito.mock(SAPL.class);
 		Mockito.when(document.matches(Mockito.any())).thenReturn(Val.errorMono("test"));
 
 		AuthorizationSubscription authzSub = AuthorizationSubscription.of("willi", "not_matching", "something");
-		
-		StepBuilder.newBuilderAtWhenStep(document, 
-				new AnnotationAttributeContext(), 
-				new AnnotationFunctionContext(), 
-				new HashMap<>())
-			.when(authzSub)
-			.expectNotApplicable()
-			.verify();
-		
-		
+
+		StepBuilder.newBuilderAtWhenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
+				new HashMap<>()).when(authzSub).expectNotApplicable().verify();
+
 	}
 
 }

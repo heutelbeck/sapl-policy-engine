@@ -41,7 +41,8 @@ public class TestUtil {
 				expectations[i++] = Val.ofJson(ex);
 			}
 			expressionEvaluatesTo(ctx, ParserUtil.expression(expression), expectations);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -49,7 +50,8 @@ public class TestUtil {
 	public static void expressionEvaluatesTo(EvaluationContext ctx, String expression, Val... expected) {
 		try {
 			expressionEvaluatesTo(ctx, ParserUtil.expression(expression), expected);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -57,7 +59,8 @@ public class TestUtil {
 	public static void expressionErrors(EvaluationContext ctx, String expression) {
 		try {
 			expressionErrors(ctx, ParserUtil.expression(expression));
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -69,4 +72,5 @@ public class TestUtil {
 	public static void expressionErrors(EvaluationContext ctx, Expression expression) {
 		StepVerifier.create(expression.evaluate(ctx, Val.UNDEFINED)).expectNextMatches(Val::isError).verifyComplete();
 	}
+
 }

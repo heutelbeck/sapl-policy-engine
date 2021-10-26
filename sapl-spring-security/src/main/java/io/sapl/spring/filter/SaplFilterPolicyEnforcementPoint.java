@@ -44,7 +44,9 @@ import reactor.core.publisher.Flux;
 public class SaplFilterPolicyEnforcementPoint extends GenericFilterBean {
 
 	private final PolicyDecisionPoint pdp;
+
 	private final ConstraintEnforcementService constraintEnforcementService;
+
 	private final ObjectMapper mapper;
 
 	@Override
@@ -67,7 +69,8 @@ public class SaplFilterPolicyEnforcementPoint extends GenericFilterBean {
 
 		try {
 			constraintEnforcementService.bundleFor(authzDecision, Object.class).wrap(Flux.empty()).blockLast();
-		} catch (AccessDeniedException e) {
+		}
+		catch (AccessDeniedException e) {
 			throw new AccessDeniedException("Not all obligations could be handled.", e);
 		}
 

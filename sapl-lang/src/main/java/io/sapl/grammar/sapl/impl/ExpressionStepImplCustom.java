@@ -29,11 +29,10 @@ import reactor.core.publisher.Flux;
  * Implements the expression subscript of an array (or object), written as
  * '[(Expression)]'.
  *
- * Returns the value of an attribute with a key or an array item with an index
- * specified by an expression. Expression must evaluate to a string or a number.
- * If Expression evaluates to a string, the selection can only be applied to an
- * object. If Expression evaluates to a number, the selection can only be
- * applied to an array.
+ * Returns the value of an attribute with a key or an array item with an index specified
+ * by an expression. Expression must evaluate to a string or a number. If Expression
+ * evaluates to a string, the selection can only be applied to an object. If Expression
+ * evaluates to a number, the selection can only be applied to an array.
  *
  * Example: The expression step can be used to refer to custom variables
  * (object.array[(anIndex+2)]) or apply custom functions
@@ -46,8 +45,11 @@ import reactor.core.publisher.Flux;
 public class ExpressionStepImplCustom extends ExpressionStepImpl {
 
 	private static final String OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S = "Object access type mismatch. Expect a string, was: %s ";
+
 	private static final String INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D = "Index out of bounds. Index must be between 0 and %d, was: %d ";
+
 	private static final String ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S = "Array access type mismatch. Expect an integer, was: %s ";
+
 	private static final String EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S = "Expressions step only applicable to Array or Object. was: %s";
 
 	@Override
@@ -87,8 +89,8 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
 		}
 		if (key.isNumber() && parentValue.isArray()) {
 			// This is an IndexStep equivalent
-			return IndexStepImplCustom.doApplyFilterStatement(key.decimalValue(), parentValue, ctx, relativeNode, stepId,
-					statement);
+			return IndexStepImplCustom.doApplyFilterStatement(key.decimalValue(), parentValue, ctx, relativeNode,
+					stepId, statement);
 		}
 		return Val.errorFlux("Type mismatch. Tried to access {} with {}", parentValue.getValType(), key.getValType());
 	}

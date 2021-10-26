@@ -33,15 +33,13 @@ import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInform
 public class HtmlLineCoverageReportGeneratorTest {
 
 	private Path base;
-	
+
 	@BeforeEach
 	void setup() {
 		base = Paths.get("target/sapl-coverage/html");
 		TestFileHelper.deleteDirectory(base.toFile());
 	}
 
-	
-	
 	@Test
 	public void test() {
 		var policySetHitRatio = 100;
@@ -55,22 +53,22 @@ public class HtmlLineCoverageReportGeneratorTest {
 		document.markLine(5, LineCoveredValue.IRRELEVANT, 0, 0);
 		document.markLine(6, LineCoveredValue.FULLY, 1, 1);
 		document.markLine(7, LineCoveredValue.IRRELEVANT, 0, 0);
-		document.markLine(8, LineCoveredValue.FULLY, 1,1 );
+		document.markLine(8, LineCoveredValue.FULLY, 1, 1);
 		document.markLine(9, LineCoveredValue.IRRELEVANT, 0, 0);
 		document.markLine(10, LineCoveredValue.PARTLY, 1, 2);
 		document.markLine(11, LineCoveredValue.NEVER, 0, 2);
 		document.markLine(12, LineCoveredValue.NEVER, 0, 2);
 		Collection<SaplDocumentCoverageInformation> documents = List.of(document);
 		HtmlLineCoverageReportGenerator generator = new HtmlLineCoverageReportGenerator();
-		
-		
-		generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"),
-				policySetHitRatio, policyHitRatio, policyConditionHitRatio);
-		
+
+		generator.generateHtmlReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"), policySetHitRatio,
+				policyHitRatio, policyConditionHitRatio);
+
 		assertEquals(true, base.resolve("assets/favicon.png").toFile().exists());
 		assertEquals(true, base.resolve("assets/logo-header.png").toFile().exists());
 		assertEquals(true, base.resolve("assets/main.css").toFile().exists());
 		assertEquals(true, base.resolve("policies/policy_1.sapl.html").toFile().exists());
 		assertEquals(true, base.resolve("index.html").toFile().exists());
 	}
+
 }

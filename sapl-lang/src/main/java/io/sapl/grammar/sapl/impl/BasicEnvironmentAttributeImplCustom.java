@@ -36,4 +36,5 @@ public class BasicEnvironmentAttributeImplCustom extends BasicEnvironmentAttribu
 		return ctx.getAttributeCtx().evaluate(fullyQualifiedName, Val.UNDEFINED, ctx, getArguments())
 				.distinctUntilChanged();
 	}
+
 }

@@ -27,19 +27,19 @@ import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 
 class FixedFunctionsAndAttributesPDPConfigurationProviderTest {
 
-    @Test
-    void do_test() {
-        var source = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
-        var attrCtx = new AnnotationAttributeContext();
-        var funcCtx = new AnnotationFunctionContext();
-        var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source);
-        var config = provider.pdpConfiguration().blockFirst();
-        provider.dispose();
+	@Test
+	void do_test() {
+		var source = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
+		var attrCtx = new AnnotationAttributeContext();
+		var funcCtx = new AnnotationFunctionContext();
+		var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source);
+		var config = provider.pdpConfiguration().blockFirst();
+		provider.dispose();
 
+		assertThat(config.getDocumentsCombinator() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
+		assertThat(config.getPdpScopedEvaluationContext().getAttributeCtx(), is(attrCtx));
+		assertThat(config.getPdpScopedEvaluationContext().getFunctionCtx(), is(funcCtx));
+		assertThat(config.isValid(), is(true));
+	}
 
-        assertThat(config.getDocumentsCombinator() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
-        assertThat(config.getPdpScopedEvaluationContext().getAttributeCtx(), is(attrCtx));
-        assertThat(config.getPdpScopedEvaluationContext().getFunctionCtx(), is(funcCtx));
-        assertThat(config.isValid(), is(true));
-    }
 }

@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
  * Tests regarding the auto completion of variables
  */
 public class VariableCompletionTests extends CompletionTests {
+
 	@Test
 	public void testCompletion_SuggestVariableInBody() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -79,4 +80,5 @@ public class VariableCompletionTests extends CompletionTests {
 			});
 		});
 	}
+
 }

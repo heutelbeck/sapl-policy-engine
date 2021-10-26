@@ -19,15 +19,18 @@ import org.springframework.expression.Expression;
 import org.springframework.security.access.ConfigAttribute;
 
 /**
- * Interface for attributes which are created from @PreEnforce @PostEnforce
- * annotations.
+ * Interface for attributes which are created from @PreEnforce @PostEnforce annotations.
  */
 public interface SaplAttribute extends ConfigAttribute {
 
 	Expression getSubjectExpression();
+
 	Expression getActionExpression();
+
 	Expression getResourceExpression();
+
 	Expression getEnvironmentExpression();
+
 	Class<?> getGenericsType();
 
 }

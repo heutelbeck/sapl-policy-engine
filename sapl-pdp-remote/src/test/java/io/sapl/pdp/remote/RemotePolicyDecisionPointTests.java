@@ -52,12 +52,17 @@ import reactor.test.StepVerifier;
 class RemotePolicyDecisionPointTests {
 
 	private static final String ID = "id1";
+
 	private static final String RESOURCE = "resource";
+
 	private static final String ACTION = "action";
+
 	private static final String SUBJECT = "subject";
+
 	private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 
 	private MockWebServer server;
+
 	private RemotePolicyDecisionPoint pdp;
 
 	@BeforeAll

@@ -20,10 +20,10 @@ import io.sapl.grammar.sapl.SaplPackage;
 import org.eclipse.emf.ecore.EPackage;
 
 /**
- * Initialization support for running Xtext languages without Equinox extension
- * registry.
+ * Initialization support for running Xtext languages without Equinox extension registry.
  */
 public class SAPLStandaloneSetup extends SAPLStandaloneSetupGenerated {
+
 	public static void doSetup() {
 		new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
 	}
@@ -36,4 +36,5 @@ public class SAPLStandaloneSetup extends SAPLStandaloneSetupGenerated {
 		}
 		super.register(injector);
 	}
+
 }

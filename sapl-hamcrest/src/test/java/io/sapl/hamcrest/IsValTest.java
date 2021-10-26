@@ -127,13 +127,13 @@ class IsValTest {
 		var sut = val(BigInteger.valueOf(3L));
 		assertThat(Val.of(BigInteger.valueOf(3L)), is(sut));
 	}
-	
+
 	@Test
 	void testNull() {
 		var sut = valNull();
 		assertThat(Val.NULL, is(sut));
 	}
-	
+
 	@Test
 	void testAnyVal() {
 		var sut = anyVal();
@@ -159,4 +159,5 @@ class IsValTest {
 		sut.describeTo(description);
 		assertThat(description.toString(), is("a val that is a boolean node with value that is ANYTHING"));
 	}
+
 }

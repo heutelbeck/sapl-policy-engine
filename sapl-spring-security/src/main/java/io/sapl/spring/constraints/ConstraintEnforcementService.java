@@ -50,12 +50,19 @@ import reactor.core.publisher.Flux;
 public class ConstraintEnforcementService {
 
 	private final List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders;
+
 	private final List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders;
+
 	private final List<RequestHandlerProvider> globalRequestHandlerProviders;
+
 	private final List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders;
+
 	private final List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
+
 	private final List<ErrorHandlerProvider> globalErrorHandlerProviders;
+
 	private final ObjectMapper mapper;
+
 	private final SortedSetMultimap<Signal, RunnableConstraintHandlerProvider> globalRunnableIndex;
 
 	public ConstraintEnforcementService(List<RunnableConstraintHandlerProvider> globalRunnableProviders,
@@ -89,7 +96,8 @@ public class ConstraintEnforcementService {
 		wrapped = replaceIfResourcePresent(wrapped, decision.getResource(), clazz);
 		try {
 			return bundleFor(decision, clazz).wrap(wrapped);
-		} catch (AccessDeniedException e) {
+		}
+		catch (AccessDeniedException e) {
 			return Flux.error(e);
 		}
 	}
@@ -149,7 +157,8 @@ public class ConstraintEnforcementService {
 			return resourceAccessPoint;
 		try {
 			return Flux.just(unmarshallResource(resource.get(), clazz));
-		} catch (JsonProcessingException | IllegalArgumentException e) {
+		}
+		catch (JsonProcessingException | IllegalArgumentException e) {
 			return Flux.error(new AccessDeniedException(
 					String.format("Cannot map resource %s to type %s", resource.get().asText(), clazz.getSimpleName()),
 					e));
@@ -222,7 +231,8 @@ public class ConstraintEnforcementService {
 		return runnable -> () -> {
 			try {
 				runnable.run();
-			} catch (Throwable t) {
+			}
+			catch (Throwable t) {
 				Exceptions.throwIfFatal(t);
 				if (isObligation)
 					throw new AccessDeniedException("Failed to execute runnable constraint handler", t);
@@ -234,7 +244,8 @@ public class ConstraintEnforcementService {
 		return consumer -> value -> {
 			try {
 				consumer.accept(value);
-			} catch (Throwable t) {
+			}
+			catch (Throwable t) {
 				Exceptions.throwIfFatal(t);
 				if (isObligation)
 					throw new AccessDeniedException("Failed to execute consumer constraint handler", t);
@@ -246,9 +257,11 @@ public class ConstraintEnforcementService {
 		return consumer -> value -> {
 			try {
 				consumer.accept(value);
-			} catch (Throwable t) {
+			}
+			catch (Throwable t) {
 				Exceptions.throwIfFatal(t);
-				// non-fatal will not be reported by Flux in doOnRequest -> Bubble to force
+				// non-fatal will not be reported by Flux in doOnRequest -> Bubble to
+				// force
 				// failure for an obligation
 				if (isObligation)
 					throw Exceptions
@@ -262,7 +275,8 @@ public class ConstraintEnforcementService {
 		return function -> value -> {
 			try {
 				return function.apply(value);
-			} catch (Throwable t) {
+			}
+			catch (Throwable t) {
 				Exceptions.throwIfFatal(t);
 				if (isObligation)
 					throw new AccessDeniedException("Failed to execute consumer constraint handler", t);

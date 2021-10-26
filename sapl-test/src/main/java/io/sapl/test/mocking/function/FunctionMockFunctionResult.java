@@ -25,20 +25,24 @@ import io.sapl.test.verification.TimesCalledVerification;
 public class FunctionMockFunctionResult implements FunctionMock {
 
 	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION = "You already defined a Mock for %s which is always returning a specified value from your lambda-Expression";
-		
+
 	private final String fullname;
+
 	Function<Val[], Val> returnValue;
+
 	private TimesCalledVerification timesCalledVerification;
+
 	private final MockRunInformation mockRunInformation;
-	
-	public FunctionMockFunctionResult(String fullname, Function<Val[], Val> returns, TimesCalledVerification verification) {
+
+	public FunctionMockFunctionResult(String fullname, Function<Val[], Val> returns,
+			TimesCalledVerification verification) {
 		this.fullname = fullname;
 		this.returnValue = returns;
 		this.timesCalledVerification = verification;
-		
+
 		this.mockRunInformation = new MockRunInformation(fullname);
 	}
-	
+
 	@Override
 	public Val evaluateFunctionCall(Val... parameter) {
 		this.mockRunInformation.saveCall(new MockCall(parameter));
@@ -48,13 +52,12 @@ public class FunctionMockFunctionResult implements FunctionMock {
 	@Override
 	public void assertVerifications() {
 		this.timesCalledVerification.verify(this.mockRunInformation);
-		
+
 	}
 
 	@Override
 	public String getErrorMessageForCurrentMode() {
 		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION, this.fullname);
 	}
-
 
 }

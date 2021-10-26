@@ -55,8 +55,11 @@ import reactor.core.publisher.Flux;
 class SaplFilterPolicyEnforcementPointTests {
 
 	private ObjectMapper mapper;
+
 	private PolicyDecisionPoint pdp;
+
 	private ConstraintEnforcementService constraintHandlers;
+
 	private ConstraintHandlerBundle<?> bundle;
 
 	@BeforeEach

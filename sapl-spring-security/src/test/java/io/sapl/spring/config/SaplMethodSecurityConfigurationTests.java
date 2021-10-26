@@ -58,23 +58,27 @@ class SaplMethodSecurityConfigurationTests {
 	@Configuration
 	@EnableGlobalMethodSecurity(prePostEnabled = true)
 	public static class PrePostEnablingCongiguration extends SaplMethodSecurityConfiguration {
+
 		public PrePostEnablingCongiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
 				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
 				ObjectFactory<ObjectMapper> objectMapperFactory,
 				ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
 			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
 		}
+
 	}
 
 	@Configuration
 	@EnableGlobalMethodSecurity()
 	public static class NoPrePostEnablingCongiguration extends SaplMethodSecurityConfiguration {
+
 		public NoPrePostEnablingCongiguration(ObjectFactory<PolicyDecisionPoint> pdpFactory,
 				ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory,
 				ObjectFactory<ObjectMapper> objectMapperFactory,
 				ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory) {
 			super(pdpFactory, constraintHandlerFactory, objectMapperFactory, subscriptionBuilderFactory);
 		}
+
 	}
 
 }

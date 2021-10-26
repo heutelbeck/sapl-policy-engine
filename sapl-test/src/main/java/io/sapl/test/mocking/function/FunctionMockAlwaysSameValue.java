@@ -23,20 +23,23 @@ import io.sapl.test.verification.TimesCalledVerification;
 public class FunctionMockAlwaysSameValue implements FunctionMock {
 
 	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_ALWAYS_SAME_VALUE = "You already defined a Mock for %s which is always returning a specified value";
-	
+
 	private final String fullname;
+
 	private Val alwaysMockReturnValue;
+
 	private TimesCalledVerification timesCalledVerification;
+
 	private final MockRunInformation mockRunInformation;
-	
+
 	public FunctionMockAlwaysSameValue(String fullname, Val returnValue, TimesCalledVerification verification) {
 		this.fullname = fullname;
 		this.alwaysMockReturnValue = returnValue;
 		this.timesCalledVerification = verification;
-		
+
 		this.mockRunInformation = new MockRunInformation(fullname);
 	}
-	
+
 	@Override
 	public Val evaluateFunctionCall(Val... parameter) {
 		this.mockRunInformation.saveCall(new MockCall(parameter));
@@ -46,7 +49,7 @@ public class FunctionMockAlwaysSameValue implements FunctionMock {
 	@Override
 	public void assertVerifications() {
 		this.timesCalledVerification.verify(this.mockRunInformation);
-		
+
 	}
 
 	@Override

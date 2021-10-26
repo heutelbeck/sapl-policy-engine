@@ -53,15 +53,23 @@ import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
 public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
+
 	private final static ObjectMapper MAPPER = new ObjectMapper();
+
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	List<RunnableConstraintHandlerProvider> globalRunnableProviders;
+
 	List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders;
+
 	List<SubscriptionHandlerProvider> globalSubscriptionHandlerProviders;
+
 	List<RequestHandlerProvider> globalRequestHandlerProviders;
+
 	List<MappingConstraintHandlerProvider<?>> globalMappingHandlerProviders;
+
 	List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders;
+
 	List<ErrorHandlerProvider> globalErrorHandlerProviders;
 
 	@BeforeAll
@@ -202,7 +210,6 @@ public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 				.expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 	}
 
-	
 	@Test
 	void when_onDecisionObligationsFails_followPermitNoObligation_thenSignalsStartAfterSecondPermit() {
 		var handler = spy(new RunnableConstraintHandlerProvider() {
@@ -236,7 +243,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 		StepVerifier.withVirtualTime(() -> sut).expectSubscription().expectNoEvent(Duration.ofMillis(95L))
 				.expectNext(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).verifyComplete();
 	}
-	
+
 	@Test
 	void when_firstPermitThenDeny_thenSignalsPassThroughTillDeniedThenDrop() {
 		StepVerifier.withVirtualTime(this::scenario_firstPermitThenDeny_thenSignalsPassThroughTillDeniedThenDrop)
@@ -910,4 +917,5 @@ public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 		return Flux.just(AuthorizationDecision.PERMIT.withObligations(first),
 				AuthorizationDecision.PERMIT.withObligations(second));
 	}
+
 }

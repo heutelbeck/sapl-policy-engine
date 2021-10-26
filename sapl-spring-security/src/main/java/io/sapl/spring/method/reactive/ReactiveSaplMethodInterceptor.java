@@ -55,24 +55,33 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 	private static final Class<?>[] SAPL_ATTRIBUTES = { EnforceRecoverableIfDeniedAttribute.class,
 			EnforceTillDeniedAttribute.class, EnforceDropWhileDeniedAttribute.class, PreEnforceAttribute.class,
 			PostEnforceAttribute.class };
+
 	private static final Class<?>[] SPRING_ATTRIBUTES = { PostInvocationAttribute.class, PreInvocationAttribute.class };
 
 	@NonNull
 	private final MethodInterceptor springSecurityMethodInterceptor;
+
 	@NonNull
 	private final MethodSecurityMetadataSource source;
+
 	@NonNull
 	private final MethodSecurityExpressionHandler handler;
+
 	@NonNull
 	private final PolicyDecisionPoint pdp;
+
 	@NonNull
 	private final ConstraintEnforcementService constraintHandlerService;
+
 	@NonNull
 	private final ObjectMapper mapper;
+
 	@NonNull
 	private final AuthorizationSubscriptionBuilderService subscriptionBuilder;
+
 	@NonNull
 	private final PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint;
+
 	@NonNull
 	private final PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint;
 

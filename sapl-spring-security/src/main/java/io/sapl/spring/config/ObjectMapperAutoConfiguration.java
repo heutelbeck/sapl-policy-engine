@@ -35,13 +35,12 @@ import io.sapl.spring.serialization.ServerHttpRequestSerializer;
 
 /**
  * This configuration provides a Jackson ObjectMapper bean, if missing.
- * 
- * In addition, the JDK8 Module is added for properly handling Optional and
- * serializers for HttpServletRequest and MethodInvocation are added.
- * 
- * These serializers are used in building authorization subscriptions, if no
- * explicit values for the fields of the subscription (e.g., action, resource)
- * are provided.
+ *
+ * In addition, the JDK8 Module is added for properly handling Optional and serializers
+ * for HttpServletRequest and MethodInvocation are added.
+ *
+ * These serializers are used in building authorization subscriptions, if no explicit
+ * values for the fields of the subscription (e.g., action, resource) are provided.
  */
 @Configuration
 public class ObjectMapperAutoConfiguration {
@@ -54,16 +53,18 @@ public class ObjectMapperAutoConfiguration {
 
 	@Configuration
 	public static class ModuleRegistrationConfiguration {
+
 		@Autowired
 		void configureObjectMapper(final ObjectMapper mapper) {
 			var module = new SimpleModule();
 			module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
 			module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
-			module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());			
+			module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
 			mapper.registerModule(module);
 			mapper.registerModule(new Jdk8Module());
 			mapper.registerModule(new JavaTimeModule());
 		}
+
 	}
 
 }

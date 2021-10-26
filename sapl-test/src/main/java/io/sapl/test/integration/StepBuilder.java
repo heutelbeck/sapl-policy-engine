@@ -42,21 +42,19 @@ public class StepBuilder {
 
 	/**
 	 * Create Builder starting at the Given-Step. Only for internal usage.
-	 * 
 	 * @return {@link GivenStep} to start constructing the test case.
 	 */
-	static GivenStep newBuilderAtGivenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig, AttributeContext attrCtx, FunctionContext funcCtx,
-			Map<String, JsonNode> variables) {
+	static GivenStep newBuilderAtGivenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,
+			AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
 		return new Steps(prp, pdpConfig, attrCtx, funcCtx, variables);
 	}
 
 	/**
 	 * Create Builder starting at the When-Step. Only for internal usage.
-	 * 
 	 * @return {@link WhenStep} to start constructing the test case.
 	 */
-	static WhenStep newBuilderAtWhenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig, AttributeContext attrCtx, FunctionContext funcCtx,
-			Map<String, JsonNode> variables) {
+	static WhenStep newBuilderAtWhenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,
+			AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
 		return new Steps(prp, pdpConfig, attrCtx, funcCtx, variables);
 	}
 
@@ -71,31 +69,33 @@ public class StepBuilder {
 	private static class Steps extends StepsDefaultImpl {
 
 		private final PolicyRetrievalPoint prp;
+
 		private final VariablesAndCombinatorSource pdpConfig;
 
-		Steps(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
+		Steps(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig, AttributeContext attrCtx,
+				FunctionContext funcCtx, Map<String, JsonNode> variables) {
 			this.prp = prp;
-			this.pdpConfig = pdpConfig;			
+			this.pdpConfig = pdpConfig;
 			this.mockingFunctionContext = new MockingFunctionContext(funcCtx);
 			this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
 			this.variables = variables;
 			this.mockedAttributeValues = new LinkedList<>();
 		}
 
-
 		@Override
 		protected void createStepVerifier(AuthorizationSubscription authzSub) {
-			
-			var configurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(this.mockingAttributeContext, this.mockingFunctionContext, this.pdpConfig);
+
+			var configurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(
+					this.mockingAttributeContext, this.mockingFunctionContext, this.pdpConfig);
 			PolicyDecisionPoint pdp = new EmbeddedPolicyDecisionPoint(configurationProvider, this.prp);
-						
+
 			if (this.withVirtualTime) {
-					this.steps = StepVerifier
-							.withVirtualTime(() -> pdp.decide(authzSub));
-			} else {
+				this.steps = StepVerifier.withVirtualTime(() -> pdp.decide(authzSub));
+			}
+			else {
 				this.steps = StepVerifier.create(pdp.decide(authzSub));
 			}
-	
+
 			for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
 				String fullname = mock.getFullname();
 				for (Val val : mock.getMockReturnValues()) {
@@ -103,5 +103,7 @@ public class StepBuilder {
 				}
 			}
 		}
+
 	}
+
 }

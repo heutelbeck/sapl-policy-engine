@@ -34,6 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(InjectionExtension.class)
 @InjectWith(SAPLInjectorProvider.class)
 public class SAPLValidatorTest {
+
 	@Inject
 	@Extension
 	private ParseHelper<SAPL> parseHelper;
@@ -104,4 +105,5 @@ public class SAPLValidatorTest {
 		this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
 				"no viable alternative at input \'defect\'");
 	}
+
 }

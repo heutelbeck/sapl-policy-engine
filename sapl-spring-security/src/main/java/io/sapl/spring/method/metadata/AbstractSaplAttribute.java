@@ -22,8 +22,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Superclass for the SAPL ConfigAttributes, taking care of initializing SpEL
- * expression upon instantiation.
+ * Superclass for the SAPL ConfigAttributes, taking care of initializing SpEL expression
+ * upon instantiation.
  */
 @Getter
 @EqualsAndHashCode
@@ -33,9 +33,13 @@ public abstract class AbstractSaplAttribute implements SaplAttribute {
 	private static final long serialVersionUID = -2697854599354396960L;
 
 	private final Expression subjectExpression;
+
 	private final Expression actionExpression;
+
 	private final Expression resourceExpression;
+
 	private final Expression environmentExpression;
+
 	private final Class<?> genericsType;
 
 	/*

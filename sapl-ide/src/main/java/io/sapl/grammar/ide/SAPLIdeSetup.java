@@ -25,10 +25,12 @@ import org.eclipse.xtext.util.Modules2;
  * Initialization support for running Xtext languages as language servers.
  */
 public class SAPLIdeSetup extends SAPLStandaloneSetup {
+
 	@Override
 	public Injector createInjector() {
 		SAPLRuntimeModule saplRuntimeModule = new SAPLRuntimeModule();
 		SAPLIdeModule saplIdeModule = new SAPLIdeModule();
 		return Guice.createInjector(Modules2.mixin(saplRuntimeModule, saplIdeModule));
 	}
+
 }

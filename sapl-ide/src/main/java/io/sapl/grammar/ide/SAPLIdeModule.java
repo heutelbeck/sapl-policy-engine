@@ -23,7 +23,9 @@ import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
  * Use this class to register ide components.
  */
 public class SAPLIdeModule extends AbstractSAPLIdeModule {
+
 	public Class<? extends IdeContentProposalProvider> bindIdeContentProposalProvider() {
 		return SAPLContentProposalProvider.class;
 	}
+
 }

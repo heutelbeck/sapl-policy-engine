@@ -45,4 +45,5 @@ public class DocumentationAutoConfiguration {
 		}
 		return new FunctionLibrariesDocumentation(functionCtx.getDocumentation());
 	}
+
 }

@@ -21,10 +21,11 @@ import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests regarding the auto completion of the keywords subject, resource,
- * action, environment
+ * Tests regarding the auto completion of the keywords subject, resource, action,
+ * environment
  */
 public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
+
 	@Test
 	public void testCompletion_AuthorizationSubscriptionItemsInTargetExpression() {
 		testCompletion((TestCompletionConfiguration it) -> {
@@ -64,4 +65,5 @@ public class AuthorizationSubscriptionItemsCompletionTests extends CompletionTes
 			});
 		});
 	}
+
 }

@@ -64,4 +64,5 @@ class EvaluableEvaluateNullCheckTest {
 			evaluable.evaluate(CTX, null);
 		});
 	}
+
 }

@@ -28,14 +28,12 @@ public class AttributeMockPublisherTest {
 	void test() {
 		AttributeMockPublisher mock = new AttributeMockPublisher("foo.bar");
 
-		StepVerifier.create(mock.evaluate(null, null, null))
-			.then(() -> mock.mockEmit(Val.of(1)))
-			.expectNext(Val.of(1))
-			.thenCancel().verify();
-		
+		StepVerifier.create(mock.evaluate(null, null, null)).then(() -> mock.mockEmit(Val.of(1))).expectNext(Val.of(1))
+				.thenCancel().verify();
+
 		mock.assertVerifications();
 	}
-	
+
 	@Test
 	void test_errorMessage() {
 		AttributeMockPublisher mock = new AttributeMockPublisher("test.test");

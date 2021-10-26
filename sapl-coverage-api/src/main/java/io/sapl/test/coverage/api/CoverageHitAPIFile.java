@@ -34,8 +34,11 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
+
 	public final Path FILE_PATH_POLICY_SET_HITS;
+
 	public final Path FILE_PATH_POLICY_HITS;
+
 	public final Path FILE_PATH_POLICY_CONDITION_HITS;
 
 	CoverageHitAPIFile(Path basedir) {
@@ -69,10 +72,12 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 		try {
 			if (doesLineExistsInFile(filePath, lineToAdd)) {
 				// do nothing as already hit
-			} else {
+			}
+			else {
 				appendLineToFile(filePath, lineToAdd);
 			}
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error("Error writing File " + filePath, e);
 		}
 	}
@@ -82,7 +87,8 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 			Optional<String> lineHavingTarget = stream.filter(l -> l.contains(lineToAdd)).findFirst();
 			if (lineHavingTarget.isPresent()) {
 				return true;
-			} else {
+			}
+			else {
 				return false;
 			}
 		}
@@ -114,7 +120,8 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 	private List<String> readFileLines(Path filePathPolicySetHits) {
 		try {
 			return Files.readAllLines(filePathPolicySetHits);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error(String.format("Error reading File %s. Is the policy coverage recording disabled?",
 					filePathPolicySetHits.toAbsolutePath().toString()), e);
 		}
@@ -131,7 +138,8 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 	private void cleanCoverageHitFile(Path filePath) {
 		try {
 			Files.deleteIfExists(filePath);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error("Error deleting File " + filePath, e);
 		}
 	}
@@ -148,11 +156,12 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 			// ignore when file in previous test got created
 			if (!Files.exists(filePath)) {
 				var parent = filePath.getParent();
-				if(parent != null)
+				if (parent != null)
 					Files.createDirectories(parent);
 				Files.createFile(filePath);
 			}
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error("Error creating File " + filePath, e);
 		}
 	}

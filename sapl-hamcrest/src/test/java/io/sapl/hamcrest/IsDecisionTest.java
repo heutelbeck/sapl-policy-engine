@@ -40,7 +40,7 @@ class IsDecisionTest {
 		assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), not(is(sut)));
 		assertThat(new AuthorizationDecision(Decision.INDETERMINATE), not(is(sut)));
 	}
-	
+
 	@Test
 	void testDeny() {
 		var sut = isDeny();
@@ -49,7 +49,7 @@ class IsDecisionTest {
 		assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), not(is(sut)));
 		assertThat(new AuthorizationDecision(Decision.INDETERMINATE), not(is(sut)));
 	}
-	
+
 	@Test
 	void testIsNotApplicable() {
 		var sut = isNotApplicable();
@@ -58,7 +58,7 @@ class IsDecisionTest {
 		assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), is(sut));
 		assertThat(new AuthorizationDecision(Decision.INDETERMINATE), not(is(sut)));
 	}
-	
+
 	@Test
 	void testIndeterminate() {
 		var sut = isIndeterminate();
@@ -67,7 +67,7 @@ class IsDecisionTest {
 		assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), not(is(sut)));
 		assertThat(new AuthorizationDecision(Decision.INDETERMINATE), is(sut));
 	}
-	
+
 	@Test
 	void testAnyDec() {
 		var sut = anyDecision();
@@ -84,7 +84,7 @@ class IsDecisionTest {
 		sut.describeTo(description);
 		assertThat(description.toString(), is("the decision is any decision"));
 	}
-	
+
 	@Test
 	void testDescriptionForDecisionConstructor() {
 		var sut = isPermit();
@@ -92,4 +92,5 @@ class IsDecisionTest {
 		sut.describeTo(description);
 		assertThat(description.toString(), is("the decision is PERMIT"));
 	}
+
 }

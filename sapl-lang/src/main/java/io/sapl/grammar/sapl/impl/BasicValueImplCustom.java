@@ -25,8 +25,8 @@ import reactor.core.publisher.Flux;
  *
  * Grammar: {BasicValue} value=Value steps+=Step*;
  *
- * Value: Object | Array | NumberLiteral | StringLiteral | BooleanLiteral |
- * NullLiteral | UndefinedLiteral ;
+ * Value: Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral |
+ * UndefinedLiteral ;
  */
 public class BasicValueImplCustom extends BasicValueImpl {
 

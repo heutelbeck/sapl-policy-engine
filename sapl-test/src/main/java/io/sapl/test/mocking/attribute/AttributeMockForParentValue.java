@@ -38,12 +38,17 @@ import lombok.Getter;
 import reactor.core.publisher.Flux;
 
 public class AttributeMockForParentValue implements AttributeMock {
+
 	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS = "You already defined a Mock for %s which is returning specified values when parameters are matching the expectation";
+
 	private static final String ERROR_NO_MATCHING_PARENTVALUE = "Unable to find a mocked return value for this parent value";
-	
+
 	private final String fullname;
+
 	private List<ParameterSpecificMockReturnValue> listParameterSpecificMockReturnValues;
+
 	private final MockRunInformation mockRunInformation;
+
 	private final List<MockingVerification> listMockingVerifications;
 
 	public AttributeMockForParentValue(String fullname) {
@@ -53,18 +58,21 @@ public class AttributeMockForParentValue implements AttributeMock {
 		this.listMockingVerifications = new LinkedList<>();
 	}
 
-	public void loadMockForParentValue(AttributeParentValueMatcher parentValueMatcher, Val returnValue) {	
-		this.listParameterSpecificMockReturnValues.add(new ParameterSpecificMockReturnValue(parentValueMatcher.getMatcher(), returnValue));
-		
-		this.listMockingVerifications.add(new TimesParameterCalledVerification(Imports.times(1), List.of(parentValueMatcher.getMatcher())));
+	public void loadMockForParentValue(AttributeParentValueMatcher parentValueMatcher, Val returnValue) {
+		this.listParameterSpecificMockReturnValues
+				.add(new ParameterSpecificMockReturnValue(parentValueMatcher.getMatcher(), returnValue));
+
+		this.listMockingVerifications
+				.add(new TimesParameterCalledVerification(Imports.times(1), List.of(parentValueMatcher.getMatcher())));
 	}
-	
+
 	@Override
 	public Flux<Val> evaluate(Val parentValue, Map<String, JsonNode> variables, List<Flux<Val>> args) {
 		this.mockRunInformation.saveCall(new MockCall(parentValue));
-		
-		Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues = findMatchingParameterSpecificMockReturnValue(parentValue);
-				
+
+		Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues = findMatchingParameterSpecificMockReturnValue(
+				parentValue);
+
 		checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
 
 		return Flux.just(matchingParameterSpecificMockReturnValues.get().getMockReturnValue());
@@ -72,11 +80,11 @@ public class AttributeMockForParentValue implements AttributeMock {
 
 	private void checkAtLeastOneMatchingMockReturnValueExists(
 			Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues) {
-		if(matchingParameterSpecificMockReturnValues.isEmpty()) {
+		if (matchingParameterSpecificMockReturnValues.isEmpty()) {
 			throw new SaplTestException(ERROR_NO_MATCHING_PARENTVALUE);
 		}
 	}
-	
+
 	private Optional<ParameterSpecificMockReturnValue> findMatchingParameterSpecificMockReturnValue(Val parentValue) {
 		return this.listParameterSpecificMockReturnValues.stream().filter((ParameterSpecificMockReturnValue mock) -> {
 			return mock.getExpectedParentValue().matches(parentValue);
@@ -92,11 +100,15 @@ public class AttributeMockForParentValue implements AttributeMock {
 	public String getErrorMessageForCurrentMode() {
 		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS, this.fullname);
 	}
-	
+
 	@Getter
 	@AllArgsConstructor
 	static class ParameterSpecificMockReturnValue {
-		private Matcher<Val> expectedParentValue;		
+
+		private Matcher<Val> expectedParentValue;
+
 		private Val mockReturnValue;
+
 	}
+
 }

@@ -55,13 +55,19 @@ class PreEnforcePolicyEnforcementPointTests {
 	public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	ObjectFactory<PolicyDecisionPoint> pdpFactory;
+
 	ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory;
+
 	ObjectFactory<ObjectMapper> objectMapperFactory;
+
 	ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
 
 	PolicyDecisionPoint pdp;
+
 	ConstraintEnforcementService constraintHandlers;
+
 	Authentication authentication;
+
 	AuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	@BeforeEach
@@ -189,8 +195,10 @@ class PreEnforcePolicyEnforcementPointTests {
 	}
 
 	static class TestClass {
+
 		public void doSomething() {
 		}
+
 	}
 
 }

@@ -56,23 +56,26 @@ public class PolicyBodyImplCustomCoverage extends PolicyBodyImplCustom {
 	protected Flux<Tuple2<Val, EvaluationContext>> evaluateCondition(Val previousResult, Condition condition,
 			EvaluationContext ctx) {
 		return super.evaluateCondition(previousResult, condition, ctx).doOnNext(result -> {
-			if(result.getT1().isBoolean()) {
+			if (result.getT1().isBoolean()) {
 				String policySetId = "";
-				String policyId = "";		
+				String policyId = "";
 				EObject eContainer1 = eContainer();
-				if(eContainer1.eClass().equals(SaplPackage.Literals.POLICY)) {
+				if (eContainer1.eClass().equals(SaplPackage.Literals.POLICY)) {
 					policyId = ((Policy) eContainer1).getSaplName();
 					EObject eContainer2 = eContainer1.eContainer();
-					if(eContainer2.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
+					if (eContainer2.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 						policySetId = ((PolicySet) eContainer2).getSaplName();
 					}
 				}
-				// because of implementation of super method and switchMap -> this is executed on the actual statementId-1 
+				// because of implementation of super method and switchMap -> this is
+				// executed on the actual statementId-1
 				int actualStatementId = this.currentStatementId - 1;
-				PolicyConditionHit hit = new PolicyConditionHit(policySetId, policyId, actualStatementId, result.getT1().getBoolean());
+				PolicyConditionHit hit = new PolicyConditionHit(policySetId, policyId, actualStatementId,
+						result.getT1().getBoolean());
 				log.trace("| | | | |-- Hit PolicyCondition: " + hit);
 				this.hitRecorder.recordPolicyConditionHit(hit);
 			}
 		});
 	}
+
 }

@@ -35,6 +35,7 @@ import javax.xml.bind.Marshaller;
 import org.apache.maven.plugin.logging.Log;
 
 public class SonarLineCoverageReportGenerator {
+
 	private ObjectFactory FACTORY = new ObjectFactory();
 
 	public void generateSonarLineCoverageReport(Collection<SaplDocumentCoverageInformation> documents, Log log,
@@ -54,9 +55,11 @@ public class SonarLineCoverageReportGenerator {
 				PathHelper.createFile(filePath);
 			}
 			marshaller.marshal(sonarCoverage, filePath.toFile());
-		} catch (JAXBException e) {
+		}
+		catch (JAXBException e) {
 			log.error("Error unmarshalling Coverage information to Sonarqube generic coverage format", e);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error("Error writing file", e);
 		}
 	}
@@ -66,7 +69,7 @@ public class SonarLineCoverageReportGenerator {
 
 		/**
 		 * Sonarqube seems to require a path to the sapl file in the src directory
-		 * 
+		 *
 		 * The path on the classpath "target/test-classes/policies/policySimple.sapl is
 		 * getting ignored because unknown to sonarqube
 		 */

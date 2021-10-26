@@ -31,43 +31,35 @@ import org.junit.jupiter.api.Test;
 public class C_PolicyWithSimplePIPTest {
 
 	private SaplTestFixture fixture;
-	
+
 	@BeforeEach
 	void setUp() {
 		fixture = new SaplUnitTestFixture("policyWithSimplePIP");
 	}
-	
+
 	@Test
 	void test_policyWithSimpleMockedPIP() {
-		
-		fixture.constructTestCaseWithMocks()
-			.givenAttribute("test.upper", Val.of("WILLI"))
-			.when(AuthorizationSubscription.of("willi", "read", "something"))
-			.expectPermit()
-			.verify();
-		
+
+		fixture.constructTestCaseWithMocks().givenAttribute("test.upper", Val.of("WILLI"))
+				.when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
+
 	}
-	
+
 	@Test
 	void test_policyWithSimplePIP() throws InitializationException {
-		
-		fixture.registerPIP(new TestPIP())
-			.constructTestCase()
-			.when(AuthorizationSubscription.of("willi", "read", "something"))
-			.expectPermit()
-			.verify();
-		
-	}	
-	
-	
+
+		fixture.registerPIP(new TestPIP()).constructTestCase()
+				.when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
+
+	}
+
 	@Test
 	void test_policyWithSimplePIP_mockedWhenParameters() throws InitializationException {
-		
+
 		fixture.constructTestCaseWithMocks()
-			.givenAttribute("test.upper", whenParentValue(val("willi")), Val.of("WILLI"))
-			.when(AuthorizationSubscription.of("willi", "read", "something"))
-			.expectPermit()
-			.verify();
-		
+				.givenAttribute("test.upper", whenParentValue(val("willi")), Val.of("WILLI"))
+				.when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
+
 	}
+
 }

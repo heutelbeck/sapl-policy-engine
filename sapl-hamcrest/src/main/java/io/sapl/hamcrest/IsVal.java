@@ -60,7 +60,8 @@ public class IsVal extends TypeSafeDiagnosingMatcher<Val> {
 		var json = item.get();
 		if (jsonMatcher.isEmpty() || jsonMatcher.get().matches(json)) {
 			return true;
-		} else {
+		}
+		else {
 			mismatchDescription.appendText("was val that ");
 			jsonMatcher.get().describeMismatch(json, mismatchDescription);
 			return false;

@@ -23,7 +23,10 @@
 	  mvn versions:update-child-modules -N
 	  
 	* Correct the license headers of all source files:
-	 mvn license:format 
+	  mvn license:format
+	  
+	* Format the code according to Spring code formatting conventions:
+	  mvn spring-javaformat:apply 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -405,6 +408,10 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>io.spring.javaformat</groupId>
+				<artifactId>spring-javaformat-maven-plugin</artifactId>
 			</plugin>
 		</plugins>
 	</build>

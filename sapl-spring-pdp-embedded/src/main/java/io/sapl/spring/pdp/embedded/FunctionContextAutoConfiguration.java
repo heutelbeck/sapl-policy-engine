@@ -50,4 +50,5 @@ public class FunctionContextAutoConfiguration {
 		}
 		return functionContext;
 	}
+
 }

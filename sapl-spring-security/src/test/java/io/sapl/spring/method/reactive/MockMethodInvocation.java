@@ -30,13 +30,14 @@ public class MockMethodInvocation implements MethodInvocation {
 	private Object targetObject;
 
 	private Supplier<Object> proceedSupplier;
-	
+
 	public static MockMethodInvocation of(Object targetObject, Class<?> clazz, String methodName,
 			Supplier<Object> proceedSupplier, Class<?>[] classArgs, Object[] args) {
 		try {
 			Method method = clazz.getMethod(methodName, classArgs);
 			return new MockMethodInvocation(targetObject, method, proceedSupplier, args);
-		} catch (NoSuchMethodException ex) {
+		}
+		catch (NoSuchMethodException ex) {
 			return null;
 		}
 	}
@@ -81,7 +82,5 @@ public class MockMethodInvocation implements MethodInvocation {
 	public String toString() {
 		return "method invocation [" + this.method + "]";
 	}
-
-	
 
 }

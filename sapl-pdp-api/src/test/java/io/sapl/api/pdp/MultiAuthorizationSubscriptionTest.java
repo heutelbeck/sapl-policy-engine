@@ -35,12 +35,19 @@ import org.junit.jupiter.api.Test;
 class MultiAuthorizationSubscriptionTest {
 
 	private static final String SUBSCRIPTION_ID = "SUBSCRIPTION-ID";
+
 	private static final String MULTI_AUTHORIZATION_SUBSCRIPTION = "MultiAuthorizationSubscription";
+
 	private static final String ID = "ID";
+
 	private static final String ID2 = "ID2";
+
 	private static final String RESOURCE = "RESOURCE";
+
 	private static final String RESOURCE2 = "RESOURCE2";
+
 	private static final String ACTION = "ACTION";
+
 	private static final String SUBJECT = "SUBJECT";
 
 	@Test
@@ -113,6 +120,7 @@ class MultiAuthorizationSubscriptionTest {
 				() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID2).getResource(),
 						is(jsonText(RESOURCE2))));
 	}
+
 	@Test
 	void addSameIdTwiceFailsTest() {
 		assertThrows(IllegalArgumentException.class, () -> {

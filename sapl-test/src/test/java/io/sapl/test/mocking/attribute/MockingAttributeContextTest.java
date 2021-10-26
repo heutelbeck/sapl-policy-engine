@@ -50,7 +50,9 @@ import reactor.test.StepVerifier;
 public class MockingAttributeContextTest {
 
 	EvaluationContext ctx;
+
 	AttributeContext unmockedCtx;
+
 	MockingAttributeContext attrCtx;
 
 	@BeforeEach
@@ -64,96 +66,98 @@ public class MockingAttributeContextTest {
 	void test_dynamicMock() {
 		attrCtx.markAttributeMock("foo.bar");
 		StepVerifier.create(attrCtx.evaluate("foo.bar", null, this.ctx, null))
-			.then(() -> attrCtx.mockEmit("foo.bar", Val.of(1)))
-			.expectNext(Val.of(1))
-			.thenCancel().verify();
+				.then(() -> attrCtx.mockEmit("foo.bar", Val.of(1))).expectNext(Val.of(1)).thenCancel().verify();
 	}
-	
+
 	@Test
 	void test_dynamicMock_duplicateRegistration() {
 		attrCtx.markAttributeMock("foo.bar");
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
-			.isThrownBy(() -> attrCtx.markAttributeMock("foo.bar"));
+				.isThrownBy(() -> attrCtx.markAttributeMock("foo.bar"));
 	}
-	
+
 	@Test
 	void test_dynamicMock_mockEmitCalledForInvalidFullname() {
 		attrCtx.loadAttributeMock("test.test", Duration.ofSeconds(10), Val.of(1), Val.of(2));
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
-			.isThrownBy(() -> attrCtx.mockEmit("test.test", Val.of(1)));
+				.isThrownBy(() -> attrCtx.mockEmit("test.test", Val.of(1)));
 	}
-	
+
 	@Test
 	void test_timingMock() {
 		attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
 		Assertions.assertThat(attrCtx.evaluate("foo.bar", null, this.ctx, null)).isNotNull();
 	}
+
 	@Test
 	void test_timingMock_duplicateRegistration() {
 		attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
-		.isThrownBy(() -> attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2)));
+				.isThrownBy(() -> attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2)));
 	}
-	
 
 	@Test
 	void test_loadAttributeMockForParentValue() {
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2));
 		Assertions.assertThat(attrCtx.evaluate("foo.bar", Val.of(1), this.ctx, null)).isNotNull();
 	}
-	
+
 	@Test
 	void test_loadAttributeMockForParentValue_duplicateRegistration() {
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2));
 		attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(2)), Val.of(3));
 		Assertions.assertThat(attrCtx.evaluate("foo.bar", Val.of(1), this.ctx, null)).isNotNull();
 	}
-	
+
 	@Test
 	void test_loadAttributeMockForParentValue_registeredButWrongType() {
 		attrCtx.markAttributeMock("foo.bar");
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
-		.isThrownBy(() -> attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2)));
+				.isThrownBy(() -> attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2)));
 	}
-	
-	
-	
+
 	@Test
 	void test_loadAttributeMockForParentValueAndArguments() {
-		attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar", whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(2));
-		
-		Expression expression = Mockito.mock(Expression.class);
-		Mockito.when(expression.evaluate(any(),any())).thenReturn(Flux.just(Val.TRUE));
-		Arguments arguments = Mockito.mock(Arguments.class);
-		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
-		
-		Assertions.assertThat(attrCtx.evaluate("foo.bar", Val.of(1), this.ctx, arguments)).isNotNull();
-	}
-	
-	@Test
-	void test_loadAttributeMockForParentValueAndArguments_duplicateRegistration() {
-		attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar", whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(0));
-		attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar", whenAttributeParams(parentValue(val(1)), arguments(val(false))), Val.of(1));
+		attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
+				whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(2));
 
 		Expression expression = Mockito.mock(Expression.class);
-		Mockito.when(expression.evaluate(any(),any())).thenReturn(Flux.just(Val.TRUE));
+		Mockito.when(expression.evaluate(any(), any())).thenReturn(Flux.just(Val.TRUE));
 		Arguments arguments = Mockito.mock(Arguments.class);
 		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
-		
+
 		Assertions.assertThat(attrCtx.evaluate("foo.bar", Val.of(1), this.ctx, arguments)).isNotNull();
 	}
-	
+
+	@Test
+	void test_loadAttributeMockForParentValueAndArguments_duplicateRegistration() {
+		attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
+				whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(0));
+		attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
+				whenAttributeParams(parentValue(val(1)), arguments(val(false))), Val.of(1));
+
+		Expression expression = Mockito.mock(Expression.class);
+		Mockito.when(expression.evaluate(any(), any())).thenReturn(Flux.just(Val.TRUE));
+		Arguments arguments = Mockito.mock(Arguments.class);
+		Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<Expression>(List.of(expression)));
+
+		Assertions.assertThat(attrCtx.evaluate("foo.bar", Val.of(1), this.ctx, arguments)).isNotNull();
+	}
+
 	@Test
 	void test_loadAttributeMockForParentValueAndArguments_registeredButWrongType() {
 		attrCtx.markAttributeMock("foo.bar");
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
-		.isThrownBy(() -> attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar", whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(2)));
+				.isThrownBy(() -> attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
+						whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(2)));
 	}
 
 	@Test
 	void test_invalidFullname() {
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> attrCtx.markAttributeMock("foo"));
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> attrCtx.markAttributeMock("foo.bar.xxx"));
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+				.isThrownBy(() -> attrCtx.markAttributeMock("foo"));
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+				.isThrownBy(() -> attrCtx.markAttributeMock("foo.bar.xxx"));
 	}
 
 	@Test
@@ -190,8 +194,8 @@ public class MockingAttributeContextTest {
 	@Test
 	void test_ReturnUnmockedEvaluation() {
 		when(unmockedCtx.evaluate(any(), any(), any(), any())).thenReturn(Val.fluxOf("abc"));
-		StepVerifier.create(this.attrCtx.evaluate("foo.bar", null, null, null)).expectNext(Val.of("abc")).expectComplete()
-				.verify();
+		StepVerifier.create(this.attrCtx.evaluate("foo.bar", null, null, null)).expectNext(Val.of("abc"))
+				.expectComplete().verify();
 	}
 
 	@Test
@@ -232,15 +236,17 @@ public class MockingAttributeContextTest {
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
 				.isThrownBy(() -> ctx.mockEmit("foo.bar", Val.of(1)));
 	}
-	
+
 	@Test
-	void test_getAvailableLibraries_returnsAllAvailableLibraries() {	
+	void test_getAvailableLibraries_returnsAllAvailableLibraries() {
 		this.attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
 		assertThat(this.attrCtx.getAvailableLibraries()).containsOnly("foo.bar");
 	}
-	
+
 	@Test
 	void test_loadPolicyInformationPoint() {
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> this.attrCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint()));
+		Assertions.assertThatExceptionOfType(SaplTestException.class)
+				.isThrownBy(() -> this.attrCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint()));
 	}
+
 }

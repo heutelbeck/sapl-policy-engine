@@ -36,14 +36,15 @@ import io.sapl.interpreter.InitializationException;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * This class enhances the auto completion proposals that the language server
- * offers.
+ * This class enhances the auto completion proposals that the language server offers.
  */
 @Slf4j
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
 	private Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
+
 	private Collection<String> allowedKeywords = Set.of("as");
+
 	private Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
 
 	private LibraryAttributeFinder pipAttributeFinder;
@@ -178,7 +179,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 				var policyBody = (PolicyBodyImpl) model;
 				Collection<String> definedValues = new HashSet<>();
 
-				// iterate through defined statements which are either conditions or variables
+				// iterate through defined statements which are either conditions or
+				// variables
 				for (var statement : policyBody.getStatements()) {
 
 					// collect only variables defined above the given condition
@@ -210,7 +212,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			entry.setDescription("policy name");
 			acceptor.accept(entry, 0);
 			return true;
-		} else if ("body".equals(feature)) {
+		}
+		else if ("body".equals(feature)) {
 			addSimpleProposals(authzSubProposals, context, acceptor);
 		}
 		return false;
@@ -241,14 +244,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	}
 
 	/**
-	 * Moves up the model tree and returns closest parent that matches the given
-	 * class type.
-	 * 
-	 * @param <T>       Class type of the searched-for parent.
-	 * @param object    The current model from which the search starts.
+	 * Moves up the model tree and returns closest parent that matches the given class
+	 * type.
+	 * @param <T> Class type of the searched-for parent.
+	 * @param object The current model from which the search starts.
 	 * @param classType Class type of the searched-for parent.
-	 * @return Returns the first parent for the given class type, or null if no
-	 *         match was found.
+	 * @return Returns the first parent for the given class type, or null if no match was
+	 * found.
 	 */
 	private <T> T goToFirstParent(EObject object, Class<T> classType) {
 		while (object != null) {
@@ -261,14 +263,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	}
 
 	/**
-	 * Moves up the model tree and returns the highest parent that matches the given
-	 * class type.
-	 * 
-	 * @param <T>       Class type of the searched-for parent.
-	 * @param object    The current model from which the search starts.
+	 * Moves up the model tree and returns the highest parent that matches the given class
+	 * type.
+	 * @param <T> Class type of the searched-for parent.
+	 * @param object The current model from which the search starts.
 	 * @param classType Class type of the searched-for parent.
-	 * @return Returns the first parent for the given class type, or null if no
-	 *         match was found.
+	 * @return Returns the first parent for the given class type, or null if no match was
+	 * found.
 	 */
 	private <T> T goToLastParent(EObject object, Class<T> classType) {
 		EObject parent = null;
@@ -284,4 +285,5 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			return classType.cast(parent);
 		return null;
 	}
+
 }

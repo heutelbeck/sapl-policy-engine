@@ -25,17 +25,20 @@ import reactor.core.publisher.Mono;
 @Getter
 public class Predicate {
 
-    private final Bool bool;
-    private final Bitmask conjunctions = new Bitmask();
-    private final Bitmask falseForTruePredicate = new Bitmask();
-    private final Bitmask falseForFalsePredicate = new Bitmask();
+	private final Bool bool;
 
-    public Predicate(final Bool bool) {
-        this.bool = Preconditions.checkNotNull(bool);
-    }
+	private final Bitmask conjunctions = new Bitmask();
 
-    public Mono<Val> evaluate(EvaluationContext subscriptionScopedEvaluationCtx) {
-        return getBool().evaluate(subscriptionScopedEvaluationCtx);
-    }
+	private final Bitmask falseForTruePredicate = new Bitmask();
+
+	private final Bitmask falseForFalsePredicate = new Bitmask();
+
+	public Predicate(final Bool bool) {
+		this.bool = Preconditions.checkNotNull(bool);
+	}
+
+	public Mono<Val> evaluate(EvaluationContext subscriptionScopedEvaluationCtx) {
+		return getBool().evaluate(subscriptionScopedEvaluationCtx);
+	}
 
 }

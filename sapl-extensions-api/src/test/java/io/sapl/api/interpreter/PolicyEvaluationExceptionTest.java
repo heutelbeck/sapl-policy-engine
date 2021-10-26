@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 class PolicyEvaluationExceptionTest {
 
 	private static final String MESSAGE_STRING_1 = "MESSAGE STRING 1";
+
 	private static final String MESSAGE_STRING_D = "MESSAGE STRING %d";
 
 	@Test
@@ -66,4 +67,5 @@ class PolicyEvaluationExceptionTest {
 		var exception = new PolicyEvaluationException(new RuntimeException());
 		assertThat(exception.getCause(), is(instanceOf(RuntimeException.class)));
 	}
+
 }

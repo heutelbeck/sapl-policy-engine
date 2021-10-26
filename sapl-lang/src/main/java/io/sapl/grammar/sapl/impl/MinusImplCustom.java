@@ -32,4 +32,5 @@ public class MinusImplCustom extends MinusImpl {
 	private Val subtract(Val left, Val right) {
 		return Val.of(left.decimalValue().subtract(right.decimalValue()));
 	}
+
 }

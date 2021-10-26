@@ -23,12 +23,14 @@ import java.nio.file.Paths;
 import org.apache.maven.plugin.logging.Log;
 
 public class PathHelper {
+
 	static Path resolveBaseDir(String configBaseDir, String projectBuildDir, Log log) {
 		if (configBaseDir != null && !configBaseDir.isEmpty()) {
 			// apply configured basedir if it is set
 			log.debug(String.format("Using \"%s\" as base dir for sapl coverage", configBaseDir));
 			return Paths.get(configBaseDir).resolve("sapl-coverage");
-		} else {
+		}
+		else {
 			// if not use the maven project build output dir
 			log.debug(String.format("Using \"%s\" as base dir for sapl coverage", projectBuildDir));
 			return Paths.get(projectBuildDir).resolve("sapl-coverage");
@@ -54,4 +56,5 @@ public class PathHelper {
 			}
 		}
 	}
+
 }

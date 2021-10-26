@@ -26,12 +26,13 @@ import io.sapl.interpreter.EvaluationContext;
 
 class PDPConfigurationTest {
 
-    @Test
-    void testIsValid() {
-        assertThat(new PDPConfiguration(null, null).isValid(), is(false));
-        assertThat(new PDPConfiguration(null, mock(CombiningAlgorithm.class)).isValid(), is(false));
-        assertThat(new PDPConfiguration(mock(EvaluationContext.class),null).isValid(), is(false));
-        assertThat(new PDPConfiguration(mock(EvaluationContext.class), mock(CombiningAlgorithm.class)).isValid(), is(true));
-    }
+	@Test
+	void testIsValid() {
+		assertThat(new PDPConfiguration(null, null).isValid(), is(false));
+		assertThat(new PDPConfiguration(null, mock(CombiningAlgorithm.class)).isValid(), is(false));
+		assertThat(new PDPConfiguration(mock(EvaluationContext.class), null).isValid(), is(false));
+		assertThat(new PDPConfiguration(mock(EvaluationContext.class), mock(CombiningAlgorithm.class)).isValid(),
+				is(true));
+	}
 
 }

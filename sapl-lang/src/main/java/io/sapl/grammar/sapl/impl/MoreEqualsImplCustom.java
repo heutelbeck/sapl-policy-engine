@@ -25,8 +25,8 @@ import reactor.core.publisher.Flux;
 /**
  * Checks for a left value being greater than or equal to a right value.
  *
- * Grammar: Comparison returns Expression: Prefixed (({MoreEquals.left=current}
- * '&gt;=') right=Prefixed)? ;
+ * Grammar: Comparison returns Expression: Prefixed (({MoreEquals.left=current} '&gt;=')
+ * right=Prefixed)? ;
  */
 public class MoreEqualsImplCustom extends MoreEqualsImpl {
 

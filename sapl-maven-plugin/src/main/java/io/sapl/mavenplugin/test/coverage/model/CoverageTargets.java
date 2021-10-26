@@ -32,16 +32,17 @@ public class CoverageTargets {
 	private Collection<PolicyHit> policys;
 
 	private Collection<PolicyConditionHit> policyConditions;
-	
+
 	public boolean isPolicySetHit(PolicySetHit possibleHit) {
 		return this.policySets.contains(possibleHit);
 	}
-	
+
 	public boolean isPolicyHit(PolicyHit possibleHit) {
 		return this.policys.contains(possibleHit);
 	}
-		
+
 	public boolean isPolicyConditionHit(PolicyConditionHit possibleHit) {
 		return this.policyConditions.contains(possibleHit);
 	}
+
 }

@@ -24,22 +24,26 @@ import io.sapl.grammar.sapl.SaplPackage;
 
 /**
  * This class contains custom validation rules.
- * 
- * See
- * https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
+ *
+ * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
 public class SAPLValidator extends AbstractSAPLValidator {
 
 	protected static final String MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Lazy and (&&) is not allowed, please use eager and (&) instead.";
+
 	protected static final String MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Lazy or (||) is not allowed, please use eager or (|) instead.";
+
 	protected static final String MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "AttributeFinderStep is not allowed in target expression.";
+
 	protected static final String MSG_HAFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "HeadAttributeFinderStep is not allowed in target expression.";
+
 	protected static final String MSG_BEA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "BasicEnvironmentAttribute is not allowed in target expression.";
+
 	protected static final String MSG_BEHA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "BasicEnvironmentHeadAttribute is not allowed in target expression.";
 
 	/**
-	 * According to SAPL documentation, no lazy And operators are allowed in the
-	 * target expression.
+	 * According to SAPL documentation, no lazy And operators are allowed in the target
+	 * expression.
 	 */
 	@Check
 	public void policyRuleNoAndAllowedInTargetExpression(final Policy policy) {
@@ -48,8 +52,8 @@ public class SAPLValidator extends AbstractSAPLValidator {
 	}
 
 	/**
-	 * According to SAPL documentation, no lazy Or operators are allowed in the
-	 * target expression.
+	 * According to SAPL documentation, no lazy Or operators are allowed in the target
+	 * expression.
 	 */
 	@Check
 	public void policyRuleNoOrAllowedInTargetExpression(final Policy policy) {
@@ -58,8 +62,8 @@ public class SAPLValidator extends AbstractSAPLValidator {
 	}
 
 	/**
-	 * According to SAPL documentation, no lazy Or operators are allowed in the
-	 * target expression.
+	 * According to SAPL documentation, no lazy Or operators are allowed in the target
+	 * expression.
 	 */
 	@Check
 	public void policyRuleNoAttributeFinderAllowedInTargetExpression(final Policy policy) {
@@ -109,4 +113,5 @@ public class SAPLValidator extends AbstractSAPLValidator {
 		}
 		return null;
 	}
+
 }

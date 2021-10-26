@@ -33,6 +33,7 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 public class CoverageHitReaderTest {
 
 	private Path basedir;
+
 	private CoverageHitReader reader;
 
 	@BeforeEach
@@ -50,8 +51,7 @@ public class CoverageHitReaderTest {
 	@Test
 	void testCoverageReading_PolicySets() throws Exception {
 		// arrange
-		Path FILE_PATH_POLICY_SET_HITS = this.basedir.resolve("hits")
-				.resolve("_policySetHits.txt");
+		Path FILE_PATH_POLICY_SET_HITS = this.basedir.resolve("hits").resolve("_policySetHits.txt");
 		if (!Files.exists(FILE_PATH_POLICY_SET_HITS)) {
 			if (FILE_PATH_POLICY_SET_HITS.getParent() != null) {
 				Files.createDirectories(FILE_PATH_POLICY_SET_HITS.getParent());
@@ -103,8 +103,7 @@ public class CoverageHitReaderTest {
 	@Test
 	public void testCoverageReading_PolicyConditions() throws Exception {
 		// arrange
-		Path FILE_PATH_POLICY_CONDITION_HITS = this.basedir.resolve("hits")
-				.resolve("_policyConditionHits.txt");
+		Path FILE_PATH_POLICY_CONDITION_HITS = this.basedir.resolve("hits").resolve("_policyConditionHits.txt");
 		if (!Files.exists(FILE_PATH_POLICY_CONDITION_HITS)) {
 			if (FILE_PATH_POLICY_CONDITION_HITS.getParent() != null) {
 				Files.createDirectories(FILE_PATH_POLICY_CONDITION_HITS.getParent());
@@ -144,4 +143,5 @@ public class CoverageHitReaderTest {
 		// assert
 		Assertions.assertThat(resultPolicySetHits.size()).isEqualTo(0);
 	}
+
 }

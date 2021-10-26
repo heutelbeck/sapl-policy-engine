@@ -31,19 +31,21 @@ import org.junit.jupiter.api.Test;
 import io.sapl.mavenplugin.test.coverage.model.SaplDocument;
 
 public class SaplDocumentReaderTest {
-	
+
 	private MavenProjectStub project;
+
 	private String policyPath = "policies";
+
 	private SaplDocumentReader reader;
-	
+
 	@BeforeEach
 	public void setup() {
 		project = new MavenProjectStub();
-		//project.setTestClasspathElements(List.of("C:/Users/Nikolai/eclipse-sapl-workspace/sapl-test/sapl-maven-plugin/target/test-classes"));
+		// project.setTestClasspathElements(List.of("C:/Users/Nikolai/eclipse-sapl-workspace/sapl-test/sapl-maven-plugin/target/test-classes"));
 		project.setRuntimeClasspathElements(List.of("target/classes"));
 		reader = new SaplDocumentReader();
 	}
-	
+
 	@Test
 	public void test() throws MojoExecutionException {
 		Collection<SaplDocument> documents = reader.retrievePolicyDocuments(new SilentLog(), project, policyPath);
@@ -52,17 +54,20 @@ public class SaplDocumentReaderTest {
 
 	@Test
 	public void test_nonExistentPath() {
-		assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project, "src" + File.separator + "test" + File.separator + "resources" + File.separator + "policies"));
+		assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project,
+				"src" + File.separator + "test" + File.separator + "resources" + File.separator + "policies"));
 	}
-	
+
 	@Test
 	public void test_pathPointsToFile() {
-		assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project, "policies" + File.separator + "policy_1.sapl"));
+		assertThrows(MojoExecutionException.class, () -> reader.retrievePolicyDocuments(new SilentLog(), project,
+				"policies" + File.separator + "policy_1.sapl"));
 	}
-	
+
 	@Test
 	public void test_FilePathWithDot() throws MojoExecutionException {
-		Collection<SaplDocument> documents = reader.retrievePolicyDocuments(new SilentLog(), project, "." + File.separator + "policies");
+		Collection<SaplDocument> documents = reader.retrievePolicyDocuments(new SilentLog(), project,
+				"." + File.separator + "policies");
 		assertEquals(2, documents.size());
 	}
 
