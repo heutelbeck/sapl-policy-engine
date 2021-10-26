@@ -1,24 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-	Copyright © 2020-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
 
-	Licensed under the Apache License, Version 2.0 (the "License");
-	you may not use this file except in compliance with the License.
-	You may obtain a copy of the License at
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+        http://www.apache.org/licenses/LICENSE-2.0
 
-	Unless required by applicable law or agreed to in writing, software
-	distributed under the License is distributed on an "AS IS" BASIS,
-	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	See the License for the specific language governing permissions and
-	limitations under the License.
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 
 -->
-<!-- Update all child project versions to the actual parent pom version:
-	mvn versions:update-child-modules -N -->
-<!-- correct the license headers of all source files mvn license:format -->
+<!-- 
+	Utility goals supported by the POM:
+	
+	* Update all project versions to the actual parent pom version:
+	  mvn versions:update-child-modules -N
+	  
+	* Correct the license headers of all source files:
+	 mvn license:format 
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -66,22 +72,26 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
 		<java.version>11</java.version>
+		<maven.compiler.source>${java.version}</maven.compiler.source>
+		<maven.compiler.target>${java.version}</maven.compiler.target>
+
 		<xtext.version>2.25.0</xtext.version>
-		<license-maven-plugin.version>3.0</license-maven-plugin.version>
-		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
 		<junit.version>5.7.2</junit.version>
 		<lombok.version>1.18.22</lombok.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<spotify.hamcrest.version>1.2.0</spotify.hamcrest.version>
 		<springboot.version>2.5.6</springboot.version>
-		<mockito.version>3.11.2</mockito.version>
-		<vaadin.version>14.7.2</vaadin.version>
-		<maven.compiler.source>${java.version}</maven.compiler.source>
-		<maven.compiler.target>${java.version}</maven.compiler.target>
+		<mockito.version>3.12.4</mockito.version>
+		<vaadin.version>14.7.3</vaadin.version>
+		<guice.version>5.0.1</guice.version>
+
+		<license-maven-plugin.version>3.0</license-maven-plugin.version>
+		<maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
+
 		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
 		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
-		<guice.version>5.0.1</guice.version>
 	</properties>
 
 	<modules>
@@ -198,7 +208,6 @@
 			</dependency>
 
 			<!-- Vaadin -->
-			<!-- https://mvnrepository.com/artifact/com.vaadin/vaadin-bom -->
 			<dependency>
 				<groupId>com.vaadin</groupId>
 				<artifactId>vaadin-bom</artifactId>
