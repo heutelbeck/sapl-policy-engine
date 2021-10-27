@@ -26,7 +26,7 @@ import io.sapl.extension.jwt.JWTFunctionLibrary;
 import io.sapl.extension.jwt.JWTPolicyInformationPoint;
 
 @Configuration
-@ConditionalOnClass(name = "io.sapl.extension.jwt.JWTLibraryService")
+@ConditionalOnClass(name = "io.sapl.extension.jwt.JWTFunctionLibrary")
 public class JwtExtensionAutoConfiguration {
 
 	@Bean

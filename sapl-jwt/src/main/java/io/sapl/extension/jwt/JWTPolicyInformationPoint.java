@@ -33,7 +33,6 @@ import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
@@ -189,10 +188,6 @@ public class JWTPolicyInformationPoint {
 		}
 
 		// ensure presence of all required claims
-		if (!isProperJwt(signedJwt))
-			return Flux.just(ValidityState.INCOMPLETE);
-
-		// ensure presence of all required claims
 		if (!hasRequiredClaims(signedJwt, claims))
 			return Flux.just(ValidityState.INCOMPLETE);
 
@@ -218,12 +213,6 @@ public class JWTPolicyInformationPoint {
 
 		var keyId = signedJwt.getHeader().getKeyID();
 
-		var blacklist = jwtConfig.get("blacklist");
-		if (blacklist != null && blacklist.isArray())
-			for (var blockedKey : blacklist)
-				if (blockedKey.isTextual() && blockedKey.asText().equals(keyId))
-					return Mono.just(false);
-
 		Mono<RSAPublicKey> publicKey = null;
 		var whitelist = jwtConfig.get("whitelist");
 		if (whitelist != null && whitelist.get(keyId) != null) {
@@ -234,6 +223,7 @@ public class JWTPolicyInformationPoint {
 
 		if (publicKey == null) {
 			var jPublicKeyServer = jwtConfig.get(PUBLICKEY_VARIABLES_KEY);
+
 			if (jPublicKeyServer == null)
 				return Mono.just(false);
 
@@ -246,7 +236,9 @@ public class JWTPolicyInformationPoint {
 			if (jMethod != null && jMethod.isTextual()) {
 				sMethod = jMethod.textValue();
 			}
+
 			var sUri = jUri.textValue();
+
 			publicKey = fetchPublicKey(signedJwt.getHeader().getKeyID(), sUri, sMethod);
 		}
 
@@ -331,27 +323,6 @@ public class JWTPolicyInformationPoint {
 	}
 
 	/**
-	 * Verifies token to be parseable and well formed JWT
-	 * 
-	 * @param jwt base64 encoded header.body.signature triplet
-	 * @return true if the token is a proper JWT
-	 */
-	private boolean isProperJwt(SignedJWT jwt) {
-		JWSHeader header = jwt.getHeader();
-
-		// verify token type
-		JOSEObjectType tokenType = header.getType();
-		if (tokenType == null)
-			return false;
-
-		if (!"JWT".equalsIgnoreCase(tokenType.getType()))
-			return false;
-
-		// jwt is well formed
-		return true;
-	}
-
-	/**
 	 * checks if token contains all required claims
 	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
@@ -362,12 +333,6 @@ public class JWTPolicyInformationPoint {
 		// verify presence of key ID
 		String kid = jwt.getHeader().getKeyID();
 		if (kid == null || kid.isBlank())
-			return false;
-
-		// verify presence of token identifier
-
-		String jwtId = claims.getJWTID();
-		if (jwtId == null || jwtId.isBlank())
 			return false;
 
 		// verify presence of issuer
@@ -409,7 +374,6 @@ public class JWTPolicyInformationPoint {
 	 * @return public key or empty
 	 */
 	private Mono<RSAPublicKey> fetchPublicKey(String kid, String publicKeyURI, String publicKeyRequestMethod) {
-
 		ResponseSpec response;
 		if ("post".equalsIgnoreCase(publicKeyRequestMethod)) {
 			// POST request
@@ -419,12 +383,7 @@ public class JWTPolicyInformationPoint {
 			response = webClient.get().uri(publicKeyURI, kid).retrieve();
 		}
 
-		return response.bodyToMono(String.class) // base64
-				.onErrorResume(e -> Mono.empty()) // any error is treated as no response
-				.map(this::decode) // byte[]
-				.filter(Optional::isPresent).map(Optional::get).map(X509EncodedKeySpec::new) // X509EncodedKeySpec
-				.map(this::generatePublicKey) // PublicKey
-				.filter(Optional::isPresent).map(Optional::get); // value or empty
+		return response.bodyToMono(String.class).map(this::stringToKey).filter(Optional::isPresent).map(Optional::get);
 	}
 
 	/**
