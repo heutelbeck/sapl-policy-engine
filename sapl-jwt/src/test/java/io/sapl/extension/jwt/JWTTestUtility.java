@@ -43,6 +43,11 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
 
 class JWTTestUtility {
+	static final String HTTP_HEADER_SCHEME = "Bearer";
+	static final String AUTHENTICATION_CREDENTIALS_KEY = "credentials";
+	static final String AUTHORITIES_KEY = "authorities";
+	static final String ISSUER_KEY = "iss";
+	static final String SUBJECT_KEY = "sub";
 
 	static final long tokenMaturity = 30000; // in 0.5 minutes
 	static final long tokenValidity = 80000; // in 1.3 minutes
@@ -151,8 +156,7 @@ class JWTTestUtility {
 			SignedJWT signedJwt = new SignedJWT(headerWithWrongAlgorithm(keyPair), claims());
 			signedJwt.sign(signer);
 			return Val.of(signedJwt.serialize());
-		}
-		catch (NoSuchAlgorithmException | UnsupportedEncodingException | JOSEException e1) {
+		} catch (NoSuchAlgorithmException | UnsupportedEncodingException | JOSEException e1) {
 			e1.printStackTrace();
 		}
 
@@ -222,24 +226,26 @@ class JWTTestUtility {
 	}
 
 	/**
-	 * @return complete and proper JWT inside a properly prefixed HTTP header scheme field
+	 * @return complete and proper JWT inside a properly prefixed HTTP header scheme
+	 *         field
 	 */
 	static Val properJwtInProperScheme(KeyPair keyPair) {
-		return Val.of(JWTLibraryService.HTTP_HEADER_SCHEME + " " + jwt(keyPair).getText());
+		return Val.of(HTTP_HEADER_SCHEME + " " + jwt(keyPair).getText());
 	}
 
 	/**
 	 * @return JWT inside a properly prefixed HTTP header scheme field
 	 */
 	static Val jwtInProperScheme(String jwt) {
-		return Val.of(JWTLibraryService.HTTP_HEADER_SCHEME + " " + jwt);
+		return Val.of(HTTP_HEADER_SCHEME + " " + jwt);
 	}
 
 	/**
-	 * @return complete and proper JWT inside a wrongly prefixed HTTP header scheme field
+	 * @return complete and proper JWT inside a wrongly prefixed HTTP header scheme
+	 *         field
 	 */
 	static Val properJwtInImproperScheme(KeyPair keyPair) {
-		return Val.of("Not" + JWTLibraryService.HTTP_HEADER_SCHEME + " " + jwt(keyPair).getText());
+		return Val.of("Not" + HTTP_HEADER_SCHEME + " " + jwt(keyPair).getText());
 	}
 
 	/**
@@ -261,12 +267,12 @@ class JWTTestUtility {
 	 * @return JWT as proper credentials value
 	 */
 	static Val jwtInProperCredentials(String jwt) {
-		return Val.of(JsonTestUtility.getPepSubject(JWTLibraryService.AUTHENTICATION_CREDENTIALS_KEY, jwt));
+		return Val.of(JsonTestUtility.getPepSubject(AUTHENTICATION_CREDENTIALS_KEY, jwt));
 	}
 
 	/**
 	 * @return complete and proper JWT inside a proper HTTP header identified by
-	 * lower-case key
+	 *         lower-case key
 	 */
 	static Val properJwtInLowerCaseHeader(KeyPair keyPair) {
 		return Val.of(JsonTestUtility.getPepResource(HttpHeaders.AUTHORIZATION.toLowerCase(),
@@ -285,7 +291,7 @@ class JWTTestUtility {
 	 * @return bogus JWT inside a properly prefixed HTTP header scheme field
 	 */
 	static Val improperJwtInProperScheme() {
-		return Val.of(JWTLibraryService.HTTP_HEADER_SCHEME + " " + bogusJwt().getText());
+		return Val.of(HTTP_HEADER_SCHEME + " " + bogusJwt().getText());
 	}
 
 	/**
@@ -297,7 +303,7 @@ class JWTTestUtility {
 
 	/**
 	 * @return complete and proper JWT inside an HTTP header with a wrongly prefixed
-	 * scheme field
+	 *         scheme field
 	 */
 	static Val properJwtInProperHeaderWithImproperScheme(KeyPair keyPair) {
 		return Val.of(JsonTestUtility.getPepResource(HttpHeaders.AUTHORIZATION,
@@ -305,8 +311,8 @@ class JWTTestUtility {
 	}
 
 	/**
-	 * @return complete and proper JWT inside an HTTP header without prefix in scheme
-	 * field
+	 * @return complete and proper JWT inside an HTTP header without prefix in
+	 *         scheme field
 	 */
 	static Val properJwtInProperHeaderWithEmptyScheme(KeyPair keyPair) {
 		return Val.of(JsonTestUtility.getPepResource(HttpHeaders.AUTHORIZATION, jwt(keyPair).getText()));
@@ -328,8 +334,7 @@ class JWTTestUtility {
 		SignedJWT signedJwt = new SignedJWT(header, claims);
 		try {
 			signedJwt.sign(signer);
-		}
-		catch (JOSEException e) {
+		} catch (JOSEException e) {
 			e.printStackTrace();
 		}
 
@@ -394,7 +399,7 @@ class JWTTestUtility {
 	private static JWTClaimsSet claims() {
 		return new JWTClaimsSet.Builder().jwtID(UUID.randomUUID().toString()).issuer(trustedIssuer).issueTime(now())
 				.notBeforeTime(maturity()).expirationTime(validity()).subject(subject)
-				.claim(JWTLibraryService.AUTHORITIES_KEY, authorities).build();
+				.claim(AUTHORITIES_KEY, authorities).build();
 	}
 
 	/**
@@ -402,8 +407,7 @@ class JWTTestUtility {
 	 */
 	private static JWTClaimsSet claimsWithoutIssuer() {
 		return new JWTClaimsSet.Builder().jwtID(UUID.randomUUID().toString()).issueTime(now()).notBeforeTime(maturity())
-				.expirationTime(validity()).subject(subject).claim(JWTLibraryService.AUTHORITIES_KEY, authorities)
-				.build();
+				.expirationTime(validity()).subject(subject).claim(AUTHORITIES_KEY, authorities).build();
 	}
 
 	/**
@@ -411,8 +415,7 @@ class JWTTestUtility {
 	 */
 	private static JWTClaimsSet claimsWithoutSubject() {
 		return new JWTClaimsSet.Builder().jwtID(UUID.randomUUID().toString()).issuer(trustedIssuer).issueTime(now())
-				.notBeforeTime(maturity()).expirationTime(validity())
-				.claim(JWTLibraryService.AUTHORITIES_KEY, authorities).build();
+				.notBeforeTime(maturity()).expirationTime(validity()).claim(AUTHORITIES_KEY, authorities).build();
 	}
 
 	/**
@@ -428,8 +431,7 @@ class JWTTestUtility {
 	 */
 	private static JWTClaimsSet claimsWithoutId() {
 		return new JWTClaimsSet.Builder().issuer(trustedIssuer).issueTime(now()).notBeforeTime(maturity())
-				.expirationTime(validity()).subject(subject).claim(JWTLibraryService.AUTHORITIES_KEY, authorities)
-				.build();
+				.expirationTime(validity()).subject(subject).claim(AUTHORITIES_KEY, authorities).build();
 	}
 
 	/**
@@ -437,8 +439,7 @@ class JWTTestUtility {
 	 */
 	private static JWTClaimsSet claimsWithEmptyId() {
 		return new JWTClaimsSet.Builder().jwtID("").issuer(trustedIssuer).issueTime(now()).notBeforeTime(maturity())
-				.expirationTime(validity()).subject(subject).claim(JWTLibraryService.AUTHORITIES_KEY, authorities)
-				.build();
+				.expirationTime(validity()).subject(subject).claim(AUTHORITIES_KEY, authorities).build();
 	}
 
 	/**
@@ -447,7 +448,7 @@ class JWTTestUtility {
 	private static JWTClaimsSet claimsWithWrongAuthorities() {
 		return new JWTClaimsSet.Builder().jwtID(UUID.randomUUID().toString()).issuer(trustedIssuer).issueTime(now())
 				.notBeforeTime(maturity()).expirationTime(validity()).subject(subject)
-				.claim(JWTLibraryService.AUTHORITIES_KEY, authorities.toString()).build();
+				.claim(AUTHORITIES_KEY, authorities.toString()).build();
 	}
 
 	/**
@@ -456,8 +457,7 @@ class JWTTestUtility {
 	private static JWTClaimsSet claimsWithNbfAfterExp() {
 		return new JWTClaimsSet.Builder().jwtID(UUID.randomUUID().toString()).issuer(trustedIssuer).issueTime(now())
 				.notBeforeTime(validity()) // switched maturity and validity
-				.expirationTime(maturity()).subject(subject).claim(JWTLibraryService.AUTHORITIES_KEY, authorities)
-				.build();
+				.expirationTime(maturity()).subject(subject).claim(AUTHORITIES_KEY, authorities).build();
 	}
 
 	/**
@@ -465,8 +465,8 @@ class JWTTestUtility {
 	 */
 	private static JWTClaimsSet claimsExpBeforeNow() {
 		return new JWTClaimsSet.Builder().jwtID(UUID.randomUUID().toString()).issuer(trustedIssuer).issueTime(now())
-				.expirationTime(new Date(now().getTime() - 1000)).subject(subject)
-				.claim(JWTLibraryService.AUTHORITIES_KEY, authorities).build();
+				.expirationTime(new Date(now().getTime() - 1000)).subject(subject).claim(AUTHORITIES_KEY, authorities)
+				.build();
 	}
 
 	/**
@@ -474,7 +474,7 @@ class JWTTestUtility {
 	 */
 	private static JWTClaimsSet claimsWithoutNbfAndExp() {
 		return new JWTClaimsSet.Builder().jwtID(UUID.randomUUID().toString()).issuer(trustedIssuer).issueTime(now())
-				.subject(subject).claim(JWTLibraryService.AUTHORITIES_KEY, authorities).build();
+				.subject(subject).claim(AUTHORITIES_KEY, authorities).build();
 	}
 
 	/**
@@ -482,8 +482,8 @@ class JWTTestUtility {
 	 */
 	private static JWTClaimsSet claimsWithNbfBeforeNow() {
 		return new JWTClaimsSet.Builder().jwtID(UUID.randomUUID().toString()).issuer(trustedIssuer).issueTime(now())
-				.notBeforeTime(new Date(now().getTime() - 1000)).subject(subject)
-				.claim(JWTLibraryService.AUTHORITIES_KEY, authorities).build();
+				.notBeforeTime(new Date(now().getTime() - 1000)).subject(subject).claim(AUTHORITIES_KEY, authorities)
+				.build();
 	}
 
 	/**
@@ -491,8 +491,7 @@ class JWTTestUtility {
 	 */
 	private static JWTClaimsSet claimsWithExpAfterNow() {
 		return new JWTClaimsSet.Builder().jwtID(UUID.randomUUID().toString()).issuer(trustedIssuer).issueTime(now())
-				.expirationTime(validity()).subject(subject).claim(JWTLibraryService.AUTHORITIES_KEY, authorities)
-				.build();
+				.expirationTime(validity()).subject(subject).claim(AUTHORITIES_KEY, authorities).build();
 	}
 
 	/**
@@ -500,8 +499,7 @@ class JWTTestUtility {
 	 */
 	private static JWTClaimsSet claimsWithNbfAfterNow() {
 		return new JWTClaimsSet.Builder().jwtID(UUID.randomUUID().toString()).issuer(trustedIssuer).issueTime(now())
-				.notBeforeTime(maturity()).subject(subject).claim(JWTLibraryService.AUTHORITIES_KEY, authorities)
-				.build();
+				.notBeforeTime(maturity()).subject(subject).claim(AUTHORITIES_KEY, authorities).build();
 	}
 
 	/**
@@ -513,7 +511,7 @@ class JWTTestUtility {
 
 		return new JWTClaimsSet.Builder().jwtID(UUID.randomUUID().toString()).issuer(trustedIssuer).issueTime(now())
 				.notBeforeTime(maturity()).expirationTime(validity()).subject(subject)
-				.claim(JWTLibraryService.AUTHORITIES_KEY, superAuthorities).build();
+				.claim(AUTHORITIES_KEY, superAuthorities).build();
 	}
 
 	/**
@@ -544,8 +542,7 @@ class JWTTestUtility {
 		JWTClaimsSet claims = null;
 		try {
 			claims = SignedJWT.parse(jwt.getText()).getJWTClaimsSet();
-		}
-		catch (ParseException e) {
+		} catch (ParseException e) {
 		}
 		return claims;
 	}
@@ -557,8 +554,7 @@ class JWTTestUtility {
 		JWSHeader header = null;
 		try {
 			header = SignedJWT.parse(jwt.getText()).getHeader();
-		}
-		catch (ParseException e) {
+		} catch (ParseException e) {
 		}
 		return header;
 	}
@@ -570,8 +566,7 @@ class JWTTestUtility {
 		SignedJWT sJwt = null;
 		try {
 			sJwt = SignedJWT.parse(jwt.getText());
-		}
-		catch (ParseException | NullPointerException e) {
+		} catch (ParseException | NullPointerException e) {
 		}
 		return sJwt;
 	}
@@ -584,8 +579,7 @@ class JWTTestUtility {
 			Payload payload = SignedJWT.parse(jwt.getText()).getPayload();
 			JsonNode jsonNode = JsonTestUtility.jsonNode(payload.toString());
 			return Val.of(jsonNode);
-		}
-		catch (ParseException | NullPointerException e) {
+		} catch (ParseException | NullPointerException e) {
 			return Val.ofEmptyObject();
 		}
 	}

@@ -43,6 +43,7 @@ import com.nimbusds.jwt.SignedJWT;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.api.validation.Text;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -50,21 +51,30 @@ import reactor.core.publisher.Mono;
 /**
  * Attributes obtained from Json Web Tokens (JWT)
  * <p>
- * Attributes depend on the JWT's validity, meaning they can change their state over time
- * according to the JWT's signature, maturity and expiration.
+ * Attributes depend on the JWT's validity, meaning they can change their state
+ * over time according to the JWT's signature, maturity and expiration.
  * <p>
- * Public keys must be fetched from the trusted authentication server for validating
- * signatures. For this purpose, the url and http method for fetching public keys need to
- * be specified in the {@code pdp.json} configuration file as in the following example:
+ * Public keys must be fetched from the trusted authentication server for
+ * validating signatures. For this purpose, the url and http method for fetching
+ * public keys need to be specified in the {@code pdp.json} configuration file
+ * as in the following example:
  *
  * <pre>
- * {@code {"algorithm": "DENY_UNLESS_PERMIT",
- *	"variables": {
- *		"publicKeyServer": {
- *			  "uri": "http://localhost:8090/public-key/{id}"
- *			, "method": "POST"
- *		}
- *	}
+ * {@code 
+ * {"algorithm": "DENY_UNLESS_PERMIT",
+ * 	"variables": {
+ *				   "jwt": {
+ *		                    "publicKeyServer": {
+ *                                               "uri":    "http://authz-server:9000/public-key/{id}"
+ *                                               "method": "POST"
+ *                                             },
+ *					        "whitelist" : {
+ *								            "key id" : "public key"
+ *					    		          },
+ *					        "blacklist" : {
+ *					                        "key id" : "public key"
+ *					    		          }
+ *	             }
  * }
  * }
  * </pre>
@@ -73,10 +83,10 @@ import reactor.core.publisher.Mono;
 @PolicyInformationPoint(name = JWTPolicyInformationPoint.NAME, description = JWTPolicyInformationPoint.DESCRIPTION)
 public class JWTPolicyInformationPoint {
 
-	static final String NAME = "jwt";
+	private static final String JWT_CONFIG_MISSING_ERROR = "The key 'jwt' with the configuration of public key server and key whillist, blacklist is missing. All JWT tokens will be treated as if the signatures could not be validated.";
+	private static final String JWT_KEY = "jwt";
+	static final String NAME = JWT_KEY;
 	static final String DESCRIPTION = "Json Web Token Attributes. Attributes depend on the JWT's validity, meaning they can change their state over time according to the JWT's signature, maturity and expiration.";
-
-	private static final String NO_PUBLICKEY_URI_WARNING = "URI to fetch public key is unknown. Specify {\"{}\":{\"{}\":\"https://path/to/public/keys/{id}\", \"{}\":\"GET|POST\"}} under variables in pdp.json configuration file to enable JWT signature validation";
 
 	private static final String VALIDITY_DOCS = "The token's validity state";
 
@@ -137,118 +147,143 @@ public class JWTPolicyInformationPoint {
 
 	}
 
-	private final JWTLibraryService jwtService;
-
 	private final WebClient webClient;
 
 	/**
 	 * Constructor
-	 * @param jwtService provider of services for processing Json Web Tokens
-	 * @param mapper object mapper for mapping objects to Json
+	 * 
+	 * @param mapper  object mapper for mapping objects to Json
 	 * @param builder mutable builder for creating a web client
 	 */
-	public JWTPolicyInformationPoint(JWTLibraryService jwtService, WebClient.Builder builder) {
-		this.jwtService = jwtService;
+	public JWTPolicyInformationPoint(WebClient.Builder builder) {
 		this.webClient = builder.build();
+	}
+
+	@Attribute
+	public Flux<Val> valid(@Text Val rawToken, Map<String, JsonNode> variables) {
+		return validityState(rawToken, variables).map(ValidityState.VALID::equals).map(Val::of);
 	}
 
 	/**
 	 * A JWT's validity
 	 * <p>
 	 * The validity may change over time as it becomes mature and then expires.
-	 * @param value object containing JWT
+	 * 
+	 * @param value     object containing JWT
 	 * @param variables configuration variables
 	 * @return Flux representing the JWT's validity over time
 	 */
 	@Attribute(docs = VALIDITY_DOCS)
-	public Flux<Val> validity(Val value, Map<String, JsonNode> variables) {
+	public Flux<Val> validity(@Text Val rawToken, Map<String, JsonNode> variables) {
+		return validityState(rawToken, variables).map(Object::toString).map(Val::of);
+	}
 
-		Val jwtCandidate = jwtService.resolveToken(value);
-		if (jwtCandidate.isUndefined())
-			return Flux.just(Val.of(ValidityState.MALFORMED.toString()));
-		final String jwt = jwtCandidate.getText();
-
-		// ensure this is a well formed jwt
-		if (!isProperJwt(jwt))
-			return Flux.just(Val.of(ValidityState.MALFORMED.toString()));
+	private Flux<ValidityState> validityState(@Text Val rawToken, Map<String, JsonNode> variables) {
+		SignedJWT signedJwt;
+		JWTClaimsSet claims;
+		try {
+			signedJwt = SignedJWT.parse(rawToken.getText());
+			claims = signedJwt.getJWTClaimsSet();
+		} catch (ParseException e) {
+			return Flux.just(ValidityState.MALFORMED);
+		}
 
 		// ensure presence of all required claims
-		if (!hasRequiredClaims(jwt))
-			return Flux.just(Val.of(ValidityState.INCOMPLETE.toString()));
+		if (!isProperJwt(signedJwt))
+			return Flux.just(ValidityState.INCOMPLETE);
+
+		// ensure presence of all required claims
+		if (!hasRequiredClaims(signedJwt, claims))
+			return Flux.just(ValidityState.INCOMPLETE);
 
 		// ensure all required claims are well formed
-		if (!hasCompatibleClaims(jwt))
-			return Flux.just(Val.of(ValidityState.INCOMPATIBLE.toString()));
+		if (!hasCompatibleClaims(signedJwt, claims))
+			return Flux.just(ValidityState.INCOMPATIBLE);
 
-		// if uri to fetch public key is known, validate signature and time
-		if (variables != null) {
-			JsonNode jPublicKeyServer = variables.get(PUBLICKEY_VARIABLES_KEY);
-			if (jPublicKeyServer != null) {
-				JsonNode jUri = jPublicKeyServer.get(PUBLICKEY_URI_KEY);
-				if (jUri != null) {
-					String sUri = jUri.textValue();
-					String sMethod = "GET";
-					JsonNode jMethod = jPublicKeyServer.get(PUBLICKEY_METHOD_KEY);
-					if (jMethod != null && jMethod.isTextual()) {
-						sMethod = jMethod.textValue();
-					}
-					return fetchPublicKey(keyID(jwt), sUri, sMethod).flatMapMany(validateSignatureAndTime(jwt))
-							.switchIfEmpty(Flux.just(Val.of(ValidityState.UNTRUSTED.toString())));
-				}
+		return validateSignature(signedJwt, variables).flatMapMany(isValid -> {
+			if (!isValid)
+				return Flux.just(ValidityState.UNTRUSTED);
+
+			return validateTime(claims);
+		});
+	}
+
+	private Mono<Boolean> validateSignature(SignedJWT signedJwt, Map<String, JsonNode> variables) {
+
+		var jwtConfig = variables.get(JWT_KEY);
+		if (jwtConfig == null) {
+			log.error(JWT_CONFIG_MISSING_ERROR);
+			return Mono.just(false);
+		}
+
+		var keyId = signedJwt.getHeader().getKeyID();
+
+		var blacklist = jwtConfig.get("blacklist");
+		if (blacklist != null && blacklist.isArray())
+			for (var blockedKey : blacklist)
+				if (blockedKey.isTextual() && blockedKey.asText().equals(keyId))
+					return Mono.just(false);
+
+		Mono<RSAPublicKey> publicKey = null;
+		var whitelist = jwtConfig.get("whitelist");
+		if (whitelist != null && whitelist.get(keyId) != null) {
+			var key = jsonNodeToKey(whitelist.get(keyId));
+			if (key.isPresent())
+				publicKey = Mono.just(key.get());
+		}
+
+		if (publicKey == null) {
+			var jPublicKeyServer = jwtConfig.get(PUBLICKEY_VARIABLES_KEY);
+			if (jPublicKeyServer == null)
+				return Mono.just(false);
+
+			var jUri = jPublicKeyServer.get(PUBLICKEY_URI_KEY);
+			if (jUri == null)
+				return Mono.just(false);
+
+			var sMethod = "GET";
+			JsonNode jMethod = jPublicKeyServer.get(PUBLICKEY_METHOD_KEY);
+			if (jMethod != null && jMethod.isTextual()) {
+				sMethod = jMethod.textValue();
 			}
+			var sUri = jUri.textValue();
+			publicKey = fetchPublicKey(signedJwt.getHeader().getKeyID(), sUri, sMethod);
 		}
 
-		// if uri to fetch public key is unknown, only validate time
-		log.warn(NO_PUBLICKEY_URI_WARNING, PUBLICKEY_VARIABLES_KEY, PUBLICKEY_URI_KEY, PUBLICKEY_METHOD_KEY);
-		return validateTime(jwt);
+		return publicKey.map(signatureOfTokenIsValid(signedJwt)).switchIfEmpty(Mono.just(false));
 	}
 
-	/**
-	 * helper function to allow mapping of public key to signature validation
-	 * @param jwt base64 encoded header.body.signature triplet
-	 * @return Function to validate signature
-	 */
-	private Function<RSAPublicKey, Flux<Val>> validateSignatureAndTime(String jwt) {
-		return publicKey -> doValidateSignatureAndTime(jwt, publicKey);
+	private Function<RSAPublicKey, Boolean> signatureOfTokenIsValid(SignedJWT signedJwt) {
+		return publicKey -> {
+			JWSVerifier verifier = new RSASSAVerifier(publicKey);
+			try {
+				signedJwt.verify(verifier);
+			} catch (JOSEException | IllegalStateException | NullPointerException e) {
+				// erroneous signatures or data are treated same as failed verifications
+				return false;
+			}
+			return true;
+		};
 	}
 
-	/**
-	 * verifies a jwt's content to match its signature decrypted with the public key
-	 * @param jwt base64 encoded header.body.signature triplet
-	 * @param publicKey key to decrypt the signature
-	 * @return Flux containing IMMATURE, VALID, and/or EXPIRED if signature is valid,
-	 * UNTRUSTED otherwise
-	 */
-	private Flux<Val> doValidateSignatureAndTime(String jwt, RSAPublicKey publicKey) {
+	private Optional<RSAPublicKey> jsonNodeToKey(JsonNode jsonNode) {
+		if (!jsonNode.isTextual())
+			return Optional.empty();
 
-		SignedJWT signedJwt = jwtService.signedJwt(jwt);
+		return stringToKey(jsonNode.textValue());
+	}
 
-		// verify signature
-		boolean isVerified = false;
-		JWSVerifier verifier = new RSASSAVerifier(publicKey);
-		try {
-			isVerified = signedJwt.verify(verifier);
-		}
-		catch (JOSEException | IllegalStateException | NullPointerException e) {
-			// erroneous signatures or data are treated same as failed verifications
-		}
-
-		if (!isVerified) {
-			return Flux.just(Val.of(ValidityState.UNTRUSTED.toString()));
-		}
-
-		// continue validating time if signature is valid
-		return validateTime(jwt);
+	private Optional<RSAPublicKey> stringToKey(String encodedKey) {
+		return decode(encodedKey).map(X509EncodedKeySpec::new).flatMap(this::generatePublicKey);
 	}
 
 	/**
 	 * Verifies token validity based on time
+	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return Flux containing IMMATURE, VALID, and/or EXPIRED
 	 */
-	private Flux<Val> validateTime(String jwt) {
-
-		JWTClaimsSet claims = jwtService.claims(jwt);
+	private Flux<ValidityState> validateTime(JWTClaimsSet claims) {
 
 		// java.util.Date and jwt NumericDate values are based on EPOCH
 		// (number of seconds since 1970-01-01T00:00:00Z UTC)
@@ -259,11 +294,11 @@ public class JWTPolicyInformationPoint {
 
 		// sanity check
 		if (nbf != null && exp != null && nbf.getTime() > exp.getTime())
-			return Flux.just(Val.of(ValidityState.NEVERVALID.toString()));
+			return Flux.just(ValidityState.NEVERVALID);
 
 		// verify expiration
 		if (exp != null && exp.getTime() < now.getTime()) {
-			return Flux.just(Val.of(ValidityState.EXPIRED.toString()));
+			return Flux.just(ValidityState.EXPIRED);
 		}
 
 		// verify maturity
@@ -271,16 +306,13 @@ public class JWTPolicyInformationPoint {
 
 			if (exp == null) {
 				// the token is not valid yet but will be in future
-				return Flux.concat(Mono.just(Val.of(ValidityState.IMMATURE.toString())),
-						Mono.just(Val.of(ValidityState.VALID.toString()))
-								.delayElement(Duration.ofMillis(nbf.getTime() - now.getTime())));
-			}
-			else {
+				return Flux.concat(Mono.just(ValidityState.IMMATURE),
+						Mono.just(ValidityState.VALID).delayElement(Duration.ofMillis(nbf.getTime() - now.getTime())));
+			} else {
 				// the token is not valid yet but will be in future and then expire
-				return Flux.concat(Mono.just(Val.of(ValidityState.IMMATURE.toString())),
-						Mono.just(Val.of(ValidityState.VALID.toString()))
-								.delayElement(Duration.ofMillis(nbf.getTime() - now.getTime())),
-						Mono.just(Val.of(ValidityState.EXPIRED.toString()))
+				return Flux.concat(Mono.just(ValidityState.IMMATURE),
+						Mono.just(ValidityState.VALID).delayElement(Duration.ofMillis(nbf.getTime() - now.getTime())),
+						Mono.just(ValidityState.EXPIRED)
 								.delayElement(Duration.ofMillis(exp.getTime() - nbf.getTime())));
 			}
 		}
@@ -289,24 +321,23 @@ public class JWTPolicyInformationPoint {
 		// (either nbf==null or nbf<=now)
 		if (exp == null) {
 			// the token is eternally valid (no expiration)
-			return Flux.just(Val.of(ValidityState.VALID.toString()));
-		}
-		else {
+			return Flux.just(ValidityState.VALID);
+		} else {
 			// the token is valid now but will expire in future
-			return Flux.concat(Mono.just(Val.of(ValidityState.VALID.toString())),
-					Mono.just(Val.of(ValidityState.EXPIRED.toString()))
-							.delayElement(Duration.ofMillis(exp.getTime() - now.getTime())));
+			return Flux.concat(Mono.just(ValidityState.VALID),
+					Mono.just(ValidityState.EXPIRED).delayElement(Duration.ofMillis(exp.getTime() - now.getTime())));
 		}
 
 	}
 
 	/**
 	 * Verifies token to be parseable and well formed JWT
+	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return true if the token is a proper JWT
 	 */
-	private boolean isProperJwt(String jwt) {
-		JWSHeader header = jwtService.header(jwt);
+	private boolean isProperJwt(SignedJWT jwt) {
+		JWSHeader header = jwt.getHeader();
 
 		// verify token type
 		JOSEObjectType tokenType = header.getType();
@@ -322,26 +353,21 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * checks if token contains all required claims
+	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return true if the token contains all required claims
 	 */
-	private boolean hasRequiredClaims(String jwt) {
-
-		JWSHeader header = jwtService.header(jwt);
-
-		// no need to verify presence of algorithm,
-		// without alg in header jwt could not have been resolved
+	private boolean hasRequiredClaims(SignedJWT jwt, JWTClaimsSet claims) {
 
 		// verify presence of key ID
-		String kid = header.getKeyID();
-		if (kid == null || kid.length() == 0)
+		String kid = jwt.getHeader().getKeyID();
+		if (kid == null || kid.isBlank())
 			return false;
 
-		JWTClaimsSet claims = jwtService.claims(jwt);
-
 		// verify presence of token identifier
+
 		String jwtId = claims.getJWTID();
-		if (jwtId == null || jwtId.length() == 0)
+		if (jwtId == null || jwtId.isBlank())
 			return false;
 
 		// verify presence of issuer
@@ -352,54 +378,33 @@ public class JWTPolicyInformationPoint {
 		if (null == claims.getSubject())
 			return false;
 
-		// verify presence of authorities
-		if (null == claims.getClaim(JWTLibraryService.AUTHORITIES_KEY))
-			return false;
-
-		// jwt contains all required claims
+		// JWT contains all required claims
 		return true;
 	}
 
 	/**
 	 * checks if claims meet requirements
+	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return true all claims meet requirements
 	 */
-	private boolean hasCompatibleClaims(String jwt) {
+	private boolean hasCompatibleClaims(SignedJWT jwt, JWTClaimsSet claims) {
 
-		JWSHeader header = jwtService.header(jwt);
+		JWSHeader header = jwt.getHeader();
 
 		// verify correct algorithm
 		if (!"RS256".equalsIgnoreCase(header.getAlgorithm().getName()))
 			return false;
-
-		JWTClaimsSet claims = jwtService.claims(jwt);
-
-		// verify type of authorities
-		try {
-			claims.getStringListClaim(JWTLibraryService.AUTHORITIES_KEY);
-		}
-		catch (ParseException e) {
-			return false;
-		}
 
 		// all claims are compatible with requirements
 		return true;
 	}
 
 	/**
-	 * Extracts key ID from jwt's header
-	 * @param jwt base64 encoded header.body.signature triplet
-	 * @return key ID
-	 */
-	private String keyID(String jwt) {
-		return jwtService.header(jwt).getKeyID();
-	}
-
-	/**
 	 * Fetches public key from remote authentication server
-	 * @param kid ID of public key to fetch
-	 * @param publicKeyURI uri to request the public key
+	 * 
+	 * @param kid                    ID of public key to fetch
+	 * @param publicKeyURI           URI to request the public key
 	 * @param publicKeyRequestMethod HTTP request method: GET or POST
 	 * @return public key or empty
 	 */
@@ -409,8 +414,7 @@ public class JWTPolicyInformationPoint {
 		if ("post".equalsIgnoreCase(publicKeyRequestMethod)) {
 			// POST request
 			response = webClient.post().uri(publicKeyURI, kid).retrieve();
-		}
-		else {
+		} else {
 			// default GET request
 			response = webClient.get().uri(publicKeyURI, kid).retrieve();
 		}
@@ -425,6 +429,7 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * decodes a Base64 encoded string into bytes
+	 * 
 	 * @param base64 encoded string
 	 * @return bytes
 	 */
@@ -436,14 +441,14 @@ public class JWTPolicyInformationPoint {
 		try {
 			byte[] bytes = Base64.getUrlDecoder().decode(base64);
 			return Optional.of(bytes);
-		}
-		catch (IllegalArgumentException e) {
+		} catch (IllegalArgumentException e) {
 			return Optional.empty();
 		}
 	}
 
 	/**
 	 * generates an RSAPublicKey from an X509EncodedKeySpec
+	 * 
 	 * @param x509Key an X509EncodedKeySpec object
 	 * @return the RSAPublicKey object
 	 */
@@ -452,8 +457,7 @@ public class JWTPolicyInformationPoint {
 			KeyFactory kf = KeyFactory.getInstance("RSA");
 			RSAPublicKey publicKey = (RSAPublicKey) kf.generatePublic(x509Key);
 			return Optional.of(publicKey);
-		}
-		catch (NullPointerException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+		} catch (NullPointerException | NoSuchAlgorithmException | InvalidKeySpecException e) {
 			return Optional.empty();
 		}
 	}
