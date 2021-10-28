@@ -1,6 +1,8 @@
 # SAPL Extension API
 
-This module contains the interfaces and classes required to write custom Policy Information Points (PIPs) or function libraries.
+This module contains the interfaces and classes required to write custom Policy Information Points (PIPs) or function libraries. 
+
+A demo project with more documentation is available: <https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension>.
 
 ## SAPL Values
 
