@@ -28,8 +28,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * This service can be used to establish a policy enforcement point at any location in
- * users code.
+ * This service can be used to establish a policy enforcement point at any
+ * location in users code.
  */
 @Service
 @RequiredArgsConstructor
@@ -46,12 +46,12 @@ public class PolicyEnforcementPoint {
 
 	private Mono<Boolean> enforceDecision(AuthorizationDecision authzDecision) {
 		if (authzDecision.getResource().isPresent())
-			return Mono.just(false);
+			return Mono.just(Boolean.FALSE);
 
 		return constraintEnforcementService
 				.enforceConstraintsOfDecisionOnResourceAccessPoint(authzDecision, Flux.empty(), Object.class)
 				.then(Mono.just(authzDecision.getDecision() == Decision.PERMIT))
-				.onErrorReturn(AccessDeniedException.class, false);
+				.onErrorReturn(AccessDeniedException.class, Boolean.FALSE);
 	}
 
 }

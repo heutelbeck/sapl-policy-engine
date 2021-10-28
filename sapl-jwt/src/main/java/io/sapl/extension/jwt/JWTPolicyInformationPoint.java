@@ -192,7 +192,7 @@ public class JWTPolicyInformationPoint {
 			return Flux.just(ValidityState.INCOMPLETE);
 
 		// ensure all required claims are well formed
-		if (!hasCompatibleClaims(signedJwt, claims))
+		if (!hasCompatibleClaims(signedJwt))
 			return Flux.just(ValidityState.INCOMPATIBLE);
 
 		return validateSignature(signedJwt, variables).flatMapMany(isValid -> {
@@ -208,7 +208,7 @@ public class JWTPolicyInformationPoint {
 		var jwtConfig = variables.get(JWT_KEY);
 		if (jwtConfig == null) {
 			log.error(JWT_CONFIG_MISSING_ERROR);
-			return Mono.just(false);
+			return Mono.just(Boolean.FALSE);
 		}
 
 		var keyId = signedJwt.getHeader().getKeyID();
@@ -225,11 +225,11 @@ public class JWTPolicyInformationPoint {
 			var jPublicKeyServer = jwtConfig.get(PUBLICKEY_VARIABLES_KEY);
 
 			if (jPublicKeyServer == null)
-				return Mono.just(false);
+				return Mono.just(Boolean.FALSE);
 
 			var jUri = jPublicKeyServer.get(PUBLICKEY_URI_KEY);
 			if (jUri == null)
-				return Mono.just(false);
+				return Mono.just(Boolean.FALSE);
 
 			var sMethod = "GET";
 			JsonNode jMethod = jPublicKeyServer.get(PUBLICKEY_METHOD_KEY);
@@ -242,7 +242,7 @@ public class JWTPolicyInformationPoint {
 			publicKey = fetchPublicKey(signedJwt.getHeader().getKeyID(), sUri, sMethod);
 		}
 
-		return publicKey.map(signatureOfTokenIsValid(signedJwt)).switchIfEmpty(Mono.just(false));
+		return publicKey.map(signatureOfTokenIsValid(signedJwt)).switchIfEmpty(Mono.just(Boolean.FALSE));
 	}
 
 	private Function<RSAPublicKey, Boolean> signatureOfTokenIsValid(SignedJWT signedJwt) {
@@ -252,9 +252,9 @@ public class JWTPolicyInformationPoint {
 				signedJwt.verify(verifier);
 			} catch (JOSEException | IllegalStateException | NullPointerException e) {
 				// erroneous signatures or data are treated same as failed verifications
-				return false;
+				return Boolean.FALSE;
 			}
-			return true;
+			return Boolean.TRUE;
 		};
 	}
 
@@ -350,10 +350,10 @@ public class JWTPolicyInformationPoint {
 	/**
 	 * checks if claims meet requirements
 	 * 
-	 * @param jwt base64 encoded header.body.signature triplet
+	 * @param jwt JWT
 	 * @return true all claims meet requirements
 	 */
-	private boolean hasCompatibleClaims(SignedJWT jwt, JWTClaimsSet claims) {
+	private boolean hasCompatibleClaims(SignedJWT jwt) {
 
 		JWSHeader header = jwt.getHeader();
 
