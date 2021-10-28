@@ -16,10 +16,12 @@
 package io.sapl.extension.jwt;
 
 import java.text.ParseException;
+import java.time.Instant;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nimbusds.jwt.SignedJWT;
 
 import io.sapl.api.functions.Function;
@@ -31,18 +33,18 @@ import lombok.RequiredArgsConstructor;
 /**
  * Library of functions for evaluating Json Web Tokens (JWT)
  * <p>
- * Functions may be used in target expressions of SAPL policies. Since target expressions
- * need to be evaluated quickly for indexing and selecting policies, functions are not
- * allowed to call external services.
+ * Functions may be used in target expressions of SAPL policies. Since target
+ * expressions need to be evaluated quickly for indexing and selecting policies,
+ * functions are not allowed to call external services.
  * <p>
- * This prohibits functions from verifying digital signatures, as it would be necessary to
- * fetch public keys or certificates from external sources. <br>
- * The functions in this library therefore return information contained in JWTs as-is,
- * without verifying the token's validity.
+ * This prohibits functions from verifying digital signatures, as it would be
+ * necessary to fetch public keys or certificates from external sources. <br>
+ * The functions in this library therefore return information contained in JWTs
+ * as-is, without verifying the token's validity.
  * <p>
- * For secure implementations, any function used in the target expression for selecting a
- * policy should therefore be repeated as attribute in the policy's body, as JWT
- * attributes are properly validated.
+ * For secure implementations, any function used in the target expression for
+ * selecting a policy should therefore be repeated as attribute in the policy's
+ * body, as JWT attributes are properly validated.
  */
 @RequiredArgsConstructor
 @FunctionLibrary(name = JWTFunctionLibrary.NAME, description = JWTFunctionLibrary.DESCRIPTION)
@@ -60,13 +62,26 @@ public class JWTFunctionLibrary {
 		try {
 			var signedJwt = SignedJWT.parse(rawToken.getText());
 			var jsonToken = JSON.objectNode();
+			var payload = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
+			ifPresentReplaceEpocFieldWithISOtime(payload, "nbf");
+			ifPresentReplaceEpocFieldWithISOtime(payload, "exp");
+			ifPresentReplaceEpocFieldWithISOtime(payload, "iat");
 			jsonToken.set("header", mapper.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
-			jsonToken.set("payload", mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class));
+			jsonToken.set("payload", payload);
 			return Val.of(jsonToken);
-		}
-		catch (ParseException e) {
+		} catch (ParseException e) {
 			return Val.error(e);
 		}
+	}
+
+	private void ifPresentReplaceEpocFieldWithISOtime(JsonNode payload, String key) {
+		if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber()))
+			return;
+
+		var epocSeconds = payload.get(key).asLong();
+		var isoString = Instant.ofEpochSecond(epocSeconds).toString();
+
+		((ObjectNode) payload).set(key, JSON.textNode(isoString));
 	}
 
 }
