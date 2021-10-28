@@ -107,7 +107,6 @@ class RemotePolicyDecisionPointTests {
 		StepVerifier.create(pdp.decide(subscription))
 				.expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE,
 						AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE,
-						AuthorizationDecision.INDETERMINATE, AuthorizationDecision.INDETERMINATE,
 						AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.INDETERMINATE)
 				.thenCancel().verify();
 	}

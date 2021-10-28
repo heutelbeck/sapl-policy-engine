@@ -86,7 +86,8 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		var type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {
 		};
 		return decide(DECIDE, type, authzSubscription)
-				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat());
+				.onErrorResume(__ -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
+				.distinctUntilChanged();
 	}
 
 	@Override
@@ -94,7 +95,8 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		var type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {
 		};
 		return decide(MULTI_DECIDE, type, multiAuthzSubscription)
-				.onErrorResume(__ -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat());
+				.onErrorResume(__ -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
+				.distinctUntilChanged();
 	}
 
 	@Override
@@ -102,7 +104,8 @@ public class RemotePolicyDecisionPoint implements PolicyDecisionPoint {
 		var type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {
 		};
 		return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
-				.onErrorResume(__ -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat());
+				.onErrorResume(__ -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
+				.distinctUntilChanged();
 	}
 
 	private <T> Flux<T> decide(String path, ParameterizedTypeReference<ServerSentEvent<T>> type,
