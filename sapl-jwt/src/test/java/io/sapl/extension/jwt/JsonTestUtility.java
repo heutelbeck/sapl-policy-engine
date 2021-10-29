@@ -104,8 +104,9 @@ public class JsonTestUtility {
 
 		keyNode.set(JWTPolicyInformationPoint.PUBLICKEY_VARIABLES_KEY, valueNode);
 
-		return MAPPER.convertValue(keyNode, new TypeReference<Map<String, JsonNode>>() {
-		});
+		return Map.of("jwt", keyNode);
+		
+		//return MAPPER.convertValue(keyNode, new TypeReference<Map<String, JsonNode>>() { });
 	}
 
 }
