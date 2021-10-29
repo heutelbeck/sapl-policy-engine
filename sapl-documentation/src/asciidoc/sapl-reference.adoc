@@ -18,7 +18,7 @@
 
 = SAPL - Streaming Attribute Policy Language
 Dominic Heutelbeck
-v2.0.0-SNAPSHOT
+{project-version}
 
 :toclevels: 4
 
@@ -163,12 +163,12 @@ In addition SAPL provides an embedded PDP including an embedded PRP with a file 
 
 * Add a SAPL dependency to your application. When using Maven you can add the following dependencies to your project's `pom.xml`:
 
-[source,XML]
+[source,XML,subs="attributes+"]
 ----
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-pdp-embedded</artifactId>
-      <version>2.0.0-SNAPSHOT</version>
+      <version>{project-version}</version>
    </dependency>
 ----
 
@@ -189,14 +189,14 @@ In addition SAPL provides an embedded PDP including an embedded PRP with a file 
 
 * If you plan to use more SAPL dependencies, a useful bill of materials POM is offered, centralizing the dependency management for SAPL artifacts:
 
-[source,XML]
+[source,XML,subs="attributes+"]
 ----
    <dependencyManagement>
       <dependencies>
          <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-bom</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>{project-version}</version>
             <type>pom</type>
             <scope>import</scope>
          </dependency>
@@ -428,12 +428,12 @@ The SAPL Policy engine comes with two implementations ready for deployment in an
 
 The Java API is based on the reactive libraries of Project Reactor (https://projectreactor.io/). The API is defined in the `sapl-pdp-api` module:
 
-[source,XML]
+[source,XML,subs="attributes+"]
 ----
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-pdp-api</artifactId>
-      <version>2.0.0-SNAPSHOT</version>
+      <version>{project-version}</version>
    </dependency>
 ----
 
@@ -492,23 +492,23 @@ public interface PolicyDecisionPoint {
 
 To use a PDP two implementations of the API are supplied. First, a completely embedded PDP can be used to be deployed with an application. (See: https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-pdp-embedded)
 
-[source,XML]
+[source,XML,subs="attributes+"]
 ----
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-pdp-embedded</artifactId>
-      <version>2.0.0-SNAPSHOT</version>
+      <version>{project-version}</version>
    </dependency>
 ----
 
 The library with Spring auto configuration support:
 
-[source,XML]
+[source,XML,subs="attributes+"]
 ----
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-spring-pdp-embedded</artifactId>
-      <version>2.0.0-SNAPSHOT</version>
+      <version>{project-version}</version>
    </dependency>
 ----
 
@@ -516,24 +516,24 @@ The library with Spring auto configuration support:
 
 Alternatively a remote PDP server can be used by via the same interface by using the client implementation. (See: https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-pdp-remote)
 
-[source,XML]
+[source,XML,subs="attributes+"]
 ----
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-pdp-remote</artifactId>
-      <version>2.0.0-SNAPSHOT</version>
+      <version>{project-version}</version>
    </dependency>
 ----
 
 
 The library with Spring auto configuration support:
 
-[source,XML]
+[source,XML,subs="attributes+"]
 ----
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-spring-pdp-remote</artifactId>
-      <version>2.0.0-SNAPSHOT</version>
+      <version>{project-version}</version>
    </dependency>
 ----
 
@@ -541,12 +541,12 @@ The library with Spring auto configuration support:
 
 For Spring Security (https://spring.io/projects/spring-security) a full PEP implementation is available. A matching Spring PDP implementation also must be declared to use the integration (see above).
 
-[source,XML]
+[source,XML,subs="attributes+"]
 ----
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-spring-security</artifactId>
-      <version>2.0.0-SNAPSHOT</version>
+      <version>{project-version}</version>
    </dependency>
 ----
 
@@ -1762,7 +1762,7 @@ public Flux<Val> userprofile(@Number leftHandObjectOfTheAttribute, Map<String, J
 
 == Testing your SAPL policies
 
-Version 2.0.0 of the SAPL policy engine introduces a framework to test SAPL policies. This framework supports unit tests of a single SAPL document or policy integration test of all of your SAPL policies via the PDP interface.
+The SAPL policy engine provides a framework to test SAPL policies. This framework supports unit tests of a single SAPL document or policy integration test of all of your SAPL policies via the PDP interface.
 
 === Usage scenarios
 
