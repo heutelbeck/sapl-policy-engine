@@ -66,7 +66,7 @@ public class PolicyImplCustomCoverageTest {
 
 	@Test
 	void test_matchesThrowsError() {
-		var policy = INTERPRETER.parse("policy \"p\" permit action.<pip.attr> == \"test\"");
+		var policy = INTERPRETER.parse("policy \"p\" permit 1/0 == \"test\"");
 		AuthorizationSubscription authzSub = AuthorizationSubscription.of("willi", "write", "something");
 		Assertions.assertThat(policy.matches(ctx.forAuthorizationSubscription(authzSub)).block().isBoolean()).isFalse();
 		Mockito.verify(this.recorder, Mockito.never()).recordPolicyHit(Mockito.isA(PolicyHit.class));

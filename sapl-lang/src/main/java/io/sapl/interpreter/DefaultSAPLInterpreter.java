@@ -15,7 +15,24 @@
  */
 package io.sapl.interpreter;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
+
+import org.eclipse.emf.common.util.Diagnostic;
+import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.common.util.WrappedException;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.util.Diagnostician;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+import org.eclipse.xtext.resource.XtextResourceSet;
+import org.reactivestreams.Publisher;
+
 import com.google.inject.Injector;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -24,18 +41,7 @@ import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SAPL;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.URI;
-import org.eclipse.emf.common.util.WrappedException;
-import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.resource.XtextResourceSet;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.function.Function;
 
 /**
  * The default implementation of the SAPLInterpreter interface.
@@ -56,7 +62,22 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 	@Override
 	public SAPL parse(InputStream saplInputStream) {
-		return loadAsResource(saplInputStream);
+		var sapl = loadAsResource(saplInputStream);
+		var diagnostic = Diagnostician.INSTANCE.validate(sapl);
+		if (diagnostic.getSeverity() == Diagnostic.OK)
+			return sapl;
+
+		throw new PolicyEvaluationException(composeReason(diagnostic));
+	}
+
+	private String composeReason(Diagnostic diagnostic) {
+		var sb = new StringBuilder().append("SAPL Validation Error: [");
+		for (Diagnostic d : diagnostic.getChildren()) {
+			sb.append('[').append(
+					NodeModelUtils.findActualNodeFor((EObject) d.getData().get(0)).getText() + ": " + d.getMessage())
+					.append(']');
+		}
+		return sb.append(']').toString();
 	}
 
 	@Override
@@ -65,8 +86,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		final SAPL saplDocument;
 		try {
 			saplDocument = parse(saplDefinition);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			log.error("Error in policy parsing: {}", e.getMessage());
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
@@ -93,8 +113,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		SAPL saplDocument;
 		try {
 			saplDocument = parse(policyDefinition);
-		}
-		catch (PolicyEvaluationException e) {
+		} catch (PolicyEvaluationException e) {
 			return new DocumentAnalysisResult(false, "", null, e.getMessage());
 		}
 		return new DocumentAnalysisResult(true, saplDocument.getPolicyElement().getSaplName(),
@@ -111,8 +130,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 		try {
 			resource.load(policyInputStream, resourceSet.getLoadOptions());
-		}
-		catch (IOException | WrappedException e) {
+		} catch (IOException | WrappedException e) {
 			throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
 		}
 
