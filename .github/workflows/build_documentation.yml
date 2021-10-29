@@ -46,11 +46,6 @@ jobs:
     - name: Build Documentation
       run: mvn -B generate-resources -pl sapl-documentation
 
-    - name: Remove Files not to push
-      run: |
-        rm -f sapl-documentation/target/generated-docs/*.pdf
-        rm -f sapl-documentation/target/generated-docs/*.ebnf
-
     - name: Push Documentation to Website
       uses: hpcodecraft/action-deploy-workspace-to-repo@v2.2
       env:

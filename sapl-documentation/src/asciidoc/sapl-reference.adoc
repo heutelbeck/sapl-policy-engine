@@ -18,7 +18,7 @@
 
 = SAPL - Streaming Attribute Policy Language
 Dominic Heutelbeck
-{project-version}
+Version {project-version}
 
 :toclevels: 4
 
@@ -2118,11 +2118,3 @@ The plugin can be configured via the following paramters:
 * *policyConditionHitRatio*: A value between 0 - 100 to define the ratio of condition results your tests should cover. If this ratio isn't fulfilled the sapl-maven-plugin is going to stop the maven lifecycle (defaultValue = 0).
 * *enableSonarReport*: When set to true a coverage report with the https://monteverdi.informatik.uni-freiburg.de/sonar/documentation/analysis/generic-test/[Sonarqube Generic Coverage Format] is generated. This format is currently not useable as SonarQube does not import generic coverage data for languages unknown to SonarQube. Currently there is no SonarQube Lanaguage Plugin for SAPL (defaultValue = false).
 * *enableHtmlReport*: When set to true a HTML coverage report is created. This report is similar to JaCoCo reports showing colorized line coverage and number of covered branches for conditions in a line. The path to the `index.html` on the filesystem is printed in the maven log. Terminals like Powershell allow you to click on these paths and open the report directly in your browser (defaultValue = true).
-
-
-== Appendix: Formal EBNF grammar
-The SAPL syntax is described by the following grammar provided in Extended Backus–Naur form:
-
-------
-include::sapl-grammar.ebnf[SAPL-Grammar]
-------
