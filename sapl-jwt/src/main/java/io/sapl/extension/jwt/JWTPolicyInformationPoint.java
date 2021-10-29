@@ -69,9 +69,6 @@ import reactor.core.publisher.Mono;
  *                                             },
  *					        "whitelist" : {
  *								            "key id" : "public key"
- *					    		          },
- *					        "blacklist" : {
- *					                        "key id" : "public key"
  *					    		          }
  *	             }
  * }
@@ -178,10 +175,10 @@ public class JWTPolicyInformationPoint {
 	}
 
 	private Flux<ValidityState> validityState(@Text Val rawToken, Map<String, JsonNode> variables) {
-		
+
 		if (rawToken == null || !rawToken.isTextual())
 			return Flux.just(ValidityState.MALFORMED);
-			
+
 		SignedJWT signedJwt;
 		JWTClaimsSet claims;
 		try {
