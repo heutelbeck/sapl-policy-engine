@@ -49,8 +49,8 @@ class JWTTestUtility {
 	static final String ISSUER_KEY = "iss";
 	static final String SUBJECT_KEY = "sub";
 
-	static final long tokenMaturity = 30000; // in 0.5 minutes
-	static final long tokenValidity = 80000; // in 1.3 minutes
+	static final long tokenMaturity = 3000; // in 3 seconds
+	static final long tokenValidity = 6000; // in 6 seconds
 
 	static final String trustedIssuer = "https://www.ftk.de/";
 
