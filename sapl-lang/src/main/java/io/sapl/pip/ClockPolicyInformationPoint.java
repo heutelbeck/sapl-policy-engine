@@ -55,13 +55,12 @@ public class ClockPolicyInformationPoint {
 
 
     @Attribute(docs = "Returns the current date and time in the systems default time zone as an  millisecond-based instant, measured from 1970-01-01T00:00Z (UTC).")
-    public Flux<Val> millisSystem(Val leftHand, Map<String, JsonNode> variables) {
-        return millis(leftHand, variables, SYSTEM_DEFAULT_TIMEZONE_FLUX);
+    public Flux<Val> millisSystem() {
+        return millis(SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
     @Attribute(docs = "Returns the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an  millisecond-based instant, measured from 1970-01-01T00:00Z (UTC).")
-    public Flux<Val> millis(Val leftHand, Map<String, JsonNode> variables, Flux<Val> zone) {
-        enforceUndefinedLeftHand(leftHand);
+    public Flux<Val> millis(Flux<Val> zone) {
         return zone.switchMap(timeZone -> {
             final ZoneId zoneId = convertToZoneId(timeZone);
             return Flux.just(Val.of(Instant.now().atZone(zoneId).toInstant().toEpochMilli()));
@@ -69,20 +68,18 @@ public class ClockPolicyInformationPoint {
     }
 
     @Attribute(docs = "Returns the system default time-zone.")
-    public Flux<Val> timeZone(Val leftHand, Map<String, JsonNode> variables) {
-        enforceUndefinedLeftHand(leftHand);
+    public Flux<Val> timeZone() {
         return Val.fluxOf(ZoneId.systemDefault().toString());
     }
 
 
     @Attribute(docs = "Emits the current date and time every x milliseconds in the systems defaults time zone. x is the passed number value.")
-    public Flux<Val> tickerSystem(Val leftHand, Map<String, JsonNode> variables, Flux<Val> intervallInMillis) {
-        return ticker(leftHand, variables, intervallInMillis, SYSTEM_DEFAULT_TIMEZONE_FLUX);
+    public Flux<Val> nowSystem(Flux<Val> intervallInMillis) {
+        return now(intervallInMillis, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
     @Attribute(docs = "Emits the current date and time every x milliseconds in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with offset. x is the passed number value.")
-    public Flux<Val> ticker(Val leftHand, Map<String, JsonNode> variables, Flux<Val> intervallInMillis, Flux<Val> zone) {
-        enforceUndefinedLeftHand(leftHand);
+    public Flux<Val> now(Flux<Val> intervallInMillis, Flux<Val> zone) {
         return Flux.combineLatest(intervallInMillis, zone, Tuples::of)
                 .switchMap(intervallAndZoneTuple -> {
                     var millis = intervallAndZoneTuple.getT1();
@@ -105,13 +102,12 @@ public class ClockPolicyInformationPoint {
     }
 
     @Attribute(docs = "Returns true if the local clock is after the provided time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsAfterSystem(Val leftHand, Map<String, JsonNode> variables, Flux<Val> time) {
-        return nowIsAfter(leftHand, variables, time, SYSTEM_DEFAULT_TIMEZONE_FLUX);
+    public Flux<Val> nowIsAfterSystem(Flux<Val> time) {
+        return nowIsAfter(time, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
     @Attribute(docs = "Returns true if the local clock is after the provided time in the specified time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsAfter(Val leftHand, Map<String, JsonNode> variables, Flux<Val> time, Flux<Val> zone) {
-        enforceUndefinedLeftHand(leftHand);
+    public Flux<Val> nowIsAfter(Flux<Val> time, Flux<Val> zone) {
         return Flux.combineLatest(time, zone, Tuples::of)
                 .switchMap(timeAndZoneTuple -> {
                     var referenceTime = timeAndZoneTuple.getT1();
@@ -132,25 +128,25 @@ public class ClockPolicyInformationPoint {
     }
 
     @Attribute(docs = "Returns true if the local clock is before the provided time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsBeforeSystem(Val leftHand, Map<String, JsonNode> variables, Flux<Val> time) {
-        return nowIsBefore(leftHand, variables, time, SYSTEM_DEFAULT_TIMEZONE_FLUX);
+    public Flux<Val> nowIsBeforeSystem(Flux<Val> time) {
+        return nowIsBefore(time, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
     @Attribute(docs = "Returns true if the local clock is before the provided time in the specified time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsBefore(Val leftHand, Map<String, JsonNode> variables, Flux<Val> time, Flux<Val> zone) {
-        return nowIsAfter(leftHand, variables, time, zone)
+    public Flux<Val> nowIsBefore(Flux<Val> time, Flux<Val> zone) {
+        return nowIsAfter(time, zone)
                 .map(this::negateVal);
     }
 
     @Attribute(docs = "Returns true if the local clock is before the provided start time and before the end time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsBetweenSystem(Val leftHand, Map<String, JsonNode> variables, Flux<Val> start, Flux<Val> end) {
-        return nowIsBetween(leftHand, variables, start, end, SYSTEM_DEFAULT_TIMEZONE_FLUX);
+    public Flux<Val> nowIsBetweenSystem(Flux<Val> start, Flux<Val> end) {
+        return nowIsBetween(start, end, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
     @Attribute(docs = "Returns true if the local clock is before the provided start time and before the end time in the provided time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
-    public Flux<Val> nowIsBetween(Val leftHand, Map<String, JsonNode> variables, Flux<Val> start, Flux<Val> end, Flux<Val> zone) {
-        Flux<Val> nowIsAfterFlux = nowIsAfter(leftHand, variables, start, zone);
-        Flux<Val> nowIsBeforeFlux = nowIsBefore(leftHand, variables, end, zone);
+    public Flux<Val> nowIsBetween(Flux<Val> start, Flux<Val> end, Flux<Val> zone) {
+        Flux<Val> nowIsAfterFlux = nowIsAfter(start, zone);
+        Flux<Val> nowIsBeforeFlux = nowIsBefore(end, zone);
 
         return Flux.combineLatest(nowIsAfterFlux, nowIsBeforeFlux, this::combineBetween);
     }
@@ -167,8 +163,7 @@ public class ClockPolicyInformationPoint {
 
 
     @Attribute(docs = "Sets a timer for the provided number of milliseconds. Emits Val.FALSE when created and Val.TRUE after timer elapsed.")
-    public Flux<Val> trueIn(Val leftHand, Map<String, JsonNode> variables, Flux<Val> timerMillis) {
-        enforceUndefinedLeftHand(leftHand);
+    public Flux<Val> trueIn(Flux<Val> timerMillis) {
         return timerMillis.switchMap(millis -> {
             if (!millis.isNumber())
                 return Flux.error(new PolicyEvaluationException(
@@ -186,8 +181,8 @@ public class ClockPolicyInformationPoint {
     }
 
     @Attribute(docs = "Sets a timer for the provided number of milliseconds. Emits Val.TRUE when created and Val.FALSE after timer elapsed.")
-    public Flux<Val> trueFor(Val leftHand, Map<String, JsonNode> variables, Flux<Val> timerMillis) {
-        return trueIn(leftHand, variables, timerMillis)
+    public Flux<Val> trueFor(Flux<Val> timerMillis) {
+        return trueIn(timerMillis)
                 .map(this::negateVal);
     }
 
