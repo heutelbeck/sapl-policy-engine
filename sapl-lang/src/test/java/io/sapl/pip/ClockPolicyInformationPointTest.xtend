@@ -72,7 +72,7 @@ class ClockPolicyInformationPointTest {
 			permit
 			    action == "read"
 			where
-			    standard.length(|<clock.ticker(3,"UTC")>) > 1;
+			    standard.length(|<clock.now(3,"UTC")>) > 1;
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
@@ -90,7 +90,7 @@ class ClockPolicyInformationPointTest {
 			permit
 			    action == "read"
 			where
-			    standard.length(|<clock.ticker(3,"ECT")>) > 1;
+			    standard.length(|<clock.now(3,"ECT")>) > 1;
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
@@ -108,7 +108,7 @@ class ClockPolicyInformationPointTest {
 			permit
 			    action == "read"
 			where
-			    standard.length(|<clock.ticker(3,"Europe/Berlin")>) > 1;
+			    standard.length(|<clock.now(3,"Europe/Berlin")>) > 1;
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
@@ -126,7 +126,7 @@ class ClockPolicyInformationPointTest {
 			permit
 			    action == "read"
 			where
-			    var length = standard.length(|<clock.ticker(3,"system")>);
+			    var length = standard.length(|<clock.now(3,"system")>);
 			    length > 1;
 		'''
 

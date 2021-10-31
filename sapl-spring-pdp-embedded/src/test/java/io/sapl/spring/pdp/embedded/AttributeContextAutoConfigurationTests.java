@@ -54,7 +54,7 @@ class AttributeContextAutoConfigurationTests {
 				.run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(AttributeContext.class);
-					assertThat(context.getBean(AttributeContext.class).isProvidedFunction("clock.ticker")).isTrue();
+					assertThat(context.getBean(AttributeContext.class).isProvidedFunction("clock.now")).isTrue();
 				});
 	}
 

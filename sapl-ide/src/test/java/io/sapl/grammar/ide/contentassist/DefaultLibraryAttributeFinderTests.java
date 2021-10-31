@@ -82,7 +82,7 @@ public class DefaultLibraryAttributeFinderTests {
     }
 
     @ParameterizedTest
-    @CsvSource({"clock., ticker"})
+    @CsvSource({"clock., now"})
     public void getAvailableAttributes_WithLibraryQualifier_ReturnsAllFunctions(ArgumentsAccessor arguments) {
         String needle = arguments.getString(0);
         String expectedFunction = arguments.getString(1);
@@ -93,7 +93,7 @@ public class DefaultLibraryAttributeFinderTests {
     }
 
     @ParameterizedTest
-    @CsvSource({"clock.tic, ticker"})
+    @CsvSource({"clock.now, now"})
     public void getAvailableAttributes_WithLibraryQualifierAndFunctionNeedle_ReturnsMatchingFunctions(
             ArgumentsAccessor arguments) {
         String needle = arguments.getString(0);

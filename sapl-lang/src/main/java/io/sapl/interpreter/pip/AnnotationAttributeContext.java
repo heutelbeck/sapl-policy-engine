@@ -99,7 +99,12 @@ public class AnnotationAttributeContext implements AttributeContext {
                 return (Flux<Val>) method.invoke(pip);
             }
 
-            Object[] argObjects = new Object[arguments.getArgs().size()];
+            int argumentSize = arguments == null ? 0 : arguments.getArgs().size();
+            int standardArgumentSize = 0;
+            if (hasLeftHandValue) standardArgumentSize++;
+            if (hasVariableMap) standardArgumentSize++;
+
+            Object[] argObjects = new Object[argumentSize + standardArgumentSize];
             int i = 0;
 
             if (hasLeftHandValue) {
@@ -111,9 +116,12 @@ public class AnnotationAttributeContext implements AttributeContext {
             if (hasVariableMap)
                 argObjects[i++] = ctx.getVariableCtx().getVariables();
 
-            for (Expression argument : arguments.getArgs()) {
-                argObjects[i++] = argument.evaluate(ctx, Val.UNDEFINED);
+            if (argumentSize > 0) {
+                for (Expression argument : arguments.getArgs()) {
+                    argObjects[i++] = argument.evaluate(ctx, Val.UNDEFINED);
+                }
             }
+
             return (Flux<Val>) method.invoke(pip, argObjects);
 
         } catch (PolicyEvaluationException | IllegalAccessException | IllegalArgumentException

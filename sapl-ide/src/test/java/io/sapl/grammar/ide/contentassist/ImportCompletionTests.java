@@ -94,12 +94,12 @@ public class ImportCompletionTests extends CompletionTests {
     @Test
     public void testCompletion_WithFullLibraryAndPartialFunctionAndNewLinesInBetween_ReturnsFunction() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "import\nclock.\nt";
+            String policy = "import\nclock.\nn";
             it.setModel(policy);
             it.setLine(2);
             it.setColumn(1);
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("ticker");
+                var expected = List.of("now");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -108,13 +108,13 @@ public class ImportCompletionTests extends CompletionTests {
     @Test
     public void testCompletion_WithPrecedingTextAndFullLibraryAndPartialFunction_ReturnsFunction() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "import clock.yesterday\nimport clock.t";
-            String cursor = "import clock.t";
+            String policy = "import clock.yesterday\nimport clock.n";
+            String cursor = "import clock.n";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("ticker");
+                var expected = List.of("now");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -123,13 +123,13 @@ public class ImportCompletionTests extends CompletionTests {
     @Test
     public void testCompletion_WithPrecedingAndSucceedingAndFullLibraryAndPartialFunction_ReturnsFunction() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "import clock.yesterday\nimport clock.t policy \"test policy\" deny";
-            String cursor = "import clock.t";
+            String policy = "import clock.yesterday\nimport clock.n policy \"test policy\" deny";
+            String cursor = "import clock.n";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("ticker");
+                var expected = List.of("now");
                 assertProposalsSimple(expected, completionList);
             });
         });
