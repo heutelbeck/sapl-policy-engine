@@ -197,6 +197,7 @@ public class JWTPolicyInformationPoint {
 			return Flux.just(ValidityState.INCOMPATIBLE);
 
 		return validateSignature(signedJwt, variables).flatMapMany(isValid -> {
+			
 			if (!isValid)
 				return Flux.just(ValidityState.UNTRUSTED);
 
@@ -221,7 +222,7 @@ public class JWTPolicyInformationPoint {
 			if (key.isPresent())
 				publicKey = Mono.just(key.get());
 		}
-
+		
 		if (publicKey == null) {
 			var jPublicKeyServer = jwtConfig.get(PUBLICKEY_VARIABLES_KEY);
 
