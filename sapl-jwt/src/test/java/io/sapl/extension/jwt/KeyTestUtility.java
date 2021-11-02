@@ -20,6 +20,9 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.util.Base64;
+import java.util.Map;
+
+import okhttp3.mockwebserver.MockWebServer;
 
 public class KeyTestUtility {
 
@@ -36,6 +39,16 @@ public class KeyTestUtility {
 			e.printStackTrace();
 		}
 		return keyPair;
+	}
+	
+	/**
+	 * @return a mock web server used for testing public key requests
+	 */
+	static MockWebServer testServer(String keyPath, KeyPair keyPair) {
+		Map<String, String> mockServerKeys = Map.of(KeyTestUtility.kid(keyPair), KeyTestUtility.base64Url(keyPair));
+		MockWebServer server = new MockWebServer();
+		server.setDispatcher(new TestMockServerDispatcher(keyPath, mockServerKeys));
+		return server;
 	}
 
 	/**
@@ -62,24 +75,23 @@ public class KeyTestUtility {
 	/**
 	 * @return Base64 basic encoding of public key
 	 */
-	static String base64Basic(KeyPair keyPair) {
-		return Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded()).toString();
+	static String base64Basic(String encodedPubKey) {
+		return Base64.getEncoder().encodeToString(Base64.getUrlDecoder().decode(encodedPubKey));
 	}
 
 	/**
 	 * @return invalid Base64 encoding of public Key
 	 */
-	static String base64Invalid(KeyPair keyPair) {
-		String encoded = base64Url(keyPair);
-		String ch = encoded.substring(0, 1);
-		return encoded.replaceAll(ch, "#");
+	static String base64Invalid(String encodedPubKey) {
+		String ch = encodedPubKey.substring(encodedPubKey.length() / 2, encodedPubKey.length() / 2 + 1);
+		return encodedPubKey.replaceAll(ch, "#");
 	}
 
 	/**
 	 * @return Base64 url-safe encoding of bogus key
 	 */
 	static String base64Bogus() {
-		return Base64.getUrlEncoder().encodeToString("ThisIsABogusPublicKey".getBytes()).toString();
+		return Base64.getUrlEncoder().encodeToString("ThisIsAVeryBogusPublicKey".getBytes()).toString();
 	}
 
 }

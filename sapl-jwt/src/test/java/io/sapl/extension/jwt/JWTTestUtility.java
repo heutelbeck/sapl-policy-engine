@@ -21,7 +21,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.Date;
-import java.util.Map;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -42,7 +41,6 @@ import com.nimbusds.jwt.SignedJWT;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
-import okhttp3.mockwebserver.MockWebServer;
 
 class JWTTestUtility {
 	static final String HTTP_HEADER_SCHEME = "Bearer";
@@ -59,6 +57,7 @@ class JWTTestUtility {
 	static final String subject = "subject1";
 
 	static final String[] authorities = { "ROLE_1", "ROLE_2", "ROLE_3" };
+	static final String[] tamperedAuthorities = { "ROLE_1", "ROLE_2", "ROLE_4" };
 
 	/**
 	 * @return complete and proper JWT
@@ -218,13 +217,10 @@ class JWTTestUtility {
 	 * @return JWT with tampered claims
 	 */
 	static Val jwtWithTamperedPayload(KeyPair keyPair) {
-
-		String normalBase64 = sign(header(keyPair), claims(), keyPair).getText();
-		String superBase64 = sign(header(keyPair), tamperedClaims(), keyPair).getText();
-		String tamperedJwt = normalBase64.split("\\.")[0] + "." + superBase64.split("\\.")[1] + "."
-				+ normalBase64.split("\\.")[2];
-
-		return Val.of(tamperedJwt);
+		String untamperedJWT = sign(header(keyPair), claimsWithoutNbfAndExp(), keyPair).getText();
+		String[] parts = untamperedJWT.split("\\.");
+		String tamperedJWT = parts[0] + "." + tamperedClaims().toPayload().toBase64URL().toString() + "." + parts[2];
+		return Val.of(tamperedJWT);
 	}
 
 	/**
@@ -326,16 +322,6 @@ class JWTTestUtility {
 	static Val properJwtInImproperHeader(KeyPair keyPair) {
 		return Val.of(JsonTestUtility.getPepResource("Not" + HttpHeaders.AUTHORIZATION,
 				properJwtInProperScheme(keyPair).getText()));
-	}
-	
-	/**
-	 * @return a mock web server used for testing public key requests
-	 */
-	static MockWebServer testServer(String keyPath, KeyPair keyPair) {
-		Map<String, String> mockServerKeys = Map.of(KeyTestUtility.kid(keyPair), KeyTestUtility.base64Url(keyPair));
-		MockWebServer server = new MockWebServer();
-		server.setDispatcher(new TestMockServerDispatcher(keyPath, mockServerKeys));
-		return server;
 	}
 
 	/**
@@ -519,11 +505,8 @@ class JWTTestUtility {
 	 */
 	private static JWTClaimsSet tamperedClaims() {
 
-		String[] superAuthorities = { "ROLE_ADMIN", "ROLE_SYSTEM", "ROLE_SECURITY", "ROLE_WHEEL" };
-
 		return new JWTClaimsSet.Builder().jwtID(UUID.randomUUID().toString()).issuer(trustedIssuer).issueTime(now())
-				.notBeforeTime(maturity()).expirationTime(validity()).subject(subject)
-				.claim(AUTHORITIES_KEY, superAuthorities).build();
+				.subject(subject).claim(AUTHORITIES_KEY, tamperedAuthorities).build();
 	}
 
 	/**

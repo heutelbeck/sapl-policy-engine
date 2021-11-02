@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 
@@ -79,6 +81,7 @@ import reactor.core.publisher.Mono;
 @PolicyInformationPoint(name = JWTPolicyInformationPoint.NAME, description = JWTPolicyInformationPoint.DESCRIPTION)
 public class JWTPolicyInformationPoint {
 
+	private static final String JWT_KEY_SERVER_HTTP_ERROR = "Error trying to retrieve a public key: ";
 	private static final String JWT_CONFIG_MISSING_ERROR = "The key 'jwt' with the configuration of public key server and key whillist, blacklist is missing. All JWT tokens will be treated as if the signatures could not be validated.";
 	private static final String JWT_KEY = "jwt";
 	static final String NAME = JWT_KEY;
@@ -251,12 +254,11 @@ public class JWTPolicyInformationPoint {
 		return publicKey -> {
 			JWSVerifier verifier = new RSASSAVerifier(publicKey);
 			try {
-				signedJwt.verify(verifier);
+				return signedJwt.verify(verifier);
 			} catch (JOSEException | IllegalStateException | NullPointerException e) {
 				// erroneous signatures or data are treated same as failed verifications
 				return Boolean.FALSE;
 			}
-			return Boolean.TRUE;
 		};
 	}
 
@@ -385,7 +387,16 @@ public class JWTPolicyInformationPoint {
 			response = webClient.get().uri(publicKeyURI, kid).retrieve();
 		}
 
-		return response.bodyToMono(String.class).map(this::stringToKey).filter(Optional::isPresent).map(Optional::get);
+		return response.onStatus(HttpStatus::isError, this::handleHttpError)
+				.bodyToMono(String.class)
+				.map(this::stringToKey)
+				.filter(Optional::isPresent)
+				.map(Optional::get);
+	}
+	
+	private Mono<? extends Throwable> handleHttpError(ClientResponse response) {
+		log.trace(JWT_KEY_SERVER_HTTP_ERROR + response.statusCode().toString());
+		return Mono.empty();
 	}
 
 	/**

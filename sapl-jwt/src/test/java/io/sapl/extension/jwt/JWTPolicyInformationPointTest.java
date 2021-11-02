@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -32,7 +32,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
-import okhttp3.mockwebserver.MockResponse;
+import io.sapl.extension.jwt.TestMockServerDispatcher.DispatchMode;
 import okhttp3.mockwebserver.MockWebServer;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -43,36 +43,36 @@ public class JWTPolicyInformationPointTest {
 
 	private static WebClient.Builder builder;
 
-	private MockWebServer server;
+	private static MockWebServer server;
+	
+	private static TestMockServerDispatcher dispatcher;
 
 	private JWTPolicyInformationPoint jwtPolicyInformationPoint;
 
 	@BeforeAll
-	public static void preSetup() {
+	public static void preSetup() throws IOException {
 		keyPair = KeyTestUtility.keyPair();
-		/*
-		 * log.info("Testing with key pair:\nPrivate:\t{}\nPublic:\t{}",
-		 * Base64URL.encode(keyPair.getPrivate().getEncoded()).toString(),
-		 * Base64URL.encode(keyPair.getPublic().getEncoded()).toString());
-		 */
+		server = KeyTestUtility.testServer("/public-keys/", keyPair);
+		dispatcher = (TestMockServerDispatcher) server.getDispatcher();
+		server.start();
 		builder = WebClient.builder();
+	}
+	
+	@AfterAll
+	public static void teardown() throws IOException {
+		server.close();
 	}
 
 	@BeforeEach
-	public void setup() throws IOException {
-		server = JWTTestUtility.testServer("/public-keys/", keyPair);
-		server.start();
+	public void setup() {
+		
 		jwtPolicyInformationPoint = new JWTPolicyInformationPoint(builder);
 		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
 	}
 
-	@AfterEach
-	public void teardown() throws IOException {
-		server.close();
-	}
-
 	@Test
 	public void validity_withNull_shouldBeMalformed() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(null, null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
 				.verifyComplete();
@@ -80,6 +80,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withWrongType_shouldBeMalformed() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(Val.of(50_000L), null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
 				.verifyComplete();
@@ -87,6 +88,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withoutKeyID_shouldBeIncomplete() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Val source = JWTTestUtility.jwtWithoutKid(keyPair);
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.INCOMPLETE.toString()))
@@ -95,6 +97,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withEmptyKeyID_shouldBeIncomplete() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Val source = JWTTestUtility.jwtWithEmptyKid(keyPair);
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.INCOMPLETE.toString()))
@@ -103,6 +106,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withoutIssuer_shouldBeIncomplete() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Val source = JWTTestUtility.jwtWithoutIssuer(keyPair);
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.INCOMPLETE.toString()))
@@ -111,6 +115,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withoutSubject_shouldBeIncomplete() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Val source = JWTTestUtility.jwtWithoutSubject(keyPair);
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.INCOMPLETE.toString()))
@@ -119,6 +124,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withNbfAfterExp_shouldBeNeverValid() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtWithNbfAfterExp(keyPair);
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
@@ -128,6 +134,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withExpBeforeNow_shouldBeExpired() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtExpired(keyPair);
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
@@ -137,6 +144,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withoutNbfAndExp_shouldBeValid() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtEternal(keyPair);
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
@@ -146,6 +154,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withNbfBeforeNowAndWithoutExp_shouldBeValid() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtWithNbfBeforeNow(keyPair);
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
@@ -155,6 +164,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withoutNbfAndExpAfterNow_shouldBeValidThenExpired() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtWithExpAfterNow(keyPair);
 		StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, variables))
@@ -165,6 +175,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withNbfAfterNowAndWithoutExp_shouldBeImmatureThenValid() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtWithNbfAfterNow(keyPair);
 		StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, variables))
@@ -175,6 +186,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withNbfAfterNowAndExpAfterNbf_shouldBeImmatureThenValidThenExpired() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwt(keyPair);
 		StepVerifier.withVirtualTime(() -> jwtPolicyInformationPoint.validity(source, variables))
@@ -187,6 +199,7 @@ public class JWTPolicyInformationPointTest {
 
 	@Test
 	public void validity_withoutNbfAndExp_withEmptyEnvironment_shouldBeUntrusted() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = new HashMap<String, JsonNode>();
 		final Val source = JWTTestUtility.jwtEternal(keyPair);
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
@@ -197,6 +210,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	@Disabled
 	public void validity_withoutNbfAndExp_withUriEnvironmentMissingUri_usingBase64Basic_shouldBeValid() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(null, null);
 		final Val source = JWTTestUtility.jwtEternal(keyPair);
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
@@ -205,102 +219,90 @@ public class JWTPolicyInformationPointTest {
 	}
 
 	@Test
-	@Disabled
 	public void validity_withoutNbfAndExp_withUriEnvironment_usingBase64Basic_shouldBeValid() {
+		dispatcher.setDispatchMode(DispatchMode.Basic);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtEternal(keyPair);
-		server.enqueue(new MockResponse().setStatus("HTTP/1.1 200").setBody(KeyTestUtility.base64Basic(keyPair)));
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
 				.verifyComplete();
 	}
 
 	@Test
-	@Disabled
 	public void validity_withoutNbfAndExp_withUriEnvironment_usingBase64Url_shouldBeValid() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtEternal(keyPair);
-		server.enqueue(new MockResponse().setStatus("HTTP/1.1 200").setBody(KeyTestUtility.base64Url(keyPair)));
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
 				.verifyComplete();
 	}
 
 	@Test
-	@Disabled
 	public void validity_withoutNbfAndExp_withUriEnvironment_usingBase64Wrong_shouldBeUntrusted() {
+		dispatcher.setDispatchMode(DispatchMode.Invalid);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtEternal(keyPair);
-		server.enqueue(new MockResponse().setStatus("HTTP/1.1 200").setBody(KeyTestUtility.base64Invalid(keyPair)));
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
 
 	@Test
-	@Disabled
 	public void validity_withoutNbfAndExp_withUriEnvironment_usingBogusKey_shouldBeUntrusted() {
+		dispatcher.setDispatchMode(DispatchMode.Bogus);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtEternal(keyPair);
-		server.enqueue(new MockResponse().setStatus("HTTP/1.1 200").setBody(KeyTestUtility.base64Bogus()));
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
 
 	@Test
-	@Disabled
 	public void validity_withoutNbfAndExp_withUriAndMethodPostEnvironment_usingBase64Url_shouldBeValid() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, "POST");
 		final Val source = JWTTestUtility.jwtEternal(keyPair);
-		server.enqueue(new MockResponse().setStatus("HTTP/1.1 200").setBody(KeyTestUtility.base64Url(keyPair)));
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
 				.verifyComplete();
 	}
 
 	@Test
-	@Disabled
 	public void validity_withoutNbfAndExp_withUriAndMethodNonTextEnvironment_usingBase64Url_shouldBeValid() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, "NONETEXT");
 		final Val source = JWTTestUtility.jwtEternal(keyPair);
-		server.enqueue(new MockResponse().setStatus("HTTP/1.1 200").setBody(KeyTestUtility.base64Url(keyPair)));
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
 				.verifyComplete();
 	}
 
 	@Test
-	@Disabled
 	public void validity_withoutNbfAndExp_withUriBogusEnvironment_shouldBeUntrusted() {
+		dispatcher.setDispatchMode(DispatchMode.Unknown);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtEternal(keyPair);
-		// bogus environment is simulated by server responding with 404
-		server.enqueue(new MockResponse().setResponseCode(404));
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
 
 	@Test
-	@Disabled
 	public void validity_withoutNbfAndExp_withUriEnvironment_usingWrongKey_shouldBeUntrusted() {
+		dispatcher.setDispatchMode(DispatchMode.Wrong);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtEternal(keyPair);
-		// send public key of different key pair
-		server.enqueue(new MockResponse().setStatus("HTTP/1.1 200")
-				.setBody(KeyTestUtility.base64Url(KeyTestUtility.keyPair())));
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
 	}
 
 	@Test
-	@Disabled
 	public void validity_withTamperedPayload_withUriEnvironment_shouldBeUntrusted() {
+		dispatcher.setDispatchMode(DispatchMode.True);
 		final Map<String, JsonNode> variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		final Val source = JWTTestUtility.jwtWithTamperedPayload(keyPair);
-		server.enqueue(new MockResponse().setStatus("HTTP/1.1 200").setBody(KeyTestUtility.base64Url(keyPair)));
 		Flux<Val> flux = jwtPolicyInformationPoint.validity(source, variables);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString()))
 				.verifyComplete();
