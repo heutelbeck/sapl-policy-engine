@@ -17,10 +17,14 @@ package io.sapl.extension.jwt;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
 
@@ -31,6 +35,7 @@ public class JWTFunctionLibraryTest {
 	private final static String MALFORMED_TOKEN = "NOT A WELL FORMED TOKEN";
 
 	private final static ObjectMapper MAPPER = new ObjectMapper();
+	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Test
 	public void wellFormedTokenIsParsed() {
@@ -44,6 +49,75 @@ public class JWTFunctionLibraryTest {
 		var sut = new JWTFunctionLibrary(MAPPER);
 		var actual = sut.parseJwt(Val.of(MALFORMED_TOKEN));
 		assertThat(actual.isError(), is(true));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void payloadNotAnObjectWorks() {
+		var mapper = mock(ObjectMapper.class);
+		when(mapper.convertValue(any(), any(Class.class))).thenReturn(JSON.textNode("not an object"));
+		var sut = new JWTFunctionLibrary(mapper);
+		var actual = sut.parseJwt(Val.of(WELL_FORMED_TOKEN));
+		assertThat(actual.get().get("payload").asText(), is("not an object"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void payloadNoNbfWorks() {
+		var mapper = mock(ObjectMapper.class);
+		var payload = JSON.objectNode();
+		when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
+		var sut = new JWTFunctionLibrary(mapper);
+		var actual = sut.parseJwt(Val.of(WELL_FORMED_TOKEN));
+		assertThat(actual.get().get("payload"), is(payload));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void payloadNbfNotANumberWorks() {
+		var mapper = mock(ObjectMapper.class);
+		var payload = JSON.objectNode();
+		payload.set("nbf", JSON.textNode("not a number"));
+		when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
+		var sut = new JWTFunctionLibrary(mapper);
+		var actual = sut.parseJwt(Val.of(WELL_FORMED_TOKEN));
+		assertThat(actual.get().get("payload"), is(payload));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void payloadNbfConverted() {
+		var mapper = mock(ObjectMapper.class);
+		var payload = JSON.objectNode();
+		payload.set("nbf", JSON.numberNode(0L));
+		when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
+		var sut = new JWTFunctionLibrary(mapper);
+		var actual = sut.parseJwt(Val.of(WELL_FORMED_TOKEN));
+		assertThat(actual.get().get("payload").get("nbf").asText(), is("1970-01-01T00:00:00Z"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void payloadExpConverted() {
+		var mapper = mock(ObjectMapper.class);
+		var payload = JSON.objectNode();
+		payload.set("exp", JSON.numberNode(0L));
+		when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
+		var sut = new JWTFunctionLibrary(mapper);
+		var actual = sut.parseJwt(Val.of(WELL_FORMED_TOKEN));
+		assertThat(actual.get().get("payload").get("exp").asText(), is("1970-01-01T00:00:00Z"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void payloadIatConverted() {
+		var mapper = mock(ObjectMapper.class);
+		var payload = JSON.objectNode();
+		payload.set("iat", JSON.numberNode(0L));
+		when(mapper.convertValue(any(), any(Class.class))).thenReturn(payload);
+		var sut = new JWTFunctionLibrary(mapper);
+		var actual = sut.parseJwt(Val.of(WELL_FORMED_TOKEN));
+		assertThat(actual.get().get("payload").get("iat").asText(), is("1970-01-01T00:00:00Z"));
 	}
 
 }
