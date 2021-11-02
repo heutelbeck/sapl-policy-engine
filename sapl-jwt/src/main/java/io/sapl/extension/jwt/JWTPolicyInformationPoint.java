@@ -50,7 +50,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Attributes obtained from Json Web Tokens (JWT)
+ * Attributes obtained from JSON Web Tokens (JWT)
  * <p>
  * Attributes depend on the JWT's validity, meaning they can change their state
  * over time according to the JWT's signature, maturity and expiration.
@@ -200,7 +200,7 @@ public class JWTPolicyInformationPoint {
 			return Flux.just(ValidityState.INCOMPATIBLE);
 
 		return validateSignature(signedJwt, variables).flatMapMany(isValid -> {
-			
+
 			if (!isValid)
 				return Flux.just(ValidityState.UNTRUSTED);
 
@@ -225,7 +225,7 @@ public class JWTPolicyInformationPoint {
 			if (key.isPresent())
 				publicKey = Mono.just(key.get());
 		}
-		
+
 		if (publicKey == null) {
 			var jPublicKeyServer = jwtConfig.get(PUBLICKEY_VARIABLES_KEY);
 
@@ -387,13 +387,10 @@ public class JWTPolicyInformationPoint {
 			response = webClient.get().uri(publicKeyURI, kid).retrieve();
 		}
 
-		return response.onStatus(HttpStatus::isError, this::handleHttpError)
-				.bodyToMono(String.class)
-				.map(this::stringToKey)
-				.filter(Optional::isPresent)
-				.map(Optional::get);
+		return response.onStatus(HttpStatus::isError, this::handleHttpError).bodyToMono(String.class)
+				.map(this::stringToKey).filter(Optional::isPresent).map(Optional::get);
 	}
-	
+
 	private Mono<? extends Throwable> handleHttpError(ClientResponse response) {
 		log.trace(JWT_KEY_SERVER_HTTP_ERROR + response.statusCode().toString());
 		return Mono.empty();
