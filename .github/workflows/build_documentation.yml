@@ -51,8 +51,8 @@ jobs:
     - name: Get version
       id: get-version
       run: |
-        $output=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
-        Write-Output "::set-output name=VERSION::$output"
+        VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
+        Write-Output "::set-output name=VERSION::$VERSION"
         echo "Version*: ${{ steps.get-version.output.VERSION }}"
                       
     - name: Push Documentation to Website
