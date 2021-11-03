@@ -19,7 +19,7 @@ name: Build
 on:
   push:
     branches: [master]
-    paths-ignore: ['sapl-documentation/**']
+    paths-ignore: ["sapl-documentation/**", ".github/build_documentation.yml"]
 
 jobs:
   tests:
