@@ -20,7 +20,7 @@ import reactor.core.publisher.Flux;
 /**
  * The policy decision point is the component in the system, which will take an
  * authorization subscription, retrieve matching policies from the policy
- * retrieval point, evaluate the policies, while potentially consulting external
+ * retrieval point, evaluate the policies while potentially consulting external
  * resources (e.g., through attribute finders), and return a {@link Flux} of
  * authorization decision objects.
  *
@@ -46,7 +46,7 @@ public interface PolicyDecisionPoint {
 	 * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
 	 * 
 	 * @param multiAuthzSubscription the multi-subscription object containing the
-	 *                               subjects, actions, resources and environments
+	 *                               subjects, actions, resources, and environments
 	 *                               of the authorization subscriptions to be
 	 *                               evaluated by the PDP.
 	 * @return a {@link Flux} emitting authorization decisions for the given
@@ -60,7 +60,7 @@ public interface PolicyDecisionPoint {
 	 * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
 	 * 
 	 * @param multiAuthzSubscription the multi-subscription object containing the
-	 *                               subjects, actions, resources and environments
+	 *                               subjects, actions, resources, and environments
 	 *                               of the authorization subscriptions to be
 	 *                               evaluated by the PDP.
 	 * @return a {@link Flux} emitting authorization decisions for the given

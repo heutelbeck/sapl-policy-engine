@@ -262,11 +262,11 @@ The PDP has to make an authorization decision based on an authorization subscrip
 
 A policy may refer to attributes not included in the authorization subscription object. It will have to obtain them from an external *Policy Information Point (PIP)*. The PDP fetches those attributes while evaluating the policy. To be able to access external PIPs, developers can extend the PDP by adding custom attribute finders. Policies might also contain functions not included in the default SAPL implementation. Developers may add custom functions by implementing *Function Libraries*.
 
-SAPL provides two simple PDP implementations: An *embedded PDP* with an embedded PRP which can be integrated easily into a Java application, and a *remote PDP client* which obtains decisions through a RESTful interface.  
+SAPL provides two simple PDP implementations: An *embedded PDP* with an embedded PRP which can be integrated easily into a Java application, and a *remote PDP client* that obtains decisions through a RESTful interface.  
 
 === Policy Administration Point (PAP)
 
-The PAP is an entity that allows managing policies contained in the policy store. In the embedded PDP with the Resources PRP, the policy store can be a simple folder within the local file system containing `.sapl` files. Therefore, any access to files in this folder (e.g., FTP or SSH) can be seen as a very simple PAP. The PAP may be a separate application or can be included in an existing administration panel.
+The PAP is an entity that allows managing policies contained in the policy store. In the embedded PDP with the Resources PRP, the policy store can be a simple folder within the local file system containing `.sapl` files. Therefore, any access to files in this folder (e.g., FTP or SSH) can be seen as a straightforward PAP. The PAP may be a separate application or can be included in an existing administration panel.
 
 == Publish / Subscribe Protocol
 
@@ -274,7 +274,7 @@ The PDP receives an authorization subscription from a PEP and sends an authoriza
 
 === SAPL Authorization Subscription
 
-A SAPL authorization subscription contains attributes with the names `subject`, `resource`, `action`, and `environment`. Each attribute value can be any JSON value (i.e., an object, an array,ber, a string, `true`, `false` or `null`).
+A SAPL authorization subscription contains attributes with the names `subject`, `resource`, `action`, and `environment`. Each attribute value can be any JSON value (i.e., an object, an array, a number, a string, `true`, `false`, or `null`).
 
 === SAPL Authorization Decision
 
@@ -291,7 +291,7 @@ The `decision` tells the PEP whether to grant or deny access. Access should be g
 
 ==== Resource
 
-The PEP knows for which resource it requested access. Thus, there usually is no need to return this resource in the authorization decision object. However, SAPL policies may contain a `transform` statement describing how the resource needs to be altered before it is returned to the subject seeking permission. This can be used to remove or blacken certain parts of the resource document (e.g., a policy could allow doctors to view patient data but remove any bank account details as they can only be accessed by the accounting department). If a policy taht evaluates to `PERMIT` contains a `transform` statement, the authorization decision attribute `resource` contains the transformed resource. Otherwise, there will not be a `resource` attribute in the authorization decision object.
+The PEP knows for which resource it requested access. Thus, there usually is no need to return this resource in the authorization decision object. However, SAPL policies may contain a `transform` statement describing how the resource needs to be altered before it is returned to the subject seeking permission. This can be used to remove or blacken certain parts of the resource document (e.g., a policy could allow doctors to view patient data but remove any bank account details as they can only be accessed by the accounting department). If a policy that evaluates to `PERMIT` contains a `transform` statement, the authorization decision attribute `resource` contains the transformed resource. Otherwise, there will not be a `resource` attribute in the authorization decision object.
 
 ==== Obligation
 
@@ -309,7 +309,7 @@ In addition to the obligation to create a log entry, a policy could specify the 
 
 === Policy Evaluation
 
-To come to the final decision included in the authorization decision object, the PDP evaluates all existing policy sets and top-level policies (i.e., policies which are not part of a policy set) against the authorization subscription and combines the results. Each policy set and policy evaluates to `PERMIT`, `DENY`, `NOT_APPLICABLE`, or `INDETERMINATE` (see <<evaluation,below>>). The PDP can be configured with a *combining algorithm* which determines how to deal with multiple results. E.g., if access should only be granted if at least one policy evaluates to `PERMIT` and should be denied otherwise, the algorithm `deny-unless-permit` could be used.
+To come to the final decision included in the authorization decision object, the PDP evaluates all existing policy sets and top-level policies (i.e., policies which are not part of a policy set) against the authorization subscription and combines the results. Each policy set and policy evaluates to `PERMIT`, `DENY`, `NOT_APPLICABLE`, or `INDETERMINATE` (see <<evaluation,below>>). The PDP can be configured with a *combining algorithm* which determines how to deal with multiple results. E.g., if access should only be granted if at least one policy evaluates to `PERMIT` and should be denied. Otherwise, the algorithm `deny-unless-permit` could be used.
 
 Available combining algorithms for the PDP are:
 
@@ -349,7 +349,7 @@ It contains distinct lists of all subjects, actions, resources, and environments
 
 The multi-subscription shown in the example above contains two authorization subscriptions. The user `bs@simpsons.com` wants to `read` the file `file://example/med/record/patient/BartSimpson`, and the user `ms@simpsons.com` wants to `read` the file `file://example/med/record/patient/MaggieSimpson`.
 
-The SAPL PDP processes all individual authorization subscriptions contained in the multi-subscription in parallel and either returns the related authorization decisions as soon as they are available, or it collects all the authorization decisions of the individual authorization subscriptions and returns them as a multi-decision. In both cases, the authorization decisions are associated with the subscription IDs of the related authorization subscription. The following listings show the JSON structures of the two authorization decision types:
+The SAPL PDP processes all individual authorization subscriptions contained in the multi-subscription in parallel and returns the related authorization decisions as soon as they are available, or it collects all the authorization decisions of the individual authorization subscriptions and returns them as a multi-decision. In both cases, the authorization decisions are associated with the subscription IDs of the related authorization subscription. The following listings show the JSON structures of the two authorization decision types:
 
 [source,json]
 .Single Authorization Decision with Associated Subscription ID - JSON Structure
@@ -386,9 +386,9 @@ A SAPL PDP must expose a publish-subscribe API for subscribing via the subscript
 === HTTP Server-Sent Events API
 
 A PDP to be used as a network service has to implement some HTTP endpoints. 
-All of them accept `POST` requests and `application/json`. They produce `application/x-ndjson` as https://www.w3.org/TR/eventsource/[Server-Sent Events (SSE)]. A PDP server must be accessed over encrypted TLS connections. All connections should be authenticated. The means of authentications are left open for the organization deploying the PDP to decide, or do be defined by a specific server implementation. All endpoints should be located under a shared base URL, e.g., `https://pdp.sapl.io/api/pdp/`.
+All of them accept `POST` requests and `application/json`. They produce `application/x-ndjson` as https://www.w3.org/TR/eventsource/[Server-Sent Events (SSE)]. A PDP server must be accessed over encrypted TLS connections. All connections should be authenticated. The means of authentications are left open for the organization deploying the PDP to decide or to be defined by a specific server implementation. All endpoints should be located under a shared base URL, e.g., `https://pdp.sapl.io/api/pdp/`.
 
-A PEP which is a client to the SSE PDP API encountering connectivity issues or errors must interpret this as an INDETERMINATE decision and thus deny access during this time of uncertainty and take appropriate steps to reconnect with the PDP, using a matching back-off strategy to not overload the PDP. 
+A PEP which is a client to the SSE PDP API encountering connectivity issues or errors, must interpret this as an INDETERMINATE decision and thus deny access during this time of uncertainty and take appropriate steps to reconnect with the PDP, using a matching back-off strategy to not overload the PDP. 
 
 A PEP must determine if it can enforce obligations before granting access. It must enforce obligation upon granting access at the point in time (e.g., before or after granting access) implied by the semantics of the obligation, and it should enforce any advice at their appropriate point in time when possible.
 
@@ -443,7 +443,7 @@ The key interface is the `PolicyDecisionPoint` exposing methods matching the PDP
 /**
  * The policy decision point is the component in the system, which will take an
  * authorization subscription, retrieve matching policies from the policy
- * retrieval point, evaluate the policies, while potentially consulting external
+ * retrieval point, evaluate the policies while potentially consulting external
  * resources (e.g., through attribute finders), and return a {@link Flux} of
  * authorization decision objects.
  *
@@ -546,7 +546,7 @@ The library with Spring auto configuration support:
 
 ==== Spring Security Integration and PEP Implementation
 
-For Spring Security (https://spring.io/projects/spring-security) a full PEP implementation is available. A matching Spring PDP implementation also must be declared to use the integration (see above).
+For Spring Security (https://spring.io/projects/spring-security), a full PEP implementation is available. A matching Spring PDP implementation also must be declared to use the integration (see above).
 
 [source,XML,subs="attributes+"]
 ----
@@ -560,7 +560,7 @@ For Spring Security (https://spring.io/projects/spring-security) a full PEP impl
 == The SAPL Policy Language
 
 SAPL defines a feature-rich domain-specific language (DSL) for creating access policies. 
-Those access policies describe when access requests will be granted and when access will be denied. The underlying concept to describe these permissions is an attribute-based access control model (ABAC): A SAPL authorization subscription is a JSON object with the attributes `subject`, `action`, `resource` and `environment` each with an assigned JSON value. Each of these values may be a JSON object itself containing multiple attributes. Policies can make use of boolean conditions referring to those attributes (e.g., `subject.username == "admin"`).
+Those access policies describe when access requests will be granted and when access will be denied. The underlying concept to describe these permissions is an attribute-based access control model (ABAC): A SAPL authorization subscription is a JSON object with the attributes `subject`, `action`, `resource` and `environment` each with an assigned JSON value. Each of these values may be a JSON object itself containing multiple attributes. Policies can use of boolean conditions referring to those attributes (e.g., `subject.username == "admin"`).
 
 However, a role-based access control (RBAC) system in which permissions are assigned to a certain role and roles can be assigned to users can be created with SAPL as well. 
 
@@ -637,7 +637,7 @@ var dbUser = "admin";<5>
 
 SAPL provides access to functions or attribute finders stored in libraries. The names of those libraries usually consist of different parts separated by periods (e.g., `sapl.pip.http` - a library containing functions to obtain attributes through HTTP requests). In policy documents, the functions and finders can be accessed by their fully qualified name, i.e., the name of the library followed by a period (`.`) and the function or finder name, e.g., `sapl.pip.http.get`.
 
-For any SAPL top-level document (i.e., a policy set or a policy that is not part of a policy set) any number of imports can be specified. Imports allow using a shorter name instead of the fully qualified name for a function or an attribute finder within a SAPL document. Thus, imports can make policy sets and policies easier to read and write.
+For any SAPL top-level document (i.e., a policy set or a policy that is not part of a policy set), any number of imports can be specified. Imports allow using a shorter name instead of the fully qualified name for a function or an attribute finder within a SAPL document. Thus, imports can make policy sets and policies easier to read and write.
 
 Each import statement starts with the keyword `import`.
 
@@ -670,7 +670,7 @@ A SAPL policy starts with the keyword `policy`.
 
 ==== Name
 
-The keyword `policy` is followed by the policy name. The name is a string _identifying_ the policy, therefore it must be unique. Accordingly, in systems with many policy sets and policies it is recommended to use a schema to create names (e.g., `"policy:patientdata:permit-doctors-read"`).
+The keyword `policy` is followed by the policy name. The name is a string _identifying_ the policy. Therefore it must be unique. Accordingly, in systems with many policy sets and policies, it is recommended to use a schema to create names (e.g., `"policy:patientdata:permit-doctors-read"`).
 
 ==== Entitlement
 
@@ -685,16 +685,16 @@ After the entitlement, an *optional* target expression can be specified. This is
 
 If the target expression evaluates to `true` for a certain authorization subscription, the policy _matches_ this subscription. A missing target expression makes the policy match any subscription.
 
-A matching policy whose conditions in the body evaluate to `true` is called _applicable_ to an authorization subscription and returns its entitlement. Both target expression and body define conditions that must be satisfied for the policy to be applicable. Although they seem to serve a similar purpose there is an important difference: For an authorization subscription, the target expression of each top-level document is checked to select policies matching the subscription from a possibly large set of policy documents. Indexing mechanisms may be used to fulfill this task efficiently.
+A matching policy whose conditions in the body evaluate to `true` is called _applicable_ to an authorization subscription and returns its entitlement. Both target expression and body define conditions that must be satisfied for the policy to be applicable. Although they seem to serve a similar purpose, there is an important difference: For an authorization subscription, the target expression of each top-level document is checked to select policies matching the subscription from a possibly large set of policy documents. Indexing mechanisms may be used to fulfill this task efficiently.
 
 Accordingly, there are two limitations regarding the elements allowed in the target:
 
-* As lazy evaluation deviates from boolean logic and prevents effective indexing, the logical operators `&&` and `||` may not be used. Instead, the target needs to make use of the operators `&` and `|`, for which eager evaluation is applied.
+* As lazy evaluation deviates from boolean logic and prevents effective indexing, the logical operators `&&` and `||` may not be used. Instead, the target needs to use the operators `&` and `|`, for which eager evaluation is applied.
 * <<attribute-finders,Attribute finder steps>> that have access to environment variables and may contact external PIPs are not allowed in the target. Functions may be used because their output only depends on the arguments passed.
 
 ==== Body
 
-The policy body is *optional* and starts with the keyword `where`. It contains one or more statements each of which must evaluate to `true` for the policy to apply to a certain authorization subscription. Accordingly, the body extends the condition in the target expression and further limits the policy's applicability.
+The policy body is *optional* and starts with the keyword `where`. It contains one or more statements, each of which must evaluate to `true` for the policy to apply to a certain authorization subscription. Accordingly, the body extends the condition in the target expression and further limits the policy's applicability.
 
 A statement within the body can either be a variable assignment which makes a variable available under a certain name (and always evaluates to `true`)
 
@@ -712,7 +712,7 @@ Each statement is concluded with a semicolon `;`.
 
 There are no restrictions on the syntax elements allowed in the policy body. Lazy evaluation is used for the conjunction of the statements - i.e., if one statement evaluates to `false`, the policy returns the decision `NOT_APPLICABLE`, even if future statements would cause an error.
 
-If the body is missing (or does not contain any condition statement) the policy is applicable to any authorization subscription which the policy matches (i.e., for which the target expression evaluates to `true`).
+If the body is missing (or does not contain any condition statement), the policy is applicable to any authorization subscription which the policy matches (i.e., for which the target expression evaluates to `true`).
 
 ===== Variable Assignment
 
@@ -720,9 +720,9 @@ If the body is missing (or does not contain any condition statement) the policy 
 
 A variable assignment starts with the keyword `var`, followed by an identifier under which the assigned value should be available, followed by `=` and an expression.
 
-After a variable assignment, the result of evaluating the expression can be used in later conditions within the same policy under the specified name. This is useful because it allows to execute time-consuming calculations or requests to external attribute stores only once and the result can be used in multiple expressions. Additionally, it can make policies shorter and improve readability.
+After a variable assignment, the result of evaluating the expression can be used in later conditions within the same policy under the specified name. This is useful because it allows to execute time-consuming calculations or requests to external attribute stores only once, and the result can be used in multiple expressions. Additionally, it can make policies shorter and improve readability.
 
-The expression can make use of any element of the SAPL expression language, especially of attribute finder steps that are not allowed in the target expression.
+The expression can use any element of the SAPL expression language, especially of attribute finder steps that are not allowed in the target expression.
 
 The value assignment statement always evaluates to `true`.
 
@@ -730,19 +730,19 @@ The value assignment statement always evaluates to `true`.
 
 A condition statement simply consists of an expression that has to evaluate to `true` or `false`. 
 
-The expression can make use of any element of the SAPL expression language, especially of attribute finder steps that are not allowed in the target expression. Conditions in the policy body are used to further limit the applicability of a policy. 
+The expression can use any element of the SAPL expression language, especially of attribute finder steps that are not allowed in the target expression. Conditions in the policy body are used to further limit the applicability of a policy. 
 
 ==== Obligation
 
 An *optional* obligation expression contains a task which the PEP must fulfill before granting or denying access. It consists of the keyword `obligation` followed by an expression. 
 
-A common situation in which obligations are useful is _Break the Glass Scenarios_. Assuming in case of an emergency a doctor should also have access to medical records that she normally cannot read. However, this emergency access has to be logged to prevent abuse. In this situation, logging is a requirement for granting access and therefore must be commanded in an obligation.
+A common situation in which obligations are useful is _Break the Glass Scenarios_. Assuming in case of an emergency, a doctor should also have access to medical records that she normally cannot read. However, this emergency access has to be logged to prevent abuse. In this situation, logging is a requirement for granting access and therefore must be commanded in an obligation.
 
 Obligations are only returned in the authorization decision if the decision is `PERMIT` or `DENY`. The PDP simply collects all obligations from policies evaluating to one of these entitlements. Depending on the final decision, the obligations and advice which belong to this decision are included in the authorization decision object. It does not matter if the obligation is described with a string (like `"create_emergency_access_log"`) or an object (like `{ "task" : "create_log", "content" : "emergency_access" }`) or another JSON value - only the PEP must be implemented in a way that it knows how to process these obligations.
 
 ==== Advice
 
-An *optional* advice expression is treated similarly to an obligation expression. Unlike obligations, fulfilling the described tasks in advice is not a requirement for granting or denying access. The advice expression consists of the keyword `advice` followed by any expression.
+An *optional* advice expression is treated similarly to an obligation expression. Unlike obligations, fulfilling the described tasks in the advice is not a requirement for granting or denying access. The advice expression consists of the keyword `advice` followed by any expression.
 
 If the final decision is `PERMIT` or `DENY`, advice from all policies evaluating to this decision is included in the authorization decision object by the PDP.
 
@@ -750,7 +750,7 @@ If the final decision is `PERMIT` or `DENY`, advice from all policies evaluating
 
 An *optional* transformation statement is preluded with the keyword `transform` and followed by an expression. If a transformation statement is supplied and the policy evaluates to `permit`, the result of evaluating the expression will be returned as the `resource` in the authorization decision object.
 
-Accordingly, a transformation statement might be used to hide certain information (e.g., _a doctor can access patient data but should not see bank account details_). This can be reached by applying a filter to the original resource which removes or blackens certain attributes. Thus SAPL allows for *fine-grained* or *field-level* access control without the need to treat each attribute as a resource and write a specific  policy for it.
+Accordingly, a transformation statement might be used to hide certain information (e.g., _a doctor can access patient data but should not see bank account details_). This can be reached by applying a filter to the original resource, which removes or blackens certain attributes. Thus SAPL allows for *fine-grained* or *field-level* access control without the need to treat each attribute as a resource and write a specific  policy for it.
 
 The original resource is accessible via the identifier `resource` and can be filtered as follows:
 
@@ -765,13 +765,13 @@ transform
 
 The example would remove the attribute `someValue` and blacken the value of the attribute `anotherValue`. The filtering functions are described in more detail <<filtering,below>>.
 
-It is not possible to combine multiple transformation statements through multiple policies. Each combining algorithm in SAPL will not return the decision `PERMIT` if there is more than one policy evaluating to `PERMIT` and at least one of them contains a transformation statement (this is called _transformation uncertainty_). For more details, <<combining-algorithms,see below>>.
+It is not possible to combine multiple transformation statements through multiple policies. Each combining algorithm in SAPL will not return the decision `PERMIT` if there is more than one policy evaluating to `PERMIT`, and at least one of them contains a transformation statement (this is called _transformation uncertainty_). For more details, <<combining-algorithms,see below>>.
 
 Transformation statements can be interpreted as a special case of obligation, requiring the PEP to replace the resource accordingly.
 
 === SAPL Policy Set
 
-While a policy can either be a top-level SAPL document or be contained in a policy set, policy sets are always top-level documents. I.e., for evaluating an authorization subscription, the PDP evaluates an existing policy set. Policy sets are evaluated against an authorization subscription by checking their target expression if applicable evaluating their policies and, if necessary, combining multiple decisions according to a combining algorithm specified in the policy set. Finally, similarly to policies, policy sets evaluate to either `PERMIT`, `DENY`, `NOT_APPLICABLE` or `INDETERMINATE`.
+While a policy can either be a top-level SAPL document or be contained in a policy set, policy sets are always top-level documents. I.e., for evaluating an authorization subscription, the PDP evaluates an existing policy set. Policy sets are evaluated against an authorization subscription by checking their target expression, if applicable evaluating their policies, and, if necessary, combining multiple decisions according to a combining algorithm specified in the policy set. Finally, similarly to policies, policy sets evaluate to either `PERMIT`, `DENY`, `NOT_APPLICABLE` or `INDETERMINATE`.
 
 Policy sets are used to structure multiple policies and provide an order for the policies they contain. Hence, their policies can be evaluated one after another.
 
@@ -798,7 +798,7 @@ The combining algorithms are described in more detail <<combining-algorithms,lat
 
 ==== Target Expression
 
-After the combining algorithm, an *optional* target expression can be specified. The target expression is a condition for applying the policy set. It starts with the keyword `for` followed by an expression that must evaluate to either `true` or `false`. If the condition evaluates to `true` for a certain authorization subscription the policy set _matches_ this subscription. In case the target expression is missing the policy set matches any authorization subscription.
+After the combining algorithm, an *optional* target expression can be specified. The target expression is a condition for applying the policy set. It starts with the keyword `for` followed by an expression that must evaluate to either `true` or `false`. If the condition evaluates to `true` for a certain authorization subscription, the policy set _matches_ this subscription. In case the target expression is missing, the policy set matches any authorization subscription.
 
 The policy sets' target expression is used to select matching policy sets from a large collection of policy documents before evaluating them. As this needs to be done efficiently, there are no <<attribute-finders,attribute finder steps>> allowed at this place.
 
@@ -808,7 +808,7 @@ The policy sets' target expression is used to select matching policy sets from a
 
 The target expression can be followed by any number of variable assignments. Variable assignments are used to make a value available in all subsequent policies under a certain name. An assignment starts with the keyword `var`, followed by an identifier under which the assigned value should be available, followed by `=` and an expression (see <<value-assignment,above>>).
 
-Since variable assignments are evaluated only if the policy set's target matches, attribute finders may be used.
+Since variable assignments are only evaluated if the policy set's target matches, attribute finders may be used.
 
 In case a policy within the policy set assigns a variable already assigned in the policy set, the assignment in the policy overwrites the old. The overwritten value only exists within the particular policy. In other policies, the variable has the value defined in the policy set.
 
@@ -816,7 +816,7 @@ In case a policy within the policy set assigns a variable already assigned in th
 
 Each policy set must contain one or more policies. <<policy,See above>> how to describe a SAPL policy. If the combining algorithm `first-applicable` is used, the policies are evaluated in the order in which they appear in the policy set.
 
-In each policy, functions and attribute finders imported at the beginning of the SAPL document can be used under their shorter name. All variables assigned for the policy set (see <<policy-set-value-assignments,Value Assignments>>) are available within the policies but can be overwritten for a particular policy. The same applies to imports - imports at the policy level overwrite imports defined for the policy set, but are only valid for the particular policy.
+In each policy, functions and attribute finders imported at the beginning of the SAPL document can be used under their shorter name. All variables assigned for the policy set (see <<policy-set-value-assignments,Value Assignments>>) are available within the policies but can be overwritten for a particular policy. The same applies to imports - imports at the policy level overwrite imports defined for the policy set but are only valid for the particular policy.
 
 
 === Language Elements
@@ -870,24 +870,24 @@ Remove before deployment! */
 
 [[expressions]]
 
-To ensure flexibility, various parts of a policy can be *expressions* which are evaluated at runtime. E.g., a policy's target has to be an expression evaluating to `true` or `false`. SAPL contains a uniform expression language which offers various useful features while still being easy to read and write. 
+To ensure flexibility, various parts of a policy can be *expressions* that are evaluated at runtime. E.g., a policy's target has to be an expression evaluating to `true` or `false`. SAPL contains a uniform expression language that offers various useful features while still being easy to read and write. 
 
 Since JSON is the base data model, each expression evaluates to a JSON data type. These data types and the expression syntax are described in this section.
 
 ==== JSON Data Types
 
 SAPL is based on the *JavaScript Object Notation* or *JSON*, an http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf[ECMA Standard] for the representation of structured data.
-Any value occurring within the SAPL language is a JSON data type and any expression within a policy evaluates to a JSON data type.
+Any value occurring within the SAPL language is a JSON data type, and any expression within a policy evaluates to a JSON data type.
 The types and their JSON notations are:
 
 * Primitive Types
-** *Number*: A signed decimal number, e.g., `-1.9`. There is no distinction between integer and floating-point numbers. In case an integer is expected (e.g., for an numeric index), the decimal number is rounded to an integer number.
+** *Number*: A signed decimal number, e.g., `-1.9`. There is no distinction between integer and floating-point numbers. In case an integer is expected (e.g., for a numeric index), the decimal number is rounded to an integer number.
 ** *String*: A sequence of zero or more characters, written in double or single quotes, e.g., `"a string"` or `'a string'`.
 ** *Boolean*: Either `true` or `false`.
 ** *null*: Marks an empty value, `null`.
  
 * Structured Types
-** *Object*: An unordered set of name/value pairs. The name is a string, the value has to be one of the available data types. It can also be an object itself. The name/value pair is also called attribute of the object. E.g.
+** *Object*: An unordered set of name/value pairs. The name is a string. The value has to be one of the available data types. It can also be an object itself. The name/value pair is also called an attribute of the object. E.g.
 +
 ----
 {
@@ -916,23 +916,23 @@ A *basic expression* is either a
 [[basic-relative]]
 
 * *Value Expression*: a value explicitly defined in the corresponding JSON notation (e.g., `"a value"`)
-* *Identifier Expression*: the name of a variable or of an authorization subscription attribute (`subject`, `resource`, `action` or `environment`)
+* *Identifier Expression*: the name of a variable or of an authorization subscription attribute (`subject`, `resource`, `action`, or `environment`)
 * *Function Expression*: a function call (e.g., `simple.get_minimum(resource.array)`)
 * *Relative Expression*: `@`, which refers to a certain value depending on the context
-* *Grouped Expression*: any expression enclosed in parantheses, e.g., `(1 + 1)`
+* *Grouped Expression*: any expression enclosed in parentheses, e.g., `(1 + 1)`
 
-Each of these basic expressions can contain one or more *selection steps* (e.g., `subject.name` which is the identifier expression `subject` followed by the selection step `.name` selecting the value of the `name` attribute). Additionally, a basic expression can contain a *filter component* (`+|- Filter+`) which will be applied to the evaluation result. If the expression evaluates to an array, instead of applying a filter each item can be transformed using a *subtemplate component* (`{two-colons} Subtemplate`). 
+Each of these basic expressions can contain one or more *selection steps* (e.g., `subject.name`, which is the identifier expression `subject` followed by the selection step `.name` selecting the value of the `name` attribute). Additionally, a basic expression can contain a *filter component* (`+|- Filter+`) which will be applied to the evaluation result. If the expression evaluates to an array, instead of applying a filter,  each item can be transformed using a *subtemplate component* (`{two-colons} Subtemplate`). 
 
-*Operator expressions* can be constructed using prefix or infix *operators* (e.g., `1 + subject.age` or `! subject.isBlocked`). SAPL supports infix and prefix operators. They may be applied in connection with any expression. An operator expression within parantheses (e.g., `(1 + subject.age)`) is a basic expression again and thus may contain selection steps, filter or subtemplate statements.
+*Operator expressions* can be constructed using prefix or infix *operators* (e.g., `1 + subject.age` or `! subject.isBlocked`). SAPL supports infix and prefix operators. They may be applied in connection with any expression. An operator expression within parentheses (e.g., `(1 + subject.age)`) is a basic expression again and thus may contain selection steps, filter, or subtemplate statements.
 
 
 ===== Value Expressions
 
 A basic value expression is the most simple type. The value is denoted in the corresponding JSON format. 
 
-`true`, `false` and `null` are value expressions as well as `"a string"`, `'a string'` or any number (like `6` or `100.51`).
+`true`, `false`, and `null` are value expressions as well as `"a string"`, `'a string'`, or any number (like `6` or `100.51`).
 
-For denoting objects the keys need to be strings and the values can be any expression, e.g.
+For denoting objects, the keys need to be strings, and the values can be any expression, e.g.
 
 [source]
 {
@@ -940,7 +940,7 @@ For denoting objects the keys need to be strings and the values can be any expre
 	"name" : functions.generate_name()
 }
 
-For arrays the items can be any expression, e.g.
+For arrays, the items can be any expression, e.g.
 
 [source]
 [
@@ -951,7 +951,7 @@ For arrays the items can be any expression, e.g.
 ===== Identifier Expressions
 
 
-A basic identifier expression consists of the name of a variable or the name of an authorization subscription attribute (i.e., `subject`, `resource`, `action` or `environment`).
+A basic identifier expression consists of the name of a variable or the name of an authorization subscription attribute (i.e., `subject`, `resource`, `action`, or `environment`).
 
 It evaluates to the variable or the attribute's value.
 
@@ -969,7 +969,7 @@ Each function is available under its fully qualified name. The fully qualified n
 
 If there are no arguments passed to the function, empty parentheses have to be denoted (e.g., `random_number()`).
 
-When evaluating a function expression, the expressions representing the function call arguments are evaluated first. Afterwards the results are passed to the function as arguments. The expression evaluates to the function's return value.
+When evaluating a function expression, the expressions representing the function call arguments are evaluated first. Afterward, the results are passed to the function as arguments. The expression evaluates to the function's return value.
 
 ===== Relative Expressions
 
@@ -985,11 +985,11 @@ The contexts in which `@` can be used are:
 
 ==== Operators
 
-SAPL provides a collection of arithmetic, comparison, logical, string and filtering operators which can be used to build expressions from other expressions.
+SAPL provides a collection of arithmetic, comparison, logical, string and filtering operators, which can be used to build expressions from other expressions.
 
 ===== Arithmetic Operators
 
-Assuming `exp1` and `exp2` are expressions evaluating to numbers, the following operators can be applied. All of them evaluate tober.
+Assuming `exp1` and `exp2` are expressions evaluating to numbers, the following operators can be applied. All of them evaluate to number.
 
 * `-exp1` (negation)
 * `+exp1 * exp2+` (multiplication)
@@ -999,7 +999,7 @@ Assuming `exp1` and `exp2` are expressions evaluating to numbers, the following 
 
 An expression can contain multiple arithmetic operators. The order in which they are evaluated can be specified using *parentheses*, e.g., `(1 + 2) * 3`. 
 
-In case multiple operators are used without parentheses (e.g., `4 + 3 * 2`) the *operator precedence* determines how the expression is evaluated. Operators with higher precedence are evaluated first. The following precedence is assigned to arithmetic operators:
+In case multiple operators are used without parentheses (e.g., `4 + 3 * 2`), the *operator precedence* determines how the expression is evaluated. Operators with higher precedence are evaluated first. The following precedence is assigned to arithmetic operators:
 
 * `-` (negation): precedence *4*
 * `+*+` (multiplication), `/` (division): precedence *2*
@@ -1046,7 +1046,7 @@ The expression evaluates to `true` if the array `exp2` evaluates to contains the
 
 . Precedence and Associativity
 +
-All comparison operators have the precedence *3*. This is important for combining them with logical operators (see below).
+All comparison operators have precedence *3*. This is important for combining them with logical operators (see below).
 +
 `<`, `>`, `\<=`, `>=`, `==`,`=~` and `in` are *non-associative*, i.e., an expression may not contain multiple comparison operators (like `3 < var < 5`). However, they can be combined with logical operators which have a different precedence (thus, the faulty example could be replaced by `3 < var && var < 5`).
 
@@ -1059,7 +1059,7 @@ Assuming `exp1` and `exp2` are expressions evaluating to `true` or `false`, the 
 * `exp1 && exp2` or `exp1 & exp2` (logical AND), precedence *2*
 * `exp1 || exp2` or `exp1 | exp2` (logical OR), precedence *1*
 
-The difference between `&&` and `&` (or `||` and `|`) is that for `&&` lazy evaluation is used while `&` causes eager evaluation. Using `&&`, if the left side evaluates to `false` and the right side would cause an error, the result of the operator is `false`, the right side is not evaluated. The same applies for `||` if the left side evaluates to `true`. In this case, the operator evaluates to `true`, even if the right side would cause an error - the right side is ignored if the result can already be determined. This is different for `&` and `|` which always evaluate both sides first (eager evaluation). Whenever there is an error, the expression does not return a result. In a target expression, only the eager evaluation expressions `&` and `|` can be used.
+The difference between `&&` and `&` (or `||` and `|`) is that for `&&` lazy evaluation is used while `&` causes eager evaluation. Using `&&`, if the left side evaluates to `false` and the right side would cause an error, the result of the operator is `false`. The right side is not evaluated. The same applies for `||` if the left side evaluates to `true`. In this case, the operator evaluates to `true`, even if the right side would cause an error - the right side is ignored if the result can already be determined. This is different for `&` and `|` which always evaluate both sides first (eager evaluation). Whenever there is an error, the expression does not return a result. In a target expression, only the eager evaluation expressions `&` and `|` can be used.
 
 The operators are already listed in descending order of their *precedence*, i.e., `!` has the highest precedence followed by `&&`/`&` and `||`/`|`. The order of evaluation can be changed by using parentheses.
 
@@ -1073,7 +1073,7 @@ String concatenation is applied if the left operand is an expression evaluating 
 
 ==== Selection Steps
 
-SAPL provides an easy way of accessing attributes of an object (or items of an array). The *basic access* mechanism has a similar syntax to programming languages like JavaScript or Java (e.g., `object.attribute`, `user.address.street` or `array[10]`). Beyond that SAPL offers *extended possibilities* for expressing more sophisticated queries against JSON structures (e.g., `persons[?(@.age >= 50)]`).
+SAPL provides an easy way of accessing attributes of an object (or items of an array). The *basic access* mechanism has a similar syntax to programming languages like JavaScript or Java (e.g., `object.attribute`, `user.address.street` or `array[10]`). Beyond that, SAPL offers *extended possibilities* for expressing more sophisticated queries against JSON structures (e.g., `persons[?(@.age >= 50)]`).
 
 ===== Overview
 
@@ -1133,7 +1133,7 @@ Given that the following object is stored in the variable `object`:
 ]
 ----
 
-|*Wildcard step* applied to an object returns an array with the value of each attribute - applied to an array it returns the array itself
+|*Wildcard step* applied to an object, it returns an array with the value of each attribute - applied to an array, it returns the array itself
 
 
 |`+object.array2[0:-2:2]+`
@@ -1155,7 +1155,7 @@ Given that the following object is stored in the variable `object`:
 
 | `object.array2[(3+1)]`
 |`5`
-|*Expression step* that evaluates tober (index) - can also evaluate to an attribute name
+|*Expression step* that evaluates to number (index) - can also evaluate to an attribute name
 
 
 | `object.array2[?(@>2)]`
@@ -1179,9 +1179,9 @@ Given that the following object is stored in the variable `object`:
 
 The basic access syntax is quite similar to accessing an object's attributes in JavaScript or Java: 
 
-* *Attributes of an object* can be accessed by their key (*key step*) using the _dot notation_ (`resource.key`) or the _bracket notation_ (`resource["key"]`,`resource['key']`). Both expressions return the value of the specified attribute. For using the dot notation the specified key has to be an <<identifier,identifiers>>. Otherwise, the bracket notation with a string between square brackets is necessary, e.g., if the key contains whitespace characters (`resource['another key']`).
+* *Attributes of an object* can be accessed by their key (*key step*) using the _dot notation_ (`resource.key`) or the _bracket notation_ (`resource["key"]`,`resource['key']`). Both expressions return the value of the specified attribute. For using the dot notation, the specified key has to be an <<identifiers,identifier>>. Otherwise, the bracket notation with a string between square brackets is necessary, e.g., if the key contains whitespace characters (`resource['another key']`).
 
-* *Indices of an array* may be accessed by putting the index between square brackets (*index step*, `array[3]`). The index can be a negative number `-n` which evaluates to the `n`-th element from the end of the array, starting with -1 as the last element's index. `array[-2]` would return the second last element of the Array `array`.
+* *Indices of an array* may be accessed by putting the index between square brackets (*index step*, `array[3]`). The index can be a negative number `-n`, which evaluates to the `n`-th element from the end of the array, starting with -1 as the last element's index. `array[-2]` would return the second last element of the array `array`.
 
 Multiple selection steps can be *chained*. The steps are evaluated from left to right. Each step is applied to the result returned from the previous step.
 
@@ -1193,12 +1193,12 @@ The expression `object.array[2]` first selects the attribute with key `array` fr
 
 ===== Extended Possibilities
 
-SAPL supports querying for specific parts of a JSON structure. Except for an *expression step*, all of these steps return an array since the number of elements found can vary. Even if only a single result is retrieved the expression returns an array containing one item.
+SAPL supports querying for specific parts of a JSON structure. Except for an *expression step*, all of these steps return an array since the number of elements found can vary. Even if only a single result is retrieved, the expression returns an array containing one item.
 
 
 ====== Expression Step `[(Expression)]`
 
-Returns the value of an attribute with a key or an array item with an index specified by an expression. `Expression` must evaluate to a string orber. If `Expression` evaluates to a string, the selection can only be applied to an object. If `Expression` evaluates tober, the selection can only be applied to an array.
+An expression step returns the value of an attribute with a key or an array item with an index specified by an expression. `Expression` must evaluate to a string or a number. If `Expression` evaluates to a string, the selection can only be applied to an object. If `Expression` evaluates to a number, the selection can only be applied to an array.
 
 
 [NOTE]
@@ -1207,7 +1207,7 @@ The expression step can be used to refer to custom variables (`object.array[(anI
 
 ====== Wildcard Step `+.*+` or `+[*]+`
 
-Can be applied to an object or an array. When applied to an object, it returns an array containing all attribute values. As attributes of an object have no ordering, the sorting of the result is not defined. When applied to an array, the step just leaves the array untouched.
+A wildcard step can be applied to an object or an array. When applied to an object, it returns an array containing all attribute values. As attributes of an object have no order, the sorting of the result is not defined. When applied to an array, the step just leaves the array untouched.
 
 [NOTE]
 Applied to an object `{"key1":"value1", "key2":"value2"}`, the selection step `+.*+` or `+[*]+` returns the following array: `["value1", "value2"]` (possibly with a different sorting of the items).
@@ -1232,14 +1232,14 @@ Applied to an `object`
  	}
 }
 
-the selection step `object..key` returns the following array: `["value1", "value2"]` (any attribute value with key `key`, the items may be in a different order).
+The selection step `object..key` returns the following array: `["value1", "value2"]` (any attribute value with key `key`, the items may be in a different order).
 
 The wildcard selection step `object..*` or `object..[*]` returns `["value1", {"key":"value2"}, "value2"]` (recursively each attribute value and array item in the whole structure `object`, the sorting may be different).
 ========
 
 ====== Condition `[?(Condition)]`
 
-Returns an array containing all attribute values or array items for which `Condition` evaluates to `true`. Can be applied to both an object (then it checks each attribute value) and an array (then it checks each item). `Condition` must be an expression, in which <<basic-relative,relative expressions>> starting with `@` can be used. `@` evaluates to the current attribute value or array item for which the condition is evaluated and can be followed by further selection steps.
+Condition steps return an array containing all attribute values or array items for which `Condition` evaluates to `true`. It can be applied to both an object (then it checks each attribute value) and an array (then it checks each item). `Condition` must be an expression in which <<basic-relative,relative expressions>> starting with `@` can be used. `@` evaluates to the current attribute value or array item for which the condition is evaluated and can be followed by further selection steps.
 
 As attributes have no order, the sorting of the result array of a condition step applied to an object is not specified.
 
@@ -1249,7 +1249,7 @@ Applied to the array `[1, 2, 3, 4, 5]`, the selection step `[?(@ > 2)]` returns 
 
 ====== Array Slicing `[Start:Stop:Step]`
 
-The slice contains the items with indices between `Start` and `Stop` with `Start` being inclusive and `Stop` being exclusive. `Step` describes the distance between the elements to be included in the slice, i.e., with a `Step` of 2, only each second element would be included (with `Start` as the first element's index). All parts except the first colon are optional. `Step` defaults to 1.
+The slice contains the items with indices between `Start` and `Stop`, with `Start` being inclusive and `Stop` being exclusive. `Step` describes the distance between the elements to be included in the slice, i.e., with a `Step` of 2, only each second element would be included (with `Start` as the first element's index). All parts except the first colon are optional. `Step` defaults to 1.
 
 In case `Step` is positive, `Start` defaults to 0 and `Stop` defaults to the length of the array. If `Step` is negative, `Start` defaults to the length of the array minus 1 (i.e., the last element's index) and `Stop` defaults to -1. A `Step` of 0 leads to an error.
 
@@ -1257,11 +1257,11 @@ In case `Step` is positive, `Start` defaults to 0 and `Stop` defaults to the len
 Applied to the Array `[1, 2, 3, 4, 5]`, the selection step `[-2:]` returns the Array `[4, 5]` (the last two elements).
 
 [NOTE]
-If start and end are to be left empty, the two colons must be separated by a whitespace to avoid confusion with the sub-template operator. So write `[: :-2]` instead of `[::-2]`.
+If Start and Stop are to be left empty, the two colons must be separated by a whitespace to avoid confusion with the sub-template operator. So write `[: :-2]` instead of `[::-2]`.
 
 ====== Index Union `[index1, index2, ...]`
 
-Using the bracket notation, a set of multiple array indices (numbers) can be denoted separated by commas. This returns an array containing the items of the original array if the item's index is contained in the specified indices. Since a *set* of indices is specified, the indices' order is ignored and duplicate elements are removed. The result array contains the specified elements in their original order. Indices which do not exist in the original array are ignored.
+By using the bracket notation, a set of multiple array indices (numbers) can be denoted separated by commas. This returns an array containing the items of the original array if the item's index is contained in the specified indices. Since a *set* of indices is specified, the indices' order is ignored, and duplicate elements are removed. The result array contains the specified elements in their original order. Indices that do not exist in the original array are ignored.
 
 [NOTE]
 Both `[3, 2, 2]` and `[2, 3]` return the same result.
@@ -1269,12 +1269,12 @@ Both `[3, 2, 2]` and `[2, 3]` return the same result.
 
 ====== Attribute Union `["attribute1", "attribute2", ...]`
 
-Using the bracket notation, a set of multiple attribute keys (strings) can be denoted separated by commas. This returns an array containing the values of the denoted attributes. Since a *set* of attribute keys is specified, the keys' order is ignored and duplicate elements are removed. As attributes have no order, the sorting of the result array is not specified. Attributes which do not exist are ignored.
+By using the bracket notation, a set of multiple attribute keys (strings) can be denoted separated by commas. This returns an array containing the values of the denoted attributes. Since a *set* of attribute keys is specified, the keys' order is ignored, and duplicate elements are removed. As attributes have no order, the sorting of the resulting array is not specified. Attributes that do not exist are ignored.
 
 
 ====== Attribute Selection on Array
 
-Although arrays do not have attributes (they have items), a key step can be applied to an array (e.g., `array.value`). This will loop through each item of the array and look for the specified attribute in this item. An array containing all values of the attributes found is returned. In other words the selection step is not applied to the result of the previous step (the array) but to each item of the result and the (sub-)results are concatenated. In case an array item is no object or does not contain the specified attribute, it is skipped.
+Although arrays do not have attributes (they have items), a key step can be applied to an array (e.g., `array.value`). This will loop through each item of the array and look for the specified attribute in this item. An array containing all values of the attributes found is returned. In other words, the selection step is not applied to the result of the previous step (the array) but to each item of the result, and the (sub-)results are concatenated. In case an array item is no object or does not contain the specified attribute, it is skipped.
 
 [NOTE]
 ========
@@ -1293,24 +1293,24 @@ Applied to an object
 
 ====== Attribute Finder `.<finder.name>`
 
-In SAPL it is possible to receive attributes which are not contained in the authorization subscription. Those attributes can be provided by external PIPs and obtained through attribute finders. 
+In SAPL, it is possible to receive attributes that are not contained in the authorization subscription. Those attributes can be provided by external PIPs and obtained through attribute finders. 
 
-The standard attributes in SAPL are indented to gather more information with regards to a given JSON value, i.e., the subject, action, resource, environment objects in the subscription or any other JSON value.
+The standard attributes in SAPL are intended to gather more information with regards to a given JSON value, i.e., the subject, action, resource, environment objects in the subscription, or any other JSON value.
 
-A standard attribute finder is called via the selection step `.<finder.name>`. Where `finder.name` either is a fully qualified attribute finder name or can be a shorter name if imports are used (the finder name or the library alias followed by a period `.` and the finder name). This step may by followed any number of selection steps.
+A standard attribute finder is called via the selection step `.<finder.name>`. Where `finder.name` either is a fully qualified attribute finder name or can be a shorter name if imports are used (the finder name or the library alias followed by a period `.` and the finder name). Any number of selection steps can be appended after such a step.
 
-An attribute accessed this way is treated as a subscription. I.e., the PDP will subscribe to the data source and whenever a new value is returned the policy is reevaluated and a new decision is calculated.
+An attribute accessed this way is treated as a subscription. I.e., the PDP will subscribe to the data source, and whenever a new value is returned, the policy is reevaluated, and a new decision is calculated.
 
 The attribute finder receives the result of the previous selection as an argument and returns a JSON value. Optionally, an attribute finder may be supplied with a list of parameters: `.<finder.name(p1,p2,...)>`. 
 
-Attribute finders may be nested: `subject.<finder.name2>.<finder.name(p1,action.<finder.name3>,...)>`. Here, whenever the attributes with `name2` and  `name3` all have a first result and whenever one of the results change, the attribute with name `name` is re-subscribed with the new input parameters.
+Attribute finders may be nested: `subject.<finder.name2>.<finder.name(p1,action.<finder.name3>,...)>`. Here, whenever the attributes with `name2` and  `name3` all have an initial result, and whenever one of the results change, the attribute with name `name` is re-subscribed with the new input parameters.
 
-An environment attribute finder is an attribute finder intended for accessing information possibly independent of subscription data, e.g., current time or an organization wide emergency level. These environment attributes are not to be confused with the data which is contained in the environment object in the subscription. The data contained there is environment data provided by the PEP from its application context at subscription time and may not be accessible from the PDP otherwise. Environment attributes do not require a left hand input and can be accessed without a leading value, variable, or sequence of selection steps: `<organization.emergencyLevel>` may refer to a stream indicating an emergency level in an organization. Analogous, to standard attributes, these attributes may be parameterized and nested.
+An environment attribute finder is an attribute finder intended for accessing information possibly independent of subscription data, e.g., current time or an organization-wide emergency level. These environment attributes are not to be confused with the data which is contained in the environment object in the subscription. The data contained there is environment data provided by the PEP from its application context at subscription time and may not be accessible from the PDP otherwise. Environment attributes do not require a left-hand input and can be accessed without a leading value, variable, or sequence of selection steps: `<organization.emergencyLevel>` may refer to a stream indicating an emergency level in an organization. Analogous to standard attributes, these attributes may be parameterized and nested.
 
 All attribute finders may be followed by arbitrary selection steps.
 
-In some scenarios it may not be the right thing to subscribe to attributes, but to just retrieve the data once on subscription time. 
-For this, SAPL offers the head operator for both standard and environment attributes. Prepending the pipe symbol `|` in front of an attribute finder step will only return the first value returned by the attribute finder. E.g.: `subject.id.|<geo.location>`. However, such an attribute may still return a stream, if used with nested attributes which do not employ the head operator.
+In some scenarios, it may not be the right thing to subscribe to attributes, but to just retrieve the data once on subscription time. 
+For this, SAPL offers the head operator for both standard and environment attributes. Prepending the pipe symbol `|` in front of an attribute finder step will only return the first value returned by the attribute finder. E.g.: `subject.id.|<geo.location>`. However, such an attribute may still return a stream if used with nested attributes which do not employ the head operator.
 
 
 [NOTE]
@@ -1325,7 +1325,7 @@ Attribute finders are described in greater detail <<attribute-finders,below>>.
 
 ==== Filtering
 
-SAPL provides syntax elements for having a value pass *filters* and thereby modifying it. 
+SAPL provides syntax elements filtering values by applying *filters*, and that can potentially modify the value. 
 
 Filters can only be applied to basic expressions (remember that an expression in parentheses is a basic expression). Filtering is denoted by the `|-` operator after the expression. Which *filter function* is applied in what way can be defined by a *simple filtering component* or by an *extended filtering component*, which consists of several filter statements.
 
@@ -1340,7 +1340,7 @@ Removes a whole attribute (key and value pair) of an object or an item of an arr
 Replaces an attribute or an element by the result of evaluating the expression `replacement`.
 
 .filter.blacken(disclose\_left=0,disclose\_right=0,replacement="X")
-Replaces each char of a attribute or item (which has to be a string) by `replacement`, leaving `show\_left` chars from the beginning and `show\_right` chars from the end unchanged. By default, no chars are visible and each char is replaced by `X`.
+Replaces each char of an attribute or item (which has to be a string) by `replacement`, leaving `show\_left` chars from the beginning and `show\_right` chars from the end unchanged. By default, no chars are visible, and each char is replaced by `X`.
 
 [NOTE]
 `filter.blacken` could be used to reveal only the first digit of the credit card number and replace the other digits by `X`.
@@ -1375,7 +1375,7 @@ A simple filter component applies a *filter function* to the preceding value. Th
 BasicExpression |- Function
 ----
 
-`BasicExpression` is evaluated to a value, the function is applied to this value and the result is returned. If no other arguments are passed to the function, the empty parentheses `()` after the function name can be omitted. 
+`BasicExpression` is evaluated to a value, the function is applied to this value, and the result is returned. If no other arguments are passed to the function, the empty parentheses `()` after the function name can be omitted. 
 
 In case `BasicExpression` evaluates to an array, the whole array is passed to the filter function. The *keyword `each`* before `Function` can be used to apply the function to each array item instead:
 
@@ -1406,7 +1406,7 @@ The function `blacken(1)` without any additional parameters takes a string and r
 	"3XXXXXXXXXXXXXXX"
 ]
 
-Without the keyword `each`, the function `blacken` would be applied to the array itself, resulting in an error (since as stated above, `blacken` can only be applied to a String).
+Without the keyword `each`, the function `blacken` would be applied to the array itself, resulting in an error, as stated above, `blacken` can only be applied to a String.
 ****
 
 ===== Extended Filtering
@@ -1437,29 +1437,29 @@ The syntax of a filter statement is:
 each TargetRelativeExpression : Function
 ----
 
-`each` is an optional keyword. If used, the `TargetRelativeExpression` has to evaluate to an array. In this case `Function` is applied to each item of that array. 
+`each` is an optional keyword. If used, the `TargetRelativeExpression` has to evaluate to an array. In this case, `Function` is applied to each item of that array. 
 
 `TargetRelativeExpression` contains a basic relative expression starting with `@`. The character `@` references the result of the evaluation of `Expression`, so attributes of the value to filter can be accessed easily. Bear in mind that attribute finder steps are not allowed at this place. The value of the attribute selected by the target expression is replaced by the result of the filter function.
 
 The filter statements are applied successively from top to bottom.
 
 [WARNING]
-Some filter functions can be applied to both arrays and other types (e.g., `remove`). Yet there are selection steps resulting in a "helper array" that cannot be modified. If, for instance, `+.*+` is applied to the object `+{"key1" : "value1", "key2" : "value2"}+`, the result would be `+["value1", "value2"]+`. It is not possible to apply a filter function directly to this array because changing the array itself would not have any effect. The array has been constructed merely to hold multiple values for further processing. In this case the policy would *have to* use the keyword `each` and apply the function to each item. Attempting to alter a helper array results in an error.
+Some filter functions can be applied to both arrays and other types (e.g., `remove`). Yet, there are selection steps resulting in a "helper array" that cannot be modified. If, for instance, `+.*+` is applied to the object `+{"key1" : "value1", "key2" : "value2"}+`, the result would be `+["value1", "value2"]+`. It is not possible to apply a filter function directly to this array because changing the array itself would not have any effect. The array has been constructed merely to hold multiple values for further processing. In this case, the policy would *have to* use the keyword `each` and apply the function to each item. The attempt to alter a helper array will result in an error.
 
 ===== Custom Filter Functions
 
-Any function available in SAPL can be used in a filter statement, hence it is easy to add custom filter functions. 
+Any function available in SAPL can be used in a filter statement. Hence it is easy to add custom filter functions. 
 
-When used in a filter statement, the value to filter is passed to the function as its first argument. Consequently the arguments specified in the function call are passed as second, third etc. arguments.
+When used in a filter statement, the value to filter is passed to the function as its first argument. Consequently, the arguments specified in the function call are passed as second, third, etc., arguments.
 
 [NOTE]
-Assuming a filter function `roundto` should round a value to the closest multiple of a given number, e.g., `207 |- roundto(100)` should return `200`. In its definition the function needs two formal parameters, the first one is reserved for the original value and the second one for the number to round to.
+Assuming a filter function `roundto` should round a value to the closest multiple of a given number, e.g., `207 |- roundto(100)` should return `200`. In its definition, the function needs two formal parameters. The first parameter is reserved for the original value and the second one for the number to round to.
 
 ==== Subtemplate
 
-It is possible to define a subtemplate for an array to replace each item of the array by this subtemplate. A subtemplate component is an optional part of a basic expression.
+It is possible to define a subtemplate for an array to replace each item of the array with this subtemplate. A subtemplate component is an optional part of a basic expression.
 
-E.g., the basic expression
+E.g., the basic expression:
 
 ----
 resource.patients :: {
@@ -1467,7 +1467,7 @@ resource.patients :: {
 }
 ----
 
-would return the `patients` array from the resource but with each item containing only one attribute `name`.
+This expression would return the `patients` array from the resource but with each item containing only one attribute `name`.
 
 The subtemplate is denoted after a double colon:
 
@@ -1476,7 +1476,7 @@ The subtemplate is denoted after a double colon:
 Array {two-colons} Expression
 ----
 
-`Expression` represents the replacement template. In this expression, basic relative expressions (starting with `@`) can be used to access the attributes of the current array item. `@` references the array item which is currently being replaced. `Array` has to evaluate to an array. For each item of `Array`, `Expression` is evaluated, and the item is replaced by the result.
+This `Expression` represents the replacement template. In this expression, basic relative expressions (starting with `@`) can be used to access the attributes of the current array item. `@` references the array item, which is currently being replaced. `Array` has to evaluate to an array. For each item of `Array`, `Expression` is evaluated, and the item is replaced by the result.
 
 ****
 *Example*
@@ -1512,13 +1512,13 @@ would evaluate to:
 
 [[evaluation]]
 
-For any authorization subscription the PDP evaluates each top-level SAPL document against the subscription and combines the decisions. If a top-level document is a policy set, it contains multiple policies which have to be evaluated first. Their decisions are combined to form an evaluation decision for the policy set. Finally, a resource might be added to the final result as well as obligations and advice.
+For any authorization subscription, the PDP evaluates each top-level SAPL document against the subscription and combines the decisions. If a top-level document is a policy set, it contains multiple policies which have to be evaluated first. Their decisions are combined to form an evaluation decision for the policy set. Finally, a resource might be added to the final result, as well as obligations and advice.
 
 The underlying concept assumes that during evaluation, a decision is assigned to each document. This process will be explained in the following sections.
 
 === Policy
 
-Evaluating a policy against an authorization subscription means assigning a value of `NOT_APPLICABLE`, `INDETERMINATE`, `PERMIT` or `DENY` to it. The assigned value depends on the result of evaluating the policy's target and condition (which are conditions that can either be `true` or `false`):
+Evaluating a policy against an authorization subscription means assigning a value of `NOT_APPLICABLE`, `INDETERMINATE`, `PERMIT`, or `DENY` to it. The assigned value depends on the result of evaluating the policy's target and condition (which are conditions that can either be `true` or `false`):
 
 [cols="a,a,a"]
 .Policy Evaluation Table
@@ -1574,21 +1574,21 @@ A decision value (`NOT_APPLICABLE`, `INDETERMINATE`, `PERMIT` or `DENY`) can als
 
 The value, which is assigned to the authorization subscription, i.e., the final authorization decision to be returned by the PDP, is the result of applying a combining algorithm to the values assigned to all top-level SAPL documents.
 
-Finally in case the decision is `PERMIT` and there is a `transform` statement, the transformed resource is added to the authorization decision. Additionally, there might be an obligation and advice contained in the policies which has to be added to the authorization decision.
+Finally, in case the decision is `PERMIT`, and there is a `transform` statement, the transformed resource is added to the authorization decision. Additionally, there might be an obligation and advice contained in the policies which have to be added to the authorization decision.
 
 
 === Combining Algorithm
 
 [[combining-algorithms]]
 
-There are two layers with possibly multiple decisions which finally need to be consolidated into a single decision:
+There are two layers with possibly multiple decisions that finally need to be consolidated into a single decision:
 
 * A policy set might contain multiple policies evaluating to different decisions. There must be a final decision for the policy set (_Policy Combination_).
-* The PDP might know multiple policy sets and policies which may evaluate to different decisions. In the end the PDP has to include a final decision in the SAPL authorization decision (_Document Combination_).
+* The PDP might know multiple policy sets and policies which may evaluate to different decisions. In the end, the PDP has to include a final decision in the SAPL authorization decision (_Document Combination_).
 
 A combining algorithm describes how to come to the final decision. Both the PDP itself and each policy set must be configured with a combining algorithm.
 
-Some complexity is added to the algorithms if transformation statements in policies are used: There is no possibility to combine multiple transformation statements. Hence the combining algorithms have to deal with the situation that multiple policies evaluate to `PERMIT` and at least one of them contains a transformation part. In case of such _transformation uncertainty_ the decision must not be `PERMIT`.
+Some complexity is added to the algorithms if transformation statements in policies are used: There is no possibility to combine multiple transformation statements. Hence the combining algorithms have to deal with the situation that multiple policies evaluate to `PERMIT`, and at least one of them contains a transformation part. In case of such _transformation uncertainty_, the decision must not be `PERMIT`.
 
 SAPL provides the following combining algorithms:
 
@@ -1599,7 +1599,7 @@ SAPL provides the following combining algorithms:
 * `permit-overrides`   
 * `first-applicable` (not allowed on PDP level for document combination)
 
-The algorithms work similarly on the PDP and on the policy set level. Thus the following section describes their function in general, using the term _policy document_ for a policy and a policy set. If the algorithm is used on the PDP level, a _policy document_ could be either a (top-level) policy or a policy set, on the policy set level a _policy document_ is always a policy.
+The algorithms work similarly on the PDP and on the policy set level. Thus the following section describes their function in general, using the term _policy document_ for a policy and a policy set. If the algorithm is used on the PDP level, a _policy document_ could be either a (top-level) policy or a policy set. On the policy set level, a _policy document_ is always a policy.
 
 ==== `deny-unless-permit`
 
@@ -1621,17 +1621,17 @@ It works as follows:
 
 ==== `only-one-applicable`
 
-This algorithm is used if policy sets, and policies are constructed in a way that multiple policy documents with a matching target are considered an error. A `PERMIT` or `DENY` decision will only be returned if there is exactly one policy set or policy with matching target expression and if this policy document evaluates to `PERMIT` or `DENY`.
+This algorithm is used if policy sets and policies are constructed in a way that multiple policy documents with a matching target are considered an error. A `PERMIT` or `DENY` decision will only be returned if there is exactly one policy set or policy with matching target expression and if this policy document evaluates to `PERMIT` or `DENY`.
 
 It works as follows:
 
 . If any target evaluation results in an error (`INDETERMINATE`) or if more than one policy documents have a matching target, the decision is `INDETERMINATE`.
 . Otherwise (i.e., only one policy document with matching target, no errors):
 .. If there is no matching policy document, the decision is `NOT_APPLICABLE`.
-.. Otherwise, (i.e., there is exactly one matching policy document) the decision is the result of evaluating this policy document.
+.. Otherwise (i.e., there is exactly one matching policy document), the decision is the result of evaluating this policy document.
 
 [NOTE]
-Transformation uncertainty cannot not occur using the `only-one-applicable` combining algorithm.
+Transformation uncertainty cannot occur using the `only-one-applicable` combining algorithm.
 
 ==== `deny-overrides` 
 
@@ -1641,7 +1641,7 @@ It works as follows:
 
 . If any policy document evaluates to `DENY`, the decision is `DENY`.
 . Otherwise (no policy document evaluates to `DENY`):
-.. If there is any `INDETERMINATE` or there is a _transformation uncertainty_ (multiple policies evaluate to `PERMIT` and at least one of them has a transformation statement), the decision is `INDETERMINATE`. 
+.. If there is any `INDETERMINATE` or there is a _transformation uncertainty_ (multiple policies evaluate to `PERMIT`, and at least one of them has a transformation statement), the decision is `INDETERMINATE`. 
 .. Otherwise (no policy document evaluates to `DENY`, no policy document evaluates to `INDETERMINATE`, no transform uncertainty):
 ... If there is at least one `PERMIT`, the decision is `PERMIT`.
 ... Otherwise, the decision is `NOT_APPLICABLE`.
@@ -1654,14 +1654,14 @@ It works as follows:
 
 . If any policy document evaluates to `PERMIT` and there is no _transformation uncertainty_ (multiple policies evaluate to `PERMIT` and at least one of them has a transformation statement), the decision is `PERMIT`.
 . Otherwise (no policy document evaluates to `DENY`):
-.. If there is any `INDETERMINATE` or there is a _transformation uncertainty_ (multiple policies evaluate to `PERMIT` and at least one of them has a transformation statement), the decision is `INDETERMINATE`. 
+.. If there is any `INDETERMINATE` or there is a _transformation uncertainty_ (multiple policies evaluate to `PERMIT`, and at least one of them has a transformation statement), the decision is `INDETERMINATE`. 
 .. Otherwise (no policy document evaluates to `DENY`, no policy document evaluates to `INDETERMINATE`, no transform uncertainty):
-... If there is any `DENY` the decision is `DENY`.
+... If there is any `DENY`, the decision is `DENY`.
 ... Otherwise, the decision is `NOT_APPLICABLE`.
 
 ==== `first-applicable` 
 
-This algorithm is used if the policy administrator manages the policy's priority by their order in a policy set. As soon as the first policy returns `PERMIT`, `DENY` or `INDETERMINATE`, its result is the final decision. Thus a "default" can be specified by creating a last policy without any conditions. If a decision is found, errors which might occur in later policies are ignored.
+This algorithm is used if the policy administrator manages the policy's priority by their order in a policy set. As soon as the first policy returns `PERMIT`, `DENY`, or `INDETERMINATE`, its result is the final decision. Thus a "default" can be specified by creating a last policy without any conditions. If a decision is found, errors that might occur in later policies are ignored.
 
 Since there is no order in the policy documents known to the PDP, the PDP cannot be configured with this algorithm. `first-applicable` might only be used for policy combination inside a policy set.
 
@@ -1675,32 +1675,32 @@ It works as follows:
 
 === Transformation
 
-A policy with entitlement `permit` can contain a transformation statement. If the decision is `PERMIT` and there is a policy evaluating to `PERMIT` with transformation, the result of evaluating the expression after the keyword `transform` is returned as `resource` in the authorization decision.
+A policy with an entitlement `permit` can contain a transformation statement. If the decision is `PERMIT` and there is a policy evaluating to `PERMIT` with transformation, the result of evaluating the expression after the keyword `transform` is returned as the `resource` in the authorization decision.
 
 The combining algorithms ensure that transformation is always unambiguous. Consequently, there either is exactly one transformation or none.
 
 === Obligation / Advice
 
-Finally, obligation and advice might be added to the authorization decision. Both can be defined for each policy individually. If a final decision is `PERMIT` there can be multiple policies and policy sets evaluating to `PERMIT`, each of them containing an obligation and/or advice statement - same goes for `DENY`. The final authorization decision with a certain decision must contain all obligations and advice of policy documents evaluating to this decision, but not the obligation and advice of those policy documents evaluating to a different decision.
+Finally, obligation and advice might be added to the authorization decision. Both can be defined for each policy individually. If a final decision is `PERMIT`, there can be multiple policies and policy sets evaluating to `PERMIT`, each of them containing an obligation and/or advice statement - same goes for `DENY`. The final authorization decision with a certain decision must contain all obligations and advice of policy documents evaluating to this decision, but not the obligation and advice of those policy documents evaluating to a different decision.
 
 On the two levels (PDP and policy set), collection of obligation and advice works as follows:
 
-* *Policy Set*: If the policy set evaluates to a certain decision (`PERMIT` or `DENY`), the obligation and advice from all contained policies evaluating to this decision is bundled as the obligation and advice of the policy set. 
+* *Policy Set*: If the policy set evaluates to a certain decision (`PERMIT` or `DENY`), the obligation and advice from all contained policies evaluating to this decision are bundled as the obligation and advice of the policy set. 
 +
-(For the combining algorithm `first-applicable` not all policies might be evaluated. A value `PERMIT` or `DENY` is only assigned to evaluated policies. Thus, the policy set's obligation and advice merely contains obligation and advice from evaluated policies.)
+(For the combining algorithm `first-applicable`, not all policies might be evaluated. A value `PERMIT` or `DENY` is only assigned to evaluated policies. Thus, the policy set's obligation and advice merely contains obligation and advice from evaluated policies.)
 
-* *PDP*: If the final decision is `PERMIT` or `DENY`, the obligation and advice from all top-level policy documents evaluating to this final decision is collected as the final decision's obligation and advice.
+* *PDP*: If the final decision is `PERMIT` or `DENY`, the obligation and advice from all top-level policy documents evaluating to this final decision are collected as the final decision's obligation and advice.
 
 
 == Functions 
 
-Functions can be used within SAPL expressions (basic function expressions). A function takesber of inputs (called _arguments_) and returns an output value. 
+Functions can be used within SAPL expressions (basic function expressions). A function takes some inputs (called _arguments_) and returns an output value. 
 
 Functions are organized in function libraries. Each function library has a _name_ consisting of one or more identifiers separated by periods `.` (e.g., `simple.string` or `filter`). The _fully qualified name_ of a function consists of the library name followed by a period and the function name (e.g., `simple.string.append`).
 
-Functions can be used in any part of a SAPL document, especially in the target expression. Therefore, their output should only depend on the input arguments and they should not access external resources. Functions do not have access to environment variables.
+Functions can be used in any part of a SAPL document, especially in the target expression. Therefore, their output should only depend on the input arguments, and they should not access external resources. Functions do not have access to environment variables.
 
-SAPL will comes with a standard function library providing some basic functions.
+SAPL ships with a standard function library providing some basic functions.
 
 === Custom Function Libraries
 
@@ -1726,32 +1726,32 @@ public static Val length(@Text Val parameter) {
     ...
 }
 +
-Each parameter can be annotated with any number of `@Array`, `@Bool`, `@Int`, `@JsonObject`, `@Long`, `@Number` and `@Text`. The annotations describe which types are allowed for the parameter (in case of multiple annotations, each of these types is allowed).
+Each parameter can be annotated with any number of `@Array`, `@Bool`, `@Int`, `@JsonObject`, `@Long`, `@Number`, and `@Text`. The annotations describe which types are allowed for the parameter (in the case of multiple annotations, each of these types is allowed).
 
 
 == Attribute Finders
 
-Attribute finders are used to receive attributes which are not included in the authorization subscription context from external PIPs. Just like in `subject.age`, the selection step `.age` selects the attribute ``age``s value, `subject.<user.age>` could be used to fetch an `age` attribute which is not included in `subject` but can be obtained from a PIP named `user`.
+Attribute finders are used to receive attributes that are not included in the authorization subscription context from external PIPs. Just like in `subject.age`, the selection step `.age` selects the attribute ``age``s value, `subject.<user.age>` could be used to fetch an `age` attribute which is not included in the `subject` but can be obtained from a PIP named `user`.
 
 Attribute finders are organized in libraries as well and follow the same naming conventions as functions, including the use of imports. An attribute finder library constitutes a PIP (e.g., `user`) and can contain any number of attributes (e.g., `age`). They are called by a selection step applied to any value, e.g., `subject.<user.age>`. The attribute finder step receives the previous selection result (in the example: `subject`) and returns the requested attribute.
 
-The concept of attribute finders can be used in a flexible manner: There may be finders which take an object (like in the example above, `subject.<user.age>`) as well as attribute finders which expect a primitive value (e.g., `subject.id.<user.age>` with `id` beingber). In addition attribute finders may also return an object which can be traversed in subsequent selection steps (e.g., `subject.<user.profile>.age`). It is even possible to join multiple attribute finder steps in one expression (e.g., `subject.<user.profile>.supervisor.<user.profile>.age`). 
+The concept of attribute finders can be used in a flexible manner: There may be finders that take an object (like in the example above, `subject.<user.age>`) as well as attribute finders which expect a primitive value (e.g., `subject.id.<user.age>` with `id` being a number). In addition, attribute finders may also return an object which can be traversed in subsequent selection steps (e.g., `subject.<user.profile>.age`). It is even possible to join multiple attribute finder steps in one expression (e.g., `subject.<user.profile>.supervisor.<user.profile>.age`). 
 
 Optionally, an attribute finder may be supplied with a list of parameters: `x.<finder.name(p1,p2,...)>`. Also, here nesting is possible. Thus `x.<finder.name(p1.<finder.name2>,p2,...)>` is a working construct.
 
 Furthermore, attribute finders may be used without any leading value `<finder.name(p1,p2,...)>`. These are called environment attributes.
 
-The way to read a statement with an attribute finder is as follows. For `subject.<groups.membership("studygroup")>` you would say "get the attribute `group.membership` with parameter `"studygroup"` of subject".
+The way to read a statement with an attribute finder is as follows. For `subject.<groups.membership("studygroup")>` you would say "get the attribute `group.membership` with parameter `"studygroup"` of the subject".
 
-Attribute finders often receive the information from external data sources such as files, databases or HTTP requests which may take a certain amount of time. Therefore they must not be used in a target expression. Attribute finders can access environment variables.
+Attribute finders often receive information from external data sources such as files, databases, or HTTP requests which may take a certain amount of time. Therefore they must not be used in a target expression. Attribute finders can access environment variables.
 
 === Custom Attribute Finders
 
 For a more in-depth look at the process of creating a custom PIP, please refer to the demo project. It will walk you through the entire process and contains extensive examples: https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension .
 
-Attribute finders are functions which potentially take a left-hand argument (i.e., the Object of which the attribute is to be determined), a `Map` of variables defined in the current evaluation scope and an optional list of incoming parameter streams. 
+Attribute finders are functions that potentially take a left-hand argument (i.e., the Object of which the attribute is to be determined), a `Map` of variables defined in the current evaluation scope, and an optional list of incoming parameter streams. 
 
-In SAPL a Policy Information Point is an instance of a class which supplies a set of such functions. To declare functions and classes to be attributes or PIPs, SAPL uses annotations. Each PIP class has to be known to the PDP. The embedded PDP provides an `AnnotationAttributeContext` which takes arbitrary Java classes as PIPs. To be recognized as a PIP, the class has to be annotated with `@PolicyInformationPoint`. The optional annotation attribute `name` contains the PIP's name as it will be available in SAPL policies. If the attribute is missing, the name of the Java class is used. The optional annotation attribute `description` contains a string describing the PIP for documentation purposes.
+In SAPL, a Policy Information Point is an instance of a class that supplies a set of such functions. To declare functions and classes to be attributes or PIPs, SAPL uses annotations. Each PIP class has to be known to the PDP. The embedded PDP provides an `AnnotationAttributeContext`,  which takes arbitrary Java classes as PIPs. To be recognized as a PIP, the class has to be annotated with `@PolicyInformationPoint`. The optional annotation attribute `name` contains the PIP's name as it will be available in SAPL policies. If the attribute is missing, the name of the Java class is used. The optional annotation attribute `description` contains a string describing the PIP for documentation purposes.
 +
 [source,java]
 @PolicyInformationPoint(name = "user", description = "This the documentation of the PIP")
@@ -1768,25 +1768,25 @@ public Flux<Val> userprofile(@Number leftHandObjectOfTheAttribute, Map<String, J
 }
 +
 
-== Testing your SAPL policies
+== Testing SAPL policies
 
-The SAPL policy engine provides a framework to test SAPL policies. This framework supports unit tests of a single SAPL document or policy integration tests of all of your SAPL policies via the PDP interface.
+The SAPL policy engine provides a framework to test SAPL policies. This framework supports unit tests of a single SAPL document or policy integration tests of all SAPL policies of an application via the PDP interface.
 
 === Usage scenarios
 
-With the SAPL test framework you can test SAPL policies no matter if you use SAPL via a embedded PDP in your application or via a central SAPL server.
+With the SAPL test framework, developers can test SAPL policies whether they use SAPL via an embedded PDP in an application or via a central SAPL server.
 
 ==== Embedded PDP
 
-If you're using a embedded PDP in your application, you can treat your SAPL policy tests like your "normal" unit and integration tests. Organize them next to these tests and execute them identically via the Maven lifecycle on your local workstation or in your CI pipeline.
+If an application uses an embedded PDP, SAPL policy tests are treated like traditional unit and integration tests. Developers can deploy policy tests alongside these tests and execute them identically via the Maven lifecycle on a local workstation or in a CI pipeline.
 
 ==== SAPL-Server
 
-The following the repository https://github.com/heutelbeck/sapl-server-lt-gitops-example[GitOps Demo] is showcasing a deployment pipeline with SAPL policy tests in a https://www.weave.works/blog/gitops-operations-by-pull-request[GitOps]-Style for the headless SAPL-Server-LT.
-Here every change to the policies is introduced via a pull request on the main branch. For every pull request the CI pipeline executes the policy tests and breaks the pipeline run if policy tests are failing.
-If a pull request is merged on the main branch, the policies are automatically synced to the SAPL-Server-LT instance.
+The following repository https://github.com/heutelbeck/sapl-server-lt-gitops-example[GitOps Demo] showcases a deployment pipeline with SAPL policy tests in a https://www.weave.works/blog/gitops-operations-by-pull-request[GitOps]-Style for the headless SAPL-Server-LT.
+Here every change to the policies is introduced via a pull request on the main branch. The CI pipeline executes the policy tests for every pull request and breaks the pipeline run if policy tests are failing.
+Merging a pull request on the main branch triggers automatic synchronization of the policies to a SAPL-Server-LT instance.
 
-Currently there is no support for writing SAPL test cases via the SAPL DSL - only in Java. So it's not possible to use the SAPL test framework when deploying SAPL-Server-Implementations with GUI-based PAP (SAPL-Server-CE or SAPL-Server-EE).
+SAPL tests use Java. Therefore, it is impossible to use the SAPL test framework when deploying SAPL-Server-Implementations with GUI-based PAP (i.e., SAPL-Server-CE or SAPL-Server-EE).
 
 === Unit-Tests
 
