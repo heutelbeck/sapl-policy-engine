@@ -24,24 +24,23 @@ Version {project-version}
 
 == Introduction
 
-SAPL (Streaming Attribute Policy Language) describes both a *domain-specific language (DSL)* for expressing access control policies and a *publish/subscribe protocol* based on http://json.org/[JSON].
+SAPL (Streaming Attribute Policy Language) describes a *domain-specific language (DSL)* for expressing access control policies and a *publish/subscribe protocol* based on http://json.org/[JSON].
 Policies expressed in SAPL describe conditions for access control in applications and distributed systems. The underlying policy engine implements a variant of Attribute-based Access control (ABAC) which enables processing of data streams and follows reactive programming patterns. Namely, the SAPL policy engine implements Attribute Stream-based Access Control (ASBAC).
 
-A typical scenario for the application of SAPL would be a subject (e.g., a user or system) attempting to take an action (e.g., read or cancel an order) on a protected resource (e.g., a domain object of an application or a file). The subject makes a subscription request to the system (e.g., an application) for executing the action on the resource. The system implements a *policy enforcement point (PEP)* protecting its resources. The PEP collects information about the subject, action, resource, and potential other relevant data in an authorization subscription request and sends it to a *policy decision point (PDP)* which checks SAPL policies to decide whether access to the resource should be granted as requested. This decision is packed in an authorization decision object and sent back to the PEP which accordingly either grants access or denies access to the resource depending on the decision. All data sources for the decision are subscribed to by the PDP and new decisions are sent to the PEP whenever indicated by the policies and data sources.
+A typical scenario for the application of SAPL would be a subject (e.g., a user or system) attempting to take action (e.g., read or cancel an order) on a protected resource (e.g., a domain object of an application or a file). The subject makes a subscription request to the system (e.g., an application) to execute the action with the resource. The system implements a *policy enforcement point (PEP)* protecting its resources. The PEP collects information about the subject, action, resource, and potential other relevant data in an authorization subscription request and sends it to a policy decision point (PDP) that checks SAPL policies to decide if it grants access to the resource. This decision is packed in an authorization decision object and sent back to the PEP, which either grants access or denies access to the resource depending on the decision. The PDP subscribes to all data sources for the decision, and new decisions are sent to the PEP whenever indicated by the policies and data sources.
 
-There exist several proprietary platforms dependent or standardized languages, such as http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html[XACML] for expressing policies. SAPL brings several advantages over these solutions:
+There exist several proprietary platforms dependent or standardized languages, such as http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html[XACML], for expressing policies. SAPL brings several advantages over these solutions:
 
-* *Universality*. SAPL offers a generic, platform-independent language for expressing policies. Even in complex heterogeneous environments, policies can be expressed in a common language.
-* *Separation of Concerns*. Applying SAPL to your domain model is relieved from modeling many aspects of access control. SAPL favors configuration at run-time over implementation and re-deployment of your applications.
+* *Universality*. SAPL offers a standard, generic, platform-independent language for expressing policies.
+* *Separation of Concerns*. Applying SAPL to a domain model is relieved from modeling many aspects of access control. SAPL favors configuration at runtime over implementation and re-deployment of applications.
 * *Modularity and Distribution*. SAPL allows managing policies in a modular fashion allowing the distribution of authoring responsibilities across teams.
 * *Expressiveness*. SAPL provides access control schemata beyond the capabilities of most other practical languages. It allows for attribute-based access control (ABAC), role-based access control (RBAC), forms of entity-based access control (EBAC), and parameterized attribute access and attribute streaming.
 * *Human Readability*. The SAPL syntax is designed from the ground up to be easily readable by humans. Basic SAPL is easy to pick up for getting started but offers enough expressiveness to address complex access control scenarios.
-* *Transformation and Filtering*. SAPL allows transforming resources and filtering data from resources (e.g., blacken the first digits of a credit card number, or hiding birth dates by assigning individuals into age groups). 
-* *Designed for session and data stream-based applications*. SAPL is designed to offer low-latency authorization for interactive applications and data streams.
-* *Designed for a RESTful World with JSON*. SAPL is designed to be easily integrated with modern JSON-based APIs. The core data model of SAPL is JSON offering easy reasoning over such data and simple access to external attributes from RESTful JSON APIs.
-* *Supports Multi-Subscriptions*. SAPL allows bundling multiple authorization subscriptions into one multi-subscription thus further reducing connection time and latency.
-        
-The following sections will explain the basic concepts of SAPL policies and show how to easily integrate SAPL into a Java application. Afterward, the different parts of SAPL are explained in more detail.
+* *Transformation and Filtering*. SAPL allows transforming resources and filtering data from resources (e.g., blacken the first digits of a credit card number or hiding birth dates by assigning individuals into age groups). 
+* SAPL supports *session and data stream-based applications* and offers low-latency authorization for interactive applications and data streams.
+* SAPL supports *JSON-driven APIs* and integrates easily with modern JSON-based APIs. The core data model of SAPL is JSON offering straightforward reasoning over such data and simple access to external attributes from RESTful JSON APIs.
+* SAPL supports *Multi-Subscriptions*. SAPL allows bundling multiple authorization subscriptions into one multi-subscription, thus further reducing connection time and latency.
+The following sections will explain the basic concepts of SAPL policies and show how to integrate SAPL into a Java application easily. Afterward, this document explains the different parts of SAPL in more detail.
 
 
 === Authorization Subscriptions
@@ -63,7 +62,7 @@ A SAPL authorization subscription is a JSON object, i.e., a set of name/value pa
 }
 ----
 
-This authorization subscription expresses the intent of the user `alice`, with the given attributes, to `HTTP:GET` the resource at `\https://medical.org/api/patients/123`. Such a SAPL authorization subscription may be issued in a RESTful API by a PEP in front of the request handlers of the API.
+This authorization subscription expresses the intent of the user `alice`, with the given attributes, to `HTTP:GET` the resource at `\https://medical.org/api/patients/123`. This SAPL authorization subscription can be used in a RESTful API, implementing a PEP protecting the API's request handlers.
  
 === Structure of a SAPL Policy
 
@@ -91,15 +90,15 @@ where // <3>
   resource == "https://medical.org/api/patients/123";
 ----
 
-<1> declares the policy with the name `permit_alice_get_patient123`. The JSON values of the authorization subscription object are bound to the variables `subject`, `action`, `resource`, and `environment` and can be directly accessed in the policy. The syntax `.name` accesses attributes of a nested JSON object.
+<1> This statement declares the policy with the name `permit_alice_get_patient123`. The JSON values of the authorization subscription object are bound to the variables `subject`, `action`, `resource`, and `environment` that are directly accessible in the policy. The syntax `.name` accesses attributes of a nested JSON object.
 
-<2> declares that if the resource is a string starting with `https://medical.org/api/patients` (using the regular expression operator `=~`) and the conditions of the `where` clause applies, the subject will be granted access to the resource. Note that the `where` clause is only evaluated if the condition of the target expression evaluates to `true`.
+<2> This statement declares that if the resource is a string starting with `https://medical.org/api/patients` (using the regular expression operator `=~`) and the conditions of the `where` clause applies, the subject will be granted access to the resource. Note that the `where` clause is only evaluated if the condition of the target expression evaluates to `true`.
 
-<3> starts the `where` clause (policy body) consisting of a list of statements. The policy body evaluates to `true` if all statements evaluate to `true`.
+<3> This statement starts the `where` clause (policy body) consisting of a list of statements. The policy body evaluates to `true` if all statements evaluate to `true`.
 
 === Authorization Decisions
 
-The SAPL authorization decision to the authorization subscription is a JSON object as well. It contains the attribute `decision` as well as the optional attributes `resource`, `obligation`, and `advice`. For the introductory sample authorization subscription with the preceding policy a SAPL authorization decision would look as follows:
+The SAPL authorization decision to the authorization subscription is a JSON object as well. It contains the attribute `decision` as well as the optional attributes `resource`, `obligation`, and `advice`. For the introductory sample authorization subscription with the preceding policy, a SAPL authorization decision would look as follows:
 
 '''
 
@@ -111,11 +110,11 @@ The SAPL authorization decision to the authorization subscription is a JSON obje
 }
 ----
 
-This authorization decision is evaluated by the PEP to grant or deny access.
+The PEP evaluates this authorization decision and grants or denies access accordingly.
 
 === Accessing Attributes
 
-In many use cases, all required information for making a decision may be contained in the authorization subscription object. However, the PEP is usually not aware of the specifics of the access policies and may not have access to all information required for making the decision. In this case, the PDP can access external attributes. The following example shows how attribute access is expressed in SAPL.
+In many use cases, the authorization subscription contains all the required information for making a decision. However, the PEP is usually not aware of the specifics of the access policies and may not have access to all information required for making the decision. In this case, the PDP can access external attributes. The following example shows how SAPL expresses access to attributes.
 
 Extending the example above, in a real-world application, there will be multiple patients and multiple users. Thus, policies need to be worded more abstractly. In a natural language, a suitable policy could be _Permit doctors to `HTTP:GET` data from any patient_. The policy addresses the profile attribute of the subject, stored externally. SAPL allows to express this policy as follows:
 
@@ -134,19 +133,17 @@ where
 
 In _line 4_ a regular expression is used for identifying a request to any patient's data (operator `=~`). The authorization subscription resource must match this pattern for the policy to apply.
 
-The policy assumes that the user's function is not provided in the authorization subscription but stored in the user's profile. Accordingly,  _line 6_ accesses the attribute `user.profile` (using an attribute finder step `.<finder.name>`) to retrieve the profile of the user with the username provided in `subject.username`. The fetched profile is a JSON object with a property named `function` which can be compared to `"doctor"`.
+The policy assumes that the user's function is not provided in the authorization subscription but stored in the user's profile. Accordingly,  _line 6_ accesses the attribute `user.profile` (using an attribute finder step `.<finder.name>`) to retrieve the profile of the user with the username provided in `subject.username`. The fetched profile is a JSON object with a property named `function`. The expression compares it to  `"doctor"`.
 
 _Line 6_ is placed in the policy body (starting with `where`) instead of the target expression. The reason for this location is that the target expression block is also used for indexing policies efficiently and therefore needs to be evaluated quickly. Hence it is not allowed to include conditions that may need to call an external service.
 
 '''
 
-This should give you a basic understanding of the operation principles applied in SAPL.
-
 === Getting Started
 
-To learn the SAPL policy language and check out some example policies, you can try out the https://playground.sapl.io/[SAPL-Playground].
+To learn the SAPL policy language and check out some example policies, the https://playground.sapl.io/[SAPL-Playground] offers a tool for safe experimentation.
 
-In addition, SAPL provides an embedded PDP including an embedded PRP with a file system policy store which can be easily integrated into Java applications. Besides this guide, the quickest way to start is to build upon the demo projects hosted on https://github.com/heutelbeck/sapl-demos[GitHub]. Some good demos to start with are the simple no-framework https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-embedded[Embedded PDP Demo] or the full-stack https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-mvc-app[Spring MVC Project] or the https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-webflux[Fully reactive Webflux Application].
+In addition, SAPL provides an embedded PDP, including an embedded PRP with a file system policy store that seamlessly integrates into Java applications. Besides this guide, the quickest way to start is to build upon the demo projects hosted on https://github.com/heutelbeck/sapl-demos[GitHub]. Some good demos to start with are the simple no-framework https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-embedded[Embedded PDP Demo] or the full-stack https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-mvc-app[Spring MVC Project] or the https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-webflux[Fully reactive Webflux Application].
 
 ==== Maven Dependencies
 
@@ -161,7 +158,7 @@ In addition, SAPL provides an embedded PDP including an embedded PRP with a file
    </properties>
 ----
 
-* Add a SAPL dependency to your application. When using Maven you can add the following dependencies to your project's `pom.xml`:
+* Add a SAPL dependency to the application. When using Maven you can add the following dependencies to your project's `pom.xml`:
 
 [source,XML,subs="attributes+"]
 ----
@@ -172,7 +169,7 @@ In addition, SAPL provides an embedded PDP including an embedded PRP with a file
    </dependency>
 ----
 
-* Add the Maven Central snapshot repository to your `pom.xml`:
+* Add the Maven Central snapshot repository to the `pom.xml`:
 
 [source,XML]
 ----
@@ -206,7 +203,7 @@ In addition, SAPL provides an embedded PDP including an embedded PRP with a file
 
 ==== Coding
 
-. In your application, create a new `EmbeddedPolicyDecisionPoint`. The argument `"~/sapl"` specifies the directory that contains the configuration file `pdp.json` and all policies.
+. In the application, create a new `EmbeddedPolicyDecisionPoint`. The argument `"~/sapl"` specifies the directory that contains the configuration file `pdp.json` and all policies (i.e., files ending with `.sapl`).
 +
 [source,Java,linenums]
 ----
@@ -223,7 +220,7 @@ EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDec
 }
 ----
 
-. Add some policy sets or policies to `"~/sapl"`. Both policy sets and policies are files with the extension `.sapl`. E.g., you could add the following policy:
+. Add some policy sets or policies to `"~/sapl"`. Both policy sets and policies are files with the extension `.sapl`. For example, add the following policy:
 +
 [source]
 ----
@@ -246,26 +243,26 @@ Not at runtime you can modify the policy, add or remove polices and observe how 
 
 == Reference Architecture
 
-The architecture of the SAPL policy engine is following the terminology defined by https://tools.ietf.org/html/rfc2904[RFC2904 "AAA Authorization Framework"]. 
+The architecture of the SAPL policy engine is follows the terminology defined by https://tools.ietf.org/html/rfc2904[RFC2904 "AAA Authorization Framework"]. 
 
 image::SAPL_Architecture.svg[SAPL Architecture]
 
 === Policy Enforcement Point (PEP)
 
-The PEP is a software entity that intercepts actions taken by users within an application. Its task is to obtain a decision on whether the requested action should be allowed and accordingly either let the application process the action or deny access. For this purpose, the PEP includes data describing the subscription context (like the subject, the resource, the action, and other environment information) in an authorization subscription object which the PEP hands over to a PDP. The PEP subsequently receives an authorization decision object containing a decision as well as optionally a resource, obligations, and advice.
+The PEP is a software entity that intercepts actions taken by users within an application. Its task is to obtain a decision on whether the requested action should be allowed and accordingly either let the application process the action or deny access. For this purpose, the PEP includes data describing the subscription context (like the subject, the resource, the action, and other environment information) in an authorization subscription object which the PEP hands over to a PDP. The PEP subsequently receives an authorization decision object containing a decision and optionally a resource, obligations, and advice.
 
-The PEP must let the application process the action if and only if the decision is `PERMIT`. If the authorization decision object also contains an `obligation`, the PEP must fulfill this obligation. Proper fulfillment is an additional requirement for granting access. In case the decision is not `PERMIT` or the obligation cannot be fulfilled, access has to be denied. Since policies may contain instructions to alter the resource (like blackening certain information, e.g., credit card numbers) the PEP should ensure that the application only reveals the resource contained in the authorization decision object if one is returned.
+The PEP must let the application process the action if the decision is `PERMIT`. If the authorization decision object also contains an `obligation`, the PEP must fulfill this obligation. Proper fulfillment is an additional requirement for granting access. If the decision is not `PERMIT` or the obligation cannot be fulfilled, the PEP must deny access. Policies may contain instructions to alter the resource (like blackening certain information, e.g., credit card numbers). If present, the PEP should ensure that the application only reveals the resource contained in the authorization decision object.
 
 [NOTE]
-A PEP strongly depends on the application domain. SAPL comes with a default PEP implementation using a passed in constraint handler service to handle obligations and advice contained in an authorization decision. PEPs should be integrated with the platforms and frameworks used by the application developers. SAPL comes with a set of modules for deep integration with Spring Security and Spring Boot.
+A PEP strongly depends on the application domain. SAPL comes with a default PEP implementation using a passed in constraint handler service to handle obligations and advice contained in an authorization decision. Developers should integrate PEPs with the platforms and frameworks they are using. SAPL ships with a set of modules for deep integration with Spring Security and Spring Boot.
 
 === Policy Decision Point (PDP)
 
-The PDP has to make an authorization decision based on an authorization subscription object and the access policies which it receives from a *Policy Retrieval Point (PRP)* connected to a policy store. Beginning with the authorization subscription object the PDP fetches policy sets and policies matching the authorization subscription, evaluates them, and combines the results to create and return an authorization decision object. As there may be multiple matching policies that might evaluate to different results the PDP needs to be configured with a *combining algorithm* (e.g., `permit-overrides` stating that the decision will be `permit` if any applicable policy evaluates to `permit`).
+The PDP has to make an authorization decision based on an authorization subscription object and the access policies it receives from a *Policy Retrieval Point (PRP)* connected to a policy store. Beginning with the authorization subscription object, the PDP fetches policy sets and policies matching the authorization subscription, evaluates them, and combines the results to create and return an authorization decision object. There may be multiple matching policies that might evaluate to different results. To resolve these conflicts, the administrator or developer using a PDP must select a *combining algorithm* (e.g., `permit-overrides` stating that the decision will be `permit` if any applicable policy evaluates to `permit`).
 
-A policy may refer to attributes that are not included in the authorization subscription object and have to be obtained from external *Policy Information Points (PIP)*. The PDP fetches those attributes while evaluating the policy. To be able to access external PIPs the PDP can be extended by custom attribute finders. Policies might also contain functions not included in the default SAPL implementation. Such custom functions can be added through *Policy Function Providers (PFP)*.
+A policy may refer to attributes not included in the authorization subscription object. It will have to obtain them from an external *Policy Information Point (PIP)*. The PDP fetches those attributes while evaluating the policy. To be able to access external PIPs, developers can extend the PDP by adding custom attribute finders. Policies might also contain functions not included in the default SAPL implementation. Developers may add custom functions by implementing *Function Libraries*.
 
-SAPL provides two simple PDP implementations: An *embedded PDP* with an embedded PRP which can be integrated easily into a Java application and a *remote PDP client* which obtains decisions through a RESTful interface.  
+SAPL provides two simple PDP implementations: An *embedded PDP* with an embedded PRP which can be integrated easily into a Java application, and a *remote PDP client* which obtains decisions through a RESTful interface.  
 
 === Policy Administration Point (PAP)
 
