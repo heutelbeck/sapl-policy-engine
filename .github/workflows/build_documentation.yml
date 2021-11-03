@@ -61,5 +61,5 @@ jobs:
         DEST_OWNER: heutelbeck
         DEST_REPO: sapl-pages
         DEST_BRANCH: master
-        DEST_FOLDER: docs/$VERSION
+        DEST_FOLDER: docs/${{env.VERSION}}
         DEST_PREDEPLOY_CLEANUP: "rm -rf docs/$VERSION/*"        
