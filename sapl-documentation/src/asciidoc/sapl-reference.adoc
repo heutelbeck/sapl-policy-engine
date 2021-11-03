@@ -158,7 +158,7 @@ In addition, SAPL provides an embedded PDP, including an embedded PRP with a fil
    </properties>
 ----
 
-* Add a SAPL dependency to the application. When using Maven you can add the following dependencies to your project's `pom.xml`:
+* Add a SAPL dependency to the application. When using Maven one can add the following dependencies to the project's `pom.xml`:
 
 [source,XML,subs="attributes+"]
 ----
@@ -184,7 +184,7 @@ In addition, SAPL provides an embedded PDP, including an embedded PRP with a fil
 	</repositories>
 ----
 
-* If you plan to use more SAPL dependencies, a useful bill of materials POM is offered, centralizing the dependency management for SAPL artifacts:
+* If more SAPL dependencies are expected to be used, a useful bill of materials POM is offered, centralizing the dependency management for SAPL artifacts:
 
 [source,XML,subs="attributes+"]
 ----
@@ -239,7 +239,7 @@ authzDecisions.subscribe(authzDecision -> System.out.println(authzDecision.getDe
 
 The console output should be `PERMIT`. With subject set to `"alice"` instead of `"admin"`, the output should be `DENY`.
 
-Not at runtime you can modify the policy, add or remove polices and observe how the decision change.
+Note at runtime the policies can be modified. Adding or removing polices can immediately trigger a change in the decisions.
 
 == Reference Architecture
 
@@ -1704,7 +1704,7 @@ SAPL ships with a standard function library providing some basic functions.
 
 === Custom Function Libraries
 
-For a more in-depth look at the process of creating a custom function library, please refer to the demo project. It will walk you through the entire process and contains extensive examples: https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension .
+For a more in-depth look at the process of creating a custom function library, please refer to the demo project. It provides a walkthrough of the entire process and contains extensive examples: https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension .
 
 The standard functions can be extended by custom functions. Function libraries available in SAPL documents are collected in the PDP's function context. The embedded PDP provides an `AnnotationFunctionContext` where Java classes with annotations can be provided as function libraries:
 
@@ -1741,13 +1741,13 @@ Optionally, an attribute finder may be supplied with a list of parameters: `x.<f
 
 Furthermore, attribute finders may be used without any leading value `<finder.name(p1,p2,...)>`. These are called environment attributes.
 
-The way to read a statement with an attribute finder is as follows. For `subject.<groups.membership("studygroup")>` you would say "get the attribute `group.membership` with parameter `"studygroup"` of the subject".
+The way to read a statement with an attribute finder is as follows. For `subject.<groups.membership("studygroup")>` one would say "get the attribute `group.membership` with parameter `"studygroup"` of the subject".
 
 Attribute finders often receive information from external data sources such as files, databases, or HTTP requests which may take a certain amount of time. Therefore they must not be used in a target expression. Attribute finders can access environment variables.
 
 === Custom Attribute Finders
 
-For a more in-depth look at the process of creating a custom PIP, please refer to the demo project. It will walk you through the entire process and contains extensive examples: https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension .
+For a more in-depth look at the process of creating a custom PIP, please refer to the demo project. It provides a walkthrough of the entire process and contains extensive examples: https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension .
 
 Attribute finders are functions that potentially take a left-hand argument (i.e., the Object of which the attribute is to be determined), a `Map` of variables defined in the current evaluation scope, and an optional list of incoming parameter streams. 
 
@@ -1790,9 +1790,10 @@ SAPL tests use Java. Therefore, it is impossible to use the SAPL test framework 
 
 === Unit-Tests
 
-The JUnit-Test-Framework is used for execution of the SAPL unit test cases. You create and setup a `SaplUnitTestFixture` for example in the `@BeforeStep` of a JUnit test case.
+SAPL tests use JUnit for executing SAPL unit test cases. Each test is prepared by creating `SaplUnitTestFixture`. This can be don in the  `@BeforeEachStep` of a JUnit test case.
 
-Here you define the name of the SAPL document under test or the path to this file. In addition you can register PIPs and FunctionLibrarys to be used during test execution by providing these objects to the `SaplUnitTestFixture`.
+The `SaplUnitTestFixture` defines the name of the SAPL document under test or the path to its file. 
+In addition, the fixture sets up PIPs and FunctionLibrarys to be used during test execution.
 
 [source,java]
 ----
@@ -1809,9 +1810,9 @@ Here you define the name of the SAPL document under test or the path to this fil
 
 === Policy-Integration-Tests
 
-Instead of testing a single SAPL document, you can test all policies together via the PDP interface just like when you're using a PDP embedded in your application or a SAPL server implementation.
+Instead of testing a single SAPL document, all policies can be tested together using the PDP interface, just like when an application uses an embedded PDP or a SAPL server implementation.
 
-For this you create a `SaplIntegrationTestFixture` again for example in the `@BeforeStep` of your JUnit test case. Likewise you can register PIPs and FunctionLibraries in addition to a combining algorithm.
+These kinds of integrations tests are managed by the `SaplIntegrationTestFixture`.
 
 
 [source,java]
@@ -1829,7 +1830,7 @@ For this you create a `SaplIntegrationTestFixture` again for example in the `@Be
 
 
 
-=== Writing your test case
+=== Writing test cases
 
 The Step-Builder-Pattern is used for defining the concrete test case. It consists of the following four steps:
 
@@ -1844,21 +1845,21 @@ The Step-Builder-Pattern is used for defining the concrete test case. It consist
 
 image::StepBuilderPatternForSaplTest_English.svg[Step Builder Pattern]
 
-Starting with constructTestCaseWithMocks() or constructTestCase() called on your fixture, the test case definition process is started at the Given-Step or the When-Step.
+Starting with constructTestCaseWithMocks() or constructTestCase() called on the fixture, the test case definition process is started at the Given-Step or the When-Step.
 
 ==== Given-Step
 
 *Mocking of functions*:
 
-* via the `givenFunction` methods you can mock a function returning the `Val` specified in the method parameters for every call. 
-** you can specify a single value
+* the `givenFunction` methods can be used to mock a function returning a `Val` specified in the method parameters for every call. 
+** a single value can be specified
 +
 [source,java]
 ----
 .givenFunction("time.dayOfWeek", Val.of("SATURDAY"))
 ----
 
-** a single value only returned when the paramters of the function call match some expectations
+** a single value only returned when the parameters of the function call match some expectations
 +
 [source,java]
 ----
@@ -1871,7 +1872,7 @@ Starting with constructTestCaseWithMocks() or constructTestCase() called on your
 ----
 .givenFunction("company.complexFunction", (FunctionCall call) -> {
 
-	//probably you should check for number and type of parameters first
+	//probably one should check for number and type of parameters first
 	Double param0 = call.getArgument(0).get().asDouble();
 	Double param1 = call.getArgument(1).get().asDouble();
 
@@ -1885,7 +1886,7 @@ Starting with constructTestCaseWithMocks() or constructTestCase() called on your
 .givenFunction("time.dayOfWeek", Val.of("SATURDAY"), times(1))
 ----
 
-* via the `givenFunctionOnce` methods you can specify a `Val` or multiple `Val`-Objects which are emitted once (in a sequence) when this mocked function is called
+* `givenFunctionOnce` can specify a `Val` or multiple `Val`-Objects which are emitted once (in a sequence) when this mocked function is called
 
 ** a single value
 +
@@ -1904,7 +1905,7 @@ Starting with constructTestCaseWithMocks() or constructTestCase() called on your
 
 *Mocking of attributes*:
 
-* via the `givenAttribute` methods you can mock an attribute
+* `givenAttribute` methods can mock attributes
 ** to return one or more `Val`
 +
 [source,java]
@@ -1912,7 +1913,7 @@ Starting with constructTestCaseWithMocks() or constructTestCase() called on your
 .givenAttribute("clock.ticker", timestamp0, timestamp1, timestamp2)
 ----
 
-** to return a sequence of `Val` in an interval of `Duration`. Do not forget to call the `withVirtualTime` method to use the virtual time feature of Project Reactor
+** to return a sequence of `Val` in an interval of `Duration`. Using `withVirtualTime` activates the virtual time feature of Project Reactor
 +
 [source,java]
 ----
@@ -1920,9 +1921,9 @@ Starting with constructTestCaseWithMocks() or constructTestCase() called on your
 .givenAttribute("clock.ticker", Duration.ofSeconds(10), timestamp0, timestamp1, timestamp2, timestamp3, timestamp4, timestamp5)
 ----
 [WARNING]
-The virtual time feature can be used with real time-based PIPs registrated at the fixture level. But be aware that virtual time is "no silver bullet" to cite the https://projectreactor.io/docs/core/release/reference/#_manipulating_time[Project Reactor Reference Guide]. It says further that "[v]irtual time also gets very limited with infinite sequences, which might hog the thread on which both the sequence and its verification run."
+The virtual time feature can be used with real time-based PIPs registered the fixture level. Virtual time is "no silver bullet" to cite the https://projectreactor.io/docs/core/release/reference/#_manipulating_time[Project Reactor Reference Guide]. It says further that "[v]irtual time also gets very limited with infinite sequences, which might hog the thread on which both the sequence and its verification run."
 
-** to mark an attribute to be mocked and specify return values in a sequence next to your expectations
+** to mark an attribute to be mocked and specify return values in a sequence next to expectations
 +
 [source,java]
 ----
@@ -1950,11 +1951,11 @@ The virtual time feature can be used with real time-based PIPs registrated at th
 .givenAttribute("pip.attributeWithParams", whenAttributeParams(parentValue(val(true)), arguments(val(2), val(2))), thenReturn(Val.of(true)))
 ----
 
-You can check out further mock types or overloaded methods https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-test/src/main/java/io/sapl/test/steps/GivenStep.java[here].
+Further mock types or overloaded methods are available https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-test/src/main/java/io/sapl/test/steps/GivenStep.java[here].
 
 ==== When-Step
 
-In the next step you define the `AuthorizationSubscription` for the policy evaluation.
+The next defines the `AuthorizationSubscription` for the policy evaluation.
 
 * pass an `AuthorizationSubscription` created by it's factory methods
 +
@@ -1985,7 +1986,7 @@ JsonNode authzSub = mapper.createObjectNode()
 
 ==== Expect-Step
 
-Define the expected `AuthorizationDecision` in this step.
+This step defines the expected `AuthorizationDecision`.
 
 * check only the Decision via
 +
@@ -2025,7 +2026,7 @@ AuthorizationDecision decision = new AuthorizationDecision(Decision.PERMIT).with
 	return false;
 })
 ----
-* use Hamcrest Matcher provided by the sapl-hamcrest modul to express complex expectations on the decision, obligations, advice or resources of the `AuthorizationDecision`
+* Hamcrest matchers provided by the sapl-hamcrest module can be used to express complex expectations on the decision, obligations, advice or resources of the `AuthorizationDecision`
 +
 [source,java]
 ----
@@ -2039,7 +2040,7 @@ AuthorizationDecision decision = new AuthorizationDecision(Decision.PERMIT).with
 )
 ----
 +
-All avaliable `Matcher<AuthorizationDecision>` can be found https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-hamcrest/src/main/java/io/sapl/hamcrest/Matchers.java#L104[here]
+All available `Matcher<AuthorizationDecision>` can be found https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-hamcrest/src/main/java/io/sapl/hamcrest/Matchers.java[here]
 
 All of these methods come with additional methods (for example `expectNextPermit`) to define multiple expectations for testing of stream-based policies.
 [source,java]
@@ -2048,15 +2049,15 @@ All of these methods come with additional methods (for example `expectNextPermit
 ----
 
 
-You can check out all available methods https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-test/src/main/java/io/sapl/test/steps/ExpectStep.jav[here]. 
+More available methods are documented https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-test/src/main/java/io/sapl/test/steps/ExpectStep.jav[here]. 
 
 ==== Verify-Step
 
-At the end of every test case definition, you must call the `verify()` method to evaluate the policy/policies and verify the expectations.
+To complete a test definition the `verify()` method triggers the evaluation of the policy/policies and verifies the expectations.
 
 === Examples
 
-In the following you can find a full and minimal example of a SAPL unit test.
+The following example constitutes a full minimal SAPL unit test:
 [source,java]
 ----
 public class B_PolicyWithSimpleFunctionTest {
@@ -2083,17 +2084,17 @@ A lot of additional examples showcasing the various features of this SAPL test f
 
 === Code-Coverage Reports via the SAPL-Maven-Plugin
 
-For measuring the policy code coverage of your SAPL policies you can use the sapl-maven-plugin to analyze the coverage and generate reports in various formats.
+For measuring the policy code coverage of SAPL policies developers can use the sapl-maven-plugin to analyze the coverage and generate reports in various formats.
 
 Currently three coverage criteria are supported:
 
-- *PolicySet Hit Coverage*: Measures the percentage of PolicySets which were at least once applicable to an `AuthorizationSubscription` in your tests.
+- *PolicySet Hit Coverage*: Measures the percentage of PolicySets which were at least once applicable to an `AuthorizationSubscription` in the tests.
 
-- *Policy Hit Coverage*: Measures the percentage of Policies which were at least once applicable to an `AuthorizationSubscription` in your tests.
+- *Policy Hit Coverage*: Measures the percentage of Policies which were at least once applicable to an `AuthorizationSubscription` in the tests.
 
-- *Condition Hit Coverage*: Measures the percentage of conditions  evaluated to true or false during your tests. Twice the number of conditions is taken and compared with the number of positively and negatively evaluated conditions.
+- *Condition Hit Coverage*: Measures the percentage of conditions  evaluated to true or false during the tests. Twice the number of conditions is taken and compared with the number of positively and negatively evaluated conditions.
 
-Simply add the following configuration to your `pom.xml`
+The Maven plugin can be added to Maven by adding the following configuration to the `pom.xml`
 [source,xml]
 ----
 <plugin>
@@ -2116,13 +2117,13 @@ Simply add the following configuration to your `pom.xml`
 </plugin>
 ----
 
-The plugin can be configured via the following paramters:
+The plugin can be configured via the following parameters:
 
 * *coverageEnabled*: When set to false, this parameter disables the execution of the sapl-maven-plugin (defaultValue = true).
-* *policyPath*: Defines the path in the classpath to the folder containing the policies under test. Specify the same path used in your `SaplIntegrationTestFixture` or the parent folder of the path to your SAPL documents in the `SaplUnitTestFixture` (defaultValue = policies).
-* *outputDir*: Set this parameter to the path where generated reports should be written to (per default the maven build output directory is used).
-* *policySetHitRatio*: A value between 0 - 100 to define the ratio of PolicySets your tests should cover. If this ratio isn't fulfilled the sapl-maven-plugin is going to stop the maven lifecycle. (defaultValue = 0)
-* *policyHitRatio*: A value between 0 - 100 to define the ratio of Policies your tests should cover. If this ratio isn't fulfilled the sapl-maven-plugin is going to stop the maven lifecycle (defaultValue = 0).
-* *policyConditionHitRatio*: A value between 0 - 100 to define the ratio of condition results your tests should cover. If this ratio isn't fulfilled the sapl-maven-plugin is going to stop the maven lifecycle (defaultValue = 0).
+* *policyPath*: Defines the path in the classpath to the folder containing the policies under test. Specify the same path used in the `SaplIntegrationTestFixture` or the parent folder of the path to the SAPL documents in the `SaplUnitTestFixture` (defaultValue = policies).
+* *outputDir*: Set this parameter to the path where generated reports should be written to (per default the Maven build output directory is used).
+* *policySetHitRatio*: A value between 0 - 100 to define the ratio of PolicySets the tests should cover. If this ratio isn't fulfilled the sapl-maven-plugin is going to stop the Maven lifecycle. (defaultValue = 0)
+* *policyHitRatio*: A value between 0 - 100 to define the ratio of Policies the tests should cover. If this ratio isn't fulfilled the sapl-maven-plugin is going to stop the Maven lifecycle (defaultValue = 0).
+* *policyConditionHitRatio*: A value between 0 - 100 to define the ratio of condition results the tests should cover. If this ratio isn't fulfilled the sapl-maven-plugin is going to stop the Maven lifecycle (defaultValue = 0).
 * *enableSonarReport*: When set to true a coverage report with the https://monteverdi.informatik.uni-freiburg.de/sonar/documentation/analysis/generic-test/[Sonarqube Generic Coverage Format] is generated. This format is currently not useable as SonarQube does not import generic coverage data for languages unknown to SonarQube. Currently there is no SonarQube Lanaguage Plugin for SAPL (defaultValue = false).
-* *enableHtmlReport*: When set to true a HTML coverage report is created. This report is similar to JaCoCo reports showing colorized line coverage and number of covered branches for conditions in a line. The path to the `index.html` on the filesystem is printed in the maven log. Terminals like Powershell allow you to click on these paths and open the report directly in your browser (defaultValue = true).
+* *enableHtmlReport*: When set to true a HTML coverage report is created. This report is similar to JaCoCo reports showing colorized line coverage and number of covered branches for conditions in a line. The path to the `index.html` on the filesystem is printed in the Maven log. Terminals like Powershell allow to click on these paths and open the report directly in the browser (defaultValue = true).
