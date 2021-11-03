@@ -17,6 +17,8 @@
 name: Push documentation to sapl.io
 
 on:
+  workflow_dispatch:
+    branches: [master]
   push:
     branches: [master]
     paths: ["sapl-documentation/**",".github/build_documentation.yml"]
