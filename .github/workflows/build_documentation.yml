@@ -51,7 +51,7 @@ jobs:
     - name: Get version
       run: |
         VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
-        echo "Version: ${{VERSION}}"
+        echo "Version: " $VERSION
       
     - name: Push Documentation to Website
       uses: hpcodecraft/action-deploy-workspace-to-repo@v2.2
