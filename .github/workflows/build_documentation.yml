@@ -19,8 +19,8 @@ name: Push documentation to sapl.io
 on:
   push:
     branches: [master]
-    paths: ['sapl-documentation/**']
-    
+    paths: ["sapl-documentation/**",".github'/build_documentation.yml"]
+
 jobs:
   build:
 
