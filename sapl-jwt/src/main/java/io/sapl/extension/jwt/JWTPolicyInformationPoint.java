@@ -190,15 +190,15 @@ public class JWTPolicyInformationPoint {
 		} catch (ParseException e) {
 			return Flux.just(ValidityState.MALFORMED);
 		}
-
-		// ensure presence of all required claims
-		if (!hasRequiredClaims(signedJwt, claims))
-			return Flux.just(ValidityState.INCOMPLETE);
-
+		
 		// ensure all required claims are well formed
 		if (!hasCompatibleClaims(signedJwt))
 			return Flux.just(ValidityState.INCOMPATIBLE);
 
+		// ensure presence of all required claims
+		if (!hasRequiredClaims(signedJwt))
+			return Flux.just(ValidityState.INCOMPLETE);
+		
 		return validateSignature(signedJwt, variables).flatMapMany(isValid -> {
 
 			if (!isValid)
@@ -332,19 +332,11 @@ public class JWTPolicyInformationPoint {
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return true if the token contains all required claims
 	 */
-	private boolean hasRequiredClaims(SignedJWT jwt, JWTClaimsSet claims) {
+	private boolean hasRequiredClaims(SignedJWT jwt) {
 
 		// verify presence of key ID
 		String kid = jwt.getHeader().getKeyID();
 		if (kid == null || kid.isBlank())
-			return false;
-
-		// verify presence of issuer
-		if (null == claims.getIssuer())
-			return false;
-
-		// verify presence of subject
-		if (null == claims.getSubject())
 			return false;
 
 		// JWT contains all required claims
@@ -364,6 +356,13 @@ public class JWTPolicyInformationPoint {
 		// verify correct algorithm
 		if (!"RS256".equalsIgnoreCase(header.getAlgorithm().getName()))
 			return false;
+		
+		// verify absence of incompatible critical parameters
+		if (header.getCriticalParams() != null && !header.getCriticalParams().isEmpty()) {
+			// critical parameters present, need to check for compatibility
+			// now: no critical parameters compatible, return false
+			return false;
+		}
 
 		// all claims are compatible with requirements
 		return true;
