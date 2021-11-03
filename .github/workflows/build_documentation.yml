@@ -52,10 +52,7 @@ jobs:
       id: get-version
       run: |
         VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
-        echo "Version : $VERSION"
-        echo "::set-output name=version::$VERSION"
-        echo "Version*: ${{ steps.get-version.outputs.VERSION }}"
-        echo "Version*: ${{ steps.get-version.outputs.version }}"
+        echo "::set-output name=version::$VERSION"     
                       
     - name: Push Documentation to Website
       uses: hpcodecraft/action-deploy-workspace-to-repo@v2.2
