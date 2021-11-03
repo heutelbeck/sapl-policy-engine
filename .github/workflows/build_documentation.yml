@@ -54,8 +54,8 @@ jobs:
         VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
         echo "Version : $VERSION"
         echo "::set-output name=version::$VERSION"
-        echo "Version*: ${{ steps.get-version.output.VERSION }}"
-        echo "Version*: ${{ steps.get-version.output.version }}"
+        echo "Version*: ${{ steps.get-version.outputs.VERSION }}"
+        echo "Version*: ${{ steps.get-version.outputs.version }}"
                       
     - name: Push Documentation to Website
       uses: hpcodecraft/action-deploy-workspace-to-repo@v2.2
@@ -65,5 +65,5 @@ jobs:
         DEST_OWNER: heutelbeck
         DEST_REPO: sapl-pages
         DEST_BRANCH: master
-        DEST_FOLDER: docs/${{ steps.get-version.output.VERSION }}
-        DEST_PREDEPLOY_CLEANUP: "rm -rf docs/${{ steps.get-version.output.VERSION }}/*"        
+        DEST_FOLDER: docs/${{ steps.get-version.outputs.VERSION }}
+        DEST_PREDEPLOY_CLEANUP: "rm -rf docs/${{ steps.get-version.outputs.VERSION }}/*"        
