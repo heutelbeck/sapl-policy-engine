@@ -2,7 +2,6 @@ package io.sapl.extension.jwt;
 
 import java.util.Map;
 
-import lombok.Getter;
 import lombok.Setter;
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
@@ -40,7 +39,6 @@ public class TestMockServerDispatcher extends Dispatcher {
 	private final String kidPath;
 	private final Map<String, String> kidToPubKeyMap;
 	
-	@Getter
 	@Setter
 	private DispatchMode dispatchMode;
 	
@@ -80,7 +78,7 @@ public class TestMockServerDispatcher extends Dispatcher {
 	}
 	
 	private MockResponse dispatchWrongKey() {
-		return new MockResponse().setBody(KeyTestUtility.base64Url(KeyTestUtility.keyPair()));
+		return new MockResponse().setBody(KeyTestUtility.encodePublicKeyToBase64URLPrimary(KeyTestUtility.generateRSAKeyPair()));
 	}
 	
 	private MockResponse dispatchInvalidKey(String requestedId) {

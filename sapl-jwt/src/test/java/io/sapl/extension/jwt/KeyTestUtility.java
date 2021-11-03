@@ -15,24 +15,29 @@
  */
 package io.sapl.extension.jwt;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.util.Base64;
 import java.util.Map;
 
 import okhttp3.mockwebserver.MockWebServer;
 
 public class KeyTestUtility {
+	
+	private static final String MD5 = "MD5";
+	private static final String RSA = "RSA";
 
 	/**
 	 * @return an RSA key pair
 	 */
-	static KeyPair keyPair() {
+	static KeyPair generateRSAKeyPair() {
 		KeyPair keyPair = null;
 		try {
-			KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+			KeyPairGenerator keyGen = KeyPairGenerator.getInstance(RSA);
 			keyPair = keyGen.genKeyPair();
 		}
 		catch (NoSuchAlgorithmException e) {
@@ -43,9 +48,11 @@ public class KeyTestUtility {
 	
 	/**
 	 * @return a mock web server used for testing public key requests
+	 * @throws IOException 
+	 * @throws NoSuchAlgorithmException 
 	 */
-	static MockWebServer testServer(String keyPath, KeyPair keyPair) {
-		Map<String, String> mockServerKeys = Map.of(KeyTestUtility.kid(keyPair), KeyTestUtility.base64Url(keyPair));
+	static MockWebServer testServer(String keyPath, KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
+		Map<String, String> mockServerKeys = Map.of(KeyTestUtility.kid(keyPair), KeyTestUtility.encodePublicKeyToBase64URLPrimary(keyPair));
 		MockWebServer server = new MockWebServer();
 		server.setDispatcher(new TestMockServerDispatcher(keyPath, mockServerKeys));
 		return server;
@@ -53,22 +60,20 @@ public class KeyTestUtility {
 
 	/**
 	 * @return the public key's hash code
+	 * @throws NoSuchAlgorithmException 
+	 * @throws IOException 
 	 */
-	static String kid(KeyPair keyPair) {
-		return String.valueOf(keyPair.hashCode());
-	}
-
-	/**
-	 * @return the private key
-	 */
-	static PrivateKey privateKey(KeyPair keyPair) {
-		return keyPair.getPrivate();
+	static String kid(KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
+		outputStream.write(keyPair.getPublic().getEncoded());
+		outputStream.write(keyPair.getPrivate().getEncoded());
+		return Base64.getUrlEncoder().encodeToString(MessageDigest.getInstance(MD5).digest(outputStream.toByteArray())).replaceAll("=", "");
 	}
 
 	/**
 	 * @return Base64 url-safe encoding of public key
 	 */
-	static String base64Url(KeyPair keyPair) {
+	static String encodePublicKeyToBase64URLPrimary(KeyPair keyPair) {
 		return Base64.getUrlEncoder().encodeToString(keyPair.getPublic().getEncoded()).toString();
 	}
 
