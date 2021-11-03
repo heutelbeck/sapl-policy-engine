@@ -166,7 +166,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withTamperedPayload_withUriEnvironment_shouldBeUntrusted() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var tamperedClaims = new JWTClaimsSet.Builder().jwtID("").build();
@@ -184,7 +184,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withNbfAfterExp_shouldBeNeverValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitBeforeNow()).notBeforeTime(JWTTestUtility.timeOneUnitAfterNow()).build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -196,7 +196,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withExpBeforeNow_shouldBeExpired() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitBeforeNow()).build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -208,7 +208,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withExpAfterNow_shouldBeValidThenExpired() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitAfterNow()).build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -222,7 +222,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withNbfAfterNow_shouldBeImmatureThenValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitAfterNow()).build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -236,7 +236,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withNbfBeforeNow_shouldBeValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitBeforeNow()).build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -248,7 +248,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withNbfAfterNowAndExpAfterNbf_shouldBeImmatureThenValidThenExpired() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitAfterNow()).expirationTime(JWTTestUtility.timeThreeUnitsAfterNow()).build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -278,7 +278,7 @@ public class JWTPolicyInformationPointTest {
 	
 	@Test
 	public void validity_withUriEnvironmentMissingUri_shouldBeUntrusted() throws JOSEException {
-		var variables = JsonTestUtility.publicKeyUriVariables(null, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(null, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -289,7 +289,7 @@ public class JWTPolicyInformationPointTest {
 	
 	@Test
 	public void validity_withUriEnvironmentMissingServer_shouldBeUntrusted() throws JOSEException {
-		var variables = JsonTestUtility.publicKeyUriVariables(null, null, false);
+		var variables = Map.<String, JsonNode>of("jwt", JsonTestUtility.getMAPPER().createObjectNode());
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -301,7 +301,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withUriEnvironment_usingBase64Url_shouldBeValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -313,7 +313,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withUriAndMethodPostEnvironment_usingBase64Url_shouldBeValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, "POST", true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, "POST");
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -325,7 +325,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withUriAndMethodNonTextEnvironment_usingBase64Url_shouldBeValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, "NONETEXT", true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, "NONETEXT");
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -337,7 +337,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withUriEnvironment_usingBase64Basic_shouldBeValid() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.Basic);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -349,7 +349,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withUriEnvironment_usingBase64Wrong_shouldBeUntrusted() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.Invalid);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -361,7 +361,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withUriEnvironment_usingBogusKey_shouldBeUntrusted() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.Bogus);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -373,7 +373,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withUriBogusEnvironment_shouldBeUntrusted() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.Unknown);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -385,7 +385,7 @@ public class JWTPolicyInformationPointTest {
 	@Test
 	public void validity_withUriEnvironment_usingWrongKey_shouldBeUntrusted() throws JOSEException {
 		dispatcher.setDispatchMode(DispatchMode.Wrong);
-		var variables = JsonTestUtility.publicKeyUriVariables(server, null, true);
+		var variables = JsonTestUtility.publicKeyUriVariables(server, null);
 		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
 		var claims = new JWTClaimsSet.Builder().build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
