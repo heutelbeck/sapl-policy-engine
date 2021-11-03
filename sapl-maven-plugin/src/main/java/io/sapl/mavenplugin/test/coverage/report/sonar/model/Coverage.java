@@ -33,6 +33,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlSchemaType;
 import javax.xml.bind.annotation.XmlType;
 
+import lombok.Generated;
+
 /**
  * <p>
  * Java class for anonymous complex type.
@@ -78,6 +80,7 @@ import javax.xml.bind.annotation.XmlType;
  *
  *
  */
+@Generated
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = { "file" })
 @XmlRootElement(name = "coverage")

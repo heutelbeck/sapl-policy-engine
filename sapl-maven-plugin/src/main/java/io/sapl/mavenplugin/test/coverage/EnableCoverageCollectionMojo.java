@@ -15,8 +15,9 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
-import java.io.File;
+import java.io.IOException;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -38,18 +39,12 @@ public class EnableCoverageCollectionMojo extends AbstractMojo {
 	@Override
 	public void execute() throws MojoExecutionException {
 		if (this.coverageEnabled) {
-			deleteDirectory(PathHelper.resolveBaseDir(outputDir, projectBuildDir, getLog()).toFile());
-		}
-	}
-
-	private boolean deleteDirectory(File directoryToBeDeleted) {
-		File[] allContents = directoryToBeDeleted.listFiles();
-		if (allContents != null) {
-			for (File file : allContents) {
-				deleteDirectory(file);
+			try {
+				FileUtils.deleteDirectory(PathHelper.resolveBaseDir(outputDir, projectBuildDir, getLog()).toFile());
+			} catch (IOException e) {
+				throw new MojoExecutionException("Failed to delete directory", e);
 			}
 		}
-		return directoryToBeDeleted.delete();
 	}
 
 }

@@ -87,7 +87,11 @@
 			<artifactId>sapl-web</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>2.11.0</version>
+		</dependency>
 		<!-- Sapl Plugin Dependencies -->
 		<dependency>
 			<groupId>com.j2html</groupId>

@@ -22,9 +22,12 @@ import java.nio.file.Paths;
 
 import org.apache.maven.plugin.logging.Log;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public class PathHelper {
 
-	static Path resolveBaseDir(String configBaseDir, String projectBuildDir, Log log) {
+	public static Path resolveBaseDir(String configBaseDir, String projectBuildDir, Log log) {
 		if (configBaseDir != null && !configBaseDir.isEmpty()) {
 			// apply configured basedir if it is set
 			log.debug(String.format("Using \"%s\" as base dir for sapl coverage", configBaseDir));

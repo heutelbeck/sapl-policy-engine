@@ -16,11 +16,15 @@
 package io.sapl.mavenplugin.test.coverage;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.testing.AbstractMojoTestCase;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,4 +65,18 @@ class EnableCoverageCollectionMojoTest extends AbstractMojoTestCase {
 		}
 	}
 
+	@Test
+	void when_deleteFails_MojoException() throws Exception {
+		Path pom = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
+		var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
+		mojo.setLog(this.log);
+
+		try (MockedStatic<PathHelper> pathHelper = Mockito.mockStatic(PathHelper.class)) {
+			try (MockedStatic<FileUtils> fileUtil = Mockito.mockStatic(FileUtils.class)) {
+				pathHelper.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));
+				fileUtil.when(() -> FileUtils.deleteDirectory(any())).thenThrow(new IOException());
+				assertThrows(MojoExecutionException.class, () -> mojo.execute());
+			}
+		}
+	}
 }
