@@ -46,6 +46,11 @@ jobs:
     - name: Build Documentation
       run: mvn -B generate-resources -pl sapl-documentation
 
+    - name: Get version
+      run: |
+        VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
+        echo "::set-output name=version::$VERSION"
+      
     - name: Push Documentation to Website
       uses: hpcodecraft/action-deploy-workspace-to-repo@v2.2
       env:
