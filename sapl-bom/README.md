@@ -1,7 +1,7 @@
 # Streaming Attribute Authorization Engine (SAAE) Bill of Materials (BOM)
 
-A Maven bill of materials POM is a utility POM to make authoring of applications using SAPL/SAAE easier.
-By including the POM in the `dependencyManagement`section of a POM, the `version` tag of SAPL dependencies can be omitted in the POM or its children. Using a BOM does not directly introduce any direct or transient dependencies. Only when other SAPL dependencies are used managed by the BOM, these are actually introduced into the dependency tree.
+A Maven bill of materials POM is a utility POM that makes authoring of applications using SAPL easier.
+Including the POM in the `dependencyManagement` section of a POM, the `version` tag of SAPL dependencies can be omitted. Using a BOM does not directly introduce any direct or transient dependencies. 
 
 How to use the BOM:
 

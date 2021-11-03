@@ -6,7 +6,7 @@ A demo project with more documentation is available: <https://github.com/heutelb
 
 ## SAPL Values
 
-The internal data model of the SAPL engine uses the `Val` class. `Val` is a monad style wrapper around Jackson `JsonNode` allowing for `undefined` and errors as additional val"ues. In addition, the class contains numerous convenience methods for creating values or `Flux<Value>` objects. Example usages of `Val`:
+The internal data model of the SAPL engine uses the `Val` class. `Val` is a monad style wrapper around Jackson `JsonNode`, allowing for `undefined` and errors as additional values. In addition, the class contains numerous convenience methods for creating values or `Flux<Value>` objects. Example usages of `Val`:
 
 ```java
 		Val undefined = Val.UNDEFINED;
@@ -39,9 +39,9 @@ The internal data model of the SAPL engine uses the `Val` class. `Val` is a mona
 
 ## Custom Function Library
 
-By developing a custom function library, a PDP can be extended to interpret policies making use of these functions. An example for a custom function library can be found in the `sapl-geo` module. There, a number of functions are implemented enabling the processing of GEO JSON Objects. So for example a function can test, if a point is contained within a polygon using geographic coordinate system to implement features like geo-fencing. Whenever an application domain makes repeated use of specific JSON schemes and its semantics require some domain specific processing for the reasoning within SAPL policies, implementing a custom function library can be useful and significantly improve readability, maintainability and expressiveness of the policies.
+By developing a custom function library, a PDP can be extended to interpret policies making use of these functions. An example of a custom function library can be found in the `sapl-geo` module. There, a number of functions are implemented, enabling the processing of GEO JSON Objects. So, for example, a function can test if a point is contained within a polygon using a geographic coordinate system to implement features like geo-fencing. Whenever an application domain makes repeated use of specific JSON schemes and its semantics require some domain-specific processing for the reasoning within SAPL policies, implementing a custom function library can be helpful and significantly improve the readability, maintainability, and expressiveness of the policies.
 
-Each function library is a Java class and has to define a namespace in which its functions resides. This is similar to Java packages, and analogous functions can be imported in SAPL policies to provide shorthand access. Methods of the class can be exposed as SAPL functions.
+Each function library is a Java class and has to define a namespace in which its functions reside. This behavior is similar to Java packages, and analogous functions can be imported into SAPL policies to provide shorthand access. Methods of the class can be exposed as SAPL functions.
 
 A function library class must be annotated with `@FunctionLibrary`. This annotation takes two optional string parameters. `name` defines the namespace and `description` contains a textual description of the function library. This description is used for automatically generating documentation for users of a PDP application with a graphical user interface. If the parameter `name` is not set, the namespace will be derived from the Java package and class name.
 
@@ -53,7 +53,7 @@ public class SomeCustomFunctionLibrary {
 }
 ```
 
-All custom functions must not make use of IO Operations, because these would block the reactive processing within the policy engine. Functions must be simple transformations from a list of parameter values to a single output value. SAPL functions must not have side effects and should be deterministic. Functions are implemented as methods. These methods may contain any number of `Val` parameters and a final var args `Val...` parameter. A method to be exposed as a SAPL function must be annotated with the `@Function` annotation with the two optional parameters `name` and `docs`. A function with `name = "doSomething"` in a function library `some.custom` will be accessible as `some.custom.doSomething` in SAPL or simply as `doSomething` if imported accordingly. If `name` is undefined, the name of the method will be used. The `docs` parameter will be used for documentation in a UI analogous to the `description` parameter of the library itself and should contain information for a policy author on how to apply the function. The methods must have `public` visibility.
+All custom functions must not make use of IO operations because these would block the reactive processing within the policy engine. Functions must be simple transformations from a list of parameter values to a single output value. SAPL functions must not have side effects and should be deterministic. Functions are implemented as methods. These methods may contain any number of `Val` parameters and a final var args `Val...` parameter. A method to be exposed as a SAPL function must be annotated with the `@Function` annotation with the two optional parameters `name` and `docs`. A function with `name = "doSomething"` in a function library `some.custom` will be accessible as `some.custom.doSomething` in SAPL or simply as `doSomething` if imported accordingly. If `name` is undefined, the name of the method will be used. The `docs` parameter will be used for documentation in a UI analogous to the `description` parameter of the library itself and should contain information for a policy author on how to apply the function. The methods must have `public` visibility.
 
 ```java
 @FunctionLibrary(name = "some.custom", description = SomeCustomFunctionLibrary.DESCRIPTION)
@@ -67,15 +67,15 @@ public class SomeCustomFunctionLibrary {
 }
 ```
 
-In this example the method is `static` because it does not require state of the class. As SAPL functions must not have side effects, many methods will look this way. However, if the function requires some other objects to perform its actions, these may be stored in the class, resulting in non-static methods. In a SAPL policy, the function can be used as follows:
+In this example, the method is `static` because it does not require the state of the class. As SAPL functions must not have side effects, many methods will look this way. However, if the function requires some other objects to perform its actions, these may be stored in the class, resulting in non-static methods. In a SAPL policy, the function can be used as follows:
 
 ```
 policy "test" permit where "123" == some.custom.numberToString(123);
 ```
 
-Also note, the annotation `@Number` on the parameter. When the policy engine detects such an annotation on a parameter, it will automatically make a type check of the value and return an error if the implied type constraint on the value is violated before calling the method. Type validation is described in more detail below.
+Also note the annotation `@Number` on the parameter. When the policy engine detects such an annotation on a parameter, it will automatically make a type check of the value and return an error if the implied type constraint on the value is violated before calling the method. Type validation is described in more detail below.
 
-The policy engine will check if the number of parameters in a policy match the number of the parameters of the method and return an error if this does not match. While doing so, var args semantics are respected.
+The policy engine will check if the number of parameters in a policy matches the number of the parameters of the method and return an error if this does not match. While doing so, var args semantics are respected.
 
 ## Custom Policy Information Point
 
@@ -93,8 +93,8 @@ public class SalesPolicyInformationPoint {
 
 Methods of the PIP class may be exposed as SAPL attributes by adding the `@Attribute` annotation with the two optional parameters `name` and `docs`. An attribute with `name = "someAttribute"` in a PIP class `some.custom` will be accessible as `some.custom.someAttribute` in SAPL or simply as `someAttribute` if imported accordingly. If `name` is undefined, the name of the method will be used. The `docs` parameter will be used for documentation in a UI analogous to the `description` parameter of the PIP itself and should contain information for a policy author on how to use the attribute. The methods must have `public` visibility.
 
-Individual attributes are taking in a number of parameters and the variables of the current evaluation context and return a `Flux<Val>`.
-All attributes may take parameters, e.g., `subject.id.<totalSales(2021,"USD")>`. And attributes may have a left hand input like `subject.id` in the example. Using attributes without a left hand parameter are called environment attributes, e.g., `<time.now>`. 
+Individual attributes take in a number of parameters and the variables of the current evaluation context and return a `Flux<Val>`.
+All attributes may take parameters, e.g., `subject.id.<totalSales(2021,"USD")>`. And attributes may have a left-hand input like `subject.id` in the example. Using attributes without a left-hand parameter are called environment attributes, e.g., `<time.now>`. 
 
 ```java
 @PolicyInformationPoint(name = "sales", description = SalesPolicyInformationPoint.DESCRIPTION)
@@ -131,24 +131,24 @@ Both function libraries and PIP must be registered with the PDP to be usable wit
 
 ### Registration with an Embedded PDP
 
-In a plain Java application a PDP is instantiated using the `PolicyDecisionPointFactory` the different factory methods for file- or resource-based PDPs take Collections of function library and PDP objects as parameters and will register these for the PDP.
+In a simple Java application, a PDP is instantiated using the `PolicyDecisionPointFactory`, the different factory methods for file- or resource-based PDPs take Collections of function library and PDP objects as parameters will register these for the PDP.
 
 ```java
 	PolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, List.of(new EchoPIP()), List.of(new SimpleFunctionLibrary()));
 ```
 
-When using the Spring Security integration, PIPs and function libraries can be registered with the application context as beans. The SAPL auto configuration will pick them up automatically if present is their packages are configured to be scanned by Spring. E.e., a PIP may be annotated with `@Component` or  `@Service`.
+When using the Spring Security integration, PIPs and function libraries can be registered with the application context as beans. The SAPL auto-configuration will pick them up automatically if present is their packages are configured to be scanned by Spring. E.e., a PIP may be annotated with `@Component` or  `@Service`.
 
 ### Registering with a SAPL Server
 
-The details about deploying to a server are addressed in their respecive documentation:
+The details about deploying to a server are addressed in their respective documentation:
 
 * SAPL Server LT: <https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-server-lt/README.md>
 * SAPL Server CE: <https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-server-ce/README.md>
 
 ## Project Configuration (Maven)
 
-Remember to get a GitHub access token to be able to use the dependency, see <https://github.com/heutelbeck/packages>.
+Remember to get a GitHub access token to be able to use the dependency. See <https://github.com/heutelbeck/packages>.
 Example POM for a SAPL extension:
 
 ```xml
@@ -207,7 +207,7 @@ Example POM for a SAPL extension:
 	
 	<!-- 
 	
-		In case the resulting JAR should not be used as a dependency, but as a fat 
+		In case the resulting JAR should not be used as a dependency but as a fat 
 		JAR to be deployed with a PDP Server, the maven-assembly-plugin can be used 
 		to package all dependencies into a single JAR.
 		It is recommended to declare all dependencies expected to be already present 

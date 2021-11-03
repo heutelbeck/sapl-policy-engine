@@ -1,7 +1,6 @@
 # SAPL Hamcrest
 
-This is an extension the the Hamcrest matching libraries with useful 
-matchers for testing SAPL specific objects, i.e. for `Val` and `AuthorizationDecision`.
+This module contains an extension for the Hamcrest matching libraries with useful matchers for testing SAPL specific objects, i.e., for `Val` and `AuthorizationDecision`.
 
 This library works well together with the [Spotify Hamcrest matchers 
 for JSON objects](https://github.com/spotify/java-hamcrest#json-matchers).

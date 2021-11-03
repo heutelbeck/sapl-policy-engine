@@ -5,11 +5,10 @@ JWTs in SAPL policies.
 
 ## Function Library
 
-The function library can be used, if the subject contains a raw JWT the information within has to be accessed,
-e.g. claims, from the token. The supplied function `jwt.parseJwt` maps the raw token to a matching JSON object.
-Please note, that this function library does not validate the JWT token for validity. The reason for this is, 
+The function library is for use with raw JWT tokens contained in the subject object. A policy can directly access the information within the token, e.g., claims, from the token. The supplied function `jwt.parseJwt` maps the raw token to a matching JSON object.
+Please note that this function library does not validate the JWT token for validity. The reason for this is, 
 that a proper full validation requires interaction with external resources, e.g., a public key server. 
-This is prohibited in SAPL functions. The JWT attributes however offer validation support.
+This is prohibited in SAPL functions. The JWT attributes, however, offer validation support.
 
 ### Example
 
@@ -49,9 +48,7 @@ The expression `jwt.parseJwt(subject.token)` will return a value containing the 
 ## JWT Attributes
 
 The validity of a JWT depends on both the ability to validate the signature based on the public key of the issuer
-and the the time for which the token is issued. Accessing the public key may require communication with a public 
-key server, and the validity may also change over time. Thus, validity is an attribute of the token, which can 
-only be derived from accessing Policy Information Points, and it is a time sequence changing over time.
+and the time for which the token is issued. Accessing the public key may require communication with a public key server, and the validity may also change over time. Thus, validity is an attribute of the token, which can only be derived from accessing Policy Information Points, and it is a time sequence changing over time.
 
 ### `jwt.validity`
 
@@ -79,7 +76,3 @@ where
 ### `jwt.valid`
 
 The `subject.principal.tokenValue.<jwt.valid>` is a shorthand for the expression 	`subject.principal.tokenValue.<jwt.validity> == "VALID"`.
-
-
-
-

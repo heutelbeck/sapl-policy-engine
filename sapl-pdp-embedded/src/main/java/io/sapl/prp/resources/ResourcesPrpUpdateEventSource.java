@@ -57,7 +57,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 	public ResourcesPrpUpdateEventSource(@NonNull Class<?> clazz, @NonNull String policyPath,
 			@NonNull SAPLInterpreter interpreter) throws InitializationException {
 		this.interpreter = interpreter;
-		log.info("Loading a static set of policies from the bundled ressources");
+		log.info("Loading a static set of policies from the bundled resources");
 		initializingPrpUpdate = readPolicies(JarUtil.inferUrlOfRecourcesPath(clazz, policyPath));
 	}
 
