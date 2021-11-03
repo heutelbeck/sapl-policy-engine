@@ -21,10 +21,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import lombok.Getter;
 import okhttp3.mockwebserver.MockWebServer;
 
 public class JsonTestUtility {
 
+	@Getter
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	/**
@@ -52,7 +54,7 @@ public class JsonTestUtility {
 	 * use "NONETEXT" to generate a none-text value
 	 * @return environment variables containing public key server URI and request method
 	 */
-	static Map<String, JsonNode> publicKeyUriVariables(MockWebServer server, String method, boolean includePubKeyServer) {
+	static Map<String, JsonNode> publicKeyUriVariables(MockWebServer server, String method) {
 		ObjectNode valueNode = MAPPER.createObjectNode();
 		ObjectNode keyNode = MAPPER.createObjectNode();
 
@@ -69,12 +71,9 @@ public class JsonTestUtility {
 			}
 		}
 
-		if (includePubKeyServer)
-			keyNode.set(JWTPolicyInformationPoint.PUBLICKEY_VARIABLES_KEY, valueNode);
+		keyNode.set(JWTPolicyInformationPoint.PUBLICKEY_VARIABLES_KEY, valueNode);
 
 		return Map.of("jwt", keyNode);
-		
-		//return MAPPER.convertValue(keyNode, new TypeReference<Map<String, JsonNode>>() { });
 	}
 
 }
