@@ -44,7 +44,6 @@ public @interface EnableReactiveSaplMethodSecurity {
 	 * {@code @Transactional} annotation will be upgraded to subclass proxying at the same
 	 * time. This approach has no negative impact in practice unless one is explicitly
 	 * expecting one type of proxy vs another, e.g. in tests.
-	 * 
 	 * @return if to proxy target class
 	 */
 	boolean proxyTargetClass() default false;

@@ -111,7 +111,7 @@ public class PostEnforcePolicyEnforcementPointTests {
 		module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
 		mapper.registerModule(module);
 		subscriptionBuilderService = new AuthorizationSubscriptionBuilderService(
-				new DefaultMethodSecurityExpressionHandler(), () -> mapper);
+				new DefaultMethodSecurityExpressionHandler(), mapper);
 		var testClass = new TestClass();
 		resourceAccessPoint = testClass.publicInteger();
 		invocation = MethodInvocationUtils.createFromClass(testClass, TestClass.class, "publicInteger", null, null);

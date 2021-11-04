@@ -62,7 +62,7 @@ class JWTTestUtility {
 	static Date timeThreeUnitsAfterNow() {
 		return Date.from(new Date().toInstant().plusMillis(3 * timeUnit));
 	}
-	
+
 	/**
 	 * @return time interval of one unit as Duration object
 	 */
@@ -76,7 +76,7 @@ class JWTTestUtility {
 	static Duration twoUnitDuration() {
 		return Duration.ofMillis(2 * timeUnit);
 	}
-	
+
 	/**
 	 * @return time interval of one synchronous unit as Duration object
 	 */
@@ -110,7 +110,7 @@ class JWTTestUtility {
 		signedJwt.sign(signer);
 		return Val.of(signedJwt.serialize());
 	}
-	
+
 	static Function<RSAPublicKey, RSAPublicKey> cacheAndReturn(JWTKeyProvider provider, String kid) {
 		return publicKey -> {
 			provider.cache(kid, publicKey);

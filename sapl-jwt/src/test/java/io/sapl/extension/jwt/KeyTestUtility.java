@@ -63,7 +63,7 @@ public class KeyTestUtility {
 		server.setDispatcher(new TestMockServerDispatcher(keyPath, mockServerKeys));
 		return server;
 	}
-	
+
 	/**
 	 * @return a mock web server used for testing public key requests
 	 * @throws IOException
@@ -73,8 +73,10 @@ public class KeyTestUtility {
 		Map<String, String> mockServerKeys = new HashMap<String, String>();
 		keyPairs.forEach(keyPair -> {
 			try {
-				mockServerKeys.put(KeyTestUtility.kid(keyPair), KeyTestUtility.encodePublicKeyToBase64URLPrimary(keyPair));
-			} catch (NoSuchAlgorithmException | IOException e) {
+				mockServerKeys.put(KeyTestUtility.kid(keyPair),
+						KeyTestUtility.encodePublicKeyToBase64URLPrimary(keyPair));
+			}
+			catch (NoSuchAlgorithmException | IOException e) {
 				e.printStackTrace();
 			}
 		});
@@ -95,31 +97,31 @@ public class KeyTestUtility {
 		return Base64.getUrlEncoder().encodeToString(MessageDigest.getInstance(MD5).digest(outputStream.toByteArray()))
 				.replaceAll("=", "");
 	}
-	
+
 	/**
 	 * @param keyPair
-	 * @return a predicate that evaluates to true iff it's input is of type RSAPublicKey and matches the public key of the supplied keyPair
+	 * @return a predicate that evaluates to true iff it's input is of type RSAPublicKey
+	 * and matches the public key of the supplied keyPair
 	 */
 	static Predicate<Object> keyValidator(KeyPair keyPair) {
 		return publicKey -> {
 			if (!(publicKey instanceof RSAPublicKey))
 				return false;
-			
+
 			RSAPublicKey pubKey = (RSAPublicKey) publicKey;
 			return areKeysEqual(pubKey, keyPair);
 		};
 	}
-	
+
 	static boolean areKeysEqual(RSAPublicKey publicKey, KeyPair keyPair) {
 		if (!keyPair.getPublic().getAlgorithm().equals(RSA))
 			return false;
 		RSAPublicKey other = (RSAPublicKey) keyPair.getPublic();
 		return areKeysEqual(publicKey, other);
 	}
-	
+
 	static boolean areKeysEqual(RSAPublicKey keyA, RSAPublicKey keyB) {
-		return keyA.getModulus().equals(keyB.getModulus())
-				&& keyA.getPublicExponent().equals(keyB.getPublicExponent());
+		return keyA.getModulus().equals(keyB.getModulus()) && keyA.getPublicExponent().equals(keyB.getPublicExponent());
 	}
 
 	/**

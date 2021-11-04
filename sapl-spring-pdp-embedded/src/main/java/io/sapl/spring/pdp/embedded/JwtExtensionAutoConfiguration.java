@@ -39,7 +39,7 @@ public class JwtExtensionAutoConfiguration {
 	public JWTPolicyInformationPoint jwtPolicyInformationPoint(ObjectMapper mapper, JWTKeyProvider jwtKeyProvider) {
 		return new JWTPolicyInformationPoint(jwtKeyProvider);
 	}
-	
+
 	@Bean
 	public JWTKeyProvider jwtKeyProvider(WebClient.Builder builder) {
 		return new JWTKeyProvider(builder);

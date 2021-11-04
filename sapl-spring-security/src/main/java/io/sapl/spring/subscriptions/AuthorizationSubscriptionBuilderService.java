@@ -20,7 +20,6 @@ import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 
 import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
@@ -31,7 +30,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.web.server.authorization.AuthorizationContext;
-import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ServerWebExchange;
@@ -52,7 +50,6 @@ import reactor.util.context.ContextView;
  * This class contains the logic for SpEL expression evaluation and retrieving request
  * information from the application context or method invocation.
  */
-@Service
 @RequiredArgsConstructor
 public class AuthorizationSubscriptionBuilderService {
 
@@ -63,9 +60,7 @@ public class AuthorizationSubscriptionBuilderService {
 
 	private final MethodSecurityExpressionHandler expressionHandler;
 
-	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
-
-	private ObjectMapper mapper;
+	private final ObjectMapper mapper;
 
 	public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
 			MethodInvocation methodInvocation, SaplAttribute attribute, Object returnObject) {
@@ -90,7 +85,6 @@ public class AuthorizationSubscriptionBuilderService {
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
 			Mono<Authentication> authentication, @NonNull AuthorizationContext context) {
-		lazyLoadDependencies();
 		var request = context.getExchange().getRequest();
 		return authentication.defaultIfEmpty(ANONYMOUS)
 				.map(authn -> AuthorizationSubscription.of(authn, request, request, mapper));
@@ -120,8 +114,6 @@ public class AuthorizationSubscriptionBuilderService {
 	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
 			Optional<ServerHttpRequest> serverHttpRequest, MethodInvocation methodInvocation, SaplAttribute attribute,
 			Optional<Object> returnedObject) {
-		lazyLoadDependencies();
-
 		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
 		returnedObject.ifPresent(returnObject -> expressionHandler.setReturnObject(returnObject, evaluationCtx));
 
@@ -135,19 +127,12 @@ public class AuthorizationSubscriptionBuilderService {
 
 	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
 			MethodInvocation methodInvocation, SaplAttribute attribute, EvaluationContext evaluationCtx) {
-		lazyLoadDependencies();
-
 		var subject = retrieveSubject(authentication, attribute, evaluationCtx);
 		var action = retrieveAction(methodInvocation, attribute, evaluationCtx, retrieveRequestObject());
 		var resource = retrieveResource(methodInvocation, attribute, evaluationCtx);
 		var environment = retrieveEnvironment(attribute, evaluationCtx);
 		return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
 				mapper.valueToTree(resource), mapper.valueToTree(environment));
-	}
-
-	private void lazyLoadDependencies() {
-		if (mapper == null)
-			mapper = objectMapperFactory.getObject();
 	}
 
 	private JsonNode retrieveSubject(Authentication authentication, SaplAttribute attr, EvaluationContext ctx) {

@@ -62,7 +62,7 @@ public class JsonTestUtility {
 		keyNode.set(JWTPolicyInformationPoint.PUBLICKEY_VARIABLES_KEY, valueNode);
 		return Map.of("jwt", keyNode);
 	}
-	
+
 	static ObjectNode serverNode(MockWebServer server, String method, Long ttl) {
 		ObjectNode valueNode = MAPPER.createObjectNode();
 

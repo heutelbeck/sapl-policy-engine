@@ -58,8 +58,6 @@ class PreEnforcePolicyEnforcementPointTests {
 
 	ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory;
 
-	ObjectFactory<ObjectMapper> objectMapperFactory;
-
 	ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
 
 	PolicyDecisionPoint pdp;
@@ -81,10 +79,9 @@ class PreEnforcePolicyEnforcementPointTests {
 		module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
 		module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
 		mapper.registerModule(module);
-		objectMapperFactory = () -> mapper;
 		authentication = new UsernamePasswordAuthenticationToken("principal", "credentials");
 		subscriptionBuilder = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-				objectMapperFactory);
+				mapper);
 		subscriptionBuilderFactory = () -> subscriptionBuilder;
 	}
 

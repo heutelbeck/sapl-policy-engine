@@ -73,7 +73,7 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 
 	@Bean
 	protected AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService() {
-		return new AuthorizationSubscriptionBuilderService(getExpressionHandler(), objectMapperFactory);
+		return new AuthorizationSubscriptionBuilderService(getExpressionHandler(), objectMapperFactory.getObject());
 	}
 
 	@Override
