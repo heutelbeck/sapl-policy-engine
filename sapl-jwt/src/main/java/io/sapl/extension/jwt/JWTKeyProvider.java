@@ -124,7 +124,7 @@ public class JWTKeyProvider {
 		}
 	}
 	
-	private class CacheEntry implements Comparable<CacheEntry> {
+	private static class CacheEntry implements Comparable<CacheEntry> {
 		
 		@Getter
 		private final String keyId;

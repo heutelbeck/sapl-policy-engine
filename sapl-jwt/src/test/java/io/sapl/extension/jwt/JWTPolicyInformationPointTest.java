@@ -56,6 +56,7 @@ public class JWTPolicyInformationPointTest {
 
 	@BeforeAll
 	public static void preSetup() throws IOException, NoSuchAlgorithmException {
+		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
 		keyPair = KeyTestUtility.generateRSAKeyPair();
 		kid = KeyTestUtility.kid(keyPair);
 		server = KeyTestUtility.testServer("/public-keys/", keyPair);
@@ -73,7 +74,6 @@ public class JWTPolicyInformationPointTest {
 	public void setup() {
 		JWTKeyProvider provider = new JWTKeyProvider(builder);
 		jwtPolicyInformationPoint = new JWTPolicyInformationPoint(provider);
-		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
 	}
 	
 /*

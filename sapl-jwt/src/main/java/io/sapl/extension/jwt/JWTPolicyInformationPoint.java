@@ -224,7 +224,7 @@ public class JWTPolicyInformationPoint {
 
 		var signatureValidity = publicKey.map(signatureOfTokenIsValid(signedJwt));
 		signatureValidity.subscribe(cachePublicKeyIfSignatureValid(keyId, publicKey));
-		return signatureValidity.defaultIfEmpty(false);
+		return signatureValidity.defaultIfEmpty(Boolean.FALSE);
 	}
 
 	private Function<RSAPublicKey, Boolean> signatureOfTokenIsValid(SignedJWT signedJwt) {
