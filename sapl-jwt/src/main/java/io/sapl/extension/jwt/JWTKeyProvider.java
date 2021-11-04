@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-public final class JWTKeyProvider {
+public class JWTKeyProvider {
 	
 	private static final String JWT_KEY_SERVER_HTTP_ERROR = "Error trying to retrieve a public key: ";
 	
@@ -36,7 +36,7 @@ public final class JWTKeyProvider {
 	
 	private long lastTTL = DEFAULT_CACHING_TTL;
 	
-	JWTKeyProvider(WebClient.Builder builder) {
+	public JWTKeyProvider(WebClient.Builder builder) {
 		webClient = builder.build();
 		keyCache = new HashMap<String, RSAPublicKey>();
 		cachingTimes = new PriorityQueue<CacheEntry>();
