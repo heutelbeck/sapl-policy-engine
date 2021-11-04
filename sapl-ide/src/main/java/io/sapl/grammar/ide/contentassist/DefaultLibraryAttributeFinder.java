@@ -44,7 +44,7 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 
 	/**
 	 * The default constructor registers the default libraries.
-	 * @throws InitializationException
+	 * @throws InitializationException if library initialization fails
 	 */
 	public DefaultLibraryAttributeFinder() throws InitializationException {
 		attributeContext = new AnnotationAttributeContext();
@@ -58,7 +58,7 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 	/**
 	 * Creates a new finder based on the libraries and functions that are registered in
 	 * the provided evaluation context.
-	 * @param evaluationContext
+	 * @param evaluationContext the evaluation context
 	 */
 	public DefaultLibraryAttributeFinder(EvaluationContext evaluationContext) {
 		attributeContext = evaluationContext.getAttributeCtx();

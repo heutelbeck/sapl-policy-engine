@@ -178,6 +178,45 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.3.1</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<verbose>false</verbose>
+					<doclint>none</doclint>
+					<tags>
+						<tag>
+							<name>generated</name>
+							<placement>a</placement>
+							<head>Generated Code</head>
+						</tag>
+						<tag>
+							<name>ordered</name>
+							<placement>a</placement>
+							<head>EMF Ordered</head>
+						</tag>
+						<tag>
+							<name>model</name>
+							<placement>a</placement>
+							<head>EMF Model</head>
+						</tag>
+						<tag>
+							<name>returns</name>
+							<placement>a</placement>
+							<head>EMF Returns:</head>
+						</tag>
+					</tags>
+				</configuration>
+			</plugin>
+			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
 				<version>3.0.0</version>

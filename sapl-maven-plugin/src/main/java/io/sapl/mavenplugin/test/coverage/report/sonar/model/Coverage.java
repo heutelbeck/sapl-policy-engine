@@ -38,44 +38,46 @@ import javax.xml.bind.annotation.XmlType;
  * Java class for anonymous complex type.
  *
  * <p>
- * The following schema fragment specifies the expected content contained within this
- * class.
- *
+ * The following schema fragment specifies the expected content contained within
+ * this class.
+ * 
+ *  {@code
  * <pre>
-* &lt;complexType>
-*   &lt;complexContent>
-*     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-*       &lt;sequence>
-*         &lt;element name="file" maxOccurs="unbounded" minOccurs="0">
-*           &lt;complexType>
-*             &lt;complexContent>
-*               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-*                 &lt;sequence>
-*                   &lt;element name="lineToCover" maxOccurs="unbounded" minOccurs="0">
-*                     &lt;complexType>
-*                       &lt;complexContent>
-*                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-*                           &lt;attribute name="lineNumber" use="required" type="{http://www.w3.org/2001/XMLSchema}positiveInteger" />
-*                           &lt;attribute name="covered" use="required" type="{http://www.w3.org/2001/XMLSchema}boolean" />
-*                           &lt;attribute name="branchesToCover" type="{http://www.w3.org/2001/XMLSchema}nonNegativeInteger" />
-*                           &lt;attribute name="coveredBranches" type="{http://www.w3.org/2001/XMLSchema}nonNegativeInteger" />
-*                         &lt;/restriction>
-*                       &lt;/complexContent>
-*                     &lt;/complexType>
-*                   &lt;/element>
-*                 &lt;/sequence>
-*                 &lt;attribute name="path" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
-*               &lt;/restriction>
-*             &lt;/complexContent>
-*           &lt;/complexType>
-*         &lt;/element>
-*       &lt;/sequence>
-*       &lt;attribute name="version" use="required" type="{http://www.w3.org/2001/XMLSchema}positiveInteger" />
-*     &lt;/restriction>
-*   &lt;/complexContent>
-* &lt;/complexType>
-* </pre>
- *
+* <complexType>
+*   <complexContent>
+*     <restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
+*       <sequence>
+*         <element name="file" maxOccurs="unbounded" minOccurs="0">
+*           <complexType>
+*             <complexContent>
+*               <restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
+*                 <sequence>
+*                   <element name="lineToCover" maxOccurs="unbounded" minOccurs="0">
+*                     <complexType>
+*                       <complexContent>
+*                         <restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
+*                           <attribute name="lineNumber" use="required" type="{http://www.w3.org/2001/XMLSchema}positiveInteger" />
+*                           <attribute name="covered" use="required" type="{http://www.w3.org/2001/XMLSchema}boolean" />
+*                           <attribute name="branchesToCover" type="{http://www.w3.org/2001/XMLSchema}nonNegativeInteger" />
+*                           <attribute name="coveredBranches" type="{http://www.w3.org/2001/XMLSchema}nonNegativeInteger" />
+*                         </restriction>
+*                       </complexContent>
+*                     </complexType>
+*                   </element>
+*                 </sequence>
+*                 <attribute name="path" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
+*               </restriction>
+*             </complexContent>
+*           </complexType>
+*         </element>
+*       </sequence>
+*       <attribute name="version" use="required" type="{http://www.w3.org/2001/XMLSchema}positiveInteger" />
+*     </restriction>
+*   </complexContent>
+* </complexType>
+ * </pre>
+ * 
+ * }
  *
  */
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -94,18 +96,23 @@ public class Coverage {
 	 *
 	 * <p>
 	 * This accessor method returns a reference to the live list, not a snapshot.
-	 * Therefore any modification you make to the returned list will be present inside the
-	 * JAXB object. This is why there is not a <CODE>set</CODE> method for the file
-	 * property.
+	 * Therefore any modification you make to the returned list will be present
+	 * inside the JAXB object. This is why there is not a <CODE>set</CODE> method
+	 * for the file property.
 	 *
 	 * <p>
-	 * For example, to add a new item, do as follows: <pre>
-	 *    getFile().add(newItem);
+	 * For example, to add a new item, do as follows:
+	 *{@code 
+	 * <pre>
+	 * getFile().add(newItem);
 	 * </pre>
-	 *
+	 *}
 	 *
 	 * <p>
-	 * Objects of the following type(s) are allowed in the list {@link Coverage.File }
+	 *
+	 * Objects of the following type(s) are allowed in the list
+	 * {@link Coverage.File }
+	 * @return list of the coverage files
 	 *
 	 *
 	 */
@@ -118,6 +125,7 @@ public class Coverage {
 
 	/**
 	 * Gets the value of the version property.
+	 * 
 	 * @return possible object is {@link BigInteger }
 	 *
 	 */
@@ -127,6 +135,7 @@ public class Coverage {
 
 	/**
 	 * Sets the value of the version property.
+	 * 
 	 * @param value allowed object is {@link BigInteger }
 	 *
 	 */
@@ -139,33 +148,38 @@ public class Coverage {
 	 * Java class for anonymous complex type.
 	 *
 	 * <p>
-	 * The following schema fragment specifies the expected content contained within this
-	 * class.
-	 *
+	 * The following schema fragment specifies the expected content contained within
+	 * this class.
+	 *{@code
 	 * <pre>
-	 * &lt;complexType>
-	 *   &lt;complexContent>
-	 *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-	 *       &lt;sequence>
-	 *         &lt;element name="lineToCover" maxOccurs="unbounded" minOccurs="0">
-	 *           &lt;complexType>
-	 *             &lt;complexContent>
-	 *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-	 *                 &lt;attribute name="lineNumber" use="required" type="{http://www.w3.org/2001/XMLSchema}positiveInteger" />
-	 *                 &lt;attribute name="covered" use="required" type="{http://www.w3.org/2001/XMLSchema}boolean" />
-	 *                 &lt;attribute name="branchesToCover" type="{http://www.w3.org/2001/XMLSchema}nonNegativeInteger" />
-	 *                 &lt;attribute name="coveredBranches" type="{http://www.w3.org/2001/XMLSchema}nonNegativeInteger" />
-	 *               &lt;/restriction>
-	 *             &lt;/complexContent>
-	 *           &lt;/complexType>
-	 *         &lt;/element>
-	 *       &lt;/sequence>
-	 *       &lt;attribute name="path" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
-	 *     &lt;/restriction>
-	 *   &lt;/complexContent>
-	 * &lt;/complexType>
+	 * <complexType>
+	 *   <complexContent>
+	 *     <restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
+	 *       <sequence>
+	 *         <element name="lineToCover" maxOccurs="unbounded" minOccurs="0">
+	 *           <complexType>
+	 *             <complexContent>
+	 *               <restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
+	 *                 <attribute name="lineNumber" use="required" type=
+	"{http://www.w3.org/2001/XMLSchema}positiveInteger" />
+	 *                 <attribute name="covered" use="required" type=
+	"{http://www.w3.org/2001/XMLSchema}boolean" />
+	 *                 <attribute name="branchesToCover" type=
+	"{http://www.w3.org/2001/XMLSchema}nonNegativeInteger" />
+	 *                 <attribute name="coveredBranches" type=
+	"{http://www.w3.org/2001/XMLSchema}nonNegativeInteger" />
+	 *               </restriction>
+	 *             </complexContent>
+	 *           </complexType>
+	 *         </element>
+	 *       </sequence>
+	 *       <attribute name="path" use="required" type=
+	"{http://www.w3.org/2001/XMLSchema}string" />
+	 *     </restriction>
+	 *   </complexContent>
+	 * </complexType>
 	 * </pre>
-	 *
+	 *}
 	 *
 	 */
 	@XmlAccessorType(XmlAccessType.FIELD)
@@ -182,19 +196,22 @@ public class Coverage {
 		 *
 		 * <p>
 		 * This accessor method returns a reference to the live list, not a snapshot.
-		 * Therefore any modification you make to the returned list will be present inside
-		 * the JAXB object. This is why there is not a <CODE>set</CODE> method for the
-		 * lineToCover property.
+		 * Therefore any modification you make to the returned list will be present
+		 * inside the JAXB object. This is why there is not a <CODE>set</CODE> method
+		 * for the lineToCover property.
 		 *
 		 * <p>
-		 * For example, to add a new item, do as follows: <pre>
-		 *    getLineToCover().add(newItem);
+		 * For example, to add a new item, do as follows:
+		 * {@code
+		 * <pre>
+		 * getLineToCover().add(newItem);
 		 * </pre>
-		 *
+		 * }
 		 *
 		 * <p>
 		 * Objects of the following type(s) are allowed in the list
 		 * {@link Coverage.File.LineToCover }
+		 * @return the line to converter
 		 *
 		 *
 		 */
@@ -207,6 +224,7 @@ public class Coverage {
 
 		/**
 		 * Gets the value of the path property.
+		 * 
 		 * @return possible object is {@link String }
 		 *
 		 */
@@ -216,6 +234,7 @@ public class Coverage {
 
 		/**
 		 * Sets the value of the path property.
+		 * 
 		 * @param value allowed object is {@link String }
 		 *
 		 */
@@ -230,20 +249,24 @@ public class Coverage {
 		 * <p>
 		 * The following schema fragment specifies the expected content contained within
 		 * this class.
-		 *
+		 *{@code
 		 * <pre>
-		 * &lt;complexType>
-		 *   &lt;complexContent>
-		 *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
-		 *       &lt;attribute name="lineNumber" use="required" type="{http://www.w3.org/2001/XMLSchema}positiveInteger" />
-		 *       &lt;attribute name="covered" use="required" type="{http://www.w3.org/2001/XMLSchema}boolean" />
-		 *       &lt;attribute name="branchesToCover" type="{http://www.w3.org/2001/XMLSchema}nonNegativeInteger" />
-		 *       &lt;attribute name="coveredBranches" type="{http://www.w3.org/2001/XMLSchema}nonNegativeInteger" />
-		 *     &lt;/restriction>
-		 *   &lt;/complexContent>
-		 * &lt;/complexType>
+		 * <complexType>
+		 *   <complexContent>
+		 *     <restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
+		 *       <attribute name="lineNumber" use="required" type=
+		"{http://www.w3.org/2001/XMLSchema}positiveInteger" />
+		 *       <attribute name="covered" use="required" type=
+		"{http://www.w3.org/2001/XMLSchema}boolean" />
+		 *       <attribute name="branchesToCover" type=
+		"{http://www.w3.org/2001/XMLSchema}nonNegativeInteger" />
+		 *       <attribute name="coveredBranches" type=
+		"{http://www.w3.org/2001/XMLSchema}nonNegativeInteger" />
+		 *     </restriction>
+		 *   </complexContent>
+		 * </complexType>
 		 * </pre>
-		 *
+		 *}
 		 *
 		 */
 		@XmlAccessorType(XmlAccessType.FIELD)
@@ -267,6 +290,7 @@ public class Coverage {
 
 			/**
 			 * Gets the value of the lineNumber property.
+			 * 
 			 * @return possible object is {@link BigInteger }
 			 *
 			 */
@@ -276,6 +300,7 @@ public class Coverage {
 
 			/**
 			 * Sets the value of the lineNumber property.
+			 * 
 			 * @param value allowed object is {@link BigInteger }
 			 *
 			 */
@@ -285,6 +310,7 @@ public class Coverage {
 
 			/**
 			 * Gets the value of the covered property.
+			 * @return true if covered
 			 *
 			 */
 			public boolean isCovered() {
@@ -293,6 +319,7 @@ public class Coverage {
 
 			/**
 			 * Sets the value of the covered property.
+			 * @param value indicate if covered
 			 *
 			 */
 			public void setCovered(boolean value) {
@@ -301,6 +328,7 @@ public class Coverage {
 
 			/**
 			 * Gets the value of the branchesToCover property.
+			 * 
 			 * @return possible object is {@link BigInteger }
 			 *
 			 */
@@ -310,6 +338,7 @@ public class Coverage {
 
 			/**
 			 * Sets the value of the branchesToCover property.
+			 * 
 			 * @param value allowed object is {@link BigInteger }
 			 *
 			 */
@@ -319,6 +348,7 @@ public class Coverage {
 
 			/**
 			 * Gets the value of the coveredBranches property.
+			 * 
 			 * @return possible object is {@link BigInteger }
 			 *
 			 */
@@ -328,6 +358,7 @@ public class Coverage {
 
 			/**
 			 * Sets the value of the coveredBranches property.
+			 * 
 			 * @param value allowed object is {@link BigInteger }
 			 *
 			 */

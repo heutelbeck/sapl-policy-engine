@@ -447,9 +447,7 @@
 							</execution>
 						</executions>
 						<configuration>
-							<dependencySourceIncludes>
-								<dependencySourceInclude></dependencySourceInclude>
-							</dependencySourceIncludes>
+							<doclint>none</doclint>
 							<tags>
 								<tag>
 									<name>generated</name>

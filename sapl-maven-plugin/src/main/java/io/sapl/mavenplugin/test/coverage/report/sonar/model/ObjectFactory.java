@@ -41,6 +41,7 @@ public class ObjectFactory {
 
 	/**
 	 * Create an instance of {@link Coverage }
+	 * @return the coverage
 	 *
 	 */
 	public Coverage createCoverage() {
@@ -49,6 +50,7 @@ public class ObjectFactory {
 
 	/**
 	 * Create an instance of {@link Coverage.File }
+	 * @return the coverage file
 	 *
 	 */
 	public Coverage.File createCoverageFile() {
@@ -57,6 +59,7 @@ public class ObjectFactory {
 
 	/**
 	 * Create an instance of {@link Coverage.File.LineToCover }
+	 * @return the lineToConverter
 	 *
 	 */
 	public Coverage.File.LineToCover createCoverageFileLineToCover() {

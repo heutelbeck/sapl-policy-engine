@@ -71,7 +71,7 @@ public interface ExpectStep {
 
 	/**
 	 * Allow custom validation of {@link AuthorizationDecision}
-	 * @param pred Predicate<AuthorizationDecision> to validate the first emitted
+	 * @param pred {@code Predicate<AuthorizationDecision>} to validate the first emitted
 	 * {@link AuthorizationDecision}
 	 * @return {@link VerifyStep} to verify your test case.
 	 */
