@@ -40,8 +40,7 @@ public interface WhenStep {
 	 * @param jsonauthzSub {@link String} containing JSON defining a
 	 * {@link AuthorizationSubscription}
 	 * @return next available Step {@link ExpectStep}
-	 * @throws JsonProcessingException
-	 * @throws JsonMappingException
+	 * @throws JsonProcessingException thrown if JSON parsing fails
 	 */
 	ExpectStep when(String jsonauthzSub) throws JsonProcessingException;
 

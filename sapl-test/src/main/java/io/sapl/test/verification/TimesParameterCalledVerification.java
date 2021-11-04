@@ -26,7 +26,7 @@ import io.sapl.test.verification.MockRunInformation.CallWithMetadata;
 import org.hamcrest.Matcher;
 
 /**
- * Verify that this mock was called n times with the specified list of Matcher<Val>.
+ * Verify that this mock was called n times with the specified list of Matcher.
  *
  */
 public class TimesParameterCalledVerification implements MockingVerification {
