@@ -112,8 +112,8 @@ public class LoggingFunctionLibrary {
 	}
 
 	private static String val2String(Val value) {
-		if(value.isError())
-			return "ERROR: "+ value.getMessage();
+		if (value.isError())
+			return "ERROR: " + value.getMessage();
 		return value.isDefined() ? value.get().toString() : "undefined";
 	}
 

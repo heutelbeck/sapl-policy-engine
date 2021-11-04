@@ -60,7 +60,6 @@ public class Imports {
 
 	/**
 	 * see {@link TimesCalledVerification}
-	 * 
 	 * @param wantedNumberOfInvocations the xpected number of invocations
 	 * @return the verification
 	 */
@@ -70,7 +69,6 @@ public class Imports {
 
 	/**
 	 * see {@link TimesCalledVerification}
-	 * 
 	 * @param matcher an Integer matcher
 	 * @return the verification
 	 */
@@ -80,7 +78,6 @@ public class Imports {
 
 	/**
 	 * see {@link TimesCalledVerification}
-	 * 
 	 * @return the verification
 	 */
 	public static TimesCalledVerification never() {
@@ -89,7 +86,6 @@ public class Imports {
 
 	/**
 	 * see {@link TimesCalledVerification}
-	 * 
 	 * @return the verification
 	 */
 	public static TimesCalledVerification anyTimes() {

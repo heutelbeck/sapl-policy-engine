@@ -33,18 +33,18 @@ import lombok.RequiredArgsConstructor;
 /**
  * Library of functions for evaluating Json Web Tokens (JWT)
  * <p>
- * Functions may be used in target expressions of SAPL policies. Since target
- * expressions need to be evaluated quickly for indexing and selecting policies,
- * functions are not allowed to call external services.
+ * Functions may be used in target expressions of SAPL policies. Since target expressions
+ * need to be evaluated quickly for indexing and selecting policies, functions are not
+ * allowed to call external services.
  * <p>
- * This prohibits functions from verifying digital signatures, as it would be
- * necessary to fetch public keys or certificates from external sources. <br>
- * The functions in this library therefore return information contained in JWTs
- * as-is, without verifying the token's validity.
+ * This prohibits functions from verifying digital signatures, as it would be necessary to
+ * fetch public keys or certificates from external sources. <br>
+ * The functions in this library therefore return information contained in JWTs as-is,
+ * without verifying the token's validity.
  * <p>
- * For secure implementations, any function used in the target expression for
- * selecting a policy should therefore be repeated as attribute in the policy's
- * body, as JWT attributes are properly validated.
+ * For secure implementations, any function used in the target expression for selecting a
+ * policy should therefore be repeated as attribute in the policy's body, as JWT
+ * attributes are properly validated.
  */
 @RequiredArgsConstructor
 @FunctionLibrary(name = JWTFunctionLibrary.NAME, description = JWTFunctionLibrary.DESCRIPTION)
@@ -69,7 +69,8 @@ public class JWTFunctionLibrary {
 			jsonToken.set("header", mapper.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
 			jsonToken.set("payload", payload);
 			return Val.of(jsonToken);
-		} catch (ParseException e) {
+		}
+		catch (ParseException e) {
 			return Val.error(e);
 		}
 	}

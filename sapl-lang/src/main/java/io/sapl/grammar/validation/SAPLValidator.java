@@ -25,8 +25,7 @@ import io.sapl.grammar.sapl.SaplPackage;
 /**
  * This class contains custom validation rules.
  *
- * See
- * https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
+ * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
 public class SAPLValidator extends AbstractSAPLValidator {
 
@@ -43,9 +42,8 @@ public class SAPLValidator extends AbstractSAPLValidator {
 	protected static final String MSG_BEHA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "BasicEnvironmentHeadAttribute is not allowed in target expression.";
 
 	/**
-	 * According to SAPL documentation, no lazy And operators are allowed in the
-	 * target expression.
-	 * 
+	 * According to SAPL documentation, no lazy And operators are allowed in the target
+	 * expression.
 	 * @param policy a policy
 	 */
 	@Check
@@ -55,9 +53,8 @@ public class SAPLValidator extends AbstractSAPLValidator {
 	}
 
 	/**
-	 * According to SAPL documentation, no lazy Or operators are allowed in the
-	 * target expression.
-	 * 
+	 * According to SAPL documentation, no lazy Or operators are allowed in the target
+	 * expression.
 	 * @param policy a policy
 	 */
 	@Check
@@ -67,9 +64,8 @@ public class SAPLValidator extends AbstractSAPLValidator {
 	}
 
 	/**
-	 * According to SAPL documentation, no lazy Or operators are allowed in the
-	 * target expression.
-	 * 
+	 * According to SAPL documentation, no lazy Or operators are allowed in the target
+	 * expression.
 	 * @param policy a policy
 	 */
 	@Check
@@ -98,9 +94,8 @@ public class SAPLValidator extends AbstractSAPLValidator {
 
 	/**
 	 * looks for given class in the target expression of given Policy
-	 * 
-	 * @param policy  a policy
-	 * @param aClass  class to look up
+	 * @param policy a policy
+	 * @param aClass class to look up
 	 * @param message an error message
 	 */
 	public void genericCheckForTargetExpression(final Policy policy, final EClass aClass, final String message) {
@@ -112,8 +107,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
 
 	/**
 	 * scan content of given EObject recursively
-	 * 
-	 * @param eObj   object to search through
+	 * @param eObj object to search through
 	 * @param eClass class to look up
 	 * @return discovered object or null
 	 */

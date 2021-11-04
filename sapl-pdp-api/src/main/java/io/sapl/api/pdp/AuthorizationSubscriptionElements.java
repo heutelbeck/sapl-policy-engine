@@ -26,8 +26,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Data structure holding IDs for the elements of an
- * {@link AuthorizationSubscription} SAPL authorization subscription).
+ * Data structure holding IDs for the elements of an {@link AuthorizationSubscription}
+ * SAPL authorization subscription).
  */
 @Data
 @NoArgsConstructor

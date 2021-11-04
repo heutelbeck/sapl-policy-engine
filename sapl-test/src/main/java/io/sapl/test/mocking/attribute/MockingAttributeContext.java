@@ -55,14 +55,14 @@ public class MockingAttributeContext implements AttributeContext {
 	private static final String NAME_DELIMITER = ".";
 
 	/**
-	 * Holds an AttributeContext implementation to delegate evaluations if this
-	 * attribute is not mocked
+	 * Holds an AttributeContext implementation to delegate evaluations if this attribute
+	 * is not mocked
 	 */
 	private final AttributeContext unmockedAttributeContext;
 
 	/**
-	 * Contains a Map of all registered mocks. Key is the String of the fullname of
-	 * the attribute finder Value is the {@link Flux} to be returned
+	 * Contains a Map of all registered mocks. Key is the String of the fullname of the
+	 * attribute finder Value is the {@link Flux} to be returned
 	 */
 	private final Map<String, AttributeMock> registeredMocks;
 
@@ -70,9 +70,8 @@ public class MockingAttributeContext implements AttributeContext {
 
 	/**
 	 * Constructor of MockingAttributeContext
-	 * 
-	 * @param unmockedAttributeContext unmocked "normal" AttributeContext do
-	 *                                 delegate unmocked attribute calls
+	 * @param unmockedAttributeContext unmocked "normal" AttributeContext do delegate
+	 * unmocked attribute calls
 	 */
 	public MockingAttributeContext(AttributeContext unmockedAttributeContext) {
 		this.unmockedAttributeContext = unmockedAttributeContext;
@@ -85,10 +84,12 @@ public class MockingAttributeContext implements AttributeContext {
 		if (this.registeredMocks.containsKey(function)) {
 			log.trace("Attribute \"{}\" is mocked", function);
 			return Boolean.TRUE;
-		} else if (unmockedAttributeContext.isProvidedFunction(function)) {
+		}
+		else if (unmockedAttributeContext.isProvidedFunction(function)) {
 			log.trace("Attribute \"{}\" is provided by unmocked attribute context", function);
 			return Boolean.TRUE;
-		} else {
+		}
+		else {
 			log.trace("Attribute \"{}\" is NOT provided", function);
 			return Boolean.FALSE;
 		}
@@ -126,7 +127,8 @@ public class MockingAttributeContext implements AttributeContext {
 
 			return mock.evaluate(parentValue, variables, args)
 					.doOnNext((val) -> log.trace("| | | | |-- AttributeMock returned: " + val.toString()));
-		} else {
+		}
+		else {
 			log.debug("| | | | |-- Delegate attribute \"{}\" to unmocked attribute context", attribute);
 			return this.unmockedAttributeContext.evaluate(attribute, value, ctx, arguments);
 		}
@@ -150,7 +152,8 @@ public class MockingAttributeContext implements AttributeContext {
 
 		if (this.registeredMocks.containsKey(fullname)) {
 			throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));
-		} else {
+		}
+		else {
 			AttributeMockPublisher mock = new AttributeMockPublisher(fullname);
 			this.registeredMocks.put(fullname, mock);
 
@@ -164,7 +167,8 @@ public class MockingAttributeContext implements AttributeContext {
 		if (mock instanceof AttributeMockPublisher) {
 			((AttributeMockPublisher) mock).mockEmit(returns);
 			return;
-		} else {
+		}
+		else {
 			throw new SaplTestException(String.format(ERROR_NOT_MARKED_DYNAMIC_MOCK, fullname, fullname));
 		}
 	}
@@ -177,10 +181,12 @@ public class MockingAttributeContext implements AttributeContext {
 		if (mock != null) {
 			if (mock instanceof AttributeMockForParentValue) {
 				((AttributeMockForParentValue) mock).loadMockForParentValue(parentValueMatcher, returns);
-			} else {
+			}
+			else {
 				throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));
 			}
-		} else {
+		}
+		else {
 			AttributeMockForParentValue newMock = new AttributeMockForParentValue(fullname);
 			newMock.loadMockForParentValue(parentValueMatcher, returns);
 			this.registeredMocks.put(fullname, newMock);
@@ -198,10 +204,12 @@ public class MockingAttributeContext implements AttributeContext {
 			if (mock instanceof AttributeMockForParentValueAndArguments) {
 				((AttributeMockForParentValueAndArguments) mock).loadMockForParentValueAndArguments(parameters,
 						returns);
-			} else {
+			}
+			else {
 				throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));
 			}
-		} else {
+		}
+		else {
 			AttributeMockForParentValueAndArguments newMock = new AttributeMockForParentValueAndArguments(fullname);
 			newMock.loadMockForParentValueAndArguments(parameters, returns);
 			this.registeredMocks.put(fullname, newMock);
@@ -215,7 +223,8 @@ public class MockingAttributeContext implements AttributeContext {
 
 		if (this.registeredMocks.containsKey(fullname)) {
 			throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));
-		} else {
+		}
+		else {
 			AttributeMockTiming mock = new AttributeMockTiming(fullname);
 			mock.loadAttributeMockWithTiming(timing, returns);
 			this.registeredMocks.put(fullname, mock);
@@ -245,7 +254,8 @@ public class MockingAttributeContext implements AttributeContext {
 		var existingDoc = this.pipDocumentations.get(pipName);
 		if (existingDoc != null) {
 			existingDoc.getDocumentation().put(attributeName, "Mocked Attribute");
-		} else {
+		}
+		else {
 			PolicyInformationPointDocumentation pipDocs = new PolicyInformationPointDocumentation(pipName,
 					"Mocked PIP " + pipName, mock);
 			pipDocs.getDocumentation().put(attributeName, "Mocked Attribute");

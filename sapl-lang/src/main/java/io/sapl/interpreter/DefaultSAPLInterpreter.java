@@ -86,7 +86,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		final SAPL saplDocument;
 		try {
 			saplDocument = parse(saplDefinition);
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			log.error("Error in policy parsing: {}", e.getMessage());
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
@@ -113,7 +114,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 		SAPL saplDocument;
 		try {
 			saplDocument = parse(policyDefinition);
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			return new DocumentAnalysisResult(false, "", null, e.getMessage());
 		}
 		return new DocumentAnalysisResult(true, saplDocument.getPolicyElement().getSaplName(),
@@ -130,7 +132,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
 		try {
 			resource.load(policyInputStream, resourceSet.getLoadOptions());
-		} catch (IOException | WrappedException e) {
+		}
+		catch (IOException | WrappedException e) {
 			throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
 		}
 

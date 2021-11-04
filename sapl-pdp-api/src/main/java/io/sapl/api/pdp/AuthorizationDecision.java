@@ -62,9 +62,8 @@ public class AuthorizationDecision {
 	Optional<ArrayNode> advice = Optional.empty();
 
 	/**
-	 * @param decision Creates an immutable authorization decision with 'decision'
-	 *                 as value, and without any resource, advice, or obligations.
-	 *                 Must not be null.
+	 * @param decision Creates an immutable authorization decision with 'decision' as
+	 * value, and without any resource, advice, or obligations. Must not be null.
 	 */
 	public AuthorizationDecision(@NonNull Decision decision) {
 		this.decision = decision;
@@ -72,9 +71,9 @@ public class AuthorizationDecision {
 
 	/**
 	 * @param newObligations a JSON array containing obligations.
-	 * @return new immutable decision object, replacing the obligations of the
-	 *         original object with newObligations. If the array is empty, no
-	 *         obligations will be present, not even an empty array.
+	 * @return new immutable decision object, replacing the obligations of the original
+	 * object with newObligations. If the array is empty, no obligations will be present,
+	 * not even an empty array.
 	 */
 	public AuthorizationDecision withObligations(@NonNull ArrayNode newObligations) {
 		return new AuthorizationDecision(decision, resource,
@@ -83,9 +82,9 @@ public class AuthorizationDecision {
 
 	/**
 	 * @param newAdvice a JSON array containing advice.
-	 * @return new immutable decision object, replacing the advice of the original
-	 *         object with newAdvice. If the array is empty, no advice will be
-	 *         present, not even an empty array.
+	 * @return new immutable decision object, replacing the advice of the original object
+	 * with newAdvice. If the array is empty, no advice will be present, not even an empty
+	 * array.
 	 */
 	public AuthorizationDecision withAdvice(@NonNull ArrayNode newAdvice) {
 		return new AuthorizationDecision(decision, resource, obligations,
@@ -94,8 +93,7 @@ public class AuthorizationDecision {
 
 	/**
 	 * @param newResource a JSON object, must nor be null.
-	 * @return new immutable decision object, replacing the resource with
-	 *         newResource.
+	 * @return new immutable decision object, replacing the resource with newResource.
 	 */
 	public AuthorizationDecision withResource(@NonNull JsonNode newResource) {
 		return new AuthorizationDecision(decision, Optional.of(newResource), obligations, advice);
@@ -103,8 +101,7 @@ public class AuthorizationDecision {
 
 	/**
 	 * @param newDecision a Decision value.
-	 * @return new immutable decision object, replacing the resource with
-	 *         newResource.
+	 * @return new immutable decision object, replacing the resource with newResource.
 	 */
 	public AuthorizationDecision withDecision(@NonNull Decision newDecision) {
 		return new AuthorizationDecision(newDecision, resource, obligations, advice);

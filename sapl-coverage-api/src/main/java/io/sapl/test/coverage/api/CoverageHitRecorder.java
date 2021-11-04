@@ -24,7 +24,6 @@ public interface CoverageHitRecorder {
 	/**
 	 * Internal method used by SAPL Coverage Recording to record a hit of a
 	 * io.sapl.grammar.sapl.PolicySet
-	 * 
 	 * @param hit a policy hit
 	 */
 	void recordPolicySetHit(PolicySetHit hit);
@@ -32,7 +31,6 @@ public interface CoverageHitRecorder {
 	/**
 	 * Internal method used by SAPL Coverage Recording to record a hit of a
 	 * io.sapl.grammar.sapl.Policy
-	 * 
 	 * @param hit a policy hit
 	 */
 	void recordPolicyHit(PolicyHit hit);

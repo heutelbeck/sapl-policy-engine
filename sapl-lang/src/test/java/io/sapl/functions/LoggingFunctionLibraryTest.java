@@ -55,7 +55,6 @@ class LoggingFunctionLibraryTest {
 		assertThat(LoggingFunctionLibrary.errorSpy(Val.of("message"), Val.FALSE), is(Val.FALSE));
 	}
 
-
 	@Test
 	void debugIsTrue() {
 		assertThat(LoggingFunctionLibrary.debug(Val.of("message"), Val.FALSE), is(Val.TRUE));
@@ -85,5 +84,5 @@ class LoggingFunctionLibraryTest {
 	void errorIsTrue() {
 		assertThat(LoggingFunctionLibrary.error(Val.of("message"), Val.FALSE), is(Val.TRUE));
 	}
-	
+
 }

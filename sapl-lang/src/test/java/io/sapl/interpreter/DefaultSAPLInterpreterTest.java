@@ -85,9 +85,9 @@ class DefaultSAPLInterpreterTest {
 	@Test
 	void parseTestValidationFailsOnLazyBooleanOperatorsInTarget() {
 		var policyDocument = "policy \"test\"  permit true && false";
-		assertThrows(PolicyEvaluationException.class, ()-> INTERPRETER.parse(policyDocument));
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDocument));
 	}
-	
+
 	@Test
 	void brokenInputStreamTest() {
 		var brokenInputStream = mock(InputStream.class);

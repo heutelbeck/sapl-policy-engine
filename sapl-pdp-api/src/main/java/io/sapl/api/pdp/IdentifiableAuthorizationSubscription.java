@@ -19,10 +19,10 @@ import lombok.NonNull;
 import lombok.Value;
 
 /**
- * Holds an {@link AuthorizationSubscription SAPL authorization subscription}
- * together with an ID used to identify the authorization subscription and to
- * assign the authorization subscription its corresponding
- * {@link AuthorizationDecision SAPL authorization decision}.
+ * Holds an {@link AuthorizationSubscription SAPL authorization subscription} together
+ * with an ID used to identify the authorization subscription and to assign the
+ * authorization subscription its corresponding {@link AuthorizationDecision SAPL
+ * authorization decision}.
  *
  * @see AuthorizationSubscription
  * @see IdentifiableAuthorizationDecision

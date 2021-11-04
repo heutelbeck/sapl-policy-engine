@@ -23,8 +23,9 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.RecordedRequest;
 
 public class TestMockServerDispatcher extends Dispatcher {
-	
+
 	public enum DispatchMode {
+
 		/**
 		 * Dispatcher returns the true Base64Url-encoded key, matching the kid
 		 */
@@ -49,29 +50,31 @@ public class TestMockServerDispatcher extends Dispatcher {
 		 * Dispatcher always returns 404 - unknown
 		 */
 		Unknown
+
 	}
 
 	private final String kidPath;
+
 	private final Map<String, String> kidToPubKeyMap;
-	
+
 	@Setter
 	private DispatchMode dispatchMode;
-	
+
 	public TestMockServerDispatcher(String kidPath, Map<String, String> kidToPubKeyMap) {
 		this.kidPath = kidPath;
 		this.kidToPubKeyMap = kidToPubKeyMap;
 	}
-	
+
 	@Override
 	public MockResponse dispatch(RecordedRequest request) {
 		if (!request.getPath().startsWith(kidPath))
 			return new MockResponse().setResponseCode(404);
-		
+
 		String requestedId = request.getPath().substring(kidPath.length());
-		
+
 		if (!kidToPubKeyMap.containsKey(requestedId))
 			return new MockResponse().setResponseCode(404);
-		
+
 		switch (this.dispatchMode) {
 		case Bogus:
 			return this.dispatchBogusKey();
@@ -87,24 +90,26 @@ public class TestMockServerDispatcher extends Dispatcher {
 			return new MockResponse().setResponseCode(404);
 		}
 	}
-	
+
 	private MockResponse dispatchTrueKey(String requestedId) {
 		return new MockResponse().setBody(kidToPubKeyMap.get(requestedId));
 	}
-	
+
 	private MockResponse dispatchWrongKey() {
-		return new MockResponse().setBody(KeyTestUtility.encodePublicKeyToBase64URLPrimary(KeyTestUtility.generateRSAKeyPair()));
+		return new MockResponse()
+				.setBody(KeyTestUtility.encodePublicKeyToBase64URLPrimary(KeyTestUtility.generateRSAKeyPair()));
 	}
-	
+
 	private MockResponse dispatchInvalidKey(String requestedId) {
 		return new MockResponse().setBody(KeyTestUtility.base64Invalid(kidToPubKeyMap.get(requestedId)));
 	}
-	
+
 	private MockResponse dispatchBogusKey() {
 		return new MockResponse().setBody(KeyTestUtility.base64Bogus());
 	}
-	
+
 	private MockResponse dispatchBasicKey(String requestedId) {
 		return new MockResponse().setBody(KeyTestUtility.base64Basic(kidToPubKeyMap.get(requestedId)));
 	}
+
 }

@@ -23,14 +23,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.pdp.AuthorizationSubscription;
 
 /**
- * When Step in charge of setting the {@link AuthorizationSubscription} for the
- * test case. Next Step available : {@link ExpectStep}
+ * When Step in charge of setting the {@link AuthorizationSubscription} for the test case.
+ * Next Step available : {@link ExpectStep}
  */
 public interface WhenStep {
 
 	/**
 	 * Sets the {@link AuthorizationSubscription} for the test case.
-	 * 
 	 * @param authzSubscription the {@link AuthorizationSubscription}
 	 * @return next available Step {@link ExpectStep}
 	 */
@@ -38,9 +37,8 @@ public interface WhenStep {
 
 	/**
 	 * Sets the {@link AuthorizationSubscription} for the test case.
-	 * 
 	 * @param jsonauthzSub {@link String} containing JSON defining a
-	 *                     {@link AuthorizationSubscription}
+	 * {@link AuthorizationSubscription}
 	 * @return next available Step {@link ExpectStep}
 	 * @throws JsonProcessingException
 	 * @throws JsonMappingException
@@ -49,9 +47,7 @@ public interface WhenStep {
 
 	/**
 	 * Sets the {@link AuthorizationSubscription} for the test case.
-	 * 
-	 * @param jsonNode {@link ObjectNode} defining a
-	 *                 {@link AuthorizationSubscription}
+	 * @param jsonNode {@link ObjectNode} defining a {@link AuthorizationSubscription}
 	 * @return next available Step {@link ExpectStep}
 	 */
 	ExpectStep when(JsonNode jsonNode);

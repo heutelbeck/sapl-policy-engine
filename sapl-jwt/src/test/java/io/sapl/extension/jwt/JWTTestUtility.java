@@ -32,35 +32,35 @@ import com.nimbusds.jwt.SignedJWT;
 import io.sapl.api.interpreter.Val;
 
 class JWTTestUtility {
-	
+
 	static final String UNSUPPORTED_KEY_ERROR = "The type of the provided key is not supported!";
 
-	static final long timeUnit = 1000L; //one second in millis
-	
+	static final long timeUnit = 1000L; // one second in millis
+
 	static final String EC = "EC";
 	static final String RSA = "RSA";
-	
+
 	/**
 	 * @return timestamp one unit ago as Date object
 	 */
 	static Date timeOneUnitBeforeNow() {
 		return Date.from(Instant.now().minusMillis(timeUnit));
 	}
-	
+
 	/**
 	 * @return timestamp one unit in the future as Date object
 	 */
 	static Date timeOneUnitAfterNow() {
 		return Date.from(Instant.now().plusMillis(timeUnit));
 	}
-	
+
 	/**
 	 * @return timestamp three units in the future as Date object
 	 */
 	static Date timeThreeUnitsAfterNow() {
 		return Date.from(Instant.now().plusMillis(3 * timeUnit));
 	}
-	
+
 	/**
 	 * @return time interval of two units as Duration object
 	 */
@@ -70,7 +70,7 @@ class JWTTestUtility {
 
 	/**
 	 * @return signed jwt
-	 * @throws JOSEException 
+	 * @throws JOSEException
 	 */
 	static Val buildAndSignJwt(JWSHeader header, JWTClaimsSet claims, KeyPair keyPair) throws JOSEException {
 		JWSSigner signer;
@@ -80,17 +80,19 @@ class JWTTestUtility {
 		else if (RSA.equalsIgnoreCase(keyPair.getPrivate().getAlgorithm())) {
 			signer = new RSASSASigner(keyPair.getPrivate());
 		}
-		else throw new UnsupportedOperationException(UNSUPPORTED_KEY_ERROR);
-		
+		else
+			throw new UnsupportedOperationException(UNSUPPORTED_KEY_ERROR);
+
 		SignedJWT signedJwt = new SignedJWT(header, claims);
 		signedJwt.sign(signer);
 		return Val.of(signedJwt.serialize());
 	}
-	
+
 	/**
 	 * @param signedJWT
 	 * @param tamperedPayload
-	 * @return replaces the encoded payload of a signed JWT with another payload, without updating the signature.
+	 * @return replaces the encoded payload of a signed JWT with another payload, without
+	 * updating the signature.
 	 */
 	static Val replacePayload(Val signedJWT, JWTClaimsSet tamperedPayload) {
 		String[] parts = signedJWT.getText().split("\\.");

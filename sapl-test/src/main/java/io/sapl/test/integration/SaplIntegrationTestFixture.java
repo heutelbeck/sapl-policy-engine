@@ -44,12 +44,10 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	/**
 	 * Fixture for constructing a integration test case
-	 * 
 	 * @param policyPath path relative to your class path (relative from
-	 *                   src/main/resources, ...) to the folder containing the SAPL
-	 *                   documents. If your policies are located at
-	 *                   src/main/resources/yourspecialdir you only have to specify
-	 *                   "yourspecialdir".
+	 * src/main/resources, ...) to the folder containing the SAPL documents. If your
+	 * policies are located at src/main/resources/yourspecialdir you only have to specify
+	 * "yourspecialdir".
 	 */
 	public SaplIntegrationTestFixture(String policyPath) {
 		this.pathToPoliciesFolder = policyPath;
@@ -57,7 +55,6 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	/**
 	 * set {@link PolicyDocumentCombiningAlgorithm} for this policy integration test
-	 * 
 	 * @param alg the {@link PolicyDocumentCombiningAlgorithm} to be used
 	 * @return the test fixture
 	 */
@@ -68,7 +65,6 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	/**
 	 * set the Variables-{@link Map} normally loaded from the pdp.json file
-	 * 
 	 * @param variables a {@link Map} of variables
 	 * @return the test fixture
 	 */

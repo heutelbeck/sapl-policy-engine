@@ -18,9 +18,9 @@
  */
 package io.sapl.grammar.web;
 
-
 /**
  * Use this class to register additional components to be used within the web application.
  */
 public class SAPLWebModule extends AbstractSAPLWebModule {
+
 }
