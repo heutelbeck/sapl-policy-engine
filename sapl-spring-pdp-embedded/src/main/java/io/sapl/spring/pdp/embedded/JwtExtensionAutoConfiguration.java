@@ -23,6 +23,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.extension.jwt.JWTFunctionLibrary;
+import io.sapl.extension.jwt.JWTKeyProvider;
 import io.sapl.extension.jwt.JWTPolicyInformationPoint;
 
 @Configuration
@@ -35,8 +36,13 @@ public class JwtExtensionAutoConfiguration {
 	}
 
 	@Bean
-	public JWTPolicyInformationPoint jwtPolicyInformationPoint(ObjectMapper mapper, WebClient.Builder builder) {
-		return new JWTPolicyInformationPoint(builder);
+	public JWTPolicyInformationPoint jwtPolicyInformationPoint(ObjectMapper mapper, JWTKeyProvider jwtKeyProvider) {
+		return new JWTPolicyInformationPoint(jwtKeyProvider);
+	}
+	
+	@Bean
+	public JWTKeyProvider jwtKeyProvider(WebClient.Builder builder) {
+		return new JWTKeyProvider(builder);
 	}
 
 }

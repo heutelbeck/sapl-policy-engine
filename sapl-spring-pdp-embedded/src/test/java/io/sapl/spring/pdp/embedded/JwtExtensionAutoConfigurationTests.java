@@ -26,6 +26,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.extension.jwt.JWTFunctionLibrary;
+import io.sapl.extension.jwt.JWTKeyProvider;
 import io.sapl.extension.jwt.JWTPolicyInformationPoint;
 
 class JwtExtensionAutoConfigurationTests {
@@ -36,6 +37,7 @@ class JwtExtensionAutoConfigurationTests {
 	@Test
 	void whenContextLoaded_thenDefaultLibrariesArePresent() {
 		contextRunner.withBean(WebClient.Builder.class, () -> mock(WebClient.Builder.class))
+				.withBean(JWTKeyProvider.class, () -> mock(JWTKeyProvider.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(JWTFunctionLibrary.class);

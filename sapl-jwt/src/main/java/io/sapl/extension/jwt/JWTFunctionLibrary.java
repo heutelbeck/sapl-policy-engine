@@ -17,7 +17,6 @@ package io.sapl.extension.jwt;
 
 import java.text.ParseException;
 import java.time.Instant;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;

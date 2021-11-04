@@ -21,8 +21,10 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import okhttp3.mockwebserver.MockWebServer;
 
@@ -71,6 +73,26 @@ public class KeyTestUtility {
 		outputStream.write(keyPair.getPrivate().getEncoded());
 		return Base64.getUrlEncoder().encodeToString(MessageDigest.getInstance(MD5).digest(outputStream.toByteArray()))
 				.replaceAll("=", "");
+	}
+	
+	/**
+	 * @param keyPair
+	 * @return a predicate that evaluates to true iff it's input is of type RSAPublicKey and matches the public key of the supplied keyPair
+	 */
+	static Predicate<Object> keyValidator(KeyPair keyPair) {
+		return publicKey -> {
+
+			if (!keyPair.getPublic().getAlgorithm().equals(RSA))
+				return false;
+
+			if (!(publicKey instanceof RSAPublicKey))
+				return false;
+			
+			RSAPublicKey pubKey = (RSAPublicKey) publicKey;
+			RSAPublicKey other = (RSAPublicKey) keyPair.getPublic();
+			return other.getModulus().equals(pubKey.getModulus())
+					&& other.getPublicExponent().equals(pubKey.getPublicExponent());
+		};
 	}
 
 	/**

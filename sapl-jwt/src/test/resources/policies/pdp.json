@@ -3,7 +3,8 @@
 	"variables": {
 		"publicKeyServer": {
 			"uri": "http://localhost:8090/public-key/{id}",
-			"method": "GET"
+			"method": "GET",
+			"keyCachingTTLmillis": 300000
 		}
 	}
 }

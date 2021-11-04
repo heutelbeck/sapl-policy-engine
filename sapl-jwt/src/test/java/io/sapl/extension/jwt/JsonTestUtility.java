@@ -55,25 +55,32 @@ public class JsonTestUtility {
 	 * @return environment variables containing public key server URI and request method
 	 */
 	static Map<String, JsonNode> publicKeyUriVariables(MockWebServer server, String method) {
-		ObjectNode valueNode = MAPPER.createObjectNode();
+
 		ObjectNode keyNode = MAPPER.createObjectNode();
-
-		if (server != null) {
-			valueNode.put(JWTPolicyInformationPoint.PUBLICKEY_URI_KEY, server.url("/").toString() + "public-keys/{id}");
-		}
-
-		if (method != null && method.length() > 0) {
-			if (method.equals("NONETEXT")) {
-				valueNode.set(JWTPolicyInformationPoint.PUBLICKEY_METHOD_KEY, jsonNode(false));
-			}
-			else {
-				valueNode.put(JWTPolicyInformationPoint.PUBLICKEY_METHOD_KEY, method);
-			}
-		}
+		ObjectNode valueNode = serverNode(server, method, null);
 
 		keyNode.set(JWTPolicyInformationPoint.PUBLICKEY_VARIABLES_KEY, valueNode);
-
 		return Map.of("jwt", keyNode);
+	}
+	
+	static ObjectNode serverNode(MockWebServer server, String method, Long ttl) {
+		ObjectNode valueNode = MAPPER.createObjectNode();
+
+		if (server != null) {
+			valueNode.put(JWTKeyProvider.PUBLICKEY_URI_KEY, server.url("/").toString() + "public-keys/{id}");
+		}
+		if (method != null && method.length() > 0) {
+			if (method.equals("NONETEXT")) {
+				valueNode.set(JWTKeyProvider.PUBLICKEY_METHOD_KEY, jsonNode(false));
+			}
+			else {
+				valueNode.put(JWTKeyProvider.PUBLICKEY_METHOD_KEY, method);
+			}
+		}
+		if (ttl != null) {
+			valueNode.put(JWTKeyProvider.KEY_CACHING_TTL_MILLIS, ttl.longValue());
+		}
+		return valueNode;
 	}
 
 }
