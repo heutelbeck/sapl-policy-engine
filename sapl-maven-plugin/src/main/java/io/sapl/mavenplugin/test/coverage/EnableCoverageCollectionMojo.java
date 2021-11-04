@@ -41,7 +41,8 @@ public class EnableCoverageCollectionMojo extends AbstractMojo {
 		if (this.coverageEnabled) {
 			try {
 				FileUtils.deleteDirectory(PathHelper.resolveBaseDir(outputDir, projectBuildDir, getLog()).toFile());
-			} catch (IOException e) {
+			}
+			catch (IOException e) {
 				throw new MojoExecutionException("Failed to delete directory", e);
 			}
 		}

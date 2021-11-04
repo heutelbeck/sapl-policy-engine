@@ -30,21 +30,19 @@ import reactor.core.publisher.Flux;
 public class PolicyImplCustom extends PolicyImpl {
 
 	/**
-	 * Evaluates the body of the policy within the given evaluation context and
-	 * returns a {@link Flux} of {@link AuthorizationDecision} objects.
-	 * 
-	 * @param ctx the evaluation context in which the policy's body is evaluated. It
-	 *            must contain
-	 *            <ul>
-	 *            <li>the attribute context</li>
-	 *            <li>the function context</li>
-	 *            <li>the variable context holding the four authorization
-	 *            subscription variables 'subject', 'action', 'resource' and
-	 *            'environment' combined with system variables from the PDP
-	 *            configuration and other variables e.g. obtained from the
-	 *            containing policy set</li>
-	 *            <li>the import mapping for functions and attribute finders</li>
-	 *            </ul>
+	 * Evaluates the body of the policy within the given evaluation context and returns a
+	 * {@link Flux} of {@link AuthorizationDecision} objects.
+	 * @param ctx the evaluation context in which the policy's body is evaluated. It must
+	 * contain
+	 * <ul>
+	 * <li>the attribute context</li>
+	 * <li>the function context</li>
+	 * <li>the variable context holding the four authorization subscription variables
+	 * 'subject', 'action', 'resource' and 'environment' combined with system variables
+	 * from the PDP configuration and other variables e.g. obtained from the containing
+	 * policy set</li>
+	 * <li>the import mapping for functions and attribute finders</li>
+	 * </ul>
 	 * @return A {@link Flux} of {@link AuthorizationDecision} objects.
 	 */
 	@Override
@@ -102,7 +100,8 @@ public class PolicyImplCustom extends PolicyImpl {
 			EvaluationContext evaluationCtx) {
 		return previousDecision -> evaluateTransformation(evaluationCtx).map(transformation -> {
 			if (transformation.isError()) {
-				log.debug("  |     |- Error in transformation evaluation. INDETERMINATE: " + transformation.getMessage());
+				log.debug(
+						"  |     |- Error in transformation evaluation. INDETERMINATE: " + transformation.getMessage());
 				return AuthorizationDecision.INDETERMINATE;
 			}
 			if (transformation.isUndefined()) {

@@ -23,7 +23,7 @@ import lombok.Getter;
 @EqualsAndHashCode
 @AllArgsConstructor
 /**
- * Containing all necessary information of a {@link io.sapl.grammar.sapl.PolicySet} hit
+ * Containing all necessary information of a PolicySet hit
  */
 public class PolicySetHit {
 

@@ -79,4 +79,5 @@ class EnableCoverageCollectionMojoTest extends AbstractMojoTestCase {
 			}
 		}
 	}
+
 }

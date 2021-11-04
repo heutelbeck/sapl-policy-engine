@@ -40,7 +40,8 @@ public class CombiningAlgorithmImplCustom extends CombiningAlgorithmImpl {
 		var matchingSaplDocuments = policyRetrievalResult.getMatchingDocuments();
 		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (AuthorizationDecisionEvaluable document : matchingSaplDocuments) {
-			log.debug("  |- Evaluate: {} ", (document instanceof SAPL) ? ((SAPL) document).getPolicyElement().getSaplName() : document.toString());
+			log.debug("  |- Evaluate: {} ", (document instanceof SAPL)
+					? ((SAPL) document).getPolicyElement().getSaplName() : document.toString());
 			authzDecisionFluxes.add(document.evaluate(evaluationCtx));
 		}
 		if (matchingSaplDocuments.isEmpty()) {

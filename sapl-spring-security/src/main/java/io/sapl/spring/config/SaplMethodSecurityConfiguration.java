@@ -42,6 +42,8 @@ import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointProvider;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointVoter;
+import io.sapl.spring.method.metadata.PostEnforce;
+import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttributeFactory;
 import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
@@ -49,8 +51,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * This configuration class adds blocking SAPL {@link @PreEnforce} and
- * {@link @PostEnforce} annotations to the global method security configuration.
+ * This configuration class adds blocking SAPL {@link PreEnforce} and {@link PostEnforce}
+ * annotations to the global method security configuration.
  *
  * Classes may extend this class to customize the defaults, but must be sure to specify
  * the {@link EnableGlobalMethodSecurity} annotation on the subclass.

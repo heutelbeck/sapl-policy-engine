@@ -35,6 +35,7 @@ public class JWTFunctionLibraryTest {
 	private final static String MALFORMED_TOKEN = "NOT A WELL FORMED TOKEN";
 
 	private final static ObjectMapper MAPPER = new ObjectMapper();
+
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	@Test

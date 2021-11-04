@@ -48,6 +48,9 @@ import reactor.util.context.ContextView;
  * accordingly.
  *
  * The PEP does not permit onErrorContinue() downstream.
+ *
+ * @param <T> type of the Flux contents
+ *
  */
 @Slf4j
 public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {

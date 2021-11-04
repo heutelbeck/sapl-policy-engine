@@ -24,9 +24,8 @@ import io.sapl.test.mocking.MockCall;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
 import io.sapl.test.mocking.function.models.FunctionParameters;
+import io.sapl.test.verification.MockingVerification;
 import io.sapl.test.verification.TimesCalledVerification;
-
-import org.hamcrest.Matcher;
 
 /**
  * First Step in charge of registering mock values, ... . Next Step available :
@@ -48,7 +47,7 @@ public interface GivenStep {
 	 * Mock the return value of a Function in the SAPL policy
 	 * @param importName the reference in the SAPL policy to the function
 	 * @param returns the mocked return value
-	 * @param verification verification for this mocking. See {@link MockingVerifications}
+	 * @param verification verification for this mocking. See {@link MockingVerification}
 	 * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to the
 	 * {@link WhenStep}
 	 */
@@ -77,7 +76,9 @@ public interface GivenStep {
 	 * Mock the return value of a Function in the SAPL policy. With every call of this
 	 * method you register a mocked return value for this combination of parameters of the
 	 * function call. Ordering matters. The first matching parameters-Matcher's value will
-	 * be returned Example: <pre>
+	 * be returned Example:
+	 *
+	 * <pre>
 	 * {@code
 	 *	.givenFunction("time.dayOfWeekFrom", whenFunctionParams(val(0), val("foo")), Val.of("MONDAY"))
 	 *	.givenFunction("time.dayOfWeekFrom", whenFunctionParams(val(0), anyVal()), Val.of("TUESDAY"))
@@ -86,8 +87,7 @@ public interface GivenStep {
 	 * @param importName the reference in the SAPL policy to the function
 	 * @param returns the mocked return value
 	 * @param parameters only return the specified {@link Val} if the parameters of the
-	 * call to the function are equal to the Val's specified here. See
-	 * {@link FunctionParameters#whenFunctionParams(ParameterMatcher...)}
+	 * call to the function are equal to the Val's specified here.
 	 * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to the
 	 * {@link WhenStep}
 	 */
@@ -97,7 +97,9 @@ public interface GivenStep {
 	 * Mock the return value of a Function in the SAPL policy. With every call of this
 	 * method you register a mocked return value for this combination of parameters of the
 	 * function call. Ordering matters. The first matching parameters-Matcher's value will
-	 * be returned Example: <pre>
+	 * be returned Example:
+	 *
+	 * <pre>
 	 * {@code
 	 *	.givenFunction("time.dayOfWeekFrom", whenFunctionParams(val(0), val("foo")), Val.of("MONDAY"), times(3))
 	 *	.givenFunction("time.dayOfWeekFrom", whenFunctionParams(val(0), anyVal()), Val.of("TUESDAY"), times(3))
@@ -107,8 +109,8 @@ public interface GivenStep {
 	 * @param returns the mocked return value
 	 * @param parameters only return the specified {@link Val} if the parameters of the
 	 * call to the function are equal to the Val's specified here. See
-	 * {@link Imports.#whenParameters(org.hamcrest.Matcher...)}
-	 * @param verification verification for this mocking. See {@link MockingVerifications}
+	 * {@link Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
+	 * @param verification verification for this mocking. See {@link MockingVerification}
 	 * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to the
 	 * {@link WhenStep}
 	 */
@@ -121,7 +123,9 @@ public interface GivenStep {
 	 * You can apply some complex logic in this lambda to return a {@link Val} dependent
 	 * on the function parameter values Parameter to this Lambda-Expression is a
 	 * {@link MockCall} representing the call of your function. You can access the
-	 * parameter values via this object. Example: <pre>
+	 * parameter values via this object. Example:
+	 *
+	 * <pre>
 	 * {@code
 	 * .givenFunction("time.dayOfWeekFrom", (Val[] call) -> {
 	 *		
@@ -146,7 +150,9 @@ public interface GivenStep {
 	 * You can apply some complex logic in this lambda to return a {@link Val} dependent
 	 * on the function parameter values Parameter to this Lambda-Expression is a
 	 * {@link MockCall} representing the call of your function. You can access the
-	 * parameter values via this object. Example: <pre>
+	 * parameter values via this object. Example:
+	 *
+	 * <pre>
 	 * {@code
 	 * .givenFunction("time.dayOfWeekFrom", (Val[] call) -> {
 	 *		
@@ -160,7 +166,7 @@ public interface GivenStep {
 	 * </pre>
 	 * @param importName the reference in the SAPL policy to the function
 	 * @param returns a {@link Val} to be returned by the function
-	 * @param verification verification for this mocking. See {@link MockingVerifications}
+	 * @param verification verification for this mocking. See {@link MockingVerification}
 	 * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to the
 	 * {@link WhenStep}
 	 */
@@ -180,15 +186,18 @@ public interface GivenStep {
 	 * Mock the return value of a PIP in the SAPL policy when the parentValue matches the
 	 * expectation
 	 *
-	 * Example: <pre>
+	 * Example:
+	 *
+	 * <pre>
 	 * {@code
 	 *	.givenAttribute("test.upper", whenParentValue(val("willi")), thenReturn(Val.of("WILLI")))
 	 * }
 	 * </pre>
 	 * @param importName the reference in the SAPL policy to the PIP
+	 * @param parentValueMatcher a parameter value matcher
 	 * @param parameters only return the specified {@link Val} if the parameters of the
 	 * call to the attribute match the expectations. Use
-	 * {@link Imports#whenAttributeParams(Matcher)}
+	 * {@link Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
 	 * @param returns the mocked return value
 	 * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to the
 	 * {@link WhenStep}
@@ -201,7 +210,9 @@ public interface GivenStep {
 	 * matching the expectations
 	 *
 	 *
-	 * Example: <pre>
+	 * Example:
+	 *
+	 * <pre>
 	 * {@code
 	 *	.givenAttribute("pip.attributeWithParams", whenAttributeParams(parentValue(val(true)), arguments(val(2), val(2))), thenReturn(Val.of(true)))
 	 * }
@@ -209,7 +220,7 @@ public interface GivenStep {
 	 * @param importName the reference in the SAPL policy to the PIP
 	 * @param parameters only return the specified {@link Val} if the parameters of the
 	 * call to the attribute match the expectations. Use
-	 * {@link Imports#whenAttributeParams(org.hamcrest.Matcher, org.hamcrest.Matcher...)}
+	 * {@link Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
 	 * @param returns the mocked return value
 	 * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to the
 	 * {@link WhenStep}

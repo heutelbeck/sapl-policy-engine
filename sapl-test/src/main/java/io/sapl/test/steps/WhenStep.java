@@ -37,7 +37,7 @@ public interface WhenStep {
 
 	/**
 	 * Sets the {@link AuthorizationSubscription} for the test case.
-	 * @param authzSubscription {@link String} containing JSON defining a
+	 * @param jsonauthzSub {@link String} containing JSON defining a
 	 * {@link AuthorizationSubscription}
 	 * @return next available Step {@link ExpectStep}
 	 * @throws JsonProcessingException
@@ -47,8 +47,7 @@ public interface WhenStep {
 
 	/**
 	 * Sets the {@link AuthorizationSubscription} for the test case.
-	 * @param authzSubscription {@link ObjectNode} defining a
-	 * {@link AuthorizationSubscription}
+	 * @param jsonNode {@link ObjectNode} defining a {@link AuthorizationSubscription}
 	 * @return next available Step {@link ExpectStep}
 	 */
 	ExpectStep when(JsonNode jsonNode);

@@ -26,7 +26,7 @@ import org.hamcrest.Matcher;
 
 /**
  * This step is in charge of defining the expected results. Next Step available :
- * {@link VerifyStep} or again an {@link ExpectStep} -> therefore returning composite
+ * {@link VerifyStep} or again an {@link ExpectStep}. Therefore, returning composite
  * {@link ExpectOrVerifyStep}
  */
 public interface ExpectStep {
@@ -63,15 +63,15 @@ public interface ExpectStep {
 
 	/**
 	 * Allow custom validation of {@link AuthorizationDecision}
-	 * @param An {@link AuthorizationDecision} object which has to be equal to the first
-	 * emitted {@link AuthorizationDecision}
+	 * @param authDec An {@link AuthorizationDecision} object which has to be equal to the
+	 * first emitted {@link AuthorizationDecision}
 	 * @return {@link VerifyStep} to verify your test case.
 	 */
 	VerifyStep expect(AuthorizationDecision authDec);
 
 	/**
 	 * Allow custom validation of {@link AuthorizationDecision}
-	 * @param pred {@link Predicate<AuthorizationDecision>} to validate the first emitted
+	 * @param pred Predicate<AuthorizationDecision> to validate the first emitted
 	 * {@link AuthorizationDecision}
 	 * @return {@link VerifyStep} to verify your test case.
 	 */
@@ -79,7 +79,7 @@ public interface ExpectStep {
 
 	/**
 	 * Allow custom validation of {@link AuthorizationDecision}
-	 * @param {@link Matcher<AuthorizationDecision>} to validate the first emitted
+	 * @param matcher {@link Matcher} to validate the first emitted
 	 * {@link AuthorizationDecision}
 	 * @return {@link VerifyStep} to verify your test case.
 	 */
@@ -98,6 +98,7 @@ public interface ExpectStep {
 	/**
 	 * Asserts that the next @param emitted values of {@link AuthorizationDecision} of the
 	 * policy evaluation is a {@link Decision#PERMIT}
+	 * @param count number of permits
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
 	 */
@@ -114,6 +115,7 @@ public interface ExpectStep {
 	/**
 	 * Asserts that the next @param emitted values of {@link AuthorizationDecision} of the
 	 * policy evaluation is a {@link Decision#DENY}
+	 * @param count expected number
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
 	 */
@@ -130,6 +132,7 @@ public interface ExpectStep {
 	/**
 	 * Asserts that the next @param emitted values of {@link AuthorizationDecision} of the
 	 * policy evaluation is a {@link Decision#INDETERMINATE}
+	 * @param count expected number
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
 	 */
@@ -146,6 +149,7 @@ public interface ExpectStep {
 	/**
 	 * Asserts that the next @param emitted values of {@link AuthorizationDecision} of the
 	 * policy evaluation is a {@link Decision#NOT_APPLICABLE}
+	 * @param count expected number
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
 	 */
@@ -162,7 +166,7 @@ public interface ExpectStep {
 
 	/**
 	 * Allow custom validation of {@link AuthorizationDecision}
-	 * @param {@link Matcher<AuthorizationDecision>} to validate the current emitted
+	 * @param matcher {@link Matcher} to validate the current emitted
 	 * {@link AuthorizationDecision}
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
@@ -171,8 +175,8 @@ public interface ExpectStep {
 
 	/**
 	 * Allow custom validation of {@link AuthorizationDecision}
-	 * @param pred {@link Predicate<AuthorizationDecision>} to validate the current
-	 * emitted {@link AuthorizationDecision}
+	 * @param pred {@link Predicate} to validate the current emitted
+	 * {@link AuthorizationDecision}
 	 * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
 	 * {@link VerifyStep}
 	 */

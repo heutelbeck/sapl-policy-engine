@@ -49,6 +49,8 @@ import reactor.util.function.Tuples;
  * accordingly.
  *
  * The PEP does not permit onErrorContinue() downstream.
+ *
+ * @param <T> type of the FLux contents
  */
 public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 		extends Flux<Tuple2<Optional<T>, Optional<Throwable>>> {

@@ -29,8 +29,9 @@ import java.util.function.Predicate;
 import okhttp3.mockwebserver.MockWebServer;
 
 public class KeyTestUtility {
-	
+
 	private static final String MD5 = "MD5";
+
 	private static final String RSA = "RSA";
 
 	/**
@@ -47,14 +48,15 @@ public class KeyTestUtility {
 		}
 		return keyPair;
 	}
-	
+
 	/**
 	 * @return a mock web server used for testing public key requests
-	 * @throws IOException 
-	 * @throws NoSuchAlgorithmException 
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
 	 */
 	static MockWebServer testServer(String keyPath, KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
-		Map<String, String> mockServerKeys = Map.of(KeyTestUtility.kid(keyPair), KeyTestUtility.encodePublicKeyToBase64URLPrimary(keyPair));
+		Map<String, String> mockServerKeys = Map.of(KeyTestUtility.kid(keyPair),
+				KeyTestUtility.encodePublicKeyToBase64URLPrimary(keyPair));
 		MockWebServer server = new MockWebServer();
 		server.setDispatcher(new TestMockServerDispatcher(keyPath, mockServerKeys));
 		return server;
@@ -62,14 +64,15 @@ public class KeyTestUtility {
 
 	/**
 	 * @return the public key's hash code
-	 * @throws NoSuchAlgorithmException 
-	 * @throws IOException 
+	 * @throws NoSuchAlgorithmException
+	 * @throws IOException
 	 */
 	static String kid(KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		outputStream.write(keyPair.getPublic().getEncoded());
 		outputStream.write(keyPair.getPrivate().getEncoded());
-		return Base64.getUrlEncoder().encodeToString(MessageDigest.getInstance(MD5).digest(outputStream.toByteArray())).replaceAll("=", "");
+		return Base64.getUrlEncoder().encodeToString(MessageDigest.getInstance(MD5).digest(outputStream.toByteArray()))
+				.replaceAll("=", "");
 	}
 	
 	/**

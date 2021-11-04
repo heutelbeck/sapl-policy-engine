@@ -90,7 +90,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	 * addAuthorizationSubscription(subscriptionId, subject, action, resource, null)}.
 	 * @param subscriptionId the id identifying the authorization subscription to be
 	 * added.
-	 * @param authzSub an authorization subscription.
+	 * @param subscription an authorization subscription.
 	 * @return this {@code MultiAuthorizationSubscription} instance to support chaining of
 	 * multiple calls to {@code addAuthorizationSubscription}.
 	 */

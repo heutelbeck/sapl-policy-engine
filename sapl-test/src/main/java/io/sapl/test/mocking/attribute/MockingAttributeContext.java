@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
@@ -36,10 +38,6 @@ import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
-import io.sapl.test.steps.NumberOfExpectSteps;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -64,7 +62,7 @@ public class MockingAttributeContext implements AttributeContext {
 
 	/**
 	 * Contains a Map of all registered mocks. Key is the String of the fullname of the
-	 * attribute finder Value is the {@link Flux<Val>} to be returned
+	 * attribute finder Value is the {@link Flux} to be returned
 	 */
 	private final Map<String, AttributeMock> registeredMocks;
 
@@ -74,9 +72,6 @@ public class MockingAttributeContext implements AttributeContext {
 	 * Constructor of MockingAttributeContext
 	 * @param unmockedAttributeContext unmocked "normal" AttributeContext do delegate
 	 * unmocked attribute calls
-	 * @param numberOfExpectSteps {@link NumberOfExpectSteps} to convert infinite streams
-	 * to finite ones via a .take(numberOfExpectSteps) call. "null" if no conversion to a
-	 * finite stream should happen.
 	 */
 	public MockingAttributeContext(AttributeContext unmockedAttributeContext) {
 		this.unmockedAttributeContext = unmockedAttributeContext;

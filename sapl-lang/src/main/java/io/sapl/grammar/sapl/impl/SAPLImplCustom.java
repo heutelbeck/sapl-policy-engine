@@ -45,7 +45,8 @@ public class SAPLImplCustom extends SAPLImpl {
 	public Mono<Val> matches(EvaluationContext subscriptionScopedEvaluationContext) {
 		try {
 			return getPolicyElement().matches(documentScopedEvaluationContext(subscriptionScopedEvaluationContext));
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			return Mono.just(Val.error(e));
 		}
 	}
@@ -55,7 +56,8 @@ public class SAPLImplCustom extends SAPLImpl {
 		EvaluationContext documentScopedEvaluationContext;
 		try {
 			documentScopedEvaluationContext = documentScopedEvaluationContext(subscriptionScopedEvaluationContext);
-		} catch (PolicyEvaluationException e) {
+		}
+		catch (PolicyEvaluationException e) {
 			log.debug("  |- INDETERMINATE. The imports evaluated with en error: {}", e.getMessage());
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
@@ -81,11 +83,13 @@ public class SAPLImplCustom extends SAPLImpl {
 		if (anImport instanceof WildcardImport) {
 			addWildcardImports(imports, library, subscriptionScopedEvaluationContext.getAttributeCtx());
 			addWildcardImports(imports, library, subscriptionScopedEvaluationContext.getFunctionCtx());
-		} else if (anImport instanceof LibraryImport) {
+		}
+		else if (anImport instanceof LibraryImport) {
 			var alias = ((LibraryImport) anImport).getLibAlias();
 			addLibraryImports(imports, library, alias, subscriptionScopedEvaluationContext.getAttributeCtx());
 			addLibraryImports(imports, library, alias, subscriptionScopedEvaluationContext.getFunctionCtx());
-		} else
+		}
+		else
 			addBasicImport(anImport, library, imports, subscriptionScopedEvaluationContext);
 	}
 

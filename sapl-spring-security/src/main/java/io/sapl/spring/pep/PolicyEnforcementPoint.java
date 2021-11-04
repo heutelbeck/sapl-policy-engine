@@ -28,8 +28,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * This service can be used to establish a policy enforcement point at any
- * location in users code.
+ * This service can be used to establish a policy enforcement point at any location in
+ * users code.
  */
 @Service
 @RequiredArgsConstructor

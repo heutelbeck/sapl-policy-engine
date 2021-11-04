@@ -51,6 +51,8 @@ import reactor.core.publisher.Flux;
  * accordingly.
  *
  * The PEP does not permit onErrorContinue() downstream.
+ *
+ * @param <T> type of the FLux contents
  */
 @Slf4j
 public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
