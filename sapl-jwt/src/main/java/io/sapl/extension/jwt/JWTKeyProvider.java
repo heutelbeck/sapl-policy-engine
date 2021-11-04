@@ -3,11 +3,12 @@ package io.sapl.extension.jwt;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Instant;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -38,8 +39,8 @@ public class JWTKeyProvider {
 	
 	public JWTKeyProvider(WebClient.Builder builder) {
 		webClient = builder.build();
-		keyCache = new HashMap<String, RSAPublicKey>();
-		cachingTimes = new PriorityQueue<CacheEntry>();
+		keyCache = new ConcurrentHashMap<String, RSAPublicKey>(); // HashMap<String, RSAPublicKey>();
+		cachingTimes = new ConcurrentLinkedQueue<JWTKeyProvider.CacheEntry>(); // PriorityQueue<CacheEntry>();
 	}
 	
 	public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) {
@@ -59,7 +60,7 @@ public class JWTKeyProvider {
 		if (jTTL != null && jTTL.canConvertToLong())
 			lTTL = jTTL.longValue();
 
-		lastTTL = lTTL;
+		lastTTL = lTTL >= 0L ? lTTL : DEFAULT_CACHING_TTL;
 		return fetchPublicKey(kid, sUri, sMethod);
 	}
 	
@@ -77,6 +78,10 @@ public class JWTKeyProvider {
 		return keyCache.containsKey(kid);
 	}
 	
+	public void setTTLmillis(long newTTLmillis) {
+		lastTTL = newTTLmillis >= 0L ? newTTLmillis : DEFAULT_CACHING_TTL;
+	}
+	
 	/**
 	 * Fetches public key from remote authentication server
 	 * 
@@ -86,7 +91,7 @@ public class JWTKeyProvider {
 	 * @return public key or empty
 	 */
 	private Mono<RSAPublicKey> fetchPublicKey(String kid, String publicKeyURI, String publicKeyRequestMethod) {
-		ResponseSpec response;
+		final ResponseSpec response;
 		
 		//return cached key if present
 		if (isCached(kid)) {
@@ -124,7 +129,7 @@ public class JWTKeyProvider {
 		}
 	}
 	
-	private static class CacheEntry implements Comparable<CacheEntry> {
+	private static class CacheEntry {
 		
 		@Getter
 		private final String keyId;
@@ -137,14 +142,6 @@ public class JWTKeyProvider {
 		
 		boolean wasCachedBefore(Instant instant) {
 			return cachingTime.isBefore(instant);
-		}
-		
-		@Override
-		public String toString() {return "(" + cachingTime.toEpochMilli() + ", " + keyId + ")";}
-
-		@Override
-		public int compareTo(CacheEntry o) {
-			return cachingTime.compareTo(o.cachingTime);
 		}
 	}
 	

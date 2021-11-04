@@ -1,41 +1,46 @@
 package io.sapl.extension.jwt;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
-import java.util.function.Supplier;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import io.sapl.extension.jwt.TestMockServerDispatcher.DispatchMode;
 import okhttp3.mockwebserver.MockWebServer;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 public class JWTKeyProviderTest {
 	
 	private static String kid;
+	private static String otherKid;
 	private static MockWebServer server;
 	private static TestMockServerDispatcher dispatcher;
 	private static WebClient.Builder builder;
 	private static JWTKeyProvider provider;
 	private static KeyPair keyPair;
+	private static KeyPair otherKeyPair;
 
 	@BeforeAll
 	public static void preSetup() throws IOException, NoSuchAlgorithmException {
 		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
 		keyPair = KeyTestUtility.generateRSAKeyPair();
 		kid = KeyTestUtility.kid(keyPair);
-		server = KeyTestUtility.testServer("/public-keys/", keyPair);
+		otherKeyPair = KeyTestUtility.generateRSAKeyPair();
+		otherKid = KeyTestUtility.kid(otherKeyPair);
+		server = KeyTestUtility.testServer("/public-keys/", Set.of(keyPair, otherKeyPair));
 		dispatcher = (TestMockServerDispatcher) server.getDispatcher();
 		server.start();
 		builder = WebClient.builder();
@@ -56,37 +61,56 @@ public class JWTKeyProviderTest {
  */	
 	
 	@Test
-	@Disabled
-	public void isCached_notCachedThenCached_shouldBeFalseThenTrue() {
-		dispatcher.setDispatchMode(DispatchMode.True);
-		var flux = Flux.concat(Mono.just(provider.isCached(kid)),
-				Mono.just(Boolean.FALSE).map(x -> {
-					provider.cache(kid, (RSAPublicKey)keyPair.getPublic());
-					return x;
-				})
-				.then(Mono.just(provider.isCached(kid))));
-		StepVerifier.create(flux).expectNext(Boolean.FALSE).expectNext(Boolean.TRUE).verifyComplete();
+	public void isCached_notCachedThenCachedThenNotCached_shouldBeFalseThenTrueThenFalse() {
+		var pubKey = (RSAPublicKey) keyPair.getPublic();
+		provider.setTTLmillis(JWTTestUtility.synchronousTimeUnit);
+		assertFalse(provider.isCached(kid));
+		provider.cache(kid, pubKey);
+		assertTrue(provider.isCached(kid));
+		Mono.delay(JWTTestUtility.twoSynchronousUnitDuration()).block();
+		assertFalse(provider.isCached(kid));
 	}
-
+	
 	@Test
-	@Disabled
-	public void provide_notCachedThenCachedThenNotCached_shouldBeFalseThenPublicKeyThenTrueThenTrueThenPublicKeyThenFalse() {
+	public void isCached_cacheTwice_shouldBeFalseThenTrueThenTrue() {
+		var pubKey = (RSAPublicKey) keyPair.getPublic();
+		assertFalse(provider.isCached(kid));
+		provider.cache(kid, pubKey);
+		assertTrue(provider.isCached(kid));
+		provider.cache(kid, pubKey);
+		assertTrue(provider.isCached(kid));
+	}
+	
+	@Test
+	public void provide_cacheThenRetrieve_shouldBeFalseThenTrueThenPublicKey() {
+		var pubKey = (RSAPublicKey) keyPair.getPublic();
+		var serverNode = JsonTestUtility.serverNode(server, null, null);
+		assertFalse(provider.isCached(kid));
+		provider.cache(kid, pubKey);
+		assertTrue(provider.isCached(kid));
+		var mono = provider.provide(kid, serverNode);
+		StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
+	}
+	
+	@Test
+	public void isCachedAndProvide_multipleKeys_shouldBeTwiceFalseThenPublicKeyThenTrueThenFalseThenPublicKeyTheTwiceTrueThenFalse()
+			throws NoSuchAlgorithmException, IOException {
+
 		dispatcher.setDispatchMode(DispatchMode.True);
-		var serverNode = JsonTestUtility.serverNode(server, null, JWTTestUtility.twoUnitDuration().toMillis());
-		Supplier<Flux<Object>> fluxSupplier = () -> Flux.concat(Mono.just(provider.isCached(kid)),
-				Mono.just((RSAPublicKey) keyPair.getPublic()).map(JWTTestUtility.cacheAndReturn(provider, kid)),
-				Mono.just(provider.isCached(kid)),
-				Mono.just(provider.isCached(kid)).delayElement(JWTTestUtility.oneUnitDuration()),
-				provider.provide(kid, serverNode),
-				Mono.just(provider.isCached(kid)).delayElement(JWTTestUtility.twoUnitDuration()));
-		StepVerifier.withVirtualTime(fluxSupplier).expectNext(Boolean.FALSE)
-				.expectNextMatches(KeyTestUtility.keyValidator(keyPair))
-				.expectNext(Boolean.TRUE)
-				.thenAwait(JWTTestUtility.twoUnitDuration())
-				.expectNext(Boolean.TRUE)
-				.expectNextMatches(KeyTestUtility.keyValidator(keyPair))
-				.thenAwait(JWTTestUtility.twoUnitDuration())
-				.expectNext(Boolean.FALSE).verifyComplete();
+		var serverNode = JsonTestUtility.serverNode(server, null, null);
+		assertFalse(provider.isCached(kid));
+		assertFalse(provider.isCached(otherKid));
+		var firstRetrievedKey = provider.provide(kid, serverNode).block(JWTTestUtility.twoUnitDuration());
+		assertTrue(KeyTestUtility.areKeysEqual(firstRetrievedKey, keyPair));
+		provider.cache(kid, firstRetrievedKey);
+		assertTrue(provider.isCached(kid));
+		assertFalse(provider.isCached(otherKid));
+		var secondRetrievedKey = provider.provide(otherKid, serverNode).block(JWTTestUtility.twoUnitDuration());
+		assertTrue(KeyTestUtility.areKeysEqual(secondRetrievedKey, otherKeyPair));
+		provider.cache(otherKid, secondRetrievedKey);
+		assertTrue(provider.isCached(kid));
+		assertTrue(provider.isCached(otherKid));
+		assertFalse(KeyTestUtility.areKeysEqual(firstRetrievedKey, secondRetrievedKey));
 	}
 
 /*
@@ -128,6 +152,14 @@ public class JWTKeyProviderTest {
 	public void provide_withUriAndCustomTTLEnvironment_usingBase64Url_shouldBePublicKey() {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var serverNode = JsonTestUtility.serverNode(server, null, JWTTestUtility.timeUnit);
+		var mono = provider.provide(kid, serverNode);
+		StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
+	}
+	
+	@Test
+	public void provide_withUriAndNegativeTTLEnvironment_usingBase64Url_shouldBePublicKey() {
+		dispatcher.setDispatchMode(DispatchMode.True);
+		var serverNode = JsonTestUtility.serverNode(server, null, -JWTTestUtility.timeUnit);
 		var mono = provider.provide(kid, serverNode);
 		StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
 	}

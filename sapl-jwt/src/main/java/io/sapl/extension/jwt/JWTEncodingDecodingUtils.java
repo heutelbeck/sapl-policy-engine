@@ -20,7 +20,7 @@ public class JWTEncodingDecodingUtils {
 		if (!jsonNode.isTextual())
 			return Optional.empty();
 
-		return JWTEncodingDecodingUtils.encodedX509ToRSAPublicKey(jsonNode.textValue());
+		return encodedX509ToRSAPublicKey(jsonNode.textValue());
 	}
 	
 	/**

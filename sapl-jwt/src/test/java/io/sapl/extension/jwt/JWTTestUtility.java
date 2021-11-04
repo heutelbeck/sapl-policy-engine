@@ -19,7 +19,6 @@ import java.security.KeyPair;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Date;
 import java.util.function.Function;
 
@@ -38,6 +37,7 @@ class JWTTestUtility {
 	static final String UNSUPPORTED_KEY_ERROR = "The type of the provided key is not supported!";
 
 	static final long timeUnit = 2000L; // two seconds in millis
+	static final long synchronousTimeUnit = 50L; // fifty milliseconds
 
 	static final String EC = "EC";
 	static final String RSA = "RSA";
@@ -77,11 +77,18 @@ class JWTTestUtility {
 		return Duration.ofMillis(2 * timeUnit);
 	}
 	
-	static Function<RSAPublicKey, RSAPublicKey> cacheAndReturn(JWTKeyProvider provider, String kid) {
-		return publicKey -> {
-			provider.cache(kid, publicKey);
-			return publicKey;
-		};
+	/**
+	 * @return time interval of one synchronous unit as Duration object
+	 */
+	static Duration oneSynchronousUnitDuration() {
+		return Duration.ofMillis(synchronousTimeUnit);
+	}
+
+	/**
+	 * @return time interval of two synchronous units as Duration object
+	 */
+	static Duration twoSynchronousUnitDuration() {
+		return Duration.ofMillis(2 * synchronousTimeUnit);
 	}
 
 	/**
@@ -102,6 +109,13 @@ class JWTTestUtility {
 		SignedJWT signedJwt = new SignedJWT(header, claims);
 		signedJwt.sign(signer);
 		return Val.of(signedJwt.serialize());
+	}
+	
+	static Function<RSAPublicKey, RSAPublicKey> cacheAndReturn(JWTKeyProvider provider, String kid) {
+		return publicKey -> {
+			provider.cache(kid, publicKey);
+			return publicKey;
+		};
 	}
 
 	/**

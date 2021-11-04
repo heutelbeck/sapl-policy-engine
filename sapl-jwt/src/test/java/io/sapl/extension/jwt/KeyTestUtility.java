@@ -23,7 +23,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import okhttp3.mockwebserver.MockWebServer;
@@ -61,6 +63,25 @@ public class KeyTestUtility {
 		server.setDispatcher(new TestMockServerDispatcher(keyPath, mockServerKeys));
 		return server;
 	}
+	
+	/**
+	 * @return a mock web server used for testing public key requests
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 */
+	static MockWebServer testServer(String keyPath, Set<KeyPair> keyPairs) {
+		Map<String, String> mockServerKeys = new HashMap<String, String>();
+		keyPairs.forEach(keyPair -> {
+			try {
+				mockServerKeys.put(KeyTestUtility.kid(keyPair), KeyTestUtility.encodePublicKeyToBase64URLPrimary(keyPair));
+			} catch (NoSuchAlgorithmException | IOException e) {
+				e.printStackTrace();
+			}
+		});
+		MockWebServer server = new MockWebServer();
+		server.setDispatcher(new TestMockServerDispatcher(keyPath, mockServerKeys));
+		return server;
+	}
 
 	/**
 	 * @return the public key's hash code
@@ -81,18 +102,24 @@ public class KeyTestUtility {
 	 */
 	static Predicate<Object> keyValidator(KeyPair keyPair) {
 		return publicKey -> {
-
-			if (!keyPair.getPublic().getAlgorithm().equals(RSA))
-				return false;
-
 			if (!(publicKey instanceof RSAPublicKey))
 				return false;
 			
 			RSAPublicKey pubKey = (RSAPublicKey) publicKey;
-			RSAPublicKey other = (RSAPublicKey) keyPair.getPublic();
-			return other.getModulus().equals(pubKey.getModulus())
-					&& other.getPublicExponent().equals(pubKey.getPublicExponent());
+			return areKeysEqual(pubKey, keyPair);
 		};
+	}
+	
+	static boolean areKeysEqual(RSAPublicKey publicKey, KeyPair keyPair) {
+		if (!keyPair.getPublic().getAlgorithm().equals(RSA))
+			return false;
+		RSAPublicKey other = (RSAPublicKey) keyPair.getPublic();
+		return areKeysEqual(publicKey, other);
+	}
+	
+	static boolean areKeysEqual(RSAPublicKey keyA, RSAPublicKey keyB) {
+		return keyA.getModulus().equals(keyB.getModulus())
+				&& keyA.getPublicExponent().equals(keyB.getPublicExponent());
 	}
 
 	/**

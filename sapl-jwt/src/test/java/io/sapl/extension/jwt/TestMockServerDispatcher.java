@@ -58,7 +58,7 @@ public class TestMockServerDispatcher extends Dispatcher {
 	private final Map<String, String> kidToPubKeyMap;
 
 	@Setter
-	private DispatchMode dispatchMode;
+	private DispatchMode dispatchMode = DispatchMode.True;
 
 	public TestMockServerDispatcher(String kidPath, Map<String, String> kidToPubKeyMap) {
 		this.kidPath = kidPath;
