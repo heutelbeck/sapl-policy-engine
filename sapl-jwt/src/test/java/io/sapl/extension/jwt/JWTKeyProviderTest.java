@@ -32,6 +32,7 @@ public class JWTKeyProviderTest {
 
 	@BeforeAll
 	public static void preSetup() throws IOException, NoSuchAlgorithmException {
+		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
 		keyPair = KeyTestUtility.generateRSAKeyPair();
 		kid = KeyTestUtility.kid(keyPair);
 		server = KeyTestUtility.testServer("/public-keys/", keyPair);
@@ -48,7 +49,6 @@ public class JWTKeyProviderTest {
 	@BeforeEach
 	public void setup() {
 		provider = new JWTKeyProvider(builder);
-		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
 	}
 	
 /*
@@ -60,12 +60,12 @@ public class JWTKeyProviderTest {
 	public void isCached_notCachedThenCached_shouldBeFalseThenTrue() {
 		dispatcher.setDispatchMode(DispatchMode.True);
 		var flux = Flux.concat(Mono.just(provider.isCached(kid)),
-				Mono.just(false).map(x -> {
+				Mono.just(Boolean.FALSE).map(x -> {
 					provider.cache(kid, (RSAPublicKey)keyPair.getPublic());
 					return x;
 				})
 				.then(Mono.just(provider.isCached(kid))));
-		StepVerifier.create(flux).expectNext(false).expectNext(true).verifyComplete();
+		StepVerifier.create(flux).expectNext(Boolean.FALSE).expectNext(Boolean.TRUE).verifyComplete();
 	}
 
 	@Test
@@ -79,14 +79,14 @@ public class JWTKeyProviderTest {
 				Mono.just(provider.isCached(kid)).delayElement(JWTTestUtility.oneUnitDuration()),
 				provider.provide(kid, serverNode),
 				Mono.just(provider.isCached(kid)).delayElement(JWTTestUtility.twoUnitDuration()));
-		StepVerifier.withVirtualTime(fluxSupplier).expectNext(false)
+		StepVerifier.withVirtualTime(fluxSupplier).expectNext(Boolean.FALSE)
 				.expectNextMatches(KeyTestUtility.keyValidator(keyPair))
-				.expectNext(true)
+				.expectNext(Boolean.TRUE)
 				.thenAwait(JWTTestUtility.twoUnitDuration())
-				.expectNext(true)
+				.expectNext(Boolean.TRUE)
 				.expectNextMatches(KeyTestUtility.keyValidator(keyPair))
 				.thenAwait(JWTTestUtility.twoUnitDuration())
-				.expectNext(false).verifyComplete();
+				.expectNext(Boolean.FALSE).verifyComplete();
 	}
 
 /*
