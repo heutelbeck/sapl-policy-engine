@@ -58,7 +58,7 @@ jobs:
           ${{ runner.os }}-maven-
 
     - name: Run tests
-      run: mvn -B package # package, as the maven plugin loads resources from the dependency packages
+      run: mvn -B package javadoc:jar # package, as the maven plugin loads resources from the dependency packages
 
   analyze:
     needs: [tests]
