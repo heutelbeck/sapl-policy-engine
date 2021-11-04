@@ -72,7 +72,8 @@ import reactor.core.publisher.Mono;
  *					        "whitelist" : {
  *								            "key id" : "public key"
  *					    		          }
- *	             }
+ *	                      }
+ * 				   }
  * }
  * }
  * </pre>
@@ -151,7 +152,6 @@ public class JWTPolicyInformationPoint {
 	/**
 	 * Constructor
 	 * 
-	 * @param mapper  object mapper for mapping objects to Json
 	 * @param builder mutable builder for creating a web client
 	 */
 	public JWTPolicyInformationPoint(WebClient.Builder builder) {
@@ -168,7 +168,7 @@ public class JWTPolicyInformationPoint {
 	 * <p>
 	 * The validity may change over time as it becomes mature and then expires.
 	 * 
-	 * @param value     object containing JWT
+	 * @param rawToken     object containing JWT
 	 * @param variables configuration variables
 	 * @return Flux representing the JWT's validity over time
 	 */
@@ -190,7 +190,7 @@ public class JWTPolicyInformationPoint {
 		} catch (ParseException e) {
 			return Flux.just(ValidityState.MALFORMED);
 		}
-		
+
 		// ensure all required claims are well formed
 		if (!hasCompatibleClaims(signedJwt))
 			return Flux.just(ValidityState.INCOMPATIBLE);
@@ -198,7 +198,7 @@ public class JWTPolicyInformationPoint {
 		// ensure presence of all required claims
 		if (!hasRequiredClaims(signedJwt))
 			return Flux.just(ValidityState.INCOMPLETE);
-		
+
 		return validateSignature(signedJwt, variables).flatMapMany(isValid -> {
 
 			if (!isValid)
@@ -356,7 +356,7 @@ public class JWTPolicyInformationPoint {
 		// verify correct algorithm
 		if (!"RS256".equalsIgnoreCase(header.getAlgorithm().getName()))
 			return false;
-		
+
 		// verify absence of incompatible critical parameters
 		if (header.getCriticalParams() != null && !header.getCriticalParams().isEmpty()) {
 			// critical parameters present, need to check for compatibility

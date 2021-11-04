@@ -25,21 +25,21 @@ public interface CoverageHitReader {
 
 	/**
 	 * Internal method used by SAPL Coverage Reading to read all hits of
-	 * {@link io.sapl.grammar.sapl.PolicySet}'s
+	 * io.sapl.grammar.sapl.PolicySet's
 	 * @return List of {@link PolicySetHit}
 	 */
 	List<PolicySetHit> readPolicySetHits();
 
 	/**
 	 * Internal method used by SAPL Coverage Reading to read all hits of
-	 * {@link io.sapl.grammar.sapl.Policy}'s
+	 * io.sapl.grammar.sapl.Policy's
 	 * @return List of {@link PolicySetHit}
 	 */
 	List<PolicyHit> readPolicyHits();
 
 	/**
 	 * Internal method used by SAPL Coverage Reading to read all hits of
-	 * {@link io.sapl.grammar.sapl.Condition}'s
+	 * io.sapl.grammar.sapl.Condition's
 	 * @return List of {@link PolicySetHit}
 	 */
 	List<PolicyConditionHit> readPolicyConditionHits();

@@ -18,15 +18,14 @@ package io.sapl.test;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
 
+import org.hamcrest.Matcher;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
-
-import org.hamcrest.Matcher;
-
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -61,8 +60,9 @@ public class Imports {
 
 	/**
 	 * see {@link TimesCalledVerification}
-	 * @param wantedNumberOfInvocations
-	 * @return
+	 * 
+	 * @param wantedNumberOfInvocations the xpected number of invocations
+	 * @return the verification
 	 */
 	public static TimesCalledVerification times(int wantedNumberOfInvocations) {
 		return new TimesCalledVerification(comparesEqualTo(wantedNumberOfInvocations));
@@ -70,8 +70,9 @@ public class Imports {
 
 	/**
 	 * see {@link TimesCalledVerification}
-	 * @param matcher
-	 * @return
+	 * 
+	 * @param matcher an Integer matcher
+	 * @return the verification
 	 */
 	public static TimesCalledVerification times(Matcher<Integer> matcher) {
 		return new TimesCalledVerification(matcher);
@@ -79,8 +80,8 @@ public class Imports {
 
 	/**
 	 * see {@link TimesCalledVerification}
-	 * @param matcher
-	 * @return
+	 * 
+	 * @return the verification
 	 */
 	public static TimesCalledVerification never() {
 		return new TimesCalledVerification(comparesEqualTo(0));
@@ -88,8 +89,8 @@ public class Imports {
 
 	/**
 	 * see {@link TimesCalledVerification}
-	 * @param matcher
-	 * @return
+	 * 
+	 * @return the verification
 	 */
 	public static TimesCalledVerification anyTimes() {
 		return new TimesCalledVerification(any(Integer.class));

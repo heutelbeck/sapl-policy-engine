@@ -437,7 +437,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-javadoc-plugin</artifactId>
-						<version>3.3.0</version>
+						<version>3.3.1</version>
 						<executions>
 							<execution>
 								<id>attach-javadocs</id>
@@ -447,6 +447,9 @@
 							</execution>
 						</executions>
 						<configuration>
+							<dependencySourceIncludes>
+								<dependencySourceInclude></dependencySourceInclude>
+							</dependencySourceIncludes>
 							<tags>
 								<tag>
 									<name>generated</name>

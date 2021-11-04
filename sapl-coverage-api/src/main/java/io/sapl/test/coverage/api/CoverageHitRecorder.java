@@ -23,25 +23,24 @@ public interface CoverageHitRecorder {
 
 	/**
 	 * Internal method used by SAPL Coverage Recording to record a hit of a
-	 * {@link io.sapl.grammar.sapl.PolicySet}
-	 * @param policySetId PolicySetId of the PolicySet
+	 * io.sapl.grammar.sapl.PolicySet
+	 * 
+	 * @param hit a policy hit
 	 */
 	void recordPolicySetHit(PolicySetHit hit);
 
 	/**
 	 * Internal method used by SAPL Coverage Recording to record a hit of a
-	 * {@link io.sapl.grammar.sapl.Policy}
-	 * @param policySetId PolicySetId of the PolicySet
-	 * @param policyId PolicyId of the Policy
+	 * io.sapl.grammar.sapl.Policy
+	 * 
+	 * @param hit a policy hit
 	 */
 	void recordPolicyHit(PolicyHit hit);
 
 	/**
 	 * Internal method used by SAPL Coverage Recording to record a hit of a
-	 * {@link io.sapl.grammar.sapl.Condition}
-	 * @param policySetId PolicySetId of the PolicySet
-	 * @param policyId PolicyId of surrounding Policy
-	 * @param lineNumber LineNumber of this Condition
+	 * io.sapl.grammar.sapl.Condition
+	 * @param hit a policy condition hit
 	 */
 	void recordPolicyConditionHit(PolicyConditionHit hit);
 

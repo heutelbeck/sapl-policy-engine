@@ -25,8 +25,8 @@ import reactor.core.publisher.Flux;
  * authorization decision objects.
  *
  * This interface offers methods to hand over an authorization subscription to
- * the policy decision point, differing in the construction of the
- * underlying authorization subscription object.
+ * the policy decision point, differing in the construction of the underlying
+ * authorization subscription object.
  */
 public interface PolicyDecisionPoint {
 

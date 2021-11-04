@@ -44,9 +44,12 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	/**
 	 * Fixture for constructing a integration test case
-	 * @param policyPath path relativ to your classpath (relativ from src/main/resources,
-	 * ...) to the folder containing the sapl documents. If your policies are located at
-	 * src/main/resources/yourspecialdir you only have to specify "yourspecialdir".
+	 * 
+	 * @param policyPath path relative to your class path (relative from
+	 *                   src/main/resources, ...) to the folder containing the SAPL
+	 *                   documents. If your policies are located at
+	 *                   src/main/resources/yourspecialdir you only have to specify
+	 *                   "yourspecialdir".
 	 */
 	public SaplIntegrationTestFixture(String policyPath) {
 		this.pathToPoliciesFolder = policyPath;
@@ -54,8 +57,9 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	/**
 	 * set {@link PolicyDocumentCombiningAlgorithm} for this policy integration test
+	 * 
 	 * @param alg the {@link PolicyDocumentCombiningAlgorithm} to be used
-	 * @return
+	 * @return the test fixture
 	 */
 	public SaplIntegrationTestFixture withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm alg) {
 		this.pdpAlgorithm = alg;
@@ -64,8 +68,9 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	/**
 	 * set the Variables-{@link Map} normally loaded from the pdp.json file
+	 * 
 	 * @param variables a {@link Map} of variables
-	 * @return
+	 * @return the test fixture
 	 */
 	public SaplIntegrationTestFixture withPDPVariables(Map<String, JsonNode> variables) {
 		this.pdpVariables = variables;

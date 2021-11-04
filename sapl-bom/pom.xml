@@ -114,17 +114,6 @@
 		</dependencies>
 	</dependencyManagement>
 
-	<repositories>
-		<repository>
-			<!-- Maven Central Snapshot Repository -->
-			<id>ossrh</id>
-			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-	</repositories>
-
 	<distributionManagement>
 		<!-- Maven Central Snapshot Repository -->
 		<snapshotRepository>
