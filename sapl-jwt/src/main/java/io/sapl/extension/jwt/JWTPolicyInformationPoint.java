@@ -65,6 +65,7 @@ import reactor.core.publisher.Mono;
  *	             }
  * }
  * }
+ * }
  * </pre>
  */
 @Slf4j
@@ -138,8 +139,7 @@ public class JWTPolicyInformationPoint {
 	/**
 	 * Constructor
 	 * 
-	 * @param mapper  object mapper for mapping objects to Json
-	 * @param builder mutable builder for creating a web client
+	 * @param jwtKeyProvider a JWTKeyProvider
 	 */
 	public JWTPolicyInformationPoint(JWTKeyProvider jwtKeyProvider) {
 		this.keyProvider = jwtKeyProvider;
@@ -155,7 +155,7 @@ public class JWTPolicyInformationPoint {
 	 * <p>
 	 * The validity may change over time as it becomes mature and then expires.
 	 * 
-	 * @param value     object containing JWT
+	 * @param rawToken     object containing JWT
 	 * @param variables configuration variables
 	 * @return Flux representing the JWT's validity over time
 	 */
