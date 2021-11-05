@@ -72,7 +72,7 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 
 	@Override
 	public void assertVerifications() {
-		this.listMockingVerifications.stream().forEach((verification) -> verification.verify(this.mockRunInformation));
+		this.listMockingVerifications.forEach((verification) -> verification.verify(this.mockRunInformation));
 	}
 
 	public void loadParameterSpecificReturnValue(Val mockReturnValue, FunctionParameters parameter,

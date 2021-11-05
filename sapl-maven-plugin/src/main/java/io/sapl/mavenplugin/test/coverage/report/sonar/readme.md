@@ -11,7 +11,7 @@ To tell SonarQube to collect this generic coverage report you have to set the pa
 
 In this file every sapl policy is referenced via it's path in the src/main/resources directory.
 
-By default the sonar maven plugin only collects files at the paths "pom.xml,src/main/java". This is the default setting for the "sonar.sources" parameter.
+By default, the sonar maven plugin only collects files at the paths "pom.xml,src/main/java". This is the default setting for the "sonar.sources" parameter.
 
 To collect the SAPL policies in the src/main/resources directory you have to specifiy some additional parameters at sonar maven plugin execution time.
 

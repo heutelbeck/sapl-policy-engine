@@ -59,7 +59,7 @@ public class SaplDocumentReader {
 		List<SaplDocument> saplDocuments = new LinkedList<>();
 		for (File file : files) {
 			if (file.isFile() && file.getName().endsWith(".sapl")) {
-				String fileContent = null;
+				String fileContent;
 				try {
 					log.debug(String.format("Loading coverage target from file \"%s\"", file.getPath()));
 					fileContent = Files.readString(file.toPath());

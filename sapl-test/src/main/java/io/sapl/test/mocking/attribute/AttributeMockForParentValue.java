@@ -41,9 +41,9 @@ public class AttributeMockForParentValue implements AttributeMock {
 
 	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS = "You already defined a Mock for %s which is returning specified values when parameters are matching the expectation";
 
-	private static final String ERROR_NO_MATCHING_PARENTVALUE = "Unable to find a mocked return value for this parent value";
+	private static final String ERROR_NO_MATCHING_PARENT_VALUE = "Unable to find a mocked return value for this parent value";
 
-	private final String fullname;
+	private final String fullName;
 
 	private final List<ParameterSpecificMockReturnValue> listParameterSpecificMockReturnValues;
 
@@ -51,10 +51,10 @@ public class AttributeMockForParentValue implements AttributeMock {
 
 	private final List<MockingVerification> listMockingVerifications;
 
-	public AttributeMockForParentValue(String fullname) {
-		this.fullname = fullname;
+	public AttributeMockForParentValue(String fullName) {
+		this.fullName = fullName;
 		this.listParameterSpecificMockReturnValues = new LinkedList<>();
-		this.mockRunInformation = new MockRunInformation(fullname);
+		this.mockRunInformation = new MockRunInformation(fullName);
 		this.listMockingVerifications = new LinkedList<>();
 	}
 
@@ -81,7 +81,7 @@ public class AttributeMockForParentValue implements AttributeMock {
 	private void checkAtLeastOneMatchingMockReturnValueExists(
 			Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues) {
 		if (matchingParameterSpecificMockReturnValues.isEmpty()) {
-			throw new SaplTestException(ERROR_NO_MATCHING_PARENTVALUE);
+			throw new SaplTestException(ERROR_NO_MATCHING_PARENT_VALUE);
 		}
 	}
 
@@ -93,12 +93,12 @@ public class AttributeMockForParentValue implements AttributeMock {
 
 	@Override
 	public void assertVerifications() {
-		this.listMockingVerifications.stream().forEach((verification) -> verification.verify(this.mockRunInformation));
+		this.listMockingVerifications.forEach((verification) -> verification.verify(this.mockRunInformation));
 	}
 
 	@Override
 	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS, this.fullname);
+		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS, this.fullName);
 	}
 
 	@Getter

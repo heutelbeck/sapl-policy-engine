@@ -71,42 +71,32 @@ import reactor.core.publisher.Mono;
 @PolicyInformationPoint(name = JWTPolicyInformationPoint.NAME, description = JWTPolicyInformationPoint.DESCRIPTION)
 public class JWTPolicyInformationPoint {
 
-	private static final String JWT_CONFIG_MISSING_ERROR = "The key 'jwt' with the configuration of public key server and key whillist, blacklist is missing. All JWT tokens will be treated as if the signatures could not be validated.";
-
+	private static final String JWT_CONFIG_MISSING_ERROR = "The key 'jwt' with the configuration of public key server and key whitelist. All JWT tokens will be treated as if the signatures could not be validated.";
 	private static final String JWT_KEY = "jwt";
-	static final String NAME = JWT_KEY;
-	static final String DESCRIPTION = "Json Web Token Attributes. Attributes depend on the JWT's validity, meaning they can change their state over time according to the JWT's signature, maturity and expiration.";
-
+	private static final String NAME = JWT_KEY;
+	private static final String DESCRIPTION = "Json Web Token Attributes. Attributes depend on the JWT's validity, meaning they can change their state over time according to the JWT's signature, maturity and expiration.";
 	private static final String VALIDITY_DOCS = "The token's validity state";
 
-	static final String PUBLICKEY_VARIABLES_KEY = "publicKeyServer";
+	static final String PUBLIC_KEY_VARIABLES_KEY = "publicKeyServer";
 
 	/**
 	 * Possible states of validity a JWT can have
 	 */
 	enum ValidityState {
 
-		/**
-		 * the JWT is valid
-		 */
+		 // the JWT is valid
 		VALID
 
-		/**
-		 * the JWT has expired
-		 */
+		 // the JWT has expired
 		, EXPIRED
 
-		/**
-		 * the JWT expires before it becomes valid, so it is never valid
-		 */
+		// the JWT expires before it becomes valid, so it is never valid
 		, NEVERVALID
 
-		/**
-		 * the JWT will become valid in future
-		 */
+		// the JWT will become valid in future
 		, IMMATURE
 
-		/**
+		/*
 		 * the JWT's signature does not match
 		 * <p>
 		 * either the payload has been tampered with, the public key could not be
@@ -114,7 +104,7 @@ public class JWTPolicyInformationPoint {
 		 */
 		, UNTRUSTED
 
-		/**
+		/*
 		 * the JWT is incompatible
 		 * <p>
 		 * either an incompatible hashing algorithm has been used or required fields do
@@ -122,14 +112,10 @@ public class JWTPolicyInformationPoint {
 		 */
 		, INCOMPATIBLE
 
-		/**
-		 * the JWT is missing required fields
-		 */
+		// the JWT is missing required fields
 		, INCOMPLETE
 
-		/**
-		 * the token is not a JWT
-		 */
+		// the token is not a JWT
 		,MALFORMED
 
 	}
@@ -213,7 +199,7 @@ public class JWTPolicyInformationPoint {
 		}
 
 		if (publicKey == null) {
-			var jPublicKeyServer = jwtConfig.get(PUBLICKEY_VARIABLES_KEY);
+			var jPublicKeyServer = jwtConfig.get(PUBLIC_KEY_VARIABLES_KEY);
 
 			if (jPublicKeyServer == null)
 				return Mono.just(Boolean.FALSE);
@@ -248,7 +234,7 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * Verifies token validity based on time
-	 * @param jwt base64 encoded header.body.signature triplet
+	 * @param claims JWT claims
 	 * @return Flux containing IMMATURE, VALID, and/or EXPIRED
 	 */
 	private Flux<ValidityState> validateTime(JWTClaimsSet claims) {
@@ -309,11 +295,9 @@ public class JWTPolicyInformationPoint {
 
 		// verify presence of key ID
 		String kid = jwt.getHeader().getKeyID();
-		if (kid == null || kid.isBlank())
-			return false;
+		return kid != null && !kid.isBlank();
 
 		// JWT contains all required claims
-		return true;
 	}
 
 	/**
@@ -330,14 +314,11 @@ public class JWTPolicyInformationPoint {
 			return false;
 
 		// verify absence of incompatible critical parameters
-		if (header.getCriticalParams() != null && !header.getCriticalParams().isEmpty()) {
-			// critical parameters present, need to check for compatibility
-			// now: no critical parameters compatible, return false
-			return false;
-		}
+		// critical parameters present, need to check for compatibility
+		// now: no critical parameters compatible, return false
+		return header.getCriticalParams() == null || header.getCriticalParams().isEmpty();
 
 		// all claims are compatible with requirements
-		return true;
 	}
 
 }

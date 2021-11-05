@@ -30,13 +30,14 @@ import reactor.core.publisher.Flux;
  * Superclass of basic expressions providing a method to evaluate the steps, filter and
  * subtemplate possibly being part of the basic expression.
  *
- * Grammar: BasicExpression returns Expression: Basic (FILTER filter=FilterComponent |
+ * Grammar:
+ * {@code BasicExpression returns Expression: Basic (FILTER filter=FilterComponent |
  * SUBTEMPLATE subtemplate=BasicExpression)? ;
  *
  * Basic returns BasicExpression: {BasicGroup} '(' expression=Expression ')' steps+=Step*
  * | {BasicValue} value=Value steps+=Step* | {BasicFunction} fsteps+=ID ('.' fsteps+=ID)*
  * arguments=Arguments steps+=Step* | {BasicIdentifier} identifier=ID steps+=Step* |
- * {BasicRelative} '@' steps+=Step* ;
+ * {BasicRelative} '@' steps+=Step* ;}
  */
 public class BasicExpressionImplCustom extends BasicExpressionImpl {
 

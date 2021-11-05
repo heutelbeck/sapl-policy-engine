@@ -69,7 +69,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 
 	/**
 	 * Convenience method to add an authorization subscription without environment data.
-	 * Calls {@link #addAuthorizationSubscription(String, Object, Object, Object)
+	 * Calls {@link addAuthorizationSubscription(String, Object, Object, Object)
 	 * addAuthorizationSubscription(subscriptionId, subject, action, resource, null)}.
 	 * @param subscriptionId the id identifying the authorization subscription to be
 	 * added.

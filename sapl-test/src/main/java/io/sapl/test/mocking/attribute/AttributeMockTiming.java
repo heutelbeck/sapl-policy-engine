@@ -76,7 +76,7 @@ public class AttributeMockTiming implements AttributeMock {
 
 	@Override
 	public void assertVerifications() {
-		this.listMockingVerifications.stream().forEach((verification) -> verification.verify(this.mockRunInformation));
+		this.listMockingVerifications.forEach((verification) -> verification.verify(this.mockRunInformation));
 	}
 
 	@Override

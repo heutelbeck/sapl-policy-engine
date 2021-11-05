@@ -32,9 +32,9 @@ import reactor.util.function.Tuples;
 
 /**
  * Implements the application of a recursive key step to a previous value, e.g.
- * 'obj..name' or 'arr..["name"]'.
+ * {@code 'obj..name' or 'arr..["name"]'}.
  *
- * Grammar: Step: '..' ({RecursiveKeyStep} (id=ID | '[' id=STRING ']')) ;
+ * Grammar: {@code Step: '..' ({RecursiveKeyStep} (id=ID | '[' id=STRING ']')) ;}
  */
 @Slf4j
 public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {

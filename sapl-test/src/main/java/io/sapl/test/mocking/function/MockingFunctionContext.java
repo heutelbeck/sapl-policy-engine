@@ -115,7 +115,7 @@ public class MockingFunctionContext implements FunctionContext {
 	}
 
 	@Override
-	public void loadLibrary(Object library) throws InitializationException {
+	public void loadLibrary(Object library) {
 		throw new SaplTestException(ERROR_LOADING_LIB_NOT_SUPPORTED);
 	}
 

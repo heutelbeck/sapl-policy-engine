@@ -144,7 +144,7 @@ public class ConstraintHandlerBundle<T> {
 	}
 
 	private LongConsumer consumeAllLong(List<LongConsumer> handlers) {
-		return value -> handlers.stream().forEach(handler -> handler.accept(value));
+		return value -> handlers.forEach(handler -> handler.accept(value));
 	}
 
 	private <V> Function<V, V> mapAll(List<Function<V, V>> handlers) {
@@ -154,7 +154,7 @@ public class ConstraintHandlerBundle<T> {
 	}
 
 	private <V> Consumer<V> consumeAll(List<Consumer<V>> handlers) {
-		return value -> handlers.stream().forEach(handler -> handler.accept(value));
+		return value -> handlers.forEach(handler -> handler.accept(value));
 	}
 
 	private Mono<Void> onDecision(List<Runnable> handlers) {
@@ -162,7 +162,7 @@ public class ConstraintHandlerBundle<T> {
 	}
 
 	private Runnable runAll(List<Runnable> handlers) {
-		return () -> handlers.stream().forEach(Runnable::run);
+		return () -> handlers.forEach(Runnable::run);
 	}
 
 }

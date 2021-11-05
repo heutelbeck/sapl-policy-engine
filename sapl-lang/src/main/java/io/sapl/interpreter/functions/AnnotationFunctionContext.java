@@ -66,7 +66,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 	/**
 	 * Create context from a list of function libraries.
 	 * @param libraries list of function libraries @ if loading libraries fails
-	 * @throws InitializationException
+	 * @throws InitializationException if initialization fails
 	 */
 	public AnnotationFunctionContext(Object... libraries) throws InitializationException {
 		for (Object library : libraries)
@@ -96,7 +96,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 				ParameterTypeValidator.validateType(parameters[i], funParams[i]);
 			}
 			catch (IllegalParameterType e) {
-				return invokationExceptionToError(e, metadata, (Object[]) parameters);
+				return invocationExceptionToError(e, metadata, (Object[]) parameters);
 			}
 		}
 		return invokeFunction(metadata, (Object[]) parameters);
@@ -108,7 +108,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 				ParameterTypeValidator.validateType(parameter, funParams[0]);
 			}
 			catch (IllegalParameterType e) {
-				return invokationExceptionToError(e, metadata, (Object[]) parameters);
+				return invocationExceptionToError(e, metadata, (Object[]) parameters);
 			}
 		}
 		return invokeFunction(metadata, new Object[] { parameters });
@@ -119,11 +119,11 @@ public class AnnotationFunctionContext implements FunctionContext {
 			return (Val) metadata.getFunction().invoke(metadata.getLibrary(), parameters);
 		}
 		catch (PolicyEvaluationException | IllegalAccessException | InvocationTargetException e) {
-			return invokationExceptionToError(e, metadata, parameters);
+			return invocationExceptionToError(e, metadata, parameters);
 		}
 	}
 
-	private Val invokationExceptionToError(Exception e, FunctionMetadata metadata, Object... parameters) {
+	private Val invocationExceptionToError(Exception e, FunctionMetadata metadata, Object... parameters) {
 		var params = new StringBuilder();
 		for (var i = 0; i < parameters.length; i++) {
 			params.append(parameters[i]);

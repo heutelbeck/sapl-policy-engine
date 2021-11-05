@@ -68,7 +68,7 @@ public class AuthorizationSubscription {
 	 * @param subject an object describing the subject.
 	 * @param action an object describing the action.
 	 * @param resource an object describing the resource.
-	 * @return an AuthorizationSubscrption for subscribing to a SAPL PDP
+	 * @return an AuthorizationSubscription for subscribing to a SAPL PDP
 	 */
 	public static AuthorizationSubscription of(Object subject, Object action, Object resource) {
 		return of(subject, action, resource, MAPPER);
@@ -81,7 +81,7 @@ public class AuthorizationSubscription {
 	 * @param action an object describing the action.
 	 * @param resource an object describing the resource.
 	 * @param mapper the ObjectMapper to be used for marshaling.
-	 * @return an AuthorizationSubscrption for subscribing to a SAPL PDP
+	 * @return an AuthorizationSubscription for subscribing to a SAPL PDP
 	 */
 	public static AuthorizationSubscription of(Object subject, Object action, Object resource, ObjectMapper mapper) {
 		return of(subject, action, resource, null, mapper);
@@ -94,7 +94,7 @@ public class AuthorizationSubscription {
 	 * @param action an object describing the action.
 	 * @param resource an object describing the resource.
 	 * @param environment an object describing the environment.
-	 * @return an AuthorizationSubscrption for subscribing to a SAPL PDP
+	 * @return an AuthorizationSubscription for subscribing to a SAPL PDP
 	 */
 	public static AuthorizationSubscription of(Object subject, Object action, Object resource, Object environment) {
 		return of(subject, action, resource, environment, MAPPER);
@@ -108,7 +108,7 @@ public class AuthorizationSubscription {
 	 * @param resource an object describing the resource.
 	 * @param environment an object describing the environment.
 	 * @param mapper the ObjectMapper to be used for marshaling.
-	 * @return an AuthorizationSubscrption for subscribing to a SAPL PDP
+	 * @return an AuthorizationSubscription for subscribing to a SAPL PDP
 	 */
 	public static AuthorizationSubscription of(Object subject, Object action, Object resource, Object environment,
 			ObjectMapper mapper) {

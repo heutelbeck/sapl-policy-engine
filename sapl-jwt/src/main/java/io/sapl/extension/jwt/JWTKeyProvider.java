@@ -120,7 +120,6 @@ public class JWTKeyProvider {
 
 	/**
 	 * remove all keys from cache, that are older than TTLmillis before now
-	 * @param TTLmillis
 	 */
 	private void pruneCache() {
 		var pruneTime = new Date().toInstant().minusMillis(lastTTL);

@@ -32,9 +32,9 @@ import reactor.util.function.Tuples;
 
 /**
  * Implements the application of a recursive index step to a previous array value, e.g.
- * 'arr..[2]'.
+ * {@code 'arr..[2]'}.
  *
- * Grammar: Step: '..' ({RecursiveIndexStep} '[' index=JSONNUMBER ']') ;
+ * Grammar: {@code Step: '..' ({RecursiveIndexStep} '[' index=JSONNUMBER ']') ;}
  */
 @Slf4j
 public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {

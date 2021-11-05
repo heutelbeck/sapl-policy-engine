@@ -47,7 +47,7 @@ public class PrpUpdateEvent {
 	/**
 	 * This contains the raw document and a custom equals method to eliminate duplicate
 	 * update events. E.g. file creation may lead to two subsequent identical publish
-	 * events without the .distinctUntilChanged() making use of this equals.
+	 * events without the .distinctUntilChanged() making use of the {@code equals} method of this class.
 	 */
 	@Value
 	public static class Update {

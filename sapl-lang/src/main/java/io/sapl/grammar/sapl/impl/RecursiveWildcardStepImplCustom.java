@@ -26,9 +26,9 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implements the application of a recursive wildcard step to a previous value, e.g.
- * 'obj..*' or 'arr..[*]'.
+ * {@code 'obj..*' or 'arr..[*]'}.
  *
- * Grammar: Step: '..' ({RecursiveWildcardStep} ('*' | '[' '*' ']' )) ;
+ * Grammar: {@code Step: '..' ({RecursiveWildcardStep} ('*' | '[' '*' ']' )) ;}
  */
 public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 

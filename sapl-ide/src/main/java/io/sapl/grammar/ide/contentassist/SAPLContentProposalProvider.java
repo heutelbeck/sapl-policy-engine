@@ -36,7 +36,7 @@ import io.sapl.interpreter.InitializationException;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * This class enhances the auto completion proposals that the language server offers.
+ * This class enhances the auto-completion proposals that the language server offers.
  */
 @Slf4j
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
@@ -106,9 +106,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	}
 
 	private boolean handleStepProposals(String feature) {
-		if ("id".equals(feature))
-			return true;
-		return false;
+		return "id".equals(feature);
 	}
 
 	private boolean handleImportProposals(String feature, ContentAssistContext context,
@@ -244,7 +242,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	}
 
 	/**
-	 * Moves up the model tree and returns closest parent that matches the given class
+	 * Moves up the model tree and returns the closest parent that matches the given class
 	 * type.
 	 * @param <T> Class type of the searched-for parent.
 	 * @param object The current model from which the search starts.

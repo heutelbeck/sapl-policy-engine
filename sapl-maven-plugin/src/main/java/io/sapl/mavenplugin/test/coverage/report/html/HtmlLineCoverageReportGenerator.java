@@ -155,7 +155,7 @@ public class HtmlLineCoverageReportGenerator {
 	private ContainerTag createPolicySite_CodeMirror(String filename, List<HtmlPolicyLineModel> models, Log log) {
 
 		StringBuilder wholeTextOfPolicy = new StringBuilder();
-		StringBuilder htmlReportCodeMirrorJSLineClassStatements = new StringBuilder('\n');
+		StringBuilder htmlReportCodeMirrorJSLineClassStatements = new StringBuilder("\n");
 		for (int i = 0; i < models.size(); i++) {
 			var model = models.get(i);
 			wholeTextOfPolicy.append(model.getLineContent()).append('\n');

@@ -134,7 +134,7 @@ public class MockingAttributeContext implements AttributeContext {
 	}
 
 	@Override
-	public void loadPolicyInformationPoint(Object pip) throws InitializationException {
+	public void loadPolicyInformationPoint(Object pip) {
 		throw new SaplTestException(ERROR_LOADING_PIP_NOT_SUPPORTED);
 	}
 

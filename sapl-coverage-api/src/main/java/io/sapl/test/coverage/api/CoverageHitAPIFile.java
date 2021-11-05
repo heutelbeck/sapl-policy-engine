@@ -85,12 +85,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 	private boolean doesLineExistsInFile(Path filePathPolicySetHits, String lineToAdd) throws IOException {
 		try (Stream<String> stream = Files.lines(filePathPolicySetHits)) {
 			Optional<String> lineHavingTarget = stream.filter(l -> l.contains(lineToAdd)).findFirst();
-			if (lineHavingTarget.isPresent()) {
-				return true;
-			}
-			else {
-				return false;
-			}
+			return lineHavingTarget.isPresent();
 		}
 	}
 

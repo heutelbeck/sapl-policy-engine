@@ -40,7 +40,7 @@ public class TimesCalledVerification implements MockingVerification {
 	@Override
 	public void verify(MockRunInformation mockRunInformation, String verificationFailedMessage) {
 
-		String message = "";
+		String message;
 		if (verificationFailedMessage != null && !verificationFailedMessage.isEmpty()) {
 			message = verificationFailedMessage;
 		}

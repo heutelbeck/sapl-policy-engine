@@ -112,7 +112,7 @@ public class ClockPolicyInformationPoint {
 	}
 
 	/*
-	 * var timeout = <timeout("10s")>; <sofort "false" , nach 10s "true">
+	 * var timeout = <timeout("10s")>; <immediately "false" , after 10s "true">
 	 */
 	@Attribute(
 			docs = "Sets a timer for the provided number of seconds. Emits Val.FALSE when created and Val.TRUE after timer elapsed.")

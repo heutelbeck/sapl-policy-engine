@@ -266,7 +266,7 @@ public class GenericCoverageReporter {
 				break;
 			case NEVER:
 				// if this condition or the condition evaluated before on the same line
-				// was never hit, than this or the next condition cannot be evaluated too
+				// was never hit, then this or the next condition cannot be evaluated too
 				// thus this change from NEVER -> PARTLY cannot happen
 				throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));
 			case IRRELEVANT:
@@ -311,7 +311,7 @@ public class GenericCoverageReporter {
 				break;
 			case NEVER:
 				// if this value definition or the value definition evaluated before on
-				// the same line was never hit, than this value definition cannot be
+				// the same line was never hit, then this value definition cannot be
 				// evaluated too
 				// thus this change from NEVER -> FULLY cannot happen
 				throw new SaplTestException(String.format(ERROR_UNEXPECTED_ENUM_VALUE, line.getCoveredValue()));

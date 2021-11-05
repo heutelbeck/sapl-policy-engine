@@ -36,7 +36,7 @@ public class AttributeMockPublisher implements AttributeMock {
 
 	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE = "You already defined a Mock for %s which is returning specified values";
 
-	private final String fullname;
+	private final String fullName;
 
 	private final Sinks.Many<Val> publisher;
 
@@ -46,9 +46,9 @@ public class AttributeMockPublisher implements AttributeMock {
 
 	private final List<MockingVerification> listMockingVerifications;
 
-	public AttributeMockPublisher(String fullname) {
-		this.fullname = fullname;
-		this.mockRunInformation = new MockRunInformation(fullname);
+	public AttributeMockPublisher(String fullName) {
+		this.fullName = fullName;
+		this.mockRunInformation = new MockRunInformation(fullName);
 		this.listMockingVerifications = new LinkedList<>();
 		this.listMockingVerifications.add(times(greaterThanOrEqualTo(1)));
 
@@ -69,12 +69,12 @@ public class AttributeMockPublisher implements AttributeMock {
 
 	@Override
 	public void assertVerifications() {
-		this.listMockingVerifications.stream().forEach((verification) -> verification.verify(this.mockRunInformation));
+		this.listMockingVerifications.forEach((verification) -> verification.verify(this.mockRunInformation));
 	}
 
 	@Override
 	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE, this.fullname);
+		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE, this.fullName);
 	}
 
 }
