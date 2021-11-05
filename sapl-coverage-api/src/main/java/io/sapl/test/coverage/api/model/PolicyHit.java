@@ -39,11 +39,10 @@ public class PolicyHit {
 
 	@Override
 	public String toString() {
-		StringBuilder stringBuilder = new StringBuilder();
-		stringBuilder.append(policySetId);
-		stringBuilder.append(CoverageHitConfig.DELIMITER);
-		stringBuilder.append(policyId);
-		return stringBuilder.toString();
+		String stringBuilder = policySetId +
+				CoverageHitConfig.DELIMITER +
+				policyId;
+		return stringBuilder;
 	}
 
 	public static PolicyHit fromString(String policyToStringResult) {

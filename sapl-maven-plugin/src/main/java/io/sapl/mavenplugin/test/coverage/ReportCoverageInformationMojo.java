@@ -50,7 +50,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	@Parameter(defaultValue = "true")
 	private boolean coverageEnabled;
 
-	@Parameter(defaultValue = "")
+	@Parameter
 	private String outputDir;
 
 	@Parameter(defaultValue = "policies")

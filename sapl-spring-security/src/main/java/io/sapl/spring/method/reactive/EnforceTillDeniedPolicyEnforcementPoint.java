@@ -100,7 +100,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 		if (sink != null)
 			throw new IllegalStateException("Operator may only be subscribed once.");
 		var context = subscriber.currentContext();
-		sink = new EnforcementSink<T>();
+		sink = new EnforcementSink<>();
 		resourceAccessPoint = resourceAccessPoint.contextWrite(context);
 		Flux.create(sink).subscribe(subscriber);
 		decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());

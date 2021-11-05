@@ -30,7 +30,7 @@ public class EnableCoverageCollectionMojo extends AbstractMojo {
 	@Parameter(defaultValue = "true")
 	private boolean coverageEnabled;
 
-	@Parameter(defaultValue = "")
+	@Parameter
 	private String outputDir;
 
 	@Parameter(defaultValue = "${project.build.directory}")

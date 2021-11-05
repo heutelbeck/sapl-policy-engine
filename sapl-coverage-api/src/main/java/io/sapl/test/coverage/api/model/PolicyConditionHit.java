@@ -53,15 +53,14 @@ public class PolicyConditionHit {
 
 	@Override
 	public String toString() {
-		StringBuilder stringBuilder = new StringBuilder();
-		stringBuilder.append(policySetId);
-		stringBuilder.append(CoverageHitConfig.DELIMITER);
-		stringBuilder.append(policyId);
-		stringBuilder.append(CoverageHitConfig.DELIMITER);
-		stringBuilder.append(conditionStatementId);
-		stringBuilder.append(CoverageHitConfig.DELIMITER);
-		stringBuilder.append(conditionResult);
-		return stringBuilder.toString();
+		String stringBuilder = policySetId +
+				CoverageHitConfig.DELIMITER +
+				policyId +
+				CoverageHitConfig.DELIMITER +
+				conditionStatementId +
+				CoverageHitConfig.DELIMITER +
+				conditionResult;
+		return stringBuilder;
 	}
 
 	public static PolicyConditionHit fromString(String policyConditionToStringResult) {

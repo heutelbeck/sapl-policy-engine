@@ -83,8 +83,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			return;
 
 		case "import":
-			if (handleImportProposals(feature, context, acceptor))
-				return;
+			handleImportProposals(feature, context, acceptor)
+			return;
 
 		case "basic":
 			if (handleBasicProposals(feature, context, acceptor))
@@ -109,7 +109,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		return "id".equals(feature);
 	}
 
-	private boolean handleImportProposals(String feature, ContentAssistContext context,
+	private void handleImportProposals(String feature, ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
 		// retrieve current text and cursor position
 		String policy = context.getRootNode().getText().toLowerCase();
@@ -127,11 +127,11 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		}
 
 		if (proposals.isEmpty())
-			return true;
+			return;
 
 		// add proposals to list of proposals
 		addSimpleProposals(proposals, context, acceptor);
-		return true;
+		return;
 	}
 
 	private Collection<String> createLibstepsProposals(final String policy, final int offset) {

@@ -70,12 +70,8 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 		}
 
 		try {
-			if (doesLineExistsInFile(filePath, lineToAdd)) {
-				// do nothing as already hit
-			}
-			else {
+			if (!doesLineExistsInFile(filePath, lineToAdd))
 				appendLineToFile(filePath, lineToAdd);
-			}
 		}
 		catch (IOException e) {
 			log.error("Error writing File " + filePath, e);

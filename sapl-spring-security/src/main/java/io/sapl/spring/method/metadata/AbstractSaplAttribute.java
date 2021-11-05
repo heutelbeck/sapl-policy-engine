@@ -59,17 +59,16 @@ public abstract class AbstractSaplAttribute implements SaplAttribute {
 	 */
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append('[').append(getClass().getSimpleName()).append(": subject='")
-				.append(subjectExpression == null ? "null" : subjectExpression.getExpressionString());
-		sb.append("', action='").append(actionExpression == null ? "null" : actionExpression.getExpressionString());
-		sb.append("', resource='")
-				.append(resourceExpression == null ? "null" : resourceExpression.getExpressionString());
-		sb.append("', environment='")
-				.append(environmentExpression == null ? "null" : environmentExpression.getExpressionString());
-		sb.append("', genericsType='").append(genericsType == null ? "null" : genericsType.getSimpleName())
-				.append("']");
-		return sb.toString();
+		String sb = '[' + getClass().getSimpleName() + ": subject='" +
+				(subjectExpression == null ? "null" : subjectExpression.getExpressionString()) +
+				"', action='" + (actionExpression == null ? "null" : actionExpression.getExpressionString()) +
+				"', resource='" +
+				(resourceExpression == null ? "null" : resourceExpression.getExpressionString()) +
+				"', environment='" +
+				(environmentExpression == null ? "null" : environmentExpression.getExpressionString()) +
+				"', genericsType='" + (genericsType == null ? "null" : genericsType.getSimpleName()) +
+				"']";
+		return sb;
 	}
 
 }

@@ -59,7 +59,7 @@ public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpReques
 			gen.writeNumberField(REMOTE_PORT, remoteAddress.getPort());
 		}
 		var localAddress = value.getLocalAddress();
-		if (value.getLocalAddress() != null) {
+		if (localAddress != null) {
 			gen.writeStringField(LOCAL_NAME, localAddress.getHostString());
 			gen.writeStringField(LOCAL_ADDRESS, localAddress.toString());
 			gen.writeNumberField(LOCAL_PORT, localAddress.getPort());

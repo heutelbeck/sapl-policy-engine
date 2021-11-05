@@ -89,7 +89,7 @@ class StepBuilder {
 					this.variables).forAuthorizationSubscription(authzSub);
 
 			Val matchResult = this.document.matches(ctx).block();
-			if (matchResult.isBoolean() && matchResult.getBoolean()) {
+			if (matchResult != null && matchResult.isBoolean() && matchResult.getBoolean()) {
 				if (this.withVirtualTime) {
 					this.steps = StepVerifier.withVirtualTime(() -> this.document.evaluate(ctx));
 				}
@@ -106,7 +106,6 @@ class StepBuilder {
 			}
 			else {
 				this.steps = StepVerifier.create(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
-
 			}
 		}
 

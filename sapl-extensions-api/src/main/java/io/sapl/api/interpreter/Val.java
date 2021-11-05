@@ -302,7 +302,7 @@ public class Val {
 	}
 
 	public Optional<JsonNode> optional() {
-		return isDefined() ? Optional.of(value) : Optional.empty();
+		return Optional.ofNullable(value);
 	}
 
 	public static Flux<Val> fluxOfTrue() {
