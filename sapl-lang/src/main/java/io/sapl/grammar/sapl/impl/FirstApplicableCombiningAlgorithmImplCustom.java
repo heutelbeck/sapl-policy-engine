@@ -31,7 +31,7 @@ import reactor.core.publisher.Flux;
 /**
  * This algorithm is used if the policy administrator manages the policy’s priority by
  * their order in a policy set. As soon as the first policy returns PERMIT, DENY or
- * INDETERMINATE, its result is the final decision. Thus a "default" can be specified by
+ * INDETERMINATE, its result is the final decision. Thus, a "default" can be specified by
  * creating a last policy without any conditions. If a decision is found, errors which
  * might occur in later policies are ignored.
  *

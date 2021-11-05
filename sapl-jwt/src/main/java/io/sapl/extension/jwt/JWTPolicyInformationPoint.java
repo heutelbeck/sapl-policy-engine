@@ -177,7 +177,7 @@ public class JWTPolicyInformationPoint {
 			return Flux.just(ValidityState.MALFORMED);
 		}
 
-		// ensure all required claims are well formed
+		// ensure all required claims are well-formed
 		if (!hasCompatibleClaims(signedJwt))
 			return Flux.just(ValidityState.INCOMPATIBLE);
 
@@ -242,9 +242,7 @@ public class JWTPolicyInformationPoint {
 	private Consumer<Boolean> cachePublicKeyIfSignatureValid(String keyId, Mono<RSAPublicKey> publicKeyMono) {
 		return signatureValid -> {
 			if (signatureValid)
-				publicKeyMono.subscribe(publicKey -> {
-					keyProvider.cache(keyId, publicKey);
-				});
+				publicKeyMono.subscribe(publicKey -> keyProvider.cache(keyId, publicKey));
 		};
 	}
 

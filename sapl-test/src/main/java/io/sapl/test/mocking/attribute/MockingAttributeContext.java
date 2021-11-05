@@ -234,9 +234,7 @@ public class MockingAttributeContext implements AttributeContext {
 	}
 
 	public void assertVerifications() {
-		this.registeredMocks.forEach((fullname, mock) -> {
-			mock.assertVerifications();
-		});
+		this.registeredMocks.forEach((fullname, mock) -> mock.assertVerifications());
 	}
 
 	private void checkImportName(String fullname) {

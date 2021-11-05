@@ -83,21 +83,20 @@ public class TimesParameterCalledVerification implements MockingVerification {
 				+ callsMatchingWantedArgs.getFullname() + "\" for parameters [");
 
 		for (Matcher<Val> matcher : wantedArgs) {
-			builder.append(matcher.toString() + ", ");
+			builder.append(matcher.toString()).append(", ");
 		}
 
 		builder.deleteCharAt(builder.length() - 1);
 		builder.append(']');
 
-		builder.append(
-				" - Expected: " + verification.toString() + " - got: " + callsMatchingWantedArgs.getTimesCalled());
+		builder.append(" - Expected: ").append(verification.toString()).append(" - got: ").append(callsMatchingWantedArgs.getTimesCalled());
 
 		return builder.toString();
 	}
 
 	private boolean areAllCallArgumentsMatchingTheArgumentMatcher(CallWithMetadata call) {
 		return listCombiner(this.wantedArgs, call.getCall().getListOfArguments(),
-				(Matcher<Val> wanted, Val actual) -> wanted.matches(actual)).stream().allMatch(b -> b == true);
+                Matcher::matches).stream().allMatch(b -> b == true);
 	}
 
 	private List<Boolean> listCombiner(List<Matcher<Val>> list1, List<Val> list2,

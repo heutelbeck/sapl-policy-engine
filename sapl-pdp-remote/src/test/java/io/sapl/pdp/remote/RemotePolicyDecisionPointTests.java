@@ -146,19 +146,19 @@ class RemotePolicyDecisionPointTests {
 	}
 
 	private void prepareDecisions(Object[] decisions) throws JsonProcessingException {
-		String body = "";
+		StringBuilder body = new StringBuilder();
 		for (var decision : decisions) {
 			if (decision == null)
-				body += "data: INTENDED INVALID VALUE TO CAUSE AN ERROR\n\n";
+				body.append("data: INTENDED INVALID VALUE TO CAUSE AN ERROR\n\n");
 			else {
 				/* "text/event-stream" */
-				body += "data: " + MAPPER.writeValueAsString(decision) + "\n\n";
+				body.append("data: ").append(MAPPER.writeValueAsString(decision)).append("\n\n");
 			}
 		}
 		var response = new MockResponse()
 				.setHeader(HttpHeaders.CONTENT_TYPE.toString(),
 						MediaType.TEXT_EVENT_STREAM_VALUE /* .APPLICATION_NDJSON_VALUE */)
-				.setResponseCode(HttpStatus.OK.value()).setBody(body);
+				.setResponseCode(HttpStatus.OK.value()).setBody(body.toString());
 		server.enqueue(response);
 	}
 

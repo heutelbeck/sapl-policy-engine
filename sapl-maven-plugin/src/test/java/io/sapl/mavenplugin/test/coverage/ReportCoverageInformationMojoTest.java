@@ -93,7 +93,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_disableCoverage() throws Exception {
+	public void test_disableCoverage() throws Exception {
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom_coverageDisabled.xml");
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
@@ -101,13 +101,11 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 
 		mojo.execute();
 		Mockito.verify(log).info("Policy Coverage Collection is disabled");
-		// Mockito.verify(saplDocumentReader).retrievePolicyDocuments(Mockito.any(),
-		// Mockito.any(), Mockito.any());
 
 	}
 
 	@Test
-	void test_happyPath() throws Exception {
+	public void test_happyPath() throws Exception {
 
 		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
@@ -130,7 +128,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_policyConditionHitCriteriaNotFulfilled() throws Exception {
+	public void test_policyConditionHitCriteriaNotFulfilled() throws Exception {
 
 		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
@@ -145,7 +143,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
-		assertThrows(MojoFailureException.class, () -> mojo.execute());
+		assertThrows(MojoFailureException.class, mojo::execute);
 
 		verifyReporterAreCalled();
 
@@ -154,7 +152,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_policyHitCriteriaNotFulfilled() throws Exception {
+	public void test_policyHitCriteriaNotFulfilled() throws Exception {
 
 		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
@@ -169,7 +167,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
-		assertThrows(MojoFailureException.class, () -> mojo.execute());
+		assertThrows(MojoFailureException.class, mojo::execute);
 
 		verifyReporterAreCalled();
 
@@ -177,7 +175,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_policySetHitCriteriaNotFulfilled() throws Exception {
+	public void test_policySetHitCriteriaNotFulfilled() throws Exception {
 
 		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
@@ -192,7 +190,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
-		assertThrows(MojoFailureException.class, () -> mojo.execute());
+		assertThrows(MojoFailureException.class, mojo::execute);
 
 		verifyReporterAreCalled();
 
@@ -201,7 +199,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_policySetHitAndPolicyHitCriteriaNotFulfilled() throws Exception {
+	public void test_policySetHitAndPolicyHitCriteriaNotFulfilled() throws Exception {
 
 		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
@@ -216,7 +214,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
-		assertThrows(MojoFailureException.class, () -> mojo.execute());
+		assertThrows(MojoFailureException.class, mojo::execute);
 
 		verifyReporterAreCalled();
 
@@ -225,7 +223,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_policySetHitAndPolicyConditionHitCriteriaNotFulfilled() throws Exception {
+	public void test_policySetHitAndPolicyConditionHitCriteriaNotFulfilled() throws Exception {
 
 		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
@@ -240,7 +238,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
-		assertThrows(MojoFailureException.class, () -> mojo.execute());
+		assertThrows(MojoFailureException.class, mojo::execute);
 
 		verifyReporterAreCalled();
 
@@ -250,7 +248,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_policyHitAndPolicyConditionHitCriteriaNotFulfilled() throws Exception {
+	public void test_policyHitAndPolicyConditionHitCriteriaNotFulfilled() throws Exception {
 
 		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
@@ -265,7 +263,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
-		assertThrows(MojoFailureException.class, () -> mojo.execute());
+		assertThrows(MojoFailureException.class, mojo::execute);
 
 		verifyReporterAreCalled();
 
@@ -275,7 +273,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_allCriteriaNotFulfilled() throws Exception {
+	public void test_allCriteriaNotFulfilled() throws Exception {
 
 		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
@@ -290,7 +288,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
 		mojo.setLog(this.log);
 
-		assertThrows(MojoFailureException.class, () -> mojo.execute());
+		assertThrows(MojoFailureException.class, mojo::execute);
 
 		verifyReporterAreCalled();
 
@@ -301,7 +299,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_emptyTargets() throws Exception {
+	public void test_emptyTargets() throws Exception {
 
 		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		CoverageTargets targets = new CoverageTargets(List.of(), List.of(), List.of());
@@ -336,7 +334,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_happyPath_sonarReportDisabled() throws Exception {
+	public void test_happyPath_sonarReportDisabled() throws Exception {
 
 		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
@@ -363,7 +361,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_happyPath_htmlReportDisabled() throws Exception {
+	public void test_happyPath_htmlReportDisabled() throws Exception {
 
 		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
@@ -371,9 +369,6 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 		Mockito.when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-		// Mockito.when(this.htmlReporter.generateHtmlReport(any(), any(), any(),
-		// anyFloat(), anyFloat(), anyFloat())).thenReturn(Paths.get("test",
-		// "index.html"));
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom_htmlReportDisabled.xml");
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
@@ -391,7 +386,7 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_happyPath_allReportsDisabled() throws Exception {
+	public void test_happyPath_allReportsDisabled() throws Exception {
 
 		Mockito.when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
 		Mockito.when(this.coverageTargetHelper.getCoverageTargets(any()))
@@ -399,9 +394,6 @@ class ReportCoverageInformationMojoTest extends AbstractMojoTestCase {
 		Mockito.when(this.coverageAPIHelper.readHits(any()))
 				.thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
 		Mockito.when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
-		// Mockito.when(this.htmlReporter.generateHtmlReport(any(), any(), any(),
-		// anyFloat(), anyFloat(), anyFloat())).thenReturn(Paths.get("test",
-		// "index.html"));
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom_allReportsDisabled.xml");
 		var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());

@@ -31,7 +31,7 @@ import lombok.NonNull;
  * A multi-decision holds a map of authorization subscription IDs and corresponding
  * {@link AuthorizationDecision authorization decisions}. It provides methods to
  * {@link #setAuthorizationDecisionForSubscriptionWithId(String, AuthorizationDecision)}
- * add} single authorization decisions related to an authorization subscription ID, to
+ * add single authorization decisions related to an authorization subscription ID, to
  * {@link #getAuthorizationDecisionForSubscriptionWithId(String) get} a single
  * authorization decision for a given authorization subscription ID and to
  * {@link #iterator() iterate} over all the authorization decisions.

@@ -158,7 +158,7 @@ public class HtmlLineCoverageReportGenerator {
 		StringBuilder htmlReportCodeMirrorJSLineClassStatements = new StringBuilder("\n");
 		for (int i = 0; i < models.size(); i++) {
 			var model = models.get(i);
-			wholeTextOfPolicy.append(model.getLineContent() + "\n");
+			wholeTextOfPolicy.append(model.getLineContent()).append("\n");
 			htmlReportCodeMirrorJSLineClassStatements
 					.append(String.format("editor.addLineClass(%s, \"text\", \"%s\");%n", i, model.getCssClass()));
 			if (model.getPopoverContent() != null) {

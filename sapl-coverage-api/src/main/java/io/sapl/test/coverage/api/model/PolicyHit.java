@@ -29,14 +29,14 @@ import lombok.Getter;
 public class PolicyHit {
 
 	/**
-	 * Id of {@link io.sapl.grammar.sapl.PolicySet} of hit policy. Empty if
+	 * Identifier of {@link io.sapl.grammar.sapl.PolicySet} of hit policy. Empty if
 	 * {@link io.sapl.grammar.sapl.Policy} isn't in a
 	 * {@link io.sapl.grammar.sapl.PolicySet}.
 	 */
 	private String policySetId;
 
 	/**
-	 * Id of hit {@link io.sapl.grammar.sapl.Policy}
+	 * Identifier of hit {@link io.sapl.grammar.sapl.Policy}
 	 */
 	private String policyId;
 

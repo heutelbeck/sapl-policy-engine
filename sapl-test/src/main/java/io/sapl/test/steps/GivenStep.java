@@ -227,7 +227,7 @@ public interface GivenStep {
 	/**
 	 * Mock the return value of a PIP in the SAPL policy
 	 * @param importName the reference in the SAPL policy to the PIP
-	 * @param timing the the duration between emitting every return value
+	 * @param timing the duration between emitting every return value
 	 * @param returns the mocked return value
 	 * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to the
 	 * {@link WhenStep}

@@ -165,7 +165,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 
 	private Flux<AuthorizationDecision> preSubscriptionDecisions(MethodInvocation invocation, SaplAttribute attribute) {
 		return subscriptionBuilder.reactiveConstructAuthorizationSubscription(invocation, attribute)
-				.flatMapMany(authzSubscription -> pdp.decide(authzSubscription));
+				.flatMapMany(pdp::decide);
 	}
 
 	private Object delegateToSpringSecurityInterceptor(final MethodInvocation invocation) throws Throwable {

@@ -115,7 +115,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			IIdeContentProposalAcceptor acceptor) {
 		// retrieve current text and cursor position
 		String policy = context.getRootNode().getText().toLowerCase();
-		Integer offset = context.getOffset();
+		int offset = context.getOffset();
 
 		Collection<String> proposals;
 		switch (feature) {

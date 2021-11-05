@@ -78,7 +78,7 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 			steps = Arrays.asList(identifier.split("\\."));
 		}
 
-		Integer stepCount = steps.size();
+		int stepCount = steps.size();
 		if (stepCount > 0) {
 			String lastChar = identifier.substring(identifier.length() - 1);
 			if (".".equals(lastChar))

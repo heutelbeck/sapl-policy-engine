@@ -74,10 +74,6 @@ class ConjunctiveClauseTest {
 
 		try (MockedStatic<ConjunctiveClauseReductionSupport> mock = mockStatic(
 				ConjunctiveClauseReductionSupport.class)) {
-			// doNothing().when(mock).when(() ->
-			// ConjunctiveClauseReductionSupport.reduceConstants(anyList()));
-			// doNothing().when(mock).when(() ->
-			// ConjunctiveClauseReductionSupport.reduceFormula(anyList()));
 
 			assertThat(c1.reduce().size(), is(c1.size()));
 

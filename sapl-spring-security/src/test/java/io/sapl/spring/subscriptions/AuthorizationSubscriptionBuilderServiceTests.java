@@ -213,7 +213,7 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 			var request = new MockHttpServletRequest();
 			var requestAttributes = mock(ServletRequestAttributes.class);
 			when(requestAttributes.getRequest()).thenReturn(request);
-			theMock.when(() -> RequestContextHolder.getRequestAttributes()).thenReturn(requestAttributes);
+			theMock.when(RequestContextHolder::getRequestAttributes).thenReturn(requestAttributes);
 			var attribute = attribute(null, null, null, null, Object.class);
 			var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
 					attribute);

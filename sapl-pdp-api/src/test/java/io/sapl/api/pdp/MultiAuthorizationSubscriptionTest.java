@@ -75,9 +75,7 @@ class MultiAuthorizationSubscriptionTest {
 
 	@Test
 	void addNullIdFailsTest() {
-		assertThrows(NullPointerException.class, () -> {
-			new MultiAuthorizationSubscription().addAuthorizationSubscription(null, SUBJECT, ACTION, RESOURCE);
-		});
+		assertThrows(NullPointerException.class, () -> new MultiAuthorizationSubscription().addAuthorizationSubscription(null, SUBJECT, ACTION, RESOURCE));
 	}
 
 	@Test
@@ -123,10 +121,8 @@ class MultiAuthorizationSubscriptionTest {
 
 	@Test
 	void addSameIdTwiceFailsTest() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION, RESOURCE)
-					.addAuthorizationSubscription(ID, SUBJECT, ACTION, RESOURCE2);
-		});
+		assertThrows(IllegalArgumentException.class, () -> new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION, RESOURCE)
+                .addAuthorizationSubscription(ID, SUBJECT, ACTION, RESOURCE2));
 	}
 
 	@Test

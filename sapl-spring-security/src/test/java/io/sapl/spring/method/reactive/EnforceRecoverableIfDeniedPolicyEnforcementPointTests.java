@@ -107,7 +107,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
 		var sut = EnforceRecoverableIfDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
 				Integer.class);
 		sut.blockLast();
-		assertThrows(IllegalStateException.class, () -> sut.blockLast());
+		assertThrows(IllegalStateException.class, sut::blockLast);
 	}
 
 	@Test

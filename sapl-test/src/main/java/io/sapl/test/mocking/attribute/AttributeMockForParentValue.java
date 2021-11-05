@@ -86,9 +86,7 @@ public class AttributeMockForParentValue implements AttributeMock {
 	}
 
 	private Optional<ParameterSpecificMockReturnValue> findMatchingParameterSpecificMockReturnValue(Val parentValue) {
-		return this.listParameterSpecificMockReturnValues.stream().filter((ParameterSpecificMockReturnValue mock) -> {
-			return mock.getExpectedParentValue().matches(parentValue);
-		}).findFirst();
+		return this.listParameterSpecificMockReturnValues.stream().filter((ParameterSpecificMockReturnValue mock) -> mock.getExpectedParentValue().matches(parentValue)).findFirst();
 	}
 
 	@Override

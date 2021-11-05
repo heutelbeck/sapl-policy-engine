@@ -57,7 +57,7 @@ public class PostEnforcePolicyEnforcementPoint {
 			PostEnforceAttribute postEnforceAttribute, Object returnedObject) {
 		return subscriptionBuilder
 				.reactiveConstructAuthorizationSubscription(invocation, postEnforceAttribute, returnedObject)
-				.flatMapMany(authzSubscription -> pdp.decide(authzSubscription)).next();
+				.flatMapMany(pdp::decide).next();
 	}
 
 }

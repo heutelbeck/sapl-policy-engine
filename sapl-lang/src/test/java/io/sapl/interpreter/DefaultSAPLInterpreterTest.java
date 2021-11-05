@@ -91,17 +91,13 @@ class DefaultSAPLInterpreterTest {
 	@Test
 	void brokenInputStreamTest() {
 		var brokenInputStream = mock(InputStream.class);
-		assertThrows(PolicyEvaluationException.class, () -> {
-			INTERPRETER.parse(brokenInputStream);
-		});
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(brokenInputStream));
 	}
 
 	@Test
 	void parseTestWithError() {
 		var policyDocument = "xyz";
-		assertThrows(PolicyEvaluationException.class, () -> {
-			INTERPRETER.parse(policyDocument);
-		});
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDocument));
 	}
 
 	@Test
@@ -161,9 +157,7 @@ class DefaultSAPLInterpreterTest {
 	@Test
 	void syntaxError() {
 		var policyDefinition = "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ";
-		assertThrows(PolicyEvaluationException.class, () -> {
-			INTERPRETER.parse(policyDefinition);
-		});
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
 	}
 
 	@Test

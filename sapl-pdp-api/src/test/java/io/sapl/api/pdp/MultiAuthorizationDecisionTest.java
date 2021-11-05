@@ -76,9 +76,7 @@ class MultiAuthorizationDecisionTest {
 	@Test
 	void isPermittedNullTest() {
 		var decision = new MultiAuthorizationDecision();
-		assertThrows(NullPointerException.class, () -> {
-			decision.isAccessPermittedForSubscriptionWithId(null);
-		});
+		assertThrows(NullPointerException.class, () -> decision.isAccessPermittedForSubscriptionWithId(null));
 	}
 
 	@Test
@@ -104,17 +102,13 @@ class MultiAuthorizationDecisionTest {
 	@Test
 	void getDecisionForSubscriptionWithIdNullParamTest() {
 		var decision = new MultiAuthorizationDecision();
-		assertThrows(NullPointerException.class, () -> {
-			decision.getDecisionForSubscriptionWithId(null);
-		});
+		assertThrows(NullPointerException.class, () -> decision.getDecisionForSubscriptionWithId(null));
 	}
 
 	@Test
 	void getAuthorizationDecisionForSubscriptionWithIdNullParamTest() {
 		var decision = new MultiAuthorizationDecision();
-		assertThrows(NullPointerException.class, () -> {
-			decision.getAuthorizationDecisionForSubscriptionWithId(null);
-		});
+		assertThrows(NullPointerException.class, () -> decision.getAuthorizationDecisionForSubscriptionWithId(null));
 	}
 
 	@Test

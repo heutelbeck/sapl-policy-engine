@@ -72,9 +72,7 @@ class FileMonitorUtilTest {
 	@Test
 	void throw_exception_in_monitor_start() throws Exception {
 		try (MockedConstruction<FileAlterationMonitor> mocked = Mockito.mockConstruction(FileAlterationMonitor.class,
-				(mock, context) -> {
-					doThrow(new Exception()).when(mock).start();
-				})) {
+				(mock, context) -> doThrow(new Exception()).when(mock).start())) {
 
 			Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("~/", __ -> true);
 			monitorFlux.take(1L).subscribe();

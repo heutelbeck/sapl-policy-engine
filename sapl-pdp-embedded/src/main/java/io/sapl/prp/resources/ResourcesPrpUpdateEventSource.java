@@ -76,7 +76,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 		log.debug("reading policies from jar {}", policiesFolderUrl);
 		var pathOfJar = JarUtil.getJarFilePath(policiesFolderUrl);
 		try (var jarFile = new ZipFile(pathOfJar)) {
-			var updates = jarFile.stream().filter(entry -> isSAPLDocumentWithinPath(entry))
+			var updates = jarFile.stream().filter(this::isSAPLDocumentWithinPath)
 					.peek(entry -> log.info("load SAPL document: {}", entry.getName()))
 					.map(entry -> JarUtil.readStringFromZipEntry(jarFile, entry))
 					.map(this::parseAndCreatePublicationUpdate).collect(Collectors.toList());

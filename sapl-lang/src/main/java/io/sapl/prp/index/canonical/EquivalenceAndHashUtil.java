@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * For indexing, expressions must be compared with regards to equivalence.
+ * For indexing, expressions must be compared based on equivalence.
  * <p>
  * a) Parent nodes in the ASTs (eContainer) are irrelevant for this comparison
  * <p>

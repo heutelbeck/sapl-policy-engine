@@ -81,11 +81,11 @@ public class SaplDocumentReader {
 		File result = null;
 		try {
 			projectTestClassPathElements = project.getRuntimeClasspathElements();
-			builder.append(" - We looked at: " + System.lineSeparator());
+			builder.append(" - We looked at: ").append(System.lineSeparator());
 
 			for (String element : projectTestClassPathElements) {
 				Path path = Path.of(element).resolve(policyPath);
-				builder.append("* " + path + System.lineSeparator());
+				builder.append("* ").append(path).append(System.lineSeparator());
 				File dir = path.toFile();
 				if (dir.exists()) {
 					result = dir;

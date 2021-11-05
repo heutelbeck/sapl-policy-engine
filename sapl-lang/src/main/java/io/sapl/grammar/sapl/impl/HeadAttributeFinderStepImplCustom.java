@@ -22,7 +22,7 @@ import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
- * Implements the application of an head attribute finder step to a previous value.
+ * Implements the application of a head attribute finder step to a previous value.
  */
 public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepImpl {
 

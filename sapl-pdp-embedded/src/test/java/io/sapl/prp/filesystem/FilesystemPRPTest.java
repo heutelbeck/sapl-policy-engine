@@ -77,8 +77,6 @@ class FilesystemPRPTest {
 		var interpreter = new DefaultSAPLInterpreter();
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/policies", interpreter);
 		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(), source);
-		// var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new
-		// CanonicalImmutableParsedDocumentIndex(), source);
 		var authzSubscription = AuthorizationSubscription.of("Willi", "eat", "icecream");
 		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
 				new HashMap<>());

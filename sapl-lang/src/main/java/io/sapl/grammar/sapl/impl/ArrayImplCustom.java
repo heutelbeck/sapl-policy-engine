@@ -59,8 +59,8 @@ public class ArrayImplCustom extends ArrayImpl {
 	/**
 	 * Collects a concrete evaluation of all expressions in the array into a single Array.
 	 * We do not allow for returning 'undefined'/Optional.empty() as fields in the array.
-	 * At runtime, this is primarily a constraint due to to usage of Jackson JsonNodes
-	 * which do not have a concept of 'undefined'. Also as we want to return valid JSON
+	 * At runtime, this is primarily a constraint due to usage of Jackson JsonNodes
+	 * which do not have a concept of 'undefined'. Also, as we want to return valid JSON
 	 * values 'undefined' may not occur anywhere.
 	 */
 	private Val collectValuesToArrayNode(Object[] values) {

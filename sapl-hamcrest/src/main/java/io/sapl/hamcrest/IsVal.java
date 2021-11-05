@@ -43,7 +43,7 @@ public class IsVal extends TypeSafeDiagnosingMatcher<Val> {
 	@Override
 	public void describeTo(Description description) {
 		description.appendText("a val that ");
-		jsonMatcher.ifPresentOrElse(matcher -> description.appendDescriptionOf(matcher),
+		jsonMatcher.ifPresentOrElse(description::appendDescriptionOf,
 				() -> description.appendText("is any JsonNode"));
 	}
 

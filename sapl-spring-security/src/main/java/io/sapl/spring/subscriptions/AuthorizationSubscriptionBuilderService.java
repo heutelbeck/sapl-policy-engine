@@ -77,10 +77,8 @@ public class AuthorizationSubscriptionBuilderService {
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
 			SaplAttribute attribute) {
-		return Mono.deferContextual(contextView -> {
-			return constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
-					Optional.empty());
-		});
+		return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
+				Optional.empty()));
 	}
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
@@ -92,10 +90,8 @@ public class AuthorizationSubscriptionBuilderService {
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
 			SaplAttribute attribute, Object returnedObject) {
-		return Mono.deferContextual(contextView -> {
-			return constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
-					Optional.ofNullable(returnedObject));
-		});
+		return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
+				Optional.ofNullable(returnedObject)));
 	}
 
 	private Mono<? extends AuthorizationSubscription> constructAuthorizationSubscriptionFromContextView(
@@ -143,7 +139,7 @@ public class AuthorizationSubscriptionBuilderService {
 
 		// sanitize the authentication depending on the application context, the
 		// authentication may still contain credentials information, which should not be
-		// send over the wire to the PDP
+		// sent over the wire to the PDP
 
 		subject.remove("credentials");
 		var principal = subject.get("principal");
@@ -216,7 +212,7 @@ public class AuthorizationSubscriptionBuilderService {
 	private Object retrieveResource(MethodInvocation mi) {
 		var resourceNode = mapper.createObjectNode();
 		var httpServletRequest = retrieveRequestObject();
-		// The action is in the context of a HTTP request. Adding it to the resource.
+		// The action is in the context of an HTTP request. Adding it to the resource.
 		httpServletRequest.ifPresent(servletRequest -> resourceNode.set("http", mapper.valueToTree(servletRequest)));
 		var target = serializeTargetClassDescription(mi.getThis().getClass());
 		resourceNode.set("targetClass", target);

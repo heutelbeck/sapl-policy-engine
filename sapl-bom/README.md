@@ -15,7 +15,7 @@ How to use the BOM:
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
-		<dependencies>			
+		</dependencies>			
 	</dependencyManagement>
 ```
 	

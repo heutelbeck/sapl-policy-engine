@@ -38,51 +38,37 @@ class EvaluationContextTest {
 
 	@Test
 	void nullAttributeCtxRejected() {
-		assertThrows(NullPointerException.class, () -> {
-			new EvaluationContext(null, mock(FunctionContext.class), Collections.emptyMap());
-		});
+		assertThrows(NullPointerException.class, () -> new EvaluationContext(null, mock(FunctionContext.class), Collections.emptyMap()));
 	}
 
 	@Test
 	void nullAttributeCtxRejected2() {
-		assertThrows(NullPointerException.class, () -> {
-			new EvaluationContext(null, null, Collections.emptyMap());
-		});
+		assertThrows(NullPointerException.class, () -> new EvaluationContext(null, null, Collections.emptyMap()));
 	}
 
 	@Test
 	void nullFunctionCtxRejected() {
-		assertThrows(NullPointerException.class, () -> {
-			new EvaluationContext(mock(AttributeContext.class), null, Collections.emptyMap());
-		});
+		assertThrows(NullPointerException.class, () -> new EvaluationContext(mock(AttributeContext.class), null, Collections.emptyMap()));
 	}
 
 	@Test
 	void nullMapRejected1() {
-		assertThrows(NullPointerException.class, () -> {
-			new EvaluationContext(mock(AttributeContext.class), mock(FunctionContext.class), null);
-		});
+		assertThrows(NullPointerException.class, () -> new EvaluationContext(mock(AttributeContext.class), mock(FunctionContext.class), null));
 	}
 
 	@Test
 	void nullMapRejected2() {
-		assertThrows(NullPointerException.class, () -> {
-			new EvaluationContext(mock(AttributeContext.class), null, null);
-		});
+		assertThrows(NullPointerException.class, () -> new EvaluationContext(mock(AttributeContext.class), null, null));
 	}
 
 	@Test
 	void nullMapRejected3() {
-		assertThrows(NullPointerException.class, () -> {
-			new EvaluationContext(null, null, null);
-		});
+		assertThrows(NullPointerException.class, () -> new EvaluationContext(null, null, null));
 	}
 
 	@Test
 	void nullMapRejected4() {
-		assertThrows(NullPointerException.class, () -> {
-			new EvaluationContext(null, mock(FunctionContext.class), null);
-		});
+		assertThrows(NullPointerException.class, () -> new EvaluationContext(null, mock(FunctionContext.class), null));
 	}
 
 }

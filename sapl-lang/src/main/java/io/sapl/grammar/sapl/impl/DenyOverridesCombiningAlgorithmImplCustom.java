@@ -38,7 +38,7 @@ import reactor.core.publisher.Flux;
  *
  * It works as follows:
  *
- * - If any policy document evaluates to DENY, the decision is DENY.
+ * - If any policy document evaluates to DENY, the decision is a DENY.
  *
  * - Otherwise:
  *

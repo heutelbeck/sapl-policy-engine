@@ -53,7 +53,7 @@ public class CoverageFilesUtilityTest {
 		Path pathToErrorFile = baseDir.resolve("hits").resolve("_policySetHits.txt").resolve("test.txt");
 		Files.createDirectories(pathToErrorFile.getParent());
 		Files.createFile(pathToErrorFile);
-		assertDoesNotThrow(() -> reader.cleanCoverageHitFiles());
+		assertDoesNotThrow(reader::cleanCoverageHitFiles);
 	}
 
 	@Test
@@ -62,7 +62,7 @@ public class CoverageFilesUtilityTest {
 		Files.createDirectories(pathToErrorFile.getParent());
 		Files.createFile(pathToErrorFile);
 		CoverageHitRecorder recorder = new CoverageHitAPIFile(baseDir);
-		assertDoesNotThrow(() -> recorder.createCoverageHitFiles());
+		assertDoesNotThrow(recorder::createCoverageHitFiles);
 	}
 
 	@Test
@@ -73,7 +73,7 @@ public class CoverageFilesUtilityTest {
 			when(path.getParent()).thenReturn(null);
 			when(path.resolve(Mockito.anyString())).thenReturn(path);
 			CoverageHitRecorder recorder = new CoverageHitAPIFile(path);
-			assertDoesNotThrow(() -> recorder.createCoverageHitFiles());
+			assertDoesNotThrow(recorder::createCoverageHitFiles);
 			recorder.cleanCoverageHitFiles();
 		}
 	}
@@ -84,7 +84,7 @@ public class CoverageFilesUtilityTest {
 		CoverageHitRecorder recorder = new CoverageHitAPIFile(path);
 		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
 			mockedFiles.when(() -> Files.createDirectories(Mockito.any())).thenThrow(IOException.class);
-			assertDoesNotThrow(() -> recorder.createCoverageHitFiles());
+			assertDoesNotThrow(recorder::createCoverageHitFiles);
 		}
 	}
 

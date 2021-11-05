@@ -101,19 +101,19 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 
 	@Override
 	public List<PolicySetHit> readPolicySetHits() {
-		return readFileLines(FILE_PATH_POLICY_SET_HITS).stream().map(line -> PolicySetHit.fromString(line))
+		return readFileLines(FILE_PATH_POLICY_SET_HITS).stream().map(PolicySetHit::fromString)
 				.collect(Collectors.toList());
 	}
 
 	@Override
 	public List<PolicyHit> readPolicyHits() {
-		return readFileLines(FILE_PATH_POLICY_HITS).stream().map(line -> PolicyHit.fromString(line))
+		return readFileLines(FILE_PATH_POLICY_HITS).stream().map(PolicyHit::fromString)
 				.collect(Collectors.toList());
 	}
 
 	@Override
 	public List<PolicyConditionHit> readPolicyConditionHits() {
-		return readFileLines(FILE_PATH_POLICY_CONDITION_HITS).stream().map(line -> PolicyConditionHit.fromString(line))
+		return readFileLines(FILE_PATH_POLICY_CONDITION_HITS).stream().map(PolicyConditionHit::fromString)
 				.collect(Collectors.toList());
 	}
 

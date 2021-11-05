@@ -101,12 +101,6 @@ class EquivalenceAndHashUtilTest {
 
 		assertThrows(NullPointerException.class, () -> new Literal((Bool) null));
 
-		// Map<String, String> imports = Map.of("numbers", "test.numbers");
-		//
-		// var e4 = expression("numbers.MAX_VALUE");
-		// var e5 = expression("test.numbers.MAX_VALUE");
-		// assertThat(EquivalenceAndHashUtil.areEquivalent(e4, imports, e5, imports),
-		// is(true));
 	}
 
 	@Test

@@ -106,9 +106,6 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 		}
 		log.debug("returning updated index containing {} documents", newDocuments.size());
 		return recreateIndex(newDocuments, newConsistencyState);
-		// return new CanonicalImmutableParsedDocumentIndex(newDocuments,
-		// predicateOrderStrategy,
-		// pdpScopedEvaluationContext, newConsistencyState);
 	}
 
 	// only PUBLISH or UNPUBLISH

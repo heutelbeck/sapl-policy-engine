@@ -215,9 +215,7 @@ public class PostEnforcePolicyEnforcementPointTests {
 
 			@Override
 			public Function<Integer, Integer> getHandler(JsonNode constraint) {
-				return s -> {
-					return s + constraint.asInt();
-				};
+				return s -> s + constraint.asInt();
 			}
 		});
 		this.globalMappingHandlerProviders.add(handler);
@@ -286,9 +284,7 @@ public class PostEnforcePolicyEnforcementPointTests {
 
 			@Override
 			public Function<Integer, Integer> getHandler(JsonNode constraint) {
-				return s -> {
-					return s + constraint.asInt();
-				};
+				return s -> s + constraint.asInt();
 			}
 		});
 		this.globalMappingHandlerProviders.add(handler);

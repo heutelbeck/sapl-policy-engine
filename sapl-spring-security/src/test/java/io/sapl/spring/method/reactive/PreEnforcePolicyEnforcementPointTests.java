@@ -214,9 +214,7 @@ public class PreEnforcePolicyEnforcementPointTests {
 
 			@Override
 			public Function<Integer, Integer> getHandler(JsonNode constraint) {
-				return s -> {
-					return s + constraint.asInt();
-				};
+				return s -> s + constraint.asInt();
 			}
 		});
 		this.globalMappingHandlerProviders.add(handler);

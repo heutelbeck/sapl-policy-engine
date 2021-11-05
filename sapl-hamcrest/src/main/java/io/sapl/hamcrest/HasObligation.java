@@ -43,7 +43,7 @@ public class HasObligation extends TypeSafeDiagnosingMatcher<AuthorizationDecisi
 	@Override
 	public void describeTo(Description description) {
 		description.appendText("the decision has an obligation equals ");
-		this.jsonMatcher.ifPresentOrElse(matcher -> description.appendDescriptionOf(matcher),
+		this.jsonMatcher.ifPresentOrElse(description::appendDescriptionOf,
 				() -> description.appendText("any obligation"));
 	}
 

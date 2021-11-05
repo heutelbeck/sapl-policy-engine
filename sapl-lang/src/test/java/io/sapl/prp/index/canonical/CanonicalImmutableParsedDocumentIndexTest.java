@@ -236,8 +236,6 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
 		ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
 
-		// bindings.put("x0", false);
-		// bindings.put("x1", false);
 		AuthorizationSubscription authzSubscription = createRequestObject();
 		var subscriptionScopedEvaluationCtx = new EvaluationContext(new AnnotationAttributeContext(),
 				new AnnotationFunctionContext(), variables).forAuthorizationSubscription(authzSubscription);
@@ -355,9 +353,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		saplMap.put("p1", mockDocument);
 
 		try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito
-				.mockConstruction(CanonicalIndexDataCreationStrategy.class, (mock, context) -> {
-					doReturn(null).when(mock).constructNew(any(), any());
-				})) {
+				.mockConstruction(CanonicalIndexDataCreationStrategy.class, (mock, context) -> doReturn(null).when(mock).constructNew(any(), any()))) {
 
 			emptyIndex.recreateIndex(saplMap, true);
 			verify(mocked.constructed().get(0), times(1)).constructNew(any(), any());
@@ -374,9 +370,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		saplMap.put("p1", mockDocument);
 
 		try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito
-				.mockConstruction(CanonicalIndexDataCreationStrategy.class, (mock, context) -> {
-					doReturn(null).when(mock).constructNew(any(), any());
-				})) {
+				.mockConstruction(CanonicalIndexDataCreationStrategy.class, (mock, context) -> doReturn(null).when(mock).constructNew(any(), any()))) {
 
 			emptyIndex.recreateIndex(saplMap, true);
 			verify(mocked.constructed().get(0), times(1)).constructNew(any(), any());

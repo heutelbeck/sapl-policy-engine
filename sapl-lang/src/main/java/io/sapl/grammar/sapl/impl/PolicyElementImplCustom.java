@@ -29,7 +29,7 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
 	 * subscription by evaluating the element's target expression. An import mapping and
 	 * custom variables can be provided.
 	 * @param ctx the evaluation context in which the policy element's target expression
-	 * is be evaluated. It must contain
+	 * is evaluated. It must contain
 	 * <ul>
 	 * <li>the function context, as functions can be used in the target expression</li>
 	 * <li>the variable context holding the four authorization subscription variables

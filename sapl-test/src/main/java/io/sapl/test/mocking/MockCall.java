@@ -15,8 +15,6 @@
  */
 package io.sapl.test.mocking;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import io.sapl.api.interpreter.Val;
@@ -44,7 +42,7 @@ public class MockCall {
 	}
 
 	public List<Val> getListOfArguments() {
-		return Collections.unmodifiableList(Arrays.asList(this.parameter));
+		return List.of(this.parameter);
 	}
 
 }

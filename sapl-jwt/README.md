@@ -26,22 +26,23 @@ The expression `jwt.parseJwt(subject.token)` will return a value containing the 
 
 ```json
 {
-   "header":{
-      "kid":"6c3039b0-6358-41af-882d-2f223ba58559",
-      "alg":"RS256"
-   },
-   "payload":{
-      "sub":"user1",
-      "aud":"miskatonic-client",
-      "nbf":"2021-10-28T22:44:57Z",
-      "scope":[
-         "bestiary.read",
-         "faculty.read",
-         "books.read"
-      ],
-      "iss":"http://auth-server:9000",
-      "exp":"2021-10-28T22:49:57Z",
-      "iat":"2021-10-28T22:44:57Z"
+  "header": {
+    "kid": "6c3039b0-6358-41af-882d-2f223ba58559",
+    "alg": "RS256"
+  },
+  "payload": {
+    "sub": "user1",
+    "aud": "miskatonic-client",
+    "nbf": "2021-10-28T22:44:57Z",
+    "scope": [
+      "bestiary.read",
+      "faculty.read",
+      "books.read"
+    ],
+    "iss": "http://auth-server:9000",
+    "exp": "2021-10-28T22:49:57Z",
+    "iat": "2021-10-28T22:44:57Z"
+  }
 }
 ```
 

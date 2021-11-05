@@ -50,7 +50,7 @@ import reactor.core.publisher.Flux;
  *
  * b) Otherwise:
  *
- * i) If there is any DENY the decision is DENY.
+ * i) If there is any DENY the decision is a DENY.
  *
  * ii) Otherwise the decision is NOT_APPLICABLE.
  */

@@ -31,16 +31,16 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * This generous algorithm is used if the decision should be PERMIT except for there is a
- * DENY. It ensures that any decision is either DENY or PERMIT.
+ * This generous algorithm is used if the decision should be a PERMIT except for there is a
+ * DENY. It ensures that any decision is either a DENY or a PERMIT.
  *
  * It works as follows:
  *
  * If any policy document evaluates to DENY or if there is a transformation uncertainty
  * (multiple policies evaluate to PERMIT and at least one of them has a transformation
- * statement), the decision is DENY.
+ * statement), the decision is a DENY.
  *
- * Otherwise the decision is PERMIT.
+ * Otherwise, the decision is PERMIT.
  */
 @Slf4j
 public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDenyCombiningAlgorithmImpl {

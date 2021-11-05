@@ -239,7 +239,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	private VerifyStep expect(Matcher<AuthorizationDecision> matcher, String message) {
 		this.numberOfExpectSteps.addExpectStep();
-		this.steps = this.steps.expectNextMatches(dec -> matcher.matches(dec)).as(getDebugMessage(message));
+		this.steps = this.steps.expectNextMatches(matcher::matches).as(getDebugMessage(message));
 		return this;
 	}
 
@@ -330,7 +330,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	private ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher, String message) {
 		this.numberOfExpectSteps.addExpectStep();
-		this.steps = this.steps.expectNextMatches(dec -> matcher.matches(dec)).as(getDebugMessage(message));
+		this.steps = this.steps.expectNextMatches(matcher::matches).as(getDebugMessage(message));
 		return this;
 	}
 
@@ -379,10 +379,10 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 			builder.append("3rd");
 			break;
 		default:
-			builder.append(this.numberOfExpectSteps.getNumberOfExpectSteps() + "th");
+			builder.append(this.numberOfExpectSteps.getNumberOfExpectSteps()).append("th");
 		}
 
-		builder.append(" expect step failed: Expected " + endOfMessage);
+		builder.append(" expect step failed: Expected ").append(endOfMessage);
 
 		return builder.toString();
 	}
