@@ -67,14 +67,14 @@ public class JsonTestUtility {
 		ObjectNode valueNode = MAPPER.createObjectNode();
 
 		if (server != null) {
-			valueNode.put(JWTKeyProvider.PUBLICKEY_URI_KEY, server.url("/").toString() + "public-keys/{id}");
+			valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/").toString() + "public-keys/{id}");
 		}
 		if (method != null && method.length() > 0) {
 			if (method.equals("NONETEXT")) {
-				valueNode.set(JWTKeyProvider.PUBLICKEY_METHOD_KEY, jsonNode(false));
+				valueNode.set(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, jsonNode(false));
 			}
 			else {
-				valueNode.put(JWTKeyProvider.PUBLICKEY_METHOD_KEY, method);
+				valueNode.put(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, method);
 			}
 		}
 		if (ttl != null) {

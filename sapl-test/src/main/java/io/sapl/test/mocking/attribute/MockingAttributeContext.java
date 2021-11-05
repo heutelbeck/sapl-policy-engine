@@ -57,7 +57,7 @@ public class MockingAttributeContext implements AttributeContext {
 	 * Holds an AttributeContext implementation to delegate evaluations if this attribute
 	 * is not mocked
 	 */
-	private final AttributeContext unmockedAttributeContext;
+	private final AttributeContext originalAttributeContext;
 
 	/**
 	 * Contains a Map of all registered mocks. Key is the String of the full name of the
@@ -69,11 +69,11 @@ public class MockingAttributeContext implements AttributeContext {
 
 	/**
 	 * Constructor of MockingAttributeContext
-	 * @param unmockedAttributeContext unmocked "normal" AttributeContext do delegate
-	 * unmocked attribute calls
+	 * @param originalAttributeContext original "normal" AttributeContext do delegate
+	 * original attribute calls
 	 */
-	public MockingAttributeContext(AttributeContext unmockedAttributeContext) {
-		this.unmockedAttributeContext = unmockedAttributeContext;
+	public MockingAttributeContext(AttributeContext originalAttributeContext) {
+		this.originalAttributeContext = originalAttributeContext;
 		this.registeredMocks = new HashMap<>();
 		this.pipDocumentations = new HashMap<>();
 	}
@@ -84,8 +84,8 @@ public class MockingAttributeContext implements AttributeContext {
 			log.trace("Attribute \"{}\" is mocked", function);
 			return Boolean.TRUE;
 		}
-		else if (unmockedAttributeContext.isProvidedFunction(function)) {
-			log.trace("Attribute \"{}\" is provided by unmocked attribute context", function);
+		else if (originalAttributeContext.isProvidedFunction(function)) {
+			log.trace("Attribute \"{}\" is provided by original attribute context", function);
 			return Boolean.TRUE;
 		}
 		else {
@@ -104,7 +104,7 @@ public class MockingAttributeContext implements AttributeContext {
 				set.add(split[1]);
 		}
 
-		set.addAll(this.unmockedAttributeContext.providedFunctionsOfLibrary(pipName));
+		set.addAll(this.originalAttributeContext.providedFunctionsOfLibrary(pipName));
 
 		return set;
 	}
@@ -127,8 +127,8 @@ public class MockingAttributeContext implements AttributeContext {
 					.doOnNext((val) -> log.trace("| | | | |-- AttributeMock returned: " + val.toString()));
 		}
 		else {
-			log.debug("| | | | |-- Delegate attribute \"{}\" to unmocked attribute context", attribute);
-			return this.unmockedAttributeContext.evaluate(attribute, value, ctx, arguments);
+			log.debug("| | | | |-- Delegate attribute \"{}\" to original attribute context", attribute);
+			return this.originalAttributeContext.evaluate(attribute, value, ctx, arguments);
 		}
 	}
 
@@ -141,7 +141,7 @@ public class MockingAttributeContext implements AttributeContext {
 	public Collection<PolicyInformationPointDocumentation> getDocumentation() {
 		Collection<PolicyInformationPointDocumentation> doc = new LinkedList<>(
 				this.pipDocumentations.values());
-		doc.addAll(this.unmockedAttributeContext.getDocumentation());
+		doc.addAll(this.originalAttributeContext.getDocumentation());
 		return Collections.unmodifiableCollection(doc);
 	}
 

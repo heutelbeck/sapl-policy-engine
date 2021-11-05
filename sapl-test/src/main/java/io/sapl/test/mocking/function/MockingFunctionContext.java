@@ -50,7 +50,7 @@ public class MockingFunctionContext implements FunctionContext {
 	 * Holds an FunctionContext implementation to delegate evaluations if this function is
 	 * not mocked
 	 */
-	private final FunctionContext unmockedFunctionContext;
+	private final FunctionContext originalFunctionContext;
 
 	/**
 	 * Contains a Map of all registered mocks. Key is the String of the full name of the
@@ -60,8 +60,8 @@ public class MockingFunctionContext implements FunctionContext {
 
 	private final Map<String, LibraryDocumentation> functionDocumentations;
 
-	public MockingFunctionContext(FunctionContext unmockedFunctionContext) {
-		this.unmockedFunctionContext = unmockedFunctionContext;
+	public MockingFunctionContext(FunctionContext originalFunctionContext) {
+		this.originalFunctionContext = originalFunctionContext;
 		this.registeredMocks = new HashMap<>();
 		this.functionDocumentations = new HashMap<>();
 	}
@@ -72,8 +72,8 @@ public class MockingFunctionContext implements FunctionContext {
 			log.trace("Function \"{}\" is mocked", function);
 			return Boolean.TRUE;
 		}
-		else if (unmockedFunctionContext.isProvidedFunction(function)) {
-			log.trace("Function \"{}\" is provided by unmocked function context", function);
+		else if (originalFunctionContext.isProvidedFunction(function)) {
+			log.trace("Function \"{}\" is provided by original function context", function);
 			return Boolean.TRUE;
 		}
 		else {
@@ -92,7 +92,7 @@ public class MockingFunctionContext implements FunctionContext {
 				set.add(split[1]);
 		}
 
-		set.addAll(this.unmockedFunctionContext.providedFunctionsOfLibrary(libName));
+		set.addAll(this.originalFunctionContext.providedFunctionsOfLibrary(libName));
 
 		return set;
 	}
@@ -107,8 +107,8 @@ public class MockingFunctionContext implements FunctionContext {
 			return result;
 		}
 		else {
-			log.debug("| | | | |-- Delegate function \"{}\" to unmocked function context", function);
-			return this.unmockedFunctionContext.evaluate(function, parameters);
+			log.debug("| | | | |-- Delegate function \"{}\" to original function context", function);
+			return this.originalFunctionContext.evaluate(function, parameters);
 		}
 	}
 
@@ -121,7 +121,7 @@ public class MockingFunctionContext implements FunctionContext {
 	public Collection<LibraryDocumentation> getDocumentation() {
 		Collection<LibraryDocumentation> doc = new LinkedList<>(
 				this.functionDocumentations.values());
-		doc.addAll(this.unmockedFunctionContext.getDocumentation());
+		doc.addAll(this.originalFunctionContext.getDocumentation());
 		return Collections.unmodifiableCollection(doc);
 	}
 

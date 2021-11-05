@@ -25,8 +25,8 @@ public class JWTKeyProvider {
 
 	private static final String JWT_KEY_SERVER_HTTP_ERROR = "Error trying to retrieve a public key: ";
 
-	static final String PUBLICKEY_URI_KEY = "uri";
-	static final String PUBLICKEY_METHOD_KEY = "method";
+	static final String PUBLIC_KEY_URI_KEY = "uri";
+	static final String PUBLIC_KEY_METHOD_KEY = "method";
 	static final String KEY_CACHING_TTL_MILLIS = "keyCachingTTLmillis";
 	static final long DEFAULT_CACHING_TTL = 300000L;
 
@@ -47,12 +47,12 @@ public class JWTKeyProvider {
 
 	public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) {
 
-		var jUri = jPublicKeyServer.get(PUBLICKEY_URI_KEY);
+		var jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
 		if (jUri == null)
 			return Mono.empty();
 
 		var sMethod = "GET";
-		JsonNode jMethod = jPublicKeyServer.get(PUBLICKEY_METHOD_KEY);
+		JsonNode jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
 		if (jMethod != null && jMethod.isTextual())
 			sMethod = jMethod.textValue();
 

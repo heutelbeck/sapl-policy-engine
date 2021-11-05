@@ -228,7 +228,7 @@ public class JWTPolicyInformationPointTest {
 				.notBeforeTime(JWTTestUtility.timeOneUnitAfterNow()).build();
 		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
 		var flux = jwtPolicyInformationPoint.validity(source, variables);
-		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.NEVERVALID.toString()))
+		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.NEVER_VALID.toString()))
 				.verifyComplete();
 	}
 

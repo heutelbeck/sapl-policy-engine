@@ -63,8 +63,8 @@ public class SaplDocumentReader {
 				try {
 					log.debug(String.format("Loading coverage target from file \"%s\"", file.getPath()));
 					fileContent = Files.readString(file.toPath());
-					int linecount = Files.readAllLines(file.toPath()).size();
-					saplDocuments.add(new SaplDocument(file.toPath(), linecount, interpreter.parse(fileContent)));
+					int lineCount = Files.readAllLines(file.toPath()).size();
+					saplDocuments.add(new SaplDocument(file.toPath(), lineCount, interpreter.parse(fileContent)));
 				}
 				catch (IOException e) {
 					log.error("Error reading file " + file, e);

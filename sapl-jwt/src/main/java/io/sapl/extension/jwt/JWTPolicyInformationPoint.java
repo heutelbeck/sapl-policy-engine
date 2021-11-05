@@ -92,7 +92,7 @@ public class JWTPolicyInformationPoint {
 		, EXPIRED
 
 		// the JWT expires before it becomes valid, so it is never valid
-		, NEVERVALID
+		, NEVER_VALID
 
 		// the JWT will become valid in future
 		, IMMATURE
@@ -249,7 +249,7 @@ public class JWTPolicyInformationPoint {
 
 		// sanity check
 		if (nbf != null && exp != null && nbf.getTime() > exp.getTime())
-			return Flux.just(ValidityState.NEVERVALID);
+			return Flux.just(ValidityState.NEVER_VALID);
 
 		// verify expiration
 		if (exp != null && exp.getTime() < now.getTime()) {
