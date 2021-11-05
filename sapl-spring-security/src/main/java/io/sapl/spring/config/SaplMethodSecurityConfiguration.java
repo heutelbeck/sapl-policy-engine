@@ -81,7 +81,7 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 		log.debug("Blocking SAPL method level pre-invocation security activated.");
 		var baseManager = super.accessDecisionManager();
 
-		var decisionVoters = new ArrayList<AccessDecisionVoter<?>>(((AbstractAccessDecisionManager) baseManager).getDecisionVoters());
+		var decisionVoters = new ArrayList<>(((AbstractAccessDecisionManager) baseManager).getDecisionVoters());
 
 		var policyAdvice = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);

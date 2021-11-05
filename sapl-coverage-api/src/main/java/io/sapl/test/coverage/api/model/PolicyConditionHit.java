@@ -20,12 +20,12 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
-@Getter
-@EqualsAndHashCode
-@AllArgsConstructor
 /**
  * Containing all necessary information of a Policy Condition Hit
  */
+@Getter
+@EqualsAndHashCode
+@AllArgsConstructor
 public class PolicyConditionHit {
 
 	/**
