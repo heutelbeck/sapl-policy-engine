@@ -24,7 +24,7 @@ import io.sapl.pip.TimePolicyInformationPoint;
 public class PolicyInformationPointsAutoConfiguration {
 
 	@Bean
-	public TimePolicyInformationPoint clockPolicyInformationPoint() {
+	public TimePolicyInformationPoint timePolicyInformationPoint() {
 		return new TimePolicyInformationPoint();
 	}
 

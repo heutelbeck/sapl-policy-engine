@@ -6,18 +6,18 @@ permit
      action == "read"
 where
      subject == "WILLI";
-     time.localSecond("UTC".<clock.now>) < 20; obligation "A"
+     time.localSecond(<time.now>) < 20; obligation "A"
 
 policy "policy 2"
 permit
      action == "read"
 where
      subject == "WILLI";
-     time.localSecond("UTC".<clock.now>) < 40; obligation "B"
+     time.localSecond(<time.now>) < 40; obligation "B"
 
 policy "policy 3"
 permit
      action == "read"
 where
      subject == "WILLI";
-     time.localSecond("UTC".<clock.now>) < 60; obligation "C"
+     time.localSecond(<time.now>) < 60; obligation "C"

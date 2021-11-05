@@ -87,12 +87,12 @@ public class TimePolicyInformationPoint {
 
                     if (!millis.isNumber())
                         return Flux.error(new PolicyEvaluationException(
-                                String.format("ticker parameter not a number. Was: %s", millis.toString())));
+                                String.format("now parameter not a number. Was: %s", millis.toString())));
 
                     var millisValue = millis.get().asLong();
 
                     if (millisValue == 0)
-                        return Flux.error(new PolicyEvaluationException("ticker parameter must not be zero"));
+                        return Flux.error(new PolicyEvaluationException("now parameter must not be zero"));
 
                     return Flux.<String>create(sink ->
                             Schedulers.single().schedulePeriodically(
@@ -101,12 +101,12 @@ public class TimePolicyInformationPoint {
                 }).map(Val::of);
     }
 
-    @Attribute(docs = "Returns true if the local clock is after the provided time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
+    @Attribute(docs = "Returns true if the local time is after the provided time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
     public Flux<Val> nowIsAfterSystem(Flux<Val> time) {
         return nowIsAfter(time, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
-    @Attribute(docs = "Returns true if the local clock is after the provided time in the specified time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
+    @Attribute(docs = "Returns true if the local time is after the provided time in the specified time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
     public Flux<Val> nowIsAfter(Flux<Val> time, Flux<Val> zone) {
         return Flux.combineLatest(time, zone, Tuples::of)
                 .switchMap(timeAndZoneTuple -> {
@@ -127,23 +127,23 @@ public class TimePolicyInformationPoint {
                 });
     }
 
-    @Attribute(docs = "Returns true if the local clock is before the provided time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
+    @Attribute(docs = "Returns true if the local time is before the provided time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
     public Flux<Val> nowIsBeforeSystem(Flux<Val> time) {
         return nowIsBefore(time, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
-    @Attribute(docs = "Returns true if the local clock is before the provided time in the specified time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
+    @Attribute(docs = "Returns true if the local time is before the provided time in the specified time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
     public Flux<Val> nowIsBefore(Flux<Val> time, Flux<Val> zone) {
         return nowIsAfter(time, zone)
                 .map(this::negateVal);
     }
 
-    @Attribute(docs = "Returns true if the local clock is before the provided start time and before the end time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
+    @Attribute(docs = "Returns true if the local time is before the provided start time and before the end time in the systems default time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
     public Flux<Val> nowIsBetweenSystem(Flux<Val> start, Flux<Val> end) {
         return nowIsBetween(start, end, SYSTEM_DEFAULT_TIMEZONE_FLUX);
     }
 
-    @Attribute(docs = "Returns true if the local clock is before the provided start time and before the end time in the provided time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
+    @Attribute(docs = "Returns true if the local time is before the provided start time and before the end time in the provided time-zone. Only the time of the day is taken into account. Emits value every time, the result changes.")
     public Flux<Val> nowIsBetween(Flux<Val> start, Flux<Val> end, Flux<Val> zone) {
         Flux<Val> nowIsAfterFlux = nowIsAfter(start, zone);
         Flux<Val> nowIsBeforeFlux = nowIsBefore(end, zone);
@@ -171,7 +171,7 @@ public class TimePolicyInformationPoint {
 
             var millisValue = millis.get().asLong();
             if (millisValue == 0)
-                return Flux.error(new PolicyEvaluationException("ticker parameter must not be zero"));
+                return Flux.error(new PolicyEvaluationException("now parameter must not be zero"));
 
             return Flux.concat(
                     Mono.just(Val.FALSE),

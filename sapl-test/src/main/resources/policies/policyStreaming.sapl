@@ -1,11 +1,7 @@
-import io.sapl.pip.ClockPolicyInformationPoint as clock
-import io.sapl.functions.TemporalFunctionLibrary as time
-
-
 policy "policyStreaming"
 permit
   resource == "heartBeatData"
 where
   subject == "ROLE_DOCTOR";
   var interval = 2;
-  time.localSecond(<clock.ticker(interval)>) > 4;
+  time.localSecond(<time.now(interval)>) > 4;
