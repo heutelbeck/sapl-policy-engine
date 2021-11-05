@@ -83,7 +83,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			return;
 
 		case "import":
-			handleImportProposals(feature, context, acceptor)
+			handleImportProposals(feature, context, acceptor);
 			return;
 
 		case "basic":
