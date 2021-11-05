@@ -15,8 +15,6 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

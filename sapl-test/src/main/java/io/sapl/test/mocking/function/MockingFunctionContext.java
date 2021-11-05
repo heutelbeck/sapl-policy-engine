@@ -27,16 +27,14 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
+import org.hamcrest.number.OrderingComparison;
+
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
-
-import org.hamcrest.number.OrderingComparison;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
