@@ -18,11 +18,11 @@ package io.sapl.extension.jwt;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,13 +38,19 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import io.sapl.api.interpreter.Val;
 import io.sapl.extension.jwt.TestMockServerDispatcher.DispatchMode;
 import okhttp3.mockwebserver.MockWebServer;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 public class JWTPolicyInformationPointTest {
 
 	private static KeyPair keyPair;
 	
+	private static KeyPair keyPair2;
+	
 	private static String kid;
+	
+	private static String kid2;
 
 	private static WebClient.Builder builder;
 
@@ -58,7 +64,9 @@ public class JWTPolicyInformationPointTest {
 	public static void preSetup() throws IOException, NoSuchAlgorithmException {
 		Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
 		keyPair = KeyTestUtility.generateRSAKeyPair();
+		keyPair2 = KeyTestUtility.generateRSAKeyPair();
 		kid = KeyTestUtility.kid(keyPair);
+		kid2 = KeyTestUtility.kid(keyPair2);
 		server = KeyTestUtility.testServer("/public-keys/", keyPair);
 		dispatcher = (TestMockServerDispatcher) server.getDispatcher();
 		server.start();
@@ -100,6 +108,53 @@ public class JWTPolicyInformationPointTest {
 		var flux = jwtPolicyInformationPoint.validity(null, null);
 		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.MALFORMED.toString()))
 				.verifyComplete();
+	}
+
+/*
+ * TEST WHITELIST
+ */
+	
+	@Test
+	public void validity_withWhitelist_emptyEntry_shouldBeUntrusted()
+			throws NoSuchAlgorithmException, IOException, JOSEException {
+		
+		var variables = JsonTestUtility.publicKeyWhitelistVariables(kid, null, kid2, keyPair2);
+		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+		var claims = new JWTClaimsSet.Builder().build();
+		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString())).verifyComplete();
+	}
+	
+	@Test
+	public void validity_withWhitelist_bogusEntry_shouldBeUntrusted()
+			throws NoSuchAlgorithmException, IOException, JOSEException {
+		
+		var variables = JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, null);
+		var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid2).build();
+		var claims = new JWTClaimsSet.Builder().build();
+		var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair2);
+		var flux = jwtPolicyInformationPoint.validity(source, variables);
+		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString())).verifyComplete();
+	}
+
+	@Test
+	public void validity_withWhitelist_multiTest_shouldBeTrustedThenTrustedThenUntrusted()
+			throws NoSuchAlgorithmException, IOException, JOSEException {
+		
+		var keyPairs = new KeyPair[] {keyPair, keyPair2, KeyTestUtility.generateRSAKeyPair()};
+		var variables = JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, keyPair2);
+		var claims = new JWTClaimsSet.Builder().build();
+		var validities = new ArrayList<Mono<Val>>();
+		for (int trial = 0; trial < 3; trial++) {
+			var header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(KeyTestUtility.kid(keyPairs[trial])).build();
+			var source = JWTTestUtility.buildAndSignJwt(header, claims, keyPairs[trial]);
+			validities.add(jwtPolicyInformationPoint.validity(source, variables).last());
+		}
+		var flux = Flux.concat(validities);
+		StepVerifier.create(flux).expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
+				.expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.VALID.toString()))
+				.expectNext(Val.of(JWTPolicyInformationPoint.ValidityState.UNTRUSTED.toString())).verifyComplete();
 	}
 
 /*

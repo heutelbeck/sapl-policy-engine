@@ -10,7 +10,7 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-public class JWTEncodingDecodingUtils {
+class JWTEncodingDecodingUtils {
 	
 	static Optional<RSAPublicKey> encodedX509ToRSAPublicKey(String encodedKey) {
 		return decode(encodedKey).map(X509EncodedKeySpec::new).flatMap(JWTEncodingDecodingUtils::generatePublicKey);

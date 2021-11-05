@@ -20,7 +20,6 @@ import java.text.ParseException;
 import java.time.Duration;
 import java.util.Date;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -38,6 +37,7 @@ import io.sapl.api.validation.Text;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 
 /**
  * Attributes obtained from JSON Web Tokens (JWT)
@@ -80,6 +80,7 @@ public class JWTPolicyInformationPoint {
 	private static final String VALIDITY_DOCS = "The token's validity state";
 
 	static final String PUBLICKEY_VARIABLES_KEY = "publicKeyServer";
+	static final String WHITELIST_VARIABLES_KEY = "whitelist";
 
 	/**
 	 * Possible states of validity a JWT can have
@@ -206,11 +207,15 @@ public class JWTPolicyInformationPoint {
 		var keyId = signedJwt.getHeader().getKeyID();
 
 		Mono<RSAPublicKey> publicKey = null;
-		var whitelist = jwtConfig.get("whitelist");
+		var whitelist = jwtConfig.get(WHITELIST_VARIABLES_KEY);
+		var isFromWhitelist = false;
 		if (whitelist != null && whitelist.get(keyId) != null) {
 			var key = JWTEncodingDecodingUtils.jsonNodeToKey(whitelist.get(keyId));
 			if (key.isPresent())
+			{
 				publicKey = Mono.just(key.get());
+				isFromWhitelist = true;
+			}
 		}
 
 		if (publicKey == null) {
@@ -222,9 +227,10 @@ public class JWTPolicyInformationPoint {
 			publicKey = keyProvider.provide(keyId, jPublicKeyServer);
 		}
 
-		var signatureValidity = publicKey.map(signatureOfTokenIsValid(signedJwt));
-		signatureValidity.subscribe(cachePublicKeyIfSignatureValid(keyId, publicKey));
-		return signatureValidity.defaultIfEmpty(Boolean.FALSE);
+		return publicKey.map(signatureOfTokenIsValid(signedJwt))
+				.defaultIfEmpty(Boolean.FALSE)
+				.zipWhen(cachePublicKeyIfSignatureValid(keyId, isFromWhitelist, publicKey))
+				.map(Tuple2::getT1);
 	}
 
 	private Function<RSAPublicKey, Boolean> signatureOfTokenIsValid(SignedJWT signedJwt) {
@@ -239,12 +245,15 @@ public class JWTPolicyInformationPoint {
 		};
 	}
 	
-	private Consumer<Boolean> cachePublicKeyIfSignatureValid(String keyId, Mono<RSAPublicKey> publicKeyMono) {
+	private Function<Boolean, Mono<? extends Boolean>> cachePublicKeyIfSignatureValid(String keyId,
+			boolean isFromWhitelist, Mono<RSAPublicKey> publicKeyMono) {
+		
 		return signatureValid -> {
-			if (signatureValid)
+			if (signatureValid && !isFromWhitelist)
 				publicKeyMono.subscribe(publicKey -> {
 					keyProvider.cache(keyId, publicKey);
 				});
+			return Mono.just(signatureValid);
 		};
 	}
 
