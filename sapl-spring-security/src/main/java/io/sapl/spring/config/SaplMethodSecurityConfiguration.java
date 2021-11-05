@@ -30,6 +30,7 @@ import org.springframework.security.access.intercept.AfterInvocationProviderMana
 import org.springframework.security.access.method.MethodSecurityMetadataSource;
 import org.springframework.security.access.vote.AbstractAccessDecisionManager;
 import org.springframework.security.access.vote.AffirmativeBased;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.method.configuration.GlobalMethodSecurityConfiguration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +41,8 @@ import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointProvider;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointVoter;
+import io.sapl.spring.method.metadata.PostEnforce;
+import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttributeFactory;
 import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
