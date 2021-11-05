@@ -22,6 +22,7 @@ import org.hamcrest.Matcher;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
 
 /**
  * This step is in charge of defining the expected results. Next Step available :
