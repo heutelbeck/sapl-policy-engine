@@ -75,7 +75,7 @@ public class MockingAttributeContext implements AttributeContext {
 	 */
 	public MockingAttributeContext(AttributeContext unmockedAttributeContext) {
 		this.unmockedAttributeContext = unmockedAttributeContext;
-		this.registeredMocks = new HashMap<String, AttributeMock>();
+		this.registeredMocks = new HashMap<>();
 		this.pipDocumentations = new HashMap<>();
 	}
 
@@ -117,7 +117,7 @@ public class MockingAttributeContext implements AttributeContext {
 			log.debug("| | | | |-- Evaluate mocked attribute \"{}\"", attribute);
 
 			Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
-			List<Flux<Val>> args = new LinkedList<Flux<Val>>();
+			List<Flux<Val>> args = new LinkedList<>();
 			if (arguments != null) {
 				for (Expression argument : arguments.getArgs()) {
 					args.add(argument.evaluate(ctx, Val.UNDEFINED));
@@ -140,7 +140,7 @@ public class MockingAttributeContext implements AttributeContext {
 
 	@Override
 	public Collection<PolicyInformationPointDocumentation> getDocumentation() {
-		Collection<PolicyInformationPointDocumentation> doc = new LinkedList<PolicyInformationPointDocumentation>(
+		Collection<PolicyInformationPointDocumentation> doc = new LinkedList<>(
 				this.pipDocumentations.values());
 		doc.addAll(this.unmockedAttributeContext.getDocumentation());
 		return Collections.unmodifiableCollection(doc);

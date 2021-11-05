@@ -40,9 +40,9 @@ public class JWTKeyProvider {
 
 	public JWTKeyProvider(WebClient.Builder builder) {
 		webClient = builder.build();
-		keyCache = new ConcurrentHashMap<String, RSAPublicKey>(); // HashMap<String,
+		keyCache = new ConcurrentHashMap<>(); // HashMap<String,
 																	// RSAPublicKey>();
-		cachingTimes = new ConcurrentLinkedQueue<JWTKeyProvider.CacheEntry>(); // PriorityQueue<CacheEntry>();
+		cachingTimes = new ConcurrentLinkedQueue<>(); // PriorityQueue<CacheEntry>();
 	}
 
 	public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) {

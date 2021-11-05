@@ -73,7 +73,7 @@ class StepBuilder {
 	 */
 	private static class Steps extends StepsDefaultImpl {
 
-		SAPL document;
+		final SAPL document;
 
 		Steps(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
 			this.document = document;

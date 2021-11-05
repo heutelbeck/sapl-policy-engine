@@ -28,7 +28,7 @@ public class FunctionMockFunctionResult implements FunctionMock {
 
 	private final String fullname;
 
-	Function<Val[], Val> returnValue;
+	final Function<Val[], Val> returnValue;
 
 	private final TimesCalledVerification timesCalledVerification;
 

@@ -66,7 +66,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	protected boolean withVirtualTime;
 
-	protected NumberOfExpectSteps numberOfExpectSteps;
+	protected final NumberOfExpectSteps numberOfExpectSteps;
 
 	public StepsDefaultImpl() {
 		this.numberOfExpectSteps = new NumberOfExpectSteps();

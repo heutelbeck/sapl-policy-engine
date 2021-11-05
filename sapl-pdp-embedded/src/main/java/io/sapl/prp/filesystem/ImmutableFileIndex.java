@@ -52,7 +52,7 @@ class ImmutableFileIndex {
 
 	private int nameCollisions = 0;
 
-	List<Update> updates = new LinkedList<>();
+	final List<Update> updates = new LinkedList<>();
 
 	@Getter
 	private PrpUpdateEvent updateEvent;

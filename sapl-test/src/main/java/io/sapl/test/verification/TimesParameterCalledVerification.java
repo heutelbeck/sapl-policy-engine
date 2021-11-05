@@ -31,9 +31,9 @@ import org.hamcrest.Matcher;
  */
 public class TimesParameterCalledVerification implements MockingVerification {
 
-	List<Matcher<Val>> wantedArgs;
+	final List<Matcher<Val>> wantedArgs;
 
-	TimesCalledVerification verification;
+	final TimesCalledVerification verification;
 
 	public TimesParameterCalledVerification(TimesCalledVerification verification, List<Matcher<Val>> wantedArgs) {
 		this.verification = verification;

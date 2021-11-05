@@ -26,7 +26,7 @@ public class TimesCalledVerification implements MockingVerification {
 
 	private static final String ERROR_TIMES_VERIFICATION = "Error verifiying the expected number of calls to the mock \"%s\" - Expected: \"%s\" - got: \"%s\"";
 
-	Matcher<Integer> matcher;
+	final Matcher<Integer> matcher;
 
 	public TimesCalledVerification(Matcher<Integer> matcher) {
 		this.matcher = matcher;

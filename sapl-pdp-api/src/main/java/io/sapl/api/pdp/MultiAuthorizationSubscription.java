@@ -170,7 +170,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	public Iterator<IdentifiableAuthorizationSubscription> iterator() {
 		final Iterator<Map.Entry<String, AuthorizationSubscriptionElements>> subscriptionIterator = authorizationSubscriptions
 				.entrySet().iterator();
-		return new Iterator<IdentifiableAuthorizationSubscription>() {
+		return new Iterator<>() {
 			@Override
 			public boolean hasNext() {
 				return subscriptionIterator.hasNext();

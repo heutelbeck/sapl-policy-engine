@@ -122,7 +122,7 @@ public class Coverage {
 	 */
 	public List<Coverage.File> getFile() {
 		if (file == null) {
-			file = new ArrayList<Coverage.File>();
+			file = new ArrayList<>();
 		}
 		return this.file;
 	}
@@ -216,7 +216,7 @@ public class Coverage {
 		 */
 		public List<Coverage.File.LineToCover> getLineToCover() {
 			if (lineToCover == null) {
-				lineToCover = new ArrayList<Coverage.File.LineToCover>();
+				lineToCover = new ArrayList<>();
 			}
 			return this.lineToCover;
 		}

@@ -213,7 +213,7 @@ public class HtmlLineCoverageReportGenerator {
 
 	private List<HtmlPolicyLineModel> createHtmlPolicyLineModel(List<String> lines,
 			SaplDocumentCoverageInformation document) {
-		List<HtmlPolicyLineModel> models = new LinkedList<HtmlPolicyLineModel>();
+		List<HtmlPolicyLineModel> models = new LinkedList<>();
 
 		for (int i = 0; i < lines.size(); i++) {
 			var model = new HtmlPolicyLineModel();

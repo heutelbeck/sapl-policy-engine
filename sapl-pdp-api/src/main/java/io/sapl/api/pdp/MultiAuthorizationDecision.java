@@ -116,7 +116,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
 	public Iterator<IdentifiableAuthorizationDecision> iterator() {
 		final Iterator<Map.Entry<String, AuthorizationDecision>> decisionIterator = authorizationDecisions.entrySet()
 				.iterator();
-		return new Iterator<IdentifiableAuthorizationDecision>() {
+		return new Iterator<>() {
 			@Override
 			public boolean hasNext() {
 				return decisionIterator.hasNext();

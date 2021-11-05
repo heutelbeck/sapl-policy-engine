@@ -67,15 +67,15 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
 	private final Class<T> clazz;
 
-	AtomicReference<Disposable> decisionsSubscription = new AtomicReference<Disposable>();
+	final AtomicReference<Disposable> decisionsSubscription = new AtomicReference<>();
 
-	AtomicReference<Disposable> dataSubscription = new AtomicReference<Disposable>();
+	final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
 
-	AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<AuthorizationDecision>();
+	final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
 
-	AtomicReference<ConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<ConstraintHandlerBundle<T>>();
+	final AtomicReference<ConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
 
-	AtomicBoolean stopped = new AtomicBoolean(false);
+	final AtomicBoolean stopped = new AtomicBoolean(false);
 
 	private EnforceTillDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions, Flux<T> resourceAccessPoint,
 			ConstraintEnforcementService constraintsService, Class<T> clazz) {
@@ -87,7 +87,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
 	public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
 			ConstraintEnforcementService constraintsService, Class<V> clazz) {
-		var pep = new EnforceTillDeniedPolicyEnforcementPoint<V>(decisions, resourceAccessPoint, constraintsService,
+		var pep = new EnforceTillDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint, constraintsService,
 				clazz);
 		return pep.doOnTerminate(pep::handleOnTerminateConstraints)
 				.doAfterTerminate(pep::handleAfterTerminateConstraints)
@@ -114,7 +114,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 			constraintHandler.set(newBundle);
 		}
 		catch (AccessDeniedException e) {
-			constraintHandler.set(new ConstraintHandlerBundle<T>());
+			constraintHandler.set(new ConstraintHandlerBundle<>());
 			sink.error(e);
 			disposeDecisionsAndResourceAccessPoint();
 			return;
