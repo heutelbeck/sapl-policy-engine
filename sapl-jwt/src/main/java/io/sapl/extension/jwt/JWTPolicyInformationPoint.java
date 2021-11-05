@@ -71,13 +71,14 @@ import reactor.core.publisher.Mono;
 @PolicyInformationPoint(name = JWTPolicyInformationPoint.NAME, description = JWTPolicyInformationPoint.DESCRIPTION)
 public class JWTPolicyInformationPoint {
 
+	static final String JWT_KEY = "jwt";
+	static final String NAME = JWT_KEY;
+	static final String DESCRIPTION = "Json Web Token Attributes. Attributes depend on the JWT's validity, meaning they can change their state over time according to the JWT's signature, maturity and expiration.";
+	static final String PUBLIC_KEY_VARIABLES_KEY = "publicKeyServer";
+
 	private static final String JWT_CONFIG_MISSING_ERROR = "The key 'jwt' with the configuration of public key server and key whitelist. All JWT tokens will be treated as if the signatures could not be validated.";
-	private static final String JWT_KEY = "jwt";
-	private static final String NAME = JWT_KEY;
-	private static final String DESCRIPTION = "Json Web Token Attributes. Attributes depend on the JWT's validity, meaning they can change their state over time according to the JWT's signature, maturity and expiration.";
 	private static final String VALIDITY_DOCS = "The token's validity state";
 
-	static final String PUBLIC_KEY_VARIABLES_KEY = "publicKeyServer";
 
 	/**
 	 * Possible states of validity a JWT can have
