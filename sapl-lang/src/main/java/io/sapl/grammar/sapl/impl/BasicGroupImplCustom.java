@@ -30,7 +30,7 @@ public class BasicGroupImplCustom extends BasicGroupImpl {
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		final Flux<Val> evaluatedExpressions = getExpression().evaluate(ctx, relativeNode);
-		return evaluatedExpressions.switchMap(resolveStepsFiltersAndSubtemplates(steps, ctx, relativeNode));
+		return evaluatedExpressions.switchMap(resolveStepsFiltersAndSubTemplates(steps, ctx, relativeNode));
 	}
 
 }

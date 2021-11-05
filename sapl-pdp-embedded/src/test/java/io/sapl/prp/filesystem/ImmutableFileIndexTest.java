@@ -138,7 +138,7 @@ class ImmutableFileIndexTest {
 
 		assertThat(newIndex, notNullValue());
 		assertThat(Arrays.stream(newIndex.getUpdateEvent().getUpdates())
-				.anyMatch(update -> update.getType() == Type.UNPUBLISH), is(true));
+				.anyMatch(update -> update.getType() == Type.WITHDRAW), is(true));
 	}
 
 	@Test
@@ -275,7 +275,7 @@ class ImmutableFileIndexTest {
 		when(documentMock1.isPublished()).thenReturn(true);
 
 		spy.unload(mock(Path.class));
-		verify(spy, times(1)).addUnpublishUpdate(documentMock1);
+		verify(spy, times(1)).addWithdrawUpdate(documentMock1);
 		reset(spy);
 
 		// unload "policy_2.sapl"

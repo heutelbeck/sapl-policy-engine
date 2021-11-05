@@ -128,11 +128,11 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		verify(spyIndex, times(1)).recreateIndex(argThat(map -> map.size() == 2), eq(true));
 		spyIndex = (CanonicalImmutableParsedDocumentIndex) spy(updatedIndex);
 
-		/* UNPUBLISH + INCONSISTENT */
-		prpUpdateEvent = new PrpUpdateEvent(update(Type.UNPUBLISH, "p1"), update(Type.UNPUBLISH, "p2"),
+		/* WITHDRAW + INCONSISTENT */
+		prpUpdateEvent = new PrpUpdateEvent(update(Type.WITHDRAW, "p1"), update(Type.WITHDRAW, "p2"),
 				update(Type.INCONSISTENT, null));
 		updatedIndex = spyIndex.apply(prpUpdateEvent);
-		verify(spyIndex, times(2)).applyUpdate(any(), argThat(e -> e.getType() == Type.UNPUBLISH));
+		verify(spyIndex, times(2)).applyUpdate(any(), argThat(e -> e.getType() == Type.WITHDRAW));
 		verify(spyIndex, times(1)).recreateIndex(argThat(Map::isEmpty), eq(false));
 		spyIndex = (CanonicalImmutableParsedDocumentIndex) spy(updatedIndex);
 
@@ -236,8 +236,6 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		PrpUpdateEvent prpUpdateEvent = new PrpUpdateEvent(updates);
 		ImmutableParsedDocumentIndex updatedIndex = emptyIndex.apply(prpUpdateEvent);
 
-		// bindings.put("x0", false);
-		// bindings.put("x1", false);
 		AuthorizationSubscription authzSubscription = createRequestObject();
 		var subscriptionScopedEvaluationCtx = new EvaluationContext(new AnnotationAttributeContext(),
 				new AnnotationFunctionContext(), variables).forAuthorizationSubscription(authzSubscription);
@@ -297,7 +295,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		bindings.put("x1", true);
 
 		updates.clear();
-		updates.add(new Update(Type.UNPUBLISH, document, definition));
+		updates.add(new Update(Type.WITHDRAW, document, definition));
 
 		prpUpdateEvent = new PrpUpdateEvent(updates);
 		updatedIndex = updatedIndex.apply(prpUpdateEvent);
@@ -354,10 +352,9 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		Map<String, SAPL> saplMap = new HashMap<>();
 		saplMap.put("p1", mockDocument);
 
-		try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito
-				.mockConstruction(CanonicalIndexDataCreationStrategy.class, (mock, context) -> {
-					doReturn(null).when(mock).constructNew(any(), any());
-				})) {
+		try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito.mockConstruction(
+				CanonicalIndexDataCreationStrategy.class,
+				(mock, context) -> doReturn(null).when(mock).constructNew(any(), any()))) {
 
 			emptyIndex.recreateIndex(saplMap, true);
 			verify(mocked.constructed().get(0), times(1)).constructNew(any(), any());
@@ -373,10 +370,9 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		Map<String, SAPL> saplMap = new HashMap<>();
 		saplMap.put("p1", mockDocument);
 
-		try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito
-				.mockConstruction(CanonicalIndexDataCreationStrategy.class, (mock, context) -> {
-					doReturn(null).when(mock).constructNew(any(), any());
-				})) {
+		try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito.mockConstruction(
+				CanonicalIndexDataCreationStrategy.class,
+				(mock, context) -> doReturn(null).when(mock).constructNew(any(), any()))) {
 
 			emptyIndex.recreateIndex(saplMap, true);
 			verify(mocked.constructed().get(0), times(1)).constructNew(any(), any());

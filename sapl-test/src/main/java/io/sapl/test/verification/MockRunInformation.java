@@ -25,17 +25,17 @@ import lombok.Data;
 
 public class MockRunInformation {
 
-	private final String fullname;
+	private final String fullName;
 
-	private List<CallWithMetadata> timesCalled;
+	private final List<CallWithMetadata> timesCalled;
 
-	public MockRunInformation(String fullname) {
-		this.fullname = fullname;
+	public MockRunInformation(String fullName) {
+		this.fullName = fullName;
 		this.timesCalled = new LinkedList<>();
 	}
 
-	public String getFullname() {
-		return this.fullname;
+	public String getFullName() {
+		return this.fullName;
 	}
 
 	public int getTimesCalled() {

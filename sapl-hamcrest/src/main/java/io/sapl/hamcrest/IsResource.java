@@ -43,8 +43,7 @@ public class IsResource extends TypeSafeDiagnosingMatcher<AuthorizationDecision>
 	@Override
 	public void describeTo(Description description) {
 		description.appendText("a resource with ");
-		jsonMatcher.ifPresentOrElse(matcher -> description.appendDescriptionOf(matcher),
-				() -> description.appendText("any JsonNode"));
+		jsonMatcher.ifPresentOrElse(description::appendDescriptionOf, () -> description.appendText("any JsonNode"));
 	}
 
 	@Override

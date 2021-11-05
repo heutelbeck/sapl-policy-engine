@@ -48,8 +48,8 @@ class FilesystemPRPTest {
 		var mockSource = mock(FileSystemPrpUpdateEventSource.class);
 		var mockIndex = mock(CanonicalImmutableParsedDocumentIndex.class);
 
-		var updateEventFlux = Flux.just(event(Type.PUBLISH), event(Type.UNPUBLISH), event(Type.PUBLISH),
-				event(Type.UNPUBLISH), event(Type.PUBLISH)
+		var updateEventFlux = Flux.just(event(Type.PUBLISH), event(Type.WITHDRAW), event(Type.PUBLISH),
+				event(Type.WITHDRAW), event(Type.PUBLISH)
 
 		);
 
@@ -65,7 +65,7 @@ class FilesystemPRPTest {
 		verify(mockIndex, times(3))
 				.apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.PUBLISH));
 		verify(mockIndex, times(2))
-				.apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.UNPUBLISH));
+				.apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.WITHDRAW));
 	}
 
 	private PrpUpdateEvent event(Type type) {
@@ -77,8 +77,6 @@ class FilesystemPRPTest {
 		var interpreter = new DefaultSAPLInterpreter();
 		var source = new FileSystemPrpUpdateEventSource("src/test/resources/policies", interpreter);
 		var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(), source);
-		// var prp = new GenericInMemoryIndexedPolicyRetrievalPoint(new
-		// CanonicalImmutableParsedDocumentIndex(), source);
 		var authzSubscription = AuthorizationSubscription.of("Willi", "eat", "icecream");
 		var evaluationCtx = new EvaluationContext(new AnnotationAttributeContext(), new AnnotationFunctionContext(),
 				new HashMap<>());

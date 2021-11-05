@@ -48,7 +48,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	protected static final String ERROR_COULD_NOT_PARSE_JSON = "Error parsing the specified JSON for your AuthorizationSubscription";
 
-	protected static final String ERROR_NULL_JSONNODE = "Error reading the specified JsonNode for your AuthorizationSubscription. It was null";
+	protected static final String ERROR_NULL_JSON_NODE = "Error reading the specified JsonNode for your AuthorizationSubscription. It was null";
 
 	protected static final String ERROR_EXPECT_NEXT_0_OR_NEGATIVE = "0 or a negative value is not allowed for the count of expected events";
 
@@ -66,7 +66,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	protected boolean withVirtualTime;
 
-	protected NumberOfExpectSteps numberOfExpectSteps;
+	protected final NumberOfExpectSteps numberOfExpectSteps;
 
 	public StepsDefaultImpl() {
 		this.numberOfExpectSteps = new NumberOfExpectSteps();
@@ -175,9 +175,9 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	}
 
 	@Override
-	public ExpectStep when(String jsonauthzSub) throws JsonProcessingException {
+	public ExpectStep when(String jsonAuthzSub) throws JsonProcessingException {
 		ObjectMapper objectMapper = new ObjectMapper();
-		JsonNode authzSubJsonNode = objectMapper.readTree(jsonauthzSub);
+		JsonNode authzSubJsonNode = objectMapper.readTree(jsonAuthzSub);
 		AuthorizationSubscription authzSub = new AuthorizationSubscription(authzSubJsonNode.findValue("subject"),
 				authzSubJsonNode.findValue("action"), authzSubJsonNode.findValue("resource"),
 				authzSubJsonNode.findValue("environment"));
@@ -193,7 +193,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 			createStepVerifier(authzSub);
 			return this;
 		}
-		throw new SaplTestException(ERROR_NULL_JSONNODE);
+		throw new SaplTestException(ERROR_NULL_JSON_NODE);
 	}
 
 	protected abstract void createStepVerifier(AuthorizationSubscription authzSub);
@@ -221,7 +221,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	@Override
 	public VerifyStep expect(AuthorizationDecision authDec) {
 		this.numberOfExpectSteps.addExpectStep();
-		this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec.toString()));
+		this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec));
 		return this;
 	}
 
@@ -239,7 +239,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	private VerifyStep expect(Matcher<AuthorizationDecision> matcher, String message) {
 		this.numberOfExpectSteps.addExpectStep();
-		this.steps = this.steps.expectNextMatches(dec -> matcher.matches(dec)).as(getDebugMessage(message));
+		this.steps = this.steps.expectNextMatches(matcher::matches).as(getDebugMessage(message));
 		return this;
 	}
 
@@ -312,7 +312,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	@Override
 	public ExpectOrVerifyStep expectNext(AuthorizationDecision authDec) {
 		this.numberOfExpectSteps.addExpectStep();
-		this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec.toString()));
+		this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec));
 		return this;
 	}
 
@@ -330,7 +330,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	private ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher, String message) {
 		this.numberOfExpectSteps.addExpectStep();
-		this.steps = this.steps.expectNextMatches(dec -> matcher.matches(dec)).as(getDebugMessage(message));
+		this.steps = this.steps.expectNextMatches(matcher::matches).as(getDebugMessage(message));
 		return this;
 	}
 
@@ -379,10 +379,10 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 			builder.append("3rd");
 			break;
 		default:
-			builder.append(this.numberOfExpectSteps.getNumberOfExpectSteps() + "th");
+			builder.append(this.numberOfExpectSteps.getNumberOfExpectSteps()).append("th");
 		}
 
-		builder.append(" expect step failed: Expected " + endOfMessage);
+		builder.append(" expect step failed: Expected ").append(endOfMessage);
 
 		return builder.toString();
 	}

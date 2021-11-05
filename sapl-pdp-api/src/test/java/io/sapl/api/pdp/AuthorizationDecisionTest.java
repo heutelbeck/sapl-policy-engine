@@ -54,23 +54,17 @@ class AuthorizationDecisionTest {
 
 	@Test
 	void decisionConstructorNull() {
-		assertThrows(NullPointerException.class, () -> {
-			new AuthorizationDecision(null).withAdvice(null);
-		});
+		assertThrows(NullPointerException.class, () -> new AuthorizationDecision(null).withAdvice(null));
 	}
 
 	@Test
 	void withAdviceNull() {
-		assertThrows(NullPointerException.class, () -> {
-			new AuthorizationDecision().withAdvice(null);
-		});
+		assertThrows(NullPointerException.class, () -> new AuthorizationDecision().withAdvice(null));
 	}
 
 	@Test
 	void withDecisionNull() {
-		assertThrows(NullPointerException.class, () -> {
-			new AuthorizationDecision().withDecision(null);
-		});
+		assertThrows(NullPointerException.class, () -> new AuthorizationDecision().withDecision(null));
 	}
 
 	@Test
@@ -97,9 +91,7 @@ class AuthorizationDecisionTest {
 
 	@Test
 	void withObligationsNull() {
-		assertThrows(NullPointerException.class, () -> {
-			new AuthorizationDecision().withObligations(null);
-		});
+		assertThrows(NullPointerException.class, () -> new AuthorizationDecision().withObligations(null));
 	}
 
 	@Test
@@ -112,9 +104,7 @@ class AuthorizationDecisionTest {
 
 	@Test
 	void withResourceNull() {
-		assertThrows(NullPointerException.class, () -> {
-			new AuthorizationDecision().withResource(null);
-		});
+		assertThrows(NullPointerException.class, () -> new AuthorizationDecision().withResource(null));
 	}
 
 	@Test

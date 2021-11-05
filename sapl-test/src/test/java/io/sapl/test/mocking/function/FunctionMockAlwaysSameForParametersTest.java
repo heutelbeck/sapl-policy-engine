@@ -61,7 +61,7 @@ public class FunctionMockAlwaysSameForParametersTest {
 		FunctionMockAlwaysSameForParameters mock = new FunctionMockAlwaysSameForParameters("foo");
 		mock.loadParameterSpecificReturnValue(Val.of("foo"), whenFunctionParams(is(Val.of(1))), times(1));
 		mock.loadParameterSpecificReturnValue(Val.of("bar"), whenFunctionParams(is(Val.of(2))), times(1));
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> mock.evaluateFunctionCall());
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(mock::evaluateFunctionCall);
 	}
 
 	@Test

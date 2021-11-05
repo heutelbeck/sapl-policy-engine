@@ -50,7 +50,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	@Parameter(defaultValue = "true")
 	private boolean coverageEnabled;
 
-	@Parameter(defaultValue = "")
+	@Parameter
 	private String outputDir;
 
 	@Parameter(defaultValue = "policies")
@@ -71,19 +71,19 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 	@Parameter(defaultValue = "true")
 	private boolean enableHtmlReport;
 
-	private SaplDocumentReader saplDocumentReader;
+	private final SaplDocumentReader saplDocumentReader;
 
-	private CoverageTargetHelper coverageTargetHelper;
+	private final CoverageTargetHelper coverageTargetHelper;
 
-	private CoverageAPIHelper coverageAPIHelper;
+	private final CoverageAPIHelper coverageAPIHelper;
 
-	private CoverageRatioCalculator ratioCalculator;
+	private final CoverageRatioCalculator ratioCalculator;
 
-	private GenericCoverageReporter reporter;
+	private final GenericCoverageReporter reporter;
 
-	private SonarLineCoverageReportGenerator sonarReporter;
+	private final SonarLineCoverageReportGenerator sonarReporter;
 
-	private HtmlLineCoverageReportGenerator htmlReporter;
+	private final HtmlLineCoverageReportGenerator htmlReporter;
 
 	@Inject
 	public ReportCoverageInformationMojo(SaplDocumentReader reader, CoverageTargetHelper coverageTargetHelper,
@@ -111,7 +111,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
 		var actualPolicySetHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicySets(),
 				hits.getPolicySets());
-		var actualPolicyHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicys(), hits.getPolicys());
+		var actualPolicyHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicies(), hits.getPolicies());
 		var actualPolicyConditionHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicyConditions(),
 				hits.getPolicyConditions());
 
@@ -122,7 +122,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
 		boolean isPolicySetRatioFulfilled = checkPolicySetRatio(targets.getPolicySets(), actualPolicySetHitRatio);
 
-		boolean isPolicyRatioFulfilled = checkPolicyRatio(targets.getPolicys(), actualPolicyHitRatio);
+		boolean isPolicyRatioFulfilled = checkPolicyRatio(targets.getPolicies(), actualPolicyHitRatio);
 
 		boolean isPolicyConditionRatioFulfilled = checkPolicyConditionRatio(targets.getPolicyConditions(),
 				actualPolicyConditionHitRatio);

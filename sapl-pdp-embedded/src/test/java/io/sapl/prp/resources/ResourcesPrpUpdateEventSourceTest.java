@@ -92,7 +92,7 @@ class ResourcesPrpUpdateEventSourceTest {
 	void ifExecutedInJar_thenLoadDocumentsFromJar() throws InitializationException, MalformedURLException {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
 		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtil.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
+			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 
 			var source = new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER);
 			var update = source.getUpdates().blockFirst();

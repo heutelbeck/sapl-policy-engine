@@ -70,12 +70,8 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 		}
 
 		try {
-			if (doesLineExistsInFile(filePath, lineToAdd)) {
-				// do nothing as already hit
-			}
-			else {
+			if (!doesLineExistsInFile(filePath, lineToAdd))
 				appendLineToFile(filePath, lineToAdd);
-			}
 		}
 		catch (IOException e) {
 			log.error("Error writing File " + filePath, e);
@@ -85,12 +81,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 	private boolean doesLineExistsInFile(Path filePathPolicySetHits, String lineToAdd) throws IOException {
 		try (Stream<String> stream = Files.lines(filePathPolicySetHits)) {
 			Optional<String> lineHavingTarget = stream.filter(l -> l.contains(lineToAdd)).findFirst();
-			if (lineHavingTarget.isPresent()) {
-				return true;
-			}
-			else {
-				return false;
-			}
+			return lineHavingTarget.isPresent();
 		}
 	}
 
@@ -101,19 +92,18 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 
 	@Override
 	public List<PolicySetHit> readPolicySetHits() {
-		return readFileLines(FILE_PATH_POLICY_SET_HITS).stream().map(line -> PolicySetHit.fromString(line))
+		return readFileLines(FILE_PATH_POLICY_SET_HITS).stream().map(PolicySetHit::fromString)
 				.collect(Collectors.toList());
 	}
 
 	@Override
 	public List<PolicyHit> readPolicyHits() {
-		return readFileLines(FILE_PATH_POLICY_HITS).stream().map(line -> PolicyHit.fromString(line))
-				.collect(Collectors.toList());
+		return readFileLines(FILE_PATH_POLICY_HITS).stream().map(PolicyHit::fromString).collect(Collectors.toList());
 	}
 
 	@Override
 	public List<PolicyConditionHit> readPolicyConditionHits() {
-		return readFileLines(FILE_PATH_POLICY_CONDITION_HITS).stream().map(line -> PolicyConditionHit.fromString(line))
+		return readFileLines(FILE_PATH_POLICY_CONDITION_HITS).stream().map(PolicyConditionHit::fromString)
 				.collect(Collectors.toList());
 	}
 
@@ -123,7 +113,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 		}
 		catch (IOException e) {
 			log.error(String.format("Error reading File %s. Is the policy coverage recording disabled?",
-					filePathPolicySetHits.toAbsolutePath().toString()), e);
+					filePathPolicySetHits.toAbsolutePath()), e);
 		}
 		return new LinkedList<>();
 	}

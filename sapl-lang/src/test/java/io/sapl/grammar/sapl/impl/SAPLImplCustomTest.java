@@ -112,25 +112,19 @@ class SAPLImplCustomTest {
 	@Test
 	void importNonExistingFails() {
 		var policy = INTERPRETER.parse("import test.nonExisting policy \"policy\" permit true");
-		assertThrows(PolicyEvaluationException.class, () -> {
-			policy.documentScopedEvaluationContext(CTX);
-		});
+		assertThrows(PolicyEvaluationException.class, () -> policy.documentScopedEvaluationContext(CTX));
 	}
 
 	@Test
 	void doubleImportWildcardFails() {
 		var policy = INTERPRETER.parse("import test.* import test.* policy \"policy\" permit true");
-		assertThrows(PolicyEvaluationException.class, () -> {
-			policy.documentScopedEvaluationContext(CTX);
-		});
+		assertThrows(PolicyEvaluationException.class, () -> policy.documentScopedEvaluationContext(CTX));
 	}
 
 	@Test
 	void doubleImportLibraryFails() {
 		var policy = INTERPRETER.parse("import test as t import test as t policy \"policy\" permit true");
-		assertThrows(PolicyEvaluationException.class, () -> {
-			policy.documentScopedEvaluationContext(CTX);
-		});
+		assertThrows(PolicyEvaluationException.class, () -> policy.documentScopedEvaluationContext(CTX));
 	}
 
 	@Test

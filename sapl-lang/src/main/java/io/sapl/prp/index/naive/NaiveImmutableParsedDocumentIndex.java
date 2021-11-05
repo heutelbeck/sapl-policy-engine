@@ -103,10 +103,10 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
 		return new NaiveImmutableParsedDocumentIndex(newDocuments, newConsistencyState);
 	}
 
-	// only PUBLISH or UNPUBLISH
+	// only PUBLISH or WITHDRAW
 	private void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
 		var name = update.getDocument().getPolicyElement().getSaplName();
-		if (update.getType() == Type.UNPUBLISH) {
+		if (update.getType() == Type.WITHDRAW) {
 			newDocuments.remove(name);
 		}
 		else {

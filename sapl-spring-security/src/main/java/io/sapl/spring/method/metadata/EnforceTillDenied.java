@@ -25,8 +25,8 @@ import java.lang.annotation.Target;
 /**
  * The @EnforceTillDenied annotation establishes a reactive policy enforcement point
  * (PEP). The PEP is only applicable to methods returning a
- * {@link org.reactivestreams.Publisher Publisher}, i.e., a {link
- * reactor.core.publisher.Flux Flux} or a {@link reactor.core.publisher.Mono Mono}.
+ * {@link org.reactivestreams.Publisher Publisher}, i.e., a
+ * {@link reactor.core.publisher.Flux Flux} or a {@link reactor.core.publisher.Mono Mono}.
  *
  * The publisher returned by the method is wrapped by the PEP. The PEP starts processing,
  * i.e, sending a subscription to the PDP, upon subscription time.
@@ -35,7 +35,7 @@ import java.lang.annotation.Target;
  * matching signal paths of the publisher.
  *
  * The PEP will stay subscribed to the decisions of the PDP the decision and its
- * obligations and advice throughout the entire lifecyle of the publisher or until access
+ * obligations and advice throughout the entire lifecycle of the publisher or until access
  * is denied, when an {@link org.springframework.security.access.AccessDeniedException
  * AccessDeniedException} is raised.
  *
@@ -53,21 +53,21 @@ public @interface EnforceTillDenied {
 	/**
 	 * @return the Spring-EL expression to whose evaluation result is to be used as the
 	 * subject in the authorization subscription to the PDP. If empty, the PEP attempts to
-	 * derive a best guess to describe the subject based on the current Principal.
+	 * derive a guess to describe the subject based on the current Principal.
 	 */
 	String subject() default "";
 
 	/**
 	 * @return the Spring-EL expression to whose evaluation result is to be used as the
 	 * action in the authorization subscription to the PDP. If empty, the PEP attempts to
-	 * derive a best guess to describe the action based on reflection.
+	 * derive a guess to describe the action based on reflection.
 	 */
 	String action() default "";
 
 	/**
 	 * @return the Spring-EL expression to whose evaluation result is to be used as the
 	 * action in the authorization subscription to the PDP. If empty, the PEP attempts to
-	 * derive a best guess to describe the resource based on reflection.
+	 * derive a guess to describe the resource based on reflection.
 	 */
 	String resource() default "";
 
@@ -79,8 +79,8 @@ public @interface EnforceTillDenied {
 	String environment() default "";
 
 	/**
-	 * @return the type of the generics parameter of the return type being secured. Helps
-	 * due to Java type erasure at runtime. Defaults to Object.class
+	 * @return the type of the generic parameter of the return type being secured. Helps
+	 * due to Java type erasure at runtime. Defaults to {@code Object.class}.
 	 */
 	Class<?> genericsType() default Object.class;
 

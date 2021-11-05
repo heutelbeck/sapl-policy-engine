@@ -100,7 +100,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 		failIfBothSaplAndSpringAnnotationsArePresent(attributes, method);
 		failIfEnforceIsCombinedWithPreEnforceOrPostEnforce(attributes, method);
 		failIfPostEnforceIsOnAMethodNotReturningAMono(attributes, method);
-		failIfMoreThanOneContiniousEnforceAttributePresent(attributes, method);
+		failIfMoreThanOneContinuousEnforceAttributePresent(attributes, method);
 
 		var enforceTillDeniedAttribute = findAttribute(attributes, EnforceTillDeniedAttribute.class);
 		if (enforceTillDeniedAttribute != null)
@@ -165,7 +165,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 
 	private Flux<AuthorizationDecision> preSubscriptionDecisions(MethodInvocation invocation, SaplAttribute attribute) {
 		return subscriptionBuilder.reactiveConstructAuthorizationSubscription(invocation, attribute)
-				.flatMapMany(authzSubscription -> pdp.decide(authzSubscription));
+				.flatMapMany(pdp::decide);
 	}
 
 	private Object delegateToSpringSecurityInterceptor(final MethodInvocation invocation) throws Throwable {
@@ -195,7 +195,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 	private void failIfBothSaplAndSpringAnnotationsArePresent(Collection<ConfigAttribute> attributes, Method method) {
 		var noSpringAttributesPresent = !hasAnyAttributeOfType(attributes, SPRING_ATTRIBUTES);
 		Assert.state(noSpringAttributesPresent, () -> "The method " + method
-				+ " is annotated by both at least one SAPL annotation (@Enfore, @PreEnforce, @PostEnforce) and at least one Spring method security annotation (@PreAuthorize, @PostAuthorize, @PostFilter). Please only make use of one type of annotation exclusively.");
+				+ " is annotated by both at least one SAPL annotation (@Enforce, @PreEnforce, @PostEnforce) and at least one Spring method security annotation (@PreAuthorize, @PostAuthorize, @PostFilter). Please only make use of one type of annotation exclusively.");
 	}
 
 	private void failIfEnforceIsCombinedWithPreEnforceOrPostEnforce(Collection<ConfigAttribute> attributes,
@@ -209,19 +209,19 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 				+ " is annotated by both one of  @EnforceRecoverableIfDenied, @EnforceTillDenied, or @EnforceDropWhileDenied and one of @PreEnforce or @PostEnforce. Please select one mode exclusively.");
 	}
 
-	private void failIfMoreThanOneContiniousEnforceAttributePresent(Collection<ConfigAttribute> attributes,
-			Method method) {
-		var numberOfContiniousEnforceAttributes = 0;
+	private void failIfMoreThanOneContinuousEnforceAttributePresent(Collection<ConfigAttribute> attributes,
+																	Method method) {
+		var numberOfContinuousEnforceAttributes = 0;
 		if (hasAnyAttributeOfType(attributes, EnforceRecoverableIfDeniedAttribute.class))
-			numberOfContiniousEnforceAttributes++;
+			numberOfContinuousEnforceAttributes++;
 		if (hasAnyAttributeOfType(attributes, EnforceTillDeniedAttribute.class))
-			numberOfContiniousEnforceAttributes++;
+			numberOfContinuousEnforceAttributes++;
 		if (hasAnyAttributeOfType(attributes, EnforceDropWhileDeniedAttribute.class))
-			numberOfContiniousEnforceAttributes++;
+			numberOfContinuousEnforceAttributes++;
 
-		var onlyHasOneTypeOfContinousAnnotationOrNone = numberOfContiniousEnforceAttributes == 0
-				|| numberOfContiniousEnforceAttributes == 1;
-		Assert.state(onlyHasOneTypeOfContinousAnnotationOrNone, () -> "The method " + method
+		var onlyHasOneTypeOfContinuousAnnotationOrNone = numberOfContinuousEnforceAttributes == 0
+				|| numberOfContinuousEnforceAttributes == 1;
+		Assert.state(onlyHasOneTypeOfContinuousAnnotationOrNone, () -> "The method " + method
 				+ " must have at most one of @EnforceRecoverableIfDenied, @EnforceTillDenied, or @EnforceDropWhileDenied.");
 	}
 

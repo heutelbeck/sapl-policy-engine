@@ -62,7 +62,7 @@ public class EmbeddedPDPProperties {
 	 * located.
 	 *
 	 * If the pdpConfigType is set to RESOURCES, / is the root of the context path. For
-	 * FILESYSTEM, it must be a valid path on the systems filesystem.
+	 * FILESYSTEM, it must be a valid path on the system's filesystem.
 	 */
 	@NotEmpty
 	private String configPath = "/policies";
@@ -71,7 +71,7 @@ public class EmbeddedPDPProperties {
 	 * This property sets the path to the folder where the *.sapl documents are located.
 	 *
 	 * If the pdpConfigType is set to RESOURCES, / is the root of the context path. For
-	 * FILESYSTEM, it must be a valid path on the systems filesystem.
+	 * FILESYSTEM, it must be a valid path on the system's filesystem.
 	 */
 	@NotEmpty
 	private String policiesPath = "/policies";

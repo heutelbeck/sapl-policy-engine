@@ -32,18 +32,18 @@ import reactor.core.Exceptions;
 
 public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 
-	private static final String ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME = "Bevor constructing a test case you have to specifiy the filename where to find your SAPL policy!"
+	private static final String ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME = "Bevore constructing a test case you have to specify the filename where to find your SAPL policy!"
 			+ "\n\nProbably you forgot to call \".setSaplDocumentName(\"\")\"";
 
-	private String saplDocumentName;
+	private final String saplDocumentName;
 
 	/**
 	 * Fixture for constructing a unit test case
-	 * @param saplDocumentName path relativ to your classpath to the sapl document. If
+	 * @param saplDocumentName path relative to your classpath to the sapl document. If
 	 * your policies are located at the root of the classpath or in the standard path
-	 * "policies/" in your resources folder you only have to specifiy the name of the
+	 * {@code "policies/"} in your {@code resources} folder you only have to specify the name of the
 	 * .sapl file. If your policies are located at some special place you have to
-	 * configure a relativ path like "yourspecialdir/policies/mypolicy.sapl"
+	 * configure a relative path like {@code "yourspecialdir/policies/mypolicy.sapl"}
 	 */
 	public SaplUnitTestFixture(String saplDocumentName) {
 		this.saplDocumentName = saplDocumentName;

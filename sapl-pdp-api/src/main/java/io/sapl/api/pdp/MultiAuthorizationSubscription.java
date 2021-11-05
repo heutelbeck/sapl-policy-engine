@@ -69,7 +69,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 
 	/**
 	 * Convenience method to add an authorization subscription without environment data.
-	 * Calls {@link #addAuthorizationSubscription(String, Object, Object, Object)
+	 * Calls {@code addAuthorizationSubscription(String, Object, Object, Object)
 	 * addAuthorizationSubscription(subscriptionId, subject, action, resource, null)}.
 	 * @param subscriptionId the id identifying the authorization subscription to be
 	 * added.
@@ -118,7 +118,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 			Object action, Object resource, Object environment) {
 
 		if (authorizationSubscriptions.containsKey(subscriptionId))
-			throw new IllegalArgumentException("Cannot add two sunscriptions with the same ID: " + subscriptionId);
+			throw new IllegalArgumentException("Cannot add two subscriptions with the same ID: " + subscriptionId);
 
 		var subjectId = ensureIsElementOfListAndReturnIndex(subject, subjects);
 		var actionId = ensureIsElementOfListAndReturnIndex(action, actions);
@@ -170,7 +170,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 	public Iterator<IdentifiableAuthorizationSubscription> iterator() {
 		final Iterator<Map.Entry<String, AuthorizationSubscriptionElements>> subscriptionIterator = authorizationSubscriptions
 				.entrySet().iterator();
-		return new Iterator<IdentifiableAuthorizationSubscription>() {
+		return new Iterator<>() {
 			@Override
 			public boolean hasNext() {
 				return subscriptionIterator.hasNext();

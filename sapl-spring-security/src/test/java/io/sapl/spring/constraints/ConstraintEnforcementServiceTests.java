@@ -997,7 +997,7 @@ public class ConstraintEnforcementServiceTests {
 		var resourceAccessPoint = Flux.just(1, 2, 3);
 		var wrapped = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, resourceAccessPoint,
 				Integer.class);
-		assertThrows(RuntimeException.class, () -> wrapped.blockLast());
+		assertThrows(RuntimeException.class, wrapped::blockLast);
 	}
 
 	@Test

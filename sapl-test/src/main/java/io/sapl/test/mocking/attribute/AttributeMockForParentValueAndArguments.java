@@ -45,21 +45,21 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 
 	private static final String ERROR_INVALID_NUMBER_PARAMETERS = "Test case has configured mocked attribute \"%s\" return value depending on %d parameters, but is called at runtime with %d parameters";
 
-	private static final String ERROR_NO_MATCHING_PARENTVALUE = "Unable to find a mocked return value for this parent value";
+	private static final String ERROR_NO_MATCHING_PARENT_VALUE = "Unable to find a mocked return value for this parent value";
 
-	private final String fullname;
+	private final String fullName;
 
-	private List<ParameterSpecificMockReturnValue> listParameterSpecificMockReturnValues;
+	private final List<ParameterSpecificMockReturnValue> listParameterSpecificMockReturnValues;
 
 	private final MockRunInformation mockRunInformation;
 
 	private final List<TimesParameterCalledVerification> listMockingVerifications;
 
-	public AttributeMockForParentValueAndArguments(String fullname) {
-		this.fullname = fullname;
+	public AttributeMockForParentValueAndArguments(String fullName) {
+		this.fullName = fullName;
 		this.listParameterSpecificMockReturnValues = new LinkedList<>();
 		this.listMockingVerifications = new LinkedList<>();
-		this.mockRunInformation = new MockRunInformation(fullname);
+		this.mockRunInformation = new MockRunInformation(fullName);
 	}
 
 	public void loadMockForParentValueAndArguments(AttributeParameters parameters, Val returnValue) {
@@ -84,7 +84,7 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 
 			// interpret a call to an AttributeMock as
 			// not when the evaluate method is called
-			// but for every combination of Vals from parentValue and by argument flux
+			// but for every combination of Val objects from parentValue and by argument flux
 			// emitted
 			saveCall(parentValue, latestPublishedEventsPerArgument);
 
@@ -128,7 +128,7 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 	private void checkAttributeArgumentsCountEqualsNumberOfArgumentMatcher(Matcher<Val>[] argumentMatchers,
 			Object[] latestPublishedEventsPerArgument) {
 		if (latestPublishedEventsPerArgument.length != argumentMatchers.length) {
-			throw new SaplTestException(String.format(ERROR_INVALID_NUMBER_PARAMETERS, this.fullname,
+			throw new SaplTestException(String.format(ERROR_INVALID_NUMBER_PARAMETERS, this.fullName,
 					argumentMatchers.length, latestPublishedEventsPerArgument.length));
 		}
 	}
@@ -136,24 +136,25 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 	private void checkAtLeastOneMatchingMockReturnValueExists(
 			Collection<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues) {
 		if (matchingParameterSpecificMockReturnValues.isEmpty()) {
-			throw new SaplTestException(ERROR_NO_MATCHING_PARENTVALUE);
+			throw new SaplTestException(ERROR_NO_MATCHING_PARENT_VALUE);
 		}
 	}
 
 	private List<ParameterSpecificMockReturnValue> findMatchingParentValueMockReturnValue(Val parentValue) {
-		return this.listParameterSpecificMockReturnValues.stream().filter((ParameterSpecificMockReturnValue mock) -> {
-			return mock.getExpectedParameters().getParentValueMatcher().getMatcher().matches(parentValue);
-		}).collect(Collectors.toList());
+		return this.listParameterSpecificMockReturnValues.stream()
+				.filter((ParameterSpecificMockReturnValue mock) -> mock.getExpectedParameters().getParentValueMatcher()
+						.getMatcher().matches(parentValue))
+				.collect(Collectors.toList());
 	}
 
 	@Override
 	public void assertVerifications() {
-		this.listMockingVerifications.stream().forEach((verification) -> verification.verify(this.mockRunInformation));
+		this.listMockingVerifications.forEach((verification) -> verification.verify(this.mockRunInformation));
 	}
 
 	@Override
 	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS, this.fullname);
+		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS, this.fullName);
 	}
 
 	@Getter

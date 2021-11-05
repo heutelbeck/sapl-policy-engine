@@ -221,10 +221,9 @@ public class ConstraintEnforcementService {
 	private List<Runnable> constructRunnableHandlersForConstraint(Signal signal, JsonNode constraint,
 			boolean isObligation) {
 		var potentialProviders = globalRunnableIndex.get(signal);
-		var handlersForConstraint = potentialProviders.stream().filter(provider -> provider.isResponsible(constraint))
+		return potentialProviders.stream().filter(provider -> provider.isResponsible(constraint))
 				.map(provider -> provider.getHandler(constraint)).map(failRunnableOnlyIfObligationOrFatal(isObligation))
 				.collect(Collectors.toList());
-		return handlersForConstraint;
 	}
 
 	private Function<Runnable, Runnable> failRunnableOnlyIfObligationOrFatal(boolean isObligation) {

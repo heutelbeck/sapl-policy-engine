@@ -44,24 +44,24 @@ class EnableCoverageCollectionMojoTest extends AbstractMojoTestCase {
 	}
 
 	@Test
-	void test_disableCoverage() throws Exception {
+	public void test_disableCoverage() throws Exception {
 
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom_withoutProject_coverageDisabled.xml");
 		var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
 		mojo.setLog(this.log);
 
-		assertDoesNotThrow(() -> mojo.execute());
+		assertDoesNotThrow(mojo::execute);
 	}
 
 	@Test
-	void test() throws Exception {
+	public void test() throws Exception {
 		Path pom = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
 		var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
 		mojo.setLog(this.log);
 
 		try (MockedStatic<PathHelper> pathHelper = Mockito.mockStatic(PathHelper.class)) {
 			pathHelper.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));
-			assertDoesNotThrow(() -> mojo.execute());
+			assertDoesNotThrow(mojo::execute);
 		}
 	}
 
@@ -75,7 +75,7 @@ class EnableCoverageCollectionMojoTest extends AbstractMojoTestCase {
 			try (MockedStatic<FileUtils> fileUtil = Mockito.mockStatic(FileUtils.class)) {
 				pathHelper.when(() -> PathHelper.resolveBaseDir(any(), any(), any())).thenReturn(Paths.get("tmp"));
 				fileUtil.when(() -> FileUtils.deleteDirectory(any())).thenThrow(new IOException());
-				assertThrows(MojoExecutionException.class, () -> mojo.execute());
+				assertThrows(MojoExecutionException.class, mojo::execute);
 			}
 		}
 	}

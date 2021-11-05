@@ -106,15 +106,12 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 		}
 		log.debug("returning updated index containing {} documents", newDocuments.size());
 		return recreateIndex(newDocuments, newConsistencyState);
-		// return new CanonicalImmutableParsedDocumentIndex(newDocuments,
-		// predicateOrderStrategy,
-		// pdpScopedEvaluationContext, newConsistencyState);
 	}
 
-	// only PUBLISH or UNPUBLISH
+	// only PUBLISH or WITHDRAW
 	void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
 		var name = update.getDocument().getPolicyElement().getSaplName();
-		if (update.getType() == Type.UNPUBLISH) {
+		if (update.getType() == Type.WITHDRAW) {
 			newDocuments.remove(name);
 		}
 		else {

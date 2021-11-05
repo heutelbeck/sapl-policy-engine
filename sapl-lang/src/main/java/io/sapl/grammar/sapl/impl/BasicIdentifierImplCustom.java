@@ -30,7 +30,7 @@ public class BasicIdentifierImplCustom extends BasicIdentifierImpl {
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		var identifierFlux = Flux.just(ctx.getVariableCtx().get(getIdentifier()));
-		return identifierFlux.switchMap(resolveStepsFiltersAndSubtemplates(steps, ctx, relativeNode));
+		return identifierFlux.switchMap(resolveStepsFiltersAndSubTemplates(steps, ctx, relativeNode));
 	}
 
 }

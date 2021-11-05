@@ -52,7 +52,7 @@ class ImmutableFileIndex {
 
 	private int nameCollisions = 0;
 
-	List<Update> updates = new LinkedList<>();
+	final List<Update> updates = new LinkedList<>();
 
 	@Getter
 	private PrpUpdateEvent updateEvent;
@@ -120,9 +120,9 @@ class ImmutableFileIndex {
 		return namesToDocuments.get(documentName);
 	}
 
-	void addUnpublishUpdate(Document oldDocument) {
-		log.info("The document was previously published. It will unpublished from the index.");
-		updates.add(new Update(Type.UNPUBLISH, oldDocument.getParsedDocument(), oldDocument.getRawDocument()));
+	void addWithdrawUpdate(Document oldDocument) {
+		log.info("The document was previously published. It will withdrawn from the index.");
+		updates.add(new Update(Type.WITHDRAW, oldDocument.getParsedDocument(), oldDocument.getRawDocument()));
 	}
 
 	void decrementInvalidDocumentCount() {
@@ -223,7 +223,7 @@ class ImmutableFileIndex {
 		if (containsDocumentWithPath(path)) {
 			var oldDocument = removeDocumentFromMap(path);
 			if (oldDocument.isPublished()) {
-				addUnpublishUpdate(oldDocument);
+				addWithdrawUpdate(oldDocument);
 			}
 			if (oldDocument.isValid()) {
 				var documentsWithOriginalName = getDocumentByName(oldDocument.getDocumentName());
@@ -232,15 +232,15 @@ class ImmutableFileIndex {
 				}
 				documentsWithOriginalName.remove(oldDocument);
 				if (documentsWithOriginalName.size() == 1) {
-					var onlyRemaingDocumentWithName = documentsWithOriginalName.get(0);
-					if (!onlyRemaingDocumentWithName.isPublished()) {
+					var onlyRemainingDocumentWithName = documentsWithOriginalName.get(0);
+					if (!onlyRemainingDocumentWithName.isPublished()) {
 						log.info(
 								"The removal of the document resolved a name collision. As a result, the document in file '{}' named '{}' will be published.",
-								onlyRemaingDocumentWithName.getPath().getFileName(),
-								onlyRemaingDocumentWithName.getDocumentName());
-						updates.add(new Update(Type.PUBLISH, onlyRemaingDocumentWithName.getParsedDocument(),
-								onlyRemaingDocumentWithName.getRawDocument()));
-						onlyRemaingDocumentWithName.setPublished(true);
+								onlyRemainingDocumentWithName.getPath().getFileName(),
+								onlyRemainingDocumentWithName.getDocumentName());
+						updates.add(new Update(Type.PUBLISH, onlyRemainingDocumentWithName.getParsedDocument(),
+								onlyRemainingDocumentWithName.getRawDocument()));
+						onlyRemainingDocumentWithName.setPublished(true);
 					}
 				}
 			}

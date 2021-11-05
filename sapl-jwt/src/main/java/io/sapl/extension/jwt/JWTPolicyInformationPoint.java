@@ -20,6 +20,7 @@ import java.text.ParseException;
 import java.time.Duration;
 import java.util.Date;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -37,21 +38,19 @@ import io.sapl.api.validation.Text;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
 
 /**
  * Attributes obtained from JSON Web Tokens (JWT)
  * <p>
- * Attributes depend on the JWT's validity, meaning they can change their state
- * over time according to the JWT's signature, maturity and expiration.
+ * Attributes depend on the JWT's validity, meaning they can change their state over time
+ * according to the JWT's signature, maturity and expiration.
  * <p>
- * Public keys must be fetched from the trusted authentication server for
- * validating signatures. For this purpose, the url and http method for fetching
- * public keys need to be specified in the {@code pdp.json} configuration file
- * as in the following example:
+ * Public keys must be fetched from the trusted authentication server for validating
+ * signatures. For this purpose, the url and http method for fetching public keys need to
+ * be specified in the {@code pdp.json} configuration file as in the following example:
  *
  * <pre>
- * {@code 
+ * {@code
  * {"algorithm": "DENY_UNLESS_PERMIT",
  * 	"variables": {
  *				   "jwt": {
@@ -72,42 +71,33 @@ import reactor.util.function.Tuple2;
 @PolicyInformationPoint(name = JWTPolicyInformationPoint.NAME, description = JWTPolicyInformationPoint.DESCRIPTION)
 public class JWTPolicyInformationPoint {
 
-	private static final String JWT_CONFIG_MISSING_ERROR = "The key 'jwt' with the configuration of public key server and key whillist, blacklist is missing. All JWT tokens will be treated as if the signatures could not be validated.";
-	private static final String JWT_KEY = "jwt";
+	static final String JWT_KEY = "jwt";
 	static final String NAME = JWT_KEY;
 	static final String DESCRIPTION = "Json Web Token Attributes. Attributes depend on the JWT's validity, meaning they can change their state over time according to the JWT's signature, maturity and expiration.";
+	static final String PUBLIC_KEY_VARIABLES_KEY = "publicKeyServer";
 
+	private static final String JWT_CONFIG_MISSING_ERROR = "The key 'jwt' with the configuration of public key server and key whitelist. All JWT tokens will be treated as if the signatures could not be validated.";
 	private static final String VALIDITY_DOCS = "The token's validity state";
 
-	static final String PUBLICKEY_VARIABLES_KEY = "publicKeyServer";
-	static final String WHITELIST_VARIABLES_KEY = "whitelist";
 
 	/**
 	 * Possible states of validity a JWT can have
 	 */
 	enum ValidityState {
 
-		/**
-		 * the JWT is valid
-		 */
+		 // the JWT is valid
 		VALID
 
-		/**
-		 * the JWT has expired
-		 */
+		 // the JWT has expired
 		, EXPIRED
 
-		/**
-		 * the JWT expires before it becomes valid, so it is never valid
-		 */
+		// the JWT expires before it becomes valid, so it is never valid
 		, NEVERVALID
 
-		/**
-		 * the JWT will become valid in future
-		 */
+		// the JWT will become valid in future
 		, IMMATURE
 
-		/**
+		/*
 		 * the JWT's signature does not match
 		 * <p>
 		 * either the payload has been tampered with, the public key could not be
@@ -115,7 +105,7 @@ public class JWTPolicyInformationPoint {
 		 */
 		, UNTRUSTED
 
-		/**
+		/*
 		 * the JWT is incompatible
 		 * <p>
 		 * either an incompatible hashing algorithm has been used or required fields do
@@ -123,15 +113,11 @@ public class JWTPolicyInformationPoint {
 		 */
 		, INCOMPATIBLE
 
-		/**
-		 * the JWT is missing required fields
-		 */
+		// the JWT is missing required fields
 		, INCOMPLETE
 
-		/**
-		 * the token is not a JWT
-		 */
-		,MALFORMED;
+		// the token is not a JWT
+		,MALFORMED
 
 	}
 
@@ -139,7 +125,6 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * Constructor
-	 * 
 	 * @param jwtKeyProvider a JWTKeyProvider
 	 */
 	public JWTPolicyInformationPoint(JWTKeyProvider jwtKeyProvider) {
@@ -155,8 +140,7 @@ public class JWTPolicyInformationPoint {
 	 * A JWT's validity
 	 * <p>
 	 * The validity may change over time as it becomes mature and then expires.
-	 * 
-	 * @param rawToken     object containing JWT
+	 * @param rawToken object containing JWT
 	 * @param variables configuration variables
 	 * @return Flux representing the JWT's validity over time
 	 */
@@ -175,18 +159,19 @@ public class JWTPolicyInformationPoint {
 		try {
 			signedJwt = SignedJWT.parse(rawToken.getText());
 			claims = signedJwt.getJWTClaimsSet();
-		} catch (ParseException e) {
+		}
+		catch (ParseException e) {
 			return Flux.just(ValidityState.MALFORMED);
 		}
-		
-		// ensure all required claims are well formed
+
+		// ensure all required claims are well-formed
 		if (!hasCompatibleClaims(signedJwt))
 			return Flux.just(ValidityState.INCOMPATIBLE);
 
 		// ensure presence of all required claims
 		if (!hasRequiredClaims(signedJwt))
 			return Flux.just(ValidityState.INCOMPLETE);
-		
+
 		return validateSignature(signedJwt, variables).flatMapMany(isValid -> {
 
 			if (!isValid)
@@ -207,19 +192,15 @@ public class JWTPolicyInformationPoint {
 		var keyId = signedJwt.getHeader().getKeyID();
 
 		Mono<RSAPublicKey> publicKey = null;
-		var whitelist = jwtConfig.get(WHITELIST_VARIABLES_KEY);
-		var isFromWhitelist = false;
+		var whitelist = jwtConfig.get("whitelist");
 		if (whitelist != null && whitelist.get(keyId) != null) {
 			var key = JWTEncodingDecodingUtils.jsonNodeToKey(whitelist.get(keyId));
 			if (key.isPresent())
-			{
 				publicKey = Mono.just(key.get());
-				isFromWhitelist = true;
-			}
 		}
 
 		if (publicKey == null) {
-			var jPublicKeyServer = jwtConfig.get(PUBLICKEY_VARIABLES_KEY);
+			var jPublicKeyServer = jwtConfig.get(PUBLIC_KEY_VARIABLES_KEY);
 
 			if (jPublicKeyServer == null)
 				return Mono.just(Boolean.FALSE);
@@ -227,10 +208,9 @@ public class JWTPolicyInformationPoint {
 			publicKey = keyProvider.provide(keyId, jPublicKeyServer);
 		}
 
-		return publicKey.map(signatureOfTokenIsValid(signedJwt))
-				.defaultIfEmpty(Boolean.FALSE)
-				.zipWhen(cachePublicKeyIfSignatureValid(keyId, isFromWhitelist, publicKey))
-				.map(Tuple2::getT1);
+		var signatureValidity = publicKey.map(signatureOfTokenIsValid(signedJwt));
+		signatureValidity.subscribe(cachePublicKeyIfSignatureValid(keyId, publicKey));
+		return signatureValidity.defaultIfEmpty(Boolean.FALSE);
 	}
 
 	private Function<RSAPublicKey, Boolean> signatureOfTokenIsValid(SignedJWT signedJwt) {
@@ -238,29 +218,24 @@ public class JWTPolicyInformationPoint {
 			JWSVerifier verifier = new RSASSAVerifier(publicKey);
 			try {
 				return signedJwt.verify(verifier);
-			} catch (JOSEException | IllegalStateException | NullPointerException e) {
+			}
+			catch (JOSEException | IllegalStateException | NullPointerException e) {
 				// erroneous signatures or data are treated same as failed verifications
 				return Boolean.FALSE;
 			}
 		};
 	}
-	
-	private Function<Boolean, Mono<? extends Boolean>> cachePublicKeyIfSignatureValid(String keyId,
-			boolean isFromWhitelist, Mono<RSAPublicKey> publicKeyMono) {
-		
+
+	private Consumer<Boolean> cachePublicKeyIfSignatureValid(String keyId, Mono<RSAPublicKey> publicKeyMono) {
 		return signatureValid -> {
-			if (signatureValid && !isFromWhitelist)
-				publicKeyMono.subscribe(publicKey -> {
-					keyProvider.cache(keyId, publicKey);
-				});
-			return Mono.just(signatureValid);
+			if (signatureValid)
+				publicKeyMono.subscribe(publicKey -> keyProvider.cache(keyId, publicKey));
 		};
 	}
 
 	/**
 	 * Verifies token validity based on time
-	 * 
-	 * @param jwt base64 encoded header.body.signature triplet
+	 * @param claims JWT claims
 	 * @return Flux containing IMMATURE, VALID, and/or EXPIRED
 	 */
 	private Flux<ValidityState> validateTime(JWTClaimsSet claims) {
@@ -288,7 +263,8 @@ public class JWTPolicyInformationPoint {
 				// the token is not valid yet but will be in future
 				return Flux.concat(Mono.just(ValidityState.IMMATURE),
 						Mono.just(ValidityState.VALID).delayElement(Duration.ofMillis(nbf.getTime() - now.getTime())));
-			} else {
+			}
+			else {
 				// the token is not valid yet but will be in future and then expire
 				return Flux.concat(Mono.just(ValidityState.IMMATURE),
 						Mono.just(ValidityState.VALID).delayElement(Duration.ofMillis(nbf.getTime() - now.getTime())),
@@ -302,7 +278,8 @@ public class JWTPolicyInformationPoint {
 		if (exp == null) {
 			// the token is eternally valid (no expiration)
 			return Flux.just(ValidityState.VALID);
-		} else {
+		}
+		else {
 			// the token is valid now but will expire in future
 			return Flux.concat(Mono.just(ValidityState.VALID),
 					Mono.just(ValidityState.EXPIRED).delayElement(Duration.ofMillis(exp.getTime() - now.getTime())));
@@ -312,7 +289,6 @@ public class JWTPolicyInformationPoint {
 
 	/**
 	 * checks if token contains all required claims
-	 * 
 	 * @param jwt base64 encoded header.body.signature triplet
 	 * @return true if the token contains all required claims
 	 */
@@ -320,16 +296,13 @@ public class JWTPolicyInformationPoint {
 
 		// verify presence of key ID
 		String kid = jwt.getHeader().getKeyID();
-		if (kid == null || kid.isBlank())
-			return false;
+		return kid != null && !kid.isBlank();
 
 		// JWT contains all required claims
-		return true;
 	}
 
 	/**
 	 * checks if claims meet requirements
-	 * 
 	 * @param jwt JWT
 	 * @return true all claims meet requirements
 	 */
@@ -340,16 +313,13 @@ public class JWTPolicyInformationPoint {
 		// verify correct algorithm
 		if (!"RS256".equalsIgnoreCase(header.getAlgorithm().getName()))
 			return false;
-		
+
 		// verify absence of incompatible critical parameters
-		if (header.getCriticalParams() != null && !header.getCriticalParams().isEmpty()) {
-			// critical parameters present, need to check for compatibility
-			// now: no critical parameters compatible, return false
-			return false;
-		}
+		// critical parameters present, need to check for compatibility
+		// now: no critical parameters compatible, return false
+		return header.getCriticalParams() == null || header.getCriticalParams().isEmpty();
 
 		// all claims are compatible with requirements
-		return true;
 	}
 
 }

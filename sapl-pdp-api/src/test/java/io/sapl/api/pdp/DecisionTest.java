@@ -23,9 +23,7 @@ class DecisionTest {
 
 	@Test
 	void decisionTest() {
-		assertThrows(IllegalArgumentException.class, () -> {
-			Decision.valueOf("");
-		});
+		assertThrows(IllegalArgumentException.class, () -> Decision.valueOf(""));
 	}
 
 }

@@ -31,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * This strict algorithm is used if the decision should be DENY except for there is a
+ * This strict algorithm is used if the decision should be a DENY except for there is a
  * PERMIT. It ensures that any decision is either DENY or PERMIT.
  *
  * It works as follows:
@@ -40,7 +40,7 @@ import reactor.core.publisher.Flux;
  * (multiple policies evaluate to PERMIT and at least one of them has a transformation
  * statement), the decision is PERMIT.
  *
- * - Otherwise the decision is DENY.
+ * - Otherwise the decision is a DENY.
  */
 @Slf4j
 public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPermitCombiningAlgorithmImpl {

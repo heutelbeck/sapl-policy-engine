@@ -29,8 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import javax.servlet.http.HttpServletRequest;
@@ -39,7 +37,6 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -93,46 +90,25 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 				AuthorityUtils.createAuthorityList("ROLE_USER"));
 		authentication = new UsernamePasswordAuthenticationToken(user, "the credentials");
 		defaultBuilderUnderTest = new AuthorizationSubscriptionBuilderService(
-				new DefaultMethodSecurityExpressionHandler(), () -> mapper);
+				new DefaultMethodSecurityExpressionHandler(), mapper);
 		invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null, null);
 	}
 
 	@Test
 	void when_usedForAuthorizationContext_nullContext_Fails() {
-		@SuppressWarnings("unchecked")
-		var mockFactory = (ObjectFactory<ObjectMapper>) mock(ObjectFactory.class);
-		when(mockFactory.getObject()).thenReturn(mapper);
-		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-				mockFactory);
+		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), mapper);
 		assertThrows(NullPointerException.class,
 				() -> sut.reactiveConstructAuthorizationSubscription(Mono.just(authentication), null).block());
 	}
 
 	@Test
 	void when_usedForAuthorizationContext_subscriptionReturns() {
-		@SuppressWarnings("unchecked")
-		var mockFactory = (ObjectFactory<ObjectMapper>) mock(ObjectFactory.class);
-		when(mockFactory.getObject()).thenReturn(mapper);
 		MockServerHttpRequest request = MockServerHttpRequest.get("/requestpath").build();
 		MockServerWebExchange exchange = MockServerWebExchange.from(request);
 		AuthorizationContext context = new AuthorizationContext(exchange);
-		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-				mockFactory);
+		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), mapper);
 		var actual = sut.reactiveConstructAuthorizationSubscription(Mono.just(authentication), context).block();
 		assertThat(actual, is(not(nullValue())));
-	}
-
-	@Test
-	void when_usedMultipleTimes_then_FactoryIsCalledOnlyOnce() {
-		@SuppressWarnings("unchecked")
-		var mockFactory = (ObjectFactory<ObjectMapper>) mock(ObjectFactory.class);
-		when(mockFactory.getObject()).thenReturn(mapper);
-		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-				mockFactory);
-		var attribute = attribute(null, null, null, null, Object.class);
-		sut.constructAuthorizationSubscription(authentication, invocation, attribute);
-		sut.constructAuthorizationSubscription(authentication, invocation, attribute);
-		verify(mockFactory, times(1)).getObject();
 	}
 
 	@Test
@@ -151,8 +127,7 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 		var attribute = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
 		var mockMapper = mock(ObjectMapper.class);
 		when(mockMapper.valueToTree(any())).thenThrow(new EvaluationException("ERROR"));
-		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-				() -> mockMapper);
+		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), mockMapper);
 		assertThrows(IllegalArgumentException.class,
 				() -> sut.constructAuthorizationSubscription(authentication, invocation, attribute));
 	}
@@ -236,7 +211,7 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 			var request = new MockHttpServletRequest();
 			var requestAttributes = mock(ServletRequestAttributes.class);
 			when(requestAttributes.getRequest()).thenReturn(request);
-			theMock.when(() -> RequestContextHolder.getRequestAttributes()).thenReturn(requestAttributes);
+			theMock.when(RequestContextHolder::getRequestAttributes).thenReturn(requestAttributes);
 			var attribute = attribute(null, null, null, null, Object.class);
 			var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
 					attribute);

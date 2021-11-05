@@ -49,7 +49,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
-	private static final String DUMMY_RESOURCE_URI = "policy:/apolicy.sapl";
+	private static final String DUMMY_RESOURCE_URI = "policy:/aPolicy.sapl";
 
 	private static final String PARSING_ERRORS = "Parsing errors: %s";
 
@@ -73,9 +73,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	private String composeReason(Diagnostic diagnostic) {
 		var sb = new StringBuilder().append("SAPL Validation Error: [");
 		for (Diagnostic d : diagnostic.getChildren()) {
-			sb.append('[').append(
-					NodeModelUtils.findActualNodeFor((EObject) d.getData().get(0)).getText() + ": " + d.getMessage())
-					.append(']');
+			sb.append('[').append(NodeModelUtils.findActualNodeFor((EObject) d.getData().get(0)).getText()).append(": ")
+					.append(d.getMessage()).append(']');
 		}
 		return sb.append(']').toString();
 	}

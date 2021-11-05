@@ -177,7 +177,7 @@ class SAPLWebIntegrationFragmentTests {
 		fragment.generate();
 
 		List<String> expectedValue = new ArrayList<>(keywords);
-		Collections.sort(expectedValue, Collections.reverseOrder());
+		expectedValue.sort(Collections.reverseOrder());
 
 		List<String> actualValue = fragment.getWordKeywords();
 

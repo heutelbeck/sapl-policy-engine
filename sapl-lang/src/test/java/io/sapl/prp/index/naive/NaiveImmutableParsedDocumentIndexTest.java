@@ -60,7 +60,7 @@ class NaiveImmutableParsedDocumentIndexTest {
 		List<Update> updates = new ArrayList<>();
 		updates.add(new Update(Type.CONSISTENT, null, "null"));
 		updates.add(new Update(Type.PUBLISH, saplMock1, "SAPL1"));
-		updates.add(new Update(Type.UNPUBLISH, saplMock1, "SAPL1"));
+		updates.add(new Update(Type.WITHDRAW, saplMock1, "SAPL1"));
 		var event = new PrpUpdateEvent(updates);
 
 		var index2 = index.apply(event);

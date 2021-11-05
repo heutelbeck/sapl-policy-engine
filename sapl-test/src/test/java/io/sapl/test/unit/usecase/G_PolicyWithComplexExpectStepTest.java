@@ -179,14 +179,12 @@ public class G_PolicyWithComplexExpectStepTest {
 						//// isResourceEquals(new
 						// ObjectMapper().createObjectNode().put("foo", "bar")),
 						// or Predicate
-						isResourceMatching((JsonNode resource) -> {
-							return resource.has("id") && resource.get("id").asText().equals("56")
-									&& resource.has("diagnosisText")
-									&& resource.get("diagnosisText").asText().equals(
-											"\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588")
-									&& resource.has("icd11Code") && resource.get("icd11Code").asText()
-											.equals("ic\u2588\u2588\u2588\u2588\u2588\u2588\u2588");
-						})))
+						isResourceMatching((JsonNode resource) -> resource.has("id")
+								&& resource.get("id").asText().equals("56") && resource.has("diagnosisText")
+								&& resource.get("diagnosisText").asText().equals(
+										"\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588")
+								&& resource.has("icd11Code") && resource.get("icd11Code").asText()
+										.equals("ic\u2588\u2588\u2588\u2588\u2588\u2588\u2588"))))
 				.verify();
 
 	}

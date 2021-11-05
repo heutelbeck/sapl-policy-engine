@@ -68,10 +68,10 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 			@NonNull ObjectMapper mapper) throws InitializationException {
 		log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 		this.mapper = mapper;
-		config = readConfig(JarUtil.inferUrlOfRecourcesPath(clazz, configPath), configPath);
+		config = readConfig(JarUtil.inferUrlOfResourcesPath(clazz, configPath), configPath);
 	}
 
-	private final PolicyDecisionPointConfiguration readConfig(URL configFolderUrl, String configPath)
+	private PolicyDecisionPointConfiguration readConfig(URL configFolderUrl, String configPath)
 			throws InitializationException {
 		try {
 
@@ -85,7 +85,7 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 		}
 	}
 
-	private final PolicyDecisionPointConfiguration readConfigFromJar(URL configFolderUrl, String configPath)
+	private PolicyDecisionPointConfiguration readConfigFromJar(URL configFolderUrl, String configPath)
 			throws IOException {
 		log.info("reading config from jar {}", configFolderUrl);
 		var jarFilePath = JarUtil.getJarFilePath(configFolderUrl);
@@ -104,7 +104,7 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 		return configPath.replaceAll("^/+", "") + "/" + CONFIG_FILE;
 	}
 
-	private final PolicyDecisionPointConfiguration readConfigFromDirectory(URL configFolderUrl)
+	private PolicyDecisionPointConfiguration readConfigFromDirectory(URL configFolderUrl)
 			throws IOException, URISyntaxException {
 		log.debug("reading config from directory {}", configFolderUrl);
 		Path configDirectoryPath = Paths.get(configFolderUrl.toURI());

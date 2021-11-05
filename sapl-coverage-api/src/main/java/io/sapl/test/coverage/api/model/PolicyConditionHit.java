@@ -20,23 +20,23 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
-@Getter
-@EqualsAndHashCode
-@AllArgsConstructor
 /**
  * Containing all necessary information of a Policy Condition Hit
  */
+@Getter
+@EqualsAndHashCode
+@AllArgsConstructor
 public class PolicyConditionHit {
 
 	/**
-	 * Id of {@link io.sapl.grammar.sapl.PolicySet} of hit
+	 * Identifier of {@link io.sapl.grammar.sapl.PolicySet} of hit
 	 * {@link io.sapl.grammar.sapl.Policy}. Empty if {@link io.sapl.grammar.sapl.Policy}
 	 * isn't in a {@link io.sapl.grammar.sapl.PolicySet}.
 	 */
 	String policySetId;
 
 	/**
-	 * Id of hit {@link io.sapl.grammar.sapl.Policy}
+	 * Identifier of hit {@link io.sapl.grammar.sapl.Policy}
 	 */
 	String policyId;
 
@@ -53,21 +53,20 @@ public class PolicyConditionHit {
 
 	@Override
 	public String toString() {
-		StringBuilder stringBuilder = new StringBuilder();
-		stringBuilder.append(policySetId);
-		stringBuilder.append(CoverageHitConfig.DELIMITER);
-		stringBuilder.append(policyId);
-		stringBuilder.append(CoverageHitConfig.DELIMITER);
-		stringBuilder.append(conditionStatementId);
-		stringBuilder.append(CoverageHitConfig.DELIMITER);
-		stringBuilder.append(conditionResult);
-		return stringBuilder.toString();
+		String stringBuilder = policySetId +
+				CoverageHitConfig.DELIMITER +
+				policyId +
+				CoverageHitConfig.DELIMITER +
+				conditionStatementId +
+				CoverageHitConfig.DELIMITER +
+				conditionResult;
+		return stringBuilder;
 	}
 
 	public static PolicyConditionHit fromString(String policyConditionToStringResult) {
-		String[] splitted = policyConditionToStringResult.split(CoverageHitConfig.DELIMITER_MATCH_REGEX);
-		return new PolicyConditionHit(splitted[0], splitted[1], Integer.parseInt(splitted[2]),
-				Boolean.parseBoolean(splitted[3]));
+		String[] split = policyConditionToStringResult.split(CoverageHitConfig.DELIMITER_MATCH_REGEX);
+		return new PolicyConditionHit(split[0], split[1], Integer.parseInt(split[2]),
+				Boolean.parseBoolean(split[3]));
 	}
 
 }

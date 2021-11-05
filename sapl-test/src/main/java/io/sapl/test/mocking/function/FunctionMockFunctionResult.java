@@ -26,21 +26,21 @@ public class FunctionMockFunctionResult implements FunctionMock {
 
 	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION = "You already defined a Mock for %s which is always returning a specified value from your lambda-Expression";
 
-	private final String fullname;
+	private final String fullName;
 
-	Function<Val[], Val> returnValue;
+	final Function<Val[], Val> returnValue;
 
-	private TimesCalledVerification timesCalledVerification;
+	private final TimesCalledVerification timesCalledVerification;
 
 	private final MockRunInformation mockRunInformation;
 
-	public FunctionMockFunctionResult(String fullname, Function<Val[], Val> returns,
+	public FunctionMockFunctionResult(String fullName, Function<Val[], Val> returns,
 			TimesCalledVerification verification) {
-		this.fullname = fullname;
+		this.fullName = fullName;
 		this.returnValue = returns;
 		this.timesCalledVerification = verification;
 
-		this.mockRunInformation = new MockRunInformation(fullname);
+		this.mockRunInformation = new MockRunInformation(fullName);
 	}
 
 	@Override
@@ -57,7 +57,7 @@ public class FunctionMockFunctionResult implements FunctionMock {
 
 	@Override
 	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION, this.fullname);
+		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_FUNCTION, this.fullName);
 	}
 
 }

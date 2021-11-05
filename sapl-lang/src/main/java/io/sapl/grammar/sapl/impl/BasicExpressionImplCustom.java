@@ -28,33 +28,34 @@ import reactor.core.publisher.Flux;
 
 /**
  * Superclass of basic expressions providing a method to evaluate the steps, filter and
- * subtemplate possibly being part of the basic expression.
+ * sub template possibly being part of the basic expression.
  *
- * Grammar: BasicExpression returns Expression: Basic (FILTER filter=FilterComponent |
+ * Grammar:
+ * {@code BasicExpression returns Expression: Basic (FILTER filter=FilterComponent |
  * SUBTEMPLATE subtemplate=BasicExpression)? ;
  *
  * Basic returns BasicExpression: {BasicGroup} '(' expression=Expression ')' steps+=Step*
  * | {BasicValue} value=Value steps+=Step* | {BasicFunction} fsteps+=ID ('.' fsteps+=ID)*
  * arguments=Arguments steps+=Step* | {BasicIdentifier} identifier=ID steps+=Step* |
- * {BasicRelative} '@' steps+=Step* ;
+ * {BasicRelative} '@' steps+=Step* ;}
  */
 public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
-	protected Function<? super Val, Publisher<? extends Val>> resolveStepsFiltersAndSubtemplates(EList<Step> steps,
-			EvaluationContext ctx, Val relativeNode) {
+	protected Function<? super Val, Publisher<? extends Val>> resolveStepsFiltersAndSubTemplates(EList<Step> steps,
+																								 EvaluationContext ctx, Val relativeNode) {
 		return resolveSteps(steps, 0, ctx, relativeNode);
 	}
 
 	private Function<? super Val, Publisher<? extends Val>> resolveSteps(EList<Step> steps, int stepId,
 			EvaluationContext ctx, Val relativeNode) {
 		if (steps == null || stepId == steps.size()) {
-			return value -> resolveFilterOrSubtemplate(value, ctx);
+			return value -> resolveFilterOrSubTemplate(value, ctx);
 		}
 		return value -> steps.get(stepId).apply(value, ctx, relativeNode)
 				.switchMap(resolveSteps(steps, stepId + 1, ctx, relativeNode));
 	}
 
-	private Flux<Val> resolveFilterOrSubtemplate(Val value, EvaluationContext ctx) {
+	private Flux<Val> resolveFilterOrSubTemplate(Val value, EvaluationContext ctx) {
 		if (filter != null) {
 			return filter.apply(value, ctx, value);
 		}

@@ -1,7 +1,7 @@
 package io.sapl.extension.jwt;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.security.KeyPair;
@@ -23,14 +23,21 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 public class JWTKeyProviderTest {
-	
+
 	private static String kid;
+
 	private static String otherKid;
+
 	private static MockWebServer server;
+
 	private static TestMockServerDispatcher dispatcher;
+
 	private static WebClient.Builder builder;
+
 	private static JWTKeyProvider provider;
+
 	private static KeyPair keyPair;
+
 	private static KeyPair otherKeyPair;
 
 	@BeforeAll
@@ -55,11 +62,11 @@ public class JWTKeyProviderTest {
 	public void setup() {
 		provider = new JWTKeyProvider(builder);
 	}
-	
-/*
- * TEST CACHING
- */	
-	
+
+	/*
+	 * TEST CACHING
+	 */
+
 	@Test
 	public void isCached_notCachedThenCachedThenNotCached_shouldBeFalseThenTrueThenFalse() {
 		var pubKey = (RSAPublicKey) keyPair.getPublic();
@@ -70,7 +77,7 @@ public class JWTKeyProviderTest {
 		Mono.delay(JWTTestUtility.twoSynchronousUnitDuration()).block();
 		assertFalse(provider.isCached(kid));
 	}
-	
+
 	@Test
 	public void isCached_cacheTwice_shouldBeFalseThenTrueThenTrue() {
 		var pubKey = (RSAPublicKey) keyPair.getPublic();
@@ -80,7 +87,7 @@ public class JWTKeyProviderTest {
 		provider.cache(kid, pubKey);
 		assertTrue(provider.isCached(kid));
 	}
-	
+
 	@Test
 	public void provide_cacheThenRetrieve_shouldBeFalseThenTrueThenPublicKey() {
 		var pubKey = (RSAPublicKey) keyPair.getPublic();
@@ -91,7 +98,7 @@ public class JWTKeyProviderTest {
 		var mono = provider.provide(kid, serverNode);
 		StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
 	}
-	
+
 	@Test
 	public void isCachedAndProvide_multipleKeys_shouldBeTwiceFalseThenPublicKeyThenTrueThenFalseThenPublicKeyTheTwiceTrueThenFalse()
 			throws NoSuchAlgorithmException, IOException {
@@ -113,9 +120,9 @@ public class JWTKeyProviderTest {
 		assertFalse(KeyTestUtility.areKeysEqual(firstRetrievedKey, secondRetrievedKey));
 	}
 
-/*
- * TEST ENVIRONMENT
- */
+	/*
+	 * TEST ENVIRONMENT
+	 */
 
 	@Test
 	public void provide_withUriEnvironmentMissingUri_shouldBeEmpty() {
@@ -123,7 +130,7 @@ public class JWTKeyProviderTest {
 		var mono = provider.provide(kid, serverNode);
 		StepVerifier.create(mono).verifyComplete();
 	}
-	
+
 	@Test
 	public void provide_withUriEnvironment_usingBase64Url_shouldBePublicKey() {
 		dispatcher.setDispatchMode(DispatchMode.True);
@@ -131,7 +138,7 @@ public class JWTKeyProviderTest {
 		var mono = provider.provide(kid, serverNode);
 		StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
 	}
-	
+
 	@Test
 	public void provide_withUriAndMethodPostEnvironment_usingBase64Url_shouldBePublicKey() {
 		dispatcher.setDispatchMode(DispatchMode.True);
@@ -147,7 +154,7 @@ public class JWTKeyProviderTest {
 		var mono = provider.provide(kid, serverNode);
 		StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
 	}
-	
+
 	@Test
 	public void provide_withUriAndCustomTTLEnvironment_usingBase64Url_shouldBePublicKey() {
 		dispatcher.setDispatchMode(DispatchMode.True);
@@ -155,7 +162,7 @@ public class JWTKeyProviderTest {
 		var mono = provider.provide(kid, serverNode);
 		StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
 	}
-	
+
 	@Test
 	public void provide_withUriAndNegativeTTLEnvironment_usingBase64Url_shouldBePublicKey() {
 		dispatcher.setDispatchMode(DispatchMode.True);
@@ -195,5 +202,5 @@ public class JWTKeyProviderTest {
 		var mono = provider.provide(kid, serverNode);
 		StepVerifier.create(mono).verifyComplete();
 	}
-	
+
 }

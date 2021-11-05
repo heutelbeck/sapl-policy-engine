@@ -22,9 +22,6 @@ import lombok.Getter;
 @Getter
 @EqualsAndHashCode
 @AllArgsConstructor
-/**
- * Containing all necessary information of a PolicySet hit
- */
 public class PolicySetHit {
 
 	/**

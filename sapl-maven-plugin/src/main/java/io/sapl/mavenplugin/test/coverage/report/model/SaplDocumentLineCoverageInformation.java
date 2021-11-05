@@ -20,7 +20,7 @@ import lombok.Getter;
 @Getter
 public class SaplDocumentLineCoverageInformation {
 
-	private int lineNumber;
+	private final int lineNumber;
 
 	private LineCoveredValue coveredValue;
 

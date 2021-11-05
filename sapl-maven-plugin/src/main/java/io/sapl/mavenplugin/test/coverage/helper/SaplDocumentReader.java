@@ -59,7 +59,7 @@ public class SaplDocumentReader {
 		List<SaplDocument> saplDocuments = new LinkedList<>();
 		for (File file : files) {
 			if (file.isFile() && file.getName().endsWith(".sapl")) {
-				String fileContent = null;
+				String fileContent;
 				try {
 					log.debug(String.format("Loading coverage target from file \"%s\"", file.getPath()));
 					fileContent = Files.readString(file.toPath());
@@ -67,7 +67,7 @@ public class SaplDocumentReader {
 					saplDocuments.add(new SaplDocument(file.toPath(), linecount, interpreter.parse(fileContent)));
 				}
 				catch (IOException e) {
-					log.error("Error reading file " + file.toString(), e);
+					log.error("Error reading file " + file, e);
 				}
 			}
 		}
@@ -81,11 +81,11 @@ public class SaplDocumentReader {
 		File result = null;
 		try {
 			projectTestClassPathElements = project.getRuntimeClasspathElements();
-			builder.append(" - We looked at: " + System.lineSeparator());
+			builder.append(" - We looked at: ").append(System.lineSeparator());
 
 			for (String element : projectTestClassPathElements) {
 				Path path = Path.of(element).resolve(policyPath);
-				builder.append("* " + path + System.lineSeparator());
+				builder.append("* ").append(path).append(System.lineSeparator());
 				File dir = path.toFile();
 				if (dir.exists()) {
 					result = dir;
@@ -101,7 +101,7 @@ public class SaplDocumentReader {
 			return result;
 		}
 		else {
-			throw new MojoExecutionException("Error reading coverage targets: " + builder.toString());
+			throw new MojoExecutionException("Error reading coverage targets: " + builder);
 		}
 	}
 

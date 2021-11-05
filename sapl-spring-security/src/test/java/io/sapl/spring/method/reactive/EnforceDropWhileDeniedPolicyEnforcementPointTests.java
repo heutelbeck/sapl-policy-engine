@@ -104,7 +104,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPointTests {
 		var data = Flux.just(1, 2, 3);
 		var sut = EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
 		sut.blockLast();
-		assertThrows(IllegalStateException.class, () -> sut.blockLast());
+		assertThrows(IllegalStateException.class, sut::blockLast);
 	}
 
 	@Test

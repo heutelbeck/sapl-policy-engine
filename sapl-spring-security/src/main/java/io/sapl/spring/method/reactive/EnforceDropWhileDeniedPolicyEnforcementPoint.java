@@ -55,25 +55,25 @@ import reactor.util.context.ContextView;
 @Slf4j
 public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
-	private Flux<AuthorizationDecision> decisions;
+	private final Flux<AuthorizationDecision> decisions;
 
 	private Flux<T> resourceAccessPoint;
 
-	private ConstraintEnforcementService constraintsService;
+	private final ConstraintEnforcementService constraintsService;
 
 	private EnforcementSink<T> sink;
 
-	private Class<T> clazz;
+	private final Class<T> clazz;
 
-	AtomicReference<Disposable> decisionsSubscription = new AtomicReference<Disposable>();
+	final AtomicReference<Disposable> decisionsSubscription = new AtomicReference<>();
 
-	AtomicReference<Disposable> dataSubscription = new AtomicReference<Disposable>();
+	final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
 
-	AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<AuthorizationDecision>();
+	final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
 
-	AtomicReference<ConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<ConstraintHandlerBundle<T>>();
+	final AtomicReference<ConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
 
-	AtomicBoolean stopped = new AtomicBoolean(false);
+	final AtomicBoolean stopped = new AtomicBoolean(false);
 
 	private EnforceDropWhileDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions,
 			Flux<T> resourceAccessPoint, ConstraintEnforcementService constraintsService, Class<T> clazz) {
@@ -85,7 +85,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
 	public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
 			ConstraintEnforcementService constraintsService, Class<V> clazz) {
-		var pep = new EnforceDropWhileDeniedPolicyEnforcementPoint<V>(decisions, resourceAccessPoint,
+		var pep = new EnforceDropWhileDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint,
 				constraintsService, clazz);
 		return pep.doOnTerminate(pep::handleOnTerminateConstraints)
 				.doAfterTerminate(pep::handleAfterTerminateConstraints).doOnCancel(pep::handleCancel).onErrorStop();
@@ -96,7 +96,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 		if (sink != null)
 			throw new IllegalStateException("Operator may only be subscribed once.");
 		ContextView context = actual.currentContext();
-		sink = new EnforcementSink<T>();
+		sink = new EnforcementSink<>();
 		resourceAccessPoint = resourceAccessPoint.contextWrite(context);
 		Flux.create(sink).subscribe(actual);
 		decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());
@@ -113,7 +113,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 		catch (AccessDeniedException e) {
 			// INDETERMINATE -> as long as we cannot handle the obligations of the current
 			// decision, drop data
-			constraintHandler.set(new ConstraintHandlerBundle<T>());
+			constraintHandler.set(new ConstraintHandlerBundle<>());
 			implicitDecision = AuthorizationDecision.INDETERMINATE;
 		}
 
@@ -136,10 +136,10 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 		}
 
 		if (implicitDecision.getDecision() == Decision.PERMIT && dataSubscription.get() == null)
-			dataSubscription.set(wrapResourceAccessPointAndSubcribe());
+			dataSubscription.set(wrapResourceAccessPointAndSubscribe());
 	}
 
-	private Disposable wrapResourceAccessPointAndSubcribe() {
+	private Disposable wrapResourceAccessPointAndSubscribe() {
 		return resourceAccessPoint.doOnError(this::handleError).doOnRequest(this::handleRequest)
 				.doOnSubscribe(this::handleSubscribe).doOnNext(this::handleNext).doOnComplete(this::handleComplete)
 				.subscribe();
@@ -235,11 +235,11 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
 	private void disposeDecisionsAndResourceAccessPoint() {
 		stopped.set(true);
-		disposeUndisposedIfPresent(decisionsSubscription);
-		disposeUndisposedIfPresent(dataSubscription);
+		disposeActiveIfPresent(decisionsSubscription);
+		disposeActiveIfPresent(dataSubscription);
 	}
 
-	private void disposeUndisposedIfPresent(AtomicReference<Disposable> atomicDisposable) {
+	private void disposeActiveIfPresent(AtomicReference<Disposable> atomicDisposable) {
 		Optional.ofNullable(atomicDisposable.get()).filter(not(Disposable::isDisposed)).ifPresent(Disposable::dispose);
 	}
 

@@ -26,7 +26,7 @@ import io.sapl.api.pdp.Decision;
 
 public class IsDecision extends TypeSafeDiagnosingMatcher<AuthorizationDecision> {
 
-	private Optional<Decision> expectedDecision;
+	private final Optional<Decision> expectedDecision;
 
 	public IsDecision(Decision expected) {
 		super(AuthorizationDecision.class);

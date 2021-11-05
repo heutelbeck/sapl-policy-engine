@@ -34,7 +34,7 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
 		if (relativeNode.isUndefined()) {
 			return Val.errorFlux(NOT_ALLOWED);
 		}
-		return Flux.just(relativeNode).switchMap(resolveStepsFiltersAndSubtemplates(steps, ctx, relativeNode));
+		return Flux.just(relativeNode).switchMap(resolveStepsFiltersAndSubTemplates(steps, ctx, relativeNode));
 	}
 
 }

@@ -31,9 +31,9 @@ import org.hamcrest.Matcher;
  */
 public class TimesParameterCalledVerification implements MockingVerification {
 
-	List<Matcher<Val>> wantedArgs;
+	final List<Matcher<Val>> wantedArgs;
 
-	TimesCalledVerification verification;
+	final TimesCalledVerification verification;
 
 	public TimesParameterCalledVerification(TimesCalledVerification verification, List<Matcher<Val>> wantedArgs) {
 		this.verification = verification;
@@ -48,7 +48,7 @@ public class TimesParameterCalledVerification implements MockingVerification {
 	@Override
 	public void verify(MockRunInformation mockRunInformation, String verificationFailedMessage) {
 		// collect calls with specified information in new MockRunInformation
-		MockRunInformation callsMatchingWantedArgs = new MockRunInformation(mockRunInformation.getFullname());
+		MockRunInformation callsMatchingWantedArgs = new MockRunInformation(mockRunInformation.getFullName());
 
 		for (int i = 0; i < mockRunInformation.getCalls().size(); i++) {
 			CallWithMetadata call = mockRunInformation.getCalls().get(i);
@@ -79,25 +79,25 @@ public class TimesParameterCalledVerification implements MockingVerification {
 			return verificationFailedMessage;
 		}
 
-		StringBuilder builder = new StringBuilder("Error verifiying the expected number of calls to the mock \""
-				+ callsMatchingWantedArgs.getFullname() + "\" for parameters [");
+		StringBuilder builder = new StringBuilder("Error verifying the expected number of calls to the mock \""
+				+ callsMatchingWantedArgs.getFullName() + "\" for parameters [");
 
 		for (Matcher<Val> matcher : wantedArgs) {
-			builder.append(matcher.toString() + ", ");
+			builder.append(matcher).append(", ");
 		}
 
 		builder.deleteCharAt(builder.length() - 1);
 		builder.append(']');
 
-		builder.append(
-				" - Expected: " + verification.toString() + " - got: " + callsMatchingWantedArgs.getTimesCalled());
+		builder.append(" - Expected: ").append(verification).append(" - got: ")
+				.append(callsMatchingWantedArgs.getTimesCalled());
 
 		return builder.toString();
 	}
 
 	private boolean areAllCallArgumentsMatchingTheArgumentMatcher(CallWithMetadata call) {
-		return listCombiner(this.wantedArgs, call.getCall().getListOfArguments(),
-				(Matcher<Val> wanted, Val actual) -> wanted.matches(actual)).stream().allMatch(b -> b == true);
+		return listCombiner(this.wantedArgs, call.getCall().getListOfArguments(), Matcher::matches).stream()
+				.allMatch(b -> b == true);
 	}
 
 	private List<Boolean> listCombiner(List<Matcher<Val>> list1, List<Val> list2,

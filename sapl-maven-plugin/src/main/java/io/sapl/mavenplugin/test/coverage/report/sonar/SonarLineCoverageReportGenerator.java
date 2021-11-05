@@ -36,7 +36,7 @@ import org.apache.maven.plugin.logging.Log;
 
 public class SonarLineCoverageReportGenerator {
 
-	private ObjectFactory FACTORY = new ObjectFactory();
+	private final ObjectFactory FACTORY = new ObjectFactory();
 
 	public void generateSonarLineCoverageReport(Collection<SaplDocumentCoverageInformation> documents, Log log,
 			Path basedir, String policyPath, File mavenBaseDir) {
@@ -67,7 +67,7 @@ public class SonarLineCoverageReportGenerator {
 	private void addFile(Coverage coverage, SaplDocumentCoverageInformation doc, File mavenBaseDir, String policyPath) {
 		Coverage.File sonarFile = FACTORY.createCoverageFile();
 
-		/**
+		/*
 		 * Sonarqube seems to require a path to the sapl file in the src directory
 		 *
 		 * The path on the classpath "target/test-classes/policies/policySimple.sapl is
@@ -88,7 +88,7 @@ public class SonarLineCoverageReportGenerator {
 		}
 		Coverage.File.LineToCover sonarLine = FACTORY.createCoverageFileLineToCover();
 		sonarLine.setLineNumber(BigInteger.valueOf(line.getLineNumber()));
-		sonarLine.setCovered(line.getCoveredValue() == LineCoveredValue.NEVER ? false : true);
+		sonarLine.setCovered(line.getCoveredValue() != LineCoveredValue.NEVER);
 		if (line.getCoveredValue() == LineCoveredValue.PARTLY) {
 			sonarLine.setBranchesToCover(BigInteger.valueOf(line.getBranchesToCover()));
 			sonarLine.setCoveredBranches(BigInteger.valueOf(line.getCoveredBranches()));

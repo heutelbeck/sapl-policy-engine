@@ -51,9 +51,7 @@ class CoverageAPIFactoryTest {
 			return count;
 		}
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, "*.txt")) {
-			Iterator<Path> it = stream.iterator();
-			while (it.hasNext()) {
-				it.next();
+			for (Path value : stream) {
 				count++;
 			}
 		}

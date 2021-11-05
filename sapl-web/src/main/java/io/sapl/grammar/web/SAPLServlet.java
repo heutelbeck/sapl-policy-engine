@@ -39,7 +39,7 @@ public class SAPLServlet extends XtextServlet {
 	public void init() {
 		super.init();
 		final Injector injector = new SAPLWebSetup().createInjectorAndDoEMFRegistration();
-		disposableRegistry = injector.<DisposableRegistry>getInstance(DisposableRegistry.class);
+		disposableRegistry = injector.getInstance(DisposableRegistry.class);
 	}
 
 	@Override

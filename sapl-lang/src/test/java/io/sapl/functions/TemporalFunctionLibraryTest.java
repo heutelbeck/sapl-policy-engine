@@ -356,12 +356,11 @@ class TemporalFunctionLibraryTest {
 		StepVerifier
 				.withVirtualTime(
 						() -> INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT))
-				.expectSubscription().consumeNextWith(authzDecision -> {
-					assertThat(authzDecision, is(AuthorizationDecision.NOT_APPLICABLE));
-				}).expectNoEvent(Duration.ofSeconds(5)).thenAwait(Duration.ofSeconds(5))
-				.consumeNextWith(authzDecision -> {
-					assertThat(authzDecision, is(AuthorizationDecision.PERMIT));
-				}).expectComplete().verify();
+				.expectSubscription()
+				.consumeNextWith(authzDecision -> assertThat(authzDecision, is(AuthorizationDecision.NOT_APPLICABLE)))
+				.expectNoEvent(Duration.ofSeconds(5)).thenAwait(Duration.ofSeconds(5))
+				.consumeNextWith(authzDecision -> assertThat(authzDecision, is(AuthorizationDecision.PERMIT)))
+				.expectComplete().verify();
 	}
 
 	@Test
@@ -375,9 +374,7 @@ class TemporalFunctionLibraryTest {
 
 	private void assertThatPolicyEvaluatesTo(String policyDefinition, AuthorizationDecision expectedAuthzDecision) {
 		StepVerifier.create(INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT))
-				.assertNext(authzDecision -> {
-					assertThat(authzDecision, is(expectedAuthzDecision));
-				}).verifyComplete();
+				.assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
 	}
 
 }

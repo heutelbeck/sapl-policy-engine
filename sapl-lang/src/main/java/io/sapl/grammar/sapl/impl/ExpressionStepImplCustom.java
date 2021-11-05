@@ -36,7 +36,7 @@ import reactor.core.publisher.Flux;
  *
  * Example: The expression step can be used to refer to custom variables
  * (object.array[(anIndex+2)]) or apply custom functions
- * (object.array[(max_value(object.array))].
+ * (object.array[(max_value(object.array))]).
  *
  * Grammar: Step: ... | '[' Subscript ']' | ... Subscript returns Step: ... |
  * {ExpressionStep} '(' expression=Expression ')' | ...

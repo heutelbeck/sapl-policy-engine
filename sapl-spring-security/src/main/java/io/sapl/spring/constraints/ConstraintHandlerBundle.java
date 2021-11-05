@@ -28,27 +28,27 @@ import reactor.core.publisher.Mono;
 
 public class ConstraintHandlerBundle<T> {
 
-	List<Runnable> onDecisionHandlers = new LinkedList<>();
+	final List<Runnable> onDecisionHandlers = new LinkedList<>();
 
-	List<Runnable> onCancelHandlers = new LinkedList<>();
+	final List<Runnable> onCancelHandlers = new LinkedList<>();
 
-	List<Runnable> onCompleteHandlers = new LinkedList<>();
+	final List<Runnable> onCompleteHandlers = new LinkedList<>();
 
-	List<Runnable> onTerminateHandlers = new LinkedList<>();
+	final List<Runnable> onTerminateHandlers = new LinkedList<>();
 
-	List<Runnable> afterTerminateHandlers = new LinkedList<>();
+	final List<Runnable> afterTerminateHandlers = new LinkedList<>();
 
-	List<Consumer<Subscription>> onSubscribeHandlers = new LinkedList<>();
+	final List<Consumer<Subscription>> onSubscribeHandlers = new LinkedList<>();
 
-	List<LongConsumer> onRequestHandlers = new LinkedList<>();
+	final List<LongConsumer> onRequestHandlers = new LinkedList<>();
 
-	List<Consumer<T>> doOnNextHandlers = new LinkedList<>();
+	final List<Consumer<T>> doOnNextHandlers = new LinkedList<>();
 
-	List<Function<T, T>> onNextMapHandlers = new LinkedList<>();
+	final List<Function<T, T>> onNextMapHandlers = new LinkedList<>();
 
-	List<Consumer<Throwable>> doOnErrorHandlers = new LinkedList<>();
+	final List<Consumer<Throwable>> doOnErrorHandlers = new LinkedList<>();
 
-	List<Function<Throwable, Throwable>> onErrorMapHandlers = new LinkedList<>();
+	final List<Function<Throwable, Throwable>> onErrorMapHandlers = new LinkedList<>();
 
 	public void handleOnSubscribeConstraints(Subscription s) {
 		consumeAll(onSubscribeHandlers).accept(s);
@@ -104,8 +104,8 @@ public class ConstraintHandlerBundle<T> {
 		consumeAll(doOnErrorHandlers).accept(error);
 	}
 
-	public Flux<T> wrap(Flux<T> resourceAccesspoint) {
-		var wrapped = resourceAccesspoint;
+	public Flux<T> wrap(Flux<T> resourceAccessPoint) {
+		var wrapped = resourceAccessPoint;
 
 		if (!onRequestHandlers.isEmpty())
 			wrapped = wrapped.doOnRequest(this::handleOnRequestConstraints);
@@ -144,7 +144,7 @@ public class ConstraintHandlerBundle<T> {
 	}
 
 	private LongConsumer consumeAllLong(List<LongConsumer> handlers) {
-		return value -> handlers.stream().forEach(handler -> handler.accept(value));
+		return value -> handlers.forEach(handler -> handler.accept(value));
 	}
 
 	private <V> Function<V, V> mapAll(List<Function<V, V>> handlers) {
@@ -154,7 +154,7 @@ public class ConstraintHandlerBundle<T> {
 	}
 
 	private <V> Consumer<V> consumeAll(List<Consumer<V>> handlers) {
-		return value -> handlers.stream().forEach(handler -> handler.accept(value));
+		return value -> handlers.forEach(handler -> handler.accept(value));
 	}
 
 	private Mono<Void> onDecision(List<Runnable> handlers) {
@@ -162,7 +162,7 @@ public class ConstraintHandlerBundle<T> {
 	}
 
 	private Runnable runAll(List<Runnable> handlers) {
-		return () -> handlers.stream().forEach(Runnable::run);
+		return () -> handlers.forEach(Runnable::run);
 	}
 
 }

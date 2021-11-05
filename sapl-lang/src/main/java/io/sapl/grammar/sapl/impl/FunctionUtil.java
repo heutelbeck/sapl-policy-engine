@@ -63,7 +63,7 @@ public class FunctionUtil {
 	}
 
 	private Stream<Flux<Val>> argumentFluxes(Arguments arguments, EvaluationContext ctx, Val relativeNode) {
-		return arguments.getArgs().stream().map(expression -> (Flux<Val>) expression.evaluate(ctx, relativeNode));
+		return arguments.getArgs().stream().map(expression -> expression.evaluate(ctx, relativeNode));
 	}
 
 	private Flux<Val[]> combine(Stream<Flux<Val>> argumentFluxes) {

@@ -38,9 +38,9 @@ import io.sapl.pip.ClockPolicyInformationPoint;
  */
 public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 
-	private AttributeContext attributeContext;
+	private final AttributeContext attributeContext;
 
-	private FunctionContext funtionContext;
+	private final FunctionContext functionContext;
 
 	/**
 	 * The default constructor registers the default libraries.
@@ -49,10 +49,10 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 	public DefaultLibraryAttributeFinder() throws InitializationException {
 		attributeContext = new AnnotationAttributeContext();
 		attributeContext.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
-		funtionContext = new AnnotationFunctionContext();
-		funtionContext.loadLibrary(new FilterFunctionLibrary());
-		funtionContext.loadLibrary(new StandardFunctionLibrary());
-		funtionContext.loadLibrary(new TemporalFunctionLibrary());
+		functionContext = new AnnotationFunctionContext();
+		functionContext.loadLibrary(new FilterFunctionLibrary());
+		functionContext.loadLibrary(new StandardFunctionLibrary());
+		functionContext.loadLibrary(new TemporalFunctionLibrary());
 	}
 
 	/**
@@ -62,7 +62,7 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 	 */
 	public DefaultLibraryAttributeFinder(EvaluationContext evaluationContext) {
 		attributeContext = evaluationContext.getAttributeCtx();
-		funtionContext = evaluationContext.getFunctionCtx();
+		functionContext = evaluationContext.getFunctionCtx();
 	}
 
 	@Override
@@ -78,7 +78,7 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 			steps = Arrays.asList(identifier.split("\\."));
 		}
 
-		Integer stepCount = steps.size();
+		int stepCount = steps.size();
 		if (stepCount > 0) {
 			String lastChar = identifier.substring(identifier.length() - 1);
 			if (".".equals(lastChar))
@@ -114,14 +114,14 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 	private Set<String> getAvailableLibraries() {
 		Set<String> availableLibraries = new HashSet<>();
 		availableLibraries.addAll(attributeContext.getAvailableLibraries());
-		availableLibraries.addAll(funtionContext.getAvailableLibraries());
+		availableLibraries.addAll(functionContext.getAvailableLibraries());
 		return availableLibraries;
 	}
 
 	private Set<String> getAvailableFunctions(final String library) {
 		Set<String> availableFunctions = new HashSet<>();
 		availableFunctions.addAll(attributeContext.providedFunctionsOfLibrary(library));
-		availableFunctions.addAll(funtionContext.providedFunctionsOfLibrary(library));
+		availableFunctions.addAll(functionContext.providedFunctionsOfLibrary(library));
 		return availableFunctions;
 	}
 

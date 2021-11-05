@@ -93,28 +93,6 @@ class ServerHttpRequestSerializerTests {
 														jsonArray(containsInAnyOrder(jsonText("value2"))))))));
 	}
 
-	// @Test
-	// void whenServerNameSet_thenItIsTheSameInJson() throws IOException {
-	// var request = MockServerHttpRequest.get("/foo/bar").remoteAddress(new
-	// InetSocketAddress("sapl.io", 443)).build();
-	// var expected = "sapl.io";
-	// var request = new MockHttpServletRequest();
-	// request.setServerName(expected);
-	// var actual = serialize(request);
-	// assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.SERVER_NAME,
-	// is(jsonText(expected)))));
-	// }
-	//
-	// @Test
-	// void whenServerPortSet_thenItIsTheSameInJson() throws IOException {
-	// var expected = 443;
-	// var request = new MockHttpServletRequest();
-	// request.setServerPort(expected);
-	// var actual = serialize(request);
-	// assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.SERVER_PORT,
-	// is(jsonInt(expected)))));
-	// }
-
 	@Test
 	void whenRemoteAddressSet_thenItIsTheSameInJson() throws IOException {
 		var expectedIp = "123.22.233.121";
@@ -125,16 +103,6 @@ class ServerHttpRequestSerializerTests {
 		assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.REMOTE_ADDRESS,
 				is(jsonText("/" + expectedIp + ":" + expectedPort)))));
 	}
-
-	// @Test
-	// void whenRemotePortSet_thenItIsTheSameInJson() throws IOException {
-	// var expected = 8443;
-	// var request = new MockHttpServletRequest();
-	// request.setRemotePort(expected);
-	// var actual = serialize(request);
-	// assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.REMOTE_PORT,
-	// is(jsonInt(expected)))));
-	// }
 
 	@Test
 	void whenRemoteHostSet_thenItIsTheSameInJson() throws IOException {

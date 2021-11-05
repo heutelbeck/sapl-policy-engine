@@ -36,19 +36,19 @@ public class JarUtilTest {
 
 	@Test
 	public void inferUrlOfRecourcesPathTest() {
-		var result = JarUtil.inferUrlOfRecourcesPath(getClass(), "/policies");
+		var result = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
 		assertThat(result.toString().startsWith("file:"), is(true));
 		assertThat(result.toString().endsWith("policies"), is(true));
 	}
 
 	@Test
 	public void inferUrlOfRecourcesPathTestWithMissingResource() {
-		assertThrows(RuntimeException.class, () -> JarUtil.inferUrlOfRecourcesPath(getClass(), "/iDoNotExist"));
+		assertThrows(RuntimeException.class, () -> JarUtil.inferUrlOfResourcesPath(getClass(), "/iDoNotExist"));
 	}
 
 	@Test
 	public void getJarFilePathTest() {
-		var url = JarUtil.inferUrlOfRecourcesPath(getClass(), "/policies");
+		var url = JarUtil.inferUrlOfResourcesPath(getClass(), "/policies");
 		var result = JarUtil.getJarFilePath(url);
 		assertThat(result.toString().endsWith("policies"), is(true));
 	}

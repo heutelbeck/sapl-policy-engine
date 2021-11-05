@@ -58,10 +58,10 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 			@NonNull SAPLInterpreter interpreter) throws InitializationException {
 		this.interpreter = interpreter;
 		log.info("Loading a static set of policies from the bundled resources");
-		initializingPrpUpdate = readPolicies(JarUtil.inferUrlOfRecourcesPath(clazz, policyPath));
+		initializingPrpUpdate = readPolicies(JarUtil.inferUrlOfResourcesPath(clazz, policyPath));
 	}
 
-	private final PrpUpdateEvent readPolicies(URL policyFolderUrl) throws InitializationException {
+	private PrpUpdateEvent readPolicies(URL policyFolderUrl) throws InitializationException {
 		try {
 			if ("jar".equals(policyFolderUrl.getProtocol()))
 				return readPoliciesFromJar(policyFolderUrl);
@@ -72,11 +72,11 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 		}
 	}
 
-	private final PrpUpdateEvent readPoliciesFromJar(URL policiesFolderUrl) throws IOException {
+	private PrpUpdateEvent readPoliciesFromJar(URL policiesFolderUrl) throws IOException {
 		log.debug("reading policies from jar {}", policiesFolderUrl);
 		var pathOfJar = JarUtil.getJarFilePath(policiesFolderUrl);
 		try (var jarFile = new ZipFile(pathOfJar)) {
-			var updates = jarFile.stream().filter(entry -> isSAPLDocumentWithinPath(entry))
+			var updates = jarFile.stream().filter(this::isSAPLDocumentWithinPath)
 					.peek(entry -> log.info("load SAPL document: {}", entry.getName()))
 					.map(entry -> JarUtil.readStringFromZipEntry(jarFile, entry))
 					.map(this::parseAndCreatePublicationUpdate).collect(Collectors.toList());
@@ -88,12 +88,11 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
 		return !zipEntry.isDirectory() && zipEntry.getName().endsWith(POLICY_FILE_SUFFIX);
 	}
 
-	private final Update parseAndCreatePublicationUpdate(String rawDocument) {
+	private Update parseAndCreatePublicationUpdate(String rawDocument) {
 		return new Update(Type.PUBLISH, interpreter.parse(rawDocument), rawDocument);
 	}
 
-	private final PrpUpdateEvent readPoliciesFromDirectory(URL policiesFolderUrl)
-			throws IOException, URISyntaxException {
+	private PrpUpdateEvent readPoliciesFromDirectory(URL policiesFolderUrl) throws IOException, URISyntaxException {
 		log.debug("reading policies from directory {}", policiesFolderUrl);
 		try (var directoryStream = Files.newDirectoryStream(Paths.get(policiesFolderUrl.toURI()),
 				POLICY_FILE_GLOB_PATTERN)) {

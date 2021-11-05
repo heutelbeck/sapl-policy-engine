@@ -32,9 +32,9 @@ import reactor.util.function.Tuples;
 
 /**
  * Implements the application of a recursive index step to a previous array value, e.g.
- * 'arr..[2]'.
+ * {@code 'arr..[2]'}.
  *
- * Grammar: Step: '..' ({RecursiveIndexStep} '[' index=JSONNUMBER ']') ;
+ * Grammar: {@code Step: '..' ({RecursiveIndexStep} '[' index=JSONNUMBER ']') ;}
  */
 @Slf4j
 public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
@@ -56,7 +56,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 			if (node.has(idx)) {
 				results.add(node.get(idx));
 			}
-			for (var item : ((ArrayNode) node)) {
+			for (var item : node) {
 				collect(index, item, results);
 			}
 		}
@@ -116,7 +116,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 				}
 			}
 			else {
-				log.trace("array element not an object. Do recusive search for first match.");
+				log.trace("array element not an object. Do recursive search for first match.");
 				elementFluxes.add(doApplyFilterStatement(index, Val.of(element), ctx, relativeNode, stepId, statement));
 			}
 		}
@@ -129,7 +129,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 		var fields = object.fields();
 		while (fields.hasNext()) {
 			var field = fields.next();
-			log.trace("recusion for field {}", field);
+			log.trace("recursion for field {}", field);
 			fieldFluxes.add(doApplyFilterStatement(idx, Val.of(field.getValue()), ctx, relativeNode, stepId, statement)
 					.map(val -> Tuples.of(field.getKey(), val)));
 		}

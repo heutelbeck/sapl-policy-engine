@@ -57,7 +57,7 @@ public class SaplFilterPolicyEnforcementPoint extends GenericFilterBean {
 		var subscription = AuthorizationSubscription.of(authentication, request, request, mapper);
 		var authzDecision = pdp.decide(subscription).blockFirst();
 
-		log.trace("Filter: contextPath='{}' decison='{}' subscription='{}' fullDecision='{}'",
+		log.trace("Filter: contextPath='{}' decision='{}' subscription='{}' fullDecision='{}'",
 				request.getServletContext().getContextPath(),
 				authzDecision != null ? authzDecision.getDecision() : null, subscription, authzDecision);
 
@@ -65,7 +65,7 @@ public class SaplFilterPolicyEnforcementPoint extends GenericFilterBean {
 			throw new AccessDeniedException("No decision from PDP.");
 
 		if (authzDecision.getResource().isPresent())
-			throw new AccessDeniedException("PDP requested resource replacement. This is not possible in Filterchain.");
+			throw new AccessDeniedException("PDP requested resource replacement. This is not possible in the filter chain.");
 
 		try {
 			constraintEnforcementService.bundleFor(authzDecision, Object.class).wrap(Flux.empty()).blockLast();

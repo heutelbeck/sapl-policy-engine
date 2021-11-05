@@ -44,7 +44,7 @@ public abstract class AbstractPolicyEnforcementPoint implements AopInfrastructur
 
 	/**
 	 * Lazy loading of dependencies decouples security infrastructure from domain logic in
-	 * initialization. This avoids beans to become not eligible for Bean post processing.
+	 * initialization. This avoids beans to become not eligible for Bean post-processing.
 	 */
 	protected void lazyLoadDependencies() {
 		if (pdp == null)

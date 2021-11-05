@@ -70,7 +70,7 @@
 				<configuration>
 					<sourceDirectory>src/asciidoc</sourceDirectory>
 					<attributes>
-						<endpoint-url>http://docs.sapl.io</endpoint-url>
+						<endpoint-url>https://docs.sapl.io</endpoint-url>
 						<sourcedir>${project.build.sourceDirectory}</sourcedir>
 						<project-version>${project.version}</project-version>
 					</attributes>

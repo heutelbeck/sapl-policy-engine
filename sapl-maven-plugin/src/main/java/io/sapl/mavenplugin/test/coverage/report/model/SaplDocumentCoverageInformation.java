@@ -26,12 +26,12 @@ public class SaplDocumentCoverageInformation {
 	/**
 	 * Holding detailed information for every line
 	 */
-	private SaplDocumentLineCoverageInformation[] lines;
+	private final SaplDocumentLineCoverageInformation[] lines;
 
 	/**
 	 * Path to the SAPL policy on the filesystem
 	 */
-	private Path pathToDocument;
+	private final Path pathToDocument;
 
 	/**
 	 * initialize a {@link SaplDocumentCoverageInformation} with

@@ -52,7 +52,6 @@ public class HasObligationMatching extends TypeSafeDiagnosingMatcher<Authorizati
 			if (this.predicate.test(node))
 				containsObligation = true;
 		}
-		;
 
 		if (containsObligation) {
 			return true;

@@ -57,25 +57,25 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
-	private Flux<AuthorizationDecision> decisions;
+	private final Flux<AuthorizationDecision> decisions;
 
 	private Flux<T> resourceAccessPoint;
 
-	private ConstraintEnforcementService constraintsService;
+	private final ConstraintEnforcementService constraintsService;
 
 	EnforcementSink<T> sink;
 
-	private Class<T> clazz;
+	private final Class<T> clazz;
 
-	AtomicReference<Disposable> decisionsSubscription = new AtomicReference<Disposable>();
+	final AtomicReference<Disposable> decisionsSubscription = new AtomicReference<>();
 
-	AtomicReference<Disposable> dataSubscription = new AtomicReference<Disposable>();
+	final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
 
-	AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<AuthorizationDecision>();
+	final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
 
-	AtomicReference<ConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<ConstraintHandlerBundle<T>>();
+	final AtomicReference<ConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
 
-	AtomicBoolean stopped = new AtomicBoolean(false);
+	final AtomicBoolean stopped = new AtomicBoolean(false);
 
 	private EnforceTillDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions, Flux<T> resourceAccessPoint,
 			ConstraintEnforcementService constraintsService, Class<T> clazz) {
@@ -87,7 +87,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
 	public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
 			ConstraintEnforcementService constraintsService, Class<V> clazz) {
-		var pep = new EnforceTillDeniedPolicyEnforcementPoint<V>(decisions, resourceAccessPoint, constraintsService,
+		var pep = new EnforceTillDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint, constraintsService,
 				clazz);
 		return pep.doOnTerminate(pep::handleOnTerminateConstraints)
 				.doAfterTerminate(pep::handleAfterTerminateConstraints)
@@ -100,7 +100,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 		if (sink != null)
 			throw new IllegalStateException("Operator may only be subscribed once.");
 		var context = subscriber.currentContext();
-		sink = new EnforcementSink<T>();
+		sink = new EnforcementSink<>();
 		resourceAccessPoint = resourceAccessPoint.contextWrite(context);
 		Flux.create(sink).subscribe(subscriber);
 		decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());
@@ -114,7 +114,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 			constraintHandler.set(newBundle);
 		}
 		catch (AccessDeniedException e) {
-			constraintHandler.set(new ConstraintHandlerBundle<T>());
+			constraintHandler.set(new ConstraintHandlerBundle<>());
 			sink.error(e);
 			disposeDecisionsAndResourceAccessPoint();
 			return;
@@ -139,10 +139,10 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 		}
 
 		if (previousDecision == null)
-			dataSubscription.set(wrapResourceAccessPointAndSubcribe());
+			dataSubscription.set(wrapResourceAccessPointAndSubscribe());
 	}
 
-	private Disposable wrapResourceAccessPointAndSubcribe() {
+	private Disposable wrapResourceAccessPointAndSubscribe() {
 		return resourceAccessPoint.doOnError(this::handleError).doOnRequest(this::handleRequest)
 				.doOnSubscribe(this::handleSubscribe).doOnNext(this::handleNext).doOnComplete(this::handleComplete)
 				.subscribe();
@@ -241,11 +241,11 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
 	private void disposeDecisionsAndResourceAccessPoint() {
 		stopped.set(true);
-		disposeUndisposedIfPresent(decisionsSubscription);
-		disposeUndisposedIfPresent(dataSubscription);
+		disposeActiveIfPresent(decisionsSubscription);
+		disposeActiveIfPresent(dataSubscription);
 	}
 
-	private void disposeUndisposedIfPresent(AtomicReference<Disposable> atomicDisposable) {
+	private void disposeActiveIfPresent(AtomicReference<Disposable> atomicDisposable) {
 		Optional.ofNullable(atomicDisposable.get()).filter(not(Disposable::isDisposed)).ifPresent(Disposable::dispose);
 	}
 

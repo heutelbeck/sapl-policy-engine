@@ -129,7 +129,7 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	protected AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
 			MethodSecurityExpressionHandler methodSecurityHandler) {
-		return new AuthorizationSubscriptionBuilderService(methodSecurityHandler, () -> mapper);
+		return new AuthorizationSubscriptionBuilderService(methodSecurityHandler, mapper);
 	}
 
 	@Bean

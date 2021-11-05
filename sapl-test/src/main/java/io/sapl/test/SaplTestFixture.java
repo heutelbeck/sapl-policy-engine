@@ -17,6 +17,7 @@ package io.sapl.test;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -40,12 +41,9 @@ public interface SaplTestFixture {
 		// if configured via system property because of custom path or custom maven
 		// build dir
 		String saplSpecificOutputDir = System.getProperty("io.sapl.test.outputDir");
-		if (saplSpecificOutputDir != null) {
-			return Paths.get(saplSpecificOutputDir).resolve("sapl-coverage");
-		}
+		return Paths.get(Objects.requireNonNullElse(saplSpecificOutputDir, "target")).resolve("sapl-coverage");
 
 		// else use standard maven build dir
-		return Paths.get("target").resolve("sapl-coverage");
 	}
 
 }

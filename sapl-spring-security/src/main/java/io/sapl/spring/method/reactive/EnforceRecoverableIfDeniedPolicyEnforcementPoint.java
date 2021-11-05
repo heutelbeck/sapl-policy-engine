@@ -55,25 +55,25 @@ import reactor.util.function.Tuples;
 public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 		extends Flux<Tuple2<Optional<T>, Optional<Throwable>>> {
 
-	private Flux<AuthorizationDecision> decisions;
+	private final Flux<AuthorizationDecision> decisions;
 
 	private Flux<T> resourceAccessPoint;
 
-	private ConstraintEnforcementService constraintsService;
+	private final ConstraintEnforcementService constraintsService;
 
 	private RecoverableEnforcementSink<T> sink;
 
-	private Class<T> clazz;
+	private final Class<T> clazz;
 
-	AtomicReference<Disposable> decisionsSubscription = new AtomicReference<Disposable>();
+	final AtomicReference<Disposable> decisionsSubscription = new AtomicReference<>();
 
-	AtomicReference<Disposable> dataSubscription = new AtomicReference<Disposable>();
+	final AtomicReference<Disposable> dataSubscription = new AtomicReference<>();
 
-	AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<AuthorizationDecision>();
+	final AtomicReference<AuthorizationDecision> latestDecision = new AtomicReference<>();
 
-	AtomicReference<ConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<ConstraintHandlerBundle<T>>();
+	final AtomicReference<ConstraintHandlerBundle<T>> constraintHandler = new AtomicReference<>();
 
-	AtomicBoolean stopped = new AtomicBoolean(false);
+	final AtomicBoolean stopped = new AtomicBoolean(false);
 
 	private EnforceRecoverableIfDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions,
 			Flux<T> resourceAccessPoint, ConstraintEnforcementService constraintsService, Class<T> clazz) {
@@ -85,7 +85,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 
 	public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
 			ConstraintEnforcementService constraintsService, Class<V> clazz) {
-		var pep = new EnforceRecoverableIfDeniedPolicyEnforcementPoint<V>(decisions, resourceAccessPoint,
+		var pep = new EnforceRecoverableIfDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint,
 				constraintsService, clazz);
 		return pep.doOnTerminate(pep::handleOnTerminateConstraints)
 				.doAfterTerminate(pep::handleAfterTerminateConstraints).map(pep::handleAccessDenied)
@@ -97,8 +97,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 	private static <T> T extractPayloadOrError(Tuple2<Optional<T>, Optional<Throwable>> tuple) {
 		if (tuple.getT2().isEmpty())
 			return tuple.getT1().get();
-		var error = tuple.getT2().get();
-		throw error;
+		throw tuple.getT2().get();
 	}
 
 	@Override
@@ -106,7 +105,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 		if (sink != null)
 			throw new IllegalStateException("Operator may only be subscribed once.");
 		var context = actual.currentContext();
-		sink = new RecoverableEnforcementSink<T>();
+		sink = new RecoverableEnforcementSink<>();
 		resourceAccessPoint = resourceAccessPoint.contextWrite(context);
 		Flux.create(sink).subscribe(actual);
 		decisionsSubscription.set(decisions.doOnNext(this::handleNextDecision).contextWrite(context).subscribe());
@@ -125,7 +124,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 			sink.error(e);
 			// INDETERMINATE -> as long as we cannot handle the obligations of the current
 			// decision, drop data
-			constraintHandler.set(new ConstraintHandlerBundle<T>());
+			constraintHandler.set(new ConstraintHandlerBundle<>());
 			implicitDecision = AuthorizationDecision.INDETERMINATE;
 		}
 
@@ -153,10 +152,10 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 		}
 
 		if (implicitDecision.getDecision() == Decision.PERMIT && dataSubscription.get() == null)
-			dataSubscription.set(wrapResourceAccessPointAndSubcribe());
+			dataSubscription.set(wrapResourceAccessPointAndSubscribe());
 	}
 
-	private Disposable wrapResourceAccessPointAndSubcribe() {
+	private Disposable wrapResourceAccessPointAndSubscribe() {
 		return resourceAccessPoint.doOnError(this::handleError).doOnRequest(this::handleRequest)
 				.doOnSubscribe(this::handleSubscribe).doOnNext(this::handleNext).doOnComplete(this::handleComplete)
 				.subscribe();
@@ -279,11 +278,11 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 
 	private void disposeDecisionsAndResourceAccessPoint() {
 		stopped.set(true);
-		disposeUndisposedIfPresent(decisionsSubscription);
-		disposeUndisposedIfPresent(dataSubscription);
+		disposeActiveIfPresent(decisionsSubscription);
+		disposeActiveIfPresent(dataSubscription);
 	}
 
-	private void disposeUndisposedIfPresent(AtomicReference<Disposable> atomicDisposable) {
+	private void disposeActiveIfPresent(AtomicReference<Disposable> atomicDisposable) {
 		Optional.ofNullable(atomicDisposable.get()).filter(not(Disposable::isDisposed)).ifPresent(Disposable::dispose);
 	}
 

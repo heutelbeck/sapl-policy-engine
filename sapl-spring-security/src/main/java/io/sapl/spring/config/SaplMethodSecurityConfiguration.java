@@ -73,16 +73,15 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 
 	@Bean
 	protected AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService() {
-		return new AuthorizationSubscriptionBuilderService(getExpressionHandler(), objectMapperFactory);
+		return new AuthorizationSubscriptionBuilderService(getExpressionHandler(), objectMapperFactory.getObject());
 	}
 
 	@Override
 	protected AccessDecisionManager accessDecisionManager() {
 		log.debug("Blocking SAPL method level pre-invocation security activated.");
 		var baseManager = super.accessDecisionManager();
-		var decisionVoters = new ArrayList<AccessDecisionVoter<?>>();
 
-		decisionVoters.addAll(((AbstractAccessDecisionManager) baseManager).getDecisionVoters());
+		var decisionVoters = new ArrayList<>(((AbstractAccessDecisionManager) baseManager).getDecisionVoters());
 
 		var policyAdvice = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);

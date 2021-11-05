@@ -47,11 +47,11 @@ class EmbeddedPDPPropertiesValidationTests {
 
 	@Test
 	void whenValidProertiesArePresent_thenPropertiesLoad() {
-		contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILEsystem",
-				"io.sapl.pdp.embedded.index=CaNoNiCaL", "io.sapl.pdp.embedded.configPath=" + tempDir,
-				"io.sapl.pdp.embedded.policiesPath=" + tempDir).run(context -> {
-					assertThat(context).hasNotFailed();
-				});
+		contextRunner
+				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILEsystem",
+						"io.sapl.pdp.embedded.index=CaNoNiCaL", "io.sapl.pdp.embedded.configPath=" + tempDir,
+						"io.sapl.pdp.embedded.policiesPath=" + tempDir)
+				.run(context -> assertThat(context).hasNotFailed());
 	}
 
 	@Test
@@ -70,27 +70,21 @@ class EmbeddedPDPPropertiesValidationTests {
 		contextRunner
 				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILESYSTEM", "io.sapl.pdp.embedded.index=NAIVE",
 						"io.sapl.pdp.embedded.configPath=", "io.sapl.pdp.embedded.policiesPath=")
-				.run(context -> {
-					assertThat(context).hasFailed();
-				});
+				.run(context -> assertThat(context).hasFailed());
 	}
 
 	@Test
 	void whenPdpConfigTypeIsInvalid_thenContextFailsLoading() {
 		contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=I AM INVALID",
 				"io.sapl.pdp.embedded.index=NAIVE", "io.sapl.pdp.embedded.configPath=" + tempDir,
-				"io.sapl.pdp.embedded.policiesPath=" + tempDir).run(context -> {
-					assertThat(context).hasFailed();
-				});
+				"io.sapl.pdp.embedded.policiesPath=" + tempDir).run(context -> assertThat(context).hasFailed());
 	}
 
 	@Test
 	void whenIndexIsInvalid_thenContextFailsLoading() {
 		contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=RESOUORCES",
 				"io.sapl.pdp.embedded.index=I AM INVALID", "io.sapl.pdp.embedded.configPath=" + tempDir,
-				"io.sapl.pdp.embedded.policiesPath=" + tempDir).run(context -> {
-					assertThat(context).hasFailed();
-				});
+				"io.sapl.pdp.embedded.policiesPath=" + tempDir).run(context -> assertThat(context).hasFailed());
 	}
 
 }

@@ -51,11 +51,11 @@ public class ClasspathHelper {
 		// nothing found -> throw useful exception
 		StringBuilder errorMessage = new StringBuilder(String.format(ERROR_MAIN_MESSAGE, path, defaultPath));
 		if (loader instanceof URLClassLoader) {
-			errorMessage.append(System.lineSeparator() + System.lineSeparator() + "We tried the following paths:"
-					+ System.lineSeparator());
+			errorMessage.append(System.lineSeparator()).append(System.lineSeparator())
+					.append("We tried the following paths:").append(System.lineSeparator());
 			URL[] classpathElements = ((URLClassLoader) loader).getURLs();
 			for (URL classpathElement : classpathElements) {
-				errorMessage.append("    - " + classpathElement.toString());
+				errorMessage.append("    - ").append(classpathElement);
 			}
 		}
 		throw new SaplTestException(errorMessage.toString());

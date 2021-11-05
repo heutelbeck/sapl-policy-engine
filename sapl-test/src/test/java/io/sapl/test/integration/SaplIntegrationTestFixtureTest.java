@@ -66,27 +66,25 @@ class SaplIntegrationTestFixtureTest {
 	@Test
 	void test_invalidPath1() {
 		SaplTestFixture fixture = new SaplIntegrationTestFixture("");
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> fixture.constructTestCase());
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
 	}
 
 	@Test
 	void test_invalidPath2() {
 		SaplTestFixture fixture = new SaplIntegrationTestFixture("");
-		Assertions.assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> fixture.constructTestCaseWithMocks());
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
 	}
 
 	@Test
 	void test_invalidPath3() {
 		SaplTestFixture fixture = new SaplIntegrationTestFixture(null);
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> fixture.constructTestCase());
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
 	}
 
 	@Test
 	void test_invalidPath4() {
 		SaplTestFixture fixture = new SaplIntegrationTestFixture(null);
-		Assertions.assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> fixture.constructTestCaseWithMocks());
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
 	}
 
 }

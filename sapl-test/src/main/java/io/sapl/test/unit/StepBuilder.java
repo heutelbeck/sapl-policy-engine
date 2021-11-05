@@ -73,7 +73,7 @@ class StepBuilder {
 	 */
 	private static class Steps extends StepsDefaultImpl {
 
-		SAPL document;
+		final SAPL document;
 
 		Steps(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
 			this.document = document;
@@ -89,7 +89,7 @@ class StepBuilder {
 					this.variables).forAuthorizationSubscription(authzSub);
 
 			Val matchResult = this.document.matches(ctx).block();
-			if (matchResult.isBoolean() && matchResult.getBoolean()) {
+			if (matchResult != null && matchResult.isBoolean() && matchResult.getBoolean()) {
 				if (this.withVirtualTime) {
 					this.steps = StepVerifier.withVirtualTime(() -> this.document.evaluate(ctx));
 				}
@@ -98,15 +98,14 @@ class StepBuilder {
 				}
 
 				for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
-					String fullname = mock.getFullname();
+					String fullName = mock.getFullName();
 					for (Val val : mock.getMockReturnValues()) {
-						this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullname, val));
+						this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullName, val));
 					}
 				}
 			}
 			else {
 				this.steps = StepVerifier.create(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
-
 			}
 		}
 

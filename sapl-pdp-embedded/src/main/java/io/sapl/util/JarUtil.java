@@ -29,7 +29,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class JarUtil {
 
-	public URL inferUrlOfRecourcesPath(Class<?> clazz, String path) {
+	public URL inferUrlOfResourcesPath(Class<?> clazz, String path) {
 		var url = clazz.getResource(path);
 		if (url == null)
 			throw new RuntimeException(

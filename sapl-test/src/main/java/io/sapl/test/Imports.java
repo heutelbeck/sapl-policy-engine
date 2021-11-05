@@ -60,7 +60,7 @@ public class Imports {
 
 	/**
 	 * see {@link TimesCalledVerification}
-	 * @param wantedNumberOfInvocations the xpected number of invocations
+	 * @param wantedNumberOfInvocations the expected number of invocations
 	 * @return the verification
 	 */
 	public static TimesCalledVerification times(int wantedNumberOfInvocations) {

@@ -25,8 +25,8 @@ import java.lang.annotation.Target;
 /**
  * The @EnforceDropWhileDenied annotation establishes a reactive policy enforcement point
  * (PEP). The PEP is only applicable to methods returning a
- * {@link org.reactivestreams.Publisher Publisher}, i.e., a {link
- * reactor.core.publisher.Flux Flux} or a {@link reactor.core.publisher.Mono Mono}.
+ * {@link org.reactivestreams.Publisher Publisher}, i.e., a
+ * {@link reactor.core.publisher.Flux Flux} or a {@link reactor.core.publisher.Mono Mono}.
  *
  * The publisher returned by the method is wrapped by the PEP. The PEP starts processing,
  * i.e, sending a subscription to the PDP, upon subscription time.
@@ -55,21 +55,21 @@ public @interface EnforceDropWhileDenied {
 	/**
 	 * @return the Spring-EL expression to whose evaluation result is to be used as the
 	 * subject in the authorization subscription to the PDP. If empty, the PEP attempts to
-	 * derive a best guess to describe the subject based on the current Principal.
+	 * derive a guess to describe the subject based on the current Principal.
 	 */
 	String subject() default "";
 
 	/**
 	 * @return the Spring-EL expression to whose evaluation result is to be used as the
 	 * action in the authorization subscription to the PDP. If empty, the PEP attempts to
-	 * derive a best guess to describe the action based on reflection.
+	 * derive a guess to describe the action based on reflection.
 	 */
 	String action() default "";
 
 	/**
 	 * @return the Spring-EL expression to whose evaluation result is to be used as the
 	 * action in the authorization subscription to the PDP. If empty, the PEP attempts to
-	 * derive a best guess to describe the resource based on reflection.
+	 * derive a guess to describe the resource based on reflection.
 	 */
 	String resource() default "";
 
@@ -81,8 +81,8 @@ public @interface EnforceDropWhileDenied {
 	String environment() default "";
 
 	/**
-	 * @return the type of the generics parameter of the return type being secured. Helps
-	 * due to Java type erasure at runtime. Defaults to Object.class
+	 * @return the type of the generic parameter of the return type being secured. Helps
+	 * due to Java type erasure at runtime. Defaults to {@code Object.class}.
 	 */
 	Class<?> genericsType() default Object.class;
 

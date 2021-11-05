@@ -70,12 +70,12 @@ public class ClockPolicyInformationPoint {
 
 	@Attribute(
 			docs = "Emits every x seconds the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with offset. x is the passed number value.")
-	public Flux<Val> ticker(Val zone, Map<String, JsonNode> variables, Flux<Val> intervallInSeconds) {
+	public Flux<Val> ticker(Val zone, Map<String, JsonNode> variables, Flux<Val> intervalInSeconds) {
 		final ZoneId zoneId = convertToZoneId(zone);
-		return intervallInSeconds.switchMap(seconds -> {
+		return intervalInSeconds.switchMap(seconds -> {
 			if (!seconds.isNumber())
 				return Flux.error(new PolicyEvaluationException(
-						String.format("ticker parameter not a number. Was: %s", seconds.toString())));
+						String.format("ticker parameter not a number. Was: %s", seconds)));
 
 			var secondsValue = seconds.get().asLong();
 
@@ -112,7 +112,7 @@ public class ClockPolicyInformationPoint {
 	}
 
 	/*
-	 * var timeout = <timeout("10s")>; <sofort "false" , nach 10s "true">
+	 * var timeout = <timeout("10s")>; <immediately "false" , after 10s "true">
 	 */
 	@Attribute(
 			docs = "Sets a timer for the provided number of seconds. Emits Val.FALSE when created and Val.TRUE after timer elapsed.")

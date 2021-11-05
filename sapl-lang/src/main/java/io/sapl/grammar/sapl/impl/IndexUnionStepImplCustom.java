@@ -30,12 +30,12 @@ import reactor.core.publisher.Flux;
 
 /**
  * Implements the application of an index union step to a previous array value, e.g.
- * 'arr[4, 7, 11]'.
+ * {@code 'arr[4, 7, 11]'.}
  *
- * Grammar: Step: '[' Subscript ']' ;
+ * Grammar:{@code  Step: '[' Subscript ']' ;
  *
  * Subscript returns Step: {IndexUnionStep} indices+=JSONNUMBER ',' indices+=JSONNUMBER
- * (',' indices+=JSONNUMBER)* ;
+ * (',' indices+=JSONNUMBER)* ;}
  */
 @Slf4j
 public class IndexUnionStepImplCustom extends IndexUnionStepImpl {

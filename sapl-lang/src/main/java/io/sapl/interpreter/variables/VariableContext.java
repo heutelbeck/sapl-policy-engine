@@ -107,7 +107,7 @@ public class VariableContext {
 	}
 
 	/**
-	 * @return a deep copy of this variables context.
+	 * @return a deep copy of this variable's context.
 	 */
 	private VariableContext copy() {
 		var variablesCopy = new HashMap<String, JsonNode>();
