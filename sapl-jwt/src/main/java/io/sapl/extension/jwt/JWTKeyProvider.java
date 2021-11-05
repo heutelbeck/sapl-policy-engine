@@ -62,7 +62,7 @@ public class JWTKeyProvider {
 		if (jTTL != null && jTTL.canConvertToLong())
 			lTTL = jTTL.longValue();
 
-		lastTTL = lTTL >= 0L ? lTTL : DEFAULT_CACHING_TTL;
+		setTTLmillis(lTTL);
 		return fetchPublicKey(kid, sUri, sMethod);
 	}
 

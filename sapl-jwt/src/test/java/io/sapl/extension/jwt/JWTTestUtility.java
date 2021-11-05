@@ -17,11 +17,8 @@ package io.sapl.extension.jwt;
 
 import java.security.KeyPair;
 import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
 import java.util.Date;
-import java.util.function.Function;
-
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
@@ -64,24 +61,10 @@ class JWTTestUtility {
 	}
 
 	/**
-	 * @return time interval of one unit as Duration object
-	 */
-	static Duration oneUnitDuration() {
-		return Duration.ofMillis(timeUnit);
-	}
-
-	/**
 	 * @return time interval of two units as Duration object
 	 */
 	static Duration twoUnitDuration() {
 		return Duration.ofMillis(2 * timeUnit);
-	}
-
-	/**
-	 * @return time interval of one synchronous unit as Duration object
-	 */
-	static Duration oneSynchronousUnitDuration() {
-		return Duration.ofMillis(synchronousTimeUnit);
 	}
 
 	/**
@@ -109,13 +92,6 @@ class JWTTestUtility {
 		SignedJWT signedJwt = new SignedJWT(header, claims);
 		signedJwt.sign(signer);
 		return Val.of(signedJwt.serialize());
-	}
-
-	static Function<RSAPublicKey, RSAPublicKey> cacheAndReturn(JWTKeyProvider provider, String kid) {
-		return publicKey -> {
-			provider.cache(kid, publicKey);
-			return publicKey;
-		};
 	}
 
 	/**
