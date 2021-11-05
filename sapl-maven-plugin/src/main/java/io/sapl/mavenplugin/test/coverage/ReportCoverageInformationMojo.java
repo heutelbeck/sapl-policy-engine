@@ -111,7 +111,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
 		var actualPolicySetHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicySets(),
 				hits.getPolicySets());
-		var actualPolicyHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicys(), hits.getPolicys());
+		var actualPolicyHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicies(), hits.getPolicies());
 		var actualPolicyConditionHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicyConditions(),
 				hits.getPolicyConditions());
 
@@ -122,7 +122,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
 		boolean isPolicySetRatioFulfilled = checkPolicySetRatio(targets.getPolicySets(), actualPolicySetHitRatio);
 
-		boolean isPolicyRatioFulfilled = checkPolicyRatio(targets.getPolicys(), actualPolicyHitRatio);
+		boolean isPolicyRatioFulfilled = checkPolicyRatio(targets.getPolicies(), actualPolicyHitRatio);
 
 		boolean isPolicyConditionRatioFulfilled = checkPolicyConditionRatio(targets.getPolicyConditions(),
 				actualPolicyConditionHitRatio);

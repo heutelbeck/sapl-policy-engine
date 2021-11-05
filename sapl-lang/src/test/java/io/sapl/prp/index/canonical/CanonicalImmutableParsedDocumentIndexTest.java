@@ -128,11 +128,11 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		verify(spyIndex, times(1)).recreateIndex(argThat(map -> map.size() == 2), eq(true));
 		spyIndex = (CanonicalImmutableParsedDocumentIndex) spy(updatedIndex);
 
-		/* UNPUBLISH + INCONSISTENT */
-		prpUpdateEvent = new PrpUpdateEvent(update(Type.UNPUBLISH, "p1"), update(Type.UNPUBLISH, "p2"),
+		/* WITHDRAW + INCONSISTENT */
+		prpUpdateEvent = new PrpUpdateEvent(update(Type.WITHDRAW, "p1"), update(Type.WITHDRAW, "p2"),
 				update(Type.INCONSISTENT, null));
 		updatedIndex = spyIndex.apply(prpUpdateEvent);
-		verify(spyIndex, times(2)).applyUpdate(any(), argThat(e -> e.getType() == Type.UNPUBLISH));
+		verify(spyIndex, times(2)).applyUpdate(any(), argThat(e -> e.getType() == Type.WITHDRAW));
 		verify(spyIndex, times(1)).recreateIndex(argThat(Map::isEmpty), eq(false));
 		spyIndex = (CanonicalImmutableParsedDocumentIndex) spy(updatedIndex);
 
@@ -295,7 +295,7 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		bindings.put("x1", true);
 
 		updates.clear();
-		updates.add(new Update(Type.UNPUBLISH, document, definition));
+		updates.add(new Update(Type.WITHDRAW, document, definition));
 
 		prpUpdateEvent = new PrpUpdateEvent(updates);
 		updatedIndex = updatedIndex.apply(prpUpdateEvent);

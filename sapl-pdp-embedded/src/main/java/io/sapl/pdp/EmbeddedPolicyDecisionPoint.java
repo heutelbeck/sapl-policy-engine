@@ -57,7 +57,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		return pdpConfiguration -> {
 			if (pdpConfiguration.isValid()) {
 				return Flux.just(pdpConfiguration.getPdpScopedEvaluationContext())
-						.map(createSubsctiptionScope(authzSubscription))
+						.map(createSubscriptionScope(authzSubscription))
 						.switchMap(retrieveAndCombineDocuments(pdpConfiguration));
 			}
 			else {
@@ -86,7 +86,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 		};
 	}
 
-	private Function<? super EvaluationContext, ? extends EvaluationContext> createSubsctiptionScope(
+	private Function<? super EvaluationContext, ? extends EvaluationContext> createSubscriptionScope(
 			AuthorizationSubscription authzSubscription) {
 		return pdpScopedEvaluationContext -> pdpScopedEvaluationContext.forAuthorizationSubscription(authzSubscription);
 	}

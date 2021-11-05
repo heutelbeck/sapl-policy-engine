@@ -108,10 +108,10 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
 		return recreateIndex(newDocuments, newConsistencyState);
 	}
 
-	// only PUBLISH or UNPUBLISH
+	// only PUBLISH or WITHDRAW
 	void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
 		var name = update.getDocument().getPolicyElement().getSaplName();
-		if (update.getType() == Type.UNPUBLISH) {
+		if (update.getType() == Type.WITHDRAW) {
 			newDocuments.remove(name);
 		}
 		else {

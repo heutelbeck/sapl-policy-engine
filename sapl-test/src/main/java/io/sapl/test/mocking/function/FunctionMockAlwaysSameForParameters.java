@@ -40,7 +40,7 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 
 	private static final String ERROR_NO_MATCHING_PARAMETERS = "Unable to find a mocked return value for this parameter combination";
 
-	private final String fullname;
+	private final String fullName;
 
 	private final List<ParameterSpecificMockReturnValue> listParameterSpecificMockReturnValues;
 
@@ -48,12 +48,12 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 
 	private final List<TimesParameterCalledVerification> listMockingVerifications;
 
-	public FunctionMockAlwaysSameForParameters(String fullname) {
-		this.fullname = fullname;
+	public FunctionMockAlwaysSameForParameters(String fullName) {
+		this.fullName = fullName;
 		this.listParameterSpecificMockReturnValues = new LinkedList<>();
 
 		this.listMockingVerifications = new LinkedList<>();
-		this.mockRunInformation = new MockRunInformation(fullname);
+		this.mockRunInformation = new MockRunInformation(fullName);
 	}
 
 	@Override
@@ -89,7 +89,7 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 			// check number of matchers are equal to number of parameters of this function
 			// call
 			if (mock.getMatchers().size() != parameter.length) {
-				throw new SaplTestException(String.format(ERROR_INVALID_NUMBER_PARAMETERS, this.fullname,
+				throw new SaplTestException(String.format(ERROR_INVALID_NUMBER_PARAMETERS, this.fullName,
 						mock.getMatchers().size(), parameter.length));
 			}
 
@@ -107,7 +107,7 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 
 	@Override
 	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_PARAMETERS, this.fullname);
+		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_PARAMETERS, this.fullName);
 	}
 
 	@Getter

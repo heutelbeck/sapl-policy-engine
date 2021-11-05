@@ -98,7 +98,7 @@ class StepBuilder {
 				}
 
 				for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
-					String fullname = mock.getFullname();
+					String fullname = mock.getFullName();
 					for (Val val : mock.getMockReturnValues()) {
 						this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullname, val));
 					}

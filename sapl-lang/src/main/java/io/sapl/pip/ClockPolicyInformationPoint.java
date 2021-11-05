@@ -70,9 +70,9 @@ public class ClockPolicyInformationPoint {
 
 	@Attribute(
 			docs = "Emits every x seconds the current date and time in the given time zone (e.g. 'UTC', 'ECT', 'Europe/Berlin', 'system') as an ISO-8601 string with offset. x is the passed number value.")
-	public Flux<Val> ticker(Val zone, Map<String, JsonNode> variables, Flux<Val> intervallInSeconds) {
+	public Flux<Val> ticker(Val zone, Map<String, JsonNode> variables, Flux<Val> intervalInSeconds) {
 		final ZoneId zoneId = convertToZoneId(zone);
-		return intervallInSeconds.switchMap(seconds -> {
+		return intervalInSeconds.switchMap(seconds -> {
 			if (!seconds.isNumber())
 				return Flux.error(new PolicyEvaluationException(
 						String.format("ticker parameter not a number. Was: %s", seconds)));

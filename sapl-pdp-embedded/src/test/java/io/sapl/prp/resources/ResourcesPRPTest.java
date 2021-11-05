@@ -49,8 +49,8 @@ class ResourcesPRPTest {
 		var mockSource = mock(ResourcesPrpUpdateEventSource.class);
 		var mockIndex = mock(CanonicalImmutableParsedDocumentIndex.class);
 
-		var updateEventFlux = Flux.just(event(Type.PUBLISH), event(Type.UNPUBLISH), event(Type.PUBLISH),
-				event(Type.UNPUBLISH), event(Type.PUBLISH)
+		var updateEventFlux = Flux.just(event(Type.PUBLISH), event(Type.WITHDRAW), event(Type.PUBLISH),
+				event(Type.WITHDRAW), event(Type.PUBLISH)
 
 		);
 
@@ -66,7 +66,7 @@ class ResourcesPRPTest {
 		verify(mockIndex, times(3))
 				.apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.PUBLISH));
 		verify(mockIndex, times(2))
-				.apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.UNPUBLISH));
+				.apply(argThat(prpUpdateEvent -> prpUpdateEvent.getUpdates()[0].getType() == Type.WITHDRAW));
 	}
 
 	private PrpUpdateEvent event(Type type) {

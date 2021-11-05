@@ -78,7 +78,7 @@ public class GenericCoverageReporter {
 	}
 
 	private void markLinesOfPolicySet(PolicySet set, SaplDocumentCoverageInformation coverage, CoverageTargets hits) {
-		// calculate lines of policyset to be marked
+		// calculate lines of policy set to be marked
 		Set<Integer> linesOfPolicySet = new HashSet<>();
 
 		// mark first line of the Node of the complete PolicySet. First line usually
@@ -169,22 +169,22 @@ public class GenericCoverageReporter {
 		// if this statement is of type CONDITION
 		if (statement.eClass().equals(SaplPackage.Literals.CONDITION)) {
 			// get hit types
-			boolean isPositivHit = hits
+			boolean isPositiveHit = hits
 					.isPolicyConditionHit(new PolicyConditionHit(policySetName, policyName, statementId, true));
-			boolean isNegativHit = hits
+			boolean isNegativeHit = hits
 					.isPolicyConditionHit(new PolicyConditionHit(policySetName, policyName, statementId, false));
 
 			// when this statement was once positive evaluated, then the next statement
 			// will have been evaluated too
 			// used for Value-Definition statements (see below)
-			isThisStatementHit = isPositivHit;
+			isThisStatementHit = isPositiveHit;
 
-			// if there was a positiv and negativ hit -> fully covered
-			if (isPositivHit && isNegativHit) {
+			// if there was a positive and negative hit -> fully covered
+			if (isPositiveHit && isNegativeHit) {
 				markConditionFULLY(coverage, node.getStartLine(), node.getEndLine());
 				// if only one of both was hit -> partly covered
 			}
-			else if (isPositivHit || isNegativHit) {
+			else if (isPositiveHit || isNegativeHit) {
 				markConditionPARTLY(coverage, node.getStartLine(), node.getEndLine());
 				// evaluation never reached this condition
 			}

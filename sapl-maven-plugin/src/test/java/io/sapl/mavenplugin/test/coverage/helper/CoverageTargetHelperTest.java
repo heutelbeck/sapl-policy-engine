@@ -60,7 +60,7 @@ public class CoverageTargetHelperTest {
 		CoverageTargets targets = helper.getCoverageTargets(this.documents);
 		assertEquals(1, targets.getPolicySets().size());
 		assertEquals(true, targets.isPolicySetHit(new PolicySetHit("testPolicies")));
-		assertEquals(2, targets.getPolicys().size());
+		assertEquals(2, targets.getPolicies().size());
 		assertEquals(true, targets.isPolicyHit(new PolicyHit("testPolicies", "policy 1")));
 		assertEquals(true, targets.isPolicyHit(new PolicyHit("", "policy 2")));
 		assertEquals(4, targets.getPolicyConditions().size());

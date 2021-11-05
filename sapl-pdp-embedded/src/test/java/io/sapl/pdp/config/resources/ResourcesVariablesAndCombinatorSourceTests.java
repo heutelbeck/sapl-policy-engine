@@ -88,7 +88,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 	void ifExecutedInJar_thenLoadConfigurationFileFromJar() throws InitializationException, MalformedURLException {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/policies");
 		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtil.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
+			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 
 			var configProvider = new ResourcesVariablesAndCombinatorSource();
 			var algo = configProvider.getCombiningAlgorithm().blockFirst();
@@ -104,7 +104,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 	void ifExecutedInJarAndConfigFileBroken_thenPropagateException() throws URISyntaxException, MalformedURLException {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("broken_config_in_jar.jar") + "!/policies");
 		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtil.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
+			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 			assertThrows(InitializationException.class, () -> new ResourcesVariablesAndCombinatorSource("/policies"));
 		}
 	}
@@ -114,7 +114,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
 			throws InitializationException, MalformedURLException {
 		var url = new URL("jar:" + ClassLoader.getSystemResource("policies_in_jar.jar") + "!/not_existing");
 		try (MockedStatic<JarUtil> mock = mockStatic(JarUtil.class, CALLS_REAL_METHODS)) {
-			mock.when(() -> JarUtil.inferUrlOfRecourcesPath(any(), any())).thenReturn(url);
+			mock.when(() -> JarUtil.inferUrlOfResourcesPath(any(), any())).thenReturn(url);
 
 			var configProvider = new ResourcesVariablesAndCombinatorSource("/not_existing");
 			var algo = configProvider.getCombiningAlgorithm().blockFirst();

@@ -136,10 +136,10 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 		}
 
 		if (implicitDecision.getDecision() == Decision.PERMIT && dataSubscription.get() == null)
-			dataSubscription.set(wrapResourceAccessPointAndSubcribe());
+			dataSubscription.set(wrapResourceAccessPointAndSubscribe());
 	}
 
-	private Disposable wrapResourceAccessPointAndSubcribe() {
+	private Disposable wrapResourceAccessPointAndSubscribe() {
 		return resourceAccessPoint.doOnError(this::handleError).doOnRequest(this::handleRequest)
 				.doOnSubscribe(this::handleSubscribe).doOnNext(this::handleNext).doOnComplete(this::handleComplete)
 				.subscribe();
@@ -235,11 +235,11 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
 	private void disposeDecisionsAndResourceAccessPoint() {
 		stopped.set(true);
-		disposeUndisposedIfPresent(decisionsSubscription);
-		disposeUndisposedIfPresent(dataSubscription);
+		disposeActiveIfPresent(decisionsSubscription);
+		disposeActiveIfPresent(dataSubscription);
 	}
 
-	private void disposeUndisposedIfPresent(AtomicReference<Disposable> atomicDisposable) {
+	private void disposeActiveIfPresent(AtomicReference<Disposable> atomicDisposable) {
 		Optional.ofNullable(atomicDisposable.get()).filter(not(Disposable::isDisposed)).ifPresent(Disposable::dispose);
 	}
 

@@ -104,8 +104,8 @@ public class ConstraintHandlerBundle<T> {
 		consumeAll(doOnErrorHandlers).accept(error);
 	}
 
-	public Flux<T> wrap(Flux<T> resourceAccesspoint) {
-		var wrapped = resourceAccesspoint;
+	public Flux<T> wrap(Flux<T> resourceAccessPoint) {
+		var wrapped = resourceAccessPoint;
 
 		if (!onRequestHandlers.isEmpty())
 			wrapped = wrapped.doOnRequest(this::handleOnRequestConstraints);

@@ -36,7 +36,7 @@ public class AttributeMockTiming implements AttributeMock {
 
 	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE = "You already defined a Mock for %s which is returning specified values with a timing";
 
-	private final String fullname;
+	private final String fullName;
 
 	private Val[] returnValues;
 
@@ -46,11 +46,11 @@ public class AttributeMockTiming implements AttributeMock {
 
 	private final List<MockingVerification> listMockingVerifications;
 
-	public AttributeMockTiming(String fullname) {
-		this.fullname = fullname;
+	public AttributeMockTiming(String fullName) {
+		this.fullName = fullName;
 		this.returnValues = null;
 		this.timing = null;
-		this.mockRunInformation = new MockRunInformation(fullname);
+		this.mockRunInformation = new MockRunInformation(fullName);
 		this.listMockingVerifications = new LinkedList<>();
 	}
 
@@ -81,7 +81,7 @@ public class AttributeMockTiming implements AttributeMock {
 
 	@Override
 	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE, this.fullname);
+		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_TIMING_MODE, this.fullName);
 	}
 
 }

@@ -78,7 +78,7 @@ public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicable
 		return policy.matches(ctx).flux().flatMap(match -> {
 
 			if (!match.isBoolean()) {
-				log.debug("  |- INDETERMINATE - '{}' (target not boolen)", policy.getSaplName());
+				log.debug("  |- INDETERMINATE - '{}' (target not Boolean)", policy.getSaplName());
 				return Flux.just(AuthorizationDecision.INDETERMINATE);
 			}
 

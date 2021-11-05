@@ -31,7 +31,7 @@ public class FunctionMockSequence implements FunctionMock {
 
 	private static final String ERROR_SEQUENCE_EMPTY = "You defined a Mock for %s returning a sequence of Val's but was called more often than mock return values specified";
 
-	private final String fullname;
+	private final String fullName;
 
 	private final LinkedList<Val> listMockReturnValues;
 
@@ -39,11 +39,11 @@ public class FunctionMockSequence implements FunctionMock {
 
 	private int numberOfReturnValues = 0;
 
-	public FunctionMockSequence(String fullname) {
-		this.fullname = fullname;
+	public FunctionMockSequence(String fullName) {
+		this.fullName = fullName;
 		this.listMockReturnValues = new LinkedList<>();
 
-		this.mockRunInformation = new MockRunInformation(fullname);
+		this.mockRunInformation = new MockRunInformation(fullName);
 	}
 
 	@Override
@@ -55,7 +55,7 @@ public class FunctionMockSequence implements FunctionMock {
 			return this.listMockReturnValues.removeFirst();
 		}
 		else {
-			throw new SaplTestException(String.format(ERROR_SEQUENCE_EMPTY, this.fullname));
+			throw new SaplTestException(String.format(ERROR_SEQUENCE_EMPTY, this.fullName));
 		}
 	}
 
@@ -71,7 +71,7 @@ public class FunctionMockSequence implements FunctionMock {
 
 	@Override
 	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_SEQUENCE, this.fullname);
+		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_SEQUENCE, this.fullName);
 	}
 
 }

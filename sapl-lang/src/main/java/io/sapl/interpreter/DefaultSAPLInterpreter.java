@@ -49,7 +49,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
-	private static final String DUMMY_RESOURCE_URI = "policy:/apolicy.sapl";
+	private static final String DUMMY_RESOURCE_URI = "policy:/aPolicy.sapl";
 
 	private static final String PARSING_ERRORS = "Parsing errors: %s";
 

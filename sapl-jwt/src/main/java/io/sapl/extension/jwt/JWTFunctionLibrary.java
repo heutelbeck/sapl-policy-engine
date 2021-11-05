@@ -62,9 +62,9 @@ public class JWTFunctionLibrary {
 			var signedJwt = SignedJWT.parse(rawToken.getText());
 			var jsonToken = JSON.objectNode();
 			var payload = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
-			ifPresentReplaceEpocFieldWithISOtime(payload, "nbf");
-			ifPresentReplaceEpocFieldWithISOtime(payload, "exp");
-			ifPresentReplaceEpocFieldWithISOtime(payload, "iat");
+			ifPresentReplaceEpocFieldWithIsoTime(payload, "nbf");
+			ifPresentReplaceEpocFieldWithIsoTime(payload, "exp");
+			ifPresentReplaceEpocFieldWithIsoTime(payload, "iat");
 			jsonToken.set("header", mapper.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
 			jsonToken.set("payload", payload);
 			return Val.of(jsonToken);
@@ -74,7 +74,7 @@ public class JWTFunctionLibrary {
 		}
 	}
 
-	private void ifPresentReplaceEpocFieldWithISOtime(JsonNode payload, String key) {
+	private void ifPresentReplaceEpocFieldWithIsoTime(JsonNode payload, String key) {
 		if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber()))
 			return;
 

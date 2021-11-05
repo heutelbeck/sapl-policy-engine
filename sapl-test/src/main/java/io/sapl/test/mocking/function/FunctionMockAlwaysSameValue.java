@@ -24,7 +24,7 @@ public class FunctionMockAlwaysSameValue implements FunctionMock {
 
 	private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_ALWAYS_SAME_VALUE = "You already defined a Mock for %s which is always returning a specified value";
 
-	private final String fullname;
+	private final String fullName;
 
 	private final Val alwaysMockReturnValue;
 
@@ -32,12 +32,12 @@ public class FunctionMockAlwaysSameValue implements FunctionMock {
 
 	private final MockRunInformation mockRunInformation;
 
-	public FunctionMockAlwaysSameValue(String fullname, Val returnValue, TimesCalledVerification verification) {
-		this.fullname = fullname;
+	public FunctionMockAlwaysSameValue(String fullName, Val returnValue, TimesCalledVerification verification) {
+		this.fullName = fullName;
 		this.alwaysMockReturnValue = returnValue;
 		this.timesCalledVerification = verification;
 
-		this.mockRunInformation = new MockRunInformation(fullname);
+		this.mockRunInformation = new MockRunInformation(fullName);
 	}
 
 	@Override
@@ -54,7 +54,7 @@ public class FunctionMockAlwaysSameValue implements FunctionMock {
 
 	@Override
 	public String getErrorMessageForCurrentMode() {
-		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_ALWAYS_SAME_VALUE, this.fullname);
+		return String.format(ERROR_DUPLICATE_MOCK_REGISTRATION_ALWAYS_SAME_VALUE, this.fullName);
 	}
 
 }

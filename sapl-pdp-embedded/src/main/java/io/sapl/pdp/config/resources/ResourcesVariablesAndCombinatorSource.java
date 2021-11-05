@@ -68,7 +68,7 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
 			@NonNull ObjectMapper mapper) throws InitializationException {
 		log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 		this.mapper = mapper;
-		config = readConfig(JarUtil.inferUrlOfRecourcesPath(clazz, configPath), configPath);
+		config = readConfig(JarUtil.inferUrlOfResourcesPath(clazz, configPath), configPath);
 	}
 
 	private PolicyDecisionPointConfiguration readConfig(URL configFolderUrl, String configPath)

@@ -241,9 +241,9 @@ public class HtmlLineCoverageReportGenerator {
 	}
 
 	private void copyAssets(Path basedir, Log log) {
-		Path logoHeaderpath = basedir.resolve("html").resolve("assets").resolve("logo-header.png");
+		Path logoHeaderPath = basedir.resolve("html").resolve("assets").resolve("logo-header.png");
 		var logoSourcePath = getClass().getClassLoader().getResourceAsStream("images/logo-header.png");
-		copyFile(logoSourcePath, logoHeaderpath, log);
+		copyFile(logoSourcePath, logoHeaderPath, log);
 
 		Path faviconPath = basedir.resolve("html").resolve("assets").resolve("favicon.png");
 		var faviconSourcePath = getClass().getClassLoader().getResourceAsStream("images/favicon.png");

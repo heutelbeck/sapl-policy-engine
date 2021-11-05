@@ -29,7 +29,7 @@ public class CoverageTargets {
 
 	private Collection<PolicySetHit> policySets;
 
-	private Collection<PolicyHit> policys;
+	private Collection<PolicyHit> policies;
 
 	private Collection<PolicyConditionHit> policyConditions;
 
@@ -38,7 +38,7 @@ public class CoverageTargets {
 	}
 
 	public boolean isPolicyHit(PolicyHit possibleHit) {
-		return this.policys.contains(possibleHit);
+		return this.policies.contains(possibleHit);
 	}
 
 	public boolean isPolicyConditionHit(PolicyConditionHit possibleHit) {
