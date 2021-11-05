@@ -27,7 +27,7 @@ public class MockRunInformation {
 
 	private final String fullname;
 
-	private List<CallWithMetadata> timesCalled;
+	private final List<CallWithMetadata> timesCalled;
 
 	public MockRunInformation(String fullname) {
 		this.fullname = fullname;

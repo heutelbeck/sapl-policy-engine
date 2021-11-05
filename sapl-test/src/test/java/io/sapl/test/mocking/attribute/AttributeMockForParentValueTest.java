@@ -53,7 +53,8 @@ class AttributeMockForParentValueTest {
 
 		mock.loadMockForParentValue(parentValue(val(1)), Val.of(true));
 
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> StepVerifier.create(mock.evaluate(Val.of(99), null, null)).expectNext(Val.of(false)).thenCancel().verify());
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> StepVerifier
+				.create(mock.evaluate(Val.of(99), null, null)).expectNext(Val.of(false)).thenCancel().verify());
 	}
 
 	@Test

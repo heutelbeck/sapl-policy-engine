@@ -47,9 +47,11 @@ class EmbeddedPDPPropertiesValidationTests {
 
 	@Test
 	void whenValidProertiesArePresent_thenPropertiesLoad() {
-		contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILEsystem",
-				"io.sapl.pdp.embedded.index=CaNoNiCaL", "io.sapl.pdp.embedded.configPath=" + tempDir,
-				"io.sapl.pdp.embedded.policiesPath=" + tempDir).run(context -> assertThat(context).hasNotFailed());
+		contextRunner
+				.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=FILEsystem",
+						"io.sapl.pdp.embedded.index=CaNoNiCaL", "io.sapl.pdp.embedded.configPath=" + tempDir,
+						"io.sapl.pdp.embedded.policiesPath=" + tempDir)
+				.run(context -> assertThat(context).hasNotFailed());
 	}
 
 	@Test

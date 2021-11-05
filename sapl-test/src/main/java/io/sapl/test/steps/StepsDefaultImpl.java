@@ -221,7 +221,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	@Override
 	public VerifyStep expect(AuthorizationDecision authDec) {
 		this.numberOfExpectSteps.addExpectStep();
-		this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec.toString()));
+		this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec));
 		return this;
 	}
 
@@ -312,7 +312,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	@Override
 	public ExpectOrVerifyStep expectNext(AuthorizationDecision authDec) {
 		this.numberOfExpectSteps.addExpectStep();
-		this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec.toString()));
+		this.steps = this.steps.expectNext(authDec).as(getDebugMessage("equals " + authDec));
 		return this;
 	}
 

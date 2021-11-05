@@ -78,7 +78,6 @@ public class HasObligationContainingKeyValue extends TypeSafeDiagnosingMatcher<A
 				}
 			}
 		}
-		;
 
 		if (containsObligationKeyValue) {
 			return true;

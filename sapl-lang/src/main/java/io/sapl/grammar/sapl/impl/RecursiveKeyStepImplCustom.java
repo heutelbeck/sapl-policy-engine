@@ -52,7 +52,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
 	private ArrayNode collect(JsonNode node, ArrayNode results) {
 		if (node.isArray()) {
-			for (var item : ((ArrayNode) node)) {
+			for (var item : node) {
 				collect(item, results);
 			}
 		}

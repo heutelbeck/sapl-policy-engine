@@ -57,15 +57,15 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
-	private Flux<AuthorizationDecision> decisions;
+	private final Flux<AuthorizationDecision> decisions;
 
 	private Flux<T> resourceAccessPoint;
 
-	private ConstraintEnforcementService constraintsService;
+	private final ConstraintEnforcementService constraintsService;
 
 	EnforcementSink<T> sink;
 
-	private Class<T> clazz;
+	private final Class<T> clazz;
 
 	AtomicReference<Disposable> decisionsSubscription = new AtomicReference<Disposable>();
 

@@ -75,7 +75,7 @@ public class ClockPolicyInformationPoint {
 		return intervallInSeconds.switchMap(seconds -> {
 			if (!seconds.isNumber())
 				return Flux.error(new PolicyEvaluationException(
-						String.format("ticker parameter not a number. Was: %s", seconds.toString())));
+						String.format("ticker parameter not a number. Was: %s", seconds)));
 
 			var secondsValue = seconds.get().asLong();
 

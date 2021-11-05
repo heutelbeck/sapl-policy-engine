@@ -38,9 +38,9 @@ import io.sapl.pip.ClockPolicyInformationPoint;
  */
 public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 
-	private AttributeContext attributeContext;
+	private final AttributeContext attributeContext;
 
-	private FunctionContext funtionContext;
+	private final FunctionContext funtionContext;
 
 	/**
 	 * The default constructor registers the default libraries.

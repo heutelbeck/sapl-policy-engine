@@ -35,7 +35,7 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 	private static final String ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME = "Bevor constructing a test case you have to specifiy the filename where to find your SAPL policy!"
 			+ "\n\nProbably you forgot to call \".setSaplDocumentName(\"\")\"";
 
-	private String saplDocumentName;
+	private final String saplDocumentName;
 
 	/**
 	 * Fixture for constructing a unit test case

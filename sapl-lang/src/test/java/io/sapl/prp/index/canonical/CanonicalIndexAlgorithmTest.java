@@ -94,10 +94,11 @@ class CanonicalIndexAlgorithmTest {
 
 		try (MockedStatic<CanonicalIndexAlgorithm> mock = mockStatic(CanonicalIndexAlgorithm.class,
 				Mockito.CALLS_REAL_METHODS)) {
-			try (MockedConstruction<CanonicalIndexMatchingContext> mocked = Mockito
-					.mockConstruction(CanonicalIndexMatchingContext.class, (mockCtx, context) -> when(mockCtx.isPredicateReferencedInCandidates(any(Predicate.class)))
-                            .thenAnswer(invocation -> matchingCtx
-                                    .isPredicateReferencedInCandidates(invocation.getArgument(0, Predicate.class))))) {
+			try (MockedConstruction<CanonicalIndexMatchingContext> mocked = Mockito.mockConstruction(
+					CanonicalIndexMatchingContext.class,
+					(mockCtx, context) -> when(mockCtx.isPredicateReferencedInCandidates(any(Predicate.class)))
+							.thenAnswer(invocation -> matchingCtx
+									.isPredicateReferencedInCandidates(invocation.getArgument(0, Predicate.class))))) {
 
 				var result = CanonicalIndexAlgorithm.match(mock(EvaluationContext.class), dataContainer).block();
 
@@ -238,7 +239,8 @@ class CanonicalIndexAlgorithmTest {
 
 		satisfiableCandidates.set(1);
 		satisfiableCandidates.set(2);
-		assertThrows(IndexOutOfBoundsException.class, () -> CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, createEmptyContainer()));
+		assertThrows(IndexOutOfBoundsException.class,
+				() -> CanonicalIndexAlgorithm.fetchFormulas(satisfiableCandidates, createEmptyContainer()));
 
 		Set<DisjunctiveFormula> set0 = new HashSet<>();
 

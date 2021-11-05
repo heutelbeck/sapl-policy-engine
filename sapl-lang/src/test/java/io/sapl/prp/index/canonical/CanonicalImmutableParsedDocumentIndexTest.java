@@ -352,8 +352,9 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		Map<String, SAPL> saplMap = new HashMap<>();
 		saplMap.put("p1", mockDocument);
 
-		try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito
-				.mockConstruction(CanonicalIndexDataCreationStrategy.class, (mock, context) -> doReturn(null).when(mock).constructNew(any(), any()))) {
+		try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito.mockConstruction(
+				CanonicalIndexDataCreationStrategy.class,
+				(mock, context) -> doReturn(null).when(mock).constructNew(any(), any()))) {
 
 			emptyIndex.recreateIndex(saplMap, true);
 			verify(mocked.constructed().get(0), times(1)).constructNew(any(), any());
@@ -369,8 +370,9 @@ class CanonicalImmutableParsedDocumentIndexTest {
 		Map<String, SAPL> saplMap = new HashMap<>();
 		saplMap.put("p1", mockDocument);
 
-		try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito
-				.mockConstruction(CanonicalIndexDataCreationStrategy.class, (mock, context) -> doReturn(null).when(mock).constructNew(any(), any()))) {
+		try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito.mockConstruction(
+				CanonicalIndexDataCreationStrategy.class,
+				(mock, context) -> doReturn(null).when(mock).constructNew(any(), any()))) {
 
 			emptyIndex.recreateIndex(saplMap, true);
 			verify(mocked.constructed().get(0), times(1)).constructNew(any(), any());

@@ -56,7 +56,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 			if (node.has(idx)) {
 				results.add(node.get(idx));
 			}
-			for (var item : ((ArrayNode) node)) {
+			for (var item : node) {
 				collect(index, item, results);
 			}
 		}

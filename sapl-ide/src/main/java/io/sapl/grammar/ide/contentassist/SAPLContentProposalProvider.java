@@ -41,13 +41,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
-	private Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
+	private final Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
 
-	private Collection<String> allowedKeywords = Set.of("as");
+	private final Collection<String> allowedKeywords = Set.of("as");
 
-	private Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
+	private final Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
 
-	private LibraryAttributeFinder pipAttributeFinder;
+	private final LibraryAttributeFinder pipAttributeFinder;
 
 	public SAPLContentProposalProvider() throws InitializationException {
 		super();

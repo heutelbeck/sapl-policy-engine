@@ -78,7 +78,6 @@ public class HasAdviceContainingKeyValue extends TypeSafeDiagnosingMatcher<Autho
 				}
 			}
 		}
-		;
 
 		if (containsAdvice) {
 			return true;

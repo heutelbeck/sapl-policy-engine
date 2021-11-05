@@ -77,8 +77,8 @@ public class AuthorizationSubscriptionBuilderService {
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
 			SaplAttribute attribute) {
-		return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
-				Optional.empty()));
+		return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
+				attribute, contextView, Optional.empty()));
 	}
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
@@ -90,8 +90,8 @@ public class AuthorizationSubscriptionBuilderService {
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
 			SaplAttribute attribute, Object returnedObject) {
-		return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
-				Optional.ofNullable(returnedObject)));
+		return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
+				attribute, contextView, Optional.ofNullable(returnedObject)));
 	}
 
 	private Mono<? extends AuthorizationSubscription> constructAuthorizationSubscriptionFromContextView(

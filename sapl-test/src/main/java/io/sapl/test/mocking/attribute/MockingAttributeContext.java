@@ -116,7 +116,6 @@ public class MockingAttributeContext implements AttributeContext {
 		if (mock != null) {
 			log.debug("| | | | |-- Evaluate mocked attribute \"{}\"", attribute);
 
-			Val parentValue = value;
 			Map<String, JsonNode> variables = ctx.getVariableCtx().getVariables();
 			List<Flux<Val>> args = new LinkedList<Flux<Val>>();
 			if (arguments != null) {
@@ -125,7 +124,7 @@ public class MockingAttributeContext implements AttributeContext {
 				}
 			}
 
-			return mock.evaluate(parentValue, variables, args)
+			return mock.evaluate(value, variables, args)
 					.doOnNext((val) -> log.trace("| | | | |-- AttributeMock returned: " + val.toString()));
 		}
 		else {
@@ -166,7 +165,6 @@ public class MockingAttributeContext implements AttributeContext {
 
 		if (mock instanceof AttributeMockPublisher) {
 			((AttributeMockPublisher) mock).mockEmit(returns);
-			return;
 		}
 		else {
 			throw new SaplTestException(String.format(ERROR_NOT_MARKED_DYNAMIC_MOCK, fullname, fullname));

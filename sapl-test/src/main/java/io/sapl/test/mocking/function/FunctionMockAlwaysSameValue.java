@@ -26,9 +26,9 @@ public class FunctionMockAlwaysSameValue implements FunctionMock {
 
 	private final String fullname;
 
-	private Val alwaysMockReturnValue;
+	private final Val alwaysMockReturnValue;
 
-	private TimesCalledVerification timesCalledVerification;
+	private final TimesCalledVerification timesCalledVerification;
 
 	private final MockRunInformation mockRunInformation;
 

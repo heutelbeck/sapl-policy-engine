@@ -38,9 +38,9 @@ public class AttributeMockPublisher implements AttributeMock {
 
 	private final String fullname;
 
-	private Sinks.Many<Val> publisher;
+	private final Sinks.Many<Val> publisher;
 
-	private Flux<Val> returnFlux;
+	private final Flux<Val> returnFlux;
 
 	private final MockRunInformation mockRunInformation;
 

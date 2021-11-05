@@ -38,7 +38,8 @@ class EvaluationContextTest {
 
 	@Test
 	void nullAttributeCtxRejected() {
-		assertThrows(NullPointerException.class, () -> new EvaluationContext(null, mock(FunctionContext.class), Collections.emptyMap()));
+		assertThrows(NullPointerException.class,
+				() -> new EvaluationContext(null, mock(FunctionContext.class), Collections.emptyMap()));
 	}
 
 	@Test
@@ -48,12 +49,14 @@ class EvaluationContextTest {
 
 	@Test
 	void nullFunctionCtxRejected() {
-		assertThrows(NullPointerException.class, () -> new EvaluationContext(mock(AttributeContext.class), null, Collections.emptyMap()));
+		assertThrows(NullPointerException.class,
+				() -> new EvaluationContext(mock(AttributeContext.class), null, Collections.emptyMap()));
 	}
 
 	@Test
 	void nullMapRejected1() {
-		assertThrows(NullPointerException.class, () -> new EvaluationContext(mock(AttributeContext.class), mock(FunctionContext.class), null));
+		assertThrows(NullPointerException.class,
+				() -> new EvaluationContext(mock(AttributeContext.class), mock(FunctionContext.class), null));
 	}
 
 	@Test

@@ -33,7 +33,7 @@ public class FunctionMockSequence implements FunctionMock {
 
 	private final String fullname;
 
-	private LinkedList<Val> listMockReturnValues;
+	private final LinkedList<Val> listMockReturnValues;
 
 	private final MockRunInformation mockRunInformation;
 

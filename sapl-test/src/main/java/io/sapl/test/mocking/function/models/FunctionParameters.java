@@ -24,7 +24,7 @@ import io.sapl.api.interpreter.Val;
 
 public class FunctionParameters {
 
-	private List<Matcher<Val>> matchers;
+	private final List<Matcher<Val>> matchers;
 
 	@SafeVarargs
 	public FunctionParameters(Matcher<Val>... matcher) {

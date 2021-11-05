@@ -51,9 +51,9 @@ class CoverageAPIFactoryTest {
 			return count;
 		}
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, "*.txt")) {
-            for (Path value : stream) {
-                count++;
-            }
+			for (Path value : stream) {
+				count++;
+			}
 		}
 		return count;
 	}

@@ -36,7 +36,7 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	private static final String ERROR_MESSAGE_POLICY_PATH_NULL = "Null is not allowed for the Path pointing to the policies folder.";
 
-	private String pathToPoliciesFolder;
+	private final String pathToPoliciesFolder;
 
 	private PolicyDocumentCombiningAlgorithm pdpAlgorithm = null;
 

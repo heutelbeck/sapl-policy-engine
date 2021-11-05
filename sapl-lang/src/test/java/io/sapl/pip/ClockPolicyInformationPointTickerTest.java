@@ -240,7 +240,8 @@ public class ClockPolicyInformationPointTickerTest {
 		StepVerifier
 				.withVirtualTime(
 						() -> clockPip.timer(Val.NULL, Collections.emptyMap(), Flux.just(Val.of(timerSeconds))))
-				.expectSubscription().consumeNextWith(val -> assertThat(val.getBoolean(), is(false))).expectNoEvent(Duration.ofSeconds(timerSeconds)).thenAwait(Duration.ofSeconds(timerSeconds))
+				.expectSubscription().consumeNextWith(val -> assertThat(val.getBoolean(), is(false)))
+				.expectNoEvent(Duration.ofSeconds(timerSeconds)).thenAwait(Duration.ofSeconds(timerSeconds))
 				.consumeNextWith(val -> assertThat(val.getBoolean(), is(true))).expectComplete().verify();
 	}
 

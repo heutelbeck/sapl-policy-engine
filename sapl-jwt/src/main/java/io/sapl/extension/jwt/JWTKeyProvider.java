@@ -114,7 +114,7 @@ public class JWTKeyProvider {
 	}
 
 	private Mono<? extends Throwable> handleHttpError(ClientResponse response) {
-		log.trace(JWT_KEY_SERVER_HTTP_ERROR + response.statusCode().toString());
+		log.trace(JWT_KEY_SERVER_HTTP_ERROR + response.statusCode());
 		return Mono.empty();
 	}
 

@@ -25,8 +25,8 @@ import java.lang.annotation.Target;
 /**
  * The @EnforceTillDenied annotation establishes a reactive policy enforcement point
  * (PEP). The PEP is only applicable to methods returning a
- * {@link org.reactivestreams.Publisher Publisher}, i.e., a {@link
- * reactor.core.publisher.Flux Flux} or a {@link reactor.core.publisher.Mono Mono}.
+ * {@link org.reactivestreams.Publisher Publisher}, i.e., a
+ * {@link reactor.core.publisher.Flux Flux} or a {@link reactor.core.publisher.Mono Mono}.
  *
  * The publisher returned by the method is wrapped by the PEP. The PEP starts processing,
  * i.e, sending a subscription to the PDP, upon subscription time.

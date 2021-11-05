@@ -73,8 +73,8 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 	private String composeReason(Diagnostic diagnostic) {
 		var sb = new StringBuilder().append("SAPL Validation Error: [");
 		for (Diagnostic d : diagnostic.getChildren()) {
-			sb.append('[').append(NodeModelUtils.findActualNodeFor((EObject) d.getData().get(0)).getText()).append(": ").append(d.getMessage())
-					.append(']');
+			sb.append('[').append(NodeModelUtils.findActualNodeFor((EObject) d.getData().get(0)).getText()).append(": ")
+					.append(d.getMessage()).append(']');
 		}
 		return sb.append(']').toString();
 	}

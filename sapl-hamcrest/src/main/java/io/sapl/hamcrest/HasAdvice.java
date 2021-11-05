@@ -43,8 +43,7 @@ public class HasAdvice extends TypeSafeDiagnosingMatcher<AuthorizationDecision> 
 	@Override
 	public void describeTo(Description description) {
 		description.appendText("the decision has an advice equals ");
-		this.jsonMatcher.ifPresentOrElse(description::appendDescriptionOf,
-				() -> description.appendText("any advice"));
+		this.jsonMatcher.ifPresentOrElse(description::appendDescriptionOf, () -> description.appendText("any advice"));
 	}
 
 	@Override
@@ -64,7 +63,6 @@ public class HasAdvice extends TypeSafeDiagnosingMatcher<AuthorizationDecision> 
 			if (this.jsonMatcher.get().matches(node))
 				containsAdvice = true;
 		}
-		;
 
 		if (containsAdvice) {
 			return true;

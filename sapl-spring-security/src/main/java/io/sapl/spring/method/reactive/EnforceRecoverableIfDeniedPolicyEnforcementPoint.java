@@ -55,15 +55,15 @@ import reactor.util.function.Tuples;
 public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 		extends Flux<Tuple2<Optional<T>, Optional<Throwable>>> {
 
-	private Flux<AuthorizationDecision> decisions;
+	private final Flux<AuthorizationDecision> decisions;
 
 	private Flux<T> resourceAccessPoint;
 
-	private ConstraintEnforcementService constraintsService;
+	private final ConstraintEnforcementService constraintsService;
 
 	private RecoverableEnforcementSink<T> sink;
 
-	private Class<T> clazz;
+	private final Class<T> clazz;
 
 	AtomicReference<Disposable> decisionsSubscription = new AtomicReference<Disposable>();
 
@@ -97,8 +97,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T>
 	private static <T> T extractPayloadOrError(Tuple2<Optional<T>, Optional<Throwable>> tuple) {
 		if (tuple.getT2().isEmpty())
 			return tuple.getT1().get();
-		var error = tuple.getT2().get();
-		throw error;
+		throw tuple.getT2().get();
 	}
 
 	@Override

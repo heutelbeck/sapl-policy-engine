@@ -161,7 +161,7 @@ public class AnnotationFunctionContext implements FunctionContext {
 		documentation.add(libDocs);
 	}
 
-	private final void importFunction(Object library, String libName, LibraryDocumentation libMeta, Method method)
+	private void importFunction(Object library, String libName, LibraryDocumentation libMeta, Method method)
 			throws InitializationException {
 		Function funAnnotation = method.getAnnotation(Function.class);
 		String funName = funAnnotation.name();

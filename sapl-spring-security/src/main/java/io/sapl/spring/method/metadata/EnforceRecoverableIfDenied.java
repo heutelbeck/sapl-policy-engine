@@ -25,8 +25,8 @@ import java.lang.annotation.Target;
 /**
  * The @EnforceRecoverableIfDenied annotation establishes a reactive policy enforcement
  * point (PEP). The PEP is only applicable to methods returning a
- * {@link org.reactivestreams.Publisher Publisher}, i.e., a {@link
- * reactor.core.publisher.Flux Flux} or a {@link reactor.core.publisher.Mono Mono}.
+ * {@link org.reactivestreams.Publisher Publisher}, i.e., a
+ * {@link reactor.core.publisher.Flux Flux} or a {@link reactor.core.publisher.Mono Mono}.
  *
  * The publisher returned by the method is wrapped by the PEP. The PEP starts processing,
  * i.e, sending a subscription to the PDP, upon subscription time.
@@ -36,8 +36,8 @@ import java.lang.annotation.Target;
  *
  * Subscribe to the resource after the first decision, make it a hot source. Filter out
  * all events from the data stream wile the most recent decision is not PERMIT. However,
- * on a non-permit signal an AccessDeniedException downstream. Enable the client to recover and
- * wait for the resource to become available again.
+ * on a non-permit signal an AccessDeniedException downstream. Enable the client to
+ * recover and wait for the resource to become available again.
  *
  * Keep the subscription alive as long as the client does.
  *

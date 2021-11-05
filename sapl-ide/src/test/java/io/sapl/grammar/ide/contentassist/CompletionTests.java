@@ -37,7 +37,7 @@ public class CompletionTests extends AbstractSaplLanguageServerTest {
 		var actualMethods = completionList.getItems().stream().map(CompletionItem::getLabel)
 				.collect(Collectors.toList());
 		assertThat(actualMethods.containsAll(expectedProposals), is(true));
-    }
+	}
 
 	protected void assertDoesNotContainProposals(final Collection<String> unwantedProposals,
 			final CompletionList completionList) {

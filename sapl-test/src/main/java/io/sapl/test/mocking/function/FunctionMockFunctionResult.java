@@ -30,7 +30,7 @@ public class FunctionMockFunctionResult implements FunctionMock {
 
 	Function<Val[], Val> returnValue;
 
-	private TimesCalledVerification timesCalledVerification;
+	private final TimesCalledVerification timesCalledVerification;
 
 	private final MockRunInformation mockRunInformation;
 

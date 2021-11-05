@@ -66,8 +66,8 @@ class AttributeMockForParentValueAndArgumentsTest {
 		List<Flux<Val>> arguments = new LinkedList<>();
 		arguments.add(Flux.just(Val.of(1)));
 
-		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> StepVerifier.create(mock.evaluate(Val.of(false), null, arguments)).expectNext(Val.of(true)).thenCancel()
-                .verify());
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> StepVerifier
+				.create(mock.evaluate(Val.of(false), null, arguments)).expectNext(Val.of(true)).thenCancel().verify());
 	}
 
 	@Test

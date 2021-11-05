@@ -31,8 +31,8 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * This generous algorithm is used if the decision should be a PERMIT except for there is a
- * DENY. It ensures that any decision is either a DENY or a PERMIT.
+ * This generous algorithm is used if the decision should be a PERMIT except for there is
+ * a DENY. It ensures that any decision is either a DENY or a PERMIT.
  *
  * It works as follows:
  *

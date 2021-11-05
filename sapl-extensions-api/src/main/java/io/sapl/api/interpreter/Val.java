@@ -298,7 +298,7 @@ public class Val {
 		if (isError()) {
 			return "ERROR[" + errorMessage + "]";
 		}
-		return value != null ? String.format("Value[%s]", value.toString()) : "Value[undefined]";
+		return value != null ? String.format("Value[%s]", value) : "Value[undefined]";
 	}
 
 	public Optional<JsonNode> optional() {

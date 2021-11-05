@@ -155,10 +155,10 @@ public class HtmlLineCoverageReportGenerator {
 	private ContainerTag createPolicySite_CodeMirror(String filename, List<HtmlPolicyLineModel> models, Log log) {
 
 		StringBuilder wholeTextOfPolicy = new StringBuilder();
-		StringBuilder htmlReportCodeMirrorJSLineClassStatements = new StringBuilder("\n");
+		StringBuilder htmlReportCodeMirrorJSLineClassStatements = new StringBuilder('\n');
 		for (int i = 0; i < models.size(); i++) {
 			var model = models.get(i);
-			wholeTextOfPolicy.append(model.getLineContent()).append("\n");
+			wholeTextOfPolicy.append(model.getLineContent()).append('\n');
 			htmlReportCodeMirrorJSLineClassStatements
 					.append(String.format("editor.addLineClass(%s, \"text\", \"%s\");%n", i, model.getCssClass()));
 			if (model.getPopoverContent() != null) {
@@ -289,7 +289,7 @@ public class HtmlLineCoverageReportGenerator {
 			return Files.readAllLines(filePath);
 		}
 		catch (IOException e) {
-			log.error(String.format("Error reading file: \"%s\"", filePath.toString()), e);
+			log.error(String.format("Error reading file: \"%s\"", filePath), e);
 		}
 		return new LinkedList<>();
 	}
@@ -302,7 +302,7 @@ public class HtmlLineCoverageReportGenerator {
 			Files.writeString(filePath, content);
 		}
 		catch (IOException e) {
-			log.error(String.format("Error writing file \"%s\"", filePath.toString()));
+			log.error(String.format("Error writing file \"%s\"", filePath));
 		}
 	}
 
@@ -310,7 +310,7 @@ public class HtmlLineCoverageReportGenerator {
 
 		var parent = target.getParent();
 		if (parent == null) {
-			log.error(String.format("Parent of \"%s\" was null.", target.toString()));
+			log.error(String.format("Parent of \"%s\" was null.", target));
 			return;
 		}
 		var parentFile = parent.toFile();
@@ -333,7 +333,7 @@ public class HtmlLineCoverageReportGenerator {
 			}
 		}
 		catch (IOException e) {
-			log.error(String.format("Error writing file \"%s\"", target.toString()));
+			log.error(String.format("Error writing file \"%s\"", target));
 		}
 	}
 

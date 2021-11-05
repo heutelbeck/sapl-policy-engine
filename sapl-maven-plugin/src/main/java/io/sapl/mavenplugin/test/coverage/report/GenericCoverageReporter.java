@@ -282,22 +282,18 @@ public class GenericCoverageReporter {
 			var line = coverage.getLine(i);
 			switch (line.getCoveredValue()) {
 			case FULLY:
-				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(),
-						line.getBranchesToCover() + 2);
+				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(), line.getBranchesToCover() + 2);
 				break;
 			case PARTLY:
 				// only add branches
-				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(),
-						line.getBranchesToCover() + 2);
+				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(), line.getBranchesToCover() + 2);
 				break;
 			case NEVER:
 				// only add branches
-				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(),
-						line.getBranchesToCover() + 2);
+				coverage.markLine(i, LineCoveredValue.PARTLY, line.getCoveredBranches(), line.getBranchesToCover() + 2);
 				break;
 			case IRRELEVANT:
-				coverage.markLine(i, LineCoveredValue.NEVER, line.getCoveredBranches(),
-						line.getBranchesToCover() + 2);
+				coverage.markLine(i, LineCoveredValue.NEVER, line.getCoveredBranches(), line.getBranchesToCover() + 2);
 				break;
 			}
 		}

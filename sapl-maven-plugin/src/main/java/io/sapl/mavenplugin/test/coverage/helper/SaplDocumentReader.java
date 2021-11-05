@@ -67,7 +67,7 @@ public class SaplDocumentReader {
 					saplDocuments.add(new SaplDocument(file.toPath(), linecount, interpreter.parse(fileContent)));
 				}
 				catch (IOException e) {
-					log.error("Error reading file " + file.toString(), e);
+					log.error("Error reading file " + file, e);
 				}
 			}
 		}
@@ -101,7 +101,7 @@ public class SaplDocumentReader {
 			return result;
 		}
 		else {
-			throw new MojoExecutionException("Error reading coverage targets: " + builder.toString());
+			throw new MojoExecutionException("Error reading coverage targets: " + builder);
 		}
 	}
 

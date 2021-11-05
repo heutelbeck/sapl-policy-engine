@@ -106,8 +106,7 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 		MockServerHttpRequest request = MockServerHttpRequest.get("/requestpath").build();
 		MockServerWebExchange exchange = MockServerWebExchange.from(request);
 		AuthorizationContext context = new AuthorizationContext(exchange);
-		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-				mapper);
+		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), mapper);
 		var actual = sut.reactiveConstructAuthorizationSubscription(Mono.just(authentication), context).block();
 		assertThat(actual, is(not(nullValue())));
 	}
@@ -128,8 +127,7 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 		var attribute = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
 		var mockMapper = mock(ObjectMapper.class);
 		when(mockMapper.valueToTree(any())).thenThrow(new EvaluationException("ERROR"));
-		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-				mockMapper);
+		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), mockMapper);
 		assertThrows(IllegalArgumentException.class,
 				() -> sut.constructAuthorizationSubscription(authentication, invocation, attribute));
 	}

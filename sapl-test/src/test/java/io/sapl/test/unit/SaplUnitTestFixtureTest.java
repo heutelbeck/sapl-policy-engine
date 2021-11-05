@@ -32,8 +32,7 @@ public class SaplUnitTestFixtureTest {
 	@Test
 	void test_invalidSaplDocumentName2() {
 		SaplTestFixture fixture = new SaplUnitTestFixture("");
-		Assertions.assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(fixture::constructTestCaseWithMocks);
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
 	}
 
 	@Test
@@ -45,8 +44,7 @@ public class SaplUnitTestFixtureTest {
 	@Test
 	void test_invalidSaplDocumentName4() {
 		SaplTestFixture fixture = new SaplUnitTestFixture(null);
-		Assertions.assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(fixture::constructTestCaseWithMocks);
+		Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
 	}
 
 }

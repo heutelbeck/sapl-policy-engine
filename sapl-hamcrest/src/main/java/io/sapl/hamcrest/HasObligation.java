@@ -64,7 +64,6 @@ public class HasObligation extends TypeSafeDiagnosingMatcher<AuthorizationDecisi
 			if (this.jsonMatcher.get().matches(node))
 				containsObligation = true;
 		}
-		;
 
 		if (containsObligation) {
 			return true;

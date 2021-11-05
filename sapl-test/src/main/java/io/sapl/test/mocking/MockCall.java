@@ -24,7 +24,7 @@ public class MockCall {
 
 	private static final String ERROR_INVLID_ARGUMENT_INDEX = "Requested index %d for function call parameters but there are only %d parameters. Did you forget to check with \"getNumberOfArguments()\"";
 
-	private Val[] parameter;
+	private final Val[] parameter;
 
 	public MockCall(Val... parameter) {
 		this.parameter = parameter;

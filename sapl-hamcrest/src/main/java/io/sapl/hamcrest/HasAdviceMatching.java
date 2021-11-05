@@ -52,7 +52,6 @@ public class HasAdviceMatching extends TypeSafeDiagnosingMatcher<AuthorizationDe
 			if (this.predicate.test(node))
 				containsAdvice = true;
 		}
-		;
 
 		if (containsAdvice) {
 			return true;

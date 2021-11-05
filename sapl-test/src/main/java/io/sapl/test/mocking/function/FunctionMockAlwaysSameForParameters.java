@@ -42,7 +42,7 @@ public class FunctionMockAlwaysSameForParameters implements FunctionMock {
 
 	private final String fullname;
 
-	private List<ParameterSpecificMockReturnValue> listParameterSpecificMockReturnValues;
+	private final List<ParameterSpecificMockReturnValue> listParameterSpecificMockReturnValues;
 
 	private final MockRunInformation mockRunInformation;
 

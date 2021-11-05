@@ -36,7 +36,7 @@ import org.apache.maven.plugin.logging.Log;
 
 public class SonarLineCoverageReportGenerator {
 
-	private ObjectFactory FACTORY = new ObjectFactory();
+	private final ObjectFactory FACTORY = new ObjectFactory();
 
 	public void generateSonarLineCoverageReport(Collection<SaplDocumentCoverageInformation> documents, Log log,
 			Path basedir, String policyPath, File mavenBaseDir) {

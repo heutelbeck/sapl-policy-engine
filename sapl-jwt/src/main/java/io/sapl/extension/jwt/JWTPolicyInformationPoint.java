@@ -130,7 +130,7 @@ public class JWTPolicyInformationPoint {
 		/**
 		 * the token is not a JWT
 		 */
-		,MALFORMED;
+		,MALFORMED
 
 	}
 

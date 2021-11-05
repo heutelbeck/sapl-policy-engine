@@ -107,8 +107,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 
 	@Override
 	public List<PolicyHit> readPolicyHits() {
-		return readFileLines(FILE_PATH_POLICY_HITS).stream().map(PolicyHit::fromString)
-				.collect(Collectors.toList());
+		return readFileLines(FILE_PATH_POLICY_HITS).stream().map(PolicyHit::fromString).collect(Collectors.toList());
 	}
 
 	@Override
@@ -123,7 +122,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 		}
 		catch (IOException e) {
 			log.error(String.format("Error reading File %s. Is the policy coverage recording disabled?",
-					filePathPolicySetHits.toAbsolutePath().toString()), e);
+					filePathPolicySetHits.toAbsolutePath()), e);
 		}
 		return new LinkedList<>();
 	}

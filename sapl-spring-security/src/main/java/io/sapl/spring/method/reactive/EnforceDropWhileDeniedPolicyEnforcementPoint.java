@@ -55,15 +55,15 @@ import reactor.util.context.ContextView;
 @Slf4j
 public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
-	private Flux<AuthorizationDecision> decisions;
+	private final Flux<AuthorizationDecision> decisions;
 
 	private Flux<T> resourceAccessPoint;
 
-	private ConstraintEnforcementService constraintsService;
+	private final ConstraintEnforcementService constraintsService;
 
 	private EnforcementSink<T> sink;
 
-	private Class<T> clazz;
+	private final Class<T> clazz;
 
 	AtomicReference<Disposable> decisionsSubscription = new AtomicReference<Disposable>();
 

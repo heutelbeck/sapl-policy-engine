@@ -50,7 +50,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 
 	private ArrayNode collect(JsonNode node, ArrayNode results) {
 		if (node.isArray()) {
-			for (var item : ((ArrayNode) node)) {
+			for (var item : node) {
 				if (item.isObject() || item.isArray()) {
 					results.add(item);
 				}

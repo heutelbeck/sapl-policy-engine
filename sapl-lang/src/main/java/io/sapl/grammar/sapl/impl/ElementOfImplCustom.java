@@ -43,7 +43,7 @@ public class ElementOfImplCustom extends ElementOfImpl {
 		if (needle.isUndefined() || haystack.isUndefined() || !haystack.isArray())
 			return Val.FALSE;
 
-		for (JsonNode arrayItem : (ArrayNode) haystack.get())
+		for (JsonNode arrayItem : haystack.get())
 			if (needleAndArrayElementAreEquivalent(needle, arrayItem))
 				return Val.TRUE;
 
