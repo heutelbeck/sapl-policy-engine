@@ -118,7 +118,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 			Object action, Object resource, Object environment) {
 
 		if (authorizationSubscriptions.containsKey(subscriptionId))
-			throw new IllegalArgumentException("Cannot add two sunscriptions with the same ID: " + subscriptionId);
+			throw new IllegalArgumentException("Cannot add two subscriptions with the same ID: " + subscriptionId);
 
 		var subjectId = ensureIsElementOfListAndReturnIndex(subject, subjects);
 		var actionId = ensureIsElementOfListAndReturnIndex(action, actions);

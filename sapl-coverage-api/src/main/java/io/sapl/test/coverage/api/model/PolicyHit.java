@@ -47,8 +47,8 @@ public class PolicyHit {
 	}
 
 	public static PolicyHit fromString(String policyToStringResult) {
-		String[] splitted = policyToStringResult.split(CoverageHitConfig.DELIMITER_MATCH_REGEX);
-		return new PolicyHit(splitted[0], splitted[1]);
+		String[] split = policyToStringResult.split(CoverageHitConfig.DELIMITER_MATCH_REGEX);
+		return new PolicyHit(split[0], split[1]);
 	}
 
 }

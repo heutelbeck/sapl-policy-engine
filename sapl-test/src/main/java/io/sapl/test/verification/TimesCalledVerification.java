@@ -24,7 +24,7 @@ import org.hamcrest.Matcher;
  */
 public class TimesCalledVerification implements MockingVerification {
 
-	private static final String ERROR_TIMES_VERIFICATION = "Error verifiying the expected number of calls to the mock \"%s\" - Expected: \"%s\" - got: \"%s\"";
+	private static final String ERROR_TIMES_VERIFICATION = "Error verifying the expected number of calls to the mock \"%s\" - Expected: \"%s\" - got: \"%s\"";
 
 	final Matcher<Integer> matcher;
 
@@ -45,7 +45,7 @@ public class TimesCalledVerification implements MockingVerification {
 			message = verificationFailedMessage;
 		}
 		else {
-			message = String.format(ERROR_TIMES_VERIFICATION, mockRunInformation.getFullname(), this.matcher.toString(),
+			message = String.format(ERROR_TIMES_VERIFICATION, mockRunInformation.getFullName(), this.matcher.toString(),
 					mockRunInformation.getTimesCalled());
 		}
 

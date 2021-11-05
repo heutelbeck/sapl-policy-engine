@@ -43,7 +43,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class MockingAttributeContext implements AttributeContext {
 
-	private static final String ERROR_MOCK_INVALID_FULLNAME = "Got invalid attribute reference containing more than one \".\" delimiter: \"%s\"";
+	private static final String ERROR_MOCK_INVALID_FULL_NAME = "Got invalid attribute reference containing more than one \".\" delimiter: \"%s\"";
 
 	private static final String ERROR_NOT_MARKED_DYNAMIC_MOCK = "No registered dynamic mock found for \"%s\". Did you forgot to register the mock via \".givenAttribute(\"%s\")\"";
 
@@ -60,7 +60,7 @@ public class MockingAttributeContext implements AttributeContext {
 	private final AttributeContext unmockedAttributeContext;
 
 	/**
-	 * Contains a Map of all registered mocks. Key is the String of the fullname of the
+	 * Contains a Map of all registered mocks. Key is the String of the full name of the
 	 * attribute finder Value is the {@link Flux} to be returned
 	 */
 	private final Map<String, AttributeMock> registeredMocks;
@@ -99,9 +99,9 @@ public class MockingAttributeContext implements AttributeContext {
 		Set<String> set = new HashSet<>();
 
 		for (String fullName : this.registeredMocks.keySet()) {
-			String[] splitted = fullName.split(Pattern.quote(NAME_DELIMITER));
-			if (splitted[0].equals(pipName))
-				set.add(splitted[1]);
+			String[] split = fullName.split(Pattern.quote(NAME_DELIMITER));
+			if (split[0].equals(pipName))
+				set.add(split[1]);
 		}
 
 		set.addAll(this.unmockedAttributeContext.providedFunctionsOfLibrary(pipName));
@@ -145,106 +145,106 @@ public class MockingAttributeContext implements AttributeContext {
 		return Collections.unmodifiableCollection(doc);
 	}
 
-	public void markAttributeMock(String fullname) {
-		checkImportName(fullname);
+	public void markAttributeMock(String fullName) {
+		checkImportName(fullName);
 
-		if (this.registeredMocks.containsKey(fullname)) {
-			throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));
+		if (this.registeredMocks.containsKey(fullName)) {
+			throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullName));
 		}
 		else {
-			AttributeMockPublisher mock = new AttributeMockPublisher(fullname);
-			this.registeredMocks.put(fullname, mock);
+			AttributeMockPublisher mock = new AttributeMockPublisher(fullName);
+			this.registeredMocks.put(fullName, mock);
 
-			addNewPIPDocumentation(fullname, mock);
+			addNewPIPDocumentation(fullName, mock);
 		}
 	}
 
-	public void mockEmit(String fullname, Val returns) {
-		AttributeMock mock = this.registeredMocks.get(fullname);
+	public void mockEmit(String fullName, Val returns) {
+		AttributeMock mock = this.registeredMocks.get(fullName);
 
 		if (mock instanceof AttributeMockPublisher) {
 			((AttributeMockPublisher) mock).mockEmit(returns);
 		}
 		else {
-			throw new SaplTestException(String.format(ERROR_NOT_MARKED_DYNAMIC_MOCK, fullname, fullname));
+			throw new SaplTestException(String.format(ERROR_NOT_MARKED_DYNAMIC_MOCK, fullName, fullName));
 		}
 	}
 
-	public void loadAttributeMockForParentValue(String fullname, AttributeParentValueMatcher parentValueMatcher,
+	public void loadAttributeMockForParentValue(String fullName, AttributeParentValueMatcher parentValueMatcher,
 			Val returns) {
-		checkImportName(fullname);
+		checkImportName(fullName);
 
-		AttributeMock mock = this.registeredMocks.get(fullname);
+		AttributeMock mock = this.registeredMocks.get(fullName);
 		if (mock != null) {
 			if (mock instanceof AttributeMockForParentValue) {
 				((AttributeMockForParentValue) mock).loadMockForParentValue(parentValueMatcher, returns);
 			}
 			else {
-				throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));
+				throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullName));
 			}
 		}
 		else {
-			AttributeMockForParentValue newMock = new AttributeMockForParentValue(fullname);
+			AttributeMockForParentValue newMock = new AttributeMockForParentValue(fullName);
 			newMock.loadMockForParentValue(parentValueMatcher, returns);
-			this.registeredMocks.put(fullname, newMock);
+			this.registeredMocks.put(fullName, newMock);
 
-			addNewPIPDocumentation(fullname, newMock);
+			addNewPIPDocumentation(fullName, newMock);
 		}
 	}
 
-	public void loadAttributeMockForParentValueAndArguments(String fullname, AttributeParameters parameters,
+	public void loadAttributeMockForParentValueAndArguments(String fullName, AttributeParameters parameters,
 			Val returns) {
-		checkImportName(fullname);
+		checkImportName(fullName);
 
-		AttributeMock mock = this.registeredMocks.get(fullname);
+		AttributeMock mock = this.registeredMocks.get(fullName);
 		if (mock != null) {
 			if (mock instanceof AttributeMockForParentValueAndArguments) {
 				((AttributeMockForParentValueAndArguments) mock).loadMockForParentValueAndArguments(parameters,
 						returns);
 			}
 			else {
-				throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));
+				throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullName));
 			}
 		}
 		else {
-			AttributeMockForParentValueAndArguments newMock = new AttributeMockForParentValueAndArguments(fullname);
+			AttributeMockForParentValueAndArguments newMock = new AttributeMockForParentValueAndArguments(fullName);
 			newMock.loadMockForParentValueAndArguments(parameters, returns);
-			this.registeredMocks.put(fullname, newMock);
+			this.registeredMocks.put(fullName, newMock);
 
-			addNewPIPDocumentation(fullname, newMock);
+			addNewPIPDocumentation(fullName, newMock);
 		}
 	}
 
-	public void loadAttributeMock(String fullname, Duration timing, Val... returns) {
-		checkImportName(fullname);
+	public void loadAttributeMock(String fullName, Duration timing, Val... returns) {
+		checkImportName(fullName);
 
-		if (this.registeredMocks.containsKey(fullname)) {
-			throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullname));
+		if (this.registeredMocks.containsKey(fullName)) {
+			throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullName));
 		}
 		else {
-			AttributeMockTiming mock = new AttributeMockTiming(fullname);
+			AttributeMockTiming mock = new AttributeMockTiming(fullName);
 			mock.loadAttributeMockWithTiming(timing, returns);
-			this.registeredMocks.put(fullname, mock);
+			this.registeredMocks.put(fullName, mock);
 
-			addNewPIPDocumentation(fullname, mock);
+			addNewPIPDocumentation(fullName, mock);
 		}
 	}
 
 	public void assertVerifications() {
-		this.registeredMocks.forEach((fullname, mock) -> mock.assertVerifications());
+		this.registeredMocks.forEach((fullName, mock) -> mock.assertVerifications());
 	}
 
-	private void checkImportName(String fullname) {
-		String[] splitted = fullname.split(Pattern.quote(NAME_DELIMITER));
-		if (splitted.length != 2) {
-			throw new SaplTestException(String.format(ERROR_MOCK_INVALID_FULLNAME, fullname));
+	private void checkImportName(String fullName) {
+		String[] split = fullName.split(Pattern.quote(NAME_DELIMITER));
+		if (split.length != 2) {
+			throw new SaplTestException(String.format(ERROR_MOCK_INVALID_FULL_NAME, fullName));
 		}
 	}
 
-	private void addNewPIPDocumentation(String fullname, AttributeMock mock) {
-		String[] splitted = fullname.split(Pattern.quote(NAME_DELIMITER));
-		String pipName = splitted[0];
-		String attributeName = splitted[1];
+	private void addNewPIPDocumentation(String fullName, AttributeMock mock) {
+		String[] split = fullName.split(Pattern.quote(NAME_DELIMITER));
+		String pipName = split[0];
+		String attributeName = split[1];
 
 		var existingDoc = this.pipDocumentations.get(pipName);
 		if (existingDoc != null) {

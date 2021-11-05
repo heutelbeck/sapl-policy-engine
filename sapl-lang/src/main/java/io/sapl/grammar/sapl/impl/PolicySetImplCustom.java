@@ -51,7 +51,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 	@Override
 	public Flux<AuthorizationDecision> evaluate(EvaluationContext ctx) {
 		if (!policyNamesAreUnique()) {
-			log.debug("  |- INDETERMINATE (Set) '{}'. (Policy names not uniqe)", saplName);
+			log.debug("  |- INDETERMINATE (Set) '{}'. (Policy names not unique)", saplName);
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
 		return Flux.just(Tuples.of(Val.TRUE, ctx)).switchMap(evaluateValueDefinitions(0)).switchMap(this::evalPolicies)

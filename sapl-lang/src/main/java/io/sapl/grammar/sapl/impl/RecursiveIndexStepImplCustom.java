@@ -116,7 +116,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 				}
 			}
 			else {
-				log.trace("array element not an object. Do recusive search for first match.");
+				log.trace("array element not an object. Do recursive search for first match.");
 				elementFluxes.add(doApplyFilterStatement(index, Val.of(element), ctx, relativeNode, stepId, statement));
 			}
 		}
@@ -129,7 +129,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 		var fields = object.fields();
 		while (fields.hasNext()) {
 			var field = fields.next();
-			log.trace("recusion for field {}", field);
+			log.trace("recursion for field {}", field);
 			fieldFluxes.add(doApplyFilterStatement(idx, Val.of(field.getValue()), ctx, relativeNode, stepId, statement)
 					.map(val -> Tuples.of(field.getKey(), val)));
 		}

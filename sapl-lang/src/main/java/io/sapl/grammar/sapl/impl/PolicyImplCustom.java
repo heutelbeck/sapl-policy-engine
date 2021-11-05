@@ -55,7 +55,7 @@ public class PolicyImplCustom extends PolicyImpl {
 	}
 
 	private Function<? super Decision, Publisher<? extends Decision>> evaluateBody(EvaluationContext ctx) {
-		return entiltmnt -> getBody() == null ? Flux.just(entiltmnt) : getBody().evaluate(entiltmnt, ctx);
+		return entitlement -> getBody() == null ? Flux.just(entitlement) : getBody().evaluate(entitlement, ctx);
 
 	}
 

@@ -32,7 +32,7 @@ import reactor.core.Exceptions;
 
 public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 
-	private static final String ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME = "Bevor constructing a test case you have to specifiy the filename where to find your SAPL policy!"
+	private static final String ERROR_MESSAGE_MISSING_SAPL_DOCUMENT_NAME = "Bevore constructing a test case you have to specify the filename where to find your SAPL policy!"
 			+ "\n\nProbably you forgot to call \".setSaplDocumentName(\"\")\"";
 
 	private final String saplDocumentName;

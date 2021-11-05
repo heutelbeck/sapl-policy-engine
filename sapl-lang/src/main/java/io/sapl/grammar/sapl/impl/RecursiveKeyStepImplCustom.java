@@ -77,7 +77,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
 	private static Flux<Val> applyKeyStepFilterStatement(String id, Val parentValue, EvaluationContext ctx,
 			Val relativeNode, int stepId, FilterStatement statement) {
-		log.trace("apply recusive key step '{}' to: {}", id, parentValue);
+		log.trace("apply recursive key step '{}' to: {}", id, parentValue);
 		if (parentValue.isObject()) {
 			return applyFilterStatementToObject(id, parentValue.getObjectNode(), ctx, relativeNode, stepId, statement);
 		}
@@ -118,7 +118,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 				}
 			}
 			else {
-				log.trace("field not matching. Do recusive search for first match.");
+				log.trace("field not matching. Do recursive search for first match.");
 				fieldFluxes.add(
 						applyKeyStepFilterStatement(id, Val.of(field.getValue()), ctx, relativeNode, stepId, statement)
 								.map(val -> Tuples.of(field.getKey(), val)));
@@ -143,7 +143,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 						applyFilterStatementToObject(id, (ObjectNode) element, ctx, relativeNode, stepId, statement));
 			}
 			else {
-				log.trace("array element not an object. Do recusive search for first match.");
+				log.trace("array element not an object. Do recursive search for first match.");
 				elementFluxes
 						.add(applyKeyStepFilterStatement(id, Val.of(element), ctx, relativeNode, stepId, statement));
 			}

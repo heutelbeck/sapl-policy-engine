@@ -48,7 +48,7 @@ public class TimesParameterCalledVerification implements MockingVerification {
 	@Override
 	public void verify(MockRunInformation mockRunInformation, String verificationFailedMessage) {
 		// collect calls with specified information in new MockRunInformation
-		MockRunInformation callsMatchingWantedArgs = new MockRunInformation(mockRunInformation.getFullname());
+		MockRunInformation callsMatchingWantedArgs = new MockRunInformation(mockRunInformation.getFullName());
 
 		for (int i = 0; i < mockRunInformation.getCalls().size(); i++) {
 			CallWithMetadata call = mockRunInformation.getCalls().get(i);
@@ -79,8 +79,8 @@ public class TimesParameterCalledVerification implements MockingVerification {
 			return verificationFailedMessage;
 		}
 
-		StringBuilder builder = new StringBuilder("Error verifiying the expected number of calls to the mock \""
-				+ callsMatchingWantedArgs.getFullname() + "\" for parameters [");
+		StringBuilder builder = new StringBuilder("Error verifying the expected number of calls to the mock \""
+				+ callsMatchingWantedArgs.getFullName() + "\" for parameters [");
 
 		for (Matcher<Val> matcher : wantedArgs) {
 			builder.append(matcher).append(", ");

@@ -48,7 +48,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
 	protected static final String ERROR_COULD_NOT_PARSE_JSON = "Error parsing the specified JSON for your AuthorizationSubscription";
 
-	protected static final String ERROR_NULL_JSONNODE = "Error reading the specified JsonNode for your AuthorizationSubscription. It was null";
+	protected static final String ERROR_NULL_JSON_NODE = "Error reading the specified JsonNode for your AuthorizationSubscription. It was null";
 
 	protected static final String ERROR_EXPECT_NEXT_0_OR_NEGATIVE = "0 or a negative value is not allowed for the count of expected events";
 
@@ -175,9 +175,9 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 	}
 
 	@Override
-	public ExpectStep when(String jsonauthzSub) throws JsonProcessingException {
+	public ExpectStep when(String jsonAuthzSub) throws JsonProcessingException {
 		ObjectMapper objectMapper = new ObjectMapper();
-		JsonNode authzSubJsonNode = objectMapper.readTree(jsonauthzSub);
+		JsonNode authzSubJsonNode = objectMapper.readTree(jsonAuthzSub);
 		AuthorizationSubscription authzSub = new AuthorizationSubscription(authzSubJsonNode.findValue("subject"),
 				authzSubJsonNode.findValue("action"), authzSubJsonNode.findValue("resource"),
 				authzSubJsonNode.findValue("environment"));
@@ -193,7 +193,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 			createStepVerifier(authzSub);
 			return this;
 		}
-		throw new SaplTestException(ERROR_NULL_JSONNODE);
+		throw new SaplTestException(ERROR_NULL_JSON_NODE);
 	}
 
 	protected abstract void createStepVerifier(AuthorizationSubscription authzSub);

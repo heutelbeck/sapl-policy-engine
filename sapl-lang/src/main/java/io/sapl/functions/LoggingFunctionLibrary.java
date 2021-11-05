@@ -31,15 +31,15 @@ public class LoggingFunctionLibrary {
 
 	public static final String DESCRIPTION = "Utility functions for dumping data from policy evaluation on the PDP console for debugging of policies.";
 
-	private static final String DEBUG_SPY_DOC = "log.debugSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level DEBUG. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changeing the overall strcuture of the policy.";
+	private static final String DEBUG_SPY_DOC = "log.debugSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level DEBUG. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.";
 
-	private static final String INFO_SPY_DOC = "log.infoSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level INFO. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changeing the overall strcuture of the policy.";
+	private static final String INFO_SPY_DOC = "log.infoSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level INFO. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.";
 
-	private static final String ERROR_SPY_DOC = "log.errorSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level ERROR. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changeing the overall strcuture of the policy.";
+	private static final String ERROR_SPY_DOC = "log.errorSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level ERROR. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.";
 
-	private static final String TRACE_SPY_DOC = "log.traceSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level TRACE. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changeing the overall strcuture of the policy.";
+	private static final String TRACE_SPY_DOC = "log.traceSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level TRACE. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.";
 
-	private static final String WARN_SPY_DOC = "log.warnSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level WARN. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changeing the overall strcuture of the policy.";
+	private static final String WARN_SPY_DOC = "log.warnSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level WARN. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.";
 
 	private static final String DEBUG_DOC = "log.debug(MESSAGE, VALUE): logs the value prepended with the message on the console at log level DEBUG. Always returns a true value. This function is useful to add an additional line in a where block of a policy. As the function return true, the rest of the policy evaluation is not affected.";
 

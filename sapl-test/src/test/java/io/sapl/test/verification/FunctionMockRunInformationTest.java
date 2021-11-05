@@ -29,7 +29,7 @@ public class FunctionMockRunInformationTest {
 
 		MockRunInformation mock = new MockRunInformation(fullname);
 
-		Assertions.assertThat(mock.getFullname()).isEqualTo(fullname);
+		Assertions.assertThat(mock.getFullName()).isEqualTo(fullname);
 		Assertions.assertThat(mock.getTimesCalled()).isEqualTo(0);
 		Assertions.assertThat(mock.getCalls()).isNotNull();
 	}
