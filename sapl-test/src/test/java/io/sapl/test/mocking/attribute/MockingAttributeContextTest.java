@@ -41,7 +41,7 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
-import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.pip.TimePolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.unit.TestPIP;
@@ -247,7 +247,7 @@ public class MockingAttributeContextTest {
 	@Test
 	void test_loadPolicyInformationPoint() {
 		Assertions.assertThatExceptionOfType(SaplTestException.class)
-				.isThrownBy(() -> this.attrCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint()));
+				.isThrownBy(() -> this.attrCtx.loadPolicyInformationPoint(new TimePolicyInformationPoint()));
 	}
 
 }

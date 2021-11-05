@@ -34,7 +34,7 @@ import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
-import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.pip.TimePolicyInformationPoint;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
@@ -121,7 +121,7 @@ public class PolicyDecisionPointFactory {
 	private static AttributeContext constructAttributeContext(Collection<Object> policyInformationPoints)
 			throws InitializationException {
 		var attributeCtx = new AnnotationAttributeContext();
-		attributeCtx.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
+		attributeCtx.loadPolicyInformationPoint(new TimePolicyInformationPoint());
 		for (var pip : policyInformationPoints)
 			attributeCtx.loadPolicyInformationPoint(pip);
 		return attributeCtx;

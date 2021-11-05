@@ -62,7 +62,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mockStatic;
 
-class ClockPolicyInformationPointTickerTest {
+class TimePolicyInformationPointTickerTest {
 
     private static final Flux<Val> SYSTEM_DEFAULT_TIMEZONE_FLUX = Flux.just(Val.of(ZoneId.systemDefault().toString()));
 
@@ -82,15 +82,15 @@ class ClockPolicyInformationPointTickerTest {
     static void beforeClass() throws InitializationException, JsonProcessingException {
         FUNCTION_CTX.loadLibrary(new StandardFunctionLibrary());
         FUNCTION_CTX.loadLibrary(new TemporalFunctionLibrary());
-        ATTRIBUTE_CTX.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
+        ATTRIBUTE_CTX.loadPolicyInformationPoint(new TimePolicyInformationPoint());
         authzSubscriptionObj = MAPPER.readValue(authzSubscription, AuthorizationSubscription.class);
     }
 
     @Test
     void test_streamingPolicyWithVirtualTime() throws InitializationException {
 
-        final ClockPolicyInformationPoint clockPip = new ClockPolicyInformationPoint();
-        StepVerifier.withVirtualTime(() -> clockPip.now(Flux.just(Val.of(2000L)), SYSTEM_DEFAULT_TIMEZONE_FLUX))
+        final TimePolicyInformationPoint timePip = new TimePolicyInformationPoint();
+        StepVerifier.withVirtualTime(() -> timePip.now(Flux.just(Val.of(2000L)), SYSTEM_DEFAULT_TIMEZONE_FLUX))
                 .expectSubscription()
                 .assertNext(val -> assertThat(val.isError(), is(false)))
                 .expectNoEvent(Duration.ofSeconds(2))
@@ -113,8 +113,8 @@ class ClockPolicyInformationPointTickerTest {
 
     @Test
     void ticker() {
-        final ClockPolicyInformationPoint clockPip = new ClockPolicyInformationPoint();
-        StepVerifier.withVirtualTime(() -> clockPip.now(Flux.just(Val.of(30000L)), SYSTEM_DEFAULT_TIMEZONE_FLUX))
+        final TimePolicyInformationPoint timePip = new TimePolicyInformationPoint();
+        StepVerifier.withVirtualTime(() -> timePip.now(Flux.just(Val.of(30000L)), SYSTEM_DEFAULT_TIMEZONE_FLUX))
                 .expectSubscription()
                 .expectNoEvent(Duration.ofSeconds(30)).consumeNextWith(node -> {
                     /* the first node is provided some nano seconds after its creation */
@@ -152,8 +152,8 @@ class ClockPolicyInformationPointTickerTest {
     }
 
     @Test
-    void testClockNowAfter() throws Exception {
-        var clockPip = new ClockPolicyInformationPoint();
+    void testTimeNowAfter() throws Exception {
+        var timePip = new TimePolicyInformationPoint();
 
         var tomorrowAtMidnight = LocalDate.now().plusDays(1).atStartOfDay();
         var todayJustBeforeMidnight = tomorrowAtMidnight.minus(30, ChronoUnit.SECONDS);
@@ -173,18 +173,18 @@ class ClockPolicyInformationPointTickerTest {
                 }
             });
 
-            StepVerifier.withVirtualTime(() -> clockPip.nowIsAfter(Flux.just(time), SYSTEM_DEFAULT_TIMEZONE_FLUX))
+            StepVerifier.withVirtualTime(() -> timePip.nowIsAfter(Flux.just(time), SYSTEM_DEFAULT_TIMEZONE_FLUX))
                     .expectSubscription()
                     .thenAwait(Duration.ofDays(1L))
                     .consumeNextWith(val -> {
                         // on same day just before midnight
-                        //      -> clock should slightly be after reference time (23:59:30)
+                        //      -> time should slightly be after reference time (23:59:30)
                         var isAfter = val.getBoolean();
                         assertThat(isAfter, is(true));
                     })
                     .consumeNextWith(val -> {
                         // exactly at midnight
-                        //      -> clock should definitely be before reference time  (23:59:30)
+                        //      -> time should definitely be before reference time  (23:59:30)
                         var isAfter = val.getBoolean();
                         assertThat(isAfter, is(false));
                     })
@@ -198,8 +198,8 @@ class ClockPolicyInformationPointTickerTest {
     }
 
     @Test
-    void testClockNowBefore() throws Exception {
-        var clockPip = new ClockPolicyInformationPoint();
+    void testTimeNowBefore() throws Exception {
+        var timePip = new TimePolicyInformationPoint();
 
         var tomorrowAtMidnight = LocalDate.now().plusDays(1).atStartOfDay();
         var todayJustBeforeMidnight = tomorrowAtMidnight.minus(30, ChronoUnit.SECONDS);
@@ -219,18 +219,18 @@ class ClockPolicyInformationPointTickerTest {
                 }
             });
 
-            StepVerifier.withVirtualTime(() -> clockPip.nowIsBefore(Flux.just(time), SYSTEM_DEFAULT_TIMEZONE_FLUX))
+            StepVerifier.withVirtualTime(() -> timePip.nowIsBefore(Flux.just(time), SYSTEM_DEFAULT_TIMEZONE_FLUX))
                     .expectSubscription()
                     .thenAwait(Duration.ofDays(1L))
                     .consumeNextWith(val -> {
                         // on same day just before midnight
-                        //      -> clock should be slightly after reference time (23:59:30)
+                        //      -> time should be slightly after reference time (23:59:30)
                         var isAfter = val.getBoolean();
                         assertThat(isAfter, is(false));
                     })
                     .consumeNextWith(val -> {
                         // exactly at midnight
-                        //      -> clock should definitely before reference time  (23:59:30)
+                        //      -> time should definitely before reference time  (23:59:30)
                         var isAfter = val.getBoolean();
                         assertThat(isAfter, is(true));
                     })
@@ -244,11 +244,11 @@ class ClockPolicyInformationPointTickerTest {
 
     @Test
     void testPeriodicToggle() throws Exception {
-        var clockPip = new ClockPolicyInformationPoint();
+        var timePip = new TimePolicyInformationPoint();
         var nowLocalTime = Val.of(LocalTime.now().plusSeconds(5L).format(DateTimeFormatter.ofPattern("HH:mm:ss")));
         var initiallyAuthorized = true;
 
-        StepVerifier.withVirtualTime(() -> clockPip.periodicToggle(Val.UNDEFINED, Collections.emptyMap(),
+        StepVerifier.withVirtualTime(() -> timePip.periodicToggle(Val.UNDEFINED, Collections.emptyMap(),
                         Flux.just(Val.of(initiallyAuthorized)), Flux.just(Val.of(3000L)), Flux.just(Val.of(1000L)), Flux.just(nowLocalTime), SYSTEM_DEFAULT_TIMEZONE_FLUX))
                 .expectSubscription()
                 // .thenAwait(Duration.ofSeconds(10L))
@@ -272,18 +272,18 @@ class ClockPolicyInformationPointTickerTest {
 
     @Test
     void timeZoneTest() {
-        var clockPip = new ClockPolicyInformationPoint();
-        var timeZone = clockPip.timeZone().blockFirst().getText();
+        var timePip = new TimePolicyInformationPoint();
+        var timeZone = timePip.timeZone().blockFirst().getText();
 
         assertThat(timeZone, is(ZoneId.systemDefault().toString()));
     }
 
     @Test
     void nowTest() {
-        var clockPip = new ClockPolicyInformationPoint();
+        var timePip = new TimePolicyInformationPoint();
         var now = OffsetDateTime.now().truncatedTo(ChronoUnit.MINUTES);
-        // var nowInSystemTimeZone = clockPip.now(SYSTEM_TIMEZONE_VAL, Collections.emptyMap()).blockFirst().getText();
-        var nowInSystemTimeZone = clockPip.now(Flux.just(Val.of(1000L)), SYSTEM_DEFAULT_TIMEZONE_FLUX)
+        // var nowInSystemTimeZone = timePip.now(SYSTEM_TIMEZONE_VAL, Collections.emptyMap()).blockFirst().getText();
+        var nowInSystemTimeZone = timePip.now(Flux.just(Val.of(1000L)), SYSTEM_DEFAULT_TIMEZONE_FLUX)
                 .blockFirst().getText();
 
         var offsetDateTime = DateTimeFormatter.ISO_DATE_TIME.parse(nowInSystemTimeZone, OffsetDateTime::from).truncatedTo(ChronoUnit.MINUTES);
@@ -293,8 +293,8 @@ class ClockPolicyInformationPointTickerTest {
 
     @Test
     void millisTest() {
-        var clockPip = new ClockPolicyInformationPoint();
-        var millis = clockPip.millis(SYSTEM_DEFAULT_TIMEZONE_FLUX).blockFirst().get().numberValue()
+        var timePip = new TimePolicyInformationPoint();
+        var millis = timePip.millis(SYSTEM_DEFAULT_TIMEZONE_FLUX).blockFirst().get().numberValue()
                 .longValue();
 
         assertThat(millis, is(greaterThanOrEqualTo(Instant.EPOCH.toEpochMilli())));
@@ -303,10 +303,10 @@ class ClockPolicyInformationPointTickerTest {
 
     @Test
     void timerTest() {
-        var clockPip = new ClockPolicyInformationPoint();
+        var timePip = new TimePolicyInformationPoint();
         var timerMillis = 30000L;
 
-        StepVerifier.withVirtualTime(() -> clockPip.trueIn( Flux.just(Val.of(timerMillis))))
+        StepVerifier.withVirtualTime(() -> timePip.trueIn( Flux.just(Val.of(timerMillis))))
                 .expectSubscription()
                 .consumeNextWith(val -> {
                     assertThat(val.getBoolean(), is(false));
@@ -324,7 +324,7 @@ class ClockPolicyInformationPointTickerTest {
         var policyDefinition = "policy \"test\" " +
                 "   permit action == \"read\" " +
                 "   where " +
-                "       var millis = <clock.millis(\"UTC\")>; " +
+                "       var millis = <time.millis(\"UTC\")>; " +
                 "       var instant = time.ofEpochMillis(millis); " +
                 "       time.validUTC(instant);";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
@@ -336,7 +336,7 @@ class ClockPolicyInformationPointTickerTest {
         var policyDefinition = "policy \"test\" " +
                 "   permit action == \"read\" " +
                 "   where " +
-                "       var timeZone = <clock.timeZone>; " +
+                "       var timeZone = <time.timeZone>; " +
                 "       standard.length(timeZone) > 0; ";
 
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
@@ -348,7 +348,7 @@ class ClockPolicyInformationPointTickerTest {
         var policyDefinition = "policy \"test\" " +
                 "   permit action == \"read\" " +
                 "   where " +
-                "      <clock.trueIn(5000)>; ";
+                "      <time.trueIn(5000)>; ";
 
         StepVerifier.withVirtualTime(() -> INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT))
                 .expectSubscription()
@@ -369,7 +369,7 @@ class ClockPolicyInformationPointTickerTest {
         var policyDefinition = "policy \"test\" " +
                 "   permit action == \"read\" " +
                 "   where " +
-                "      <clock.trueFor(5000)>; ";
+                "      <time.trueFor(5000)>; ";
 
         StepVerifier.withVirtualTime(() -> INTERPRETER.evaluate(authzSubscriptionObj, policyDefinition, PDP_EVALUATION_CONTEXT))
                 .expectSubscription()
@@ -385,29 +385,29 @@ class ClockPolicyInformationPointTickerTest {
     }
 
     @Test
-    void policyWithClockAfterBody() {
+    void policyWithTimeAfterBody() {
         var policyDefinition = "policy \"test\" " +
                 "   permit action == \"read\" " +
                 "   where " +
-                "       var after =|<clock.nowIsAfter(\"00:00\",\"system\")>; " +
-                "       var before =|<clock.nowIsBefore(\"23:59\",\"system\")>; " +
+                "       var after =|<time.nowIsAfter(\"00:00\",\"system\")>; " +
+                "       var before =|<time.nowIsBefore(\"23:59\",\"system\")>; " +
                 "       after && before;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
-    void policyWithClockBetweenBody() {
+    void policyWithTimeBetweenBody() {
         var policyDefinition = "policy \"test\" " +
                 "   permit action == \"read\" " +
                 "   where " +
-                "       |<clock.nowIsBetween(\"00:00\",\"23:59\",\"system\")>; ";
+                "       |<time.nowIsBetween(\"00:00\",\"23:59\",\"system\")>; ";
         assertThatPolicyEvaluatesTo(policyDefinition, AuthorizationDecision.PERMIT);
 
         policyDefinition = "policy \"test\" " +
                 "   permit action == \"read\" " +
                 "   where " +
-                "       |<clock.nowIsBetween(\"23:59\",\"00:00\",\"system\")>; ";
+                "       |<time.nowIsBetween(\"23:59\",\"00:00\",\"system\")>; ";
         assertThatPolicyEvaluatesTo(policyDefinition, AuthorizationDecision.NOT_APPLICABLE);
     }
 

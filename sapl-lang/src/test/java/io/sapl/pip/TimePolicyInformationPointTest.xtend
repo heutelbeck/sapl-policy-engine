@@ -36,14 +36,14 @@ import org.junit.jupiter.api.Test
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.MatcherAssert.assertThat
 
-class ClockPolicyInformationPointTest {
+class PolicyInformationPointTest {
 
 	static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT)
 	static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter()
 	static final AttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext()
 	static final FunctionContext FUNCTION_CTX = new AnnotationFunctionContext()
 	static final Map<String, JsonNode> SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<String, JsonNode>())
-	static final ClockPolicyInformationPoint PIP = new ClockPolicyInformationPoint()
+	static final TimePolicyInformationPoint PIP = new TimePolicyInformationPoint()
 	static final EvaluationContext PDP_EVALUATION_CONTEXT = new EvaluationContext(ATTRIBUTE_CTX, FUNCTION_CTX,
 		SYSTEM_VARIABLES);
 
@@ -72,7 +72,7 @@ class ClockPolicyInformationPointTest {
 			permit
 			    action == "read"
 			where
-			    standard.length(|<clock.now(3,"UTC")>) > 1;
+			    standard.length(|<time.now(3,"UTC")>) > 1;
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
@@ -90,7 +90,7 @@ class ClockPolicyInformationPointTest {
 			permit
 			    action == "read"
 			where
-			    standard.length(|<clock.now(3,"ECT")>) > 1;
+			    standard.length(|<time.now(3,"ECT")>) > 1;
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
@@ -108,7 +108,7 @@ class ClockPolicyInformationPointTest {
 			permit
 			    action == "read"
 			where
-			    standard.length(|<clock.now(3,"Europe/Berlin")>) > 1;
+			    standard.length(|<time.now(3,"Europe/Berlin")>) > 1;
 		'''
 
 		val expectedAuthzDecision = AuthorizationDecision.PERMIT
@@ -126,7 +126,7 @@ class ClockPolicyInformationPointTest {
 			permit
 			    action == "read"
 			where
-			    var length = standard.length(|<clock.now(3,"system")>);
+			    var length = standard.length(|<time.now(3,"system")>);
 			    length > 1;
 		'''
 

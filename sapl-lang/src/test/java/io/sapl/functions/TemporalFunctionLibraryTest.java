@@ -29,7 +29,7 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.pip.TimePolicyInformationPoint;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -68,19 +68,19 @@ class TemporalFunctionLibraryTest {
     static void beforeClass() throws InitializationException, JsonProcessingException {
         FUNCTION_CTX.loadLibrary(new StandardFunctionLibrary());
         FUNCTION_CTX.loadLibrary(new TemporalFunctionLibrary());
-        ATTRIBUTE_CTX.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
+        ATTRIBUTE_CTX.loadPolicyInformationPoint(new TimePolicyInformationPoint());
         authzSubscriptionObj = MAPPER.readValue(authzSubscription, AuthorizationSubscription.class);
     }
 
-    private Val clockNow(Val zone) {
-        return new ClockPolicyInformationPoint().now(Flux.just(Val.of(2000L)), Flux.just(zone))
+    private Val timeNow(Val zone) {
+        return new TimePolicyInformationPoint().now(Flux.just(Val.of(2000L)), Flux.just(zone))
                 .blockFirst();
     }
 
     @Test
     void nowPlus10Nanos() {
         var zoneId = Val.of("UTC");
-        var now = clockNow(zoneId);
+        var now = timeNow(zoneId);
         var plus10 = TemporalFunctionLibrary.plusNanos(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).plusNanos(10).toString();
         assertThat(plus10, is(val(expected)));
@@ -89,7 +89,7 @@ class TemporalFunctionLibraryTest {
     @Test
     void nowPlus10Millis() {
         var zoneId = Val.of("UTC");
-        var now = clockNow(zoneId);
+        var now = timeNow(zoneId);
         var plus10 = TemporalFunctionLibrary.plusMillis(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).plusMillis(10).toString();
         assertThat(plus10, is(val(expected)));
@@ -98,7 +98,7 @@ class TemporalFunctionLibraryTest {
     @Test
     void nowPlus10Seconds() {
         var zoneId = Val.of("UTC");
-        var now = clockNow(zoneId);
+        var now = timeNow(zoneId);
         var plus10 = TemporalFunctionLibrary.plusSeconds(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).plusSeconds(10).toString();
         assertThat(plus10, is(val(expected)));
@@ -107,7 +107,7 @@ class TemporalFunctionLibraryTest {
     @Test
     void nowMinus10Nanos() {
         var zoneId = Val.of("UTC");
-        var now = clockNow(zoneId);
+        var now = timeNow(zoneId);
         var plus10 = TemporalFunctionLibrary.minusNanos(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).minusNanos(10).toString();
         assertThat(plus10, is(val(expected)));
@@ -116,7 +116,7 @@ class TemporalFunctionLibraryTest {
     @Test
     void nowMinus10Millis() {
         var zoneId = Val.of("UTC");
-        var now = clockNow(zoneId);
+        var now = timeNow(zoneId);
         var plus10 = TemporalFunctionLibrary.minusMillis(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).minusMillis(10).toString();
         assertThat(plus10, is(val(expected)));
@@ -125,7 +125,7 @@ class TemporalFunctionLibraryTest {
     @Test
     void nowMinus10Seconds() {
         var zoneId = Val.of("UTC");
-        var now = clockNow(zoneId);
+        var now = timeNow(zoneId);
         var plus10 = TemporalFunctionLibrary.minusSeconds(now, Val.of(10L));
         var expected = Instant.parse(now.get().asText()).minusSeconds(10).toString();
         assertThat(plus10, is(val(expected)));
@@ -134,7 +134,7 @@ class TemporalFunctionLibraryTest {
     @Test
     void dayOfWeekFrom() {
         var zoneId = Val.of("UTC");
-        var now = clockNow(zoneId);
+        var now = timeNow(zoneId);
         var dayOfWeek = TemporalFunctionLibrary.dayOfWeek(now);
         var expected = DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)).toString();
         assertThat(dayOfWeek, is(val(expected)));
@@ -259,7 +259,7 @@ class TemporalFunctionLibraryTest {
 
     @Test
     void policyWithMatchingTemporalBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where time.before(|<clock.now(3,\"UTC\")>, time.plusSeconds(|<clock.now(3,\"UTC\")>, 10));";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where time.before(|<time.now(3,\"UTC\")>, time.plusSeconds(|<time.now(3,\"UTC\")>, 10));";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
 
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
@@ -267,14 +267,14 @@ class TemporalFunctionLibraryTest {
 
     @Test
     void policyWithNonMatchingTemporalBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where time.after(|<clock.now(3,\"UTC\")>, time.plusSeconds(|<clock.now(3,\"UTC\")>, 10));";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where time.after(|<time.now(3,\"UTC\")>, time.plusSeconds(|<time.now(3,\"UTC\")>, 10));";
         var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithDayOfWeekBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where time.dayOfWeek(|<clock.now(3,\"UTC\")>) == \"SUNDAY\";";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where time.dayOfWeek(|<time.now(3,\"UTC\")>) == \"SUNDAY\";";
         AuthorizationDecision expectedAuthzDecision;
         if (DayOfWeek.from(Instant.now().atOffset(ZoneOffset.UTC)) == DayOfWeek.SUNDAY) {
             expectedAuthzDecision = AuthorizationDecision.PERMIT;
@@ -286,35 +286,35 @@ class TemporalFunctionLibraryTest {
 
     @Test
     void policyWithLocalDateTimeBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localDateTime(|<clock.now(3,\"UTC\")>)) in [16, 19];";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localDateTime(|<time.now(3,\"UTC\")>)) in [16, 19];";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalTimeBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localTime(|<clock.now(3,\"UTC\")>)) in [5, 8];";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where standard.length(time.localTime(|<time.now(3,\"UTC\")>)) in [5, 8];";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalHourBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where var hour = time.localHour(|<clock.now(3,\"UTC\")>); hour >= 0 && hour <= 23;";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where var hour = time.localHour(|<time.now(3,\"UTC\")>); hour >= 0 && hour <= 23;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalMinuteBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where var minute = time.localMinute(|<clock.now(3,\"UTC\")>); minute >= 0 && minute <= 59;";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where var minute = time.localMinute(|<time.now(3,\"UTC\")>); minute >= 0 && minute <= 59;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }
 
     @Test
     void policyWithLocalSecondBody() {
-        var policyDefinition = "policy \"test\" permit action == \"read\" where var second = time.localSecond(|<clock.now(3,\"UTC\")>); second >= 0 && second <= 59;";
+        var policyDefinition = "policy \"test\" permit action == \"read\" where var second = time.localSecond(|<time.now(3,\"UTC\")>); second >= 0 && second <= 59;";
         var expectedAuthzDecision = AuthorizationDecision.PERMIT;
         assertThatPolicyEvaluatesTo(policyDefinition, expectedAuthzDecision);
     }

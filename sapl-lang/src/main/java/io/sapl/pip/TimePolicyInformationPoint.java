@@ -44,10 +44,10 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @NoArgsConstructor
-@PolicyInformationPoint(name = ClockPolicyInformationPoint.NAME, description = ClockPolicyInformationPoint.DESCRIPTION)
-public class ClockPolicyInformationPoint {
+@PolicyInformationPoint(name = TimePolicyInformationPoint.NAME, description = TimePolicyInformationPoint.DESCRIPTION)
+public class TimePolicyInformationPoint {
 
-    public static final String NAME = "clock";
+    public static final String NAME = "time";
 
     public static final String DESCRIPTION = "Policy Information Point and attributes for retrieving current date and time information";
 

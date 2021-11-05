@@ -23,7 +23,7 @@ import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.pip.TimePolicyInformationPoint;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.aggregator.ArgumentsAccessor;
@@ -48,7 +48,7 @@ public class DefaultLibraryAttributeFinderTests {
     @BeforeAll
     public static void SetupLibraryAttributeFinder() throws InitializationException {
         AnnotationAttributeContext attributeContext = new AnnotationAttributeContext();
-        attributeContext.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
+        attributeContext.loadPolicyInformationPoint(new TimePolicyInformationPoint());
 
         AnnotationFunctionContext funtionContext = new AnnotationFunctionContext();
         funtionContext.loadLibrary(new FilterFunctionLibrary());
@@ -63,14 +63,14 @@ public class DefaultLibraryAttributeFinderTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"time", "filter", "standard", "clock"})
+    @ValueSource(strings = {"time", "filter", "standard", "time"})
     public void getAvailableAttributes_WithEmptyString_ReturnsAllLibraries(String value) {
         Collection<String> availableAttributes = attributeFinder.getAvailableAttributes("");
         assertThat(availableAttributes.contains(value), is(true));
     }
 
     @ParameterizedTest
-    @CsvSource({"time, ti", "clock, clo", "filter, filt", "standard, stand"})
+    @CsvSource({"time, ti", "time, tim", "filter, filt", "standard, stand"})
     public void getAvailableAttributes_WithNeedle_ReturnsMatchingLibaries(ArgumentsAccessor arguments) {
         String needle = arguments.getString(1);
         String expectedLibrary = arguments.getString(0);
@@ -82,7 +82,7 @@ public class DefaultLibraryAttributeFinderTests {
     }
 
     @ParameterizedTest
-    @CsvSource({"clock., now"})
+    @CsvSource({"time., now"})
     public void getAvailableAttributes_WithLibraryQualifier_ReturnsAllFunctions(ArgumentsAccessor arguments) {
         String needle = arguments.getString(0);
         String expectedFunction = arguments.getString(1);
@@ -93,7 +93,7 @@ public class DefaultLibraryAttributeFinderTests {
     }
 
     @ParameterizedTest
-    @CsvSource({"clock.now, now"})
+    @CsvSource({"time.now, now"})
     public void getAvailableAttributes_WithLibraryQualifierAndFunctionNeedle_ReturnsMatchingFunctions(
             ArgumentsAccessor arguments) {
         String needle = arguments.getString(0);

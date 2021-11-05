@@ -31,7 +31,7 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.pip.TimePolicyInformationPoint;
 
 /**
  * This class is used to offer library and function proposals.
@@ -48,7 +48,7 @@ public class DefaultLibraryAttributeFinder implements LibraryAttributeFinder {
 	 */
 	public DefaultLibraryAttributeFinder() throws InitializationException {
 		attributeContext = new AnnotationAttributeContext();
-		attributeContext.loadPolicyInformationPoint(new ClockPolicyInformationPoint());
+		attributeContext.loadPolicyInformationPoint(new TimePolicyInformationPoint());
 		functionContext = new AnnotationFunctionContext();
 		functionContext.loadLibrary(new FilterFunctionLibrary());
 		functionContext.loadLibrary(new StandardFunctionLibrary());

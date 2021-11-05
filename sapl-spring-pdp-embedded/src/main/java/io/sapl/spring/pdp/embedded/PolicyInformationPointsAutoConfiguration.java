@@ -18,14 +18,14 @@ package io.sapl.spring.pdp.embedded;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.pip.TimePolicyInformationPoint;
 
 @Configuration
 public class PolicyInformationPointsAutoConfiguration {
 
 	@Bean
-	public ClockPolicyInformationPoint clockPolicyInformationPoint() {
-		return new ClockPolicyInformationPoint();
+	public TimePolicyInformationPoint clockPolicyInformationPoint() {
+		return new TimePolicyInformationPoint();
 	}
 
 }

@@ -29,7 +29,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.pip.ClockPolicyInformationPoint;
+import io.sapl.pip.TimePolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
@@ -74,7 +74,7 @@ class E_PolicyStreamingTest {
 		// are not always compatible, as this can perform the clock move BEFORE the
 		// interval schedules itself, resulting in the interval never playing out.
 
-		fixture.registerPIP(new ClockPolicyInformationPoint()).constructTestCaseWithMocks().withVirtualTime()
+		fixture.registerPIP(new TimePolicyInformationPoint()).constructTestCaseWithMocks().withVirtualTime()
 				.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNext(anyDecision())
 				.expectNoEvent(Duration.ofSeconds(2)).expectNext(anyDecision()).expectNoEvent(Duration.ofSeconds(2))
 				.expectNext(anyDecision()).expectNoEvent(Duration.ofSeconds(2)).expectNext(anyDecision())
