@@ -21,73 +21,74 @@ import lombok.Setter;
 
 public class CanonicalIndexMatchingContext {
 
-    private final Bitmask candidatesMask;
-    @Getter
-    private final Bitmask matchingCandidatesMask;
+	private final Bitmask candidatesMask;
 
-    private final int[] trueLiteralsOfConjunction;
-    private final int[] eliminatedFormulasWithConjunction;
+	@Getter
+	private final Bitmask matchingCandidatesMask;
 
-    @Getter
-    private final EvaluationContext subscriptionScopedEvaluationContext;
+	private final int[] trueLiteralsOfConjunction;
 
-    @Getter
-    @Setter
-    private boolean errorsInTargets = false;
+	private final int[] eliminatedFormulasWithConjunction;
 
-    public CanonicalIndexMatchingContext(int numberOfConjunctions,
-                                         EvaluationContext subscriptionScopedEvaluationContext) {
+	@Getter
+	private final EvaluationContext subscriptionScopedEvaluationContext;
 
-        candidatesMask = new Bitmask();
-        candidatesMask.set(0, numberOfConjunctions);
+	@Getter
+	@Setter
+	private boolean errorsInTargets = false;
 
-        matchingCandidatesMask = new Bitmask();
+	public CanonicalIndexMatchingContext(int numberOfConjunctions,
+			EvaluationContext subscriptionScopedEvaluationContext) {
 
-        trueLiteralsOfConjunction = new int[numberOfConjunctions];
-        eliminatedFormulasWithConjunction = new int[numberOfConjunctions];
+		candidatesMask = new Bitmask();
+		candidatesMask.set(0, numberOfConjunctions);
 
-        this.subscriptionScopedEvaluationContext = subscriptionScopedEvaluationContext;
-    }
+		matchingCandidatesMask = new Bitmask();
 
-    Bitmask getCopyOfCandidates() {
-        return new Bitmask(candidatesMask);
-    }
+		trueLiteralsOfConjunction = new int[numberOfConjunctions];
+		eliminatedFormulasWithConjunction = new int[numberOfConjunctions];
 
-    boolean isRemainingCandidate(int candidateIndex) {
-        return candidatesMask.isSet(candidateIndex);
-    }
+		this.subscriptionScopedEvaluationContext = subscriptionScopedEvaluationContext;
+	}
 
-    boolean isPredicateReferencedInCandidates(final Predicate predicate) {
-        return predicate.getConjunctions().intersects(candidatesMask);
-    }
+	Bitmask getCopyOfCandidates() {
+		return new Bitmask(candidatesMask);
+	}
 
-    void incrementTrueLiteralsForConjunction(int conjunctionIndex) {
-        trueLiteralsOfConjunction[conjunctionIndex] += 1;
-    }
+	boolean isRemainingCandidate(int candidateIndex) {
+		return candidatesMask.isSet(candidateIndex);
+	}
 
-    void increaseNumberOfEliminatedFormulasForConjunction(int conjunctionIndex, long numberOfEliminatedFormulas) {
-        eliminatedFormulasWithConjunction[conjunctionIndex] += numberOfEliminatedFormulas;
-    }
+	boolean isPredicateReferencedInCandidates(final Predicate predicate) {
+		return predicate.getConjunctions().intersects(candidatesMask);
+	}
 
-    boolean isConjunctionSatisfied(int conjunctionIndex, int numberOfLiteralsInConjunction) {
-        return trueLiteralsOfConjunction[conjunctionIndex] == numberOfLiteralsInConjunction;
-    }
+	void incrementTrueLiteralsForConjunction(int conjunctionIndex) {
+		trueLiteralsOfConjunction[conjunctionIndex] += 1;
+	}
 
-    boolean areAllFunctionsEliminated(int conjunctionIndex, int numberOfFormulasWithConjunction) {
-        return eliminatedFormulasWithConjunction[conjunctionIndex] == numberOfFormulasWithConjunction;
-    }
+	void increaseNumberOfEliminatedFormulasForConjunction(int conjunctionIndex, long numberOfEliminatedFormulas) {
+		eliminatedFormulasWithConjunction[conjunctionIndex] += numberOfEliminatedFormulas;
+	}
 
-    void addSatisfiedCandidates(Bitmask satisfiedCandidates) {
-        matchingCandidatesMask.or(satisfiedCandidates);
-    }
+	boolean isConjunctionSatisfied(int conjunctionIndex, int numberOfLiteralsInConjunction) {
+		return trueLiteralsOfConjunction[conjunctionIndex] == numberOfLiteralsInConjunction;
+	}
 
-    void addCandidates(Bitmask candidatesToAdd) {
-        candidatesMask.or(candidatesToAdd);
-    }
+	boolean areAllFunctionsEliminated(int conjunctionIndex, int numberOfFormulasWithConjunction) {
+		return eliminatedFormulasWithConjunction[conjunctionIndex] == numberOfFormulasWithConjunction;
+	}
 
-    void removeCandidates(Bitmask candidatesToRemove) {
-        candidatesMask.andNot(candidatesToRemove);
-    }
+	void addSatisfiedCandidates(Bitmask satisfiedCandidates) {
+		matchingCandidatesMask.or(satisfiedCandidates);
+	}
 
+	void addCandidates(Bitmask candidatesToAdd) {
+		candidatesMask.or(candidatesToAdd);
+	}
+
+	void removeCandidates(Bitmask candidatesToRemove) {
+		candidatesMask.andNot(candidatesToRemove);
+	}
 
 }

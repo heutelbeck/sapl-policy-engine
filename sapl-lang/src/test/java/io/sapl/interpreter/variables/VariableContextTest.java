@@ -34,16 +34,25 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 class VariableContextTest {
 
 	private static final Val SUBJECT_NODE = Val.of("subject");
+
 	private static final Val ACTION_NODE = Val.of("action");
+
 	private static final Val RESOURCE_NODE = Val.of("resource");
+
 	private static final Val ENVIRONMENT_NODE = Val.of("environment");
+
 	private static final Val VAR_NODE = Val.of("var");
+
 	private static final Val VAR_NODE_NEW = Val.of("var_new");
+
 	private static final String VAR_ID = "var";
+
 	private static final AuthorizationSubscription AUTH_SUBSCRIPTION = new AuthorizationSubscription(SUBJECT_NODE.get(),
 			ACTION_NODE.get(), RESOURCE_NODE.get(), ENVIRONMENT_NODE.get());
+
 	private static final AuthorizationSubscription EMPTY_AUTH_SUBSCRIPTION = new AuthorizationSubscription(null, null,
 			null, null);
+
 	private static final Map<String, JsonNode> EMPTY_MAP = new HashMap<>();
 
 	@Test

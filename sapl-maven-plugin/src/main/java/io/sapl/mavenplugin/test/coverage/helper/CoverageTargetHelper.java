@@ -1,11 +1,23 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.mavenplugin.test.coverage.helper;
 
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
 
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.Policy;
@@ -20,40 +32,36 @@ import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
 import io.sapl.test.coverage.api.model.PolicySetHit;
 
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 @Named
 @Singleton
 public class CoverageTargetHelper {
 
 	public CoverageTargets getCoverageTargets(Collection<SaplDocument> documents) {
-		// Initialize
 		List<PolicySetHit> availablePolicySetHitTargets = new LinkedList<>();
 		List<PolicyHit> availablePolicyHitTargets = new LinkedList<>();
 		List<PolicyConditionHit> availablePolicyConditionHitTargets = new LinkedList<>();
 
-		// Evaluate
 		for (SaplDocument saplDoc : documents) {
 			PolicyElement element = saplDoc.getSaplDocument().getPolicyElement();
 
 			if (element.eClass().equals(SaplPackage.Literals.POLICY_SET)) {
 				addPolicySetToResult((PolicySet) element, availablePolicySetHitTargets, availablePolicyHitTargets,
 						availablePolicyConditionHitTargets);
-			} else if (element.eClass().equals(SaplPackage.Literals.POLICY)) {
+			}
+			else if (element.eClass().equals(SaplPackage.Literals.POLICY)) {
 				addPolicyToResult((Policy) element, "", availablePolicyHitTargets, availablePolicyConditionHitTargets);
-			} else {
+			}
+			else {
 				throw new SaplTestException("Error: Unknown Subtype of " + PolicyElement.class);
 			}
-
-			/*
-			 * if (element instanceof PolicySet) { } else if (element instanceof Policy) { }
-			 * else { }
-			 */
 		}
 
 		return new CoverageTargets(List.copyOf(availablePolicySetHitTargets), List.copyOf(availablePolicyHitTargets),
 				List.copyOf(availablePolicyConditionHitTargets));
 	}
-
-	
 
 	private void addPolicySetToResult(PolicySet policySet, Collection<PolicySetHit> availablePolicySetHitTargets,
 			Collection<PolicyHit> availablePolicyHitTargets,
@@ -90,6 +98,5 @@ public class CoverageTargetHelper {
 			availablePolicyConditionHitTargets.add(new PolicyConditionHit(policySetId, policyId, position, false));
 		}
 	}
-
 
 }

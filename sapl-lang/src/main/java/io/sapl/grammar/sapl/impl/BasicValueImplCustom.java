@@ -25,15 +25,15 @@ import reactor.core.publisher.Flux;
  *
  * Grammar: {BasicValue} value=Value steps+=Step*;
  *
- * Value: Object | Array | NumberLiteral | StringLiteral | BooleanLiteral |
- * NullLiteral | UndefinedLiteral ;
+ * Value: Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral |
+ * UndefinedLiteral ;
  */
 public class BasicValueImplCustom extends BasicValueImpl {
 
 	@Override
 	public Flux<Val> evaluate(@NonNull EvaluationContext ctx, @NonNull Val relativeNode) {
 		var evaluatedValue = getValue().evaluate(ctx, relativeNode);
-		return evaluatedValue.switchMap(resolveStepsFiltersAndSubtemplates(steps, ctx, relativeNode));
+		return evaluatedValue.switchMap(resolveStepsFiltersAndSubTemplates(steps, ctx, relativeNode));
 	}
 
 }

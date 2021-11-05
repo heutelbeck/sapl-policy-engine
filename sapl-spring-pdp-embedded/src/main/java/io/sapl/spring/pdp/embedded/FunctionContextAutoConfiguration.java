@@ -45,9 +45,10 @@ public class FunctionContextAutoConfiguration {
 	public FunctionContext functionContext() throws InitializationException {
 		var functionContext = new AnnotationFunctionContext();
 		for (var library : functionLibraries) {
-			log.info("loading FunctionLibrary: {}", library.getClass().getSimpleName());
+			log.trace("loading FunctionLibrary: {}", library.getClass().getSimpleName());
 			functionContext.loadLibrary(library);
 		}
 		return functionContext;
 	}
+
 }

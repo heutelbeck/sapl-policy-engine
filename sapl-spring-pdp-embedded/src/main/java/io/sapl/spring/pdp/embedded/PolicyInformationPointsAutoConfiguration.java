@@ -27,5 +27,5 @@ public class PolicyInformationPointsAutoConfiguration {
 	public ClockPolicyInformationPoint clockPolicyInformationPoint() {
 		return new ClockPolicyInformationPoint();
 	}
-	
+
 }

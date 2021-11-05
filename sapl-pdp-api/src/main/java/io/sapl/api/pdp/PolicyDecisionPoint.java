@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2021 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@ import reactor.core.publisher.Flux;
 /**
  * The policy decision point is the component in the system, which will take an
  * authorization subscription, retrieve matching policies from the policy retrieval point,
- * evaluate the policies, while potentially consulting external resources (e.g., through
+ * evaluate the policies while potentially consulting external resources (e.g., through
  * attribute finders), and return a {@link Flux} of authorization decision objects.
  *
- * This interface offers a number of convenience methods to hand over an authorization
- * subscription to the policy decision point, which only differ in the construction of the
- * underlying authorization subscription object.
+ * This interface offers methods to hand over an authorization subscription to the policy
+ * decision point, differing in the construction of the underlying authorization
+ * subscription object.
  */
 public interface PolicyDecisionPoint {
 
@@ -42,8 +42,8 @@ public interface PolicyDecisionPoint {
 	/**
 	 * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
 	 * @param multiAuthzSubscription the multi-subscription object containing the
-	 * subjects, actions, resources and environments of the authorization subscriptions to
-	 * be evaluated by the PDP.
+	 * subjects, actions, resources, and environments of the authorization subscriptions
+	 * to be evaluated by the PDP.
 	 * @return a {@link Flux} emitting authorization decisions for the given authorization
 	 * subscriptions as soon as they are available. Related authorization decisions and
 	 * authorization subscriptions have the same id.
@@ -53,8 +53,8 @@ public interface PolicyDecisionPoint {
 	/**
 	 * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
 	 * @param multiAuthzSubscription the multi-subscription object containing the
-	 * subjects, actions, resources and environments of the authorization subscriptions to
-	 * be evaluated by the PDP.
+	 * subjects, actions, resources, and environments of the authorization subscriptions
+	 * to be evaluated by the PDP.
 	 * @return a {@link Flux} emitting authorization decisions for the given authorization
 	 * subscriptions as soon as at least one authorization decision for each authorization
 	 * subscription is available.

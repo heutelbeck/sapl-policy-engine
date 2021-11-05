@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.grammar.sapl.impl;
 
 import java.util.ArrayList;
@@ -8,6 +23,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.AuthorizationDecisionEvaluable;
 import io.sapl.grammar.sapl.Policy;
+import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.extern.slf4j.Slf4j;
@@ -21,11 +37,11 @@ public class CombiningAlgorithmImplCustom extends CombiningAlgorithmImpl {
 	@Override
 	public Flux<AuthorizationDecision> combineMatchingDocuments(PolicyRetrievalResult policyRetrievalResult,
 			EvaluationContext evaluationCtx) {
-		log.debug("|-- Combining matching documents");
 		var matchingSaplDocuments = policyRetrievalResult.getMatchingDocuments();
 		final List<Flux<AuthorizationDecision>> authzDecisionFluxes = new ArrayList<>(matchingSaplDocuments.size());
 		for (AuthorizationDecisionEvaluable document : matchingSaplDocuments) {
-			log.debug("| |-- Evaluate: {} ", document);
+			log.debug("  |- Evaluate: {} ", (document instanceof SAPL)
+					? ((SAPL) document).getPolicyElement().getSaplName() : document.toString());
 			authzDecisionFluxes.add(document.evaluate(evaluationCtx));
 		}
 		if (matchingSaplDocuments.isEmpty()) {

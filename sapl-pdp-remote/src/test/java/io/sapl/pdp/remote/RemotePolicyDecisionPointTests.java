@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.pdp.remote;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -37,12 +52,17 @@ import reactor.test.StepVerifier;
 class RemotePolicyDecisionPointTests {
 
 	private static final String ID = "id1";
+
 	private static final String RESOURCE = "resource";
+
 	private static final String ACTION = "action";
+
 	private static final String SUBJECT = "subject";
+
 	private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 
 	private MockWebServer server;
+
 	private RemotePolicyDecisionPoint pdp;
 
 	@BeforeAll
@@ -87,7 +107,6 @@ class RemotePolicyDecisionPointTests {
 		StepVerifier.create(pdp.decide(subscription))
 				.expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE,
 						AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE,
-						AuthorizationDecision.INDETERMINATE, AuthorizationDecision.INDETERMINATE,
 						AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.INDETERMINATE)
 				.thenCancel().verify();
 	}
@@ -127,19 +146,19 @@ class RemotePolicyDecisionPointTests {
 	}
 
 	private void prepareDecisions(Object[] decisions) throws JsonProcessingException {
-		String body = "";
+		StringBuilder body = new StringBuilder();
 		for (var decision : decisions) {
 			if (decision == null)
-				body += "data: INTENDED INVALID VALUE TO CAUSE AN ERROR\n\n";
+				body.append("data: INTENDED INVALID VALUE TO CAUSE AN ERROR\n\n");
 			else {
 				/* "text/event-stream" */
-				body += "data: " + MAPPER.writeValueAsString(decision) + "\n\n";
+				body.append("data: ").append(MAPPER.writeValueAsString(decision)).append("\n\n");
 			}
 		}
 		var response = new MockResponse()
 				.setHeader(HttpHeaders.CONTENT_TYPE.toString(),
 						MediaType.TEXT_EVENT_STREAM_VALUE /* .APPLICATION_NDJSON_VALUE */)
-				.setResponseCode(HttpStatus.OK.value()).setBody(body);
+				.setResponseCode(HttpStatus.OK.value()).setBody(body.toString());
 		server.enqueue(response);
 	}
 

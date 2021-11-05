@@ -1,25 +1,21 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.mavenplugin.test.coverage.report.html;
 
-import static j2html.TagCreator.a;
-import static j2html.TagCreator.attrs;
-import static j2html.TagCreator.body;
-import static j2html.TagCreator.div;
-import static j2html.TagCreator.each;
-import static j2html.TagCreator.h1;
-import static j2html.TagCreator.head;
-import static j2html.TagCreator.html;
-import static j2html.TagCreator.img;
-import static j2html.TagCreator.li;
-import static j2html.TagCreator.link;
-import static j2html.TagCreator.main;
-import static j2html.TagCreator.meta;
-import static j2html.TagCreator.nav;
-import static j2html.TagCreator.ol;
-import static j2html.TagCreator.p;
-import static j2html.TagCreator.rawHtml;
-import static j2html.TagCreator.script;
-import static j2html.TagCreator.textarea;
-import static j2html.TagCreator.title;
+import static j2html.TagCreator.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -34,10 +30,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.maven.plugin.logging.Log;
-
 import io.sapl.mavenplugin.test.coverage.PathHelper;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
+
+import org.apache.maven.plugin.logging.Log;
+
 import j2html.attributes.Attribute;
 import j2html.tags.ContainerTag;
 import j2html.tags.EmptyTag;
@@ -48,13 +45,18 @@ public class HtmlLineCoverageReportGenerator {
 
 	public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Log log, Path basedir,
 			float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio) {
+
 		Path index = generateMainSite(policySetHitRatio, policyHitRatio, policyConditionHitRatio, documents, basedir,
 				log);
+
 		generateCustomCSS(basedir, log);
+
 		copyAssets(basedir, log);
+
 		for (var doc : documents) {
 			generatePolicySite(doc, basedir, log);
 		}
+
 		return index;
 
 	}
@@ -63,7 +65,7 @@ public class HtmlLineCoverageReportGenerator {
 			Collection<SaplDocumentCoverageInformation> documents, Path basedir, Log log) {
 
 		// @formatter:off
-		ContainerTag mainSite = 
+		ContainerTag mainSite =
 			html(
 				head(
 					meta().withCharset("utf-8"),
@@ -89,7 +91,7 @@ public class HtmlLineCoverageReportGenerator {
 						h1("SAPL Coverage Report").withStyle("padding: 1.25rem;"),
 
 						div(
-							div("SAPL Coverage Ratio").withClass("card-header"), 
+							div("SAPL Coverage Ratio").withClass("card-header"),
 							div(
 								p("PolicySet Hit Ratio: " + policySetHitRatio + "%"),
 								p("Policy Hit Ratio: " + policyHitRatio + "%"),
@@ -98,12 +100,12 @@ public class HtmlLineCoverageReportGenerator {
 						).withClass("card").withStyle("padding: 1.25rem"),
 
 						div(
-							div("Show coverage per SAPL document").withClass("card-header"), 
+							div("Show coverage per SAPL document").withClass("card-header"),
 							div(
 								div(
 									each(
 										documents,
-										document -> 
+										document ->
 											a(document.getPathToDocument().getFileName().toString())
 												.withHref("policies/" + document.getPathToDocument().getFileName().toString() + ".html")
 												.withClass("list-group-item list-group-item-action")
@@ -156,7 +158,7 @@ public class HtmlLineCoverageReportGenerator {
 		StringBuilder htmlReportCodeMirrorJSLineClassStatements = new StringBuilder("\n");
 		for (int i = 0; i < models.size(); i++) {
 			var model = models.get(i);
-			wholeTextOfPolicy.append(model.getLineContent() + "\n");
+			wholeTextOfPolicy.append(model.getLineContent()).append('\n');
 			htmlReportCodeMirrorJSLineClassStatements
 					.append(String.format("editor.addLineClass(%s, \"text\", \"%s\");%n", i, model.getCssClass()));
 			if (model.getPopoverContent() != null) {
@@ -184,11 +186,11 @@ public class HtmlLineCoverageReportGenerator {
 			        ),
 			    body(
 			        main(attrs("#main.content"),
-	        			nav( 
+	        			nav(
         					ol(
     							li(
 									a("Home").withHref("../index.html")
-								).withClass("breadcrumb-item"), 
+								).withClass("breadcrumb-item"),
     							li(
 									filename
 								).withClass("breadcrumb-item active").attr(new Attribute("aria-current", "page"))
@@ -211,7 +213,7 @@ public class HtmlLineCoverageReportGenerator {
 
 	private List<HtmlPolicyLineModel> createHtmlPolicyLineModel(List<String> lines,
 			SaplDocumentCoverageInformation document) {
-		List<HtmlPolicyLineModel> models = new LinkedList<HtmlPolicyLineModel>();
+		List<HtmlPolicyLineModel> models = new LinkedList<>();
 
 		for (int i = 0; i < lines.size(); i++) {
 			var model = new HtmlPolicyLineModel();
@@ -239,9 +241,9 @@ public class HtmlLineCoverageReportGenerator {
 	}
 
 	private void copyAssets(Path basedir, Log log) {
-		Path logoHeaderpath = basedir.resolve("html").resolve("assets").resolve("logo-header.png");
+		Path logoHeaderPath = basedir.resolve("html").resolve("assets").resolve("logo-header.png");
 		var logoSourcePath = getClass().getClassLoader().getResourceAsStream("images/logo-header.png");
-		copyFile(logoSourcePath, logoHeaderpath, log);
+		copyFile(logoSourcePath, logoHeaderPath, log);
 
 		Path faviconPath = basedir.resolve("html").resolve("assets").resolve("favicon.png");
 		var faviconSourcePath = getClass().getClassLoader().getResourceAsStream("images/favicon.png");
@@ -275,7 +277,8 @@ public class HtmlLineCoverageReportGenerator {
 		String fileContent = "";
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
 			fileContent = reader.lines().collect(Collectors.joining("\n"));
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error(String.format("Error reading file: \"%s\"", filename), e);
 		}
 		return fileContent;
@@ -284,8 +287,9 @@ public class HtmlLineCoverageReportGenerator {
 	private List<String> readPolicyDocument(Path filePath, Log log) {
 		try {
 			return Files.readAllLines(filePath);
-		} catch (IOException e) {
-			log.error(String.format("Error reading file: \"%s\"", filePath.toString()), e);
+		}
+		catch (IOException e) {
+			log.error(String.format("Error reading file: \"%s\"", filePath), e);
 		}
 		return new LinkedList<>();
 	}
@@ -296,8 +300,9 @@ public class HtmlLineCoverageReportGenerator {
 				PathHelper.createFile(filePath);
 			}
 			Files.writeString(filePath, content);
-		} catch (IOException e) {
-			log.error(String.format("Error writing file \"%s\"", filePath.toString()));
+		}
+		catch (IOException e) {
+			log.error(String.format("Error writing file \"%s\"", filePath));
 		}
 	}
 
@@ -305,7 +310,7 @@ public class HtmlLineCoverageReportGenerator {
 
 		var parent = target.getParent();
 		if (parent == null) {
-			log.error(String.format("Parent of \"%s\" was null.", target.toString()));
+			log.error(String.format("Parent of \"%s\" was null.", target));
 			return;
 		}
 		var parentFile = parent.toFile();
@@ -326,8 +331,9 @@ public class HtmlLineCoverageReportGenerator {
 			if (!targetFile.exists()) {
 				Files.copy(source, target);
 			}
-		} catch (IOException e) {
-			log.error(String.format("Error writing file \"%s\"", target.toString()));
+		}
+		catch (IOException e) {
+			log.error(String.format("Error writing file \"%s\"", target));
 		}
 	}
 
@@ -362,8 +368,13 @@ public class HtmlLineCoverageReportGenerator {
 
 	@Data
 	static class HtmlPolicyLineModel {
+
 		String lineContent;
+
 		String cssClass;
+
 		String popoverContent;
+
 	}
+
 }

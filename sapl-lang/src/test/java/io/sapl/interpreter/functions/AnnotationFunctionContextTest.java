@@ -140,14 +140,14 @@ class AnnotationFunctionContextTest {
 		assertThrows(InitializationException.class,
 				() -> new AnnotationFunctionContext(new BadReturnTypeFunctionLibrary()));
 	}
-	
-	@Test 
+
+	@Test
 	void loadedLibrariesShouldBeReturned() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext(new MockLibrary());
 		assertThat(context.getAvailableLibraries().contains(MockLibrary.LIBRARY_NAME), is(true));
 	}
-	
-	@Test 
+
+	@Test
 	void loadedLibrariesReturnEmptyListWhenNotLoaded() throws InitializationException {
 		AnnotationFunctionContext context = new AnnotationFunctionContext();
 		assertThat(context.getAvailableLibraries().size(), is(0));
@@ -157,9 +157,13 @@ class AnnotationFunctionContextTest {
 	public static class MockLibrary {
 
 		public static final String FUNCTION_DOC = "docs for helloTest";
+
 		public static final String FUNCTION_NAME = "helloTest";
+
 		public static final Val RETURN_VALUE = Val.of("HELLO TEST");
+
 		public static final String LIBRARY_NAME = "test.lib";
+
 		public static final String LIBRARY_DOC = "docs of my lib";
 
 		@Function(name = FUNCTION_NAME, docs = FUNCTION_DOC)
@@ -186,6 +190,7 @@ class AnnotationFunctionContextTest {
 
 	@FunctionLibrary(name = "validate")
 	public static class ValidationLibrary {
+
 		@Function
 		public static Val fixed(@Text Val arg) {
 			return Val.UNDEFINED;
@@ -195,37 +200,46 @@ class AnnotationFunctionContextTest {
 		public static Val varArgs(@Text Val... args) {
 			return Val.UNDEFINED;
 		}
+
 	}
 
 	@FunctionLibrary
 	@NoArgsConstructor
 	public static class FunctionLibraryWithoutName {
+
 	}
 
 	@FunctionLibrary
 	@NoArgsConstructor
 	public static class BadParameterTypeFunctionLibrary {
+
 		@Function
 		public Val fun(String param) {
 			return Val.UNDEFINED;
 		}
+
 	}
 
 	@FunctionLibrary
 	@NoArgsConstructor
 	public static class BadParameterTypeFunctionLibraryVarArgs {
+
 		@Function
 		public Val fun(String... param) {
 			return Val.UNDEFINED;
 		}
+
 	}
 
 	@FunctionLibrary
 	@NoArgsConstructor
 	public static class BadReturnTypeFunctionLibrary {
+
 		@Function
 		public String fun(Val param) {
 			return param.toString();
 		}
+
 	}
+
 }

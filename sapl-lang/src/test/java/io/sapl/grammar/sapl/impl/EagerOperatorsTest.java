@@ -429,12 +429,11 @@ class EagerOperatorsTest {
 		expressionErrors(CTX, "(10/0) / 5");
 	}
 
-
 	@Test
 	void evaluateDivRightError() {
 		expressionErrors(CTX, "10 / (10/0)");
 	}
-	
+
 	@Test
 	void moduloEvaluationShouldFailWithNonNumberLeft() {
 		expressionErrors(CTX, "null%10");
@@ -699,4 +698,5 @@ class EagerOperatorsTest {
 	void evaluateRegExRightError() {
 		expressionErrors(CTX, "\"aaa\" =~ (10/0)");
 	}
+
 }

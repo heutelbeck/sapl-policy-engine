@@ -25,10 +25,11 @@ import lombok.experimental.UtilityClass;
 public class TargetExpressionUtil {
 
 	private static final String POLICY_SET = "PolicySet";
+
 	private static final String POLICY = "Policy";
+
 	/**
 	 * Used to check for illegal attributes or lazy operators in target expressions.
-	 * 
 	 * @param object an EObject in the AST
 	 * @return true, the object is the target expression in a Policy or Policy Set.
 	 */
@@ -43,7 +44,8 @@ public class TargetExpressionUtil {
 				if (current == targetExpression) {
 					return true;
 				}
-			} else if (POLICY_SET.equals(containerName)) {
+			}
+			else if (POLICY_SET.equals(containerName)) {
 				var policy = (PolicySet) container;
 				var targetExpression = policy.getTargetExpression();
 				if (current == targetExpression) {
@@ -54,4 +56,5 @@ public class TargetExpressionUtil {
 		}
 		return false;
 	}
+
 }

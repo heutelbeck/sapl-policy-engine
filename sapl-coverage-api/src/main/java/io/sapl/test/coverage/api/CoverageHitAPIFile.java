@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.coverage.api;
 
 import java.io.IOException;
@@ -19,8 +34,11 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
+
 	public final Path FILE_PATH_POLICY_SET_HITS;
+
 	public final Path FILE_PATH_POLICY_HITS;
+
 	public final Path FILE_PATH_POLICY_CONDITION_HITS;
 
 	CoverageHitAPIFile(Path basedir) {
@@ -52,12 +70,10 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 		}
 
 		try {
-			if (doesLineExistsInFile(filePath, lineToAdd)) {
-				// do nothing as already hit
-			} else {
+			if (!doesLineExistsInFile(filePath, lineToAdd))
 				appendLineToFile(filePath, lineToAdd);
-			}
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error("Error writing File " + filePath, e);
 		}
 	}
@@ -65,11 +81,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 	private boolean doesLineExistsInFile(Path filePathPolicySetHits, String lineToAdd) throws IOException {
 		try (Stream<String> stream = Files.lines(filePathPolicySetHits)) {
 			Optional<String> lineHavingTarget = stream.filter(l -> l.contains(lineToAdd)).findFirst();
-			if (lineHavingTarget.isPresent()) {
-				return true;
-			} else {
-				return false;
-			}
+			return lineHavingTarget.isPresent();
 		}
 	}
 
@@ -80,28 +92,28 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 
 	@Override
 	public List<PolicySetHit> readPolicySetHits() {
-		return readFileLines(FILE_PATH_POLICY_SET_HITS).stream().map(line -> PolicySetHit.fromString(line))
+		return readFileLines(FILE_PATH_POLICY_SET_HITS).stream().map(PolicySetHit::fromString)
 				.collect(Collectors.toList());
 	}
 
 	@Override
 	public List<PolicyHit> readPolicyHits() {
-		return readFileLines(FILE_PATH_POLICY_HITS).stream().map(line -> PolicyHit.fromString(line))
-				.collect(Collectors.toList());
+		return readFileLines(FILE_PATH_POLICY_HITS).stream().map(PolicyHit::fromString).collect(Collectors.toList());
 	}
 
 	@Override
 	public List<PolicyConditionHit> readPolicyConditionHits() {
-		return readFileLines(FILE_PATH_POLICY_CONDITION_HITS).stream().map(line -> PolicyConditionHit.fromString(line))
+		return readFileLines(FILE_PATH_POLICY_CONDITION_HITS).stream().map(PolicyConditionHit::fromString)
 				.collect(Collectors.toList());
 	}
 
 	private List<String> readFileLines(Path filePathPolicySetHits) {
 		try {
 			return Files.readAllLines(filePathPolicySetHits);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error(String.format("Error reading File %s. Is the policy coverage recording disabled?",
-					filePathPolicySetHits.toAbsolutePath().toString()), e);
+					filePathPolicySetHits.toAbsolutePath()), e);
 		}
 		return new LinkedList<>();
 	}
@@ -116,7 +128,8 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 	private void cleanCoverageHitFile(Path filePath) {
 		try {
 			Files.deleteIfExists(filePath);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error("Error deleting File " + filePath, e);
 		}
 	}
@@ -133,11 +146,12 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
 			// ignore when file in previous test got created
 			if (!Files.exists(filePath)) {
 				var parent = filePath.getParent();
-				if(parent != null)
+				if (parent != null)
 					Files.createDirectories(parent);
 				Files.createFile(filePath);
 			}
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error("Error creating File " + filePath, e);
 		}
 	}

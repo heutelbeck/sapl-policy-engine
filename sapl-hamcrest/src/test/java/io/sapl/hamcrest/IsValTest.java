@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.hamcrest;
 
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonBoolean;
@@ -112,13 +127,13 @@ class IsValTest {
 		var sut = val(BigInteger.valueOf(3L));
 		assertThat(Val.of(BigInteger.valueOf(3L)), is(sut));
 	}
-	
+
 	@Test
 	void testNull() {
 		var sut = valNull();
 		assertThat(Val.NULL, is(sut));
 	}
-	
+
 	@Test
 	void testAnyVal() {
 		var sut = anyVal();
@@ -144,4 +159,5 @@ class IsValTest {
 		sut.describeTo(description);
 		assertThat(description.toString(), is("a val that is a boolean node with value that is ANYTHING"));
 	}
+
 }

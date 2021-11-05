@@ -35,7 +35,8 @@ public class IsValUndefined extends TypeSafeDiagnosingMatcher<Val> {
 	protected boolean matchesSafely(Val item, Description mismatchDescription) {
 		if (item.isUndefined()) {
 			return true;
-		} else {
+		}
+		else {
 			mismatchDescription.appendText("a Val that is ").appendValue(item);
 			return false;
 		}

@@ -32,13 +32,13 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 /**
- * Implements the application of an attribute union step to a previous object
- * value, e.g. 'person["firstName", "lastName"]'.
+ * Implements the application of an attribute union step to a previous object value, e.g.
+ * 'person["firstName", "lastName"]'.
  *
  * Grammar: Step: '[' Subscript ']' ;
  *
- * Subscript returns Step: {AttributeUnionStep} attributes+=STRING ','
- * attributes+=STRING (',' attributes+=STRING)* ;
+ * Subscript returns Step: {AttributeUnionStep} attributes+=STRING ',' attributes+=STRING
+ * (',' attributes+=STRING)* ;
  */
 @Slf4j
 public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
@@ -99,14 +99,16 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 											FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
 											parentValue, statement.isEach())
 									.map(val -> Tuples.of(field.getKey(), val)));
-				} else {
+				}
+				else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					fieldFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
 							.applyFilterStatement(Val.of(field.getValue()), ctx, relativeNode, stepId + 1, statement)
 							.map(val -> Tuples.of(field.getKey(), val)));
 				}
-			} else {
+			}
+			else {
 				log.trace("field not matching. just return it as it will not be affected by filtering");
 				fieldFluxes.add(Flux.just(Tuples.of(field.getKey(), Val.of(field.getValue()))));
 			}

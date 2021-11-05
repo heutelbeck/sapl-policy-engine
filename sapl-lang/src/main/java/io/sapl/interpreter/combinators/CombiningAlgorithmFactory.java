@@ -43,4 +43,5 @@ public class CombiningAlgorithmFactory {
 
 		return new DenyUnlessPermitCombiningAlgorithmImplCustom();
 	}
+
 }

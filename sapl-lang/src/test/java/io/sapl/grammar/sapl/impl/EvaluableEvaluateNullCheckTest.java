@@ -52,16 +52,13 @@ class EvaluableEvaluateNullCheckTest {
 	@ParameterizedTest
 	@MethodSource("data")
 	void nullEvaluationContext(Evaluable evaluable) {
-		assertThrows(NullPointerException.class, () -> {
-			evaluable.evaluate(null, Val.UNDEFINED);
-		});
+		assertThrows(NullPointerException.class, () -> evaluable.evaluate(null, Val.UNDEFINED));
 	}
 
 	@ParameterizedTest
 	@MethodSource("data")
 	void nullullRelativeNode(Evaluable evaluable) {
-		assertThrows(NullPointerException.class, () -> {
-			evaluable.evaluate(CTX, null);
-		});
+		assertThrows(NullPointerException.class, () -> evaluable.evaluate(CTX, null));
 	}
+
 }

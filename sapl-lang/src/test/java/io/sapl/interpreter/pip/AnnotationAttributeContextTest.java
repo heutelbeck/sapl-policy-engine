@@ -81,6 +81,7 @@ class AnnotationAttributeContextTest {
 
 	@PolicyInformationPoint
 	public static class NoNamePIP {
+
 	}
 
 	@Test
@@ -93,10 +94,12 @@ class AnnotationAttributeContextTest {
 	void attributeGetsAnnotatedName() throws InitializationException {
 		@PolicyInformationPoint
 		class AttributeNameTestPIP {
+
 			@Attribute(name = "theName")
 			Flux<Val> notTheName(Val leftHand, Map<String, JsonNode> variables) {
 				return Val.fluxOfUndefined();
 			}
+
 		}
 		var attributeCtx = new AnnotationAttributeContext(new AttributeNameTestPIP());
 		assertAll(() -> assertThat(attributeCtx.isProvidedFunction("AttributeNameTestPIP.theName"), is(true)),
@@ -108,10 +111,12 @@ class AnnotationAttributeContextTest {
 	void attributeGetsAnnotatedDescription() throws InitializationException {
 		@PolicyInformationPoint
 		class AttributeNameTestPIP {
+
 			@Attribute(docs = "doc")
 			Flux<Val> theName(Val leftHand, Map<String, JsonNode> variables) {
 				return Val.fluxOfUndefined();
 			}
+
 		}
 		var attributeCtx = new AnnotationAttributeContext(new AttributeNameTestPIP());
 		assertThat(new ArrayList<>(attributeCtx.getDocumentation()).get(0).documentation.get("theName"), is("doc"));
@@ -121,10 +126,12 @@ class AnnotationAttributeContextTest {
 	void attributeGetsMethodWhenNotAnnotatedName() throws InitializationException {
 		@PolicyInformationPoint
 		class AttributeNoNameTestPIP {
+
 			@Attribute
 			Flux<Val> theName(Val leftHand, Map<String, JsonNode> variables) {
 				return Val.fluxOfUndefined();
 			}
+
 		}
 		var attributeCtx = new AnnotationAttributeContext(new AttributeNoNameTestPIP());
 		assertThat(attributeCtx.isProvidedFunction("AttributeNoNameTestPIP.theName"), is(true));
@@ -160,10 +167,12 @@ class AnnotationAttributeContextTest {
 	void failToLoadPIPAttributeWithWrongParamTypeForMap() {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute
 			Flux<Val> theName(Val leftHand, Val hereShouldBeTheMap) {
 				return Val.fluxOfUndefined();
 			}
+
 		}
 		assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(new PIP()));
 	}
@@ -172,10 +181,12 @@ class AnnotationAttributeContextTest {
 	void failToLoadPIPAttributeWithWrongParamTypeForMapWithRegardsToGenericsKey() {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute
 			Flux<Val> theName(Val leftHand, Map<Boolean, JsonNode> variable) {
 				return Val.fluxOfUndefined();
 			}
+
 		}
 		assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(new PIP()));
 	}
@@ -184,10 +195,12 @@ class AnnotationAttributeContextTest {
 	void failToLoadPIPAttributeWithWrongParamTypeForMapWithRegardsToGenericsValue() {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute
 			Flux<Val> theName(Val leftHand, Map<String, Integer> variable) {
 				return Val.fluxOfUndefined();
 			}
+
 		}
 		assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(new PIP()));
 	}
@@ -196,10 +209,12 @@ class AnnotationAttributeContextTest {
 	void failToLoadPIPAttributeWithWrongParamTypeForVal() {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute
 			Flux<Val> theName(String shouldBeAVal, Map<String, JsonNode> variables) {
 				return Val.fluxOfUndefined();
 			}
+
 		}
 		assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(new PIP()));
 	}
@@ -208,10 +223,12 @@ class AnnotationAttributeContextTest {
 	void failToLoadPIPAttributeWithWrongParamTypeRightHandParameters() {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute
 			Flux<Val> theName(Val val, Map<String, JsonNode> variables, String param) {
 				return Val.fluxOfUndefined();
 			}
+
 		}
 		assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(new PIP()));
 	}
@@ -220,10 +237,12 @@ class AnnotationAttributeContextTest {
 	void failToLoadPIPAttributeWithWrongGenericInFluxParamTypeRightHandParameters() {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute
 			Flux<Val> theName(Val val, Map<String, JsonNode> variables, Flux<String> param) {
 				return Val.fluxOfUndefined();
 			}
+
 		}
 		assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(new PIP()));
 	}
@@ -232,10 +251,12 @@ class AnnotationAttributeContextTest {
 	void failToLoadPIPAttributeWithWrongReturnType() {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute
 			String theName(Val val, Map<String, JsonNode> variables) {
 				return "";
 			}
+
 		}
 		assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(new PIP()));
 	}
@@ -244,10 +265,12 @@ class AnnotationAttributeContextTest {
 	void failToLoadPIPAttributeWithWrongGenericReturnType() {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute
 			Flux<String> theName(Val val, Map<String, JsonNode> variables) {
 				return Flux.just("");
 			}
+
 		}
 		assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(new PIP()));
 	}
@@ -256,10 +279,12 @@ class AnnotationAttributeContextTest {
 	void failToLoadPIPAttributeWithWrongGenericReturnType2() {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute
 			List<Val> theName(Val val, Map<String, JsonNode> variables) {
 				return null;
 			}
+
 		}
 		assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(new PIP()));
 	}
@@ -268,6 +293,7 @@ class AnnotationAttributeContextTest {
 	void failToLoadPIPAttributeWithNameCollisiton() {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute(name = "collision")
 			Flux<Val> theName(Val val, Map<String, JsonNode> variables) {
 				return null;
@@ -277,6 +303,7 @@ class AnnotationAttributeContextTest {
 			Flux<Val> anotherName(Val val, Map<String, JsonNode> variables) {
 				return null;
 			}
+
 		}
 		assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(new PIP()));
 	}
@@ -285,10 +312,12 @@ class AnnotationAttributeContextTest {
 	void evaluateComplete() throws InitializationException, IOException {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute
 			Flux<Val> attribute(Val leftHand, Map<String, JsonNode> variables, Flux<Val> param1, Flux<Val> param2) {
 				return Flux.just(leftHand, Val.of(variables.get("key1")), param1.blockFirst(), param2.blockFirst());
 			}
+
 		}
 		var attributeCtx = new AnnotationAttributeContext(new PIP());
 		var variables = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
@@ -303,10 +332,12 @@ class AnnotationAttributeContextTest {
 	void evaluateEnvironment() throws InitializationException, IOException {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute
 			Flux<Val> attribute(Val leftHand, Map<String, JsonNode> variables) {
 				return Flux.just(leftHand, Val.of(variables.get("key1")));
 			}
+
 		}
 		var attributeCtx = new AnnotationAttributeContext(new PIP());
 		var variables = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
@@ -320,10 +351,12 @@ class AnnotationAttributeContextTest {
 	void evaluateCatchesPolicEvaluationException() throws InitializationException, IOException {
 		@PolicyInformationPoint
 		class PIP {
+
 			@Attribute
 			Flux<Val> attribute(Val leftHand, Map<String, JsonNode> variables) {
 				throw new PolicyEvaluationException("error");
 			}
+
 		}
 		var attributeCtx = new AnnotationAttributeContext(new PIP());
 		var variables = new HashMap<String, JsonNode>();
@@ -337,6 +370,7 @@ class AnnotationAttributeContextTest {
 	void unknownAttributeEvaluatesToError() throws InitializationException, IOException {
 		@PolicyInformationPoint
 		class PIP {
+
 		}
 		var attributeCtx = new AnnotationAttributeContext(new PIP());
 		var variables = new HashMap<String, JsonNode>();
@@ -345,13 +379,13 @@ class AnnotationAttributeContextTest {
 		StepVerifier.create(expression.evaluate(evalCtx, Val.UNDEFINED)).expectNextMatches(Val::isError)
 				.verifyComplete();
 	}
-	
+
 	@Test
 	void contextShouldReturnEmptyListWhenNoPipsAreLoaded() throws InitializationException {
 		var attributeCtx = new AnnotationAttributeContext();
 		assertThat(attributeCtx.getAvailableLibraries().size(), is(0));
 	}
-	
+
 	@Test
 	void contextShouldReturnAllLoadedPips() throws InitializationException {
 		var pip = new TestPIP();

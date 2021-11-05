@@ -61,7 +61,8 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
 			return applyFilterFunction(unfilteredValue, statement.getArguments(),
 					FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx, relativeNode,
 					statement.isEach());
-		} else {
+		}
+		else {
 			// descent with steps
 			return statement.getTarget().getSteps().get(0).applyFilterStatement(unfilteredValue, ctx, relativeNode, 0,
 					statement);

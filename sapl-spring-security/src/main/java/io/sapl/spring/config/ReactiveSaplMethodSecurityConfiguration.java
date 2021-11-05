@@ -40,7 +40,7 @@ import org.springframework.security.config.core.GrantedAuthorityDefaults;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.SaplAttributeFactory;
 import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 import io.sapl.spring.method.reactive.PostEnforcePolicyEnforcementPoint;
@@ -51,8 +51,8 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Sets up automatic PEP generation for Methods with reactive return types. Bean
- * can be customized by sub classing.
+ * Sets up automatic PEP generation for Methods with reactive return types. Bean can be
+ * customized by sub classing.
  */
 @RequiredArgsConstructor
 @Configuration(proxyBeanMethods = false)
@@ -60,8 +60,10 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 
 	@NonNull
 	private final PolicyDecisionPoint pdp;
+
 	@NonNull
-	private final ReactiveConstraintEnforcementService constraintHandlerService;
+	private final ConstraintEnforcementService constraintHandlerService;
+
 	@NonNull
 	private final ObjectMapper mapper;
 
@@ -111,23 +113,23 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	protected PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint(
-			ReactiveConstraintEnforcementService constraintHandlerService, ObjectMapper mapper) {
-		return new PreEnforcePolicyEnforcementPoint(constraintHandlerService, mapper);
+			ConstraintEnforcementService constraintHandlerService) {
+		return new PreEnforcePolicyEnforcementPoint(constraintHandlerService);
 	}
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	protected PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint(PolicyDecisionPoint pdp,
-			ReactiveConstraintEnforcementService constraintHandlerService, ObjectMapper mapper,
+			ConstraintEnforcementService constraintHandlerService,
 			AuthorizationSubscriptionBuilderService subscriptionBuilder) {
-		return new PostEnforcePolicyEnforcementPoint(pdp, constraintHandlerService, mapper, subscriptionBuilder);
+		return new PostEnforcePolicyEnforcementPoint(pdp, constraintHandlerService, subscriptionBuilder);
 	}
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	protected AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
 			MethodSecurityExpressionHandler methodSecurityHandler) {
-		return new AuthorizationSubscriptionBuilderService(methodSecurityHandler, () -> mapper);
+		return new AuthorizationSubscriptionBuilderService(methodSecurityHandler, mapper);
 	}
 
 	@Bean
@@ -152,4 +154,5 @@ public class ReactiveSaplMethodSecurityConfiguration implements ImportAware {
 	void setGrantedAuthorityDefaults(GrantedAuthorityDefaults grantedAuthorityDefaults) {
 		this.grantedAuthorityDefaults = grantedAuthorityDefaults;
 	}
+
 }

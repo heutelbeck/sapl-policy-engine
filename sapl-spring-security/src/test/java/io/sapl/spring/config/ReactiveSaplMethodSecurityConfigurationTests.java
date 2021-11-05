@@ -39,7 +39,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PreEnforceAttribute;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
@@ -54,8 +54,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 	void whenRan_thenBeansArePresent() {
 		new ApplicationContextRunner().withUserConfiguration(SecurityCongiguration.class)
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-				.withBean(ReactiveConstraintEnforcementService.class,
-						() -> mock(ReactiveConstraintEnforcementService.class))
+				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(MethodSecurityMetadataSourceAdvisor.class);
@@ -71,8 +70,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 		new ApplicationContextRunner().withUserConfiguration(SecurityCongiguration.class)
 				.withBean(GrantedAuthorityDefaults.class, () -> new GrantedAuthorityDefaults("SOMETHING_"))
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-				.withBean(ReactiveConstraintEnforcementService.class,
-						() -> mock(ReactiveConstraintEnforcementService.class))
+				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(MethodSecurityMetadataSourceAdvisor.class);
@@ -87,8 +85,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 	void whenRan_thenAuthorizationSubscriptionBuilderServiceCanLazyLoadMapper() {
 		new ApplicationContextRunner().withUserConfiguration(SecurityCongiguration.class)
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-				.withBean(ReactiveConstraintEnforcementService.class,
-						() -> mock(ReactiveConstraintEnforcementService.class))
+				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
 				.withBean(ObjectMapper.class, () -> {
 					var mapper = new ObjectMapper();
 					SimpleModule module = new SimpleModule();
@@ -121,10 +118,14 @@ class ReactiveSaplMethodSecurityConfigurationTests {
 
 	@EnableReactiveSaplMethodSecurity
 	public static class SecurityCongiguration {
+
 	}
 
 	public static class TestClass {
+
 		public void publicVoid() {
 		}
+
 	}
+
 }

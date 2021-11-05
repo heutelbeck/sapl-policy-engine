@@ -23,8 +23,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * The @PreEnforce annotation establishes a policy enforcement point (PEP)
- * before the invocation of the annotated method.
+ * The @PreEnforce annotation establishes a policy enforcement point (PEP) before the
+ * invocation of the annotated method.
  */
 @Inherited
 @Documented
@@ -33,39 +33,36 @@ import java.lang.annotation.Target;
 public @interface PreEnforce {
 
 	/**
-	 * @return the Spring-EL expression to whose evaluation result is to be used as
-	 *         the subject in the authorization subscription to the PDP. If empty,
-	 *         the PEP attempts to derive a best guess to describe the subject based
-	 *         on the current Principal.
+	 * @return the Spring-EL expression to whose evaluation result is to be used as the
+	 * subject in the authorization subscription to the PDP. If empty, the PEP attempts to
+	 * derive a guess to describe the subject based on the current Principal.
 	 */
 	String subject() default "";
 
 	/**
-	 * @return the Spring-EL expression to whose evaluation result is to be used as
-	 *         the action in the authorization subscription to the PDP. If empty,
-	 *         the PEP attempts to derive a best guess to describe the action based
-	 *         on reflection.
+	 * @return the Spring-EL expression to whose evaluation result is to be used as the
+	 * action in the authorization subscription to the PDP. If empty, the PEP attempts to
+	 * derive a guess to describe the action based on reflection.
 	 */
 	String action() default "";
 
 	/**
-	 * @return the Spring-EL expression to whose evaluation result is to be used as
-	 *         the action in the authorization subscription to the PDP. If empty,
-	 *         the PEP attempts to derive a best guess to describe the resource
-	 *         based on reflection.
+	 * @return the Spring-EL expression to whose evaluation result is to be used as the
+	 * action in the authorization subscription to the PDP. If empty, the PEP attempts to
+	 * derive a guess to describe the resource based on reflection.
 	 */
 	String resource() default "";
 
 	/**
-	 * @return the Spring-EL expression to whose evaluation result is to be used as
-	 *         the action in the authorization subscription to the PDP. If empty, no
-	 *         environment is set in the subscription.
+	 * @return the Spring-EL expression to whose evaluation result is to be used as the
+	 * action in the authorization subscription to the PDP. If empty, no environment is
+	 * set in the subscription.
 	 */
 	String environment() default "";
 
 	/**
-	 * @return the type of the generics parameter of the return type being secured.
-	 *         Helps due to Java type erasure at runtime. Defaults to Object.class
+	 * @return the type of the generic parameter of the return type being secured. Helps
+	 * due to Java type erasure at runtime. Defaults to {@code Object.class}.
 	 */
 	Class<?> genericsType() default Object.class;
 

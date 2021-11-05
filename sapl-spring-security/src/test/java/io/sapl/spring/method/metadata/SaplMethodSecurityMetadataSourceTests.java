@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.spring.method.metadata;
 
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
@@ -37,7 +52,7 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	@Test
-	void whenInspectedISObjectr_ThenReturnsEmptycollection() throws NoSuchMethodException, SecurityException {
+	void whenInspectedIsObject_ThenReturnsEmptycollection() throws NoSuchMethodException, SecurityException {
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
 		var method = Object.class.getMethod("toString");
 		assertThat(sut.getAttributes(method, Object.class), is(empty()));
@@ -52,8 +67,10 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	protected static class NoAnnotations {
+
 		public void doSomething() {
 		}
+
 	}
 
 	@Test
@@ -61,9 +78,11 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		@PreEnforce(subject = "'onClass'")
 		class TestClass {
+
 			@SuppressWarnings("unused")
 			public void doSomething() {
 			}
+
 		}
 
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
@@ -78,9 +97,11 @@ class SaplMethodSecurityMetadataSourceTests {
 	void whenAnnotationOnMethodOnly_ThenReturnsThat() throws NoSuchMethodException, SecurityException {
 
 		class TestClass {
+
 			@PreEnforce(subject = "'onMethod'")
 			public void doSomething() {
 			}
+
 		}
 
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
@@ -97,9 +118,11 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		@PreEnforce(subject = "'onClass'")
 		class TestClass {
+
 			@PreEnforce(subject = "'onMethod'")
 			public void doSomething() {
 			}
+
 		}
 
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
@@ -112,16 +135,20 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	interface TestInterfaceAnnotatedOnMethod {
+
 		@PreEnforce(subject = "'onInterfaceMethod'")
 		void doSomething();
+
 	}
 
 	@Test
 	void whenAnnotationOnlyOnInterfaceMethod_ThenReturnsThat() throws NoSuchMethodException, SecurityException {
 
 		class TestClass implements TestInterfaceAnnotatedOnMethod {
+
 			public void doSomething() {
 			}
+
 		}
 
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
@@ -135,15 +162,19 @@ class SaplMethodSecurityMetadataSourceTests {
 
 	@PreEnforce(subject = "'onInterface'")
 	interface TestInterfaceAnnotatedOnInterface {
+
 		void doSomething();
+
 	}
 
 	@Test
 	void whenAnnotationOnlyOnInterface_ThenReturnsThat() throws NoSuchMethodException, SecurityException {
 
 		class TestClass implements TestInterfaceAnnotatedOnInterface {
+
 			public void doSomething() {
 			}
+
 		}
 
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
@@ -156,8 +187,10 @@ class SaplMethodSecurityMetadataSourceTests {
 
 	@PreEnforce(subject = "'onInterface'")
 	interface TestInterfaceAnnotatedOnInterfaceAndMethod {
+
 		@PreEnforce(subject = "'onInterfaceMethod'")
 		void doSomething();
+
 	}
 
 	@Test
@@ -165,8 +198,10 @@ class SaplMethodSecurityMetadataSourceTests {
 			throws NoSuchMethodException, SecurityException {
 
 		class TestClass implements TestInterfaceAnnotatedOnInterfaceAndMethod {
+
 			public void doSomething() {
 			}
+
 		}
 
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
@@ -183,9 +218,11 @@ class SaplMethodSecurityMetadataSourceTests {
 
 		@PreEnforce(subject = "'onClass'")
 		class TestClass implements TestInterfaceAnnotatedOnInterfaceAndMethod {
+
 			@PreEnforce(subject = "'onMethod'")
 			public void doSomething() {
 			}
+
 		}
 
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
@@ -200,9 +237,11 @@ class SaplMethodSecurityMetadataSourceTests {
 	void whenAnnotationOnMethod_ThenReturnsOnMetodForPost() throws NoSuchMethodException, SecurityException {
 
 		class TestClass {
+
 			@PostEnforce(subject = "'onMethod'")
 			public void doSomething() {
 			}
+
 		}
 
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
@@ -218,9 +257,11 @@ class SaplMethodSecurityMetadataSourceTests {
 			throws NoSuchMethodException, SecurityException {
 
 		class TestClass {
+
 			@EnforceTillDenied(subject = "'onMethod'")
 			public void doSomething() {
 			}
+
 		}
 
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
@@ -236,9 +277,11 @@ class SaplMethodSecurityMetadataSourceTests {
 			throws NoSuchMethodException, SecurityException {
 
 		class TestClass {
+
 			@EnforceDropWhileDenied(subject = "'onMethod'")
 			public void doSomething() {
 			}
+
 		}
 
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
@@ -254,9 +297,11 @@ class SaplMethodSecurityMetadataSourceTests {
 			throws NoSuchMethodException, SecurityException {
 
 		class TestClass {
+
 			@EnforceRecoverableIfDenied(subject = "'onMethod'")
 			public void doSomething() {
 			}
+
 		}
 
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);
@@ -268,15 +313,18 @@ class SaplMethodSecurityMetadataSourceTests {
 	}
 
 	interface DefaultMethodInterface {
+
 		@PostEnforce(subject = "'onDefaultInterfaceMethod'")
 		default void doSomething() {
 
 		};
+
 	}
 
 	@Test
 	void whenAnnotationOnDefaultMethodInInterface_ThenReturnsThat() throws NoSuchMethodException, SecurityException {
 		class TestClass implements DefaultMethodInterface {
+
 		}
 
 		var sut = new SaplMethodSecurityMetadataSource(attributeFactory);

@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.spring.subscriptions;
 
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonArray;
@@ -6,14 +21,14 @@ import static com.spotify.hamcrest.jackson.JsonMatchers.jsonNull;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonObject;
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonText;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import javax.servlet.http.HttpServletRequest;
@@ -22,7 +37,6 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -38,6 +52,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.util.MethodInvocationUtils;
+import org.springframework.security.web.server.authorization.AuthorizationContext;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ServerWebExchange;
@@ -56,8 +71,11 @@ import reactor.util.context.Context;
 public class AuthorizationSubscriptionBuilderServiceTests {
 
 	private Authentication authentication;
+
 	private AuthorizationSubscriptionBuilderService defaultBuilderUnderTest;
+
 	private MethodInvocation invocation;
+
 	private ObjectMapper mapper;
 
 	@BeforeEach
@@ -72,21 +90,25 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 				AuthorityUtils.createAuthorityList("ROLE_USER"));
 		authentication = new UsernamePasswordAuthenticationToken(user, "the credentials");
 		defaultBuilderUnderTest = new AuthorizationSubscriptionBuilderService(
-				new DefaultMethodSecurityExpressionHandler(), () -> mapper);
+				new DefaultMethodSecurityExpressionHandler(), mapper);
 		invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null, null);
 	}
 
 	@Test
-	void when_usedMultipleTimes_then_FactoryIsCalledOnlyOnce() {
-		@SuppressWarnings("unchecked")
-		var mockFactory = (ObjectFactory<ObjectMapper>) mock(ObjectFactory.class);
-		when(mockFactory.getObject()).thenReturn(mapper);
-		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-				mockFactory);
-		var attribute = attribute(null, null, null, null, Object.class);
-		sut.constructAuthorizationSubscription(authentication, invocation, attribute);
-		sut.constructAuthorizationSubscription(authentication, invocation, attribute);
-		verify(mockFactory, times(1)).getObject();
+	void when_usedForAuthorizationContext_nullContext_Fails() {
+		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), mapper);
+		assertThrows(NullPointerException.class,
+				() -> sut.reactiveConstructAuthorizationSubscription(Mono.just(authentication), null).block());
+	}
+
+	@Test
+	void when_usedForAuthorizationContext_subscriptionReturns() {
+		MockServerHttpRequest request = MockServerHttpRequest.get("/requestpath").build();
+		MockServerWebExchange exchange = MockServerWebExchange.from(request);
+		AuthorizationContext context = new AuthorizationContext(exchange);
+		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), mapper);
+		var actual = sut.reactiveConstructAuthorizationSubscription(Mono.just(authentication), context).block();
+		assertThat(actual, is(not(nullValue())));
 	}
 
 	@Test
@@ -105,8 +127,7 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 		var attribute = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
 		var mockMapper = mock(ObjectMapper.class);
 		when(mockMapper.valueToTree(any())).thenThrow(new EvaluationException("ERROR"));
-		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-				() -> mockMapper);
+		var sut = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(), mockMapper);
 		assertThrows(IllegalArgumentException.class,
 				() -> sut.constructAuthorizationSubscription(authentication, invocation, attribute));
 	}
@@ -164,12 +185,12 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 				AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 		var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(anonymous, invocation, attribute);
 		// @formatter:off
-		assertAll(() -> assertThat(subscription.getSubject(), 
+		assertAll(() -> assertThat(subscription.getSubject(),
 						  is(jsonObject()
 								  .where("name", is(jsonText("anonymous")))
 								  .where("credentials", is(jsonMissing()))
 								  .where("principal", is(jsonText("anonymous"))))),
-				  () -> assertThat(subscription.getAction(), 
+				  () -> assertThat(subscription.getAction(),
 						  is(jsonObject()
 								  .where("java", is(jsonObject()
 										.where("name", jsonText("publicVoid"))))
@@ -190,7 +211,7 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 			var request = new MockHttpServletRequest();
 			var requestAttributes = mock(ServletRequestAttributes.class);
 			when(requestAttributes.getRequest()).thenReturn(request);
-			theMock.when(() -> RequestContextHolder.getRequestAttributes()).thenReturn(requestAttributes);
+			theMock.when(RequestContextHolder::getRequestAttributes).thenReturn(requestAttributes);
 			var attribute = attribute(null, null, null, null, Object.class);
 			var subscription = defaultBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
 					attribute);
@@ -302,12 +323,12 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 		var subscription = defaultBuilderUnderTest.reactiveConstructAuthorizationSubscription(invocation, attribute)
 				.block();
 		// @formatter:off
-		assertAll(() -> assertThat(subscription.getSubject(), 
+		assertAll(() -> assertThat(subscription.getSubject(),
 						  is(jsonObject()
 								  .where("name", is(jsonText("anonymous")))
 								  .where("credentials", is(jsonMissing()))
 								  .where("principal", is(jsonText("anonymous"))))),
-				  () -> assertThat(subscription.getAction(), 
+				  () -> assertThat(subscription.getAction(),
 						  is(jsonObject()
 								  .where("java", is(jsonObject()
 										.where("name", jsonText("publicVoid"))))
@@ -327,12 +348,12 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 		var subscription = defaultBuilderUnderTest
 				.reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject").block();
 		// @formatter:off
-		assertAll(() -> assertThat(subscription.getSubject(), 
+		assertAll(() -> assertThat(subscription.getSubject(),
 						  is(jsonObject()
 								  .where("name", is(jsonText("anonymous")))
 								  .where("credentials", is(jsonMissing()))
 								  .where("principal", is(jsonText("anonymous"))))),
-				  () -> assertThat(subscription.getAction(), 
+				  () -> assertThat(subscription.getAction(),
 						  is(jsonObject()
 								  .where("java", is(jsonObject()
 										.where("name", jsonText("publicVoid"))))
@@ -354,6 +375,7 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 	}
 
 	public static class TestClass {
+
 		public void publicVoid() {
 		}
 
@@ -362,11 +384,14 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 
 		public void publicVoidProblemArg(BadForJackson param) {
 		}
+
 	}
 
 	public static class BadForJackson {
+
 		@SuppressWarnings("unused")
 		private String bad;
+
 	}
 
 	static class MockSecurityContext implements SecurityContext {
@@ -388,4 +413,5 @@ public class AuthorizationSubscriptionBuilderServiceTests {
 		}
 
 	}
+
 }

@@ -19,26 +19,24 @@ import io.sapl.interpreter.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 /**
- * A policy retrieval point is responsible for selecting all the policies
- * matching a given request.
+ * A policy retrieval point is responsible for selecting all the policies matching a given
+ * request.
  */
 public interface PolicyRetrievalPoint {
 
 	/**
-	 * Returns a {@link Flux} of policy retrieval results containing all the
-	 * policies or policy sets having a target expression that matches the given
-	 * authorization subscription. The given function context and variables
-	 * constitute the environment the target expressions are evaluated in.
-	 * 
-	 * @param subscriptionScopedEvaluationContext with scope subscription. This
-	 *                                            means, that the subscription
-	 *                                            variables are already imported
-	 *                                            into the context.
-	 * @return a {@link Flux} providing the policy retrieval results containing all
-	 *         the matching policies or policy sets. New results are only added to
-	 *         the stream if they are different from the preceding result.
+	 * Returns a {@link Flux} of policy retrieval results containing all the policies or
+	 * policy sets having a target expression that matches the given authorization
+	 * subscription. The given function context and variables constitute the environment
+	 * the target expressions are evaluated in.
+	 * @param subscriptionScopedEvaluationContext with scope subscription. This means,
+	 * that the subscription variables are already imported into the context.
+	 * @return a {@link Flux} providing the policy retrieval results containing all the
+	 * matching policies or policy sets. New results are only added to the stream if they
+	 * are different from the preceding result.
 	 */
 	Flux<PolicyRetrievalResult> retrievePolicies(EvaluationContext subscriptionScopedEvaluationContext);
 
 	void dispose();
+
 }

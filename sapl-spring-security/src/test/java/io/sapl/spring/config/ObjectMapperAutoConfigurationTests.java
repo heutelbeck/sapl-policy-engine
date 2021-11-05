@@ -26,18 +26,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 class ObjectMapperAutoConfigurationTests {
 
-
 	@Test
 	void whenRan_thenMapperIsAvailableAndModulesAreRegistered() {
 		var contextRunner = new ApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(ObjectMapperAutoConfiguration.class));
-		contextRunner
-				.run(context -> {
-					assertThat(context).hasNotFailed();
-					assertThat(context).hasSingleBean(ObjectMapper.class);
-					var mapper = context.getBean(ObjectMapper.class);
-					assertThat(mapper.writeValueAsString(new MockHttpServletRequest())).isNotEmpty();
-				});
+		contextRunner.run(context -> {
+			assertThat(context).hasNotFailed();
+			assertThat(context).hasSingleBean(ObjectMapper.class);
+			var mapper = context.getBean(ObjectMapper.class);
+			assertThat(mapper.writeValueAsString(new MockHttpServletRequest())).isNotEmpty();
+		});
 	}
 
 }

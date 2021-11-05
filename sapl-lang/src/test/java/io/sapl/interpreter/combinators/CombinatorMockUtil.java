@@ -27,6 +27,7 @@ import io.sapl.prp.PolicyRetrievalResult;
 import reactor.core.publisher.Flux;
 
 class CombinatorMockUtil {
+
 	public static PolicyRetrievalResult mockPolicyRetrievalResult(boolean errorsInTarget,
 			AuthorizationDecision... authorizationDecisions) {
 		var documents = new ArrayList<AuthorizationDecisionEvaluable>(authorizationDecisions.length);
@@ -41,4 +42,5 @@ class CombinatorMockUtil {
 		when(document.evaluate(any())).thenReturn(Flux.just(authzDecison));
 		return document;
 	}
+
 }

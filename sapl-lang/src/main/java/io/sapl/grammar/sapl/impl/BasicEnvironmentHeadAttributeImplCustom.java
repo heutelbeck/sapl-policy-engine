@@ -35,4 +35,5 @@ public class BasicEnvironmentHeadAttributeImplCustom extends BasicEnvironmentHea
 		}
 		return ctx.getAttributeCtx().evaluate(fullyQualifiedName, Val.UNDEFINED, ctx, getArguments()).take(1);
 	}
+
 }

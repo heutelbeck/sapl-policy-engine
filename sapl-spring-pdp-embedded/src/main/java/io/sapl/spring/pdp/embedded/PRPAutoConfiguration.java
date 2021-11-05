@@ -15,8 +15,6 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -45,21 +43,25 @@ import lombok.extern.slf4j.Slf4j;
 public class PRPAutoConfiguration {
 
 	private final EmbeddedPDPProperties pdpProperties;
+
 	private final PrpUpdateEventSource eventSource;
+
 	private final FunctionContext functionContext;
+
 	private final AttributeContext attributeContext;
 
 	@Bean
 	@ConditionalOnMissingBean
 	public PolicyRetrievalPoint policyRetrievalPoint()
-			throws IOException, URISyntaxException, PolicyEvaluationException {
+			throws PolicyEvaluationException {
 		log.info("Using index type: {}", pdpProperties.getIndex());
 		ImmutableParsedDocumentIndex seedIndex;
 		if (pdpProperties.getIndex() == IndexType.NAIVE) {
 			seedIndex = new NaiveImmutableParsedDocumentIndex();
-		} else {
+		}
+		else {
 			// This index type has to normalize function calls based on import statements
-			// Variables need not to be bound here. Thus, this hind of static PDP scoped
+			// Variables do not need to be bound here. Thus, this hind of static PDP scoped
 			// evaluation context is sufficient. Variables will be bound later in the
 			// subscription scoped EvaluationContext handed over for lookup.
 			seedIndex = new CanonicalImmutableParsedDocumentIndex(
@@ -67,4 +69,5 @@ public class PRPAutoConfiguration {
 		}
 		return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, eventSource);
 	}
+
 }

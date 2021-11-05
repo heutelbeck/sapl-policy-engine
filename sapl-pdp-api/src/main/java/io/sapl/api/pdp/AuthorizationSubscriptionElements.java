@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2021 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,21 +26,24 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Data structure holding IDs for the elements of an
- * {@link AuthorizationSubscription} SAPL authorization subscription).
+ * Data structure holding IDs for the elements of an {@link AuthorizationSubscription}
+ * SAPL authorization subscription.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(NON_EMPTY)
 public class AuthorizationSubscriptionElements {
-	
+
 	@NotNull
 	Integer subjectId;
+
 	@NotNull
 	Integer actionId;
+
 	@NotNull
 	Integer resourceId;
+
 	@NotNull
 	Integer environmentId;
 

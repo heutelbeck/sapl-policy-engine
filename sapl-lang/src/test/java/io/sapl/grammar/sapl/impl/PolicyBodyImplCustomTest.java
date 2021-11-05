@@ -32,6 +32,7 @@ import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
 class PolicyBodyImplCustomTest {
+
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	private EvaluationContext ctx;

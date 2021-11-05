@@ -35,6 +35,7 @@ import lombok.experimental.UtilityClass;
 public class ParameterTypeValidator {
 
 	private static final String ILLEGAL_PARAMETER_TYPE = "Illegal parameter type. Got: %s Expected: %s";
+
 	private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
 			Text.class, Array.class, JsonObject.class);
 

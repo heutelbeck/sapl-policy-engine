@@ -25,7 +25,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.pep.PolicyEnforcementPoint;
 
 class PolicyEnforcementPointAutoConfigurationTests {
@@ -35,9 +35,8 @@ class PolicyEnforcementPointAutoConfigurationTests {
 		new ApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(PolicyEnforcementPointAutoConfiguration.class))
 				.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
-				.withBean(ReactiveConstraintEnforcementService.class, () -> mock(ReactiveConstraintEnforcementService.class))
-				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class))
-				.run(context -> {
+				.withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
+				.withBean(ObjectMapper.class, () -> mock(ObjectMapper.class)).run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(PolicyEnforcementPoint.class);
 				});

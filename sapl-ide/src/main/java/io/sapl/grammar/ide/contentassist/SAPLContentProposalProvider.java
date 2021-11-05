@@ -1,12 +1,12 @@
-/**
+/*
  * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,17 +36,18 @@ import io.sapl.interpreter.InitializationException;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * This class enhances the auto completion proposals that the language server
- * offers.
+ * This class enhances the auto-completion proposals that the language server offers.
  */
 @Slf4j
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
-	private Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
-	private Collection<String> allowedKeywords = Set.of("as");
-	private Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
+	private final Collection<String> unwantedKeywords = Set.of("null", "undefined", "true", "false");
 
-	private LibraryAttributeFinder pipAttributeFinder;
+	private final Collection<String> allowedKeywords = Set.of("as");
+
+	private final Collection<String> authzSubProposals = Set.of("subject", "action", "resource", "environment");
+
+	private final LibraryAttributeFinder pipAttributeFinder;
 
 	public SAPLContentProposalProvider() throws InitializationException {
 		super();
@@ -82,8 +83,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			return;
 
 		case "import":
-			if (handleImportProposals(feature, context, acceptor))
-				return;
+			handleImportProposals(feature, context, acceptor);
+			return;
 
 		case "basic":
 			if (handleBasicProposals(feature, context, acceptor))
@@ -105,16 +106,14 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	}
 
 	private boolean handleStepProposals(String feature) {
-		if ("id".equals(feature))
-			return true;
-		return false;
+		return "id".equals(feature);
 	}
 
-	private boolean handleImportProposals(String feature, ContentAssistContext context,
+	private void handleImportProposals(String feature, ContentAssistContext context,
 			IIdeContentProposalAcceptor acceptor) {
 		// retrieve current text and cursor position
 		String policy = context.getRootNode().getText().toLowerCase();
-		Integer offset = context.getOffset();
+		int offset = context.getOffset();
 
 		Collection<String> proposals;
 		switch (feature) {
@@ -128,11 +127,11 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 		}
 
 		if (proposals.isEmpty())
-			return true;
+			return;
 
 		// add proposals to list of proposals
 		addSimpleProposals(proposals, context, acceptor);
-		return true;
+		return;
 	}
 
 	private Collection<String> createLibstepsProposals(final String policy, final int offset) {
@@ -178,7 +177,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 				var policyBody = (PolicyBodyImpl) model;
 				Collection<String> definedValues = new HashSet<>();
 
-				// iterate through defined statements which are either conditions or variables
+				// iterate through defined statements which are either conditions or
+				// variables
 				for (var statement : policyBody.getStatements()) {
 
 					// collect only variables defined above the given condition
@@ -210,7 +210,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			entry.setDescription("policy name");
 			acceptor.accept(entry, 0);
 			return true;
-		} else if ("body".equals(feature)) {
+		}
+		else if ("body".equals(feature)) {
 			addSimpleProposals(authzSubProposals, context, acceptor);
 		}
 		return false;
@@ -241,14 +242,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	}
 
 	/**
-	 * Moves up the model tree and returns closest parent that matches the given
-	 * class type.
-	 * 
-	 * @param <T>       Class type of the searched-for parent.
-	 * @param object    The current model from which the search starts.
+	 * Moves up the model tree and returns the closest parent that matches the given class
+	 * type.
+	 * @param <T> Class type of the searched-for parent.
+	 * @param object The current model from which the search starts.
 	 * @param classType Class type of the searched-for parent.
-	 * @return Returns the first parent for the given class type, or null if no
-	 *         match was found.
+	 * @return Returns the first parent for the given class type, or null if no match was
+	 * found.
 	 */
 	private <T> T goToFirstParent(EObject object, Class<T> classType) {
 		while (object != null) {
@@ -261,14 +261,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 	}
 
 	/**
-	 * Moves up the model tree and returns the highest parent that matches the given
-	 * class type.
-	 * 
-	 * @param <T>       Class type of the searched-for parent.
-	 * @param object    The current model from which the search starts.
+	 * Moves up the model tree and returns the highest parent that matches the given class
+	 * type.
+	 * @param <T> Class type of the searched-for parent.
+	 * @param object The current model from which the search starts.
 	 * @param classType Class type of the searched-for parent.
-	 * @return Returns the first parent for the given class type, or null if no
-	 *         match was found.
+	 * @return Returns the first parent for the given class type, or null if no match was
+	 * found.
 	 */
 	private <T> T goToLastParent(EObject object, Class<T> classType) {
 		EObject parent = null;
@@ -284,4 +283,5 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 			return classType.cast(parent);
 		return null;
 	}
+
 }

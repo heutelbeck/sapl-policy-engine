@@ -36,21 +36,19 @@ import reactor.util.function.Tuples;
  * Implements the conditional subscript of an array (or object), written as
  * '[?(Condition)]'.
  *
- * [?(Condition)] returns an array containing all array items (or attribute
- * values) for which Condition evaluates to true. Can be applied to both an
- * array (then it checks each item) and an object (then it checks each attribute
- * value). Condition must be an expression, in which relative expressions
- * starting with @ can be used.
+ * [?(Condition)] returns an array containing all array items (or attribute values) for
+ * which Condition evaluates to true. Can be applied to both an array (then it checks each
+ * item) and an object (then it checks each attribute value). Condition must be an
+ * expression, in which relative expressions starting with @ can be used.
  *
- * {@literal @} evaluates to the current array item or attribute value for which
- * the condition is evaluated and can be followed by further selection steps.
+ * {@literal @} evaluates to the current array item or attribute value for which the
+ * condition is evaluated and can be followed by further selection steps.
  *
- * As attributes have no order, the sorting of the result array of a condition
- * step applied to an object is not specified.
+ * As attributes have no order, the sorting of the result array of a condition step
+ * applied to an object is not specified.
  *
- * Example: Applied to the array [1, 2, 3, 4, 5], the selection step
- * [?({@literal @} &gt; 2)] returns the array [3, 4, 5] (containing all values
- * that are greater than 2).
+ * Example: Applied to the array [1, 2, 3, 4, 5], the selection step [?({@literal @} &gt;
+ * 2)] returns the array [3, 4, 5] (containing all values that are greater than 2).
  *
  * Grammar: Step: ... | '[' Subscript ']' | ... Subscript returns Step: ... |
  * {ConditionStep} '?' '(' expression=Expression ')' | ...
@@ -84,7 +82,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		var iter = object.fields();
 		while (iter.hasNext()) {
 			var field = iter.next();
-			itemFluxes.add(getExpression().evaluate(ctx, Val.of(field.getValue())).map(expressionResult -> Tuples.of(field.getValue(), expressionResult)));
+			itemFluxes.add(getExpression().evaluate(ctx, Val.of(field.getValue()))
+					.map(expressionResult -> Tuples.of(field.getValue(), expressionResult)));
 		}
 		return packageResultsInArray(itemFluxes);
 	}
@@ -97,7 +96,8 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 		// collect the fluxes providing the evaluated conditions for the array elements
 		final List<Flux<Tuple2<JsonNode, Val>>> itemFluxes = new ArrayList<>(arrayNode.size());
 		for (var value : arrayNode) {
-			itemFluxes.add(getExpression().evaluate(ctx, Val.of(value)).map(expressionResult -> Tuples.of(value, expressionResult)));
+			itemFluxes.add(getExpression().evaluate(ctx, Val.of(value))
+					.map(expressionResult -> Tuples.of(value, expressionResult)));
 		}
 		return packageResultsInArray(itemFluxes);
 	}
@@ -161,13 +161,15 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 								statement.getArguments(),
 								FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
 								Val.of(object), statement.isEach());
-					} else {
+					}
+					else {
 						// there are more steps. descent with them
 						log.trace("this step was successful. descent with next step...");
 						return statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(
 								Val.of(field.getValue()), ctx, relativeNode, stepId + 1, statement);
 					}
-				} else {
+				}
+				else {
 					return Flux.just(Val.of(field.getValue()));
 				}
 			}).map(expressionResult -> Tuples.of(field.getKey(), expressionResult)));
@@ -203,13 +205,15 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
 						return FilterComponentImplCustom.applyFilterFunction(Val.of(element), statement.getArguments(),
 								FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
 								Val.of(array), statement.isEach());
-					} else {
+					}
+					else {
 						// there are more steps. descent with them
 						log.trace("this step was successful. descent with next step...");
 						return statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(Val.of(element),
 								ctx, relativeNode, stepId + 1, statement);
 					}
-				} else {
+				}
+				else {
 					return Flux.just(Val.of(element));
 				}
 			}));

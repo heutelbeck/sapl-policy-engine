@@ -53,11 +53,15 @@ class DefaultSAPLInterpreterTest {
 			+ "\"emptyArray\" : []," + "\"textArray\" : [ \"one\", \"two\" ]," + "\"emptyObject\" : {},"
 			+ "\"objectArray\" : [ {\"id\" : \"1\", \"name\" : \"one\"}, {\"id\" : \"2\", \"name\" : \"two\"} ] " + "},"
 			+ "\"environment\" : { " + "\"ipAddress\" : \"10.10.10.254\"," + "\"year\" : 2016" + "}" + " }";
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
 	private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
 	private EvaluationContext evaluationCtx;
+
 	private AuthorizationSubscription authzSubscription;
 
 	@BeforeEach
@@ -79,19 +83,21 @@ class DefaultSAPLInterpreterTest {
 	}
 
 	@Test
+	void parseTestValidationFailsOnLazyBooleanOperatorsInTarget() {
+		var policyDocument = "policy \"test\"  permit true && false";
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDocument));
+	}
+
+	@Test
 	void brokenInputStreamTest() {
 		var brokenInputStream = mock(InputStream.class);
-		assertThrows(PolicyEvaluationException.class, () -> {
-			INTERPRETER.parse(brokenInputStream);
-		});
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(brokenInputStream));
 	}
 
 	@Test
 	void parseTestWithError() {
 		var policyDocument = "xyz";
-		assertThrows(PolicyEvaluationException.class, () -> {
-			INTERPRETER.parse(policyDocument);
-		});
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDocument));
 	}
 
 	@Test
@@ -151,9 +157,7 @@ class DefaultSAPLInterpreterTest {
 	@Test
 	void syntaxError() {
 		var policyDefinition = "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ";
-		assertThrows(PolicyEvaluationException.class, () -> {
-			INTERPRETER.parse(policyDefinition);
-		});
+		assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDefinition));
 	}
 
 	@Test

@@ -18,33 +18,33 @@ package io.sapl.spring.method.blocking;
 import org.springframework.aop.framework.AopInfrastructureBean;
 import org.springframework.beans.factory.ObjectFactory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Base logic for PreEnforce and PostEnforce advice classes. Primarily takes
- * care of lazy loading dependencies.
+ * Base logic for PreEnforce and PostEnforce advice classes. Primarily takes care of lazy
+ * loading dependencies.
  */
 @RequiredArgsConstructor
 public abstract class AbstractPolicyEnforcementPoint implements AopInfrastructureBean {
 
 	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
-	protected final ObjectFactory<ReactiveConstraintEnforcementService> constraintEnforcementServiceFactory;
-	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
+
+	protected final ObjectFactory<ConstraintEnforcementService> constraintEnforcementServiceFactory;
+
 	protected final ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
+
 	protected PolicyDecisionPoint pdp;
-	protected ReactiveConstraintEnforcementService constraintEnforcementService;
-	protected ObjectMapper mapper;
+
+	protected ConstraintEnforcementService constraintEnforcementService;
+
 	protected AuthorizationSubscriptionBuilderService subscriptionBuilder;
 
 	/**
-	 * Lazy loading of dependencies decouples security infrastructure from domain
-	 * logic in initialization. This avoids beans to become not eligible for Bean
-	 * post processing.
+	 * Lazy loading of dependencies decouples security infrastructure from domain logic in
+	 * initialization. This avoids beans to become not eligible for Bean post-processing.
 	 */
 	protected void lazyLoadDependencies() {
 		if (pdp == null)
@@ -52,9 +52,6 @@ public abstract class AbstractPolicyEnforcementPoint implements AopInfrastructur
 
 		if (constraintEnforcementService == null)
 			constraintEnforcementService = constraintEnforcementServiceFactory.getObject();
-		
-		if (mapper == null)
-			mapper = objectMapperFactory.getObject();
 
 		if (subscriptionBuilder == null)
 			subscriptionBuilder = subscriptionBuilderFactory.getObject();

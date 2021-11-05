@@ -27,7 +27,9 @@ import org.springframework.security.access.expression.method.MethodSecurityExpre
 public class SaplAttributeFactory implements AopInfrastructureBean {
 
 	private final Object parserLock = new Object();
+
 	private ExpressionParser parser;
+
 	private MethodSecurityExpressionHandler handler;
 
 	public SaplAttributeFactory(MethodSecurityExpressionHandler handler) {
@@ -67,16 +69,16 @@ public class SaplAttributeFactory implements AopInfrastructureBean {
 	private Expression parameterToExpression(String parameter) {
 		try {
 			return parameter == null || parameter.isEmpty() ? null : getParser().parseExpression(parameter);
-		} catch (ParseException e) {
+		}
+		catch (ParseException e) {
 			throw new IllegalArgumentException("Failed to parse expression '" + e.getExpressionString() + "'", e);
 		}
 	}
 
 	/**
 	 * Delay the lookup of the {@link ExpressionParser} to prevent SEC-2136.
-	 * 
+	 *
 	 * This is analog to the original spring security implementation
-	 * 
 	 * @return the parser
 	 */
 	private ExpressionParser getParser() {

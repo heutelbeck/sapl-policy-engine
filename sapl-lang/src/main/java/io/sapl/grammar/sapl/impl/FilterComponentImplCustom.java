@@ -31,6 +31,7 @@ import reactor.core.publisher.Mono;
 public class FilterComponentImplCustom extends FilterComponentImpl {
 
 	protected static final String FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES = "Filters cannot be applied to undefined values.";
+
 	private static final String TYPE_MISMATCH = "Type mismatch error. Cannot use 'each' keyword with non-array values. Value type was: ";
 
 	public static Flux<Val> applyFilterFunction(Val unfilteredValue, Arguments arguments, String functionName,

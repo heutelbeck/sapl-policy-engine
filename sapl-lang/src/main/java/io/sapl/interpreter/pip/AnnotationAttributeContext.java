@@ -30,7 +30,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 import java.lang.reflect.InvocationTargetException;
@@ -49,7 +48,6 @@ import java.util.Map;
  * This Class holds the different attribute finders and PIPs as a context during
  * evaluation.
  */
-@Slf4j
 @NoArgsConstructor
 public class AnnotationAttributeContext implements AttributeContext {
 

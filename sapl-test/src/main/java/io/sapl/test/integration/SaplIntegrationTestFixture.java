@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.test.integration;
 
 import java.nio.file.Paths;
@@ -21,46 +36,42 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	private static final String ERROR_MESSAGE_POLICY_PATH_NULL = "Null is not allowed for the Path pointing to the policies folder.";
 
-	private String pathToPoliciesFolder;
-	
+	private final String pathToPoliciesFolder;
+
 	private PolicyDocumentCombiningAlgorithm pdpAlgorithm = null;
-	
+
 	private Map<String, JsonNode> pdpVariables = null;
 
 	/**
-	 * Fixture for constructing a integration test case
-	 * 
-	 * @param policyPath path relativ to your classpath (relativ from
-	 *                   src/main/resources, ...) to the folder containing the sapl
-	 *                   documents. If your policies are located at
-	 *                   src/main/resources/yourspecialdir you only have to specify
-	 *                   "yourspecialdir".
+	 * Fixture for constructing an integration test case
+	 * @param policyPath path relative to your class path (relative from
+	 * src/main/resources, ...) to the folder containing the SAPL documents. If your
+	 * policies are located at src/main/resources/yourSpecialDirectory you only have to specify
+	 * "yourSpecialDirectory".
 	 */
 	public SaplIntegrationTestFixture(String policyPath) {
 		this.pathToPoliciesFolder = policyPath;
 	}
 
-	
 	/**
 	 * set {@link PolicyDocumentCombiningAlgorithm} for this policy integration test
 	 * @param alg the {@link PolicyDocumentCombiningAlgorithm} to be used
-	 * @return
+	 * @return the test fixture
 	 */
 	public SaplIntegrationTestFixture withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm alg) {
 		this.pdpAlgorithm = alg;
 		return this;
 	}
-	
+
 	/**
 	 * set the Variables-{@link Map} normally loaded from the pdp.json file
 	 * @param variables a {@link Map} of variables
-	 * @return
+	 * @return the test fixture
 	 */
-	public SaplIntegrationTestFixture withPDPVariables(Map<String,JsonNode> variables) {
+	public SaplIntegrationTestFixture withPDPVariables(Map<String, JsonNode> variables) {
 		this.pdpVariables = variables;
 		return this;
 	}
-
 
 	@Override
 	public GivenStep constructTestCaseWithMocks() {
@@ -89,6 +100,8 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
 	private VariablesAndCombinatorSource constructPDPConfig() {
 
-		return new ClasspathVariablesAndCombinatorSource(this.pathToPoliciesFolder, new ObjectMapper(), this.pdpAlgorithm, this.pdpVariables);
+		return new ClasspathVariablesAndCombinatorSource(this.pathToPoliciesFolder, new ObjectMapper(),
+				this.pdpAlgorithm, this.pdpVariables);
 	}
+
 }

@@ -24,7 +24,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 import org.springframework.security.access.AccessDecisionManager;
-import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.AfterInvocationProvider;
 import org.springframework.security.access.intercept.AfterInvocationManager;
 import org.springframework.security.access.intercept.AfterInvocationProviderManager;
@@ -37,11 +36,13 @@ import org.springframework.security.config.annotation.method.configuration.Globa
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.blocking.PostEnforcePolicyEnforcementPointProvider;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.method.blocking.PreEnforcePolicyEnforcementPointVoter;
+import io.sapl.spring.method.metadata.PostEnforce;
+import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttributeFactory;
 import io.sapl.spring.method.metadata.SaplMethodSecurityMetadataSource;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
@@ -49,11 +50,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * This configuration class adds blocking SAPL {@link @PreEnforce} and
- * {@link @PostEnforce} annotations to the global method security configuration.
- * 
- * Classes may extend this class to customize the defaults, but must be sure to
- * specify the {@link EnableGlobalMethodSecurity} annotation on the subclass.
+ * This configuration class adds blocking SAPL {@link PreEnforce} and {@link PostEnforce}
+ * annotations to the global method security configuration.
+ *
+ * Classes may extend this class to customize the defaults, but must be sure to specify
+ * the {@link EnableGlobalMethodSecurity} annotation on the subclass.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -62,25 +63,27 @@ import lombok.extern.slf4j.Slf4j;
 public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfiguration {
 
 	protected final ObjectFactory<PolicyDecisionPoint> pdpFactory;
-	protected final ObjectFactory<ReactiveConstraintEnforcementService> constraintHandlerFactory;
+
+	protected final ObjectFactory<ConstraintEnforcementService> constraintHandlerFactory;
+
 	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
+
 	protected final ObjectFactory<AuthorizationSubscriptionBuilderService> subscriptionBuilderFactory;
 
 	@Bean
 	protected AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService() {
-		return new AuthorizationSubscriptionBuilderService(getExpressionHandler(), objectMapperFactory);
+		return new AuthorizationSubscriptionBuilderService(getExpressionHandler(), objectMapperFactory.getObject());
 	}
 
 	@Override
 	protected AccessDecisionManager accessDecisionManager() {
 		log.debug("Blocking SAPL method level pre-invocation security activated.");
 		var baseManager = super.accessDecisionManager();
-		var decisionVoters = new ArrayList<AccessDecisionVoter<?>>();
 
-		decisionVoters.addAll(((AbstractAccessDecisionManager) baseManager).getDecisionVoters());
+		var decisionVoters = new ArrayList<>(((AbstractAccessDecisionManager) baseManager).getDecisionVoters());
 
 		var policyAdvice = new PreEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
-				objectMapperFactory, subscriptionBuilderFactory);
+				subscriptionBuilderFactory);
 		decisionVoters.add(new PreEnforcePolicyEnforcementPointVoter(policyAdvice));
 		var manager = new AffirmativeBased(decisionVoters);
 		manager.setAllowIfAllAbstainDecisions(true);
@@ -90,7 +93,7 @@ public class SaplMethodSecurityConfiguration extends GlobalMethodSecurityConfigu
 	@Override
 	protected AfterInvocationManager afterInvocationManager() {
 		log.debug("Blocking SAPL method level after-invocation security activated.");
-		var advice = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory, objectMapperFactory,
+		var advice = new PostEnforcePolicyEnforcementPoint(pdpFactory, constraintHandlerFactory,
 				subscriptionBuilderFactory);
 		var provider = new PostEnforcePolicyEnforcementPointProvider(advice);
 

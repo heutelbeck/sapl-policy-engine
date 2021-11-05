@@ -49,14 +49,19 @@ public class Val {
 	static final String ARITHMETIC_OPERATION_TYPE_MISMATCH_S = "Type mismatch. Number operation expects number values, but got: '%s'.";
 
 	public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	public static final Val UNDEFINED = new Val();
+
 	public static final Val TRUE = new Val(JSON.booleanNode(true));
+
 	public static final Val FALSE = new Val(JSON.booleanNode(false));
+
 	public static final Val NULL = Val.of(JSON.nullNode());
 
 	private final JsonNode value;
+
 	private String errorMessage;
 
 	private Val(String errorMessage) {
@@ -95,8 +100,7 @@ public class Val {
 
 	public static Val error(Throwable throwable) {
 		return (throwable.getMessage() == null || throwable.getMessage().isBlank())
-				? new Val(throwable.getClass().getSimpleName())
-				: new Val(throwable.getMessage());
+				? new Val(throwable.getClass().getSimpleName()) : new Val(throwable.getMessage());
 	}
 
 	public static Flux<Val> errorFlux(String errorMessage, Object... args) {
@@ -216,7 +220,8 @@ public class Val {
 	public <X extends Throwable> JsonNode orElseThrow(Supplier<? extends X> exceptionSupplier) throws X {
 		if (isDefined()) {
 			return value;
-		} else {
+		}
+		else {
 			throw exceptionSupplier.get();
 		}
 	}
@@ -251,7 +256,8 @@ public class Val {
 		}
 		if (left.isNumber() && right.isNumber()) {
 			return left.decimalValue().compareTo(right.decimalValue()) != 0;
-		} else {
+		}
+		else {
 			return !left.get().equals(right.get());
 		}
 	}
@@ -292,11 +298,11 @@ public class Val {
 		if (isError()) {
 			return "ERROR[" + errorMessage + "]";
 		}
-		return value != null ? String.format("Value[%s]", value.toString()) : "Value[undefined]";
+		return value != null ? String.format("Value[%s]", value) : "Value[undefined]";
 	}
 
 	public Optional<JsonNode> optional() {
-		return isDefined() ? Optional.of(value) : Optional.empty();
+		return Optional.ofNullable(value);
 	}
 
 	public static Flux<Val> fluxOfTrue() {

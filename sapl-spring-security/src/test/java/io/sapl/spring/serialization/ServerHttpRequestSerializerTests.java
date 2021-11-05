@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.spring.serialization;
 
 import static com.spotify.hamcrest.jackson.JsonMatchers.jsonArray;
@@ -23,6 +38,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
 
 class ServerHttpRequestSerializerTests {
+
 	private ObjectMapper mapper = new ObjectMapper();
 
 	private JsonNode serialize(ServerHttpRequest invocation) throws IOException {
@@ -77,25 +93,6 @@ class ServerHttpRequestSerializerTests {
 														jsonArray(containsInAnyOrder(jsonText("value2"))))))));
 	}
 
-//	@Test
-//	void whenServerNameSet_thenItIsTheSameInJson() throws IOException {
-//		var request = MockServerHttpRequest.get("/foo/bar").remoteAddress(new InetSocketAddress("sapl.io", 443)).build();
-//		var expected = "sapl.io";
-//		var request = new MockHttpServletRequest();
-//		request.setServerName(expected);
-//		var actual = serialize(request);
-//		assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.SERVER_NAME, is(jsonText(expected)))));
-//	}
-//
-//	@Test
-//	void whenServerPortSet_thenItIsTheSameInJson() throws IOException {
-//		var expected = 443;
-//		var request = new MockHttpServletRequest();
-//		request.setServerPort(expected);
-//		var actual = serialize(request);
-//		assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.SERVER_PORT, is(jsonInt(expected)))));
-//	}
-
 	@Test
 	void whenRemoteAddressSet_thenItIsTheSameInJson() throws IOException {
 		var expectedIp = "123.22.233.121";
@@ -106,15 +103,6 @@ class ServerHttpRequestSerializerTests {
 		assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.REMOTE_ADDRESS,
 				is(jsonText("/" + expectedIp + ":" + expectedPort)))));
 	}
-
-//	@Test
-//	void whenRemotePortSet_thenItIsTheSameInJson() throws IOException {
-//		var expected = 8443;
-//		var request = new MockHttpServletRequest();
-//		request.setRemotePort(expected);
-//		var actual = serialize(request);
-//		assertThat(actual, is(jsonObject().where(HttpServletRequestSerializer.REMOTE_PORT, is(jsonInt(expected)))));
-//	}
 
 	@Test
 	void whenRemoteHostSet_thenItIsTheSameInJson() throws IOException {

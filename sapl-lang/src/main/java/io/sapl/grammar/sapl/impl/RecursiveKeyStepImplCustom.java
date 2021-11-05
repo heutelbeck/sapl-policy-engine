@@ -32,9 +32,9 @@ import reactor.util.function.Tuples;
 
 /**
  * Implements the application of a recursive key step to a previous value, e.g.
- * 'obj..name' or 'arr..["name"]'.
+ * {@code 'obj..name' or 'arr..["name"]'}.
  *
- * Grammar: Step: '..' ({RecursiveKeyStep} (id=ID | '[' id=STRING ']')) ;
+ * Grammar: {@code Step: '..' ({RecursiveKeyStep} (id=ID | '[' id=STRING ']')) ;}
  */
 @Slf4j
 public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
@@ -52,10 +52,11 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
 	private ArrayNode collect(JsonNode node, ArrayNode results) {
 		if (node.isArray()) {
-			for (var item : ((ArrayNode) node)) {
+			for (var item : node) {
 				collect(item, results);
 			}
-		} else if (node.isObject()) {
+		}
+		else if (node.isObject()) {
 			if (node.has(id)) {
 				results.add(node.get(id));
 			}
@@ -76,7 +77,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
 	private static Flux<Val> applyKeyStepFilterStatement(String id, Val parentValue, EvaluationContext ctx,
 			Val relativeNode, int stepId, FilterStatement statement) {
-		log.trace("apply recusive key step '{}' to: {}", id, parentValue);
+		log.trace("apply recursive key step '{}' to: {}", id, parentValue);
 		if (parentValue.isObject()) {
 			return applyFilterStatementToObject(id, parentValue.getObjectNode(), ctx, relativeNode, stepId, statement);
 		}
@@ -107,15 +108,17 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 											FunctionUtil.resolveAbsoluteFunctionName(statement.getFsteps(), ctx), ctx,
 											Val.of(object), statement.isEach())
 									.map(val -> Tuples.of(field.getKey(), val)));
-				} else {
+				}
+				else {
 					// there are more steps. descent with them
 					log.trace("this step was successful. descent with next step...");
 					fieldFluxes.add(statement.getTarget().getSteps().get(stepId + 1)
 							.applyFilterStatement(Val.of(field.getValue()), ctx, relativeNode, stepId + 1, statement)
 							.map(val -> Tuples.of(field.getKey(), val)));
 				}
-			} else {
-				log.trace("field not matching. Do recusive search for first match.");
+			}
+			else {
+				log.trace("field not matching. Do recursive search for first match.");
 				fieldFluxes.add(
 						applyKeyStepFilterStatement(id, Val.of(field.getValue()), ctx, relativeNode, stepId, statement)
 								.map(val -> Tuples.of(field.getKey(), val)));
@@ -138,8 +141,9 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 				log.trace("array element is an object. apply this step to the object.");
 				elementFluxes.add(
 						applyFilterStatementToObject(id, (ObjectNode) element, ctx, relativeNode, stepId, statement));
-			} else {
-				log.trace("array element not an object. Do recusive search for first match.");
+			}
+			else {
+				log.trace("array element not an object. Do recursive search for first match.");
 				elementFluxes
 						.add(applyKeyStepFilterStatement(id, Val.of(element), ctx, relativeNode, stepId, statement));
 			}

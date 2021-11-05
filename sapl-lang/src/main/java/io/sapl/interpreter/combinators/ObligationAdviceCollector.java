@@ -30,6 +30,7 @@ public class ObligationAdviceCollector {
 	private final static JsonNodeFactory JSON = JsonNodeFactory.instance;
 
 	final Map<Decision, ArrayNode> obligations = new EnumMap<>(Decision.class);
+
 	final Map<Decision, ArrayNode> advice = new EnumMap<>(Decision.class);
 
 	public ObligationAdviceCollector() {

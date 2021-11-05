@@ -28,11 +28,16 @@ import lombok.RequiredArgsConstructor;
 @NoArgsConstructor
 @RequiredArgsConstructor
 public class PolicyInformationPointDocumentation implements Serializable {
+
 	@NonNull
 	String name;
+
 	@NonNull
 	String description;
+
 	@NonNull
 	Object policyInformationPoint;
+
 	Map<String, String> documentation = new HashMap<>();
+
 }

@@ -34,32 +34,34 @@ import reactor.core.publisher.Mono;
 public class SAPLImplCustom extends SAPLImpl {
 
 	private static final String IMPORT_EXISTS = "An import for name '%s' already exists.";
+
 	private static final String IMPORT_NOT_FOUND = "Import '%s' was not found.";
+
 	private static final String WILDCARD_IMPORT_EXISTS = "Wildcard import of '%s' not possible as an import for name '%s' already exists.";
+
 	private static final String LIBRARY_IMPORT_EXISTS = "Library import of '%s' not possible as an import for name '%s' already exists.";
 
 	@Override
 	public Mono<Val> matches(EvaluationContext subscriptionScopedEvaluationContext) {
 		try {
 			return getPolicyElement().matches(documentScopedEvaluationContext(subscriptionScopedEvaluationContext));
-		} catch (PolicyEvaluationException e) {
-			log.trace("| | |-- Error during matching: {}", e.getMessage());
+		}
+		catch (PolicyEvaluationException e) {
 			return Mono.just(Val.error(e));
 		}
 	}
 
 	@Override
 	public Flux<AuthorizationDecision> evaluate(EvaluationContext subscriptionScopedEvaluationContext) {
-		log.trace("| | |-- SAPL Evaluate: {} ({})", getPolicyElement().getSaplName(),
-				getPolicyElement().getClass().getName());
 		EvaluationContext documentScopedEvaluationContext;
 		try {
 			documentScopedEvaluationContext = documentScopedEvaluationContext(subscriptionScopedEvaluationContext);
-		} catch (PolicyEvaluationException e) {
-			log.trace("| | |-- INDETERMINATE. The imports evaluated with en error: {}", e.getMessage());
+		}
+		catch (PolicyEvaluationException e) {
+			log.debug("  |- INDETERMINATE. The imports evaluated with en error: {}", e.getMessage());
 			return Flux.just(AuthorizationDecision.INDETERMINATE);
 		}
-		return getPolicyElement().evaluate(documentScopedEvaluationContext).doOnNext(this::logAuthzDecision);
+		return getPolicyElement().evaluate(documentScopedEvaluationContext);
 	}
 
 	@Override
@@ -81,11 +83,13 @@ public class SAPLImplCustom extends SAPLImpl {
 		if (anImport instanceof WildcardImport) {
 			addWildcardImports(imports, library, subscriptionScopedEvaluationContext.getAttributeCtx());
 			addWildcardImports(imports, library, subscriptionScopedEvaluationContext.getFunctionCtx());
-		} else if (anImport instanceof LibraryImport) {
+		}
+		else if (anImport instanceof LibraryImport) {
 			var alias = ((LibraryImport) anImport).getLibAlias();
 			addLibraryImports(imports, library, alias, subscriptionScopedEvaluationContext.getAttributeCtx());
 			addLibraryImports(imports, library, alias, subscriptionScopedEvaluationContext.getFunctionCtx());
-		} else
+		}
+		else
 			addBasicImport(anImport, library, imports, subscriptionScopedEvaluationContext);
 	}
 
@@ -124,10 +128,6 @@ public class SAPLImplCustom extends SAPLImpl {
 			if (imports.put(key, String.join(".", library, name)) != null)
 				throw new PolicyEvaluationException(LIBRARY_IMPORT_EXISTS, library, name);
 		}
-	}
-
-	private void logAuthzDecision(AuthorizationDecision r) {
-		log.trace("| | |-- {} document {} evaluated to: {}", r.getDecision(), getPolicyElement().getSaplName(), r);
 	}
 
 }

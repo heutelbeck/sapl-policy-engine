@@ -27,8 +27,8 @@ import reactor.core.publisher.Flux;
 /**
  * Implements the numerical division operator, written as '/' in Expressions.
  *
- * Grammar: Multiplication returns Expression: Comparison (({Multi.left=current}
- * '*' | {Div.left=current} '/' | {And.left=current} '&amp;&amp;' | '&amp;'
+ * Grammar: Multiplication returns Expression: Comparison (({Multi.left=current} '*' |
+ * {Div.left=current} '/' | {And.left=current} '&amp;&amp;' | '&amp;'
  * {EagerAnd.left=current}) right=Comparison)* ;
  */
 public class DivImplCustom extends DivImpl {

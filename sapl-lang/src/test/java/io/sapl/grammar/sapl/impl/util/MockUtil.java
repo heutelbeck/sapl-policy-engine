@@ -43,6 +43,7 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.core.publisher.Flux;
 
 public class MockUtil {
+
 	private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
 
 	public static void mockPolicyTargetExpressionContainerExpression(Expression expression) {
@@ -66,7 +67,8 @@ public class MockUtil {
 			functionCtx.loadLibrary(new SimpleFunctionLibrary());
 			functionCtx.loadLibrary(new FilterFunctionLibrary());
 			functionCtx.loadLibrary(new TestFunctionLibrary());
-		} catch (InitializationException e) {
+		}
+		catch (InitializationException e) {
 			fail("The loading of function libraries for the test environemnt failed: " + e.getMessage());
 		}
 		var variables = new HashMap<String, JsonNode>(1);
@@ -82,6 +84,7 @@ public class MockUtil {
 
 	@FunctionLibrary(name = "mock")
 	public static class TestFunctionLibrary {
+
 		@Function
 		public Val nil(Val... parameters) {
 			return Val.NULL;
@@ -109,6 +112,7 @@ public class MockUtil {
 				array.add(param.get());
 			return Val.of(array);
 		}
+
 	}
 
 	@PolicyInformationPoint(name = "test")

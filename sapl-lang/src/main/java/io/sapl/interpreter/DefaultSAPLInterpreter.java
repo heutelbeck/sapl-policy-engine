@@ -15,7 +15,24 @@
  */
 package io.sapl.interpreter;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
+
+import org.eclipse.emf.common.util.Diagnostic;
+import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.common.util.WrappedException;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.util.Diagnostician;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+import org.eclipse.xtext.resource.XtextResourceSet;
+import org.reactivestreams.Publisher;
+
 import com.google.inject.Injector;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -24,18 +41,7 @@ import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SAPL;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.URI;
-import org.eclipse.emf.common.util.WrappedException;
-import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.resource.XtextResourceSet;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.function.Function;
 
 /**
  * The default implementation of the SAPLInterpreter interface.
@@ -43,79 +49,97 @@ import java.util.function.Function;
 @Slf4j
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
-    private static final String DUMMY_RESOURCE_URI = "policy:/apolicy.sapl";
-    private static final String PARSING_ERRORS = "Parsing errors: %s";
+	private static final String DUMMY_RESOURCE_URI = "policy:/aPolicy.sapl";
 
-    private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
+	private static final String PARSING_ERRORS = "Parsing errors: %s";
 
-    @Override
-    public SAPL parse(String saplDefinition) {
-        return parse(new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8)));
-    }
+	private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
 
-    @Override
-    public SAPL parse(InputStream saplInputStream) {
-        return loadAsResource(saplInputStream);
-    }
+	@Override
+	public SAPL parse(String saplDefinition) {
+		return parse(new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8)));
+	}
 
-    @Override
-    public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDefinition,
-                                                EvaluationContext evaluationCtx) {
-        final SAPL saplDocument;
-        try {
-            saplDocument = parse(saplDefinition);
-        } catch (PolicyEvaluationException e) {
-            log.error("Error in policy parsing: {}", e.getMessage());
-            return Flux.just(AuthorizationDecision.INDETERMINATE);
-        }
-        var subscriptionScopedEvaluationCtx = evaluationCtx.forAuthorizationSubscription(authzSubscription);
-        return saplDocument.matches(subscriptionScopedEvaluationCtx).flux()
-                .switchMap(evaluateBodyIfMatching(saplDocument, subscriptionScopedEvaluationCtx));
+	@Override
+	public SAPL parse(InputStream saplInputStream) {
+		var sapl = loadAsResource(saplInputStream);
+		var diagnostic = Diagnostician.INSTANCE.validate(sapl);
+		if (diagnostic.getSeverity() == Diagnostic.OK)
+			return sapl;
 
-    }
+		throw new PolicyEvaluationException(composeReason(diagnostic));
+	}
 
-    private Function<? super Val, Publisher<? extends AuthorizationDecision>> evaluateBodyIfMatching(
-            final SAPL saplDocument, EvaluationContext subscriptionScopedEvaluationCtx) {
-        return match -> {
-            if (match.isError())
-                return Flux.just(AuthorizationDecision.INDETERMINATE);
-            if (match.getBoolean()) {
-                return saplDocument.evaluate(subscriptionScopedEvaluationCtx);
-            }
-            return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
-        };
-    }
+	private String composeReason(Diagnostic diagnostic) {
+		var sb = new StringBuilder().append("SAPL Validation Error: [");
+		for (Diagnostic d : diagnostic.getChildren()) {
+			sb.append('[').append(NodeModelUtils.findActualNodeFor((EObject) d.getData().get(0)).getText()).append(": ")
+					.append(d.getMessage()).append(']');
+		}
+		return sb.append(']').toString();
+	}
 
-    @Override
-    public DocumentAnalysisResult analyze(String policyDefinition) {
-        SAPL saplDocument;
-        try {
-            saplDocument = parse(policyDefinition);
-        } catch (PolicyEvaluationException e) {
-            return new DocumentAnalysisResult(false, "", null, e.getMessage());
-        }
-        return new DocumentAnalysisResult(true, saplDocument.getPolicyElement().getSaplName(),
-                typeOfDocument(saplDocument), "");
-    }
+	@Override
+	public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDefinition,
+			EvaluationContext evaluationCtx) {
+		final SAPL saplDocument;
+		try {
+			saplDocument = parse(saplDefinition);
+		}
+		catch (PolicyEvaluationException e) {
+			log.error("Error in policy parsing: {}", e.getMessage());
+			return Flux.just(AuthorizationDecision.INDETERMINATE);
+		}
+		var subscriptionScopedEvaluationCtx = evaluationCtx.forAuthorizationSubscription(authzSubscription);
+		return saplDocument.matches(subscriptionScopedEvaluationCtx).flux()
+				.switchMap(evaluateBodyIfMatching(saplDocument, subscriptionScopedEvaluationCtx));
 
-    private DocumentType typeOfDocument(SAPL saplDocument) {
-        return saplDocument.getPolicyElement() instanceof PolicySet ? DocumentType.POLICY_SET : DocumentType.POLICY;
-    }
+	}
 
-    private static SAPL loadAsResource(InputStream policyInputStream) {
-        final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-        final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
+	private Function<? super Val, Publisher<? extends AuthorizationDecision>> evaluateBodyIfMatching(
+			final SAPL saplDocument, EvaluationContext subscriptionScopedEvaluationCtx) {
+		return match -> {
+			if (match.isError())
+				return Flux.just(AuthorizationDecision.INDETERMINATE);
+			if (match.getBoolean()) {
+				return saplDocument.evaluate(subscriptionScopedEvaluationCtx);
+			}
+			return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
+		};
+	}
 
-        try {
-            resource.load(policyInputStream, resourceSet.getLoadOptions());
-        } catch (IOException | WrappedException e) {
-            throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
-        }
+	@Override
+	public DocumentAnalysisResult analyze(String policyDefinition) {
+		SAPL saplDocument;
+		try {
+			saplDocument = parse(policyDefinition);
+		}
+		catch (PolicyEvaluationException e) {
+			return new DocumentAnalysisResult(false, "", null, e.getMessage());
+		}
+		return new DocumentAnalysisResult(true, saplDocument.getPolicyElement().getSaplName(),
+				typeOfDocument(saplDocument), "");
+	}
 
-        if (!resource.getErrors().isEmpty()) {
-            throw new PolicyEvaluationException(PARSING_ERRORS, resource.getErrors());
-        }
-        return (SAPL) resource.getContents().get(0);
-    }
+	private DocumentType typeOfDocument(SAPL saplDocument) {
+		return saplDocument.getPolicyElement() instanceof PolicySet ? DocumentType.POLICY_SET : DocumentType.POLICY;
+	}
+
+	private static SAPL loadAsResource(InputStream policyInputStream) {
+		final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
+		final Resource resource = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
+
+		try {
+			resource.load(policyInputStream, resourceSet.getLoadOptions());
+		}
+		catch (IOException | WrappedException e) {
+			throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
+		}
+
+		if (!resource.getErrors().isEmpty()) {
+			throw new PolicyEvaluationException(PARSING_ERRORS, resource.getErrors());
+		}
+		return (SAPL) resource.getContents().get(0);
+	}
 
 }

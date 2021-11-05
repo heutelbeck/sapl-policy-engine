@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright © 2021 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,8 +42,11 @@ import lombok.ToString;
 public class AuthorizationDecision {
 
 	public static final AuthorizationDecision PERMIT = new AuthorizationDecision(Decision.PERMIT);
+
 	public static final AuthorizationDecision DENY = new AuthorizationDecision(Decision.DENY);
+
 	public static final AuthorizationDecision INDETERMINATE = new AuthorizationDecision(Decision.INDETERMINATE);
+
 	public static final AuthorizationDecision NOT_APPLICABLE = new AuthorizationDecision(Decision.NOT_APPLICABLE);
 
 	@NotNull
@@ -59,9 +62,8 @@ public class AuthorizationDecision {
 	Optional<ArrayNode> advice = Optional.empty();
 
 	/**
-	 * @param decision Creates an immutable authorization decision with 'decision'
-	 *                 as value, and without any resource, advice, or obligations.
-	 *                 Must not be null.
+	 * @param decision Creates an immutable authorization decision with 'decision' as
+	 * value, and without any resource, advice, or obligations. Must not be null.
 	 */
 	public AuthorizationDecision(@NonNull Decision decision) {
 		this.decision = decision;
@@ -69,9 +71,9 @@ public class AuthorizationDecision {
 
 	/**
 	 * @param newObligations a JSON array containing obligations.
-	 * @return new immutable decision object, replacing the obligations of the
-	 *         original object with newObligations. If the array is empty, no
-	 *         obligations will be present, not even an empty array.
+	 * @return new immutable decision object, replacing the obligations of the original
+	 * object with newObligations. If the array is empty, no obligations will be present,
+	 * not even an empty array.
 	 */
 	public AuthorizationDecision withObligations(@NonNull ArrayNode newObligations) {
 		return new AuthorizationDecision(decision, resource,
@@ -80,9 +82,9 @@ public class AuthorizationDecision {
 
 	/**
 	 * @param newAdvice a JSON array containing advice.
-	 * @return new immutable decision object, replacing the advice of the original
-	 *         object with newAdvice. If the array is empty, no advice will be
-	 *         present, not even an empty array.
+	 * @return new immutable decision object, replacing the advice of the original object
+	 * with newAdvice. If the array is empty, no advice will be present, not even an empty
+	 * array.
 	 */
 	public AuthorizationDecision withAdvice(@NonNull ArrayNode newAdvice) {
 		return new AuthorizationDecision(decision, resource, obligations,
@@ -91,17 +93,15 @@ public class AuthorizationDecision {
 
 	/**
 	 * @param newResource a JSON object, must nor be null.
-	 * @return new immutable decision object, replacing the resource with
-	 *         newResource.
+	 * @return new immutable decision object, replacing the resource with newResource.
 	 */
 	public AuthorizationDecision withResource(@NonNull JsonNode newResource) {
 		return new AuthorizationDecision(decision, Optional.of(newResource), obligations, advice);
 	}
 
 	/**
-	 * @param newResource a JSON object, must nor be null.
-	 * @return new immuatable decision object, replacing the resource with
-	 *         newResource.
+	 * @param newDecision a Decision value.
+	 * @return new immutable decision object, replacing the resource with newResource.
 	 */
 	public AuthorizationDecision withDecision(@NonNull Decision newDecision) {
 		return new AuthorizationDecision(newDecision, resource, obligations, advice);

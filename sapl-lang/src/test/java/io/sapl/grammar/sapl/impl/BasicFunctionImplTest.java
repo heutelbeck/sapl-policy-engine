@@ -24,6 +24,7 @@ import io.sapl.grammar.sapl.impl.util.MockUtil;
 import io.sapl.interpreter.EvaluationContext;
 
 class BasicFunctionImplTest {
+
 	private static final EvaluationContext CTX = MockUtil.constructTestEnvironmentPdpScopedEvaluationContext();
 
 	@Test
@@ -40,4 +41,5 @@ class BasicFunctionImplTest {
 	void basicSuccessfullEvaluationExceptionToError() {
 		expressionErrors(CTX, "mock.exception()");
 	}
+
 }

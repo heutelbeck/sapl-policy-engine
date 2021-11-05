@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.spring.subscriptions;
 
 import java.util.Optional;
@@ -5,7 +20,6 @@ import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 
 import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
@@ -15,6 +29,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.web.server.authorization.AuthorizationContext;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ServerWebExchange;
@@ -26,23 +41,26 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.SaplAttribute;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
 /**
- * This class contains the logic for SpEL expression evaluation and retrieving
- * request information from the application context or method invocation.
+ * This class contains the logic for SpEL expression evaluation and retrieving request
+ * information from the application context or method invocation.
  */
 @RequiredArgsConstructor
 public class AuthorizationSubscriptionBuilderService {
+
 	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
 	private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
 			AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 
 	private final MethodSecurityExpressionHandler expressionHandler;
-	protected final ObjectFactory<ObjectMapper> objectMapperFactory;
-	private ObjectMapper mapper;
+
+	private final ObjectMapper mapper;
 
 	public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
 			MethodInvocation methodInvocation, SaplAttribute attribute, Object returnObject) {
@@ -59,18 +77,21 @@ public class AuthorizationSubscriptionBuilderService {
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
 			SaplAttribute attribute) {
-		return Mono.deferContextual(contextView -> {
-			return constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
-					Optional.empty());
-		});
+		return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
+				attribute, contextView, Optional.empty()));
+	}
+
+	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
+			Mono<Authentication> authentication, @NonNull AuthorizationContext context) {
+		var request = context.getExchange().getRequest();
+		return authentication.defaultIfEmpty(ANONYMOUS)
+				.map(authn -> AuthorizationSubscription.of(authn, request, request, mapper));
 	}
 
 	public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
 			SaplAttribute attribute, Object returnedObject) {
-		return Mono.deferContextual(contextView -> {
-			return constructAuthorizationSubscriptionFromContextView(methodInvocation, attribute, contextView,
-					Optional.ofNullable(returnedObject));
-		});
+		return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
+				attribute, contextView, Optional.ofNullable(returnedObject)));
 	}
 
 	private Mono<? extends AuthorizationSubscription> constructAuthorizationSubscriptionFromContextView(
@@ -89,8 +110,6 @@ public class AuthorizationSubscriptionBuilderService {
 	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
 			Optional<ServerHttpRequest> serverHttpRequest, MethodInvocation methodInvocation, SaplAttribute attribute,
 			Optional<Object> returnedObject) {
-		lazyLoadDependencies();
-
 		var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
 		returnedObject.ifPresent(returnObject -> expressionHandler.setReturnObject(returnObject, evaluationCtx));
 
@@ -104,19 +123,12 @@ public class AuthorizationSubscriptionBuilderService {
 
 	private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
 			MethodInvocation methodInvocation, SaplAttribute attribute, EvaluationContext evaluationCtx) {
-		lazyLoadDependencies();
-
 		var subject = retrieveSubject(authentication, attribute, evaluationCtx);
 		var action = retrieveAction(methodInvocation, attribute, evaluationCtx, retrieveRequestObject());
 		var resource = retrieveResource(methodInvocation, attribute, evaluationCtx);
 		var environment = retrieveEnvironment(attribute, evaluationCtx);
 		return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
 				mapper.valueToTree(resource), mapper.valueToTree(environment));
-	}
-
-	private void lazyLoadDependencies() {
-		if (mapper == null)
-			mapper = objectMapperFactory.getObject();
 	}
 
 	private JsonNode retrieveSubject(Authentication authentication, SaplAttribute attr, EvaluationContext ctx) {
@@ -127,7 +139,7 @@ public class AuthorizationSubscriptionBuilderService {
 
 		// sanitize the authentication depending on the application context, the
 		// authentication may still contain credentials information, which should not be
-		// send over the wire to the PDP
+		// sent over the wire to the PDP
 
 		subject.remove("credentials");
 		var principal = subject.get("principal");
@@ -140,7 +152,8 @@ public class AuthorizationSubscriptionBuilderService {
 	private JsonNode evaluateToJson(Expression expr, EvaluationContext ctx) {
 		try {
 			return mapper.valueToTree(expr.getValue(ctx));
-		} catch (EvaluationException e) {
+		}
+		catch (EvaluationException e) {
 			throw new IllegalArgumentException("Failed to evaluate expression '" + expr.getExpressionString() + "'", e);
 		}
 	}
@@ -178,7 +191,8 @@ public class AuthorizationSubscriptionBuilderService {
 			for (Object o : arguments) {
 				try {
 					array.add(mapper.valueToTree(o));
-				} catch (IllegalArgumentException e) {
+				}
+				catch (IllegalArgumentException e) {
 					// drop of not mappable to JSON
 				}
 			}
@@ -198,7 +212,7 @@ public class AuthorizationSubscriptionBuilderService {
 	private Object retrieveResource(MethodInvocation mi) {
 		var resourceNode = mapper.createObjectNode();
 		var httpServletRequest = retrieveRequestObject();
-		// The action is in the context of a HTTP request. Adding it to the resource.
+		// The action is in the context of an HTTP request. Adding it to the resource.
 		httpServletRequest.ifPresent(servletRequest -> resourceNode.set("http", mapper.valueToTree(servletRequest)));
 		var target = serializeTargetClassDescription(mi.getThis().getClass());
 		resourceNode.set("targetClass", target);

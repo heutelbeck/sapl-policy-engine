@@ -21,6 +21,7 @@ import reactor.util.function.Tuple2;
 
 @UtilityClass
 public class RepackageUtil {
+
 	public Val recombineObject(Object[] oElements) {
 		var object = Val.JSON.objectNode();
 		for (var elem : oElements) {
@@ -51,4 +52,5 @@ public class RepackageUtil {
 		}
 		return Val.of(array);
 	}
+
 }

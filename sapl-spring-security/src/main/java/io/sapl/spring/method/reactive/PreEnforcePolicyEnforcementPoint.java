@@ -1,49 +1,50 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.spring.method.reactive;
 
 import java.util.function.Function;
 
-import org.reactivestreams.Publisher;
 import org.springframework.security.access.AccessDeniedException;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
 public class PreEnforcePolicyEnforcementPoint {
 
-	private final ReactiveConstraintEnforcementService constraintHandlerService;
-	private final ObjectMapper mapper;
+	private final ConstraintEnforcementService constraintEnforcementService;
 
-	public Flux<Object> enforce(Flux<AuthorizationDecision> authorizationDecisions, Flux<Object> resourceAccessPoint,
-			Class<?> clazz) {
-		return authorizationDecisions.take(1, true).switchMap(enforceDecision(resourceAccessPoint, clazz));
+	public <T> Flux<T> enforce(Flux<AuthorizationDecision> authorizationDecisions, Flux<T> resourceAccessPoint,
+			Class<T> clazz) {
+		return authorizationDecisions.next().flatMapMany(enforceDecision(resourceAccessPoint, clazz));
 	}
 
-	private Function<? super AuthorizationDecision, Publisher<? extends Object>> enforceDecision(
-			Flux<Object> resourceAccessPoint, Class<?> clazz) {
+	private <T> Function<AuthorizationDecision, Flux<T>> enforceDecision(Flux<T> resourceAccessPoint, Class<T> clazz) {
 		return decision -> {
-			Flux<Object> finalResourceAccessPoint = resourceAccessPoint;
+			Flux<T> finalResourceAccessPoint = resourceAccessPoint;
 			if (Decision.PERMIT != decision.getDecision())
 				finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
-			else if (decision.getResource().isPresent()) {
-				try {
-					finalResourceAccessPoint = Flux.just(mapper.treeToValue(decision.getResource().get(), clazz));
-				} catch (JsonProcessingException e) {
-					finalResourceAccessPoint = Flux.error(new AccessDeniedException(String.format(
-							"Access Denied. Error replacing Flux contents by resource from PDPs decision: %s",
-							e.getMessage())));
-				}
-			}
-			// onErrorStop is required to counter an onErrorContinue attack on the RAP. If
-			// this is omitted and a downstream consumer does onErrorContinue, the RAP may
-			// be accessed by the client.
-			return constraintHandlerService.enforceConstraintsOnResourceAccessPoint(decision, finalResourceAccessPoint)
+
+			// onErrorStop is required to counter an onErrorContinue attack on the
+			// PEP/RAP.
+			return constraintEnforcementService
+					.enforceConstraintsOfDecisionOnResourceAccessPoint(decision, finalResourceAccessPoint, clazz)
 					.onErrorStop();
 		};
 	}

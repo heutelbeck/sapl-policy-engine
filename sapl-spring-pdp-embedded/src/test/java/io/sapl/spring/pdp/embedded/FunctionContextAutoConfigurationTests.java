@@ -63,16 +63,17 @@ class FunctionContextAutoConfigurationTests {
 
 	@Test
 	void whenBadLibraryIsPresent_thenContextFailsToLoad() {
-		contextRunner.withBean(BadFunctionLibrary.class, BadFunctionLibrary::new).run(context -> {
-			assertThat(context).hasFailed();
-		});
+		contextRunner.withBean(BadFunctionLibrary.class, BadFunctionLibrary::new)
+				.run(context -> assertThat(context).hasFailed());
 	}
 
 	@FunctionLibrary
 	protected static class BadFunctionLibrary {
+
 		@Function
 		void iAmABadSignatureFunction(Integer i, Float f) {
 		}
+
 	}
 
 }

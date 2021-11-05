@@ -1,15 +1,27 @@
+/*
+ * Copyright © 2017-2021 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.spring.method.reactive;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.security.access.AccessDeniedException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ReactiveConstraintEnforcementService;
+import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.method.metadata.PostEnforceAttribute;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.RequiredArgsConstructor;
@@ -20,30 +32,23 @@ import reactor.core.publisher.Mono;
 public class PostEnforcePolicyEnforcementPoint {
 
 	private final PolicyDecisionPoint pdp;
-	private final ReactiveConstraintEnforcementService constraintHandlerService;
-	private final ObjectMapper mapper;
+
+	private final ConstraintEnforcementService constraintHandlerService;
+
 	private final AuthorizationSubscriptionBuilderService subscriptionBuilder;
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public Mono<?> postEnforceOneDecisionOnResourceAccessPoint(Mono<?> resourceAccessPoint, MethodInvocation invocation,
 			PostEnforceAttribute postEnforceAttribute) {
 		return resourceAccessPoint.flatMap(result -> {
 			Mono<AuthorizationDecision> dec = postEnforceDecision(invocation, postEnforceAttribute, result);
 			return dec.flatMap(decision -> {
-				Flux<Object> finalResourceAccessPoint = Flux.just(result);
+				var finalResourceAccessPoint = Flux.just(result);
 				if (Decision.PERMIT != decision.getDecision())
 					finalResourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
-				else if (decision.getResource().isPresent()) {
-					try {
-						finalResourceAccessPoint = Flux.just(mapper.treeToValue(decision.getResource().get(),
-								postEnforceAttribute.getGenericsType()));
-					} catch (JsonProcessingException e) {
-						finalResourceAccessPoint = Flux.error(new AccessDeniedException(String.format(
-								"Access Denied. Error replacing flux contents by resource from PDPs decision: %s",
-								e.getMessage())));
-					}
-				}
-				return constraintHandlerService
-						.enforceConstraintsOnResourceAccessPoint(decision, finalResourceAccessPoint).next();
+
+				return constraintHandlerService.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
+						(Flux) finalResourceAccessPoint, postEnforceAttribute.getGenericsType()).onErrorStop().next();
 			});
 		});
 	}
@@ -52,7 +57,7 @@ public class PostEnforcePolicyEnforcementPoint {
 			PostEnforceAttribute postEnforceAttribute, Object returnedObject) {
 		return subscriptionBuilder
 				.reactiveConstructAuthorizationSubscription(invocation, postEnforceAttribute, returnedObject)
-				.flatMapMany(authzSubscription -> pdp.decide(authzSubscription)).next();
+				.flatMapMany(pdp::decide).next();
 	}
 
 }
