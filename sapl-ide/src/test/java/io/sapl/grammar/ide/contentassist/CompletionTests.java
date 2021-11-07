@@ -18,8 +18,11 @@ package io.sapl.grammar.ide.contentassist;
 import io.sapl.grammar.ide.AbstractSaplLanguageServerTest;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
+import org.eclipse.xtext.testing.TestCompletionConfiguration;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -50,4 +53,16 @@ public class CompletionTests extends AbstractSaplLanguageServerTest {
 		}
 	}
 
+	@Test
+	public void testCompletion_PolicyNameIsEmptyString() {
+		testCompletion((TestCompletionConfiguration it) -> {
+			String policy = "policy ";
+			it.setModel(policy);
+			it.setColumn(policy.length());
+			it.setAssertCompletionList(completionList -> {
+				var expected = List.of("\"\"");
+				assertProposalsSimple(expected, completionList);
+			});
+		});
+	}
 }
