@@ -29,7 +29,6 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
-import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
@@ -41,7 +40,6 @@ public class ParameterTypeValidator {
 	private static final Set<Class<?>> VALIDATION_ANNOTATIONS = Set.of(Number.class, Int.class, Long.class, Bool.class,
 			Text.class, Array.class, JsonObject.class);
 
-	@SneakyThrows
 	public static Val validateType(Val parameterValue, Parameter parameterType) {
 		if (!hasValidationAnnotations(parameterType))
 			return parameterValue;
@@ -59,7 +57,7 @@ public class ParameterTypeValidator {
 		return parameterFlux.map(parameterValue -> validateType(parameterValue, parameterType));
 	}
 
-	private static Val validateJsonNodeType(JsonNode node, Parameter parameterType) throws IllegalParameterType {
+	private static Val validateJsonNodeType(JsonNode node, Parameter parameterType) {
 		Annotation[] annotations = parameterType.getAnnotations();
 		for (Annotation annotation : annotations)
 			if (nodeContentsMatchesTypeGivenByAnnotation(node, annotation))

@@ -118,7 +118,7 @@ public class SAPLImplCustom extends SAPLImpl {
 	private void addWildcardImports(Map<String, String> imports, String library,
 			LibraryFunctionProvider functionProvider) {
 		for (var name : functionProvider.providedFunctionsOfLibrary(library)) {
-			log.info("name="+name);
+			log.info("name=" + name);
 			if (imports.put(name, String.join(".", library, name)) != null)
 				throw new PolicyEvaluationException(WILDCARD_IMPORT_EXISTS, library, name);
 			log.info("check");
@@ -132,6 +132,11 @@ public class SAPLImplCustom extends SAPLImpl {
 			if (imports.put(key, String.join(".", library, name)) != null)
 				throw new PolicyEvaluationException(LIBRARY_IMPORT_EXISTS, library, name);
 		}
+	}
+
+	@Override
+	public String toString() {
+		return getPolicyElement().getSaplName();
 	}
 
 }
