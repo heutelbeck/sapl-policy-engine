@@ -336,7 +336,7 @@ public class Val {
 	public static Flux<Val> fluxOf(long val) {
 		return Flux.just(of(val));
 	}
-	
+
 	public static Val of(BigDecimal val) {
 		return Val.of(JSON.numberNode(val));
 	}
@@ -378,7 +378,10 @@ public class Val {
 	}
 
 	public static Flux<Boolean> toBoolean(Val value) {
-		return Flux.just(value.getBoolean());
+		if (value.isBoolean()) {
+			return Flux.just(value.get().booleanValue());
+		}
+		return Flux.error(new PolicyEvaluationException(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(value)));
 	}
 
 	public boolean getBoolean() {
@@ -387,7 +390,7 @@ public class Val {
 		}
 		throw new PolicyEvaluationException(BOOLEAN_OPERATION_TYPE_MISMATCH_S, typeOf(this));
 	}
-	
+
 	public long getLong() {
 		if (isNumber()) {
 			return value.longValue();
