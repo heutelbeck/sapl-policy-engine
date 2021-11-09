@@ -39,7 +39,6 @@ import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.EvaluationContext;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.pip.AnnotationAttributeContext.AttributeFinderMetadata;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -81,8 +80,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 	public Flux<Val> evaluateEnvironmentAttribute(String attributeName, EvaluationContext ctx, Arguments arguments) {
 		int numberOfParameters = numberOfArguments(arguments);
 		var attributeMetadata = lookupAttribute(attributeName, numberOfParameters, true);
-
-		log.info("found:" + attributeMetadata);
 
 		if (attributeMetadata == null)
 			return Flux.just(Val.error(UNKNOWN_ATTRIBUTE, attributeName));
@@ -175,8 +172,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 	private AttributeFinderMetadata lookupAttribute(String attributeName, int numberOfParameters,
 			boolean environmentAttribute) {
 		var nameMatches = newAttributeMetadataByAttributeName.get(attributeName);
-		log.info("nameMatches=" + nameMatches);
-		log.info("numberOfParameters=" + numberOfParameters);
 		if (nameMatches == null)
 			return null;
 		AttributeFinderMetadata varArgsMatch = null;
@@ -187,7 +182,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 				varArgsMatch = candidate;
 			else if (candidate.numberOfParameters == numberOfParameters)
 				return candidate;
-			log.info("***");
 		}
 		return varArgsMatch;
 	}
@@ -295,10 +289,8 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		if (attributeName.isBlank())
 			attributeName = method.getName();
-		log.info("Importing..." + attributeName);
 
 		var metadata = metadataOf(policyInformationPoint, method, attributeName);
-		log.info("meta=" + metadata);
 		var name = fullName(pipName, attributeName);
 		var attributesWithName = newAttributeMetadataByAttributeName.get(name);
 		if (attributesWithName == null) {
@@ -308,6 +300,28 @@ public class AnnotationAttributeContext implements AttributeContext {
 		assertNoCollision(attributesWithName, metadata);
 		attributesWithName.add(metadata);
 		attributeNamesByPipName.get(pipName).add(attributeName);
+		var longName = longName(annotation, pipName, metadata);
+		pipDocs.documentation.put(longName, annotation.docs());
+	}
+
+	private String longName(Attribute annotation, String pipName, AttributeFinderMetadata metadata) {
+		var sb = new StringBuilder();
+		if (!metadata.isEnvironmentAttribute())
+			sb.append("value.");
+		sb.append('<').append(pipName).append('.').append(metadata.getName());
+		if (metadata.isVarArgsParameters())
+			sb.append("(prarameters...)");
+		else if (metadata.numberOfParameters > 0) {
+			sb.append('(');
+			for (var i = 0; i < metadata.numberOfParameters; i++) {
+				sb.append("param").append(i);
+				if (i < metadata.numberOfParameters - 1)
+					sb.append(", ");
+			}
+			sb.append(')');
+		}
+		sb.append('>');
+		return sb.toString();
 	}
 
 	private void assertNoCollision(Collection<AttributeFinderMetadata> attributesWithName,
