@@ -382,7 +382,7 @@ public class AnnotationAttributeContextTests {
 			}
 
 			@Attribute
-			public Flux<Val> x(Flux<Val>... a) {
+			public Flux<Val> x(@SuppressWarnings("unchecked") Flux<Val>... a) {
 				return null;
 			}
 		}
