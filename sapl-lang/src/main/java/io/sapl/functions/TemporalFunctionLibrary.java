@@ -67,14 +67,12 @@ public class TemporalFunctionLibrary {
 
 	private static final String AT_ZONED_DT_DOC = "toZonedDateTime(TIME, ZONE_ID): Assumes, that TIME is a string representing time in ISO 8601 and ZONE a string representing a valid zone id from the IANA Time Zone Database. Returns a ZonedDateTime formed from TIME at the specified TIMEZONE, as string in ISO 8601";
 	private static final String AT_OFFSET_DT_DOC = "toOffsetDateTime(TIME, OFFSET_ID): Assumes, that TIME is a string representing time in ISO 8601 and OFFSET a ISO-8601 formatted string. Returns a OffsetDateTime formed from TIME at the specified OFFSET, as string in ISO 8601";
-	private static final String AT_LOCAL_DT_DOC = "toLocalDateTime(TIME): Assumes, that TIME is a string representing time in ISO 8601. Returns a LocalDateTime formed from TIME at the system's default zone, as string in ISO 8601";
 
 	private static final String DAY_OF_YEAR = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the day of the year. [1-366]";
 	private static final String WEEK_OF_YEAR = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the week of the year. [1-52]";
 	private static final String DAY_OF_WEEK = "Assumes, that TIME is a string representing UTC time in ISO 8601. Returns the day of the week. [SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY]";
 
 	private static final String VALID_UTC_DOC = "validUTC(TIME): Returns true, if TIME is a string representing UTC time in ISO 8601 such as '2011-12-03T10:15:30Z'.";
-	private static final String VALID_ISO_DOC = "validISO(TIME): Returns true, if TIME is a string representing time in ISO 8601 (if available,with the offset and zone ), such as '2011-12-03T10:15:30', '2011-12-03T10:15:30+01:00' or '2011-12-03T10:15:30+01:00[Europe/Paris]'.";
 
 	private static final String DURATION_OF_SECONDS = "durationOfSeconds(SECONDS): Assumes, that SECONDS is a number. Returns the respective value in milliseconds";
 	private static final String DURATION_OF_MINUTES = "durationOfSeconds(MINUTES): Assumes, that MINUTES is a number. Returns the respective value in milliseconds";
@@ -221,7 +219,7 @@ public class TemporalFunctionLibrary {
 			return Val.FALSE;
 		}
 	}
-	
+
 	/* ######## CONVERSION ######## */
 
 	@Function(docs = AT_ZONED_DT_DOC)
@@ -235,15 +233,9 @@ public class TemporalFunctionLibrary {
 	@Function(docs = AT_OFFSET_DT_DOC)
 	public static Val atOffset(@Text Val isoDateTime, @Text Val offsetId) {
 		var offsetDateTime = DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.getText(), OffsetDateTime::from);
-		return Val.of(offsetDateTime.withOffsetSameInstant(ZoneOffset.of(offsetId.getText())).toLocalDateTime()
-				.truncatedTo(ChronoUnit.SECONDS).toString());
-	}
-
-	@Function(docs = AT_LOCAL_DT_DOC)
-	public static Val atLocal(@Text Val isoDateTime) {
-		var zonedDateTime = DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.getText(), ZonedDateTime::from);
-		return Val.of(zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()
-				.truncatedTo(ChronoUnit.SECONDS).toString());
+		var offset = ZoneOffset.of(offsetId.getText());
+		return Val.of(offsetDateTime.withOffsetSameInstant(offset).toLocalDateTime().truncatedTo(ChronoUnit.SECONDS)
+				.toString());
 	}
 
 	/* ######## EXTRACT PARTS ######## */
@@ -285,8 +277,8 @@ public class TemporalFunctionLibrary {
 	}
 
 	private static ZoneId zoneIdOf(Val zone) {
-		var text = zone.getText() == null ? "" : zone.getText().trim();
-		var zoneIdStr = text.length() == 0 ? "system" : text;
+		var text = zone.getText().trim();
+		var zoneIdStr = text.isBlank() ? "system" : text;
 		if ("system".equals(zoneIdStr)) {
 			return ZoneId.systemDefault();
 		} else if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {

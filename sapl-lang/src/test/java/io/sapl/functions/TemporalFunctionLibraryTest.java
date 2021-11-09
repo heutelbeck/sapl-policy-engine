@@ -18,6 +18,7 @@ package io.sapl.functions;
 import static io.sapl.hamcrest.Matchers.val;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
@@ -30,6 +31,11 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.interpreter.Val;
 
 class TemporalFunctionLibraryTest {
+
+	@Test
+	void instantiate() {
+		assertDoesNotThrow(() -> new TemporalFunctionLibrary());
+	}
 
 	@Test
 	void nowPlusNanos() {
@@ -211,6 +217,26 @@ class TemporalFunctionLibraryTest {
 	}
 
 	@Test
+	void atZoneTest() {
+		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T13:00:00Z"), Val.of("BST")),
+				is(val("2021-11-08T19:00")));
+		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T03:00:00Z"), Val.of("CST")),
+				is(val("2021-11-07T21:00")));
+		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T03:00:00Z"), Val.of("system")), is(val()));
+		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T03:00:00Z"), Val.of("")), is(val()));
+		assertThat(TemporalFunctionLibrary.atZone(Val.of("2021-11-08T03:00:00Z"), Val.of("GMT")),
+				is(val("2021-11-08T03:00")));
+	}
+
+	@Test
+	void atOffsetTest() {
+		assertThat(TemporalFunctionLibrary.atOffset(Val.of("2021-11-08T13:00:00Z"), Val.of("-08:00")),
+				is(val("2021-11-08T05:00")));
+		assertThat(TemporalFunctionLibrary.atOffset(Val.of("2021-11-08T03:00:00Z"), Val.of("+04:00")),
+				is(val("2021-11-08T07:00")));
+	}
+
+	@Test
 	void should_return_error_for_invalid_time_arguments() {
 		assertThrowsForTwoArgs(TemporalFunctionLibrary::before);
 		assertThrowsForTwoArgs(TemporalFunctionLibrary::after);
@@ -224,7 +250,6 @@ class TemporalFunctionLibraryTest {
 		assertThrowsForTwoArgs(TemporalFunctionLibrary::atZone);
 		assertThrowsForTwoArgs(TemporalFunctionLibrary::atOffset);
 
-		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::atLocal);
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::epochSecond);
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::epochMilli);
 		assertErrorValIsReturnedOneArg(TemporalFunctionLibrary::ofEpochSecond);
