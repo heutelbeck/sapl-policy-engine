@@ -44,14 +44,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
  * This Class holds the different attribute finders and PIPs as a context during
  * evaluation.
  */
-@Slf4j
 @NoArgsConstructor
 public class AnnotationAttributeContext implements AttributeContext {
 
@@ -87,7 +85,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 		try {
 			return evaluateEnvironmentAttribute(attributeMetadata, ctx, arguments);
 		} catch (Throwable e) {
-			log.error(e.getMessage(), e);
 			return Flux.just(Val.error("Failed to evaluate attribute", new PolicyEvaluationException(e)));
 		}
 	}
@@ -292,7 +289,6 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 		var metadata = metadataOf(policyInformationPoint, method, attributeName);
 		var name = fullName(pipName, attributeName);
-		log.info("name=" + name);
 		var attributesWithName = newAttributeMetadataByAttributeName.get(name);
 		if (attributesWithName == null) {
 			attributesWithName = new ArrayList<>();
@@ -327,16 +323,12 @@ public class AnnotationAttributeContext implements AttributeContext {
 
 	private void assertNoCollision(Collection<AttributeFinderMetadata> attributesWithName,
 			AttributeFinderMetadata newAttribute) throws InitializationException {
-		log.info("!ne={}", newAttribute);
-		log.info("#" + attributesWithName.size());
 		for (var existingAttribute : attributesWithName)
 			assertNoCollisiton(newAttribute, existingAttribute);
 	}
 
 	private void assertNoCollisiton(AttributeFinderMetadata newAttribute, AttributeFinderMetadata existingAttribute)
 			throws InitializationException {
-		log.info("new={}", newAttribute);
-		log.info("old={}", existingAttribute);
 		if (existingAttribute.environmentAttribute == newAttribute.environmentAttribute
 
 				&& (existingAttribute.varArgsParameters && newAttribute.varArgsParameters

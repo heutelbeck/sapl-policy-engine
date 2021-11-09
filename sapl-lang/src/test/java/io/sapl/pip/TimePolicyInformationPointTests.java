@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.time.ZoneId;
 
 import org.junit.jupiter.api.Test;
@@ -62,12 +63,234 @@ public class TimePolicyInformationPointTests {
 	@Test
 	public void nowIsAfterTest() {
 		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
-		var ckeckpoint = Val.fluxOf("2021-11-08T14:30:00Z");
+		var checkpoint = Val.fluxOf("2021-11-08T14:30:00Z");
 		var clock = mock(Clock.class);
 		when(clock.instant()).thenReturn(startingTime);
 		var sut = new TimePolicyInformationPoint(clock);
-		StepVerifier.withVirtualTime(() -> sut.nowIsAfter(ckeckpoint)).expectNext(Val.FALSE)
+		StepVerifier.withVirtualTime(() -> sut.nowIsAfter(checkpoint)).expectNext(Val.FALSE)
 				.thenAwait(Duration.ofMinutes(91L)).expectNext(Val.TRUE).verifyComplete();
+	}
+
+	@Test
+	public void localTimeIsAlwaysAfterMidnightTest() {
+		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
+		var checkpoint = Val.fluxOf(LocalTime.MIN.toString());
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsAfter(checkpoint)).expectNext(Val.TRUE).verifyComplete();
+	}
+
+	@Test
+	public void localTimeIsNeverAfterMaxTimeTest() {
+		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
+		var checkpoint = Val.fluxOf(LocalTime.MAX.toString());
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsAfter(checkpoint)).expectNext(Val.FALSE).verifyComplete();
+	}
+
+	@Test
+	public void localTimeIsNeverBetweenForNullSizeIntervalTest() {
+		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
+		var start = Val.fluxOf("12:00");
+		var end = Val.fluxOf("12:00");
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.FALSE).verifyComplete();
+	}
+
+	@Test
+	public void localTimeIsAlwaysBetweenForMinMaxIntervalTest() {
+		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
+		var start = Val.fluxOf(LocalTime.MIN.toString());
+		var end = Val.fluxOf(LocalTime.MAX.toString());
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.TRUE).verifyComplete();
+	}
+	
+	@Test
+	public void localTimeIntervalStartsAtMinButNotTillMaxTest() {
+		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
+		var start = Val.fluxOf(LocalTime.MIN.toString());
+		var end = Val.fluxOf("22:00");
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.TRUE).thenCancel().verify();
+	}
+	
+	@Test
+	public void localTimeIntervalStartsAtMaxButNotTillMinTest() {
+		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
+		var start = Val.fluxOf(LocalTime.MAX.toString());
+		var end = Val.fluxOf("14:00");
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.TRUE).thenCancel().verify();
+	}
+
+	@Test
+	public void localTimeIsAlwaysBetweenForMaxMinIntervalTest() {
+		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
+		var start = Val.fluxOf(LocalTime.MAX.toString());
+		var end = Val.fluxOf(LocalTime.MIN.toString());
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.TRUE).verifyComplete();
+	}
+
+	@Test
+	public void localTimeBetweenStartingBeforeIntervalTest() {
+		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
+		var start = Val.fluxOf("14:00:00");
+		var end = Val.fluxOf("15:00");
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		// @formatter:off
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end))
+			.expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(1L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(1L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(23L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(1L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(23L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(1L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(23L)).expectNext(Val.TRUE)
+			.thenCancel().verify();
+		// @formatter:on
+	}
+
+	@Test
+	public void localTimeBetweenStartingBeforeIntervalReversedTest() {
+		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
+		var start = Val.fluxOf("15:00");
+		var end = Val.fluxOf("14:00:00");
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		// @formatter:off
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end))
+			.expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(1L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(1L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(23L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(1L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(23L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(1L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(23L)).expectNext(Val.FALSE)
+			.thenCancel().verify();
+		// @formatter:on
+	}
+
+	@Test
+	public void localTimeBetweenStartingInsideOfIntervalTest() {
+		var startingTime = Instant.parse("2021-11-08T15:00:00Z");
+		var start = Val.fluxOf("14:00:00");
+		var end = Val.fluxOf("16:00");
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		// @formatter:off
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end).log()) 
+			.expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(1L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(22L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(2L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(22L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(2L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(22L)).expectNext(Val.TRUE)
+			.thenCancel().verify();
+		// @formatter:on
+	}
+
+	@Test
+	public void localTimeBetweenStartingAfterIntervalTest() {
+		var startingTime = Instant.parse("2021-11-08T18:00:00Z");
+		var start = Val.fluxOf("14:00:00");
+		var end = Val.fluxOf("16:00");
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		// @formatter:off
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end).log())
+			.expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(20L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(2L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(22L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(2L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(22L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(2L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(22L)).expectNext(Val.TRUE)
+			.thenCancel().verify();
+		// @formatter:on
+	}
+
+	
+	@Test
+	public void startingTimeIsAfterStartingAfterTest() {
+		var startingTime = Instant.parse("2021-11-08T13:00:00Z");
+		var checkpoint = Val.fluxOf("12:00");
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		// @formatter:off
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsAfter(checkpoint))
+			.expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(11L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.FALSE)
+			.thenCancel().verify();
+		// @formatter:on
+	}
+
+	@Test
+	public void startingTimeIsBeforeStartingAfterTest() {
+		var startingTime = Instant.parse("2021-11-08T11:00:00Z");
+		var checkpoint = Val.fluxOf("12:00");
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		// @formatter:off
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsAfter(checkpoint))
+			.expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(1L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.FALSE)
+			.thenCancel().verify();
+		// @formatter:on
+	}
+
+	@Test
+	public void startingTimeIBeforeStartingBeforeTest() {
+		var startingTime = Instant.parse("2021-11-08T11:00:00Z");
+		var checkpoint = Val.fluxOf("12:00");
+		var clock = mock(Clock.class);
+		when(clock.instant()).thenReturn(startingTime);
+		var sut = new TimePolicyInformationPoint(clock);
+		// @formatter:off
+		StepVerifier.withVirtualTime(() -> sut.localTimeIsBefore(checkpoint))
+			.expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(1L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.TRUE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.FALSE)
+			.thenAwait(Duration.ofHours(12L)).expectNext(Val.TRUE)
+			.thenCancel().verify();
+		// @formatter:on
 	}
 
 	@Test
@@ -128,7 +351,7 @@ public class TimePolicyInformationPointTests {
 		var clock = mock(Clock.class);
 		when(clock.instant()).thenReturn(now);
 		var sut = new TimePolicyInformationPoint(clock);
-		StepVerifier.withVirtualTime(() -> sut.nowIsBefore(ckeckpoint).log()).expectNext(Val.TRUE)
+		StepVerifier.withVirtualTime(() -> sut.nowIsBefore(ckeckpoint)).expectNext(Val.TRUE)
 				.thenAwait(Duration.ofMinutes(91L)).expectNext(Val.FALSE).verifyComplete();
 	}
 

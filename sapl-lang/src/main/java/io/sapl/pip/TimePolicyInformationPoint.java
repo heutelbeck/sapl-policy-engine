@@ -15,9 +15,12 @@
  */
 package io.sapl.pip;
 
+import static java.time.temporal.ChronoUnit.MILLIS;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -80,12 +83,130 @@ public class TimePolicyInformationPoint {
 		return Val.fluxOf(ZoneId.systemDefault().toString());
 	}
 
-	@Attribute(docs = "")
+	@Attribute(docs = "Returns true, if the current time in ISO UTC is after the provided time parameter, also in ISO UTC.")
 	public Flux<Val> nowIsAfter(@Text Flux<Val> time) {
 		return time.map(this::valToInstant).switchMap(this::nowIsAfter).map(Val::of);
 	}
 
-	@Attribute(docs = "")
+	@Attribute(docs = "Returns true, if the current local time in UTC (e.g., \"17:00\") is before the providec checkpoint time.")
+	public Flux<Val> localTimeIsAfter(@Text Flux<Val> checkpoint) {
+		return checkpoint.map(Val::getText).map(LocalTime::parse).switchMap(this::localTimeIsAfter).map(Val::of);
+	}
+
+	private Flux<Boolean> localTimeIsAfter(LocalTime checkpoint) {
+		return localTimeIsAfter(localTimeUtc(), checkpoint);
+	}
+
+	private LocalTime localTimeUtc() {
+		return LocalTime.from(clock.instant().atZone(ZoneId.of("UTC")));
+	}
+
+	private Flux<Boolean> localTimeIsAfter(LocalTime now, LocalTime checkpoint) {
+
+		if (checkpoint.equals(LocalTime.MIN))
+			return Flux.just(true);
+
+		if (checkpoint.equals(LocalTime.MAX))
+			return Flux.just(false);
+
+		if (now.isAfter(checkpoint)) {
+			var initial = Flux.just(true);
+			var tillMidnight = boolAfterTimeDifference(false, now, LocalTime.MAX);
+			var initialDay = Flux.concat(initial, tillMidnight);
+			return Flux.concat(initialDay, afterCheckpointEventsFollowingDays(checkpoint));
+		}
+
+		var initial = Flux.just(false);
+		var tillCheckpoint = boolAfterTimeDifference(true, now, checkpoint);
+		var tillMidnight = boolAfterTimeDifference(false, checkpoint, LocalTime.MAX);
+		var initialDay = Flux.concat(initial, tillCheckpoint, tillMidnight);
+		return Flux.concat(initialDay, afterCheckpointEventsFollowingDays(checkpoint));
+
+	}
+
+	private Flux<Boolean> afterCheckpointEventsFollowingDays(LocalTime checkpoint) {
+		var startOfDay = boolAfterTimeDifference(true, LocalTime.MIN, checkpoint);
+		var endOfDay = boolAfterTimeDifference(false, checkpoint, LocalTime.MAX);
+		return Flux.concat(startOfDay, endOfDay).repeat();
+	}
+
+	@Attribute(docs = "Returns true, while the local UTC time (e.g., \"13:34:21\") is between the two provided times of the day. If the time of the first parameter is after the time of the second parameter, the intervall ist considered to be the one between the to times, crossing the midnight border of the days.")
+	public Flux<Val> localTimeIsBetween(@Text Flux<Val> startTime, @Text Flux<Val> endTime) {
+		var startTimes = startTime.map(Val::getText).map(LocalTime::parse);
+		var endTimes = endTime.map(Val::getText).map(LocalTime::parse);
+		return Flux.combineLatest(times -> Tuples.of((LocalTime) times[0], (LocalTime) times[1]), startTimes, endTimes)
+				.switchMap(this::localTimeIsBetween).map(Val::of);
+	}
+
+	private Flux<Boolean> localTimeIsBetween(Tuple2<LocalTime, LocalTime> startAndEnd) {
+		return nowIsBetween(startAndEnd.getT1(), startAndEnd.getT2());
+	}
+
+	private Flux<Boolean> nowIsBetween(LocalTime t1, LocalTime t2) {
+
+		if (t1.equals(t2))
+			return Flux.just(false);
+
+		if (t1.equals(LocalTime.MIN) && t2.equals(LocalTime.MAX))
+			return Flux.just(true);
+
+		if (t1.equals(LocalTime.MAX) && t2.equals(LocalTime.MIN))
+			return Flux.just(true);
+
+		var intervalWrapsAroundMidnight = t1.isAfter(t2);
+
+		if (intervalWrapsAroundMidnight)
+			return nowIsBetweenAscendingTimes(t2, t1).map(this::negate);
+
+		return nowIsBetweenAscendingTimes(t1, t2);
+	}
+
+	private boolean negate(boolean val) {
+		return !val;
+	}
+
+	private Flux<Boolean> nowIsBetweenAscendingTimes(LocalTime start, LocalTime end) {
+		var now = localTimeUtc();
+
+		Flux<Boolean> initialStates;
+		if (now.isBefore(start)) {
+			var initial = Flux.just(false);
+			var tillStart = boolAfterTimeDifference(true, now, start);
+			initialStates = Flux.concat(initial, tillStart);
+		} else if (now.isAfter(end)) {
+			var initial = Flux.just(false);
+			var timeTillIntervalStarts = Duration
+					.ofMillis(MILLIS.between(now, LocalTime.MAX) + MILLIS.between(LocalTime.MIN, start));
+			var tillStart = Flux.just(true).delayElements(timeTillIntervalStarts);
+			initialStates = Flux.concat(initial, tillStart);
+		} else {
+			// starts inside of interval
+			var initial = Flux.just(true);
+			var tillIntervalEnd = boolAfterTimeDifference(false, now, end);
+			var timeTillIntervalStarts = Duration
+					.ofMillis(MILLIS.between(end, LocalTime.MAX) + MILLIS.between(LocalTime.MIN, start));
+			var tillStart = Flux.just(true).delayElements(timeTillIntervalStarts);
+			initialStates = Flux.concat(initial, tillIntervalEnd, tillStart);
+		}
+
+		var tillEnd = boolAfterTimeDifference(false, start, end);
+		var tillStartNextDay = boolAfterTimeDifference(true, start, end);
+		var repeated = Flux.concat(tillEnd, tillStartNextDay).repeat();
+
+		return Flux.concat(initialStates, repeated);
+	}
+
+	private Flux<Boolean> boolAfterTimeDifference(boolean val, LocalTime start, LocalTime end) {
+		return Flux.just(val).delayElements(Duration.ofMillis(MILLIS.between(start, end)));
+	}
+
+	@Attribute(docs = "Returns true while the current local time in UTC is before the providec checkpoint time.")
+	public Flux<Val> localTimeIsBefore(@Text Flux<Val> checkpoint) {
+		return checkpoint.map(Val::getText).map(LocalTime::parse).switchMap(this::localTimeIsAfter).map(this::negate)
+				.map(Val::of);
+	}
+
+	@Attribute(docs = "Returns true, while the current UTC time is before the provided checkpoint time.")
 	public Flux<Val> nowIsBefore(@Text Flux<Val> time) {
 		return time.map(this::valToInstant).switchMap(this::nowIsBefore).map(Val::of);
 	}
@@ -99,7 +220,7 @@ public class TimePolicyInformationPoint {
 	}
 
 	private Flux<Boolean> nowIsBefore(Instant anInstant) {
-		return isAfter(anInstant, clock.instant()).map(bool -> !bool);
+		return isAfter(anInstant, clock.instant()).map(this::negate);
 	}
 
 	private Flux<Boolean> isAfter(Instant intstantA, Instant instantB) {
