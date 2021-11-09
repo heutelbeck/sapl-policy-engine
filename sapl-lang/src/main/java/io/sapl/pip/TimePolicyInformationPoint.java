@@ -69,7 +69,7 @@ public class TimePolicyInformationPoint {
 	}
 
 	private Duration valMsToNonZeroDuration(Val val) {
-		var duration = Duration.ofMillis(val.get().asLong());
+		var duration = Duration.ofMillis(val.getLong());
 		if (duration.isZero())
 			throw new PolicyEvaluationException("Time update interval must not be zero.");
 		return duration;
