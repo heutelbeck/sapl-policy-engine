@@ -48,16 +48,6 @@ public class TimePolicyInformationPoint {
 
 	private final Clock clock;
 
-	@Attribute(docs = "Emits the current number of seconds passed since the epoc (1. Januar 1970, 00:00 Uhr UTC). The first value is emitted instantly the follwoing timestamps are sent once every second.")
-	public Flux<Val> secondsSinceEpoc() {
-		return secondsSinceEpoc(DEFAULT_UPDATE_INTERVAL_IN_MS);
-	}
-
-	@Attribute(docs = "Emits the current number of seconds passed since the epoc (1. Januar 1970, 00:00 Uhr UTC). The first value is emitted instantly the follwoing timestamps are sent once every time the number of provided milliseconds passed.")
-	public Flux<Val> secondsSinceEpoc(@Number Flux<Val> updateIntervalInMillis) {
-		return intstantNow(updateIntervalInMillis).map(Instant::getEpochSecond).map(Val::of);
-	}
-
 	@Attribute(docs = "Emits the current date and time as an ISO8601 String in UTC. The first time is emitted instantly. After that the time is updated once every second.")
 	public Flux<Val> now() {
 		return now(DEFAULT_UPDATE_INTERVAL_IN_MS);
@@ -109,7 +99,7 @@ public class TimePolicyInformationPoint {
 	}
 
 	private Flux<Boolean> nowIsBefore(Instant anInstant) {
-		return isAfter(clock.instant(), anInstant);
+		return isAfter(anInstant, clock.instant()).map(bool -> !bool);
 	}
 
 	private Flux<Boolean> isAfter(Instant intstantA, Instant instantB) {
@@ -125,7 +115,7 @@ public class TimePolicyInformationPoint {
 		var startInstants = startTime.map(this::valToInstant);
 		var endInstants = endTime.map(this::valToInstant);
 		return Flux
-				.combineLatest(times -> Tuples.of((Instant) times[1], (Instant) times[2]), startInstants, endInstants)
+				.combineLatest(times -> Tuples.of((Instant) times[0], (Instant) times[1]), startInstants, endInstants)
 				.switchMap(this::nowIsBetween).map(Val::of);
 	}
 
@@ -137,8 +127,12 @@ public class TimePolicyInformationPoint {
 		var now = clock.instant();
 		if (now.isAfter(end))
 			return Flux.just(false);
-		if (start.isAfter(now))
-			return isAfter(now, start);
+
+		if (now.isAfter(start)) {
+			var initial = Flux.just(true);
+			var eventual = Flux.just(false).delayElements(Duration.between(now, end));
+			return Flux.concat(initial, eventual);
+		}
 
 		var initial = Flux.just(false);
 		var duringIsBetween = Flux.just(true).delayElements(Duration.between(now, start));
@@ -149,7 +143,7 @@ public class TimePolicyInformationPoint {
 
 	@Attribute(docs = "A preiodically toggling signal. Will be true for the first duration (ms) and then false for the second duration (ms). This will repeat periodically. Note, that the cycle will completely reset if the durations are updated. The attribute will forget its stat ein this case.")
 	public Flux<Val> toggle(Flux<Val> trueDurationMs, Flux<Val> falseDurationMs) {
-		return Flux.combineLatest(durations -> Tuples.of((Duration) durations[1], (Duration) durations[2]),
+		return Flux.combineLatest(durations -> Tuples.of((Duration) durations[0], (Duration) durations[1]),
 				trueDurationMs.map(this::valMsToNonZeroDuration), falseDurationMs.map(this::valMsToNonZeroDuration))
 				.switchMap(this::toggle).map(Val::of);
 	}
@@ -157,7 +151,7 @@ public class TimePolicyInformationPoint {
 	private Flux<Boolean> toggle(Tuple2<Duration, Duration> durations) {
 		var initial = Flux.just(true);
 		var waitTillFalse = Flux.just(false).delayElements(durations.getT1());
-		var waitTillTrue = Flux.just(false).delayElements(durations.getT2());
+		var waitTillTrue = Flux.just(true).delayElements(durations.getT2());
 		var repeatingTail = Flux.concat(waitTillFalse, waitTillTrue).repeat();
 		return Flux.concat(initial, repeatingTail);
 	}

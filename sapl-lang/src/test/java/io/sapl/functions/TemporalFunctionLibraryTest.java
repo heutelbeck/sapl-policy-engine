@@ -166,10 +166,6 @@ class TemporalFunctionLibraryTest {
 		assertThat(TemporalFunctionLibrary.localSecond(timeValOf("2021-11-08T13:00:23Z")), is(val(23)));
 	}
 
-	private static Val timeValOf(String utcIsoTime) {
-		return Val.of(Instant.parse(utcIsoTime).toString());
-	}
-
 	@Test
 	void epocSecondTest() {
 		assertThat(TemporalFunctionLibrary.epochSecond(timeValOf("2021-11-08T13:00:00Z")), is(val(1_636_376_400L)));
@@ -299,4 +295,7 @@ class TemporalFunctionLibraryTest {
 		assertThrows(Exception.class, () -> function.apply(Val.of("abc"), Val.of("def")));
 	}
 
+	private static Val timeValOf(String utcIsoTime) {
+		return Val.of(Instant.parse(utcIsoTime).toString());
+	}
 }

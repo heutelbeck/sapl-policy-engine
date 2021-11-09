@@ -333,6 +333,10 @@ public class Val {
 		return Flux.just(of(val));
 	}
 
+	public static Flux<Val> fluxOf(long val) {
+		return Flux.just(of(val));
+	}
+	
 	public static Val of(BigDecimal val) {
 		return Val.of(JSON.numberNode(val));
 	}
